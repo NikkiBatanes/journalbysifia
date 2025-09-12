@@ -92,17 +92,17 @@ export interface Theme {
     heartRed: string;
   };
   typography: {
-    h1: { fontSize: number; lineHeight: number; fontWeight: string };
-    h2: { fontSize: number; lineHeight: number; fontWeight: string };
-    h3: { fontSize: number; lineHeight: number; fontWeight: string };
-    h4: { fontSize: number; lineHeight: number; fontWeight: string };
-    h5: { fontSize: number; lineHeight: number; fontWeight: string };
-    h6: { fontSize: number; lineHeight: number; fontWeight: string };
-    body1: { fontSize: number; lineHeight: number; fontWeight: string };
-    body2: { fontSize: number; lineHeight: number; fontWeight: string };
-    caption: { fontSize: number; lineHeight: number; fontWeight: string };
-    button: { fontSize: number; lineHeight: number; fontWeight: string };
-    label: { fontSize: number; lineHeight: number; fontWeight: string };
+    h1: { fontSize: number; lineHeight: number; fontFamily: string };
+    h2: { fontSize: number; lineHeight: number; fontFamily: string };
+    h3: { fontSize: number; lineHeight: number; fontFamily: string };
+    h4: { fontSize: number; lineHeight: number; fontFamily: string };
+    h5: { fontSize: number; lineHeight: number; fontFamily: string };
+    h6: { fontSize: number; lineHeight: number; fontFamily: string };
+    body1: { fontSize: number; lineHeight: number; fontFamily: string };
+    body2: { fontSize: number; lineHeight: number; fontFamily: string };
+    caption: { fontSize: number; lineHeight: number; fontFamily: string };
+    button: { fontSize: number; lineHeight: number; fontFamily: string };
+    label: { fontSize: number; lineHeight: number; fontFamily: string };
   };
   currentFont?: string;
   fontFamily?: string;

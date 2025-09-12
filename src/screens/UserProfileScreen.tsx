@@ -50,7 +50,6 @@ interface UsageTracking {
 }
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
-import { getFontFamily } from '../theme/fonts';
 import { notificationManagementService, NotificationPreferences } from '../services/notificationManagementService';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useFamilySubscription } from '../hooks/useFamilySubscription';
@@ -87,12 +86,8 @@ interface ProfileStats {
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, signOut, updatePreferences, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
-  const fontMedium = getFontFamily(fontKey, 'medium');
-  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
-  const fontBold = getFontFamily(fontKey, 'bold');
+  const theme = useTheme();
+  const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
   
@@ -622,16 +617,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setFeatureModal(false); }}>
-            <Text style={[styles.cancelText, { fontFamily: fontRegular }]}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { fontFamily: fontBold }]}>Suggest a Feature</Text>
+          <Text style={[styles.modalTitle, font]}>Suggest a Feature</Text>
           <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSubmitFeature(); }}>
-            <Text style={[styles.saveText, { fontFamily: fontRegular }]}>Submit</Text>
+            <Text style={[styles.saveText, font]}>Submit</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.modalContent}>
-          <Text style={[styles.sectionLabel, { fontFamily: fontBold }]}>Category</Text>
+          <Text style={[styles.sectionLabel, font]}>Category</Text>
           <View style={styles.settingChipsRow}>
             {FEATURE_CATEGORIES.map(cat => {
               const active = featureCategory === cat;
@@ -641,7 +636,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   onPress={() => { try { triggerLightHaptic(); } catch {}; setFeatureCategory(cat); }}
                   style={[styles.chip, active && styles.chipActive]}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive, { fontFamily: fontSemiBold }]}>{cat}</Text>
+                  <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{cat}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -649,7 +644,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={{ height: 12 }} />
           <TextInput
-            style={[styles.bugInput, { fontFamily: fontRegular }]}
+            style={[styles.bugInput, font]}
             placeholder="Describe the feature you'd like to see..."
             placeholderTextColor={'rgba(255,255,255,0.6)'}
             multiline
@@ -657,7 +652,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setFeatureText}
             textAlignVertical="top"
           />
-          <Text style={[styles.bugHint, { fontFamily: fontRegular }]}>Picking a category helps us triage suggestions faster.</Text>
+          <Text style={[styles.bugHint, font]}>Picking a category helps us triage suggestions faster.</Text>
         </View>
       </SafeAreaView>
     </Modal>
@@ -672,21 +667,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setAppearanceModal(false); }}>
-            <Text style={[styles.cancelText, { fontFamily: fontRegular }]}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { fontFamily: fontRegular }]}>Appearance</Text>
+          <Text style={[styles.modalTitle, font]}>Appearance</Text>
           <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSaveAppearance(); }}>
-            <Text style={[styles.saveText, { fontFamily: fontRegular }]}>Save</Text>
+            <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.modalContent}>
-          <Text style={[styles.settingDescription, { fontFamily: fontRegular }]}>
+          <Text style={[styles.settingDescription, font]}>
             Choose your preferred theme and font. Changes will apply when you tap Save.
           </Text>
 
           <View style={styles.settingItemColumn}>
-            <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Theme</Text>
+            <Text style={[styles.settingLabel, font]}>Theme</Text>
             <View style={styles.settingChipsRow}>
               {(
                 [
@@ -706,7 +701,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     accessibilityRole="button"
                     accessibilityLabel={`Set theme to ${opt.label}`}
                   >
-                    <Text style={[styles.chipText, active && styles.chipTextActive, { fontFamily: fontRegular }]}>{opt.label}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{opt.label}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -714,7 +709,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.settingItemColumn}>
-            <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Font</Text>
+            <Text style={[styles.settingLabel, font]}>Font</Text>
             <View style={styles.settingChipsRow}>
               {(
                 [
@@ -733,12 +728,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     accessibilityRole="button"
                     accessibilityLabel={`Set font to ${fontOption.label}`}
                   >
-                    <Text style={[styles.chipText, active && styles.chipTextActive, { fontFamily: fontRegular }]}>{fontOption.label}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{fontOption.label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-            <Text style={[styles.fontNote, { fontFamily: fontRegular }]}>Lexend font is specially designed to improve reading proficiency</Text>
+            <Text style={[styles.fontNote, font]}>Lexend font is specially designed to improve reading proficiency</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -754,17 +749,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setReportBugModal(false); }}>
-            <Text style={[styles.cancelText, { fontFamily: fontRegular }]}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { fontFamily: fontRegular }]}>Report a Bug</Text>
+          <Text style={[styles.modalTitle, font]}>Report a Bug</Text>
           <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSubmitBug(); }}>
-            <Text style={[styles.saveText, { fontFamily: fontRegular }]}>Submit</Text>
+            <Text style={[styles.saveText, font]}>Submit</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.modalContent}>
           <TextInput
-            style={[styles.bugInput, { fontFamily: fontRegular }]}
+            style={[styles.bugInput, font]}
             placeholder="Please report your issue..."
             placeholderTextColor={'rgba(255,255,255,0.6)'}
             multiline
@@ -773,7 +768,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             textAlignVertical="top"
             autoFocus
           />
-          <Text style={[styles.bugHint, { fontFamily: fontRegular }]}>We'll take your reported issues into account to improve siFia.</Text>
+          <Text style={[styles.bugHint, font]}>We'll take your reported issues into account to improve siFia.</Text>
         </View>
       </SafeAreaView>
     </Modal>
@@ -1294,21 +1289,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.counterHeader}>
               <Ionicons name="book-outline" size={18} color={Colors.primary} />
             </View>
-            <Text style={[styles.counterNumbers, { fontFamily: fontRegular }]}>{playbookUsed} / {playbookLimit}</Text>
+            <Text style={[styles.counterNumbers, font]}>{playbookUsed} / {playbookLimit}</Text>
             <View style={styles.progressTrack}><View style={[styles.progressValue, { width: `${playbookPct * 100}%` }]} /></View>
           </View>
           <View style={styles.counterCard}>
             <View style={styles.counterHeader}>
               <Ionicons name="heart-outline" size={18} color={Colors.devotionalPurple} />
             </View>
-            <Text style={[styles.counterNumbers, { fontFamily: fontRegular }]}>{devotionalUsed} / {devotionalLimit}</Text>
+            <Text style={[styles.counterNumbers, font]}>{devotionalUsed} / {devotionalLimit}</Text>
             <View style={styles.progressTrack}><View style={[styles.progressValueAlt, { width: `${devotionalPct * 100}%` }]} /></View>
           </View>
         </View>
 
         {isTrialing && !isCanceled && (
           <TouchableOpacity style={styles.upgradeButton}>
-            <Text style={[styles.upgradeButtonText, { fontFamily: fontRegular }]}>Upgrade Plan</Text>
+            <Text style={[styles.upgradeButtonText, font]}>Upgrade Plan</Text>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </TouchableOpacity>
         )}
@@ -1319,16 +1314,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const renderAllBadges = () => (
     <View style={styles.badgesContainer}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: Colors.hopeWhite }, { fontFamily: fontRegular }]}>Badges</Text>
+        <Text style={[styles.sectionTitle, { color: Colors.hopeWhite }, font]}>Badges</Text>
         {!!recentBadges.length && (
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setBadgesModal(true); }}>
-            <Text style={[styles.viewAllText, { fontFamily: fontRegular }]}>Recent</Text>
+            <Text style={[styles.viewAllText, font]}>Recent</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {!!(allBadges && allBadges.length) && (
-        <Text style={[styles.badgesSubtitle, { fontFamily: fontRegular }]} numberOfLines={2}>
+        <Text style={[styles.badgesSubtitle, font]} numberOfLines={2}>
           You have {allBadges.length} badges: {allBadges.map(b => b.name).join(', ')}
         </Text>
       )}
@@ -1347,13 +1342,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       {isIonicon && iconStr ? (
                         <Ionicons name={iconStr as any} size={22} color={Colors.hopeWhite} />
                       ) : iconStr ? (
-                        <Text style={[styles.badgeEmoji, { color: Colors.hopeWhite }, { fontFamily: fontRegular }]}>{iconStr}</Text>
+                        <Text style={[styles.badgeEmoji, { color: Colors.hopeWhite }, font]}>{iconStr}</Text>
                       ) : (
                         <Ionicons name="medal" size={22} color={Colors.hopeWhite} />
                       )}
                     </View>
-                    <Text style={[styles.badgeName, { color: Colors.hopeWhite }, { fontFamily: fontRegular }]}>{badge.name}</Text>
-                    <Text style={[styles.badgePoints, { color: Colors.hopeWhite }, { fontFamily: fontRegular }]}>+{(badge as any).faith_points_reward || 0}</Text>
+                    <Text style={[styles.badgeName, { color: Colors.hopeWhite }, font]}>{badge.name}</Text>
+                    <Text style={[styles.badgePoints, { color: Colors.hopeWhite }, font]}>+{(badge as any).faith_points_reward || 0}</Text>
                   </View>
                 );
               })}
@@ -1361,7 +1356,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             {/* No extra spacer; rely on safe-area insets for edge-to-edge scroll */}
         </ScrollView>
         ) : (
-          <Text style={[styles.badgesSubtitle, { textAlign: 'center' }, { fontFamily: fontRegular }]}>No badges yet</Text>
+          <Text style={[styles.badgesSubtitle, { textAlign: 'center' }, font]}>No badges yet</Text>
         )}
       </View>
     </View>
@@ -1369,7 +1364,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderCommunitySection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight, { fontFamily: fontRegular }]}>COMMUNITY</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>COMMUNITY</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -1378,7 +1373,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="share-social" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Share with Friends</Text>
+          <Text style={[styles.menuText, font]}>Share with Friends</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1389,7 +1384,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="star" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Leave a Review</Text>
+          <Text style={[styles.menuText, font]}>Leave a Review</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1402,8 +1397,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-instagram" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Instagram</Text>
-          <Text style={[styles.menuValueText, { fontFamily: fontRegular }]}>@sifia.app</Text>
+          <Text style={[styles.menuText, font]}>Instagram</Text>
+          <Text style={[styles.menuValueText, font]}>@sifia.app</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1416,8 +1411,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-facebook" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Facebook</Text>
-          <Text style={[styles.menuValueText, { fontFamily: fontRegular }]}>/siFiaapp</Text>
+          <Text style={[styles.menuText, font]}>Facebook</Text>
+          <Text style={[styles.menuValueText, font]}>/siFiaapp</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1428,10 +1423,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open X (Twitter) @sifiaapp"
         >
           <View style={styles.menuIconBox}>
-            <Text style={{ color: Colors.anchorBlue, fontSize: 16, fontFamily: fontBold }}>X</Text>
+            <Text style={{ color: Colors.anchorBlue, fontSize: 16, fontWeight: '800' }}>X</Text>
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>X</Text>
-          <Text style={[styles.menuValueText, { fontFamily: fontRegular }]}>@sifiaapp</Text>
+          <Text style={[styles.menuText, font]}>X</Text>
+          <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -1440,7 +1435,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderLegalPrivacySection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight, { fontFamily: fontRegular }]}>LEGAL & PRIVACY</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>LEGAL & PRIVACY</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -1449,7 +1444,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="document-text" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Terms of Service</Text>
+          <Text style={[styles.menuText, font]}>Terms of Service</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1460,7 +1455,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="lock-closed" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Privacy Policy</Text>
+          <Text style={[styles.menuText, font]}>Privacy Policy</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -1469,7 +1464,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderHelpSupportSection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight, { fontFamily: fontRegular }]}>HELP & SUPPORT</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>HELP & SUPPORT</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -1478,7 +1473,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="help-circle" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>FAQ</Text>
+          <Text style={[styles.menuText, font]}>FAQ</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1489,7 +1484,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="bulb" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Suggest a Feature</Text>
+          <Text style={[styles.menuText, font]}>Suggest a Feature</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1500,7 +1495,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="bug" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Report a Bug</Text>
+          <Text style={[styles.menuText, font]}>Report a Bug</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -1509,7 +1504,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderAppBehaviorSection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight, { fontFamily: fontRegular }]}>PERMISSIONS</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>PERMISSIONS</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -1518,7 +1513,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="notifications" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Notifications</Text>
+          <Text style={[styles.menuText, font]}>Notifications</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1529,7 +1524,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="shield-checkmark" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>System Permissions</Text>
+          <Text style={[styles.menuText, font]}>System Permissions</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -1538,7 +1533,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderMenuOptions = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight, { fontFamily: fontRegular }]}>PERSONALIZATION</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>PERSONALIZATION</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
@@ -1547,7 +1542,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="book" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Bible Version</Text>
+          <Text style={[styles.menuText, font]}>Bible Version</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -1558,7 +1553,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="calendar" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Week Start</Text>
+          <Text style={[styles.menuText, font]}>Week Start</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
         </TouchableOpacity>
 
@@ -1569,7 +1564,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="color-palette" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Appearance</Text>
+          <Text style={[styles.menuText, font]}>Appearance</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
         </TouchableOpacity>
 
@@ -1580,7 +1575,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="pulse" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Haptics</Text>
+          <Text style={[styles.menuText, font]}>Haptics</Text>
           <Switch
             value={hapticsEnabled}
             onValueChange={onToggleHaptics}
@@ -1596,7 +1591,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="volume-high" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Sounds</Text>
+          <Text style={[styles.menuText, font]}>Sounds</Text>
           <Switch
             value={soundsEnabled}
             onValueChange={onToggleSounds}
@@ -1612,7 +1607,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="albums" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Show Tab Labels</Text>
+          <Text style={[styles.menuText, font]}>Show Tab Labels</Text>
           <Switch
             value={showTabLabelsEnabled}
             onValueChange={onToggleShowTabLabels}
@@ -1633,7 +1628,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <View>
-        <Text style={[styles.sectionLabel, styles.sectionLabelRight, { fontFamily: fontRegular }]}>FAMILY SUBSCRIPTION</Text>
+        <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>FAMILY SUBSCRIPTION</Text>
         <View style={styles.menuContainer}>
           {familyGroup ? (
             <>
@@ -1644,11 +1639,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.menuIconBox}>
                   <Ionicons name="people" size={18} color={Colors.anchorBlue} />
                 </View>
-                <Text style={[styles.menuText, { fontFamily: fontRegular }]}>
+                <Text style={[styles.menuText, font]}>
                   {isAdmin ? 'Manage Family' : 'Family Group'}
                 </Text>
                 <View style={styles.trialBadge}>
-                  <Text style={[styles.trialBadgeText, { fontFamily: fontRegular }]}>
+                  <Text style={[styles.trialBadgeText, font]}>
                     {familyGroup.current_members}/{familyGroup.max_members}
                   </Text>
                 </View>
@@ -1663,7 +1658,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={styles.menuIconBox}>
                     <Ionicons name="person-add" size={18} color={Colors.anchorBlue} />
                   </View>
-                  <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Invite Members</Text>
+                  <Text style={[styles.menuText, font]}>Invite Members</Text>
                   <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
                 </TouchableOpacity>
               )}
@@ -1684,7 +1679,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.menuIconBox}>
                 <Ionicons name="add-circle" size={18} color={Colors.anchorBlue} />
               </View>
-              <Text style={[styles.menuText, { fontFamily: fontRegular }]}>Create Family Group</Text>
+              <Text style={[styles.menuText, font]}>Create Family Group</Text>
               <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
             </TouchableOpacity>
           )}
@@ -1703,7 +1698,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="log-out" size={18} color={Colors.alertCoral} />
           </View>
-          <Text style={[styles.menuText, styles.logoutText, { fontFamily: fontRegular }]}>Logout</Text>
+          <Text style={[styles.menuText, styles.logoutText, font]}>Logout</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -1724,9 +1719,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setEditProfileModal(false); }} accessibilityRole="button" accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { fontFamily: fontRegular }]}>Edit Profile</Text>
+          <Text style={[styles.modalTitle, font]}>Edit Profile</Text>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleUpdateProfile(); }}>
-            <Text style={[styles.saveText, { fontFamily: fontRegular }]}>Save</Text>
+            <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
@@ -1738,7 +1733,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Image source={{ uri: avatarUrl }} style={styles.modalAvatar} />
               ) : (
                 <View style={[styles.modalAvatar, styles.modalInitialAvatar]}>
-                  <Text style={[styles.modalInitialLetter, { fontFamily: fontRegular }]}>{initialLetter}</Text>
+                  <Text style={[styles.modalInitialLetter, font]}>{initialLetter}</Text>
                 </View>
               )}
               <TouchableOpacity
@@ -1754,10 +1749,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.sectionLabel, { fontFamily: fontRegular }]}>NAME</Text>
+            <Text style={[styles.sectionLabel, font]}>NAME</Text>
             <View style={styles.nameContainer}>
               <TextInput
-                style={[styles.nameField, { fontFamily: fontRegular }]}
+                style={[styles.nameField, font]}
                 value={(profileForm as any).firstName}
                 onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
                 placeholder="First name"
@@ -1765,7 +1760,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               />
               <View style={styles.nameDivider} />
               <TextInput
-                style={[styles.nameField, { fontFamily: fontRegular }]}
+                style={[styles.nameField, font]}
                 value={(profileForm as any).lastName}
                 onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
                 placeholder="Last name"
@@ -1790,16 +1785,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setWeekStartModal(false); }}>
-            <Text style={[styles.cancelText, { fontFamily: fontRegular }]}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { fontFamily: fontRegular }]}>Week Start</Text>
+          <Text style={[styles.modalTitle, font]}>Week Start</Text>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleSaveWeekStart(); }}>
-            <Text style={[styles.saveText, { fontFamily: fontRegular }]}>Save</Text>
+            <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.modalContent}>
-          <Text style={[styles.settingDescription, { fontFamily: fontRegular }]}>
+          <Text style={[styles.settingDescription, font]}>
             Choose which day your week starts on. This affects calendar views and weekly reports.
           </Text>
           
@@ -1823,11 +1818,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityLabel={`Set week start to ${day.label}`}
                 >
                   <View style={styles.weekStartOptionContent}>
-                    <Text style={[styles.weekStartOptionLabel, isSelected && styles.weekStartOptionLabelSelected, { fontFamily: fontRegular }]}>
+                    <Text style={[styles.weekStartOptionLabel, isSelected && styles.weekStartOptionLabelSelected, font]}>
                       {day.label}
                     </Text>
                     {day.description && (
-                      <Text style={[styles.weekStartOptionDescription, { fontFamily: fontRegular }]}>
+                      <Text style={[styles.weekStartOptionDescription, font]}>
                         {day.description}
                       </Text>
                     )}
@@ -1856,11 +1851,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setBibleVersionModal(false); }}>
-            <Text style={[styles.cancelText, { fontFamily: fontRegular }]}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { fontFamily: fontRegular }]}>Bible Version</Text>
+          <Text style={[styles.modalTitle, font]}>Bible Version</Text>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleSaveBibleVersion(); }}>
-            <Text style={[styles.saveText, { fontFamily: fontRegular }]}>Save</Text>
+            <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
@@ -1877,7 +1872,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           automaticallyAdjustContentInsets={false}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.settingDescription, { fontFamily: fontRegular }]}>
+          <Text style={[styles.settingDescription, font]}>
             Choose your preferred Bible translation. This will be used across devotionals and verses.
           </Text>
 
@@ -1906,11 +1901,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     accessibilityLabel={`Set Bible version to ${ver.label}`}
                   >
                     <View style={styles.weekStartOptionContent}>
-                      <Text style={[styles.weekStartOptionLabel, isSelected && styles.weekStartOptionLabelSelected, { fontFamily: fontRegular }]}>
+                      <Text style={[styles.weekStartOptionLabel, isSelected && styles.weekStartOptionLabelSelected, font]}>
                         {ver.label}
                       </Text>
                       {ver.description && (
-                        <Text style={[styles.weekStartOptionDescription, { fontFamily: fontRegular }]}>
+                        <Text style={[styles.weekStartOptionDescription, font]}>
                           {ver.description}
                         </Text>
                       )}
@@ -1940,18 +1935,18 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(false); }}>
-            <Text style={[styles.cancelText, { fontFamily: fontRegular }]}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { fontFamily: fontRegular }]}>Notifications</Text>
+          <Text style={[styles.modalTitle, font]}>Notifications</Text>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleUpdatePreferences(); }}>
-            <Text style={[styles.saveText, { fontFamily: fontRegular }]}>Save</Text>
+            <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           <View style={styles.settingGroup}>
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Playbook Reminders</Text>
+              <Text style={[styles.settingLabel, font]}>Playbook Reminders</Text>
               <Switch
                 value={notificationPrefs?.playbook_steps ?? false}
                 onValueChange={(value) => updatePref('playbook_steps', value)}
@@ -1959,7 +1954,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Devotional Reminders</Text>
+              <Text style={[styles.settingLabel, font]}>Devotional Reminders</Text>
               <Switch
                 value={notificationPrefs?.devotional_reminders ?? false}
                 onValueChange={(value) => updatePref('devotional_reminders', value)}
@@ -1967,7 +1962,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Prayer Reminders</Text>
+              <Text style={[styles.settingLabel, font]}>Prayer Reminders</Text>
               <Switch
                 value={notificationPrefs?.prayer_reminders ?? false}
                 onValueChange={(value) => updatePref('prayer_reminders', value)}
@@ -1976,7 +1971,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Journal Prompts</Text>
+              <Text style={[styles.settingLabel, font]}>Journal Prompts</Text>
               <Switch
                 value={notificationPrefs?.journal_prompts ?? false}
                 onValueChange={(value) => updatePref('journal_prompts', value)}
@@ -1985,7 +1980,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Progress Updates</Text>
+              <Text style={[styles.settingLabel, font]}>Progress Updates</Text>
               <Switch
                 value={notificationPrefs?.milestone_celebrations ?? false}
                 onValueChange={(value) => updatePref('milestone_celebrations', value)}
@@ -1994,7 +1989,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Streak Alerts</Text>
+              <Text style={[styles.settingLabel, font]}>Streak Alerts</Text>
               <Switch
                 value={notificationPrefs?.streak_alerts ?? false}
                 onValueChange={(value) => updatePref('streak_alerts', value)}
@@ -2004,7 +1999,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
             {subscription?.tier === 'free_trial' && (
               <View style={styles.settingItem}>
-                <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Trial Notifications</Text>
+                <Text style={[styles.settingLabel, font]}>Trial Notifications</Text>
                 <Switch
                   value={notificationPrefs?.trial_notifications ?? false}
                   onValueChange={(value) => updatePref('trial_notifications', value)}
@@ -2014,7 +2009,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Prayer Request Alerts</Text>
+              <Text style={[styles.settingLabel, font]}>Prayer Request Alerts</Text>
               <Switch
                 value={notificationPrefs?.prayer_requests ?? false}
                 onValueChange={(value) => updatePref('prayer_requests', value)}
@@ -2023,8 +2018,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItemColumnNotification}>
-              <Text style={[styles.settingLabel, { fontFamily: fontRegular }]}>Quiet Hours</Text>
-              <Text style={[styles.settingHint, { fontFamily: fontRegular }]}>We'll pause notifications during these times.</Text>
+              <Text style={[styles.settingLabel, font]}>Quiet Hours</Text>
+              <Text style={[styles.settingHint, font]}>We'll pause notifications during these times.</Text>
               <View style={styles.quietHoursContainer}>
                 <TouchableOpacity 
                   style={styles.timePickerRow} 
@@ -2034,8 +2029,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     showNativeTimePicker('start');
                   }}
                 >
-                  <Text style={[styles.timeLabel, { fontFamily: fontRegular }]}>Start</Text>
-                  <Text style={[styles.timeValue, { fontFamily: fontRegular }]}>
+                  <Text style={[styles.timeLabel, font]}>Start</Text>
+                  <Text style={[styles.timeValue, font]}>
                     {notificationPrefs?.quiet_hours_start ? formatTo12h(notificationPrefs.quiet_hours_start) : '10:00 PM'}
                   </Text>
                 </TouchableOpacity>
@@ -2047,8 +2042,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     showNativeTimePicker('end');
                   }}
                 >
-                  <Text style={[styles.timeLabel, { fontFamily: fontRegular }]}>End</Text>
-                  <Text style={[styles.timeValue, { fontFamily: fontRegular }]}>
+                  <Text style={[styles.timeLabel, font]}>End</Text>
+                  <Text style={[styles.timeValue, font]}>
                     {notificationPrefs?.quiet_hours_end ? formatTo12h(notificationPrefs.quiet_hours_end) : '7:00 AM'}
                   </Text>
                 </TouchableOpacity>
@@ -2076,21 +2071,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       edges={['top']}
       style={[
         styles.container,
-        { backgroundColor: Colors.hopeWhite },
+        { backgroundColor: theme.colors.hopeWhite },
       ]}
     >
       {/* Fixed white header area with extra padding */}
       <View
         style={[
           styles.headerWrapper,
-          { paddingTop: 22, backgroundColor: Colors.hopeWhite },
+          { paddingTop: 22, backgroundColor: theme.colors.hopeWhite },
         ]}
       >
         {renderProfileHeader()}
       </View>
 
       {/* Body with rounded top; only its content scrolls */}
-      <View style={[styles.bodyContainer, { backgroundColor: Colors.anchorBlue }]}>
+      <View style={[styles.bodyContainer, { backgroundColor: theme.colors.anchorBlue }]}>
         <ScrollView
           style={styles.scrollView}
           contentInsetAdjustmentBehavior="never"

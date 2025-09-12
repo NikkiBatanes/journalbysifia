@@ -1,7 +1,10 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme';
+import ThemedText from './common/ThemedText';
+import { useTheme } from '../theme/ThemeContext';
+import { getFontFamily } from '../theme/fonts';
 
 interface SuccessModalProps {
   visible: boolean;
@@ -24,6 +27,11 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
 }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+  
+  // Theme integration for dynamic font switching
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
 
   React.useEffect(() => {
     if (visible) {
@@ -67,11 +75,11 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
           ]}
         >
           <View style={styles.checkmarkCircle}>
-            <Text style={styles.checkmark}>✓</Text>
+            <ThemedText weight="bold" style={styles.checkmark}>✓</ThemedText>
           </View>
 
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          <ThemedText weight="semiBold" style={styles.title}>{title}</ThemedText>
+          <ThemedText style={styles.message}>{message}</ThemedText>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -79,14 +87,14 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
               onPress={onEdit}
               activeOpacity={0.8}
             >
-              <Text style={[styles.buttonText, styles.editButtonText]}>Edit</Text>
+              <ThemedText weight="semiBold" style={[styles.buttonText, styles.editButtonText]}>Edit</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, styles.doneButton]}
               onPress={onDismiss}
               activeOpacity={0.8}
             >
-              <Text style={styles.buttonText}>{buttonText}</Text>
+              <ThemedText weight="semiBold" style={styles.buttonText}>{buttonText}</ThemedText>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -128,11 +136,11 @@ const styles = StyleSheet.create({
   checkmark: {
     fontSize: 40,
     color: Colors.growthGreen,
-    fontWeight: 'bold',
+    // weight handled by ThemedText
   },
   title: {
     fontSize: 24,
-    fontWeight: '600',
+    // weight handled by ThemedText
     color: Colors.darkGray, // Using darkGray from Colors
     marginBottom: 12,
     textAlign: 'center',
@@ -173,7 +181,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
+    // weight handled by ThemedText
     textAlign: 'center',
     fontFamily: Fonts.semiBold,
   },

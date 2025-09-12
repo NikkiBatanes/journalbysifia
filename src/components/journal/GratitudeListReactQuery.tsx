@@ -1,10 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
@@ -58,6 +57,17 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Dynamic theming for fonts (match dashboard)
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
+  
+  // Create dynamic fonts object
+  const fonts = useMemo(() => ({
+    regular: getFontFamily(fontKey, 'regular'),
+    medium: getFontFamily(fontKey, 'medium'),
+    semiBold: getFontFamily(fontKey, 'semiBold'),
+    bold: getFontFamily(fontKey, 'bold'),
+  }), [fontKey]);
+
+  // Memoize styles with fonts
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -842,7 +852,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (fonts: any) => StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -851,7 +861,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.regular,
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
@@ -884,7 +894,7 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.medium,
     lineHeight: 14,
   },
   showMoreButton: {
@@ -916,7 +926,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.regular,
     fontSize: 14,
     flex: 1,
     lineHeight: 20,
@@ -924,9 +934,8 @@ const styles = StyleSheet.create({
   },
   numberText: {
     color: Colors.alertCoral,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.bold,
     fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
     lineHeight: 16, // Ensure vertical centering in the circle
   },
@@ -940,16 +949,14 @@ const styles = StyleSheet.create({
   },
   editInput: {
     flex: 1,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     fontSize: 14,
     lineHeight: 20,
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    paddingHorizontal: 0,
     paddingVertical: 0,
-    borderWidth: 0,
-    borderColor: 'transparent',
+    paddingHorizontal: 0,
+    margin: 0,
+    textAlignVertical: 'center',
   },
   editButtons: {
     flexDirection: 'row',
@@ -969,79 +976,71 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.growthGreen,
   },
 
+  // Input styles
   inputContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 8,
-    width: '100%',
   },
   input: {
     backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 12,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    width: '100%',
-    alignSelf: 'stretch',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   inputWithTopMargin: {
-    marginTop: 4, // Reduced gap to better match todos spacing
+    marginTop: 8,
   },
+  
+  // Button styles
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
+  },
+  button: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  addAnotherButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+  },
+  plusIcon: {
+    marginRight: 4,
+  },
+  closeIcon: {
+    fontFamily: fonts.bold,
   },
   buttonGroup: {
     flexDirection: 'row',
     gap: 8,
   },
-  button: {
-    width: 24,
-    height: 24,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: Colors.alertCoral,
-  },
-  addAnotherButton: {
-    backgroundColor: 'transparent',
-    width: 24,
-    height: 24,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  plusIcon: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeIcon: {
-    fontWeight: 'bold',
-  },
   cancelButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  saveButton: {
+    backgroundColor: Colors.growthGreen,
   },
   disabledButton: {
     opacity: 0.5,
   },
   loadingText: {
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.regular,
     color: Colors.mediumGray,
     fontSize: 13,
     textAlign: 'center',
-    padding: 16,
+    marginTop: 8,
   },
   // Empty state styles
   emptyStateContainer: {
@@ -1061,7 +1060,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     fontSize: 12,
     color: Colors.mediumGray,
     letterSpacing: 1.2,
@@ -1075,7 +1074,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     fontSize: 18,
     color: Colors.hopeWhite,
     textAlign: 'center',

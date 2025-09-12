@@ -1721,11 +1721,11 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     zIndex: 10,
   },
   progressText: {
-    fontFamily: Fonts.medium,
+    fontFamily: theme.fonts?.medium || 'System',
     fontSize: 16,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   navButton: {
     backgroundColor: Colors.modalBlue,
@@ -1736,7 +1736,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   navButtonText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
+    fontFamily: theme.fonts?.medium || 'System',
     fontSize: 16,
   },
   arrowIcon: {
@@ -1832,11 +1832,12 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     right: 0,
   },
   noAffirmationsText: {
-    fontFamily: Fonts.regular,
+    fontFamily: theme.fonts?.regular || 'System',
     fontSize: 14,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    fontStyle: 'italic',
+    marginTop: 20,
+    opacity: 0.7,
   },
   headerSafeArea: {
     backgroundColor: Colors.anchorBlue,
@@ -1904,7 +1905,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   headerTitle: {
     fontSize: 24,
-    fontFamily: Fonts.bold,
+    fontFamily: theme.fonts?.bold || 'System',
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 6,
@@ -1916,21 +1917,21 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     marginBottom: 12,
   },
   playbookLabel: {
-    fontFamily: Fonts.medium,
+    fontFamily: theme.fonts?.medium || 'System',
     fontSize: 16,
     color: Colors.hopeWhite,
     marginRight: 8,
   },
   playbookTitle: {
     fontSize: 20,
-    fontFamily: Fonts.bold,
+    fontFamily: theme.fonts?.bold || 'System',
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 8,
   },
   creationDate: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: theme.fonts?.regular || 'System',
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 16,
@@ -1973,7 +1974,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   userInputText: {
-    fontFamily: Fonts.regular,
+    fontFamily: theme.fonts?.regular || 'System',
     fontSize: 14,
     color: Colors.hopeWhite,
     lineHeight: 20,
@@ -2063,7 +2064,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     paddingVertical: 6,
   },
   cardIndicatorText: {
-    fontFamily: Fonts.medium,
+    fontFamily: theme.fonts?.medium || 'System',
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
   },
@@ -2092,7 +2093,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   compactHeaderTitle: {
     fontSize: 18,
-    fontFamily: Fonts.bold,
+    fontFamily: theme.fonts?.bold || 'System',
     color: Colors.hopeWhite,
     marginLeft: 4,
     maxWidth: 260,
@@ -2107,7 +2108,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   playbookLabelText: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontFamily: theme.fonts?.semiBold || 'System',
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
   },
@@ -2142,7 +2143,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   initialLetter: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontFamily: theme.fonts?.semiBold || 'System',
   },
   headerProgressContainer: {
     marginLeft: 12,
@@ -2167,7 +2168,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   headerTasksText: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
+    fontFamily: theme.fonts?.medium || 'System',
     color: Colors.hopeWhite,
   },
   affirmationsList: {

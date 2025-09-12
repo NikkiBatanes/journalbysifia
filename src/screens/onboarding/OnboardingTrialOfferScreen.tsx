@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,12 +15,27 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
+import { useTheme } from '../../theme/ThemeContext';
+import { getFontFamily } from '../../theme/fonts';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { user } = useAuth();
   const { startTrial } = useNewSubscription(user?.id || '');
+  const { currentFont } = useTheme();
+  
+  const fonts = useMemo(() => {
+    const fontKey = currentFont || 'lexend';
+    return {
+      regular: getFontFamily(fontKey, 'regular'),
+      medium: getFontFamily(fontKey, 'medium'),
+      semiBold: getFontFamily(fontKey, 'semiBold'),
+      bold: getFontFamily(fontKey, 'bold'),
+    };
+  }, [currentFont]);
+
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
   
   // Read selection from params; default to annual
   const initialTierId: string = route?.params?.selectedTierId || 'growth';
@@ -280,7 +295,7 @@ const OnboardingTrialOfferScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (fonts: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -304,7 +319,7 @@ const styles = StyleSheet.create({
   },
   headerMainTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'left',
     lineHeight: 26,
@@ -313,6 +328,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 16,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     opacity: 0.88,
     marginTop: 0,
@@ -339,7 +355,7 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginTop: 20,
@@ -347,30 +363,31 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 32,
-    fontWeight: '600',
   },
   introSection: {
     marginBottom: 20,
   },
   introTitle: {
     fontSize: 16,
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 6,
-    fontWeight: '600',
   },
   introText: {
     fontSize: 15,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     lineHeight: 22,
     opacity: 0.9,
   },
   sectionTitle: {
     fontSize: 17,
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    fontWeight: '600',
     marginBottom: 16,
   },
   toggleContainer: {
@@ -393,12 +410,12 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: Colors.hopeWhite,
-    fontWeight: '500',
   },
   activeToggleText: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   timelineContainer: {
     marginBottom: 20,
@@ -444,18 +461,19 @@ const styles = StyleSheet.create({
   },
   timelineTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 4,
   },
   timelineDescription: {
     fontSize: 13,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     lineHeight: 18,
     opacity: 0.9,
   },
   strong: {
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
   pricingSummary: {
     alignItems: 'center',
@@ -488,14 +506,14 @@ const styles = StyleSheet.create({
   },
   pricingTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 6,
   },
   pricingSubtitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
@@ -512,7 +530,7 @@ const styles = StyleSheet.create({
   planTagText: {
     color: Colors.hopeWhite,
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 0.6,
     textTransform: 'none',
   },
@@ -547,12 +565,13 @@ const styles = StyleSheet.create({
   },
   startTrialButtonText: {
     fontSize: 17,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
   footerText: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     textAlign: 'center',
     opacity: 0.8,

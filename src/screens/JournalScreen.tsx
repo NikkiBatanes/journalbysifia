@@ -27,8 +27,17 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { user } = useAuth();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontMedium = getFontFamily(fontKey, 'medium');
-  const fontBold = getFontFamily(fontKey, 'bold');
+  
+  // Create dynamic fonts object - match Dashboard approach
+  const fonts = useMemo(() => ({
+    fontRegular: getFontFamily(fontKey, 'regular'),
+    fontMedium: getFontFamily(fontKey, 'medium'),
+    fontSemiBold: getFontFamily(fontKey, 'semiBold'),
+    fontBold: getFontFamily(fontKey, 'bold')
+  }), [fontKey]);
+  
+  // Create dynamic styles with theme fonts
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
   // Get week start preference from user metadata
   const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
     | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
@@ -611,9 +620,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   textDisabledColor: 'rgba(255,255,255,0.35)',
                   arrowColor: Colors.hopeWhite,
                   monthTextColor: Colors.hopeWhite,
-                  textDayFontFamily: fontMedium,
-                  textMonthFontFamily: fontBold,
-                  textDayHeaderFontFamily: fontMedium,
+                  textDayFontFamily: fonts.fontMedium,
+                  textMonthFontFamily: fonts.fontBold,
+                  textDayHeaderFontFamily: fonts.fontMedium,
                   // Compact sizing
                   textDayFontSize: 13,
                   textDayHeaderFontSize: 11,
@@ -626,14 +635,14 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                     [selectedStr]: {
                       selected: true,
                       customStyles: {
-                        text: { fontFamily: fontBold, fontWeight: '800', color: Colors.hopeWhite },
+                        text: { fontFamily: fonts.fontBold, color: Colors.hopeWhite },
                       },
                     },
                   };
                   if (todayStr !== selectedStr) {
                     marked[todayStr] = {
                       customStyles: {
-                        text: { color: Colors.alertCoral, fontFamily: fontBold, fontWeight: '700' },
+                        text: { color: Colors.alertCoral, fontFamily: fonts.fontBold },
                       },
                     };
                   }
@@ -659,7 +668,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (fonts: {
+  fontRegular: string;
+  fontMedium: string;
+  fontSemiBold: string;
+  fontBold: string;
+}) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
@@ -743,12 +757,12 @@ const styles = StyleSheet.create({
   },
   viewModeText: {
     color: 'rgba(255, 255, 255, 0.7)',
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontMedium,
     fontSize: 14,
   },
   activeViewModeText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
   },
   monthYearContainer: {
     paddingVertical: 4,
@@ -758,8 +772,7 @@ const styles = StyleSheet.create({
   },
   monthYearText: {
     fontSize: 18,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
+    fontFamily: fonts.fontBold,
     color: Colors.anchorBlue,
     paddingRight: 12,
   },
@@ -802,14 +815,14 @@ const styles = StyleSheet.create({
   },
   dayName: {
     fontSize: 9,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontMedium,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     width: '100%',
     letterSpacing: 0.2,
   },
   todayText: {
-    fontWeight: 'bold',
+    fontFamily: fonts.fontBold,
     color: Colors.anchorBlue,
     fontSize: 9,
     letterSpacing: 0.2,
@@ -838,29 +851,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayNameText: {
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontMedium,
     fontSize: 10,
-    fontWeight: '600',
     color: 'rgba(26, 60, 109, 0.7)',
     marginBottom: 0,  // Removed margin
     letterSpacing: 0.1,
   },
   dayNameTextHighlighted: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     fontSize: 9,
-    fontWeight: '600',
   },
   currentDayNameText: {
     color: Colors.anchorBlue,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     fontSize: 9,
-    fontWeight: '600',
   },
   dayNumberText: {
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     fontSize: 14,
-    fontWeight: '600',
     color: Colors.anchorBlue,
     lineHeight: 14,
   },
@@ -875,15 +884,13 @@ const styles = StyleSheet.create({
   },
   currentDayText: {
     color: Colors.anchorBlue,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     fontSize: 14,
-    fontWeight: '600',
   },
   selectedDayText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     fontSize: 14,
-    fontWeight: '600',
   },
   viewModeContainerCompact: {
     flexDirection: 'row',
@@ -902,7 +909,7 @@ const styles = StyleSheet.create({
   },
   viewModeTextCompact: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontMedium,
     fontSize: 12,
   },
   activeViewModeTextCompact: {
@@ -922,7 +929,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   dateText: {
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     fontSize: 20,
     color: Colors.anchorBlue,
     marginBottom: 16,
@@ -954,8 +961,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
+    fontFamily: fonts.fontSemiBold,
     color: Colors.hopeWhite,
     marginBottom: 8,
     textAlign: 'center',
@@ -996,7 +1002,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   cancelButtonText: {
-    fontFamily: Fonts.semiBold,
+    fontFamily: fonts.fontSemiBold,
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -1004,8 +1010,7 @@ const styles = StyleSheet.create({
   monthHeaderText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
+    fontFamily: fonts.fontSemiBold,
     letterSpacing: 1,
     textAlign: 'center',
     paddingVertical: 4,

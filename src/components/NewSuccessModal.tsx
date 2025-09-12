@@ -1,9 +1,12 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { Colors } from '../theme';
+import ThemedText from './common/ThemedText';
+import { useTheme } from '../theme/ThemeContext';
+import { getFontFamily } from '../theme/fonts';
 
 export interface SuccessModalConfig {
   title: string;
@@ -27,6 +30,11 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
 }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0.85)).current;
+  
+  // Theme integration for dynamic font switching
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
   const sparkleAnims = React.useRef(
     Array.from({ length: 5 }).map(() => ({
       opacity: new Animated.Value(0),
@@ -161,8 +169,8 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
                 </Animated.View>
               ))}
             </View>
-            <Text style={styles.title}>{config.title}</Text>
-            <Text style={styles.message}>{config.message}</Text>
+            <ThemedText weight="semiBold" style={styles.title}>{config.title}</ThemedText>
+            <ThemedText style={styles.message}>{config.message}</ThemedText>
             {(config.showEditButton && onEdit) || !config.hideDoneButton ? (
               <View style={styles.buttonContainer}>
                 {config.showEditButton && onEdit && (
@@ -170,7 +178,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
                     style={[styles.button, styles.editButton]}
                     onPress={() => { triggerLightHaptic(); onEdit(); }}
                   >
-                    <Text style={styles.editButtonText}>Edit</Text>
+                    <ThemedText weight="medium" style={styles.editButtonText}>Edit</ThemedText>
                   </TouchableOpacity>
                 )}
 
@@ -179,7 +187,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
                     style={[styles.button, styles.doneButton]}
                     onPress={() => { triggerLightHaptic(); onDone(); }}
                   >
-                    <Text style={styles.doneButtonText}>Done</Text>
+                    <ThemedText weight="medium" style={styles.doneButtonText}>Done</ThemedText>
                   </TouchableOpacity>
                 )}
               </View>
@@ -227,7 +235,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginBottom: 8,
     textAlign: 'center',
@@ -270,13 +278,13 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '500',
+    // weight handled by ThemedText
     textAlign: 'center',
   },
   doneButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '500',
+    // weight handled by ThemedText
     textAlign: 'center',
   },
 });

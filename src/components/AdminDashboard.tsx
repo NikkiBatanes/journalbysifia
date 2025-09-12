@@ -5,7 +5,7 @@
  * subscription metrics, user behavior, retention analytics, and system health.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -17,6 +17,9 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import ThemedText from '../components/common/ThemedText';
+import { useTheme } from '../theme/ThemeContext';
+import { getFontFamily } from '../theme/fonts';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { analyticsService, SubscriptionAnalytics as ServiceSubscriptionAnalytics, FeatureAnalytics as ServiceFeatureAnalytics } from '../services/analyticsService';
 
@@ -36,6 +39,18 @@ interface DashboardMetric {
 }
 
 export const AdminDashboard: React.FC = () => {
+  const { currentFont } = useTheme();
+  const fonts = useMemo(() => {
+    const fontKey = currentFont || 'lexend';
+    return {
+      regular: getFontFamily(fontKey, 'regular'),
+      medium: getFontFamily(fontKey, 'medium'),
+      semiBold: getFontFamily(fontKey, 'semiBold'),
+      bold: getFontFamily(fontKey, 'bold'),
+    };
+  }, [currentFont]);
+
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetric[]>([]);
   const [subscriptionAnalytics, setSubscriptionAnalytics] = useState<SubscriptionAnalytics[]>([]);
   const [featureAnalytics, setFeatureAnalytics] = useState<FeatureAnalytics[]>([]);
@@ -118,11 +133,11 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Revenue Chart */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Monthly Recurring Revenue</Text>
+        <ThemedText weight="semiBold" style={styles.chartTitle}>Monthly Recurring Revenue</ThemedText>
         <LineChart
           data={{
             labels: subscriptionAnalytics.map(item => item.tier),
-            datasets: [{ data: subscriptionAnalytics.map(item => item.total_subscribers) }],
+            datasets: [{ data: subscriptionAnalytics.map(item => item.metrics?.activeUsers || 0) }],
           }}
           width={screenWidth - 40}
           height={220}
@@ -133,11 +148,11 @@ export const AdminDashboard: React.FC = () => {
 
       {/* User Distribution */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>User Distribution by Tier</Text>
+        <ThemedText weight="semiBold" style={styles.chartTitle}>User Distribution by Tier</ThemedText>
         <PieChart
           data={subscriptionAnalytics.map((s, index) => ({
             name: s.tier.toUpperCase(),
-            population: s.active_users,
+            population: s.metrics?.activeUsers || 0,
             color: pieColors[index % pieColors.length],
             legendFontColor: '#374151',
             legendFontSize: 12,
@@ -166,7 +181,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Churn Rate Chart */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Churn Rate by Tier</Text>
+        <ThemedText weight="semiBold" style={styles.chartTitle}>Churn Rate by Tier</ThemedText>
         <BarChart
           data={{
             labels: subscriptionAnalytics.map(s => s.tier),
@@ -195,7 +210,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Conversion Rates */}
       <View style={styles.chartContainer}>
-        <Text style={styles.sectionTitle}>Conversion Rates</Text>
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>Conversion Rates</ThemedText>
         <BarChart
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
@@ -227,21 +242,21 @@ export const AdminDashboard: React.FC = () => {
     <View style={styles.tabContent}>
       {/* Feature Usage Cards */}
       {featureAnalytics.slice(0, 6).map((feature, _index) => (
-        <View key={feature.feature_name} style={styles.featureCard}>
-          <Text style={styles.featureName}>{feature.feature_name.replace(/_/g, ' ').toUpperCase()}</Text>
-          <Text style={styles.featureUsage}>{formatNumber(feature.total_usage)} uses</Text>
+        <View key={feature.featureName} style={styles.featureCard}>
+          <ThemedText weight="semiBold" style={styles.featureName}>{feature.featureName.replace(/_/g, ' ').toUpperCase()}</ThemedText>
+          <ThemedText weight="medium" style={styles.featureUsage}>{formatNumber(feature.usage?.totalUsage || 0)} uses</ThemedText>
           <View style={styles.featureMetrics}>
-            <Text style={styles.sectionTitle}>Revenue Metrics</Text>
+            <ThemedText weight="semiBold" style={styles.sectionTitle}>Revenue Metrics</ThemedText>
             <View style={styles.metricsGrid}>
               {subscriptionAnalytics.map((tier, _tierIndex) => (
                 <View key={tier.tier} style={styles.metricCard}>
-                  <Text style={styles.metricTitle}>{tier.tier.toUpperCase()}</Text>
-                  <Text style={styles.metricValue}>
+                  <ThemedText weight="medium" style={styles.metricTitle}>{tier.tier.toUpperCase()}</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.metricValue}>
                     {formatCurrency((tier.metrics?.averageRevenue || 0) * (tier.metrics?.activeUsers || 0))}
-                  </Text>
-                  <Text style={styles.metricSubtext}>
+                  </ThemedText>
+                  <ThemedText weight="regular" style={styles.metricSubtext}>
                     {tier.metrics?.activeUsers || 0} active users
-                  </Text>
+                  </ThemedText>
                 </View>
               ))}
             </View>
@@ -251,26 +266,26 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Feature Usage Chart */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Feature Usage (Total)</Text>
+        <ThemedText weight="semiBold" style={styles.chartTitle}>Feature Usage (Total)</ThemedText>
         <LineChart
           data={{
-            labels: featureAnalytics.map(item => item.feature_name),
-            datasets: [{ data: featureAnalytics.map(item => item.total_usage) }],
+            labels: featureAnalytics.map(item => item.featureName),
+            datasets: [{ data: featureAnalytics.map(item => item.usage?.totalUsage || 0) }],
           }}
           width={screenWidth - 40}
           height={220}
           yAxisLabel=""
           chartConfig={chartConfig}
-          style={styles.chartStyle}      showValuesOnTopOfBars
+          style={styles.chartStyle}
         />
       </View>
 
       {/* Feature Performance */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Feature Satisfaction Scores</Text>
+        <ThemedText weight="semiBold" style={styles.chartTitle}>Feature Satisfaction Scores</ThemedText>
         <BarChart
           data={{
-            labels: featureAnalytics.map(f => f.feature_name),
+            labels: featureAnalytics.map(f => f.featureName),
             datasets: [{
               data: featureAnalytics.map(f => (f.performance?.satisfactionScore || 0) * 100),
             }],
@@ -297,14 +312,14 @@ export const AdminDashboard: React.FC = () => {
 
   const renderRetentionTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Retention Analytics</Text>
-      <Text style={styles.comingSoon}>
+      <ThemedText weight="semiBold" style={styles.sectionTitle}>Retention Analytics</ThemedText>
+      <ThemedText weight="regular" style={styles.comingSoon}>
         Advanced retention analytics and cohort analysis coming soon...
-      </Text>
+      </ThemedText>
 
       {/* Retention Rate by Tier */}
       <View style={styles.chartContainer}>
-        <Text style={styles.sectionTitle}>Retention Rates</Text>
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>Retention Rates</ThemedText>
         <BarChart
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
@@ -336,7 +351,7 @@ export const AdminDashboard: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6366F1" />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
+        <ThemedText weight="regular" style={styles.loadingText}>Loading dashboard...</ThemedText>
       </View>
     );
   }
@@ -345,7 +360,7 @@ export const AdminDashboard: React.FC = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Admin Dashboard</Text>
+        <ThemedText weight="bold" style={styles.headerTitle}>Admin Dashboard</ThemedText>
         <View style={styles.timeRangeSelector}>
           {(['7d', '30d', '90d'] as const).map((range) => (
             <TouchableOpacity
@@ -356,12 +371,12 @@ export const AdminDashboard: React.FC = () => {
               ]}
               onPress={() => setSelectedTimeRange(range)}
             >
-              <Text style={[
+              <ThemedText weight="medium" style={[
                 styles.timeRangeButtonText,
                 selectedTimeRange === range && styles.activeTimeRangeButtonText,
               ]}>
                 {range}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           ))}
         </View>
@@ -388,12 +403,12 @@ export const AdminDashboard: React.FC = () => {
               size={20}
               color={activeTab === tab.key ? '#6366F1' : '#6B7280'}
             />
-            <Text style={[
+            <ThemedText weight="medium" style={[
               styles.tabButtonText,
               activeTab === tab.key && styles.activeTabButtonText,
             ]}>
               {tab.label}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         ))}
       </View>
@@ -415,47 +430,111 @@ export const AdminDashboard: React.FC = () => {
   );
 };
 
+// Utility functions for trend display
+const getTrendIcon = (trend: string) => {
+  switch (trend) {
+    case 'up': return 'trending-up';
+    case 'down': return 'trending-down';
+    default: return 'remove';
+  }
+};
+
+const getTrendColor = (trend: string) => {
+  switch (trend) {
+    case 'up': return '#10B981';
+    case 'down': return '#EF4444';
+    default: return '#6B7280';
+  }
+};
+
 // Metric Card Component
-const MetricCard: React.FC<{
+interface MetricCardProps {
   title: string;
   value: string;
   change: number;
   trend: string;
-}> = ({ title, value, change, trend }) => (
-  <View style={styles.metricCard}>
-    <Text style={styles.metricTitle}>{title}</Text>
-    <Text style={styles.metricValue}>{value}</Text>
-    <View style={styles.metricChange}>
-      <Ionicons name={getTrendIcon(trend)} size={16} color={getTrendColor(trend)} />
-      <Text style={[styles.metricChange, { color: getTrendColor(trend) }]}>
-        {Math.abs(change).toFixed(1)}%
-      </Text>
+}
+
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, trend }) => {
+  const { currentFont } = useTheme();
+  const fonts = useMemo(() => {
+    const fontKey = currentFont || 'lexend';
+    return {
+      regular: getFontFamily(fontKey, 'regular'),
+      medium: getFontFamily(fontKey, 'medium'),
+      semiBold: getFontFamily(fontKey, 'semiBold'),
+      bold: getFontFamily(fontKey, 'bold'),
+    };
+  }, [currentFont]);
+
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
+
+  return (
+    <View style={styles.metricCard}>
+      <ThemedText weight="medium" style={styles.metricTitle}>{title}</ThemedText>
+      <ThemedText weight="bold" style={styles.metricValue}>{value}</ThemedText>
+      <View style={styles.metricChange}>
+        <Ionicons name={getTrendIcon(trend) as any} size={16} color={getTrendColor(trend)} />
+        <ThemedText weight="medium" style={[styles.metricChangeText, { color: getTrendColor(trend) }]}>
+          {Math.abs(change).toFixed(1)}%
+        </ThemedText>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // Subscription Card Component
-const SubscriptionCard: React.FC<{
+interface SubscriptionCardProps {
   subscription: SubscriptionAnalytics;
-}> = ({ subscription }) => (
-  <View style={styles.subscriptionCard}>
-    <Text style={styles.subscriptionTier}>{subscription.tier.toUpperCase()}</Text>
-    <View style={styles.subscriptionMetrics}>
-      <Text style={styles.subscriptionMetric}>
-        Revenue: {formatCurrency((subscription.metrics?.averageRevenue || 0) * (subscription.metrics?.activeUsers || 0))}
-      </Text>
-      <Text style={styles.subscriptionMetric}>
-        Users: {(subscription.metrics?.activeUsers || 0).toLocaleString()}
-      </Text>
-      <Text style={styles.subscriptionMetric}>
-        Churn: {formatPercentage((subscription.metrics?.churnRate || 0) * 100)}
-      </Text>
-      <Text style={styles.subscriptionMetric}>
-        Conversion: {formatPercentage((subscription.metrics?.conversionRate || 0) * 100)}
-      </Text>
+}
+
+const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ subscription }) => {
+  const { currentFont } = useTheme();
+  const fonts = useMemo(() => {
+    const fontKey = currentFont || 'lexend';
+    return {
+      regular: getFontFamily(fontKey, 'regular'),
+      medium: getFontFamily(fontKey, 'medium'),
+      semiBold: getFontFamily(fontKey, 'semiBold'),
+      bold: getFontFamily(fontKey, 'bold'),
+    };
+  }, [currentFont]);
+
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
+
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatPercentage = (value: number): string => {
+    return `${value.toFixed(1)}%`;
+  };
+
+  return (
+    <View style={styles.subscriptionCard}>
+      <ThemedText weight="semiBold" style={styles.subscriptionTier}>{subscription.tier.toUpperCase()}</ThemedText>
+      <View style={styles.subscriptionMetrics}>
+        <ThemedText weight="regular" style={styles.subscriptionMetric}>
+          Revenue: {formatCurrency((subscription.metrics?.averageRevenue || 0) * (subscription.metrics?.activeUsers || 0))}
+        </ThemedText>
+        <ThemedText weight="regular" style={styles.subscriptionMetric}>
+          Users: {(subscription.metrics?.activeUsers || 0).toLocaleString()}
+        </ThemedText>
+        <ThemedText weight="regular" style={styles.subscriptionMetric}>
+          Churn: {formatPercentage((subscription.metrics?.churnRate || 0) * 100)}
+        </ThemedText>
+        <ThemedText weight="regular" style={styles.subscriptionMetric}>
+          Conversion: {formatPercentage((subscription.metrics?.conversionRate || 0) * 100)}
+        </ThemedText>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // Chart configuration
 const chartConfig = {
@@ -477,7 +556,7 @@ const chartConfig = {
 
 const pieColors = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
-const styles = StyleSheet.create({
+const createStyles = (fonts: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
@@ -506,7 +585,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: '#1F2937',
   },
   timeRangeSelector: {
@@ -531,7 +610,7 @@ const styles = StyleSheet.create({
   timeRangeButtonText: {
     fontSize: 14,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   activeTimeRangeButtonText: {
     color: '#1F2937',
@@ -557,7 +636,7 @@ const styles = StyleSheet.create({
   tabButtonText: {
     fontSize: 12,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   activeTabButtonText: {
     color: '#6366F1',
@@ -586,12 +665,12 @@ const styles = StyleSheet.create({
   metricTitle: {
     fontSize: 12,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     marginBottom: 8,
   },
   metricValue: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: '#1F2937',
     marginBottom: 4,
   },
@@ -602,7 +681,7 @@ const styles = StyleSheet.create({
   },
   metricChangeText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   chartContainer: {
     backgroundColor: '#FFFFFF',
@@ -614,7 +693,7 @@ const styles = StyleSheet.create({
   },
   chartTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: '#1F2937',
     marginBottom: 16,
   },
@@ -637,7 +716,7 @@ const styles = StyleSheet.create({
   },
   subscriptionTier: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: '#1F2937',
   },
   subscriptionRevenue: {
@@ -659,7 +738,7 @@ const styles = StyleSheet.create({
   },
   subscriptionMetricValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: '#1F2937',
   },
   featureCard: {
@@ -678,13 +757,13 @@ const styles = StyleSheet.create({
   },
   featureName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: '#1F2937',
   },
   featureUsage: {
     fontSize: 14,
     color: '#6366F1',
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   featureMetrics: {
     flexDirection: 'row',
@@ -700,12 +779,12 @@ const styles = StyleSheet.create({
   },
   featureMetricValue: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: '#1F2937',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: '#1F2937',
     marginBottom: 16,
   },
@@ -715,6 +794,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     fontStyle: 'italic',
+  },
+  metricSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: fonts.regular,
   },
   chartStyle: {
     marginVertical: 8,

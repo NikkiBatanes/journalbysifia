@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,30 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
+import { useTheme } from '../hooks/useTheme';
+import { getFontFamily } from '../theme/fonts';
+import ThemedText from '../components/common/ThemedText';
 import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { FamilyMember, FamilyInvitation } from '../services/FamilySubscriptionService';
 
 const FamilyAdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation();
+  
+  // Theme integration
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  
+  // Create dynamic fonts object
+  const fonts = useMemo(() => ({
+    regular: getFontFamily(fontKey, 'regular'),
+    medium: getFontFamily(fontKey, 'medium'),
+    semiBold: getFontFamily(fontKey, 'semiBold'),
+    bold: getFontFamily(fontKey, 'bold'),
+  }), [fontKey]);
+
+  // Memoize styles with dynamic fonts
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
+
   const {
     familyGroup,
     pendingInvitations,
@@ -343,7 +362,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (fonts: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
@@ -365,7 +384,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.anchorBlue,
   },
   placeholder: {
@@ -385,7 +404,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.anchorBlue,
     marginBottom: 16,
   },
@@ -405,7 +424,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: Colors.anchorBlue,
   },
   statLabel: {
@@ -427,7 +446,7 @@ const styles = StyleSheet.create({
   },
   usageNumber: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.anchorBlue,
   },
   usageLabel: {
@@ -446,7 +465,7 @@ const styles = StyleSheet.create({
   inviteButtonText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     marginLeft: 4,
   },
   memberItem: {
@@ -474,14 +493,14 @@ const styles = StyleSheet.create({
   memberInitial: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   memberDetails: {
     flex: 1,
   },
   memberName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: Colors.text,
   },
   memberRole: {
@@ -510,7 +529,7 @@ const styles = StyleSheet.create({
   },
   invitationEmail: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: Colors.text,
   },
   invitationDate: {
@@ -535,7 +554,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.text,
     marginTop: 16,
     marginBottom: 8,
@@ -585,12 +604,12 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.anchorBlue,
   },
   modalSend: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.anchorBlue,
   },
   modalContent: {
@@ -598,7 +617,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: Colors.text,
     marginBottom: 8,
   },

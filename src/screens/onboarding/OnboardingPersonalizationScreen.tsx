@@ -3,7 +3,7 @@
  * Multi-step personalization screen matching exact design
  */
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
@@ -16,8 +16,6 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { useTheme } from '../../hooks/useTheme';
-import { getFontFamily } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import ThemedTextInput from '../../components/common/ThemedTextInput';
@@ -154,28 +152,12 @@ const challengeOptions: Challenge[] = [
 
 import { useRoute } from '@react-navigation/native';
 
-const OnboardingPersonalizationScreen = () => {
+const OnboardingPersonalizationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth();
   const { updateOnboardingStep } = useUserState();
   const insets = useSafeAreaInsets();
-  
-  // Theme integration - match Dashboard approach
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
-  const fontMedium = getFontFamily(fontKey, 'medium');
-  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
-  const fontBold = getFontFamily(fontKey, 'bold');
-  
-  // Create dynamic styles with theme fonts
-  const styles = useMemo(() => createStyles({
-    fontRegular,
-    fontMedium,
-    fontSemiBold,
-    fontBold
-  }), [fontRegular, fontMedium, fontSemiBold, fontBold]);
   // Determine if we need to show name input step based on registration method
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
   const [showNameStep, setShowNameStep] = useState(false);
@@ -843,12 +825,7 @@ const OnboardingPersonalizationScreen = () => {
   );
 };
 
-const createStyles = (fonts: {
-  fontRegular: string;
-  fontMedium: string;
-  fontSemiBold: string;
-  fontBold: string;
-}) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -934,14 +911,14 @@ const createStyles = (fonts: {
   },
   title: {
     fontSize: 28,
-    fontFamily: fonts.fontBold,
+    fontFamily: Fonts.bold,
     color: Colors.white,
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.white,
     textAlign: 'center',
     opacity: 0.9,
@@ -964,14 +941,15 @@ const createStyles = (fonts: {
   },
   stepTitle: {
     fontSize: 24,
-    fontFamily: fonts.fontBold,
+    fontFamily: Fonts.bold,
+    fontWeight: '600',
     color: Colors.white,
     textAlign: 'center',
     marginBottom: 20,
   },
   stepSubtitle: {
     fontSize: 14,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.white,
     textAlign: 'center',
     marginBottom: 30,
@@ -987,7 +965,7 @@ const createStyles = (fonts: {
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -1014,12 +992,13 @@ const createStyles = (fonts: {
   },
   userGreeting: {
     ...OnboardingStyles.subtitle,
+    fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 8,
   },
   ageOptionTitle: {
     fontSize: 14,
-    fontFamily: fonts.fontSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
   },
   optionsContainer: {
@@ -1046,13 +1025,14 @@ const createStyles = (fonts: {
   },
   faithOptionTitle: {
     fontSize: 16,
-    fontFamily: fonts.fontSemiBold,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 4,
   },
   faithOptionDescription: {
     fontSize: 14,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     opacity: 0.8,
   },
@@ -1082,13 +1062,14 @@ const createStyles = (fonts: {
   },
   challengeOptionTitle: {
     fontSize: 16,
-    fontFamily: fonts.fontSemiBold,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 4,
   },
   challengeOptionDescription: {
     fontSize: 14,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     opacity: 0.8,
   },
@@ -1102,7 +1083,7 @@ const createStyles = (fonts: {
   },
   examplesLabelText: {
     fontSize: 13,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     opacity: 0.85,
     textAlign: 'left',
@@ -1129,13 +1110,13 @@ const createStyles = (fonts: {
   },
   challengeCardTitle: {
     fontSize: 16,
-    fontFamily: fonts.fontSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 4,
   },
   challengeCardDescription: {
     fontSize: 14,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: 'rgba(255, 255, 255, 0.7)',
   },
   detailsSection: {
@@ -1146,13 +1127,13 @@ const createStyles = (fonts: {
   },
   detailsTitle: {
     fontSize: 16,
-    fontFamily: fonts.fontSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 16,
   },
   examplesLabel: {
     fontSize: 14,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.white,
     marginBottom: 12,
   },
@@ -1170,7 +1151,7 @@ const createStyles = (fonts: {
   },
   exampleTagText: {
     fontSize: 12,
-    fontFamily: fonts.fontRegular,
+    fontFamily: Fonts.regular,
     color: Colors.white,
   },
   detailsInput: {
@@ -1239,6 +1220,7 @@ const createStyles = (fonts: {
   tooltipSubtitle: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 12,
+    fontWeight: '600',
     marginBottom: 2,
   },
   tooltipList: {
@@ -1267,12 +1249,14 @@ const createStyles = (fonts: {
   tooltipItemText: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 12,
+    fontWeight: '600',
     lineHeight: 18,
     flexShrink: 1,
   },
   tooltipFooter: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 12,
+    fontWeight: '600',
     marginTop: 6,
   },
   tooltipCaret: {
@@ -1331,7 +1315,8 @@ const createStyles = (fonts: {
   },
   continueButtonText: {
     fontSize: 16,
-    fontFamily: fonts.fontMedium,
+    fontFamily: Fonts.medium,
+    fontWeight: '600',
     color: Colors.hopeWhite,
   },
   iconWithMarginAndOpacity: {

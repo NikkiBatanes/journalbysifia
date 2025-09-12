@@ -136,6 +136,251 @@ const getEntryRank = (entry: Partial<MomentEntry>): number => {
   return 50;
 };
 
+// Create dynamic styles function
+const createStyles = (fonts: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 0,
+    // Allow ListEmptyComponent to occupy full height so content can center vertically
+    flexGrow: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.anchorBlue,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    color: Colors.mediumGray,
+  },
+  momentItem: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  timelineIndicator: {
+    alignItems: 'center',
+    marginRight: 16,
+    paddingTop: 8,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.alertCoral,
+    marginBottom: 8,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    minHeight: 40,
+  },
+  momentContent: {
+    flex: 1,
+  },
+  momentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  momentDate: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    color: Colors.mediumGray,
+  },
+  categoryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderRadius: 10,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontFamily: fonts.semiBold,
+    color: Colors.alertCoral,
+    letterSpacing: 0.5,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+  },
+  emptyIcon: {
+    marginBottom: 8,
+  },
+  emptyButton: {
+    marginTop: 16,
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontFamily: fonts.medium,
+  },
+  carouselContainer: {
+    marginBottom: 16,
+  },
+  carousel: {
+    flexGrow: 0,
+  },
+  carouselContent: {
+    paddingHorizontal: 8,
+  },
+  carouselItem: {
+    width: '100%',
+    marginHorizontal: 0,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  // Week nested UI styles
+  weekCardContainer: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+  },
+  weekCardHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  weekRangeTitle: {
+    fontSize: 16,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  weekCountsText: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    color: Colors.mediumGray,
+  },
+  weekExpandedBody: {
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  weekRangeOverline: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    color: Colors.mediumGray,
+    marginBottom: 4,
+  },
+  dayHeaderRow: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  dayHeaderText: {
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+  },
+  // Devotional-specific carousel styling (center-snap like onboarding)
+  devoCarouselContent: {
+    paddingVertical: 0,
+  },
+  devoCarouselItem: {
+    marginVertical: 0,
+    marginHorizontal: 0,
+    paddingHorizontal: 0,
+    alignSelf: 'stretch',
+  },
+  devoFullWidthCard: {
+    width: '100%',
+    flex: 1,
+    paddingHorizontal: 0,
+  },
+  devoHeaderContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  devoEdgeToEdge: {
+    // Break out of the header padding so the FlatList can render full-bleed
+    marginHorizontal: -16,
+    alignSelf: 'stretch',
+    overflow: 'visible',
+  },
+  // New styles for cleaned up inline styles
+  chevronIcon: {
+    marginRight: 8,
+    fontSize: 18,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  transparentBackground: {
+    backgroundColor: 'transparent',
+  },
+  columnLayout: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+  },
+  weekTitleSpacing: {
+    marginTop: 2,
+  },
+  countsSpacing: {
+    marginTop: 4,
+  },
+});
+
+
 export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = ({
   plugins,
   dateRange,
@@ -152,8 +397,18 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
-  const fontRegular = getFontFamily(fontKey, 'regular');
+  
+  // Create dynamic fonts object
+  const fonts = useMemo(() => ({
+    regular: getFontFamily(fontKey, 'regular'),
+    medium: getFontFamily(fontKey, 'medium'),
+    semiBold: getFontFamily(fontKey, 'semiBold'),
+    bold: getFontFamily(fontKey, 'bold'),
+  }), [fontKey]);
+
+  // Use memoized styles with dynamic fonts
+  const styles = useMemo(() => createStyles(fonts), [fonts]);
+
   const { user } = useAuth();
   // Removed unused insets variable
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
@@ -1392,7 +1647,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     if (groupBy === 'date') {
       return (
         <View style={styles.sectionHeader}>
-          <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
+          <ThemedText weight="semiBold" style={styles.sectionTitle}>
             {section.title}
           </ThemedText>
         </View>
@@ -1429,7 +1684,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }]}>
             <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
-            <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
+            <ThemedText weight="semiBold" style={styles.sectionTitle}>
               {section.title}
             </ThemedText>
           </View>
@@ -1447,7 +1702,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }]}>
             <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
-            <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
+            <ThemedText weight="semiBold" style={styles.sectionTitle}>
               {section.title}
             </ThemedText>
           </View>
@@ -1456,11 +1711,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     }
     return (
       <View style={styles.sectionHeader}>
-        <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>
           {section.title}
         </ThemedText>
         {groupBy !== 'week' && groupBy !== 'month' && groupBy !== 'year' && (
-          <ThemedText style={[styles.sectionCount, { fontFamily: fontRegular }]}>
+          <ThemedText style={styles.sectionCount}>
             {section.data.length} {section.data.length === 1 ? 'entry' : 'entries'}
           </ThemedText>
         )}
@@ -1588,14 +1843,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
           <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
             <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
-              <ThemedText style={[styles.weekRangeTitle, { fontFamily: fontRegular }]} >
+              <ThemedText style={styles.weekRangeTitle}>
                 {`Week ${weekNumber}`}
               </ThemedText>
-              <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }, styles.weekTitleSpacing]} >
+              <ThemedText weight="semiBold" style={[styles.sectionTitle, styles.weekTitleSpacing]}>
                 {displayRangeTitle}
               </ThemedText>
               {Object.keys(counts).length > 0 && (
-                <ThemedText style={[styles.weekCountsText, { fontFamily: fontRegular, marginTop: 4 }] }>
+                <ThemedText style={[styles.weekCountsText, styles.countsSpacing]}>
                   {Object.entries(counts).map(([k, v]) => `${v} ${k}${v > 1 ? 's' : ''}`).join(' · ')}
                 </ThemedText>
               )}
@@ -1610,7 +1865,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 return (
                   <View key={`${week.key}-day-${dk}`}>
                     <View style={styles.dayHeaderRow}>
-                      <ThemedText style={[styles.dayHeaderText, { fontFamily: fontSemiBold }] }>
+                      <ThemedText weight="semiBold" style={styles.dayHeaderText}>
                         {format(dayDate, 'EEEE, MMMM d')}
                       </ThemedText>
                     </View>
@@ -1751,11 +2006,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }]}>
           <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
             <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }]}>
-              <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
+              <ThemedText weight="semiBold" style={styles.sectionTitle}>
                 {month.title}
               </ThemedText>
               {Object.keys(counts).length > 0 && (
-                <ThemedText style={[styles.weekCountsText, { fontFamily: fontRegular, marginTop: 4 }] }>
+                <ThemedText style={[styles.weekCountsText, styles.countsSpacing]}>
                   {Object.entries(counts).map(([k, v]) => `${v} ${k}${v > 1 ? 's' : ''}`).join(' · ')}
                 </ThemedText>
               )}
@@ -1770,7 +2025,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 return (
                   <View key={`${month.key}-day-${dk}`}>
                     <View style={styles.dayHeaderRow}>
-                      <ThemedText style={[styles.dayHeaderText, { fontFamily: fontSemiBold }]}>
+                      <ThemedText weight="semiBold" style={styles.dayHeaderText}>
                         {format(dayDate, 'EEEE, MMMM d')}
                       </ThemedText>
                     </View>
@@ -1880,11 +2135,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
             <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
               <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
-                <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
+                <ThemedText weight="semiBold" style={styles.sectionTitle}>
                   {month.title}
                 </ThemedText>
                 {Object.keys(counts).length > 0 && (
-                  <ThemedText style={[styles.weekCountsText, { fontFamily: fontRegular, marginTop: 4 }] }>
+                  <ThemedText style={[styles.weekCountsText, styles.countsSpacing]}>
                     {Object.entries(counts).map(([k, v]) => `${v} ${k}${v > 1 ? 's' : ''}`).join(' · ')}
                   </ThemedText>
                 )}
@@ -1908,11 +2163,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
             <TouchableOpacity onPress={toggleYear} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
               <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
-                <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
+                <ThemedText weight="semiBold" style={styles.sectionTitle}>
                   {year}
                 </ThemedText>
                 {Object.keys(counts).length > 0 && (
-                  <ThemedText style={[styles.weekCountsText, { fontFamily: fontRegular, marginTop: 4 }] }>
+                  <ThemedText style={[styles.weekCountsText, styles.countsSpacing]}>
                     {Object.entries(counts).map(([k, v]) => `${v} ${k}${v > 1 ? 's' : ''}`).join(' · ')}
                   </ThemedText>
                 )}
@@ -2100,237 +2355,4 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  listContent: {
-    paddingBottom: 0,
-    // Allow ListEmptyComponent to occupy full height so content can center vertically
-    flexGrow: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.anchorBlue,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-  },
-  sectionCount: {
-    fontSize: 12,
-    color: Colors.mediumGray,
-  },
-  momentItem: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  timelineIndicator: {
-    alignItems: 'center',
-    marginRight: 16,
-    paddingTop: 8,
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.alertCoral,
-    marginBottom: 8,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    minHeight: 40,
-  },
-  momentContent: {
-    flex: 1,
-  },
-  momentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  momentDate: {
-    fontSize: 12,
-    color: Colors.mediumGray,
-  },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    borderRadius: 10,
-  },
-  categoryText: {
-    fontSize: 10,
-    color: Colors.alertCoral,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-  },
-  emptyIcon: {
-    marginBottom: 8,
-  },
-  emptyButton: {
-    marginTop: 16,
-    backgroundColor: Colors.alertCoral,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-  },
-  carouselContainer: {
-    marginBottom: 16,
-  },
-  carousel: {
-    flexGrow: 0,
-  },
-  carouselContent: {
-    paddingHorizontal: 8,
-  },
-  carouselItem: {
-    width: '100%',
-    marginHorizontal: 0,
-  },
-  paginationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingHorizontal: 16,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 4,
-  },
-  paginationDotActive: {
-    backgroundColor: Colors.alertCoral,
-  },
-  // Week nested UI styles
-  weekCardContainer: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
-  weekCardHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-  },
-  weekRangeTitle: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    marginBottom: 4,
-  },
-  weekCountsText: {
-    fontSize: 12,
-    color: Colors.mediumGray,
-  },
-  weekExpandedBody: {
-    paddingTop: 8,
-    paddingBottom: 12,
-  },
-  weekRangeOverline: {
-    fontSize: 12,
-    color: Colors.mediumGray,
-    marginBottom: 4,
-  },
-  dayHeaderRow: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  dayHeaderText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-  },
-  // Devotional-specific carousel styling (center-snap like onboarding)
-  devoCarouselContent: {
-    paddingVertical: 0,
-  },
-  devoCarouselItem: {
-    marginVertical: 0,
-    marginHorizontal: 0,
-    paddingHorizontal: 0,
-    alignSelf: 'stretch',
-  },
-  devoFullWidthCard: {
-    width: '100%',
-    flex: 1,
-    paddingHorizontal: 0,
-  },
-  devoHeaderContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  devoEdgeToEdge: {
-    // Break out of the header padding so the FlatList can render full-bleed
-    marginHorizontal: -16,
-    alignSelf: 'stretch',
-    overflow: 'visible',
-  },
-  // New styles for cleaned up inline styles
-  chevronIcon: {
-    marginRight: 8,
-    fontSize: 18,
-    color: Colors.hopeWhite,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  transparentBackground: {
-    backgroundColor: 'transparent',
-  },
-  columnLayout: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-  },
-  weekTitleSpacing: {
-    marginTop: 2,
-  },
-  countsSpacing: {
-    marginTop: 4,
-  },
-
-});
+export default EnhancedMomentsRenderer;

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -68,7 +68,7 @@ export interface TimeBlockLogEditorRef {
 }
 
 // Styles matching other log editors
-const defaultStyles = {
+const createDefaultStyles = (fonts: any) => ({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
@@ -170,7 +170,7 @@ const defaultStyles = {
   inputLabel: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
   },
@@ -209,14 +209,14 @@ const defaultStyles = {
   timeText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   timeSeparator: {
     color: Colors.hopeWhite,
     fontSize: 14,
     marginHorizontal: 8,
     opacity: 0.6,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   timeSeparatorSmall: {
     fontSize: 10,
@@ -253,7 +253,7 @@ const defaultStyles = {
   categoryText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   allDayContainer: {
     flexDirection: 'row',
@@ -264,7 +264,7 @@ const defaultStyles = {
   allDayText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
   switchContainer: {
     padding: 4,
@@ -305,7 +305,7 @@ const defaultStyles = {
     opacity: 0.6,
     marginBottom: 4,
     letterSpacing: 2,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     textTransform: 'uppercase',
     lineHeight: 12,
   },
@@ -402,12 +402,13 @@ const defaultStyles = {
   },
   addMenuText: {
     color: Colors.hopeWhite,
+    fontFamily: fonts.medium,
     marginLeft: 8,
   },
   sectionLabel: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     marginBottom: 8,
     opacity: 0.8,
   },
@@ -433,7 +434,7 @@ const defaultStyles = {
   repeatText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   timePickerModal: {
     flex: 1,
@@ -450,7 +451,7 @@ const defaultStyles = {
   },
   timePickerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 20,
   },
@@ -474,7 +475,7 @@ const defaultStyles = {
   },
   timePickerButtonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   timePickerCancelText: {
     color: Colors.hopeWhite,
@@ -503,7 +504,7 @@ const defaultStyles = {
   allDayLabel: {
     color: Colors.hopeWhite,
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     marginRight: 8,
   },
   customRepeatContainer: {
@@ -513,11 +514,6 @@ const defaultStyles = {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  customRepeatLabel: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    marginBottom: 12,
   },
   frequencySelector: {
     marginBottom: 16,
@@ -549,11 +545,6 @@ const defaultStyles = {
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  frequencyUnitText: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-    marginRight: 4,
-  },
   customModalButtons: {
     flexDirection: 'row',
     marginTop: 20,
@@ -575,9 +566,47 @@ const defaultStyles = {
   customModalButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
   },
-};
+  repeatModalTitle: {
+    fontSize: 18,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    marginBottom: 20,
+  },
+  repeatOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  repeatOptionLast: {
+    borderBottomWidth: 0,
+  },
+  repeatOptionSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  repeatOptionText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontFamily: fonts.medium,
+  },
+  repeatOptionSelectedText: {
+    fontFamily: fonts.semiBold,
+  },
+  customRepeatLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontFamily: fonts.medium,
+    marginBottom: 12,
+  },
+  frequencyUnitText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    marginRight: 4,
+  },
+});
 
 const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogEditorProps>((
   {
@@ -600,7 +629,17 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const regularFont = getFontFamily(fontKey, 'regular');
-  const s = { ...defaultStyles, ...styles };
+  
+  const fonts = useMemo(() => {
+    return {
+      regular: getFontFamily(fontKey, 'regular'),
+      medium: getFontFamily(fontKey, 'medium'),
+      semiBold: getFontFamily(fontKey, 'semiBold'),
+      bold: getFontFamily(fontKey, 'bold'),
+    };
+  }, [fontKey]);
+
+  const s = useMemo(() => ({ ...createDefaultStyles(fonts), ...styles }), [fonts, styles]);
   const inputRef = useRef<TextInput>(null);
 
   // Expose methods to parent component
@@ -1056,7 +1095,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
       >
         <View style={s.timePickerModal}>
           <View style={s.timePickerContainer}>
-            <Text style={s.timePickerTitle}>Select Start Time</Text>
+            <ThemedText weight="semiBold" style={s.timePickerTitle}>Select Start Time</ThemedText>
             <DateTimePicker
               value={tempStartTime}
               mode="time"
@@ -1106,7 +1145,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
       >
         <View style={s.timePickerModal}>
           <View style={s.timePickerContainer}>
-            <Text style={s.timePickerTitle}>Select End Time</Text>
+            <ThemedText weight="semiBold" style={s.timePickerTitle}>Select End Time</ThemedText>
             <DateTimePicker
               value={tempEndTime}
               mode="time"
@@ -1150,15 +1189,15 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
             <View style={s.addMenu}>
               <TouchableOpacity style={s.addMenuItem}>
                 <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
-                <Text style={s.addMenuText}>Tags</Text>
+                <ThemedText weight="medium" style={s.addMenuText}>Tags</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity style={s.addMenuItem}>
                 <Ionicons name="image" size={20} color={Colors.hopeWhite} />
-                <Text style={s.addMenuText}>Photos</Text>
+                <ThemedText weight="medium" style={s.addMenuText}>Photos</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity style={s.addMenuItem}>
                 <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
-                <Text style={s.addMenuText}>Camera</Text>
+                <ThemedText weight="medium" style={s.addMenuText}>Camera</ThemedText>
               </TouchableOpacity>
             </View>
           )}

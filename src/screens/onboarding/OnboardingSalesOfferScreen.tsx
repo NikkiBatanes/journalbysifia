@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -43,26 +43,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  
-  // Theme integration - match Dashboard approach
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
-  const fontMedium = getFontFamily(fontKey, 'medium');
-  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
-  const fontBold = getFontFamily(fontKey, 'bold');
-  
-  // Use dynamic styles with current theme fonts - match Dashboard pattern
-  const styles = useMemo(() => createStyles({
-    regular: fontRegular,
-    medium: fontMedium,
-    semiBold: fontSemiBold,
-    bold: fontBold,
-  }), [fontRegular, fontMedium, fontSemiBold, fontBold]);
-  
   const { upgradeSubscription } = useNewSubscription(user?.id || '');
   const devotionalGating = useDevotionalGating();
   const platformSubscription = usePlatformSubscription();
+  
+  // Fonts: derive theme font for dynamic font switching (following Dashboard pattern)
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');
   const [showDynamicModal, setShowDynamicModal] = useState(false);
@@ -631,8 +619,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   );
 };
 
-// Create dynamic styles using theme fonts - match Dashboard pattern
-const createStyles = (fonts: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -677,7 +664,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   logo: {
     fontSize: 24,
-    fontFamily: fonts.bold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
   },
   logoHeart: {
@@ -703,7 +690,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   mainTitle: {
     fontSize: 24,
-    fontFamily: fonts.bold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginTop: 0,
@@ -711,7 +698,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginBottom: 22,
@@ -727,7 +713,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   bulletText: {
     fontSize: 14,
-    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     marginLeft: 12,
     flex: 1,
@@ -752,12 +737,12 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   toggleText: {
     fontSize: 14,
-    fontFamily: fonts.medium,
     color: Colors.hopeWhite,
+    // weight handled by ThemedText
   },
   activeToggleText: {
-    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
+    // weight handled by ThemedText
   },
   cardsContainer: {
     marginBottom: 16,
@@ -800,7 +785,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   popularText: {
     fontSize: 12,
-    fontFamily: fonts.semiBold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
   },
   cardHeader: {
@@ -810,19 +795,19 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   tierName: {
     fontSize: 18,
-    fontFamily: fonts.bold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
   },
   tierDuration: {
     fontSize: 16,
-    fontFamily: fonts.regular,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     opacity: 0.8,
     marginLeft: 8,
   },
   tierDescription: {
     fontSize: 16,
-    fontFamily: fonts.semiBold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginBottom: 8,
     opacity: 0.9,
@@ -841,7 +826,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   featureText: {
     fontSize: 14,
-    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     flex: 1,
     lineHeight: 20,
@@ -875,14 +859,14 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   currentPrice: {
     fontSize: 20,
-    fontFamily: fonts.bold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginRight: 4,
     flexShrink: 0,
   },
   originalPrice: {
     fontSize: 16,
-    fontFamily: fonts.semiBold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     opacity: 0.6,
     textDecorationLine: 'line-through',
@@ -891,8 +875,8 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   monthlyEquivalent: {
     fontSize: 14,
-    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
+    // weight handled by ThemedText
     marginLeft: 'auto',
     flexShrink: 0,
     textAlign: 'right',
@@ -933,7 +917,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   unlockButtonText: {
     fontSize: 18,
-    fontFamily: fonts.bold,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
@@ -957,7 +941,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     textAlign: 'center',
     opacity: 0.8,
@@ -994,7 +977,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     fontSize: 14,
     color: Colors.faithGold,
     marginRight: 4,
-    fontFamily: fonts.medium,
+    // weight handled by ThemedText
   },
   iconMarginRight: {
     marginRight: 8,

@@ -5,9 +5,15 @@
 
 import { StyleSheet } from 'react-native';
 import { Colors } from './colors';
-import { Fonts } from './fonts';
+import { getFontFamily } from './fonts';
 
-export const OnboardingStyles = StyleSheet.create({
+// Dynamic onboarding styles that accept font families
+export const createOnboardingStyles = (fonts: {
+  fontRegular: string;
+  fontMedium: string;
+  fontSemiBold: string;
+  fontBold: string;
+}) => StyleSheet.create({
   // Container Styles
   container: {
     flex: 1,
@@ -42,8 +48,7 @@ export const OnboardingStyles = StyleSheet.create({
   // Typography Standards
   mainTitle: {
     fontSize: 24,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
+    fontFamily: fonts.fontBold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 12,
@@ -53,7 +58,7 @@ export const OnboardingStyles = StyleSheet.create({
 
   subtitle: {
     fontSize: 15,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 24,
@@ -62,7 +67,7 @@ export const OnboardingStyles = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 20,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 16,
@@ -71,7 +76,7 @@ export const OnboardingStyles = StyleSheet.create({
 
   description: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 20,
@@ -95,7 +100,7 @@ export const OnboardingStyles = StyleSheet.create({
 
   featureText: {
     fontSize: 15,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     color: Colors.hopeWhite,
     marginLeft: 14,
     flex: 1,
@@ -139,9 +144,8 @@ export const OnboardingStyles = StyleSheet.create({
   primaryButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
     textAlign: 'center',
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontSemiBold,
   },
 
   secondaryButton: {
@@ -156,9 +160,8 @@ export const OnboardingStyles = StyleSheet.create({
   secondaryButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
     textAlign: 'center',
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontSemiBold,
   },
 
   buttonDisabled: {
@@ -196,7 +199,7 @@ export const OnboardingStyles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     marginBottom: 8,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
   },
 
   progressBar: {
@@ -226,7 +229,7 @@ export const OnboardingStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
@@ -254,14 +257,14 @@ export const OnboardingStyles = StyleSheet.create({
 
   selectionText: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
 
   selectionTextSelected: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    fontFamily: fonts.fontSemiBold,
   },
 
   // Footer/Terms Text
@@ -270,7 +273,7 @@ export const OnboardingStyles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     lineHeight: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     paddingHorizontal: 20,
   },
 
@@ -304,59 +307,77 @@ export const OnboardingStyles = StyleSheet.create({
   },
 });
 
-// Typography Scale
-export const OnboardingTypography = {
+// Dynamic Typography Scale
+export const createOnboardingTypography = (fonts: {
+  fontRegular: string;
+  fontMedium: string;
+  fontSemiBold: string;
+  fontBold: string;
+}) => ({
   // Titles
   heroTitle: {
     fontSize: 28,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     lineHeight: 34,
   },
   mainTitle: {
     fontSize: 24,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     lineHeight: 28,
   },
   sectionTitle: {
     fontSize: 20,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     lineHeight: 24,
   },
 
   // Body Text
   subtitle: {
     fontSize: 15,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     lineHeight: 20,
   },
   body: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     lineHeight: 18,
   },
   caption: {
     fontSize: 13,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     lineHeight: 18,
   },
   small: {
     fontSize: 12,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontRegular,
     lineHeight: 16,
   },
 
   // Button Text
   buttonPrimary: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
-    fontWeight: '600',
+    fontFamily: fonts.fontSemiBold,
   },
   buttonSecondary: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
-    fontWeight: '600',
+    fontFamily: fonts.fontSemiBold,
   },
-};
+});
+
+// Legacy support - create default styles with Lexend
+export const OnboardingStyles = createOnboardingStyles({
+  fontRegular: getFontFamily('lexend', 'regular'),
+  fontMedium: getFontFamily('lexend', 'medium'),
+  fontSemiBold: getFontFamily('lexend', 'semiBold'),
+  fontBold: getFontFamily('lexend', 'bold'),
+});
+
+export const OnboardingTypography = createOnboardingTypography({
+  fontRegular: getFontFamily('lexend', 'regular'),
+  fontMedium: getFontFamily('lexend', 'medium'),
+  fontSemiBold: getFontFamily('lexend', 'semiBold'),
+  fontBold: getFontFamily('lexend', 'bold'),
+});
 
 // Spacing Scale
 export const OnboardingSpacing = {

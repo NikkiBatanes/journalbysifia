@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -383,20 +383,16 @@ interface ReflectionLogProps {
   onExpand?: () => void;
 }
 
-export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({
-  selectedDate = new Date(),
-  viewMode = 'carousel',
-  expanded = false,
-  onExpand,
-}) => {
+export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand }) => {
+  // Global edit mode context (only for inline view)
+  // Global edit mode context - safe version that handles missing provider
+  const globalEditMode = useEditModeSafe();
+
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
   const isSelectedToday = isTodayFn(selectedDate);
   const isSelectedYesterday = isYesterdayFn(selectedDate);
   const future = isAfter(startOfDay(selectedDate), startOfToday());
-  
-  // Edit mode context
-  const globalEditMode = useEditModeSafe();
 
   // Success modal system
   const successModal = useSuccessModal(

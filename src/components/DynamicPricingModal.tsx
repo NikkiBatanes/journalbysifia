@@ -13,6 +13,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
+import { useTheme } from '../theme/ThemeContext';
+import { getFontFamily } from '../theme/fonts';
 
 // const { width } = Dimensions.get('window'); // Unused, commented out
 
@@ -38,6 +40,11 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   const { user } = useAuth();
   const giftScale = useRef(new Animated.Value(1)).current;
   const giftOpacity = useRef(new Animated.Value(1)).current;
+  
+  // Theme integration for dynamic font switching
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
 
   useEffect(() => {
     if (!visible) {return;}
@@ -271,7 +278,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginBottom: 8,
     textAlign: 'center',
@@ -291,7 +298,7 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
   },
   timerContainer: {
@@ -305,7 +312,7 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontSize: 16,
-    fontWeight: '600',
+    // weight handled by ThemedText
     color: Colors.alertCoral,
     marginLeft: 8,
   },
@@ -315,7 +322,7 @@ const styles = StyleSheet.create({
   },
   planName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginBottom: 4,
   },
@@ -339,12 +346,12 @@ const styles = StyleSheet.create({
   },
   discountedPrice: {
     fontSize: 28,
-    fontWeight: 'bold',
+    // weight handled by ThemedText
     color: Colors.alertCoral,
   },
   savingsText: {
     fontSize: 16,
-    fontWeight: '600',
+    // weight handled by ThemedText
     color: Colors.growthGreen,
   },
   featuresContainer: {
@@ -353,7 +360,7 @@ const styles = StyleSheet.create({
   },
   featuresTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginBottom: 12,
     textAlign: 'center',
@@ -379,7 +386,7 @@ const styles = StyleSheet.create({
   },
   ctaButtonText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
