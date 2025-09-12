@@ -354,25 +354,28 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   // Realtime updates: refresh when devotionals or related user_progress change
   useEffect(() => {
     if (!user) { return; }
-    const channel = supabase.channel('devotionals_dashboard');
+    
+    // Clean up any existing channel first
+    const channelName = `devotionals_dashboard_${user.id}_${Date.now()}`;
+    const channel = supabase.channel(channelName);
 
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'devotionals' },
       () => {
-        scheduleRefetch();
+        console.log('[DevotionalCarousel] Devotionals table changed, refetching...');
+        fetchDevotionals();
       }
     );
 
-    // Some flows update progress in user_progress for devotionals
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'user_progress' },
       (payload: any) => {
-        const contentType = (payload.new?.content_type ?? payload.old?.content_type) as string | undefined;
-        const contentId = (payload.new?.content_id ?? payload.old?.content_id) as string | undefined;
-        if (contentType === 'devotional' && contentId && devotionalIdsRef.current.has(contentId)) {
-          scheduleRefetch();
+        const contentType = payload.new?.content_type ?? payload.old?.content_type;
+        if (contentType === 'devotional') {
+          console.log('[DevotionalCarousel] User progress changed for devotional, refetching...');
+          fetchDevotionals();
         }
       }
     );
@@ -380,9 +383,12 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     channel.subscribe();
 
     return () => {
-      try { channel.unsubscribe(); } catch {}
+      try { 
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
+      } catch {}
     };
-  }, [user, scheduleRefetch]);
+  }, [user, fetchDevotionals]);
 
   const getStatusColor = (isCompleted: boolean) => {
     return isCompleted ? Colors.successGreen : Colors.faithGold;

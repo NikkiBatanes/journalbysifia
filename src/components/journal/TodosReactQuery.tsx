@@ -18,6 +18,8 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { usePlanningGating } from '../../hooks/usePlanningGating';
+import PlanningLockIcon from '../PlanningLockIcon';
 
 // React Query hooks
 import {
@@ -71,8 +73,8 @@ const TODOS_EMPTY_COPY: Record<'yesterday' | 'earlier' | 'future', { title: stri
     subtitle: 'Recall the tasks\nyou intended to do then',
   },
   future: {
-    title: 'Tasks for This Day',
-    subtitle: 'Plan your steps and trust His leading',
+    title: 'Plan Your Next Steps',
+    subtitle: 'Prayerfully prepare for what’s ahead',
   },
 };
 
@@ -83,6 +85,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+
+  // Planning gating state
+  const planningGating = usePlanningGating(selectedDate, 'inApp');
 
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
@@ -210,13 +215,16 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   };
 
   const startAdding = () => {
+    // Check if planning is locked for future dates
+    if (planningGating.isLocked) {
+      planningGating.handleLockedAction();
+      return;
+    }
+    
     closeAllSwipeables();
     setVisibleCount(5);
     setIsAdding(true);
-    // Focus input after state update
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
+    setNewTodo('');
   };
 
   const cancelAdding = () => {
@@ -662,10 +670,18 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       'Begin';
     return (
       <JournalCard
-        // Hide header icon/title/subtitle in empty state
+        // Hide header in empty state, per design, but still show lock via headerRight
         icon={null}
         title={undefined}
         subtitle={undefined}
+        headerRight={planningGating.lockIconVisible ? (
+          <PlanningLockIcon
+            tier={planningGating.currentTier}
+            context="inApp"
+            onLockTap={planningGating.handleLockedAction}
+            size={16}
+          />
+        ) : undefined}
         showAddButton={false}
         variant={variant}
         viewMode={viewMode}
@@ -680,7 +696,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               color={Colors.mediumGray}
               style={styles.emptyStateIcon}
             />
-            <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">TO-DOS</ThemedText>
+            <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">
+              {dateCategory === 'future' ? 'UPCOMING TO-DOS' : 'TO-DOS'}
+            </ThemedText>
           </View>
           <View style={styles.titleContainer}>
             <ThemedText
@@ -774,6 +792,14 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
+      headerRight={planningGating.lockIconVisible ? (
+        <PlanningLockIcon 
+          tier={planningGating.currentTier} 
+          context="inApp"
+          onLockTap={planningGating.handleLockedAction}
+          size={16}
+        />
+      ) : undefined}
       variant={variant}
       viewMode={viewMode}
       expanded={expanded}
@@ -1225,6 +1251,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 12,
     width: '100%',
+    position: 'relative',
   },
   emptyStateIcon: {
     marginBottom: 8,

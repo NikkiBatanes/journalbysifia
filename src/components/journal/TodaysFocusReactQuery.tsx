@@ -24,6 +24,8 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { usePlanningGating } from '../../hooks/usePlanningGating';
+import PlanningLockIcon from '../PlanningLockIcon';
 
 interface PriorityItem {
   id: string;
@@ -60,6 +62,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+
+  // Planning gating state
+  const planningGating = usePlanningGating(selectedDate, 'inApp');
 
   // Theme-driven fonts
   const { currentFont } = useTheme();
@@ -200,6 +205,16 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         };
     }
     if (future) {
+      // Check if planning is locked for this tier
+      if (planningGating.isLocked) {
+        return {
+          eyebrow: 'Upcoming Focus',
+          title: 'Plan in Faith Ahead',
+          subtitle: shouldShowEditingMode ? 'Set your focus and priorities' : 'Prayerfully set what matters so this day can count',
+          ctaLabel: 'Pray & Set',
+          ctaAction: 'plan',
+        };
+      }
       if (!planningEnabled) {
         return {
           eyebrow: 'Upcoming Focus',
@@ -241,7 +256,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ctaLabel: 'Revisit',
           ctaAction: 'revisit',
         };
-  }, [day, hasEntry, hasPlan, planningEnabled]);
+  }, [day, hasEntry, hasPlan, planningEnabled, planningGating.isLocked, planningGating.usageMessage]);
 
   // Handle global edit mode activation
   React.useEffect(() => {
@@ -341,6 +356,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   }, [user, dateStr, existingEntry, createMutation, updateMutation]);
 
   const toggleEditing = () => {
+    // Check if planning is locked for future dates
+    if (planningGating.isLocked && !isEditing) {
+      planningGating.handleLockedAction();
+      return;
+    }
+
     if (isEditing) {
       // Save when exiting edit mode
       const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
@@ -594,7 +615,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         showAddButton={(hasContent || shouldShowEditingMode) ? !shouldShowEditingMode : false}
         onAdd={toggleEditing}
         isAdding={shouldShowEditingMode}
-        headerRight={undefined}
+        headerRight={planningGating.lockIconVisible ? (
+          <PlanningLockIcon 
+            tier={planningGating.currentTier} 
+            context="inApp"
+            onLockTap={planningGating.handleLockedAction}
+            size={16}
+          />
+        ) : undefined}
         variant={variant}
         viewMode={viewMode}
         expanded={expanded}
@@ -1103,8 +1131,9 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    color: Colors.hopeWhite,
-    letterSpacing: 0.8,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    opacity: 0.9,
     textTransform: 'uppercase',
   },
   titleContainer: {

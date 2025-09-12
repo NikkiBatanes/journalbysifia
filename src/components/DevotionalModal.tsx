@@ -432,22 +432,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   Based on what you've shared, we'll craft a devotional tailored to your journey.
                 </ThemedText>
               </View>
-              
-              {/* Usage Badges: separate tier badge and remaining count badge */}
-              {!devotionalGating.loading && (
-                <View style={styles.badgeRow}>
-                  <View style={styles.tierBadgeContainer}>
-                    <ThemedText weight="semiBold" style={styles.tierBadgeText}>
-                      {`siFia ${devotionalGating.tier.toUpperCase()}`}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.countBadgeContainer}>
-                    <ThemedText weight="semiBold" style={styles.countBadgeText}>
-                      {devotionalGating.usageInfo.displayMessage}
-                    </ThemedText>
-                  </View>
-                </View>
-              )}
             </View>
 
             <View style={styles.scrollableContent}>
@@ -617,6 +601,42 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 })}
               </View>
   )}
+  {/* Usage Badges moved near footer and centered */}
+  {!devotionalGating.loading && devotionalGating.tier !== 'transformation' && devotionalGating.tier !== 'family' && (
+    <View style={styles.badgeRow}>
+      <View style={styles.tierBadgeContainer}>
+        <ThemedText weight="semiBold" style={styles.tierBadgeText}>
+          {`siFia ${devotionalGating.tier.toUpperCase()}`}
+        </ThemedText>
+      </View>
+      {devotionalGating.tier === 'seeker' ? (
+        <TouchableOpacity
+          style={styles.countBadgeContainer}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            handleClose(() => {
+              navigation.navigate('OnboardingSalesOffer' as any, {
+                upgradeMode: true,
+                currentTier: devotionalGating.tier,
+              });
+            });
+          }}
+          activeOpacity={0.85}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <ThemedText weight="semiBold" style={styles.countBadgeText}>
+            {devotionalGating.usageInfo.displayMessage}
+          </ThemedText>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.countBadgeContainer}>
+          <ThemedText weight="semiBold" style={styles.countBadgeText}>
+            {devotionalGating.usageInfo.displayMessage}
+          </ThemedText>
+        </View>
+      )}
+    </View>
+  )}
   <ThemedText weight="regular" style={styles.footerText}>
     God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
   </ThemedText>
@@ -742,9 +762,10 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignSelf: 'center',
     gap: 8,
-    marginTop: 8,
+    marginTop: 12,
     paddingHorizontal: 4,
   },
   tierBadgeContainer: {

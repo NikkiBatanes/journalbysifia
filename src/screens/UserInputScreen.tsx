@@ -546,20 +546,20 @@ const UserInputScreen: React.FC = () => {
                   />
                   {/* Bottom row overlays: status on left, buttons on right */}
                   <View style={styles.bottomRow} pointerEvents="box-none">
-                    <View style={[styles.statusInline, { flexShrink: 1, minWidth: 80 }]} pointerEvents="none">
-                      <Text style={[styles.statusText, font, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
-                        {subscriptionData.isLoading 
-                          ? 'Loading subscription...'
-                          : !subscriptionData.subscription || subscriptionData.isSeeker
-                            ? getSeekerDisplayText()
-                            : subscriptionData.isUnlimited
-                              ? 'Unlimited playbooks'
+                    {!subscriptionData.isUnlimited && (
+                      <View style={[styles.statusInline, { flexShrink: 1, minWidth: 80 }]} pointerEvents="none">
+                        <Text style={[styles.statusText, font, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+                          {subscriptionData.isLoading 
+                            ? 'Loading subscription...'
+                            : !subscriptionData.subscription || subscriptionData.isSeeker
+                              ? getSeekerDisplayText()
                               : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} playbooks remaining`}
-                      </Text>
-                      <Text style={[styles.tierBadgeInline, font]}>
-                        {getTierDisplayName(subscriptionData.subscription)}
-                      </Text>
-                    </View>
+                        </Text>
+                        <Text style={[styles.tierBadgeInline, font]}>
+                          {getTierDisplayName(subscriptionData.subscription)}
+                        </Text>
+                      </View>
+                    )}
                     <View style={styles.actionsRight}>
                       <TouchableOpacity
                         onPress={onPressHint}

@@ -342,15 +342,22 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   // Realtime updates: refresh when devotionals change
   useEffect(() => {
     if (!user) { return; }
+    const channelName = `reflection_questions_realtime_${user.id}_${Date.now()}`;
     const channel = supabase
-      .channel('reflection_devotionals_changes')
+      .channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reflection_questions' }, () => {
+        fetchReflectionQuestions();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'devotionals' }, () => {
         fetchReflectionQuestions();
       })
       .subscribe();
 
     return () => {
-      try { supabase.removeChannel(channel); } catch {}
+      try { 
+        channel.unsubscribe();
+        supabase.removeChannel(channel); 
+      } catch {}
     };
   }, [user, fetchReflectionQuestions]);
 

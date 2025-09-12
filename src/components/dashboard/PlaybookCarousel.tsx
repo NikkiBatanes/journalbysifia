@@ -261,7 +261,15 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     // Skip if not logged in
     if (!user?.id) {return;}
 
-    const channel = supabase.channel('dashboard-playbook-progress');
+    // Clean up any existing channel first
+    if (channelRef.current) {
+      try { 
+        channelRef.current.unsubscribe(); 
+      } catch {}
+      channelRef.current = null;
+    }
+
+    const channel = supabase.channel(`dashboard-playbook-progress-${user.id}-${Date.now()}`);
 
     channel.on(
       'postgres_changes',

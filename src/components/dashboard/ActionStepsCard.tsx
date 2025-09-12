@@ -282,17 +282,14 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   useEffect(() => {
     if (!user) {return;}
 
+    const channelName = `action_steps_realtime_${user.id}_${Date.now()}`;
     const channel = supabase
-      .channel('dashboard-action-steps')
+      .channel(channelName)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'playbook_action_steps',
-        },
-        () => {
-          // Refetch when action steps change
+        { event: '*', schema: 'public', table: 'playbook_action_steps' },
+        (payload) => {
+          console.log('[ActionStepsCard] Realtime update:', payload);
           fetchActionSteps();
         }
       )
@@ -311,7 +308,10 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
+      } catch {}
     };
   }, [user, fetchActionSteps]);
 

@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -17,7 +18,6 @@ import { usePlatformSubscription } from '../../hooks/usePlatformSubscription';
 import { isDevotionalDurationLocked } from '../../utils/tierLockingRules';
 import type { SubscriptionTier } from '../../types/subscription';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
-import SubscriptionUpgradeModal from '../../components/SubscriptionUpgradeModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 
@@ -30,6 +30,11 @@ interface RouteParams {
   upgradeMode?: boolean;
   currentTier?: string;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
+  // Navigation context flags
+  source?: string; // e.g., 'planning_lock'
+  feature?: string; // e.g., 'future_planning'
+  tier?: string; // caller-reported tier
+  skipNotificationPreference?: boolean;
 }
 
 const OnboardingSalesOfferScreen: React.FC = () => {
@@ -43,7 +48,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [selectedTier, setSelectedTier] = useState('growth');
   const [showDynamicModal, setShowDynamicModal] = useState(false);
   const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
@@ -51,8 +55,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
-  const currentUserTier = routeParams?.currentTier || devotionalGating.tier;
+  const currentUserTier = (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier) as string;
   const requestedDuration = routeParams?.requestedDuration;
+  const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
 
   // Derived: trial eligibility (only offer trial if user hasn't started one yet)
   const subscription = devotionalGating.subscription;
@@ -93,14 +98,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setPricingTiers(tiers);
           setCurrencyInfo(currency);
           
-          // Set default selection based on mode
-          if (isUpgradeMode && tiers.length > 0) {
-            // In upgrade mode, select the first available upgrade tier
-            setSelectedTier(tiers[0].id);
-          } else {
-            // In onboarding mode, use recommended tier
-            const recommended = pricingService.getRecommendedTier();
-            setSelectedTier(recommended);
+          // Default selection: prefer POPULAR, then 'growth', then first
+          if (tiers.length > 0) {
+            const popularTier = tiers.find(t => (t as any).isPopular === true);
+            const growthTier = tiers.find(t => t.id === 'growth');
+            const fallback = tiers[0];
+            const chosen = popularTier || growthTier || fallback;
+            setSelectedTier(chosen.id);
           }
         }
       } catch (e) {
@@ -172,8 +176,44 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       triggerLightHaptic();
       
       if (isUpgradeMode) {
-        // In upgrade mode, use platform subscription upgrade
-        setShowUpgradeModal(true);
+        // In upgrade mode, go directly to platform subscription
+        const PlatformPaymentService = (await import('../../services/PlatformPaymentService')).default;
+        const paymentService = PlatformPaymentService.getInstance();
+        
+        // For development/testing, use a fallback approach since products may not be available
+        let productId: string;
+        
+        try {
+          const products = await paymentService.getAvailableProducts();
+          const targetProduct = products.find(p => p.tier === selectedTier);
+          
+          if (targetProduct) {
+            productId = targetProduct.productId;
+          } else {
+            // Fallback: construct expected product ID format
+            productId = `com.yourcompany.sifia.${selectedTier}.monthly`;
+            console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier}, using fallback: ${productId}`);
+          }
+        } catch (error) {
+          // Fallback if getAvailableProducts fails
+          productId = `com.yourcompany.sifia.${selectedTier}.monthly`;
+          console.warn(`[OnboardingSalesOffer] Failed to get products, using fallback: ${productId}`);
+        }
+        
+        try {
+          const result = await paymentService.purchaseSubscription(productId, user?.id || '');
+          if (result.success) {
+            triggerSuccessHaptic();
+            // Refresh subscription and close
+            await devotionalGating.refreshSubscription();
+            navigation.goBack();
+          } else {
+            throw new Error(result.error || 'Purchase failed');
+          }
+        } catch (purchaseError: any) {
+          console.error('Purchase failed:', purchaseError);
+          Alert.alert('Purchase Failed', purchaseError?.message || 'Something went wrong. Please try again.');
+        }
       } else {
         // In onboarding mode, use existing flow
         await upgradeSubscription({
@@ -434,10 +474,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           {/* Main Content that should scroll under the sticky toggle */}
           <ThemedText weight="bold" style={styles.mainTitle}>
-            {isUpgradeMode ? 'Keep walking—grace for the next step' : "You've taken your first step!"}
+            {isUpgradeMode
+              ? 'Keep walking—grace for the next step'
+              : fromPlanningLock
+                ? 'Upgrade to Plan Ahead'
+                : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            {isUpgradeMode ? 'Choose a plan that meets you where you are and helps you go deeper.' : 'Keep walking, one faithful step at a time.'}
+            {isUpgradeMode
+              ? 'Choose a plan that meets you where you are and helps you go deeper.'
+              : fromPlanningLock
+                ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
+                : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}
@@ -466,24 +514,47 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               </>
             ) : (
               // Onboarding benefits (limit to 3, aligned copy)
-              <>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Personalized playbooks and devotionals delivered at a pace that fits your plan.
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Track growth with smart journaling and deeper reflections over time.
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
-                </View>
-              </>
+              fromPlanningLock ? (
+                <>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Plan days ahead with clear focus, to-dos, and time blocks.
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Stay consistent with guided journaling that builds faithful rhythms.
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Gain momentum with personalized playbooks and devotionals.
+                    </ThemedText>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Personalized playbooks and devotionals delivered at a pace that fits your plan.
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Track growth with smart journaling and deeper reflections over time.
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
+                  </View>
+                </>
+              )
             )}
           </View>
           <View style={styles.cardsContainer}>{pricingTiers.map(renderPricingCard)}</View>
@@ -501,7 +572,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           activeOpacity={0.9}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isUpgradeMode ? 'Upgrade and Continue' : 'Continue My Journey'}
+            {isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : 'Continue My Journey')}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
@@ -536,15 +607,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         />
       )}
 
-      {/* Platform Subscription Upgrade Modal */}
-      <SubscriptionUpgradeModal
-        visible={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        targetTier={selectedTier as any}
-        targetBilling={isAnnual ? 'annual' : 'monthly'}
-        requestedDuration={requestedDuration}
-        onUpgradeSuccess={handleUpgradeSuccess}
-      />
+
     </SafeAreaView>
   );
 };
@@ -708,7 +771,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: 20,
-    backgroundColor: Colors.growthGreen,
+    backgroundColor: Colors.faithGold,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,

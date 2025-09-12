@@ -27,6 +27,8 @@ import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { getCategoryColor, getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../../utils/haptics';
+import { usePlanningGating } from '../../hooks/usePlanningGating';
+import PlanningLockIcon from '../PlanningLockIcon';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -118,6 +120,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+  
+  // Planning gating state
+  const planningGating = usePlanningGating(selectedDate, 'inApp');
+  
   // Dynamic theming
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -478,24 +484,26 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   };
 
   const startAdding = () => {
+    // Check if planning is locked for future dates
+    if (planningGating.isLocked) {
+      planningGating.handleLockedAction();
+      return;
+    }
+    
     setNewBlock({
       title: '',
       startTime: new Date(),
-      endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
-      category: '',
+      endTime: new Date(Date.now() + 60 * 60 * 1000), // Default 1 hour duration
+      category: 'work',
       notes: '',
       location: '',
       isAllDay: false,
       repeat: {
         frequency: 'never',
-        endDate: undefined,
-        customDays: undefined,
-        customFrequency: undefined,
       },
     });
-    setEditId(null);
     setIsAdding(true);
-    setShowTitleError(false);
+    setShowCategoryModal(false);
     setShowCategoryError(false);
     setShowCategoryPicker(false);
     setShowRepeatOptions(false);
@@ -736,7 +744,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       viewMode={viewMode}
       expanded={expanded}
       onExpand={onExpand}
-      headerRight={undefined}
+      headerRight={planningGating.lockIconVisible ? (
+        <PlanningLockIcon 
+          tier={planningGating.currentTier} 
+          context="inApp"
+          onLockTap={planningGating.handleLockedAction}
+          size={16}
+        />
+      ) : undefined}
     >
       {/* Show empty state or time blocks */}
       {timeBlocks.length === 0 ? (
