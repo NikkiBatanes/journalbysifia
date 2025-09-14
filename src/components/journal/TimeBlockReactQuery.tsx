@@ -2036,7 +2036,7 @@ const styles = StyleSheet.create({
   timePickerContainer: {
     marginTop: 12,
     backgroundColor: 'transparent',
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 12,
     // overflow: 'hidden', // allow highlight to show round corners
     maxWidth: '130%',

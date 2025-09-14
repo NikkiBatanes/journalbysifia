@@ -36,6 +36,11 @@ interface TimeBlockLogEditorProps {
     location?: string;
     isAllDay: boolean;
     date: Date;
+    // Repeat information to mirror journal TimeBlock component
+    repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
+    repeatEndDate?: Date | null;
+    repeatCustomDays?: number[]; // 0-6 (Sun-Sat)
+    repeatCustomFrequency?: { value: number; unit: 'day' | 'week' | 'month' | 'year' } | null;
     isEditing?: boolean;
     existingId?: string;
   }) => void;
@@ -444,7 +449,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timePickerContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
+    borderRadius: 30,
     padding: 20,
     margin: 20,
     alignItems: 'center',
@@ -491,8 +496,8 @@ const createDefaultStyles = (fonts: any) => ({
   },
   repeatModalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 30,
+    padding: 30,
     margin: 20,
     minWidth: 280,
   },
@@ -577,14 +582,13 @@ const createDefaultStyles = (fonts: any) => ({
   repeatOption: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   repeatOptionLast: {
-    borderBottomWidth: 0,
   },
   repeatOptionSelected: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    marginHorizontal: 4,
   },
   repeatOptionText: {
     color: Colors.hopeWhite,
@@ -608,8 +612,11 @@ const createDefaultStyles = (fonts: any) => ({
   },
 });
 
-const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogEditorProps>((
-  {
+function TimeBlockLogEditorInner(
+  props: TimeBlockLogEditorProps,
+  ref: React.Ref<TimeBlockLogEditorRef>
+) {
+  const {
     onSave,
     onCancel: _onCancel,
     initialContent: _initialContent = '',
@@ -621,11 +628,9 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
     actionStepTitle,
     isLoading = false,
     styles,
-    dateString, // kept for backward-compat but not used for header formatting
+    dateString,
     existingTimeBlock,
-  },
-  ref
-) => {
+  } = props;
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const regularFont = getFontFamily(fontKey, 'regular');
@@ -673,7 +678,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
     end.setHours(end.getHours() + 1);
     return end;
   });
-  const [category, setCategory] = React.useState(existingTimeBlock?.category || 'Others');
+  const [category, setCategory] = React.useState(existingTimeBlock?.category || 'Select a category');
   const [notes, setNotes] = React.useState(existingTimeBlock?.description || '');
   const [location, setLocation] = React.useState(existingTimeBlock?.location || '');
   const [isAllDay, setIsAllDay] = React.useState(existingTimeBlock?.all_day || false);
@@ -695,7 +700,11 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
   // Repeat modal state
   const [showRepeatModal, setShowRepeatModal] = useState(false);
   const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
-  const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
+  const [customFrequency, setCustomFrequency] = useState<{ value: number; unit: 'day' | 'week' | 'month' | 'year' }>({ value: 1, unit: 'week' });
+  const [customDays, setCustomDays] = useState<number[]>([]); // For weekly custom selection
+  const [endRepeatMode, setEndRepeatMode] = useState<'never' | 'date'>('never');
+  const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(null);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
@@ -735,6 +744,20 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
         location: location.trim(),
         isAllDay,
         date: new Date(),
+        // Provide repeat info mirroring journal screen
+        repeatFrequency: ((): any => {
+          const lower = repeatOption.toLowerCase();
+          if (lower === 'never') return 'never';
+          if (lower === 'daily') return 'daily';
+          if (lower === 'weekly') return 'weekly';
+          if (lower === 'bi-weekly' || lower === 'biweekly') return 'biweekly';
+          if (lower === 'monthly') return 'monthly';
+          if (lower === 'yearly') return 'yearly';
+          return 'custom';
+        })(),
+        repeatEndDate: endRepeatMode === 'date' ? endRepeatDate : null,
+        repeatCustomDays: customFrequency.unit === 'week' ? customDays : undefined,
+        repeatCustomFrequency: repeatOption === 'Custom' ? { value: customFrequency.value, unit: customFrequency.unit } : null,
         isEditing: isEditing, // Pass editing state to parent
         existingId: existingTimeBlock?.id, // Pass existing ID for deletion/unmarking
       });
@@ -824,7 +847,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
         enabled={Platform.OS === 'ios'}>
 
         <View style={s.contentCard}>
-          <ScrollView style={s.content} contentContainerStyle={s.scrollContent} scrollEnabled={false}>
+          <ScrollView style={s.content} contentContainerStyle={s.scrollContent} scrollEnabled={true}>
             {/* Title section */}
             <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
               {_subtaskTitle || 'Time Block Entry'}
@@ -903,6 +926,45 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                 </View>
               </TouchableOpacity>
 
+              {/* End Repeat Section - Below Repeat in main form */}
+              {repeatOption !== 'Never' && (
+                <View style={{ marginTop: 8 }}>
+                  <ThemedText weight="medium" style={s.inputLabel}>End Repeat</ThemedText>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => { setEndRepeatMode('never'); setEndRepeatDate(null); }}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        borderRadius: 10,
+                        backgroundColor: endRepeatMode === 'never' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        borderColor: endRepeatMode === 'never' ? Colors.primary : 'rgba(255,255,255,0.2)'
+                      }}
+                    >
+                      <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>Never</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => { setShowEndDatePicker(true); }}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        borderRadius: 10,
+                        backgroundColor: endRepeatMode === 'date' && endRepeatDate ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        borderColor: endRepeatMode === 'date' && endRepeatDate ? Colors.primary : 'rgba(255,255,255,0.2)'
+                      }}
+                    >
+                      <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>
+                        {endRepeatDate ? endRepeatDate.toLocaleDateString() : 'Select End Date'}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
               {/* Category Selection */}
               <TouchableOpacity
                 style={[
@@ -960,7 +1022,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                             setShowRepeatModal(false);
                             setShowCustomRepeatModal(true);
                           } else {
-                            handleContentChange('repeat', option);
+                            setRepeatOption(option);
                             setShowRepeatModal(false);
                           }
                         }}
@@ -973,6 +1035,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                         </ThemedText>
                       </TouchableOpacity>
                     ))}
+
                   </View>
                 </View>
               </Modal>
@@ -998,7 +1061,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                             value={customFrequency.value.toString()}
                             onChangeText={(text) => {
                               const num = parseInt(text, 10) || 1;
-                              setCustomFrequency({ ...customFrequency, value: num });
+                              setCustomFrequency({ ...customFrequency, value: Math.max(1, num) });
                             }}
                             keyboardType="numeric"
                             maxLength={2}
@@ -1008,19 +1071,49 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                           <TouchableOpacity
                             style={s.frequencyUnitButton}
                             onPress={() => {
-                              const units = ['day', 'week', 'month', 'year'];
+                              const units: Array<'day'|'week'|'month'|'year'> = ['day', 'week', 'month', 'year'];
                               const currentIndex = units.indexOf(customFrequency.unit);
                               const nextIndex = (currentIndex + 1) % units.length;
-                              setCustomFrequency({ ...customFrequency, unit: units[nextIndex] });
+                              const nextUnit = units[nextIndex];
+                              setCustomFrequency({ ...customFrequency, unit: nextUnit });
+                              if (nextUnit !== 'week') { setCustomDays([]); }
                             }}
                           >
                             <ThemedText weight="medium" style={s.frequencyUnitText}>
                               {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
                             </ThemedText>
-                            <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                           </TouchableOpacity>
                         </View>
                       </View>
+
+                      {customFrequency.unit === 'week' && (
+                        <View style={{ marginTop: 12 }}>
+                          <ThemedText weight="medium" style={s.customRepeatLabel}>On days:</ThemedText>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                            {['S','M','T','W','T','F','S'].map((label, idx) => (
+                              <TouchableOpacity
+                                key={idx}
+                                onPress={() => {
+                                  setCustomDays(prev => prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]);
+                                }}
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 16,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: customDays.includes(idx) ? 'rgba(255,255,255,0.3)' : 'transparent',
+                                  borderWidth: 1,
+                                  borderColor: 'rgba(255,255,255,0.3)'
+                                }}
+                              >
+                                <ThemedText weight="medium" style={{ color: Colors.hopeWhite }}>{label}</ThemedText>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
                     </View>
 
                     <View style={s.customModalButtons}>
@@ -1033,11 +1126,63 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                       <TouchableOpacity
                         style={[s.customModalButton, s.customModalConfirmButton]}
                         onPress={() => {
-                          handleContentChange('repeat', `Every ${customFrequency.value} ${customFrequency.unit}${customFrequency.value > 1 ? 's' : ''}`);
+                          const unitLabel = customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1) + (customFrequency.value > 1 ? 's' : '');
+                          let label = `Every ${customFrequency.value} ${unitLabel}`;
+                          if (customFrequency.unit === 'week' && customDays.length > 0) {
+                            const dayNames = ['S','M','T','W','T','F','S'];
+                            label += ` on ${customDays.sort().map(d => dayNames[d]).join(', ')}`;
+                          }
+                          if (endRepeatMode === 'date' && endRepeatDate) {
+                            label += ` until ${endRepeatDate.toLocaleDateString()}`;
+                          }
+                          handleContentChange('repeat', label);
                           setShowCustomRepeatModal(false);
                         }}
                       >
                         <ThemedText weight="semiBold" style={s.customModalButtonText}>Done</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+
+              {/* End Date Picker Modal for Custom Repeat */}
+              <Modal
+                visible={showEndDatePicker}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowEndDatePicker(false)}
+              >
+                <View style={s.timePickerModal}>
+                  <View style={s.timePickerContainer}>
+                    <ThemedText weight="semiBold" style={s.timePickerTitle}>Select End Date</ThemedText>
+                    <DateTimePicker
+                      value={endRepeatDate || new Date()}
+                      mode="date"
+                      display="spinner"
+                      textColor={Colors.hopeWhite}
+                      themeVariant="dark"
+                      onChange={(event, selectedDate) => {
+                        if (selectedDate) {
+                          setEndRepeatDate(selectedDate);
+                        }
+                      }}
+                    />
+                    <View style={s.timePickerButtons}>
+                      <TouchableOpacity
+                        style={[s.timePickerButton, s.timePickerCancelButton]}
+                        onPress={() => setShowEndDatePicker(false)}
+                      >
+                        <Text style={[s.timePickerButtonText, s.timePickerCancelText]}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[s.timePickerButton, s.timePickerConfirmButton]}
+                        onPress={() => {
+                          setEndRepeatMode('date');
+                          setShowEndDatePicker(false);
+                        }}
+                      >
+                        <Text style={[s.timePickerButtonText, s.timePickerConfirmText]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1246,6 +1391,8 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
 
     </View>
   );
-});
+}
+
+const TimeBlockLogEditor = React.forwardRef(TimeBlockLogEditorInner);
 
 export default TimeBlockLogEditor;
