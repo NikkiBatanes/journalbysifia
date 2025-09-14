@@ -109,12 +109,15 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                     <Ionicons
                       name={category.icon as any}
                       size={18}
-                      color={Colors.hopeWhite}
+                      color={selectedCategory === category.name ? Colors.anchorBlue : Colors.hopeWhite}
                     />
                   </View>
                   <ThemedText
                     weight={selectedCategory === category.name ? 'semiBold' : 'medium'}
-                    style={styles.categoryText}
+                    style={[
+                      styles.categoryText,
+                      // Keep selected text Hope White
+                    ]}
                   >
                     {category.name}
                   </ThemedText>
@@ -144,7 +147,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
+    borderRadius: 30,
     width: '90%',
     maxWidth: 400,
     maxHeight: '80%',

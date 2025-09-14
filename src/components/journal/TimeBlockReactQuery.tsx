@@ -29,6 +29,11 @@ import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../../utils/haptics';
 import { usePlanningGating } from '../../hooks/usePlanningGating';
 import PlanningLockIcon from '../PlanningLockIcon';
+import { useCalendarGating } from '../../hooks/useCalendarGating';
+import { LocationSelector } from '../LocationSelector';
+import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
+import { CalendarSyncButton } from '../CalendarSyncButton';
+import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -41,6 +46,7 @@ interface TimeBlockItem {
   notes?: string;
   location?: string;
   isAllDay: boolean;
+  calendarEventId?: string; // For calendar sync
   repeat: {
     frequency: RepeatFrequency;
     endDate?: Date;
@@ -124,6 +130,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Planning gating state
   const planningGating = usePlanningGating(selectedDate, 'inApp');
   
+  // Calendar gating state
+  const calendarGating = useCalendarGating();
+  
   // Dynamic theming
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -168,6 +177,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     notes: block.description, // Map description field to notes
     location: block.location,
     isAllDay: block.all_day,
+    calendarEventId: (block as any).calendar_event_id,
     repeat: block.repeat_rule ? {
       frequency: (block.repeat_rule.frequency || 'never') as RepeatFrequency,
       endDate: block.repeat_until ? new Date(block.repeat_until) : undefined,
@@ -185,11 +195,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [expandedNotes, setExpandedNotes] = useState<{[key: string]: boolean}>({});
   const [isAdding, setIsAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(3);
   const [showTitleError, setShowTitleError] = useState(false);
   const [showCategoryError, setShowCategoryError] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<{
+    visible: boolean;
+    timeBlock?: TimeBlockItem;
+  }>({ visible: false });
 
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding;
@@ -291,44 +305,63 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setShowRepeatOptions(false);
   };
 
-  const handleDeleteBlock = async (id: string) => {
+  const handleDeleteBlock = (timeBlock: TimeBlockItem) => {
+    console.log('🗑️ handleDeleteBlock called for:', timeBlock.id, timeBlock.title, 'repeat:', timeBlock.repeat.frequency);
     try { triggerSelectionHaptic(); } catch {}
-    Alert.alert('Delete Time Block', 'Are you sure you want to delete this time block?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            // Get block data for analytics before deletion
-            const blockToDelete = timeBlocks.find(block => block.id === id);
-            const durationMinutes = blockToDelete ?
-              Math.round((blockToDelete.endTime.getTime() - blockToDelete.startTime.getTime()) / (1000 * 60)) : 0;
+    setShowDeleteModal({ visible: true, timeBlock });
+  };
 
-            await deleteMutation.mutateAsync(id);
+  const handleDeleteConfirm = async (options: DeleteOptions) => {
+    const timeBlock = showDeleteModal.timeBlock;
+    if (!timeBlock) return;
 
-            try { triggerLightHaptic(); } catch {}
-            // Track delete analytics
-            analytics.trackTimeBlockEvent('timeblock_deleted', {
-              timeblock_id: id,
-              category: blockToDelete?.category || 'unknown',
-              duration_minutes: durationMinutes,
-              was_all_day: blockToDelete?.isAllDay || false,
-              date: dateStr,
-            }, user?.id);
-          } catch (deleteError) {
-            // Track delete error analytics
-            analytics.trackTimeBlockEvent('timeblock_error', {
-              error_type: deleteError instanceof Error ? deleteError.message : 'unknown_error',
-              operation: 'delete_timeblock',
-              date: dateStr,
-            }, user?.id);
+    setShowDeleteModal({ visible: false });
 
-            Alert.alert('Error', 'Failed to delete time block');
-          }
-        },
-      },
-    ]);
+    try {
+      // Delete from calendar first if synced
+      if (timeBlock.calendarEventId) {
+        await removeTimeBlockFromCalendar(timeBlock.calendarEventId);
+      }
+
+      // Delete from database
+      await deleteMutation.mutateAsync(timeBlock.id);
+
+      try { triggerLightHaptic(); } catch {}
+      
+      // Track delete analytics
+      const durationMinutes = Math.round(
+        (timeBlock.endTime.getTime() - timeBlock.startTime.getTime()) / (1000 * 60)
+      );
+      
+      analytics.trackTimeBlockEvent('timeblock_deleted', {
+        timeblock_id: timeBlock.id,
+        category: timeBlock.category || 'unknown',
+        duration_minutes: durationMinutes,
+        was_all_day: timeBlock.isAllDay || false,
+        // was_synced: !!timeBlock.calendarEventId, // Remove for now
+        date: dateStr,
+      }, user?.id);
+    } catch (deleteError) {
+      console.error('Delete error:', deleteError);
+      
+      // Track delete error analytics
+      analytics.trackTimeBlockEvent('timeblock_error', {
+        error_type: deleteError instanceof Error ? deleteError.message : 'unknown_error',
+        operation: 'delete_timeblock',
+        date: dateStr,
+      }, user?.id);
+
+      Alert.alert('Error', 'Failed to delete time block');
+    }
+  };
+
+  // Pagination controls for Time Blocks (match Todos design)
+  const loadMoreBlocks = () => {
+    setVisibleCount(prev => Math.min(prev + 5, timeBlocks.length));
+  };
+
+  const showLessBlocks = () => {
+    setVisibleCount(3);
   };
 
   const addTimeBlock = async () => {
@@ -386,13 +419,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         description: newBlock.notes.trim() || undefined,
         location: newBlock.location.trim() || undefined,
         all_day: newBlock.isAllDay,
-        // Repeat fields
-        repeat_rule: newBlock.repeat.frequency !== 'never' ? {
+        // Repeat fields (only if user can use repeat)
+        repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
           frequency: newBlock.repeat.frequency,
           customDays: newBlock.repeat.customDays,
           customFrequency: newBlock.repeat.customFrequency,
         } : undefined,
-        repeat_until: newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate ? newBlock.repeat.endDate.toISOString() : undefined,
+        repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate && calendarGating.canUseRepeat) ? newBlock.repeat.endDate.toISOString() : undefined,
       };
 
       // Calculate duration for analytics
@@ -494,7 +527,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       title: '',
       startTime: new Date(),
       endTime: new Date(Date.now() + 60 * 60 * 1000), // Default 1 hour duration
-      category: 'work',
+      category: '',
       notes: '',
       location: '',
       isAllDay: false,
@@ -598,10 +631,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     }
   }, [error, dateStr, user?.id]);
 
+  // Reset pagination when date changes
+  useEffect(() => {
+    setVisibleCount(3);
+  }, [dateStr]);
+
   const renderTimeBlock = (block: TimeBlockItem) => {
     const isExpanded = expandedNotes[block.id] || false; // Collapsed by default, expandable on tap
 
     return (
+// ...
       <View key={block.id} style={[styles.swipeableContainer, styles.swipeableContainerInline]}>
         <Swipeable
           ref={(ref: any) => {
@@ -612,7 +651,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             }
           }}
           onSwipeableWillOpen={() => { try { triggerSelectionHaptic(); } catch {} }}
-          renderRightActions={viewMode === 'carousel' && !expanded ? undefined : () => (
+          renderRightActions={() => (
             <View style={styles.timeblockSwipeActions}>
               <TouchableOpacity
                 style={styles.editActionBtn}
@@ -623,17 +662,21 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteActionBtn}
-                onPress={() => { try { triggerSelectionHaptic(); } catch {} ; handleDeleteBlock(block.id); }}
+                onPress={() => { 
+                  console.log('🗑️ Delete button pressed for block:', block.id, block.title);
+                  try { triggerSelectionHaptic(); } catch {} 
+                  handleDeleteBlock(block); 
+                }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="trash-outline" size={22} color="white" />
               </TouchableOpacity>
             </View>
           )}
-          rightThreshold={viewMode === 'carousel' && !expanded ? 0 : 40}
+          rightThreshold={40}
           friction={2}
           overshootRight={false}
-          enabled={!(viewMode === 'carousel' && !expanded)}
+          enabled={true}
       >
         <View style={[styles.timeBlockCard, styles.timeBlockCardInline]}>
           <View style={[styles.timeColumn, styles.timeColumnInline]}>
@@ -672,7 +715,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   </ThemedText>
                 </View>
               </View>
-              {(block.location || block.repeat.frequency !== 'never') && (
+              {(block.location || block.repeat.frequency !== 'never' || block.calendarEventId) && (
                 <View style={styles.metaInfoContainer}>
                   {block.location && (
                     <View style={styles.metaInfoRow}>
@@ -689,6 +732,21 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
                         {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
                       </ThemedText>
+                    </View>
+                  )}
+                  {/* Calendar Sync Status */}
+                  {/* Only show the calendar sync button if user can sync OR this block is already synced */}
+                  {(calendarGating.canSyncToCalendar || !!block.calendarEventId) && (
+                    <View style={styles.calendarSyncContainer}>
+                      <CalendarSyncButton
+                        timeBlock={block}
+                        calendarEventId={block.calendarEventId}
+                        onSyncComplete={(eventId) => {
+                          // Update the timeblock with calendar event ID
+                          // This would typically trigger a refetch or optimistic update
+                        }}
+                        compact
+                      />
                     </View>
                   )}
                 </View>
@@ -858,16 +916,38 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {renderTimeBlock(block)}
             </React.Fragment>
           ))}
-          {timeBlocks.length > visibleCount && (
-            <TouchableOpacity
-              style={styles.showMoreButton}
-              onPress={() => setVisibleCount(prev => prev + 5)}
-              accessibilityRole="button"
-              accessibilityLabel={`Show ${Math.min(5, timeBlocks.length - visibleCount)} more time blocks`}
-              accessibilityHint={`Reveals ${Math.min(5, timeBlocks.length - visibleCount)} additional time blocks from your ${timeBlocks.length} total blocks`}
-            >
-              <ThemedText weight="medium" style={styles.showMoreText}>Show more</ThemedText>
-            </TouchableOpacity>
+          {/* Pagination controls matching Todos */}
+          {!shouldShowAddingMode && timeBlocks.length > 0 && (
+            <View style={styles.paginationContainer}>
+              <View style={styles.paginationButtonGroup}>
+                {timeBlocks.length > visibleCount && (
+                  <TouchableOpacity
+                    style={[styles.paginationButton, styles.showMoreButton]}
+                    onPress={loadMoreBlocks}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Show ${Math.min(5, timeBlocks.length - visibleCount)} more time blocks`}
+                    accessibilityHint="Loads 5 more time blocks"
+                  >
+                    <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                    <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showMoreText]}>Show more</ThemedText>
+                  </TouchableOpacity>
+                )}
+                {visibleCount > 3 && timeBlocks.length > 3 && (
+                  <TouchableOpacity
+                    style={[styles.paginationButton, styles.showLessButton]}
+                    onPress={showLessBlocks}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="Show less time blocks"
+                    accessibilityHint="Collapses the list to show only the first 3 time blocks"
+                  >
+                    <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                    <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showLessText]}>Show less</ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           )}
         </View>
       )}
@@ -972,28 +1052,18 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           </View>
 
           {/* 3. Location */}
-          <View style={styles.locationContainer}>
-            <Ionicons
-              name="location-outline"
-              size={18}
-              color={Colors.hopeWhite}
-              style={styles.locationIcon}
-            />
-            <TextInput
-              style={[
-                styles.input,
-                styles.locationInput,
-                { fontFamily: getFontFamily(fontKey, 'regular') },
-              ]}
-              value={newBlock.location}
-              onChangeText={(text) => setNewBlock({...newBlock, location: text})}
-              placeholder="Add location (optional)"
-              placeholderTextColor={Colors.mediumGray}
+          <View style={styles.inputContainer}>
+            <LocationSelector
+              currentLocation={newBlock.location || ''}
+              onLocationSelect={(location) => {
+                setNewBlock({...newBlock, location});
+              }}
+              placeholder="Add location"
             />
           </View>
 
           {/* 4. Category */}
-          <View style={styles.categorySelectorContainer}>
+          <View style={styles.inputContainer}>
             <TouchableOpacity
               style={[
                 styles.categorySelector,
@@ -1011,19 +1081,20 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons
                 name={newBlock.category ? getCategoryIcon(newBlock.category) : 'add-circle-outline'}
                 size={16}
-                color={newBlock.category ? Colors.hopeWhite : Colors.hopeWhite}
+                color={newBlock.category ? Colors.anchorBlue : Colors.hopeWhite}
               />
               <ThemedText style={[
                 styles.categorySelectorText,
                 !newBlock.category && styles.placeholderText,
+                newBlock.category && { color: Colors.anchorBlue },
                 !newBlock.category && showCategoryError && { color: Colors.alertCoral },
               ]}>
-                {newBlock.category || 'Select a category'}
+                {newBlock.category || 'Select a Category'}
               </ThemedText>
               <Ionicons
                 name="chevron-down"
                 size={16}
-                color={(!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.hopeWhite}
+                color={newBlock.category ? Colors.anchorBlue : ((!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.hopeWhite)}
               />
             </TouchableOpacity>
             {showCategoryError && !newBlock.category && (
@@ -1032,10 +1103,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           </View>
 
           {/* 5. Repeat Options */}
-          <View style={styles.repeatContainer}>
+          <View style={styles.inputContainer}>
             <TouchableOpacity
               style={styles.repeatButton}
-              onPress={() => { triggerLightHaptic(); setShowRepeatOptions(!showRepeatOptions); }}
+              onPress={() => {
+                triggerLightHaptic();
+                setShowRepeatOptions(!showRepeatOptions);
+              }}
             >
               <Ionicons
                 name="repeat-outline"
@@ -1044,7 +1118,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 style={styles.repeatIcon}
               />
               <ThemedText style={styles.repeatText}>
-                {formatRepeatText(newBlock.repeat.frequency, newBlock.repeat.customDays, customFrequency, weekStartsOn)}{newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}
+                {formatRepeatText(newBlock.repeat.frequency, newBlock.repeat.customDays, customFrequency, weekStartsOn) +
+                 (newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : '')}
               </ThemedText>
               <Ionicons
                 name={showRepeatOptions ? 'chevron-up' : 'chevron-down'}
@@ -1055,49 +1130,68 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
             {showRepeatOptions && (
               <View style={styles.repeatOptions}>
-                {['never', 'daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom'].map((freq) => (
-                  <TouchableOpacity
-                    key={freq}
-                    style={[
-                      styles.repeatOption,
-                      newBlock.repeat.frequency === freq && styles.selectedRepeatOption,
-                    ]}
-                    onPress={() => {
-                      const newFrequency = freq as RepeatFrequency;
-                      const updatedBlock = {
-                        ...newBlock,
-                        repeat: {
-                          ...newBlock.repeat,
-                          frequency: newFrequency,
-                          ...(newFrequency === 'never' && { endDate: undefined }),
-                          ...(newFrequency === 'custom' && {
-                            customFrequency: { value: 1, unit: 'week' },
-                            customDays: newBlock.repeat.customDays || [],
-                          }),
-                        },
-                      };
-                      setNewBlock(updatedBlock);
-                      if (newFrequency === 'custom') {
-                        setCustomFrequency({ value: 1, unit: 'day' });
-                        setInputValue('1');
-                      } else {
-                        setShowRepeatOptions(false);
-                      }
-                    }}
-                  >
-                    <ThemedText style={styles.repeatOptionText}>
-                      {freq === 'never' ? 'Never' :
-                       freq === 'daily' ? 'Every Day' :
-                       freq === 'weekly' ? 'Every Week' :
-                       freq === 'biweekly' ? 'Every 2 Weeks' :
-                       freq === 'monthly' ? 'Every Month' :
-                       freq === 'yearly' ? 'Every Year' : 'Custom...'}
-                    </ThemedText>
-                    {newBlock.repeat.frequency === freq && (
-                      <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                {['never', 'daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom'].map((freq, idx, arr) => {
+                  const isPremiumFeature = freq !== 'never' && !calendarGating.canUseRepeat;
+                  return (
+                    <TouchableOpacity
+                      key={freq}
+                      style={[
+                        styles.repeatOption,
+                        newBlock.repeat.frequency === freq && styles.selectedRepeatOption,
+                        idx === arr.length - 1 && { borderBottomWidth: 0 },
+                      ]}
+                      onPress={() => {
+                        if (isPremiumFeature) {
+                          calendarGating.handleRepeatLockTap();
+                          return;
+                        }
+                        
+                        const newFrequency = freq as RepeatFrequency;
+                        const updatedBlock = {
+                          ...newBlock,
+                          repeat: {
+                            ...newBlock.repeat,
+                            frequency: newFrequency,
+                            ...(newFrequency === 'never' && { endDate: undefined }),
+                            ...(newFrequency === 'custom' && {
+                              customFrequency: { value: 1, unit: 'week' },
+                              customDays: newBlock.repeat.customDays || [],
+                            }),
+                          },
+                        };
+                        setNewBlock(updatedBlock);
+                        if (newFrequency === 'custom') {
+                          setCustomFrequency({ value: 1, unit: 'day' });
+                          setInputValue('1');
+                        } else {
+                          setShowRepeatOptions(false);
+                        }
+                      }}
+                    >
+                      <ThemedText style={[
+                        styles.repeatOptionText,
+                        isPremiumFeature && styles.lockedRepeatText
+                      ]}>
+                        {freq === 'never' ? 'Never' :
+                         freq === 'daily' ? 'Every Day' :
+                         freq === 'weekly' ? 'Every Week' :
+                         freq === 'biweekly' ? 'Every 2 Weeks' :
+                         freq === 'monthly' ? 'Every Month' :
+                         freq === 'yearly' ? 'Every Year' : 'Custom...'}
+                      </ThemedText>
+                      {isPremiumFeature && (
+                        <MaterialCommunityIcons
+                          name="lock"
+                          size={14}
+                          color={Colors.mediumGray}
+                        />
+                      )}
+                      {newBlock.repeat.frequency === freq && !isPremiumFeature && (
+                        <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
 
@@ -1365,6 +1459,18 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             textAlignVertical="top"
           />
 
+
+          {/* Delete Modal */}
+          <DeleteTimeBlockModal
+            visible={showDeleteModal.visible}
+            isRecurring={showDeleteModal.timeBlock?.repeat.frequency !== 'never'}
+            eventDate={showDeleteModal.timeBlock?.startTime || new Date()}
+            eventTitle={showDeleteModal.timeBlock?.title || ''}
+            onDelete={handleDeleteConfirm}
+            onCancel={() => setShowDeleteModal({ visible: false })}
+            canDeleteSeries={calendarGating.canDeleteSeries}
+          />
+
           {/* Category Picker Modal */}
           <TimeBlockCategoryModal
             visible={showCategoryPicker}
@@ -1572,12 +1678,12 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 12,
   },
-  showMoreButton: {
+  showMoreButtonLegacy: {
     alignItems: 'center',
     paddingVertical: 8,
     marginTop: 8,
   },
-  showMoreText: {
+  showMoreTextLegacy: {
     color: Colors.anchorBlue,
     fontSize: 13,
   },
@@ -1722,7 +1828,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    marginBottom: 3,
+    marginBottom: 4,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -1742,12 +1848,12 @@ const styles = StyleSheet.create({
   },
   metaInfoContainer: {
     marginTop: 6,
-    gap: 2,
+    gap: 4,
   },
   metaInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 18,
+    minHeight: 20,
   },
   metaIcon: {
     marginRight: 4,
@@ -1857,8 +1963,47 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    minHeight: 40,
+    height: 44,
     fontSize: 14,
+  },
+  // Pagination styles (match Todos)
+  paginationContainer: {
+    width: '100%',
+    paddingVertical: 1,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 0,
+    paddingTop: 10,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  showMoreButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  showMoreText: {
+    color: Colors.alertCoral,
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  showLessText: {
+    color: Colors.mediumGray,
   },
   inputError: {
     borderColor: Colors.alertCoral,
@@ -1878,7 +2023,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    minHeight: 40,
+    height: 44,
     backgroundColor: 'transparent',
     width: '100%',
   },
@@ -2387,5 +2532,55 @@ const styles = StyleSheet.create({
   },
   checkmarkIcon: {
     marginRight: 4,
+  },
+  calendarSyncContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  locationInputTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  locationSearchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginLeft: 8,
+  },
+  lockedRepeatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    opacity: 0.6,
+  },
+  lockedRepeatText: {
+    fontSize: 14,
+    color: Colors.mediumGray,
+    marginLeft: 8,
+    fontStyle: 'italic',
   },
 });

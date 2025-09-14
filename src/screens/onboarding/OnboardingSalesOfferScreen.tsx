@@ -198,7 +198,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             triggerSuccessHaptic();
             // Refresh subscription and close
             await devotionalGating.refreshSubscription();
-            navigation.goBack();
+            
+            // Navigate back to the original context instead of just going back
+            const source = routeParams?.source;
+            if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt') {
+              // Go back multiple times to return to TimeBlock screen
+              navigation.goBack();
+              setTimeout(() => navigation.goBack(), 100);
+            } else {
+              navigation.goBack();
+            }
           } else {
             throw new Error(result.error || 'Purchase failed');
           }

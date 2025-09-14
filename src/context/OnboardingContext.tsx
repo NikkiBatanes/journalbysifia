@@ -151,7 +151,75 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       }
     } catch (err) {
       console.error('[OnboardingContext] Error initializing onboarding:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize onboarding');
+      
+      // Check if this is a foreign key constraint error (deleted user)
+      // Handle different error object structures
+      let errorMessage = '';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        errorMessage = JSON.stringify(err);
+        // Check nested error properties
+        if ((err as any).message) errorMessage += (err as any).message;
+        if ((err as any).details) errorMessage += (err as any).details;
+        if ((err as any).code) errorMessage += (err as any).code;
+      } else {
+        errorMessage = String(err);
+      }
+      
+      console.log('[OnboardingContext] Full error analysis:', {
+        errorType: typeof err,
+        errorMessage,
+        errorObject: err
+      });
+      
+      const isDeletedUserError = errorMessage.includes('foreign key constraint') || 
+                                errorMessage.includes('not present in table "users"') ||
+                                errorMessage.includes('23503') ||
+                                errorMessage.includes('user_subscriptions') ||
+                                errorMessage.includes('onboarding_progress');
+      
+      console.log('[OnboardingContext] Deleted user check result:', isDeletedUserError);
+      
+      if (isDeletedUserError) {
+        console.log('[OnboardingContext] ✅ DETECTED DELETED USER - FORCING LOGOUT');
+        // Force logout to clear cached authentication data
+        try {
+          // Import supabase client directly to force sign out
+          const { supabase } = await import('../services/supabaseClient');
+          
+          console.log('[OnboardingContext] 🔄 Clearing all cached data...');
+          // Clear all cached data and force re-authentication
+          setIsOnboardingRequired(false); // Set to false initially
+          setIsOnboardingCompleted(false);
+          setCurrentStep(1);
+          setProgress(null);
+          setFaithJourney(null);
+          setPersonalization(null);
+          setError(null);
+          
+          console.log('[OnboardingContext] 🚪 Forcing sign out...');
+          // Force sign out to clear cached user data
+          await supabase.auth.signOut();
+          console.log('[OnboardingContext] ✅ Forced logout completed for deleted user');
+          
+          // Force a page reload to completely reset the app state
+          if (typeof window !== 'undefined' && window.location) {
+            window.location.reload();
+          }
+        } catch (logoutError) {
+          console.error('[OnboardingContext] Error during forced logout:', logoutError);
+          // Even if logout fails, clear the local state
+          setIsOnboardingRequired(false);
+          setIsOnboardingCompleted(false);
+          setProgress(null);
+          setFaithJourney(null);
+          setPersonalization(null);
+          setError(null);
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to initialize onboarding');
+      }
     } finally {
       setLoading(false);
     }
