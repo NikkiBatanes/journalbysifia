@@ -978,8 +978,8 @@ const createStyles = (fonts: any) => StyleSheet.create({
 
   // Input styles
   inputContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
     padding: 12,
     marginBottom: 8,
   },
@@ -1002,22 +1002,34 @@ const createStyles = (fonts: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
   },
   button: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: 'transparent',
+    width: 24,
+    height: 24,
+    borderRadius: 20,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   addAnotherButton: {
     backgroundColor: 'transparent',
+    width: 24,
+    height: 24,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.hopeWhite,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   plusIcon: {
-    marginRight: 4,
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   closeIcon: {
     fontFamily: fonts.bold,
@@ -1028,9 +1040,11 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   saveButton: {
-    backgroundColor: Colors.growthGreen,
+    backgroundColor: Colors.alertCoral,
   },
   disabledButton: {
     opacity: 0.5,
