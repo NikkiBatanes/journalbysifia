@@ -599,7 +599,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                   value={winText}
                   onChangeText={setWinText}
                   placeholder="What's your win for today?"
-                  placeholderTextColor={Colors.mediumGray}
+                  placeholderTextColor={Colors.textGray}
                   multiline
                   textAlignVertical="top"
                   autoFocus
@@ -687,7 +687,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                 <Ionicons
                   name="trophy"
                   size={32}
-                  color={Colors.mediumGray}
+                  color={Colors.textGray}
                 />
                 <ThemedText style={styles.sectionLabel} accessibilityRole="text">
                   {(() => {
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -984,7 +984,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontWeight: '600',
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,

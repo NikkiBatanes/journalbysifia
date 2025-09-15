@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
   },
   entriesCountText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 4,
   },
   noEntriesText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 4,
     fontStyle: 'italic',
   },

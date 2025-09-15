@@ -339,7 +339,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                     <Ionicons
                       name="checkmark-circle"
                       size={16}
-                      color={Colors.success}
+                      color={Colors.growthGreen}
                       style={styles.pillIcon}
                     />
                     <ThemedText style={styles.answeredText}>Answered</ThemedText>
@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   answeredText: {
-    color: Colors.success,
+    color: Colors.growthGreen,
     fontSize: 12,
     fontFamily: Fonts.medium,
   },
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorSubtext: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontFamily: Fonts.regular,
     fontSize: 14,
     textAlign: 'center',

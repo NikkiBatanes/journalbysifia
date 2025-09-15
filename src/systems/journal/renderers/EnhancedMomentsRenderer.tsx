@@ -164,7 +164,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   sectionCount: {
     fontSize: 12,
     fontFamily: fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   momentItem: {
     flexDirection: 'row',
@@ -201,7 +201,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   momentDate: {
     fontSize: 12,
     fontFamily: fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   categoryBadge: {
     paddingHorizontal: 8,
@@ -231,7 +231,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   emptySubtitle: {
     fontSize: 14,
     fontFamily: fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
   emptyIcon: {
@@ -304,7 +304,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   weekCountsText: {
     fontSize: 12,
     fontFamily: fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   weekExpandedBody: {
     paddingTop: 8,
@@ -313,7 +313,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   weekRangeOverline: {
     fontSize: 12,
     fontFamily: fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 4,
   },
   dayHeaderRow: {
@@ -2245,7 +2245,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
   const ListEmpty = useMemo(() => (
     <View style={styles.emptyState} accessibilityRole="summary">
-      <Feather size={32} color={Colors.mediumGray} style={styles.emptyIcon} />
+      <Feather size={32} color={Colors.textGray} style={styles.emptyIcon} />
       <ThemedText weight="semiBold" style={styles.emptyTitle}>No Moments Yet</ThemedText>
       <ThemedText style={styles.emptySubtitle}>{emptySubtitleText}</ThemedText>
       {!!onAddPress && (

@@ -124,7 +124,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
       case 'journal': return Colors.prayerPurple;
       case 'scripture': return Colors.winGold;
       case 'service': return Colors.budgetingGreen;
-      default: return Colors.primary;
+      default: return Colors.anchorBlue;
     }
   };
 
@@ -171,14 +171,14 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name={goal.isActive ? 'pause-outline' : 'play-outline'}
                 size={20}
-                color={Colors.gray}
+                color={Colors.textGray}
               />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation.navigate('EditGoal', { goalId: goal.id })}
             >
-              <Ionicons name="pencil-outline" size={20} color={Colors.gray} />
+              <Ionicons name="pencil-outline" size={20} color={Colors.textGray} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
@@ -225,7 +225,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
             {goal.reward && (
               <View style={styles.rewardContainer}>
-                <Ionicons name="gift-outline" size={16} color={Colors.primary} />
+                <Ionicons name="gift-outline" size={16} color={Colors.anchorBlue} />
                 <Text style={styles.rewardText}>
                   {goal.reward.points} pts
                 </Text>
@@ -251,7 +251,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
       <Ionicons
         name={type === 'active' ? 'flag-outline' : 'trophy-outline'}
         size={64}
-        color={Colors.gray}
+        color={Colors.textGray}
       />
       <Text style={styles.emptyStateTitle}>
         {type === 'active' ? 'No Active Goals' : 'No Completed Goals'}
@@ -289,7 +289,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.addButton}
           onPress={() => navigation.navigate('CreateGoal')}
         >
-          <Ionicons name="add" size={24} color={Colors.primary} />
+          <Ionicons name="add" size={24} color={Colors.anchorBlue} />
         </TouchableOpacity>
       </View>
 
@@ -382,15 +382,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: Colors.primary,
+    borderBottomColor: Colors.anchorBlue,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.gray,
+    color: Colors.textGray,
   },
   activeTabText: {
-    color: Colors.primary,
+    color: Colors.anchorBlue,
   },
   scrollView: {
     flex: 1,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   },
   goalType: {
     fontSize: 12,
-    color: Colors.gray,
+    color: Colors.textGray,
     textTransform: 'capitalize',
   },
   goalActions: {
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
   goalDescription: {
     fontSize: 14,
-    color: Colors.gray,
+    color: Colors.textGray,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   },
   progressPercentage: {
     fontSize: 14,
-    color: Colors.primary,
+    color: Colors.anchorBlue,
     fontWeight: '600',
   },
   progressBarBackground: {
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   },
   dueDateText: {
     fontSize: 12,
-    color: Colors.gray,
+    color: Colors.textGray,
   },
   rewardContainer: {
     flexDirection: 'row',
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   rewardText: {
     fontSize: 12,
-    color: Colors.primary,
+    color: Colors.anchorBlue,
     fontWeight: '500',
     marginLeft: 4,
   },
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: Colors.gray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   createGoalButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,

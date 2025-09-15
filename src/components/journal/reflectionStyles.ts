@@ -126,7 +126,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: Colors.mediumGray,
+    backgroundColor: Colors.textGray,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
@@ -423,7 +423,7 @@ export const styles = StyleSheet.create({
   },
   modalPromptText: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
     marginTop: 8,
     marginBottom: 12,
@@ -558,7 +558,7 @@ export const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 10,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   normalTitleText: {
     fontStyle: 'normal',
@@ -599,7 +599,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   showLessText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   metaContainer: {
     flexDirection: 'row',
@@ -639,7 +639,7 @@ export const styles = StyleSheet.create({
   },
   locationText: {
     marginLeft: 6,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontSize: 14,
   },
   locationContainer: {
@@ -731,7 +731,7 @@ export const styles = StyleSheet.create({
   devotionalDayInfo: {
     fontSize: 11,
     fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
 });

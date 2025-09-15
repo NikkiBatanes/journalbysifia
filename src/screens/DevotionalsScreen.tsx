@@ -375,7 +375,7 @@ const DevotionalsScreen = () => {
             <MaterialCommunityIcons
               name="book"
               size={32}
-              color="Colors.holyGlow"
+              color={Colors.holyGlow}
               style={styles.heroIcon}
             />
             <ThemedText weight="bold" style={styles.heroOverline}>No Devotionals</ThemedText>
@@ -1231,7 +1231,7 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.textDark,
+    color: Colors.text,
     marginBottom: 10,
     textAlign: 'center',
   },
@@ -1261,7 +1261,7 @@ const styles = StyleSheet.create({
   emptyBadgeText: {
     marginLeft: 6,
     fontSize: 12,
-    color: Colors.textDark,
+    color: Colors.text,
     fontWeight: '600',
   },
   emptyCTAButton: {

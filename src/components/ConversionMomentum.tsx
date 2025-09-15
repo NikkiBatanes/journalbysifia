@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     padding: 20,
     margin: 16,
     borderWidth: 2,
-    shadowColor: Colors.textDark,
+    shadowColor: Colors.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: Colors.text,
     marginBottom: 2,
   },
   compactUrgency: {
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: Colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
   highlightText: {
     fontSize: 14,
-    color: Colors.textDark,
+    color: Colors.text,
     flex: 1,
   },
   urgencyBanner: {

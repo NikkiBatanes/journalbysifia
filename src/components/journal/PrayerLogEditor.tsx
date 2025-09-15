@@ -718,8 +718,8 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
           >
             <Pencil
               size={22}
-              color={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
-              fill={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
+              color={activeTab === 'freeform' ? Colors.alertCoral : Colors.trustGrey}
+              fill={activeTab === 'freeform' ? Colors.alertCoral : Colors.trustGrey}
               strokeWidth={1.5}
             />
           </TouchableOpacity>
@@ -731,7 +731,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             <Ionicons
               name="people"
               size={22}
-              color={activeTab === 'people' ? Colors.alertCoral : Colors.inactiveIcon}
+              color={activeTab === 'people' ? Colors.alertCoral : Colors.trustGrey}
             />
           </TouchableOpacity>
         </View>
@@ -761,7 +761,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   ref={inputRef}
                   style={[s.entryInput, s.entryContentInput, { fontFamily: regularFont }]}
                   placeholder="Share your thoughts, prayers, and reflections..."
-                  placeholderTextColor={Colors.inactiveIcon}
+                  placeholderTextColor={Colors.trustGrey}
                   value={prayerContent}
                   onChangeText={handleContentChange}
                   multiline
@@ -774,7 +774,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     ref={personInputRef}
                     style={[s.structuredInput, { fontFamily: regularFont }]}
                     placeholder="Who are you praying for?"
-                    placeholderTextColor={Colors.inactiveIcon}
+                    placeholderTextColor={Colors.trustGrey}
                     value={prayerForPerson}
                     onChangeText={handlePersonChange}
                   />
@@ -783,7 +783,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     ref={requestInputRef}
                     style={[s.structuredInput, s.multilineInput, { fontFamily: regularFont }]}
                     placeholder="What would you like to pray for this person?"
-                    placeholderTextColor={Colors.inactiveIcon}
+                    placeholderTextColor={Colors.trustGrey}
                     value={prayerRequest}
                     onChangeText={handleRequestChange}
                     multiline

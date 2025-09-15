@@ -571,7 +571,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               value={entryText}
               onChangeText={setEntryText}
               placeholder="What are you looking forward to tomorrow?"
-              placeholderTextColor={Colors.mediumGray}
+              placeholderTextColor={Colors.textGray}
               multiline
               textAlignVertical="top"
               autoFocus
@@ -610,7 +610,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             <MaterialCommunityIcons
               name="white-balance-sunny"
               size={32}
-              color={Colors.mediumGray}
+              color={Colors.textGray}
               style={styles.emptyStateIcon}
             />
             <ThemedText style={styles.sectionLabel} accessibilityRole="text">LOOKING FORWARD TO</ThemedText>
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontWeight: '600',
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,
@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,

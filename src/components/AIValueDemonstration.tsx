@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     margin: 16,
-    shadowColor: Colors.textDark,
+    shadowColor: Colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: Colors.text,
     marginBottom: 2,
   },
   compactDescription: {
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: Colors.text,
     flex: 1,
   },
   lockBadge: {

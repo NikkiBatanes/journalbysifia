@@ -260,7 +260,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
                 selectedDayTextColor: Colors.hopeWhite,
                 monthTextColor: Colors.hopeWhite,
                 arrowColor: Colors.alertCoral,
-                textDisabledColor: Colors.mediumGray,
+                textDisabledColor: Colors.textGray,
               }}
             />
 
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   filterTypeText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   activeFilterTypeText: {
     color: Colors.hopeWhite,
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   },
   rangeHint: {
     textAlign: 'center',
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontSize: 14,
     marginTop: 12,
     fontStyle: 'italic',
@@ -419,6 +419,6 @@ const styles = StyleSheet.create({
   },
   presetSubtext: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
 });

@@ -698,7 +698,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             <Entypo
               name="list"
               size={32}
-              color={Colors.mediumGray}
+              color={Colors.textGray}
               style={styles.emptyStateIcon}
             />
             <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">
@@ -833,7 +833,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               <Ionicons
                 name="star"
                 size={14}
-                color={showOnlyPriorities ? Colors.alertCoral : Colors.mediumGray}
+                color={showOnlyPriorities ? Colors.alertCoral : Colors.textGray}
               />
             </TouchableOpacity>
           )}
@@ -858,7 +858,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               <Ionicons
                 name="filter"
                 size={16}
-                color={showCompletedAtBottom ? Colors.alertCoral : Colors.mediumGray}
+                color={showCompletedAtBottom ? Colors.alertCoral : Colors.textGray}
               />
             </TouchableOpacity>
           )}
@@ -875,7 +875,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               <Ionicons
                 name="copy-outline"
                 size={16}
-                color={Colors.mediumGray}
+                color={Colors.textGray}
               />
             </TouchableOpacity>
           )}
@@ -1006,7 +1006,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   accessibilityLabel="Show less todos"
                   accessibilityHint="Collapses the list to show only the first 5 todos"
                 >
-                  <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
                   <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showLessText]}>
                     Show less
                   </ThemedText>
@@ -1026,7 +1026,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               value={newTodo}
               onChangeText={setNewTodo}
               placeholder="Add a task..."
-              placeholderTextColor={Colors.mediumGray}
+              placeholderTextColor={Colors.textGray}
               onSubmitEditing={handleAddInput}
               returnKeyType="next"
               blurOnSubmit={false}
@@ -1285,7 +1285,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,
@@ -1304,7 +1304,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -1396,7 +1396,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   showLessText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   sortButton: {
     marginLeft: 8,
@@ -1429,7 +1429,7 @@ const styles = StyleSheet.create({
   },
   completedText: {
     textDecorationLine: 'line-through',
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     opacity: 0.7,
   },
 

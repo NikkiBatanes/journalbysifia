@@ -391,7 +391,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   }, [user, fetchDevotionals]);
 
   const getStatusColor = (isCompleted: boolean) => {
-    return isCompleted ? Colors.successGreen : Colors.faithGold;
+    return isCompleted ? Colors.growthGreen : Colors.faithGold;
   };
 
   const getStatusIcon = (isCompleted: boolean) => {
@@ -461,7 +461,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
           <ThemedText weight="bold" style={styles.completedText}>DONE</ThemedText>
           {!!formatFinishedDate(devotional.completedAt) && (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="calendar-clear-outline" size={14} color={Colors.successGreen} style={{ marginRight: 4 }} />
+              <Ionicons name="calendar-clear-outline" size={14} color={Colors.growthGreen} style={{ marginRight: 4 }} />
               <ThemedText weight="bold" style={styles.finishedDateText}>
                 {formatFinishedDate(devotional.completedAt)}
               </ThemedText>
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   },
   devotionalDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -734,12 +734,12 @@ const styles = StyleSheet.create({
   },
   completedText: {
     fontSize: 12,
-    color: Colors.successGreen,
+    color: Colors.growthGreen,
     marginBottom: 8,
   },
   finishedDateText: {
     fontSize: 12,
-    color: Colors.successGreen,
+    color: Colors.growthGreen,
     fontWeight: '600',
   },
   statusSection: {
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
   emptyStateContainer: {

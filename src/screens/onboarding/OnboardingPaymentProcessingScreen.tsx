@@ -139,14 +139,14 @@ const OnboardingPaymentProcessingScreen = () => {
           {isProcessing && (
             <ActivityIndicator 
               size="large" 
-              color={Colors.primary} 
+              color={Colors.anchorBlue} 
               style={styles.spinner}
             />
           )}
           
           {paymentSuccess && (
             <View style={styles.successIcon}>
-              <Ionicons name="checkmark-circle" size={80} color={Colors.success} />
+              <Ionicons name="checkmark-circle" size={80} color={Colors.growthGreen} />
             </View>
           )}
           
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -259,14 +259,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   successText: {
-    color: Colors.success,
+    color: Colors.growthGreen,
   },
   errorText: {
     color: Colors.error,
   },
   priceText: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
   buttonContainer: {
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   retryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   loadingMessage: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 20,

@@ -18,16 +18,11 @@ export interface Theme {
     devotionalPurple: string;
     spiritualPink: string;
     playbookBlue: string;
-    successGreen: string;
     lightPurple: string;
 
     // Standard UI Colors
-    primary: string;
-    secondary: string;
     text: string;
-    textDark: string;
     textGray: string;
-    gray: string;
     error: string;
 
     // Grayscale
@@ -36,30 +31,22 @@ export interface Theme {
     hopeWhite: string;
     lightGray: string;
     lightBlue: string;
-    mediumGray: string;
     darkGray: string;
-    darkerGray: string;
     trustGrey: string;
-    inactiveIcon: string;
 
     // UI Colors
     inputBackground: string;
     inputBorder: string;
-    dangerRed: string;
     cardBackground: string;
     cardBorder: string;
-    cardShadow: string;
 
     // Backgrounds
     darkBackground: string;
 
     // Status
-    success: string;
     warning: string;
-    info: string;
 
     // Additional colors (preserving exact hardcoded values)
-    chartBackground: string;
     lightBackground: string;
     borderLight: string;
     backgroundBlue: string;
@@ -92,15 +79,6 @@ export interface Theme {
     whisperText: string;         // Subtle instruction text
     echoText: string;            // Faint supporting text
     
-    // Legacy admin colors (deprecated - use semantic names above)
-    adminPrimary: string;
-    adminGray: string;
-    adminLightGray: string;
-    adminBorder: string;
-    adminText: string;
-    adminSecondary: string;
-    goldAccent: string;
-    progressGray: string;
     
     // Opacity & Overlay Colors (spiritual transparency)
     divineVeil: string;          // Light sacred overlay

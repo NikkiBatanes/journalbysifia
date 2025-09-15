@@ -342,7 +342,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             key={`name-${inputKey}`}
             style={[styles.input, styles.singleLineInput, { fontFamily: regularFont }]}
             placeholder={activeTab === 'mine' ? 'Who are you praying for?' : 'Who is requesting prayer?'}
-            placeholderTextColor={Colors.mediumGray}
+            placeholderTextColor={Colors.textGray}
             value={name}
             onChangeText={setName}
             onFocus={() => setIsNameFocused(true)}
@@ -363,7 +363,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               { height: Math.max(140, prayerHeight), fontFamily: regularFont },
             ]}
             placeholder={activeTab === 'mine' ? 'What would you like to pray for them?' : 'What is the prayer request?'}
-            placeholderTextColor={Colors.mediumGray}
+            placeholderTextColor={Colors.textGray}
             value={prayer}
             onChangeText={setPrayer}
             onFocus={() => setIsPrayerFocused(true)}
@@ -382,7 +382,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 key={`notes-${inputKey}`}
                 style={[styles.notesInput, { height: Math.max(60, notesHeight), fontFamily: regularFont }]}
                 placeholder="Add any additional notes here..."
-                placeholderTextColor={Colors.mediumGray}
+                placeholderTextColor={Colors.textGray}
                 value={notes}
                 onChangeText={setNotes}
                 onFocus={() => setIsNotesFocused(true)}
@@ -596,7 +596,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 <MaterialCommunityIcons
                   name="account-heart-outline"
                   size={32}
-                  color={Colors.mediumGray}
+                  color={Colors.textGray}
                   style={[styles.emptyStateIcon, styles.flippedIcon]}
                 />
               </View>
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     // font handled by ThemedText
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,
@@ -698,14 +698,14 @@ const styles = StyleSheet.create({
   emptyStateSubtitle: {
     // font handled by ThemedText
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
   },
   emptyStateSubtext: {
     // font handled by ThemedText
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,

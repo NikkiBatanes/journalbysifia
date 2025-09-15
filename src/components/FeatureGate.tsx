@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   upgradeTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: Colors.text,
     marginBottom: 8,
   },
   upgradeMessage: {

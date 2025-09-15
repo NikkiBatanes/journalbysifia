@@ -1309,7 +1309,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.countersRow}>
           <View style={styles.counterCard}>
             <View style={styles.counterHeader}>
-              <Ionicons name="book-outline" size={18} color={Colors.primary} />
+              <Ionicons name="book-outline" size={18} color={Colors.anchorBlue} />
             </View>
             <Text style={[styles.counterNumbers, font]}>{playbookUsed} / {playbookLimit}</Text>
             <View style={styles.progressTrack}><View style={[styles.progressValue, { width: `${playbookPct * 100}%` }]} /></View>
@@ -1846,7 +1846,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 value={(profileForm as any).firstName}
                 onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
                 placeholder="First name"
-                placeholderTextColor={Colors.mediumGray}
+                placeholderTextColor={Colors.textGray}
               />
               <View style={styles.nameDivider} />
               <TextInput
@@ -1854,7 +1854,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 value={(profileForm as any).lastName}
                 onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
                 placeholder="Last name"
-                placeholderTextColor={Colors.mediumGray}
+                placeholderTextColor={Colors.textGray}
               />
             </View>
           </View>
@@ -2267,7 +2267,7 @@ const styles = StyleSheet.create({
   },
   fontNote: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -2390,7 +2390,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
   badgesContainer: {
@@ -2457,7 +2457,7 @@ const styles = StyleSheet.create({
   },
   badgePoints: {
     fontSize: 10,
-    color: Colors.primary,
+    color: Colors.anchorBlue,
     fontWeight: '500',
   },
   menuContainer: {
@@ -2660,7 +2660,7 @@ const styles = StyleSheet.create({
   },
   settingValue: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textTransform: 'capitalize',
   },
   settingItemColumnNotification: {
@@ -2670,7 +2670,7 @@ const styles = StyleSheet.create({
   },
   settingHint: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -2743,7 +2743,7 @@ const styles = StyleSheet.create({
   },
   subscriptionStatus: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   usageGrid: {
     flexDirection: 'row',
@@ -2770,15 +2770,15 @@ const styles = StyleSheet.create({
   usageNumbers: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: Colors.anchorBlue,
     marginBottom: 4,
   },
   usageLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   upgradeButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2827,7 +2827,7 @@ const styles = StyleSheet.create({
   },
   compactStatLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 2,
   },
   // Modern counters for Playbooks/Devotionals
@@ -2881,7 +2881,7 @@ const styles = StyleSheet.create({
   },
   progressValue: {
     height: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 6,
   },
   progressValueAlt: {

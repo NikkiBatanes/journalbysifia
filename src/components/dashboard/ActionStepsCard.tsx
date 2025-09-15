@@ -450,7 +450,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         <Ionicons
           name={subTask.completed ? 'checkmark-circle' : 'ellipse-outline'}
           size={20}
-          color={subTask.completed ? Colors.successGreen : Colors.mediumGray}
+          color={subTask.completed ? Colors.growthGreen : Colors.textGray}
         />
       </TouchableOpacity>
       <ThemedText
@@ -543,7 +543,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   );
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="checkmark-circle" size={32} color={Colors.successGreen} />
+      <Ionicons name="checkmark-circle" size={32} color={Colors.growthGreen} />
       <ThemedText weight="semiBold" style={styles.emptyTitle}>All Caught Up!</ThemedText>
       <ThemedText weight="regular" style={styles.emptyDescription}>
         You've completed all your action steps. Great work!
@@ -611,7 +611,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
                     accessibilityLabel="Show less steps"
                     accessibilityHint="Collapses the list to show only the first 3 steps"
                   >
-                    <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                    <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
                     <ThemedText weight="semiBold" style={[styles.paginationButtonText, styles.showLessText]}>Show less</ThemedText>
                   </TouchableOpacity>
                 )}
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginTop: -6,
     marginBottom: 12,
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stepNumberBadgeCompleted: {
-    backgroundColor: Colors.successGreen,
+    backgroundColor: Colors.growthGreen,
   },
   stepNumberText: {
     fontSize: 12,
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 11,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 2,
   },
   subTasksContainer: {
@@ -807,14 +807,14 @@ const styles = StyleSheet.create({
     lineHeight: 18, // Increased from 16
   },
   subTaskTextCompleted: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textDecorationLine: 'line-through',
     textDecorationStyle: 'solid',
-    textDecorationColor: Colors.mediumGray,
+    textDecorationColor: Colors.textGray,
   },
   playbookName: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 4,
   },
   stepDescription: {
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
   emptyContainer: {
@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -932,7 +932,7 @@ const styles = StyleSheet.create({
   fromDivider: {
     width: 1,
     height: 28,
-    backgroundColor: Colors.mediumGray,
+    backgroundColor: Colors.textGray,
     borderRadius: 2,
     marginRight: 8,
   },
@@ -941,12 +941,12 @@ const styles = StyleSheet.create({
   },
   fromLabel: {
     fontSize: 10,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1,
   },
   fromTitle: {
     fontSize: 11,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   showMoreButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
@@ -958,7 +958,7 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   showLessText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
 });
 

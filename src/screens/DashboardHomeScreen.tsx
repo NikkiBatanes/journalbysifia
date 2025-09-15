@@ -106,7 +106,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     headerTitle: {
       fontSize: 24,
-      color: Colors.primary,
+      color: Colors.anchorBlue,
     },
     subscriptionBadge: {
       backgroundColor: Colors.faithGold,
@@ -142,7 +142,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       position: 'relative',
       zIndex: 2,
       // Keep subtle top shadow if desired; BlueSheet handles the blue BG and radius
-      shadowColor: Colors.primary,
+      shadowColor: Colors.anchorBlue,
       shadowOffset: { width: 0, height: -2 },
       shadowOpacity: 0.06,
       shadowRadius: 6,
@@ -273,7 +273,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       borderRadius: 12,
       padding: 16,
       marginBottom: 16,
-      shadowColor: Colors.cardShadow,
+      shadowColor: Colors.black,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
@@ -294,7 +294,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     cardSubtitle: {
       fontSize: 14,
-      color: Colors.secondary,
+      color: Colors.anchorBlueLight,
       marginBottom: 8,
     },
     comingSoonBadge: {
@@ -340,7 +340,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     actionsHeaderSubtitle: {
       fontSize: 12,
-      color: Colors.mediumGray,
+      color: Colors.textGray,
       textAlign: 'center',
       marginTop: -2,
       marginBottom: 6,
@@ -350,7 +350,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       backgroundColor: Colors.hopeWhite,
       borderRadius: 28,
       height: 56,
-      shadowColor: Colors.cardShadow,
+      shadowColor: Colors.black,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
@@ -730,7 +730,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       color: Colors.alertCoral,
     },
     prayerShowLessText: {
-      color: Colors.mediumGray,
+      color: Colors.textGray,
     },
   });
 
@@ -1155,7 +1155,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 accessibilityRole="button"
                 accessibilityLabel="Show less prayer requests"
               >
-                <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
                 <ThemedText weight="semiBold" style={[styles.prayerPaginationButtonText, styles.prayerShowLessText]}>Show less</ThemedText>
               </TouchableOpacity>
             )}

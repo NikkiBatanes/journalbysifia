@@ -14,16 +14,11 @@ export const defaultTheme: Theme = {
     devotionalPurple: '#6A0DAD',
     spiritualPink: '#E91E63',
     playbookBlue: '#2196F3',
-    successGreen: '#4CAF50',
     lightPurple: '#F3E5F5',
 
     // Standard UI Colors
-    primary: '#1a3c6d',
-    secondary: '#E8EDFF',
     text: '#1A1A1A',
-    textDark: '#1A1A1A',
     textGray: '#9E9E9E',
-    gray: '#9E9E9E',
     error: '#FF3B30',
 
     // Grayscale (original values)
@@ -32,30 +27,22 @@ export const defaultTheme: Theme = {
     hopeWhite: '#F2F5F7',
     lightGray: '#E0E0E0',
     lightBlue: '#E8F4FD',
-    mediumGray: '#9E9E9E',
     darkGray: '#424242',
-    darkerGray: '#1A1A1A',
     trustGrey: '#B0B8C1',
-    inactiveIcon: '#B0B8C1',
 
     // UI Colors (original values)
     inputBackground: '#264777',
     inputBorder: '#3d5e8d',
-    dangerRed: '#FF3B30',
     cardBackground: 'rgba(255, 255, 255, 0.95)',
     cardBorder: 'rgba(0, 0, 0, 0.05)',
-    cardShadow: '#000',
 
     // Backgrounds
     darkBackground: '#121212',
 
     // Status (original values)
-    success: '#4CAF50',
     warning: '#FFC107',
-    info: '#2196F3',
 
     // Semantic color names following spiritual/app context pattern
-    chartBackground: '#F2F5F7', // Use hopeWhite instead
     lightBackground: '#f8f9fa',
     borderLight: '#e1e5e9',
     backgroundBlue: '#f0f8ff',
@@ -88,15 +75,6 @@ export const defaultTheme: Theme = {
     whisperText: '#555555',         // Subtle instruction text
     echoText: '#888888',            // Faint supporting text
     
-    // Legacy admin colors (mapped to semantic equivalents for compatibility)
-    adminPrimary: '#6366F1',        // Maps to wisdomIndigo
-    adminGray: '#6B7280',           // Maps to reflectionGray
-    adminLightGray: '#F9FAFB',      // Maps to sanctuaryWhite
-    adminBorder: '#E5E7EB',         // Maps to gentleBorder
-    adminText: '#1F2937',           // Maps to scriptureText
-    adminSecondary: '#F3F4F6',      // Maps to peaceGray
-    goldAccent: '#D4AF37',          // Maps to treasureGold
-    progressGray: '#e0e0e0',        // Maps to journeyGray
     
     // Opacity & Overlay Colors (semantic spiritual names)
     divineVeil: 'rgba(255,255,255,0.1)',     // Light sacred overlay

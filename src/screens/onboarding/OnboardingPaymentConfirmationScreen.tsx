@@ -112,7 +112,7 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
       <View style={styles.content}>
         {/* Success Icon */}
         <View style={styles.successIconContainer}>
-          <Ionicons name="checkmark-circle" size={80} color={Colors.successGreen} />
+          <Ionicons name="checkmark-circle" size={80} color={Colors.growthGreen} />
         </View>
 
         {/* Success Message */}
@@ -142,7 +142,7 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
           <ThemedText weight="semiBold" style={styles.benefitsTitle}>What's included:</ThemedText>
           {getTierBenefits(tier).map((benefit, index) => (
             <View key={index} style={styles.benefitItem}>
-              <Ionicons name="checkmark" size={20} color={Colors.successGreen} />
+              <Ionicons name="checkmark" size={20} color={Colors.growthGreen} />
               <ThemedText style={styles.benefitText}>{benefit}</ThemedText>
             </View>
           ))}

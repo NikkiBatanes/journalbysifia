@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 4,
   },
   scrollView: {

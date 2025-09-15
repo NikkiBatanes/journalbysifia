@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontWeight: '600',
     marginTop: 2,
     marginBottom: 6,

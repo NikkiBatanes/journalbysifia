@@ -533,7 +533,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             <MaterialCommunityIcons
               name="heart-circle-outline"
               size={32}
-              color={Colors.mediumGray}
+              color={Colors.textGray}
               style={styles.emptyStateIcon}
             />
             <ThemedText style={styles.sectionLabel} accessibilityRole="text">GRATITUDE LIST</ThemedText>
@@ -672,7 +672,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 accessibilityLabel="Show less gratitude items"
                 accessibilityHint="Collapses the list to show fewer items"
               >
-                  <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
                   <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
                     Show less
                   </ThemedText>
@@ -775,7 +775,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 value={item}
                 onChangeText={(value) => handleNewItemChange(index, value)}
                 placeholder="I'm grateful for..."
-                placeholderTextColor={Colors.mediumGray}
+                placeholderTextColor={Colors.textGray}
                 returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                 onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
                 accessibilityLabel={`Gratitude item ${index + 1} input`}
@@ -791,7 +791,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   value={item}
                   onChangeText={(value) => handleNewItemChange(index, value)}
                   placeholder="I'm grateful for..."
-                  placeholderTextColor={Colors.mediumGray}
+                  placeholderTextColor={Colors.textGray}
                   returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                   onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
                   accessibilityLabel={`Gratitude item ${index + 1} input`}
@@ -860,7 +860,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginTop: 8,
   },
   emptyText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontFamily: fonts.regular,
     fontSize: 14,
     marginTop: 8,
@@ -907,7 +907,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   showLessText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   itemRowTopAligned: {
     flexDirection: 'row',
@@ -1051,7 +1051,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   loadingText: {
     fontFamily: fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontSize: 13,
     textAlign: 'center',
     marginTop: 8,
@@ -1076,7 +1076,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   sectionLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,
@@ -1096,7 +1096,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,

@@ -338,7 +338,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   const getProgressColor = (progress: number) => {
     // Match empty progress bar background for 0%
     if (progress === 0) { return 'rgba(255, 255, 255, 0.16)'; }
-    if (progress === 100) { return Colors.successGreen; }
+    if (progress === 100) { return Colors.growthGreen; }
     // Incomplete (1-99%) should be alert coral
     return Colors.alertCoral;
   };
@@ -428,9 +428,9 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             {
               color:
                 playbook.progress === 0
-                  ? Colors.mediumGray
+                  ? Colors.textGray
                   : playbook.progress === 100
-                  ? Colors.successGreen
+                  ? Colors.growthGreen
                   : Colors.alertCoral,
             },
           ]}
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 10,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textTransform: 'uppercase',
   },
   progressBadge: {
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
   },
   playbookDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   stepInfo: {
     gap: 2,
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
   emptyContainer: {
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
   },

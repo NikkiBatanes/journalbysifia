@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontWeight: '600',
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   showLessText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   entryCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 10,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontFamily: Fonts.regular,
   },
   promptCardText: {
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   devotionalDayInfo: {
     fontSize: 11,
     fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
 });
@@ -819,7 +819,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             <MaterialCommunityIcons
               name="head-dots-horizontal-outline"
               size={32}
-              color={Colors.mediumGray}
+              color={Colors.textGray}
               style={styles.emptyStateIcon}
             />
             <ThemedText weight="medium" style={styles.sectionLabel} accessibilityRole="text">{emptyEyebrow}</ThemedText>
@@ -901,7 +901,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   accessibilityLabel="Show less reflections"
                   accessibilityHint="Collapses the list to show only the first 3 reflections"
                 >
-                  <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
                   <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
                     Show less
                   </ThemedText>
@@ -1111,7 +1111,7 @@ return (
         >
           <Pencil
             size={16}
-            color={Colors.mediumGray}
+            color={Colors.textGray}
             strokeWidth={2}
           />
         </TouchableOpacity>

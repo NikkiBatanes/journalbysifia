@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
-    shadowColor: Colors.cardShadow,
+    shadowColor: Colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     fontSize: 12,
-    color: Colors.gray,
+    color: Colors.textGray,
     marginTop: 8,
   },
 });

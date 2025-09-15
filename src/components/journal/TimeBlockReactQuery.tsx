@@ -1123,7 +1123,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             <MaterialCommunityIcons
               name="timeline-text-outline"
               size={32}
-              color={Colors.mediumGray}
+              color={Colors.textGray}
               style={styles.emptyStateIcon}
             />
             <ThemedText weight="semiBold" style={styles.sectionLabel}>TIME BLOCKS</ThemedText>
@@ -1248,7 +1248,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     accessibilityLabel="Show less time blocks"
                     accessibilityHint="Collapses the list to show only the first 3 time blocks"
                   >
-                    <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                    <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
                     <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showLessText]}>Show less</ThemedText>
                   </TouchableOpacity>
                 )}
@@ -1349,7 +1349,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 }
               }}
               placeholder="Enter a title"
-              placeholderTextColor={Colors.mediumGray}
+              placeholderTextColor={Colors.textGray}
               accessibilityLabel="Time block title"
               accessibilityHint="Enter a descriptive title for your time block. This field is required."
               accessibilityRole="text"
@@ -1489,7 +1489,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         <MaterialCommunityIcons
                           name="lock"
                           size={14}
-                          color={Colors.mediumGray}
+                          color={Colors.textGray}
                         />
                       )}
                       {newBlock.repeat.frequency === freq && !isPremiumFeature && (
@@ -1759,7 +1759,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             value={newBlock.notes}
             onChangeText={(text) => setNewBlock({...newBlock, notes: text})}
             placeholder="Add notes (optional)"
-            placeholderTextColor={Colors.mediumGray}
+            placeholderTextColor={Colors.textGray}
             multiline
             numberOfLines={2}
             textAlignVertical="top"
@@ -1855,7 +1855,7 @@ const NotesWithChevron = ({ notes, isExpanded, onToggle }: { notes: string; isEx
         <Ionicons
           name={isExpanded ? 'chevron-up' : 'chevron-down'}
           size={12}
-          color={Colors.mediumGray}
+          color={Colors.textGray}
           style={styles.notesChevron}
         />
       )}
@@ -1906,13 +1906,13 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 12,
   },
   loadingText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontSize: 13,
     textAlign: 'center',
     padding: 16,
   },
   emptyText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontSize: 13,
     textAlign: 'center',
     fontStyle: 'italic',
@@ -1936,7 +1936,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontWeight: '600',
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,
@@ -1954,7 +1954,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -2087,7 +2087,7 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: 10,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
   durationTextInline: {
@@ -2217,7 +2217,7 @@ const styles = StyleSheet.create({
   },
   category: {
     fontSize: 11,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     backgroundColor: 'rgba(0,0,0,0.05)',
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2230,7 +2230,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginLeft: 4,
   },
   notesRow: {
@@ -2309,7 +2309,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   showLessText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   inputError: {
     borderColor: Colors.alertCoral,
@@ -2340,7 +2340,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   placeholderText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
   categoryList: {
@@ -2648,7 +2648,7 @@ const styles = StyleSheet.create({
   },
   customRepeatLabel: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
   frequencySelector: {
@@ -2885,7 +2885,7 @@ const styles = StyleSheet.create({
   },
   lockedRepeatText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginLeft: 8,
     fontStyle: 'italic',
   },

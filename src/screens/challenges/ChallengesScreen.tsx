@@ -78,7 +78,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
       case 'medium': return Colors.winGold;
       case 'hard': return Colors.gratitudeRed;
       case 'expert': return Colors.tithingPurple;
-      default: return Colors.primary;
+      default: return Colors.anchorBlue;
     }
   };
 
@@ -88,7 +88,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
       case 'medium': return [Colors.winGold, Colors.treasureGold] as const;
       case 'hard': return [Colors.gratitudeRed, Colors.alertCoral] as const;
       case 'expert': return [Colors.tithingPurple, Colors.prayerPurple] as const;
-      default: return [Colors.primary, Colors.primary + '80'] as const;
+      default: return [Colors.anchorBlue, Colors.anchorBlue + '80'] as const;
     }
   };
 
@@ -181,13 +181,13 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.challengeDetails}>
             <View style={styles.detailItem}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.gray} />
+              <Ionicons name="calendar-outline" size={16} color={Colors.textGray} />
               <Text style={styles.detailText}>
                 {daysRemaining > 0 ? `${daysRemaining} days left` : 'Ended'}
               </Text>
             </View>
             <View style={styles.detailItem}>
-              <Ionicons name="book-outline" size={16} color={Colors.gray} />
+              <Ionicons name="book-outline" size={16} color={Colors.textGray} />
               <Text style={styles.detailText}>
                 From Playbook
               </Text>
@@ -201,7 +201,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.requirementsList}>
                 {challenge.requirements.level && (
                   <View style={styles.requirementItem}>
-                    <Ionicons name="star-outline" size={14} color={Colors.gray} />
+                    <Ionicons name="star-outline" size={14} color={Colors.textGray} />
                     <Text style={styles.requirementText}>
                       Level {challenge.requirements.level}+
                     </Text>
@@ -209,7 +209,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
                 )}
                 {challenge.requirements.badges && challenge.requirements.badges.length > 0 && (
                   <View style={styles.requirementItem}>
-                    <Ionicons name="medal-outline" size={14} color={Colors.gray} />
+                    <Ionicons name="medal-outline" size={14} color={Colors.textGray} />
                     <Text style={styles.requirementText}>
                       {challenge.requirements.badges.length} badge(s)
                     </Text>
@@ -262,7 +262,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.viewProgressButton}
               onPress={() => navigation.navigate('ChallengeProgress', { challengeId: challenge.id })}
             >
-              <Ionicons name="bar-chart-outline" size={20} color={Colors.primary} />
+              <Ionicons name="bar-chart-outline" size={20} color={Colors.anchorBlue} />
               <Text style={styles.viewProgressButtonText}>View Progress</Text>
             </TouchableOpacity>
           )}
@@ -276,7 +276,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
       <Ionicons
         name={type === 'available' ? 'trophy-outline' : 'ribbon-outline'}
         size={64}
-        color={Colors.gray}
+        color={Colors.textGray}
       />
       <Text style={styles.emptyStateTitle}>
         {type === 'available' ? 'No Available Challenges' : 'No Joined Challenges'}
@@ -393,15 +393,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: Colors.primary,
+    borderBottomColor: Colors.anchorBlue,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.gray,
+    color: Colors.textGray,
   },
   activeTabText: {
-    color: Colors.primary,
+    color: Colors.anchorBlue,
   },
   scrollView: {
     flex: 1,
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: Colors.gray,
+    color: Colors.textGray,
     marginLeft: 6,
   },
   requirementsSection: {
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   },
   requirementText: {
     fontSize: 12,
-    color: Colors.gray,
+    color: Colors.textGray,
     marginLeft: 4,
   },
   rewardsSection: {
@@ -563,10 +563,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.anchorBlue,
   },
   viewProgressButtonText: {
-    color: Colors.primary,
+    color: Colors.anchorBlue,
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: Colors.gray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
   },

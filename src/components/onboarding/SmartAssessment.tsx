@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 4,
     textAlign: 'right',
   },
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
   },
   questionSubtitle: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     lineHeight: 22,
   },
   optionsContainer: {
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   },
   optionDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     lineHeight: 20,
   },
   optionDescriptionSelected: {

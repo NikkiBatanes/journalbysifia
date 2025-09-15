@@ -287,7 +287,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
       <MaterialCommunityIcons
         name={getStreakIcon(streak.type) as any}
         size={18}
-        color={Colors.mediumGray}
+        color={Colors.textGray}
       />
       <ThemedText weight="semiBold" style={styles.streakNumber}>{streak.currentStreak}</ThemedText>
       {streak.isActive && (
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   },
   streakLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   sheetBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   },
   sheetLabel: {
     fontSize: 13,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   sheetValue: {
     fontSize: 14,

@@ -566,7 +566,7 @@ const createDefaultStyles = (fonts: any) => ({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   customModalConfirmButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
   },
   customModalButtonText: {
     color: Colors.hopeWhite,
@@ -940,7 +940,7 @@ function TimeBlockLogEditorInner(
                         borderRadius: 10,
                         backgroundColor: endRepeatMode === 'never' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
                         borderWidth: 1,
-                        borderColor: endRepeatMode === 'never' ? Colors.primary : 'rgba(255,255,255,0.2)'
+                        borderColor: endRepeatMode === 'never' ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'
                       }}
                     >
                       <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>Never</ThemedText>
@@ -954,7 +954,7 @@ function TimeBlockLogEditorInner(
                         borderRadius: 10,
                         backgroundColor: endRepeatMode === 'date' && endRepeatDate ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
                         borderWidth: 1,
-                        borderColor: endRepeatMode === 'date' && endRepeatDate ? Colors.primary : 'rgba(255,255,255,0.2)'
+                        borderColor: endRepeatMode === 'date' && endRepeatDate ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'
                       }}
                     >
                       <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>

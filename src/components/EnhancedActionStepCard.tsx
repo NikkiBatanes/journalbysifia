@@ -112,7 +112,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
             <Ionicons
               name={actionStep.completed ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={actionStep.completed ? Colors.successGreen : Colors.mediumGray}
+              color={actionStep.completed ? Colors.growthGreen : Colors.textGray}
             />
           </TouchableOpacity>
 
@@ -145,7 +145,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
                 <Ionicons
                   name={expandedSubtasks ? 'chevron-up' : 'chevron-down'}
                   size={20}
-                  color={Colors.mediumGray}
+                  color={Colors.textGray}
                 />
               </TouchableOpacity>
             )}
@@ -213,7 +213,7 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({
       <Ionicons
         name={subtask.completed ? 'checkmark-circle' : 'ellipse-outline'}
         size={20}
-        color={subtask.completed ? Colors.successGreen : Colors.mediumGray}
+        color={subtask.completed ? Colors.growthGreen : Colors.textGray}
       />
     </TouchableOpacity>
 

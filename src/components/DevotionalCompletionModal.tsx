@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   dayTitle: {
     fontSize: 24,
-    color: Colors.textDark,
+    color: Colors.text,
     marginTop: 20,
   },
   completedText: {

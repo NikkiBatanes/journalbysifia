@@ -23,7 +23,7 @@ const StatsGrid: React.FC<Props> = ({ title = 'Your Journey', stats }) => {
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Ionicons name="trophy" size={24} color={Colors.primary} />
+          <Ionicons name="trophy" size={24} color={Colors.anchorBlue} />
           <Text style={styles.statNumber}>{stats.totalBadges || 0}</Text>
           <Text style={styles.statLabel}>Badges</Text>
         </View>
@@ -35,7 +35,7 @@ const StatsGrid: React.FC<Props> = ({ title = 'Your Journey', stats }) => {
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+          <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
           <Text style={styles.statNumber}>{stats.goalsCompleted || 0}</Text>
           <Text style={styles.statLabel}>Goals</Text>
         </View>
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 2,
   },
 });

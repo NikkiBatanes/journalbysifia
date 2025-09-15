@@ -87,7 +87,7 @@ const NameCollectionModal: React.FC<NameCollectionModalProps> = ({
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="Enter your first name"
-                placeholderTextColor={Colors.gray}
+                placeholderTextColor={Colors.textGray}
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="next"
@@ -102,7 +102,7 @@ const NameCollectionModal: React.FC<NameCollectionModalProps> = ({
                 value={lastName}
                 onChangeText={setLastName}
                 placeholder="Enter your last name"
-                placeholderTextColor={Colors.gray}
+                placeholderTextColor={Colors.textGray}
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="done"
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 14,
-    color: Colors.primary,
+    color: Colors.anchorBlue,
     fontWeight: '500',
   },
   form: {
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
   },
   primaryButtonText: {
     color: 'white',

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     fontStyle: 'italic',
   },

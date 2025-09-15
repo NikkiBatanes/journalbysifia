@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 12,
     fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 2,
   },
 });

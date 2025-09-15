@@ -9,7 +9,7 @@ export const Colors = defaultTheme.colors;
 export const standardColors = {
   primary: '#1a3c6d', // Maps to anchorBlue
   text: '#1A1A1A', // Maps to darkerGray
-  gray: '#9E9E9E', // Maps to mediumGray
+  gray: '#9E9E9E', // Maps to textGray
   error: '#FF3B30', // Maps to dangerRed
 
   // Grayscale
@@ -18,7 +18,7 @@ export const standardColors = {
   hopeWhite: '#F2F5F7',
   lightGray: '#E0E0E0',
   lightBlue: '#E8F4FD',
-  mediumGray: '#9E9E9E',
+  textGray: '#9E9E9E',
   darkGray: '#424242',
   darkerGray: '#1A1A1A', // For better text contrast
   trustGrey: '#B0B8C1',

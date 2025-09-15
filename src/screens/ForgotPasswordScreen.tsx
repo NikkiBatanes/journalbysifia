@@ -102,11 +102,11 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Email Address</Text>
               <View style={[styles.inputWrapper, emailError ? styles.inputError : null]}>
-                <Ionicons name="mail-outline" size={20} color={Colors.mediumGray} style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color={Colors.textGray} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter your email"
-                  placeholderTextColor={Colors.mediumGray}
+                  placeholderTextColor={Colors.textGray}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   backToLoginText: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   linkText: {
     color: Colors.faithGold,

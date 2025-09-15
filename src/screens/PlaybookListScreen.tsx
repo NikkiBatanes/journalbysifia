@@ -941,7 +941,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     borderRadius: 28,
     height: 56,
-    shadowColor: Colors.cardShadow,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

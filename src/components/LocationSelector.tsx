@@ -171,7 +171,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <MapPin size={16} color={Colors.mediumGray} />
+        <MapPin size={16} color={Colors.textGray} />
         <TextInput
           style={[
             styles.textInput,
@@ -182,7 +182,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           placeholder={placeholder}
-          placeholderTextColor={Colors.mediumGray}
+          placeholderTextColor={Colors.textGray}
           returnKeyType="done"
         />
         
@@ -218,7 +218,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                   style={styles.suggestionItem}
                   onPress={() => handleSuggestionSelect(item)}
                 >
-                  <MapPin size={14} color={Colors.mediumGray} />
+                  <MapPin size={14} color={Colors.textGray} />
                   <View style={styles.suggestionInfo}>
                     <ThemedText style={styles.suggestionName} weight="medium">
                       {item.name}
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginLeft: 8,
   },
   suggestionsList: {
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   suggestionAddress: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   noResultsContainer: {
     padding: 16,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 16,
   },

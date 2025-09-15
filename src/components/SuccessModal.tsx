@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 16,
-    color: Colors.mediumGray, // Using mediumGray from Colors
+    color: Colors.textGray, // Using textGray from Colors
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
@@ -173,10 +173,10 @@ const styles = StyleSheet.create({
   editButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.mediumGray,
+    borderColor: Colors.textGray,
   },
   editButtonText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   buttonText: {
     color: Colors.hopeWhite,

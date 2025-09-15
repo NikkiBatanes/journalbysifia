@@ -65,7 +65,7 @@ const StreakDetailScreen: React.FC = () => {
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: Colors.text }]}>Overview</Text>
-        <Text style={[styles.body, { color: Colors.secondary }]}>This page will show your current streak, best streak, last activity date, and recent activity timeline for the selected category.</Text>
+        <Text style={[styles.body, { color: Colors.anchorBlueLight }]}>This page will show your current streak, best streak, last activity date, and recent activity timeline for the selected category.</Text>
       </View>
     </View>
   );

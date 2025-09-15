@@ -159,7 +159,7 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
                 <View style={[styles.option, styles.lockedOption]}>
                   <View style={styles.optionContent}>
                     <View style={styles.optionIcon}>
-                      <MaterialCommunityIcons name="lock" size={20} color={Colors.mediumGray} />
+                      <MaterialCommunityIcons name="lock" size={20} color={Colors.textGray} />
                     </View>
                     <View style={styles.optionText}>
                       <ThemedText weight="medium" style={[styles.optionTitle, styles.lockedText]}>
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -317,11 +317,11 @@ const styles = StyleSheet.create({
   },
   optionDescription: {
     fontSize: 13,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     lineHeight: 18,
   },
   lockedText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   cancelButton: {
     paddingVertical: 16,

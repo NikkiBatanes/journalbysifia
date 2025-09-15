@@ -125,7 +125,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons
             name={icon}
             size={20}
-            color={danger ? Colors.error : Colors.primary}
+            color={danger ? Colors.error : Colors.anchorBlue}
           />
         </View>
         <View style={styles.settingsText}>
@@ -143,7 +143,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={Colors.gray}
+            color={Colors.textGray}
             style={styles.arrowIcon}
           />
         )}
@@ -173,8 +173,8 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: '#767577', true: Colors.primary + '40' }}
-          thumbColor={value ? Colors.primary : '#f4f3f4'}
+          trackColor={{ false: '#767577', true: Colors.anchorBlue + '40' }}
+          thumbColor={value ? Colors.anchorBlue : '#f4f3f4'}
         />
       }
     />
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primary + '10',
+    backgroundColor: Colors.anchorBlue + '10',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   },
   settingsSubtitle: {
     fontSize: 14,
-    color: Colors.gray,
+    color: Colors.textGray,
   },
   settingsRowRight: {
     flexDirection: 'row',
@@ -564,12 +564,12 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 14,
-    color: Colors.gray,
+    color: Colors.textGray,
     marginBottom: 4,
   },
   versionSubtext: {
     fontSize: 12,
-    color: Colors.gray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
 });

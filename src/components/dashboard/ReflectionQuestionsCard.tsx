@@ -502,7 +502,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 ]}
               >
                 <View style={styles.sectionHeader}>
-                  <MaterialCommunityIcons name={getSourceIcon(item.sourceType)} size={20} color={Colors.mediumGray} style={styles.sectionIcon} />
+                  <MaterialCommunityIcons name={getSourceIcon(item.sourceType)} size={20} color={Colors.textGray} style={styles.sectionIcon} />
                   <ThemedText weight="semiBold" style={styles.sectionLabel}>
                     {item.sourceType === 'guided' ? 'GUIDED PROMPT' : 'QUESTION TO PONDER'}
                   </ThemedText>
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     textAlign: 'center',
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
   errorContainer: {

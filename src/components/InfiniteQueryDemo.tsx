@@ -104,7 +104,7 @@ export const InfiniteQueryDemo: React.FC<InfiniteQueryDemoProps> = ({
       case 'journal': return Colors.anchorBlue;
       case 'prayer': return Colors.faithGold;
       case 'reflection': return Colors.growthGreen;
-      default: return Colors.mediumGray;
+      default: return Colors.textGray;
     }
   };
 
@@ -131,7 +131,7 @@ export const InfiniteQueryDemo: React.FC<InfiniteQueryDemoProps> = ({
         placeholder="Search items..."
         value={searchTerm}
         onChangeText={setSearchTerm}
-        placeholderTextColor={Colors.mediumGray}
+        placeholderTextColor={Colors.textGray}
       />
 
       <View style={styles.actionButtons}>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 16,
   },
   searchInput: {
@@ -298,13 +298,13 @@ const styles = StyleSheet.create({
   },
   itemDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     lineHeight: 20,
     marginBottom: 8,
   },
   itemDate: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   footerLoader: {
     flexDirection: 'row',
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   footerText: {
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontSize: 14,
   },
   loadingContainer: {
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   errorContainer: {
     flex: 1,

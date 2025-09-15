@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 24,

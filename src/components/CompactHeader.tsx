@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: Colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },

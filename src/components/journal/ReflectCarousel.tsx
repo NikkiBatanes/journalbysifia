@@ -91,7 +91,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       title: 'LOOKING FORWARD',
       icon: 'telescope-outline',
       component: <LookingForwardReactQuery selectedDate={selectedDate} />,
-      color: Colors.mediumGray,
+      color: Colors.textGray,
     },
   ];
 

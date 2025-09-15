@@ -639,7 +639,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 value={data.focus}
                 onChangeText={updateFocus}
                 placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
-                placeholderTextColor={Colors.mediumGray}
+                placeholderTextColor={Colors.textGray}
                 autoFocus
                 accessibilityLabel="Today's focus input"
                 accessibilityHint="Enter your main focus for today"
@@ -653,7 +653,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                     value={priority.text}
                     onChangeText={(text) => updatePriority(index, text)}
                     placeholder={`Priority ${index + 1}...`}
-                    placeholderTextColor={Colors.mediumGray}
+                    placeholderTextColor={Colors.textGray}
                     onSubmitEditing={toggleEditing}
                     accessibilityLabel={`Priority ${index + 1} input`}
                     accessibilityHint={`Enter your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} priority for today`}
@@ -793,7 +793,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                     <MaterialIcons
                       name="filter-center-focus"
                       size={32}
-                      color={Colors.mediumGray}
+                      color={Colors.textGray}
                       style={styles.emptyStateIcon}
                     />
                     <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">{focusState.eyebrow.toUpperCase()}</ThemedText>
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
   placeholderText: {
     // weight handled by ThemedText if used
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     fontStyle: 'italic',
     marginBottom: 8,
     textDecorationLine: 'none',
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
   hintText: {
     // weight handled by ThemedText if used
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -1017,7 +1017,7 @@ const styles = StyleSheet.create({
 
   priorityNumber: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     width: 24,
   },
   priorityInput: {
@@ -1061,7 +1061,7 @@ const styles = StyleSheet.create({
   },
   completedText: {
     textDecorationLine: 'line-through',
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     opacity: 0.7,
   },
   buttonSpacing: {
@@ -1094,7 +1094,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     padding: 16,
   },
@@ -1131,7 +1131,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     opacity: 0.9,
     textTransform: 'uppercase',
@@ -1149,7 +1149,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 12,

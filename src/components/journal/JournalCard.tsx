@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: Fonts.regular,
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     width: '100%', // Take full width of container
     paddingHorizontal: 4, // Match title padding

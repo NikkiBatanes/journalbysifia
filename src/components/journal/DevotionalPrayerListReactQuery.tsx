@@ -275,7 +275,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               <Ionicons
                 name="bookmark"
                 size={32}
-                color={Colors.mediumGray}
+                color={Colors.textGray}
                 style={styles.emptyStateIcon}
               />
               <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textAlign: 'center',
     textTransform: 'uppercase',
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtitle: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
   },

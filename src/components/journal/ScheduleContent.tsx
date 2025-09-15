@@ -69,7 +69,7 @@ const getCategoryColor = (category: string) => {
     learning: Colors.faithGold,
     other: Colors.devotionalPurple,
   };
-  return colors[category as keyof typeof colors] || Colors.mediumGray;
+  return colors[category as keyof typeof colors] || Colors.textGray;
 };
 
 export const ScheduleContent: React.FC<ScheduleContentProps> = ({ selectedDate = new Date() }) => {
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   emptyTextSmall: {
     marginTop: 10,
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   timelineBlocks: {
     flex: 1,
@@ -409,13 +409,13 @@ const styles = StyleSheet.create({
   blockTimeModern: {
     fontFamily: Fonts.regular,
     fontSize: 13,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 2,
   },
   blockNotesModern: {
     fontFamily: Fonts.regular,
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 2,
   },
   blockCategoryModern: {

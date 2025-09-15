@@ -191,7 +191,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
     }
 
     if (!calendarGating.canSyncToCalendar) {
-      return <MaterialCommunityIcons name="lock" size={16} color={Colors.mediumGray} />;
+      return <MaterialCommunityIcons name="lock" size={16} color={Colors.textGray} />;
     }
 
     switch (syncStatus) {

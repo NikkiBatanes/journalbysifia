@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 20,
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 20,
   },
   recommendationCard: {
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   previewLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginBottom: 4,
   },
   previewText: {
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   },
   milestoneDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,

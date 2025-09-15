@@ -72,7 +72,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
           <Ionicons
             name={showSearch ? 'search' : 'search-outline'}
             size={20}
-            color={showSearch ? Colors.hopeWhite : Colors.mediumGray}
+            color={showSearch ? Colors.hopeWhite : Colors.textGray}
           />
         </TouchableOpacity>
 
@@ -80,7 +80,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
           <TextInput
             style={[styles.searchInput, { fontFamily: fontRegular }]}
             placeholder="Search moments..."
-            placeholderTextColor={Colors.mediumGray}
+            placeholderTextColor={Colors.textGray}
             value={searchQuery}
             onChangeText={onSearchChange}
             autoFocus
@@ -106,7 +106,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
                 <Ionicons
                   name={option.icon as any}
                   size={16}
-                  color={groupBy === option.value ? Colors.hopeWhite : Colors.mediumGray}
+                  color={groupBy === option.value ? Colors.hopeWhite : Colors.textGray}
                 />
                 <ThemedText
                   style={[
@@ -138,7 +138,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
                 <Ionicons
                   name={option.icon as any}
                   size={16}
-                  color={sortBy === option.value ? Colors.hopeWhite : Colors.mediumGray}
+                  color={sortBy === option.value ? Colors.hopeWhite : Colors.textGray}
                 />
                 <ThemedText
                   style={[
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
   },
   activeOptionText: {
     color: Colors.hopeWhite,

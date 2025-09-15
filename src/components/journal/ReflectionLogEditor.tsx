@@ -811,8 +811,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         >
           <Pencil
             size={22}
-            color={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.inactiveIcon}
-            fill={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.inactiveIcon}
+            color={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.trustGrey}
+            fill={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.trustGrey}
             strokeWidth={1.5}
           />
         </TouchableOpacity>
@@ -824,7 +824,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           >
             <Trash2
               size={22}
-              color={Colors.inactiveIcon}
+              color={Colors.trustGrey}
               strokeWidth={1.5}
             />
           </TouchableOpacity>
@@ -854,7 +854,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             <Ionicons
               name="heart"
               size={24}
-              color={selectedPrompt || viewMode === 'guided' ? Colors.alertCoral : Colors.inactiveIcon}
+              color={selectedPrompt || viewMode === 'guided' ? Colors.alertCoral : Colors.trustGrey}
             />
           </TouchableOpacity>
         )}

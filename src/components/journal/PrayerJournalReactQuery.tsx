@@ -423,7 +423,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                   <Ionicons
                     name={type.icon}
                     size={18}
-                    color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
+                    color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.textGray}
                   />
                   <ThemedText
                     style={[
@@ -473,7 +473,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         <TextInput
           style={[styles.textInput, { fontFamily: regularFont }]}
           placeholder={`Pray freely from your heart...`}
-          placeholderTextColor={Colors.mediumGray}
+          placeholderTextColor={Colors.textGray}
           value={prayerText}
           onChangeText={setPrayerText}
           multiline
@@ -484,7 +484,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         <TextInput
           style={[styles.textInput, { fontFamily: regularFont }]}
           placeholder={`Write your ${selectedPrayerType} prayer...`}
-          placeholderTextColor={Colors.mediumGray}
+          placeholderTextColor={Colors.textGray}
           value={prayerText}
           onChangeText={setPrayerText}
           multiline
@@ -607,7 +607,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               <MaterialCommunityIcons
                 name="hands-pray"
                 size={32}
-                color={Colors.mediumGray}
+                color={Colors.textGray}
                 style={styles.emptyStateIcon}
               />
               <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
   },
   methodSubtitle: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     opacity: 0.8,
   },
   prayerTypeGrid: {
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeText: {
     fontSize: 15,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
   prayerTypeTextSelected: {
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeTextFreeform: {
     fontSize: 17,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
   },
   prayerTypeTextFreeformSelected: {
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeDescription: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
     opacity: 0.8,
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeDescriptionFreeform: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 22,
     opacity: 0.8,
@@ -883,7 +883,7 @@ const styles = StyleSheet.create({
   },
   answeredTimestamp: {
     fontSize: 9,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     marginTop: 1,
   },
   emptyStateContainer: {
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 6,
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: Colors.mediumGray,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,

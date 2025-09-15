@@ -88,7 +88,7 @@ const UsageTracker: React.FC<UsageTrackerProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Ionicons name={getFeatureIcon()} size={20} color={Colors.textDark} />
+          <Ionicons name={getFeatureIcon()} size={20} color={Colors.text} />
           <Text style={styles.title}>{getFeatureLabel()}</Text>
         </View>
         {!canUse && showUpgradeButton && (
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: Colors.text,
   },
   compactText: {
     fontSize: 12,
