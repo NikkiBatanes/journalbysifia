@@ -4,18 +4,11 @@
  * Provides simple, beautiful user experience for playbook/devotional generation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Alert,
-} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Colors } from '../../theme/colors';
 // Import our new components and services
 import { UsageIndicator, CompactUsageIndicator } from '../subscription/UsageIndicator';
 import { UpgradeModal } from '../subscription/UpgradeModal';
@@ -170,7 +163,7 @@ export const EnhancedGenerationExample: React.FC = () => {
       {hasIntelligence && suggestions && (
         <View style={styles.suggestionsContainer}>
           <View style={styles.suggestionsHeader}>
-            <Ionicons name="sparkles" size={20} color="#7C3AED" />
+            <Ionicons name="sparkles" size={20} color={Colors.devotionalPurple} />
             <Text style={styles.suggestionsTitle}>AI Suggestions for You</Text>
           </View>
 
@@ -205,7 +198,7 @@ export const EnhancedGenerationExample: React.FC = () => {
           <Ionicons
             name="book"
             size={20}
-            color={generationType === 'playbook' ? 'white' : '#6B7280'}
+            color={generationType === 'playbook' ? Colors.white : Colors.journeyGray}
           />
           <Text style={[
             styles.typeButtonText,
@@ -225,7 +218,7 @@ export const EnhancedGenerationExample: React.FC = () => {
           <Ionicons
             name="heart"
             size={20}
-            color={generationType === 'devotional' ? 'white' : '#6B7280'}
+            color={generationType === 'devotional' ? Colors.white : Colors.journeyGray}
           />
           <Text style={[
             styles.typeButtonText,
@@ -273,8 +266,8 @@ export const EnhancedGenerationExample: React.FC = () => {
         <LinearGradient
           colors={
             (!userInput.trim() || userInput.length < 10)
-              ? ['#E5E7EB', '#D1D5DB']
-              : ['#4F46E5', '#7C3AED']
+              ? [Colors.contemplationGray, Colors.journeyGray]
+              : [Colors.wisdomIndigo, Colors.devotionalPurple]
           }
           style={styles.generateGradient}
         >
@@ -342,7 +335,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.contemplationGray,
   },
   headerTitle: {
     fontSize: 24,
@@ -379,7 +372,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   suggestionChip: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: Colors.lightPurple,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -387,7 +380,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: Colors.devotionalPurple,
     fontWeight: '500',
   },
   suggestionsFooter: {
@@ -399,7 +392,7 @@ const styles = StyleSheet.create({
   typeSelector: {
     flexDirection: 'row',
     margin: 16,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: Colors.contemplationGray,
     borderRadius: 12,
     padding: 4,
   },
@@ -412,7 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   typeButtonActive: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: Colors.wisdomIndigo,
   },
   typeButtonText: {
     fontSize: 16,
@@ -439,7 +432,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: Colors.journeyGray,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -456,7 +449,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#4F46E5',
+    shadowColor: Colors.wisdomIndigo,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

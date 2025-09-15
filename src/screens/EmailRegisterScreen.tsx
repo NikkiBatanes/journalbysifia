@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     fontFamily: Fonts.system.regular,
-    color: 'rgba(255,255,255,0.8)',
+    color: Colors.holyGlow,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   loginText: {
     fontSize: 16,
     fontFamily: Fonts.system.regular,
-    color: 'rgba(255,255,255,0.8)',
+    color: Colors.holyGlow,
     textDecorationLine: 'none',
   },
   loginLink: {

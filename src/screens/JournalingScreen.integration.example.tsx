@@ -1,11 +1,11 @@
 // =====================================================
 // EXAMPLE: How to integrate trial access into your Journaling screen
 // =====================================================
-// This shows how to protect smart journaling and premium templates
-
+// This shows how to import React, { useState } from 'react';
 import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { Colors } from '../theme/colors';
 // Import trial hooks and components
 import { useTrialAccess, useFeatureAccess } from '../hooks/useTrialAccess';
 import { FeatureLockOverlay, FeatureLockCard } from '../components/FeatureLockOverlay';
@@ -78,12 +78,12 @@ export const JournalingScreen = () => {
             <Ionicons
               name="bulb"
               size={24}
-              color={hasSmartJournaling ? '#6366F1' : '#9CA3AF'}
+              color={hasSmartJournaling ? Colors.wisdomIndigo : Colors.contemplationGray}
             />
             <Text style={[styles.featureTitle, !hasSmartJournaling && styles.lockedText]}>
               AI-Powered Journaling
             </Text>
-            {!hasSmartJournaling && <Ionicons name="lock-closed" size={20} color="#9CA3AF" />}
+            {!hasSmartJournaling && <Ionicons name="lock-closed" size={20} color={Colors.contemplationGray} />}
           </View>
           <Text style={[styles.featureDescription, !hasSmartJournaling && styles.lockedText]}>
             Get personalized prompts and insights for deeper spiritual reflection
@@ -151,18 +151,18 @@ export const JournalingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.sanctuaryWhite,
   },
   trialBanner: {
-    backgroundColor: '#E0F2FE',
+    backgroundColor: Colors.anchorBlueLight,
     padding: 12,
     margin: 16,
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#0EA5E9',
+    borderLeftColor: Colors.playbookBlue,
   },
   trialText: {
-    color: '#0C4A6E',
+    color: Colors.wisdomIndigo,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -206,16 +206,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lockedText: {
-    color: '#9CA3AF',
+    color: Colors.contemplationGray,
   },
   featureDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: Colors.journeyGray,
     lineHeight: 20,
   },
   upgradePrompt: {
     fontSize: 12,
-    color: '#6366F1',
+    color: Colors.wisdomIndigo,
     fontWeight: '500',
     marginTop: 8,
   },
@@ -269,13 +269,13 @@ const templateStyles = StyleSheet.create({
     color: '#111827',
   },
   premiumBadge: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.wisdomIndigo,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   premiumText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 10,
     fontWeight: '600',
   },

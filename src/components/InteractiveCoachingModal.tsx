@@ -7,16 +7,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
   Modal,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors } from '../theme/colors';
 import { InteractiveCoachingService } from '../services/interactiveCoachingService';
 import {
   ConversationThread,
@@ -229,7 +229,7 @@ export const InteractiveCoachingModal: React.FC<InteractiveCoachingModalProps> =
             <Text style={styles.headerSubtitle}>{stepText.substring(0, 40)}...</Text>
           </View>
           <View style={styles.headerRight}>
-            <Ionicons name="heart" size={20} color="#D4AF37" />
+            <Ionicons name="heart" size={20} color={Colors.treasureGold} />
           </View>
         </View>
 
@@ -242,7 +242,7 @@ export const InteractiveCoachingModal: React.FC<InteractiveCoachingModalProps> =
         >
           {isStarting ? (
             <View style={styles.startingContainer}>
-              <ActivityIndicator size="large" color="#D4AF37" />
+              <ActivityIndicator size="large" color={Colors.treasureGold} />
               <Text style={styles.startingText}>Starting your coaching session...</Text>
             </View>
           ) : (
@@ -294,7 +294,7 @@ const styles = {
     paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e5e9',
+    borderBottomColor: Colors.contemplationGray,
     paddingTop: Platform.OS === 'ios' ? 50 : 12,
   },
   closeButton: {
@@ -400,13 +400,13 @@ const styles = {
     fontStyle: 'italic' as const,
   },
   followUpButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Colors.sanctuaryWhite,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: Colors.contemplationGray,
   },
   followUpText: {
     fontSize: 14,
@@ -419,12 +419,12 @@ const styles = {
     paddingVertical: 12,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#e1e5e9',
+    borderTopColor: Colors.contemplationGray,
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#e1e5e9',
+    borderColor: Colors.contemplationGray,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -442,6 +442,6 @@ const styles = {
     alignItems: 'center' as const,
   },
   sendButtonDisabled: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: Colors.contemplationGray,
   },
 };

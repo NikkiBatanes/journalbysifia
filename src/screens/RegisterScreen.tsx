@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     fontFamily: Fonts.system.regular,
-    color: 'rgba(255,255,255,0.8)',
+    color: Colors.holyGlow,
     textAlign: 'center',
   },
   buttonContainer: {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   loginText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: Colors.holyGlow,
     fontSize: 16,
     fontFamily: Fonts.system.regular,
   },

@@ -3,17 +3,10 @@
  * Simplified for current app capabilities - text content only
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  RefreshControl,
-  Alert,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors } from '../theme/colors';
 import { TextBasedContentCuration, TextContentItem, TextContentRecommendation } from '../services/textBasedContentCuration';
 import { SpiritualProfile } from '../interfaces/spiritualProfile';
 import { ConversationThread } from '../interfaces/conversationTypes';
@@ -137,7 +130,7 @@ export const TextBasedContentDashboard: React.FC<TextBasedContentDashboardProps>
             <Ionicons
               name={getContentTypeIcon(contentItem.type)}
               size={20}
-              color="#D4AF37"
+              color={Colors.treasureGold}
             />
           </View>
           <View style={styles.cardHeaderText}>
@@ -177,7 +170,7 @@ export const TextBasedContentDashboard: React.FC<TextBasedContentDashboardProps>
         onPress={() => generateQuickContent('devotional')}
         disabled={isLoading}
       >
-        <Ionicons name="book-outline" size={20} color="#D4AF37" />
+        <Ionicons name="book-outline" size={20} color={Colors.treasureGold} />
         <Text style={styles.quickActionText}>Daily Devotional</Text>
       </TouchableOpacity>
 
@@ -186,7 +179,7 @@ export const TextBasedContentDashboard: React.FC<TextBasedContentDashboardProps>
         onPress={() => generateQuickContent('exercise')}
         disabled={isLoading}
       >
-        <Ionicons name="heart-outline" size={20} color="#D4AF37" />
+        <Ionicons name="heart-outline" size={20} color={Colors.treasureGold} />
         <Text style={styles.quickActionText}>Spiritual Exercise</Text>
       </TouchableOpacity>
 
@@ -195,7 +188,7 @@ export const TextBasedContentDashboard: React.FC<TextBasedContentDashboardProps>
         onPress={() => generateQuickContent('scripture')}
         disabled={isLoading}
       >
-        <Ionicons name="library-outline" size={20} color="#D4AF37" />
+        <Ionicons name="library-outline" size={20} color={Colors.treasureGold} />
         <Text style={styles.quickActionText}>Scripture Study</Text>
       </TouchableOpacity>
     </View>
@@ -219,7 +212,7 @@ export const TextBasedContentDashboard: React.FC<TextBasedContentDashboardProps>
               </Text>
             </View>
             <TouchableOpacity onPress={handleContentComplete} style={styles.completeButton}>
-              <Ionicons name="checkmark" size={24} color="#D4AF37" />
+              <Ionicons name="checkmark" size={24} color={Colors.treasureGold} />
             </TouchableOpacity>
           </View>
 
@@ -424,7 +417,7 @@ const styles = {
   },
   topRecommendation: {
     borderWidth: 2,
-    borderColor: '#D4AF37',
+    borderColor: Colors.treasureGold,
   },
   cardHeader: {
     flexDirection: 'row' as const,
@@ -454,7 +447,7 @@ const styles = {
     color: '#666',
   },
   relevanceScore: {
-    backgroundColor: '#D4AF37',
+    backgroundColor: Colors.treasureGold,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -481,7 +474,7 @@ const styles = {
     gap: 6,
   },
   themeTag: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Colors.sanctuaryWhite,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -507,7 +500,7 @@ const styles = {
     paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e5e9',
+    borderBottomColor: Colors.contemplationGray,
     paddingTop: 50,
   },
   closeButton: {
@@ -547,7 +540,7 @@ const styles = {
     borderRadius: 12,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#D4AF37',
+    borderLeftColor: Colors.treasureGold,
   },
   scriptureText: {
     fontSize: 14,

@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  RefreshControl,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
+import { Colors } from '../../theme/colors';
 import { userApi } from '../../services/userApi';
 import { Goal } from '../../types/auth';
-import { Colors } from '../../theme/colors';
 
 interface Props {
   navigation: any;
@@ -121,11 +119,11 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'devotional': return '#3498DB';
-      case 'prayer': return '#E74C3C';
-      case 'journal': return '#9B59B6';
-      case 'scripture': return '#F39C12';
-      case 'service': return '#27AE60';
+      case 'devotional': return Colors.playbookBlue;
+      case 'prayer': return Colors.gratitudeRed;
+      case 'journal': return Colors.prayerPurple;
+      case 'scripture': return Colors.winGold;
+      case 'service': return Colors.budgetingGreen;
       default: return Colors.primary;
     }
   };
@@ -238,7 +236,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
 
         {goal.isCompleted && goal.completedAt && (
           <View style={styles.completedBadge}>
-            <Ionicons name="checkmark-circle" size={16} color="#27AE60" />
+            <Ionicons name="checkmark-circle" size={16} color={Colors.budgetingGreen} />
             <Text style={styles.completedText}>
               Completed {new Date(goal.completedAt).toLocaleDateString()}
             </Text>
@@ -347,7 +345,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: Colors.sanctuaryWhite,
   },
   header: {
     flexDirection: 'row',
@@ -479,7 +477,7 @@ const styles = StyleSheet.create({
   },
   progressBarBackground: {
     height: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Colors.gentleBorder,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -520,7 +518,7 @@ const styles = StyleSheet.create({
   },
   completedText: {
     fontSize: 12,
-    color: '#27AE60',
+    color: Colors.budgetingGreen,
     fontWeight: '500',
     marginLeft: 4,
   },

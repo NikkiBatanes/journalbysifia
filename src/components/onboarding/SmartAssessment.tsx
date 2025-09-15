@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   optionLabelSelected: {
-    color: 'white',
+    color: Colors.hopeWhite,
   },
   optionDescription: {
     fontSize: 14,
@@ -649,8 +649,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectionIndicatorSelected: {
-    backgroundColor: 'white',
-    borderColor: 'white',
+    backgroundColor: Colors.hopeWhite,
+    borderColor: Colors.hopeWhite,
   },
   continueButton: {
     flexDirection: 'row',
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   continueButtonText: {
-    color: 'white',
+    color: Colors.hopeWhite,
     fontSize: 18,
     fontWeight: '600',
     marginRight: 8,

@@ -1,8 +1,9 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { useUpgradePrompts } from '../hooks/useTrialAccess';
 import { useNavigation } from '@react-navigation/native';
+import { Colors } from '../theme/colors';
 
 interface FeatureLockOverlayProps {
   visible: boolean;
@@ -42,10 +43,10 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
         <View style={styles.modal}>
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Ionicons name="lock-closed" size={32} color="#6366F1" />
+              <Ionicons name="lock-closed" size={32} color={Colors.wisdomIndigo} />
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Ionicons name="close" size={24} color="#666" />
+              <Ionicons name="close" size={24} color={Colors.journeyGray} />
             </TouchableOpacity>
           </View>
 
@@ -105,7 +106,7 @@ export const FeatureLockCard: React.FC<FeatureLockCardProps> = ({
   return (
     <View style={styles.lockedCard}>
       <View style={styles.lockedOverlay}>
-        <Ionicons name="lock-closed" size={24} color="#6366F1" />
+        <Ionicons name="lock-closed" size={24} color={Colors.wisdomIndigo} />
         <Text style={styles.lockedTitle}>{prompt.title}</Text>
         <Text style={styles.lockedMessage}>{prompt.message}</Text>
         <TouchableOpacity style={styles.unlockButton} onPress={handleUnlock}>
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.sanctuaryWhite,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -165,14 +166,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   trialInfo: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.sanctuaryWhite,
     padding: 12,
     borderRadius: 8,
     marginBottom: 24,
   },
   trialText: {
     fontSize: 14,
-    color: '#374151',
+    color: Colors.contemplationGray,
     textAlign: 'center',
   },
   actions: {

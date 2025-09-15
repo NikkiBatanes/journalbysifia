@@ -331,14 +331,14 @@ const DevotionalsScreen = () => {
                 <MaterialCommunityIcons
                   name="clipboard-text-clock"
                   size={32}
-                  color="rgba(255,255,255,0.8)"
+                  color={Colors.holyGlow}
                   style={styles.heroIcon}
                 />
               ) : (
                 <MaterialCommunityIcons
                   name="trophy-outline"
                   size={32}
-                  color="rgba(255,255,255,0.8)"
+                  color={Colors.holyGlow}
                   style={styles.heroIcon}
                 />
               )}
@@ -375,7 +375,7 @@ const DevotionalsScreen = () => {
             <MaterialCommunityIcons
               name="book"
               size={32}
-              color="rgba(255,255,255,0.8)"
+              color="Colors.holyGlow"
               style={styles.heroIcon}
             />
             <ThemedText weight="bold" style={styles.heroOverline}>No Devotionals</ThemedText>

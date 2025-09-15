@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  RefreshControl,
+  Dimensions,
+  ActivityIndicator,
   Alert,
-  // Dimensions, // Unused
+  RefreshControl,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import LinearGradient from 'react-native-linear-gradient';
-// import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
+import { Colors } from '../../theme/colors';
 import { userApi } from '../../services/userApi';
 import { Challenge } from '../../types/auth';
-import { Colors } from '../../theme/colors';
 
 // const { width: _width } = Dimensions.get('window'); // Unused
 
@@ -75,20 +74,20 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return '#27AE60';
-      case 'medium': return '#F39C12';
-      case 'hard': return '#E74C3C';
-      case 'expert': return '#8E44AD';
+      case 'easy': return Colors.budgetingGreen;
+      case 'medium': return Colors.winGold;
+      case 'hard': return Colors.gratitudeRed;
+      case 'expert': return Colors.tithingPurple;
       default: return Colors.primary;
     }
   };
 
   const getDifficultyGradient = (difficulty: string): readonly [string, string] => {
     switch (difficulty) {
-      case 'easy': return ['#27AE60', '#2ECC71'] as const;
-      case 'medium': return ['#F39C12', '#F1C40F'] as const;
-      case 'hard': return ['#E74C3C', '#E67E22'] as const;
-      case 'expert': return ['#8E44AD', '#9B59B6'] as const;
+      case 'easy': return [Colors.budgetingGreen, Colors.timeblockGreen] as const;
+      case 'medium': return [Colors.winGold, Colors.treasureGold] as const;
+      case 'hard': return [Colors.gratitudeRed, Colors.alertCoral] as const;
+      case 'expert': return [Colors.tithingPurple, Colors.prayerPurple] as const;
       default: return [Colors.primary, Colors.primary + '80'] as const;
     }
   };
@@ -225,20 +224,20 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.rewardsTitle}>Rewards:</Text>
             <View style={styles.rewardsList}>
               <View style={styles.rewardItem}>
-                <Ionicons name="trophy" size={16} color="#FFD700" />
+                <Ionicons name="trophy" size={16} color={Colors.treasureGold} />
                 <Text style={styles.rewardText}>
                   {challenge.rewards.points.toLocaleString()} points
                 </Text>
               </View>
               <View style={styles.rewardItem}>
-                <Ionicons name="flash" size={16} color="#3498DB" />
+                <Ionicons name="flash" size={16} color={Colors.playbookBlue} />
                 <Text style={styles.rewardText}>
                   {challenge.rewards.experience} XP
                 </Text>
               </View>
               {challenge.rewards.badges.length > 0 && (
                 <View style={styles.rewardItem}>
-                  <Ionicons name="medal" size={16} color="#9B59B6" />
+                  <Ionicons name="medal" size={16} color={Colors.prayerPurple} />
                   <Text style={styles.rewardText}>
                     {challenge.rewards.badges.length} badge(s)
                   </Text>
@@ -357,7 +356,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: Colors.sanctuaryWhite,
   },
   header: {
     flexDirection: 'row',

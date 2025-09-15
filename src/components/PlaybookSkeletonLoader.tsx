@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 335, // Matches SCREEN_WIDTH - 80 when screen width is 375 (iPhone 8)
     height: 450,
-    backgroundColor: 'white',
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 28,
     padding: 24,
   },

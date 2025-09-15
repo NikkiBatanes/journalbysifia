@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors } from '../theme/colors';
 import { useUpgradePrompts } from '../hooks/useSimpleTrialAccess';
 
 interface SimpleFeatureLockProps {
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   lockCard: {
-    backgroundColor: 'white',
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
@@ -170,7 +172,7 @@ const styles = StyleSheet.create({
   standaloneCard: {
     margin: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.contemplationGray,
   },
   lockIcon: {
     fontSize: 32,
@@ -179,26 +181,26 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: Colors.darkerGray,
     textAlign: 'center',
     marginBottom: 8,
   },
   message: {
     fontSize: 14,
-    color: '#6B7280',
+    color: Colors.guidanceText,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
   },
   upgradeButton: {
-    backgroundColor: '#6B46C1',
+    backgroundColor: Colors.devotionalPurple,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     minWidth: 120,
   },
   upgradeText: {
-    color: 'white',
+    color: Colors.hopeWhite,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -213,7 +215,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
@@ -227,13 +229,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: Colors.darkerGray,
     textAlign: 'center',
     marginBottom: 12,
   },
   modalMessage: {
     fontSize: 16,
-    color: '#6B7280',
+    color: Colors.guidanceText,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
@@ -249,23 +251,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: Colors.contemplationGray,
   },
   modalCancelText: {
-    color: '#6B7280',
+    color: Colors.guidanceText,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
   },
   modalUpgradeButton: {
     flex: 1,
-    backgroundColor: '#6B46C1',
+    backgroundColor: Colors.devotionalPurple,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
   modalUpgradeText: {
-    color: 'white',
+    color: Colors.hopeWhite,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

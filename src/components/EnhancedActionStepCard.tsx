@@ -5,12 +5,10 @@
  */
 
 import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors } from '../theme/colors';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   // Animated, // unused
   LayoutAnimation,
   Platform,
@@ -18,7 +16,6 @@ import {
 } from 'react-native';
 import { ExportOptionsModal } from './ExportOptionsModal';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
-import { Colors } from '../theme';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -136,7 +133,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
               style={styles.actionButton}
               onPress={handleExportStep}
             >
-              <Ionicons name="download-outline" size={20} color="#9CA3AF" />
+              <Ionicons name="download-outline" size={20} color={Colors.contemplationGray} />
             </TouchableOpacity>
 
             {/* Subtasks Toggle */}
@@ -235,10 +232,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   stepCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.contemplationGray,
     overflow: 'hidden',
   },
   stepHeader: {
@@ -254,12 +251,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
-    color: '#1F2937',
+    color: Colors.black,
     marginRight: 12,
   },
   completedText: {
     textDecorationLine: 'line-through',
-    color: '#9CA3AF',
+    color: Colors.contemplationGray,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -269,7 +266,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.sanctuaryWhite,
     justifyContent: 'center',
     alignItems: 'center',
   },

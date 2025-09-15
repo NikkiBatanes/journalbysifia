@@ -1,15 +1,8 @@
-import React, { createContext, useContext, useMemo, ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
-import { useAuth } from '../context/IndustryStandardAuthContext';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { getFontFamily } from './fonts';
 import { defaultTheme } from './themes/default';
-import { darkTheme } from './themes/dark';
-import { coralTheme } from './themes/coral';
-import { sunshineTheme } from './themes/sunshine';
-import { devotionalTheme } from './themes/devotional';
 import { Colors } from './colors';
 
-export type ThemeVariant = 'default' | 'dark' | 'coral' | 'sunshine' | 'devotional' | 'system';
 export type FontFamily = 'system' | 'lexend' | 'poppins' | 'nunito' | 'lora';
 
 export interface Theme {
@@ -70,6 +63,36 @@ export interface Theme {
     lightBackground: string;
     borderLight: string;
     backgroundBlue: string;
+    
+    // Admin & Dashboard Colors (spiritual wisdom theme)
+    wisdomIndigo: string;        // Admin primary - wisdom and insights
+    reflectionGray: string;      // Admin secondary text - contemplation
+    sanctuaryWhite: string;      // Admin light background - sacred space
+    gentleBorder: string;        // Admin borders - soft boundaries
+    scriptureText: string;       // Admin primary text - scripture reading
+    peaceGray: string;           // Admin secondary background - peaceful
+    treasureGold: string;        // Gold accent - spiritual treasures
+    journeyGray: string;         // Progress gray - spiritual journey
+    
+    // Status & Interactive Colors
+    prosperityGreen: string;     // Success/growth - prosperity
+    warningAmber: string;        // Warning - guidance needed
+    urgentRed: string;           // Error/urgent - immediate attention
+    mysticalViolet: string;      // Special states - spiritual mystery
+    clarityTeal: string;         // Info/clarity - clear understanding
+    revelationBlue: string;      // Chart highlights - divine revelations
+    sacrificeRed: string;        // Critical actions - sacrifice
+    truthBlue: string;           // Information - truth and knowledge
+    contemplationGray: string;   // Disabled/inactive - quiet contemplation
+    
+    // Text Hierarchy (spiritual reading context)
+    meditationGray: string;      // Deep thought text
+    wisdomText: string;          // Primary wisdom text
+    guidanceText: string;        // Secondary guidance text
+    whisperText: string;         // Subtle instruction text
+    echoText: string;            // Faint supporting text
+    
+    // Legacy admin colors (deprecated - use semantic names above)
     adminPrimary: string;
     adminGray: string;
     adminLightGray: string;
@@ -78,6 +101,16 @@ export interface Theme {
     adminSecondary: string;
     goldAccent: string;
     progressGray: string;
+    
+    // Opacity & Overlay Colors (spiritual transparency)
+    divineVeil: string;          // Light sacred overlay
+    holyGlow: string;            // Bright spiritual presence
+    gentlePresence: string;      // Soft divine touch
+    whisperOverlay: string;      // Barely visible blessing
+    shadowOfPeace: string;       // Calming dark overlay
+    quietReflection: string;     // Subtle contemplation
+    deepMeditation: string;      // Focused spiritual state
+    restfulShadow: string;       // Peaceful background tint
 
     // ActionStepsCard colors (spiritual meanings preserved)
     prayerPurple: string;
@@ -115,52 +148,12 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const { user } = useAuth();
-  const systemColorScheme = useColorScheme();
-
-  const theme = useMemo(() => {
-    // Get user preferences
-    const userTheme = (user as any)?.user_metadata?.preferences?.theme as ThemeVariant;
-    const userFont = (user as any)?.user_metadata?.preferences?.font as FontFamily;
-
-    // Determine effective theme variant
-    let effectiveVariant: ThemeVariant = 'default';
-    if (userTheme === 'system') {
-      effectiveVariant = systemColorScheme === 'dark' ? 'dark' : 'default';
-    } else if (userTheme) {
-      effectiveVariant = userTheme;
-    }
-
-    // Select theme based on variant
-    let baseTheme: Theme;
-    switch (effectiveVariant) {
-      case 'dark':
-        baseTheme = darkTheme;
-        break;
-      case 'coral':
-        baseTheme = coralTheme;
-        break;
-      case 'sunshine':
-        baseTheme = sunshineTheme;
-        break;
-      case 'devotional':
-        baseTheme = devotionalTheme;
-        break;
-      default:
-        baseTheme = defaultTheme;
-    }
-
-    // Apply font preference (default to 'lexend' as the app-wide default)
-    // Coerce legacy 'system' value to 'lexend' to enforce Lexend default
-    const effectiveFont = !userFont || userFont === 'system' ? 'lexend' : userFont;
-    const fontFamily = getFontFamily(effectiveFont);
-
-    return {
-      ...baseTheme,
-      currentFont: effectiveFont,
-      fontFamily: fontFamily,
-    };
-  }, [user, systemColorScheme]);
+  // Always use default theme - no theme switching
+  const theme: Theme = {
+    ...defaultTheme,
+    currentFont: 'lexend',
+    fontFamily: getFontFamily('lexend'),
+  };
 
   return (
     <ThemeContext.Provider value={theme}>
@@ -176,5 +169,8 @@ export const useTheme = (): Theme => {
   }
   return context;
 };
+
+// Export Colors directly for components that don't need the full theme
+export { Colors };
 
 

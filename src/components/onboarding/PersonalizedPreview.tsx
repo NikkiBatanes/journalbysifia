@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: Colors.hopeWhite,
     marginBottom: 2,
   },
   cardDuration: {
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 12,
-    color: 'white',
+    color: Colors.hopeWhite,
     fontWeight: '500',
   },
   cardBody: {
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   startButtonText: {
-    color: 'white',
+    color: Colors.hopeWhite,
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 8,

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { Colors } from '../theme/colors';
 // Import trial hooks and components
 import { useTrialAccess, useContentGeneration } from '../hooks/useTrialAccess';
 import { FeatureLockOverlay } from '../components/FeatureLockOverlay';
@@ -129,9 +130,9 @@ export const PlaybookScreen = () => {
           disabled={isGenerating}
         >
           {isGenerating ? (
-            <LoadingSpinner size="small" color="#FFFFFF" />
+            <LoadingSpinner size="small" color={Colors.white} />
           ) : (
-            <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+            <Ionicons name="add-circle" size={24} color={Colors.white} />
           )}
           <Text style={styles.generateButtonText}>
             {getGenerateButtonText()}
@@ -141,7 +142,7 @@ export const PlaybookScreen = () => {
         {/* Usage Warning */}
         {!hasUnlimitedAccess && playbooksRemaining <= 1 && (
           <View style={styles.warningBanner}>
-            <Ionicons name="warning" size={20} color="#F59E0B" />
+            <Ionicons name="warning" size={20} color={Colors.treasureGold} />
             <Text style={styles.warningText}>
               {playbooksRemaining === 0
                 ? 'You\'ve reached your monthly limit. Upgrade for unlimited generation!'
@@ -165,7 +166,7 @@ export const PlaybookScreen = () => {
           ))
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="book-outline" size={48} color="#9CA3AF" />
+            <Ionicons name="book-outline" size={48} color={Colors.contemplationGray} />
             <Text style={styles.emptyText}>No playbooks yet</Text>
             <Text style={styles.emptySubtext}>Generate your first spiritual growth plan!</Text>
           </View>
@@ -185,18 +186,18 @@ export const PlaybookScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.sanctuaryWhite,
   },
   trialBanner: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: Colors.anchorBlueLight,
     padding: 12,
     margin: 16,
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: Colors.playbookBlue,
   },
   trialText: {
-    color: '#1E40AF',
+    color: Colors.wisdomIndigo,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -214,27 +215,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: Colors.black,
   },
   limitBadge: {
-    backgroundColor: '#E0E7FF',
+    backgroundColor: Colors.lightPurple,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   limitText: {
-    color: '#3730A3',
+    color: Colors.devotionalPurple,
     fontSize: 12,
     fontWeight: '500',
   },
   description: {
     fontSize: 16,
-    color: '#6B7280',
+    color: Colors.journeyGray,
     lineHeight: 24,
     marginBottom: 20,
   },
   generateButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.wisdomIndigo,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -243,25 +244,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   disabledButton: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: Colors.contemplationGray,
   },
   generateButtonText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
   },
   warningBanner: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: Colors.winGold,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: Colors.treasureGold,
   },
   warningText: {
-    color: '#92400E',
+    color: Colors.alertCoral,
     fontSize: 14,
     marginLeft: 8,
     flex: 1,
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
+    color: Colors.black,
     marginBottom: 12,
   },
   emptyState: {
@@ -316,7 +317,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({ playbook, onPress }) => {
         Created {playbook.createdAt.toLocaleDateString()}
       </Text>
       <View style={cardStyles.footer}>
-        <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+        <Ionicons name="chevron-forward" size={20} color={Colors.journeyGray} />
       </View>
     </TouchableOpacity>
   );
@@ -324,7 +325,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({ playbook, onPress }) => {
 
 const cardStyles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -343,24 +344,24 @@ const cardStyles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: Colors.black,
     flex: 1,
     marginRight: 8,
   },
   categoryBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.sanctuaryWhite,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   categoryText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: Colors.journeyGray,
     fontWeight: '500',
   },
   date: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: Colors.contemplationGray,
     marginBottom: 8,
   },
   footer: {

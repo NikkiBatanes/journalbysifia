@@ -27,7 +27,7 @@ export const defaultTheme: Theme = {
     error: '#FF3B30',
 
     // Grayscale (original values)
-    white: '#FFFFFF',
+    white: '#FFFFFF', // Keep for legacy compatibility
     black: '#000000',
     hopeWhite: '#F2F5F7',
     lightGray: '#E0E0E0',
@@ -54,19 +54,59 @@ export const defaultTheme: Theme = {
     warning: '#FFC107',
     info: '#2196F3',
 
-    // Additional colors found in codebase (preserving exact values)
-    chartBackground: '#ffffff',
+    // Semantic color names following spiritual/app context pattern
+    chartBackground: '#F2F5F7', // Use hopeWhite instead
     lightBackground: '#f8f9fa',
     borderLight: '#e1e5e9',
     backgroundBlue: '#f0f8ff',
-    adminPrimary: '#6366F1',
-    adminGray: '#6B7280',
-    adminLightGray: '#F9FAFB',
-    adminBorder: '#E5E7EB',
-    adminText: '#1F2937',
-    adminSecondary: '#F3F4F6',
-    goldAccent: '#D4AF37',
-    progressGray: '#e0e0e0',
+    
+    // Admin & Dashboard Colors (spiritual wisdom theme)
+    wisdomIndigo: '#6366F1',        // Admin primary - wisdom and insights
+    reflectionGray: '#6B7280',      // Admin secondary text - contemplation
+    sanctuaryWhite: '#F9FAFB',      // Admin light background - sacred space
+    gentleBorder: '#E5E7EB',        // Admin borders - soft boundaries
+    scriptureText: '#1F2937',       // Admin primary text - scripture reading
+    peaceGray: '#F3F4F6',           // Admin secondary background - peaceful
+    treasureGold: '#D4AF37',        // Gold accent - spiritual treasures
+    journeyGray: '#e0e0e0',         // Progress gray - spiritual journey
+    
+    // Status & Interactive Colors
+    prosperityGreen: '#10B981',     // Success/growth - prosperity
+    warningAmber: '#F59E0B',        // Warning - guidance needed
+    urgentRed: '#EF4444',           // Error/urgent - immediate attention
+    mysticalViolet: '#8B5CF6',      // Special states - spiritual mystery
+    clarityTeal: '#06B6D4',         // Info/clarity - clear understanding
+    revelationBlue: '#5196f4',      // Chart highlights - divine revelations
+    sacrificeRed: '#DC2626',        // Critical actions - sacrifice
+    truthBlue: '#2563EB',           // Information - truth and knowledge
+    contemplationGray: '#9CA3AF',   // Disabled/inactive - quiet contemplation
+    
+    // Text Hierarchy (spiritual reading context)
+    meditationGray: '#374151',      // Deep thought text
+    wisdomText: '#333333',          // Primary wisdom text
+    guidanceText: '#666666',        // Secondary guidance text
+    whisperText: '#555555',         // Subtle instruction text
+    echoText: '#888888',            // Faint supporting text
+    
+    // Legacy admin colors (mapped to semantic equivalents for compatibility)
+    adminPrimary: '#6366F1',        // Maps to wisdomIndigo
+    adminGray: '#6B7280',           // Maps to reflectionGray
+    adminLightGray: '#F9FAFB',      // Maps to sanctuaryWhite
+    adminBorder: '#E5E7EB',         // Maps to gentleBorder
+    adminText: '#1F2937',           // Maps to scriptureText
+    adminSecondary: '#F3F4F6',      // Maps to peaceGray
+    goldAccent: '#D4AF37',          // Maps to treasureGold
+    progressGray: '#e0e0e0',        // Maps to journeyGray
+    
+    // Opacity & Overlay Colors (semantic spiritual names)
+    divineVeil: 'rgba(255,255,255,0.1)',     // Light sacred overlay
+    holyGlow: 'rgba(255,255,255,0.8)',       // Bright spiritual presence
+    gentlePresence: 'rgba(255,255,255,0.2)',  // Soft divine touch
+    whisperOverlay: 'rgba(255,255,255,0.05)', // Barely visible blessing
+    shadowOfPeace: 'rgba(0,0,0,0.5)',        // Calming dark overlay
+    quietReflection: 'rgba(0,0,0,0.1)',      // Subtle contemplation
+    deepMeditation: 'rgba(0,0,0,0.25)',      // Focused spiritual state
+    restfulShadow: 'rgba(0,0,0,0.04)',       // Peaceful background tint
 
     // ActionStepsCard colors (preserving exact spiritual meanings)
     prayerPurple: '#9B59B6',        // Prayer - spiritual connection
@@ -81,17 +121,17 @@ export const defaultTheme: Theme = {
     heartRed: '#FF6B6B',            // Love and compassion
   },
   typography: {
-    // Typography scale matching current usage patterns
-    h1: { fontSize: 32, lineHeight: 40, fontWeight: '700' },
-    h2: { fontSize: 28, lineHeight: 36, fontWeight: '600' },
-    h3: { fontSize: 24, lineHeight: 32, fontWeight: '600' },
-    h4: { fontSize: 20, lineHeight: 28, fontWeight: '600' },
-    h5: { fontSize: 18, lineHeight: 24, fontWeight: '600' },
-    h6: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
-    body1: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
-    body2: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
-    caption: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
-    button: { fontSize: 16, lineHeight: 20, fontWeight: '600' },
-    label: { fontSize: 14, lineHeight: 18, fontWeight: '500' },
+    // Typography scale matching current usage patterns - fontFamily handled by font system
+    h1: { fontSize: 32, lineHeight: 40, fontFamily: 'Lexend-Bold' },
+    h2: { fontSize: 28, lineHeight: 36, fontFamily: 'Lexend-SemiBold' },
+    h3: { fontSize: 24, lineHeight: 32, fontFamily: 'Lexend-SemiBold' },
+    h4: { fontSize: 20, lineHeight: 28, fontFamily: 'Lexend-SemiBold' },
+    h5: { fontSize: 18, lineHeight: 24, fontFamily: 'Lexend-SemiBold' },
+    h6: { fontSize: 16, lineHeight: 22, fontFamily: 'Lexend-SemiBold' },
+    body1: { fontSize: 16, lineHeight: 24, fontFamily: 'Lexend-Regular' },
+    body2: { fontSize: 14, lineHeight: 20, fontFamily: 'Lexend-Regular' },
+    caption: { fontSize: 12, lineHeight: 16, fontFamily: 'Lexend-Regular' },
+    button: { fontSize: 16, lineHeight: 20, fontFamily: 'Lexend-SemiBold' },
+    label: { fontSize: 14, lineHeight: 18, fontFamily: 'Lexend-Medium' },
   },
 };

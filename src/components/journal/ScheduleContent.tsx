@@ -1,9 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Alert,
+} from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { format, startOfDay, addMinutes, isSameDay, parseISO } from 'date-fns';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { format, isSameDay } from 'date-fns';
 
 const PIXELS_PER_MINUTE = 2;
 
@@ -55,13 +63,13 @@ const getBlockHeight = (start: Date | string, end: Date | string) => {
 
 const getCategoryColor = (category: string) => {
   const colors = {
-    work: '#4A90E2',
-    personal: '#50E3C2',
-    health: '#FF6B6B',
-    learning: '#F5A623',
-    other: '#9013FE',
+    work: Colors.anchorBlue,
+    personal: Colors.growthGreen,
+    health: Colors.alertCoral,
+    learning: Colors.faithGold,
+    other: Colors.devotionalPurple,
   };
-  return colors[category as keyof typeof colors] || '#9B9B9B';
+  return colors[category as keyof typeof colors] || Colors.mediumGray;
 };
 
 export const ScheduleContent: React.FC<ScheduleContentProps> = ({ selectedDate = new Date() }) => {
@@ -423,7 +431,7 @@ const styles = StyleSheet.create({
     left: 70,
     right: 20,
     height: 2,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: Colors.alertCoral,
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: 100,
@@ -432,14 +440,14 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#ef4444',
+    backgroundColor: Colors.alertCoral,
     marginLeft: 0,
     marginRight: 6,
   },
   currentTimeText: {
     fontFamily: Fonts.medium,
     fontSize: 12,
-    color: '#ef4444',
+    color: Colors.alertCoral,
   },
 
   // FAB (Floating Action Button)
@@ -450,7 +458,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#4A90E2',
+    backgroundColor: Colors.anchorBlue,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,

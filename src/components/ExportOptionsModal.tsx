@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 // import { useEffect } from 'react'; // unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors } from '../theme/colors';
 import {
   View,
   Text,
@@ -70,7 +71,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       title: 'PDF Export',
       description: 'Perfect for printing and sharing',
       icon: 'document-text-outline',
-      color: '#DC2626',
+      color: Colors.sacrificeRed,
       available: canExportPDF,
       accessResult: pdfAccessResult,
     },
@@ -79,7 +80,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       title: 'Word Document',
       description: 'Editable format for further customization',
       icon: 'document-outline',
-      color: '#2563EB',
+      color: Colors.truthBlue,
       available: canExportDOCX,
       accessResult: docxAccessResult,
     },
@@ -179,7 +180,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               {/* Usage Information */}
               {canExportAny && (
                 <View style={styles.usageInfo}>
-                  <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
+                  <Ionicons name="information-circle-outline" size={16} color={Colors.reflectionGray} />
                   <Text style={styles.usageText}>
                     Exports count towards your monthly usage limit
                   </Text>
@@ -189,7 +190,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               {/* No Access Message */}
               {!canExportAny && (
                 <View style={styles.noAccessContainer}>
-                  <Ionicons name="lock-closed" size={32} color="#6B7280" />
+                  <Ionicons name="lock-closed" size={32} color={Colors.reflectionGray} />
                   <Text style={styles.noAccessTitle}>Export Feature Locked</Text>
                   <Text style={styles.noAccessText}>
                     Upgrade to unlock PDF and Word document exports for your spiritual content
@@ -271,7 +272,7 @@ const ExportOptionCard: React.FC<ExportOptionCardProps> = ({
             <Ionicons
               name={option.icon as any}
               size={24}
-              color={option.available ? option.color : '#9CA3AF'}
+              color={option.available ? option.color : Colors.contemplationGray}
             />
           )}
         </View>
@@ -293,7 +294,7 @@ const ExportOptionCard: React.FC<ExportOptionCardProps> = ({
           {/* Access Status */}
           {!option.available && option.accessResult && (
             <View style={styles.accessStatus}>
-              <Ionicons name="lock-closed" size={12} color="#F59E0B" />
+              <Ionicons name="lock-closed" size={12} color={Colors.warningAmber} />
               <Text style={styles.accessStatusText}>
                 Requires {option.accessResult.requiredTier} plan
               </Text>
@@ -303,9 +304,9 @@ const ExportOptionCard: React.FC<ExportOptionCardProps> = ({
 
         <View style={styles.optionAction}>
           {option.available ? (
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            <Ionicons name="chevron-forward" size={20} color={Colors.contemplationGray} />
           ) : (
-            <Ionicons name="lock-closed" size={20} color="#9CA3AF" />
+            <Ionicons name="lock-closed" size={20} color={Colors.contemplationGray} />
           )}
         </View>
       </View>
@@ -355,9 +356,9 @@ const styles = StyleSheet.create({
   },
   previewSection: {
     padding: 20,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.sanctuaryWhite,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.gentleBorder,
   },
   previewTitle: {
     fontSize: 16,
@@ -368,8 +369,8 @@ const styles = StyleSheet.create({
   previewType: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6366F1',
-    backgroundColor: '#EEF2FF',
+    color: Colors.wisdomIndigo,
+    backgroundColor: Colors.sanctuaryWhite,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -385,16 +386,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   optionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.gentleBorder,
     marginBottom: 12,
     overflow: 'hidden',
   },
   disabledCard: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
+    backgroundColor: Colors.sanctuaryWhite,
+    borderColor: Colors.gentleBorder,
   },
   optionContent: {
     flexDirection: 'row',
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   disabledText: {
-    color: '#9CA3AF',
+    color: Colors.contemplationGray,
   },
   accessStatus: {
     flexDirection: 'row',
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
   accessStatusText: {
     marginLeft: 4,
     fontSize: 12,
-    color: '#F59E0B',
+    color: Colors.warningAmber,
     fontWeight: '500',
   },
   optionAction: {
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
   usageInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F9FF',
+    backgroundColor: Colors.sanctuaryWhite,
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
@@ -487,13 +488,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   upgradeButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.wisdomIndigo,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   upgradeButtonText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

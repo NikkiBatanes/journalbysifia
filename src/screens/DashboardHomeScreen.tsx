@@ -793,7 +793,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [showAllPrayerRequests, setShowAllPrayerRequests] = useState(false);
 
   // Status bar: auto-detect from background
-  useScreenStatusBar('auto', '#F2F5F7');
+  useScreenStatusBar('auto', Colors.hopeWhite);
 
   // Subtle haptic feedback, gated by user preference
   const triggerLightHaptic = useCallback(() => {

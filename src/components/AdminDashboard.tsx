@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import ThemedText from '../components/common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
+import { Colors } from '../theme/colors';
 import { getFontFamily } from '../theme/fonts';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { analyticsService, SubscriptionAnalytics as ServiceSubscriptionAnalytics, FeatureAnalytics as ServiceFeatureAnalytics } from '../services/analyticsService';
@@ -154,7 +155,7 @@ export const AdminDashboard: React.FC = () => {
             name: s.tier.toUpperCase(),
             population: s.metrics?.activeUsers || 0,
             color: pieColors[index % pieColors.length],
-            legendFontColor: '#374151',
+            legendFontColor: Colors.meditationGray,
             legendFontSize: 12,
           }))}
           width={chartWidth}
@@ -194,9 +195,9 @@ export const AdminDashboard: React.FC = () => {
           yAxisLabel="Users"
           yAxisSuffix=""
           chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
+            backgroundColor: Colors.hopeWhite,
+            backgroundGradientFrom: Colors.hopeWhite,
+            backgroundGradientTo: Colors.hopeWhite,
             decimalPlaces: 0,
             color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -223,9 +224,9 @@ export const AdminDashboard: React.FC = () => {
           yAxisLabel=""
           yAxisSuffix="%"
           chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
+            backgroundColor: Colors.hopeWhite,
+            backgroundGradientFrom: Colors.hopeWhite,
+            backgroundGradientTo: Colors.hopeWhite,
             decimalPlaces: 1,
             color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -295,9 +296,9 @@ export const AdminDashboard: React.FC = () => {
           yAxisLabel=""
           yAxisSuffix="%"
           chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
+            backgroundColor: Colors.hopeWhite,
+            backgroundGradientFrom: Colors.hopeWhite,
+            backgroundGradientTo: Colors.hopeWhite,
             decimalPlaces: 1,
             color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -332,9 +333,9 @@ export const AdminDashboard: React.FC = () => {
           yAxisLabel=""
           yAxisSuffix="%"
           chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
+            backgroundColor: Colors.hopeWhite,
+            backgroundGradientFrom: Colors.hopeWhite,
+            backgroundGradientTo: Colors.hopeWhite,
             decimalPlaces: 1,
             color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -350,7 +351,7 @@ export const AdminDashboard: React.FC = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color={Colors.wisdomIndigo} />
         <ThemedText weight="regular" style={styles.loadingText}>Loading dashboard...</ThemedText>
       </View>
     );
@@ -401,7 +402,7 @@ export const AdminDashboard: React.FC = () => {
             <Ionicons
               name={tab.icon as any}
               size={20}
-              color={activeTab === tab.key ? '#6366F1' : '#6B7280'}
+              color={activeTab === tab.key ? Colors.wisdomIndigo : Colors.reflectionGray}
             />
             <ThemedText weight="medium" style={[
               styles.tabButtonText,
@@ -538,9 +539,9 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ subscription }) => 
 
 // Chart configuration
 const chartConfig = {
-  backgroundColor: '#ffffff',
-  backgroundGradientFrom: '#ffffff',
-  backgroundGradientTo: '#ffffff',
+  backgroundColor: Colors.hopeWhite,
+  backgroundGradientFrom: Colors.hopeWhite,
+  backgroundGradientTo: Colors.hopeWhite,
   decimalPlaces: 0,
   color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(55, 65, 81, ${opacity})`,
@@ -579,7 +580,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -600,7 +601,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     borderRadius: 6,
   },
   activeTimeRangeButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -617,7 +618,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   tabNavigation: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -656,7 +657,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   metricCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
@@ -684,7 +685,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     fontFamily: fonts.medium,
   },
   chartContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -701,7 +702,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     borderRadius: 8,
   },
   subscriptionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -742,7 +743,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: '#1F2937',
   },
   featureCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,

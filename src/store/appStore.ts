@@ -20,7 +20,7 @@ interface AppState {
   activeTab: string;
 
   // User preferences
-  theme: 'light' | 'dark' | 'system';
+  theme: 'default';
   notifications: {
     enabled: boolean;
     dailyReminder: boolean;
@@ -47,7 +47,7 @@ interface AppActions {
   setActiveTab: (tab: string) => void;
 
   // User preferences
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  setTheme: (theme: 'default') => void;
   updateNotificationSettings: (settings: Partial<AppState['notifications']>) => void;
 
   // Sync settings
@@ -71,7 +71,7 @@ const initialState: AppState = {
   activeTab: 'journal',
 
   // User preferences
-  theme: 'system',
+  theme: 'default',
   notifications: {
     enabled: true,
     dailyReminder: true,
@@ -119,7 +119,8 @@ export const useAppStore = create<AppStore>()(
 
       // User preferences
       setTheme: (theme) => set((state) => {
-        state.theme = theme;
+        // Only default theme supported
+        state.theme = 'default';
       }),
 
       updateNotificationSettings: (settings) => set((state) => {

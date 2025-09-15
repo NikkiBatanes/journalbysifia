@@ -5,15 +5,18 @@
  * Phase 3: Admin Interface
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
+  StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors } from '../../theme/colors';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { onboardingAnalyticsService } from '../../services/onboardingAnalyticsService';
 import { useNavigation } from '@react-navigation/native';
@@ -216,10 +219,10 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.sanctuaryWhite,
   },
   header: {
-    backgroundColor: '#2c3e50',
+    backgroundColor: Colors.anchorBlue,
     padding: 20,
   },
   headerTop: {
@@ -250,7 +253,7 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#34495e',
+    backgroundColor: Colors.contemplationGray,
     borderRadius: 8,
     padding: 4,
   },
@@ -265,7 +268,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3498db',
   },
   tabText: {
-    color: '#bdc3c7',
+    color: Colors.holyGlow,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -287,17 +290,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: Colors.darkerGray,
     marginBottom: 8,
   },
   description: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: Colors.guidanceText,
     marginBottom: 15,
     lineHeight: 20,
   },
   button: {
-    backgroundColor: '#3498db',
+    backgroundColor: Colors.anchorBlue,
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
@@ -314,17 +317,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 15,
     borderLeftWidth: 4,
-    borderLeftColor: '#27ae60',
+    borderLeftColor: Colors.growthGreen,
   },
   resultText: {
     fontSize: 14,
-    color: '#2c3e50',
+    color: Colors.darkerGray,
     fontFamily: 'monospace',
     lineHeight: 20,
   },
   errorText: {
     fontSize: 14,
-    color: '#e74c3c',
+    color: Colors.alertCoral,
     fontWeight: '500',
   },
   loading: {
@@ -333,6 +336,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#7f8c8d',
+    color: Colors.guidanceText,
   },
 });

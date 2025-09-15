@@ -5,19 +5,20 @@
  * and messaging based on user value and behavior.
  */
 
-import React, { useState } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Modal,
   TouchableOpacity,
   StyleSheet,
-  Modal,
-  ScrollView,
   ActivityIndicator,
+  ScrollView,
   Alert,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Colors } from '../theme/colors';
 // import { retentionService } from '../services/retentionService'; // unused
 
 export interface RetentionOffer {
@@ -89,7 +90,7 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
         <View style={styles.modal}>
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
+              <ActivityIndicator size="large" color={Colors.wisdomIndigo} />
               <Text style={styles.loadingText}>Personalizing your offer...</Text>
             </View>
           ) : (
@@ -104,7 +105,7 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
               {/* Offer Badge */}
               <View style={styles.badgeContainer}>
                 <LinearGradient
-                  colors={['#6366F1', '#8B5CF6']}
+                  colors={[Colors.wisdomIndigo, Colors.mysticalViolet]}
                   style={styles.badge}
                 >
                   <Text style={styles.badgeText}>{offer.discount}% OFF</Text>
@@ -135,7 +136,7 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
 
                 {/* Duration Info */}
                 <View style={styles.durationContainer}>
-                  <Ionicons name="time-outline" size={16} color="#6366F1" />
+                  <Ionicons name="time-outline" size={16} color={Colors.wisdomIndigo} />
                   <Text style={styles.durationText}>
                     {offer.duration === 'first_year'
                       ? 'First year discount, then regular pricing'
@@ -169,7 +170,7 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
 
                 {/* Urgency Element */}
                 <View style={styles.urgencyContainer}>
-                  <Ionicons name="flash" size={16} color="#F59E0B" />
+                  <Ionicons name="flash" size={16} color={Colors.warningAmber} />
                   <Text style={styles.urgencyText}>
                     Limited time offer - expires in 24 hours
                   </Text>
@@ -184,7 +185,7 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
                   disabled={isProcessing}
                 >
                   {isProcessing ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
                     <Text style={styles.primaryButtonText}>{offer.cta}</Text>
                   )}
@@ -222,7 +223,7 @@ interface FeatureItemProps {
 
 const FeatureItem: React.FC<FeatureItemProps> = ({ icon, text }) => (
   <View style={styles.featureItem}>
-    <Ionicons name={icon as any} size={16} color="#6366F1" />
+    <Ionicons name={icon as any} size={16} color={Colors.wisdomIndigo} />
     <Text style={styles.featureText}>{text}</Text>
   </View>
 );
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   pricingContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.sanctuaryWhite,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -315,13 +316,13 @@ const styles = StyleSheet.create({
   },
   savingsText: {
     fontSize: 14,
-    color: '#059669',
+    color: Colors.prosperityGreen,
     fontWeight: '600',
   },
   durationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: Colors.sanctuaryWhite,
     padding: 12,
     borderRadius: 8,
     marginBottom: 24,
@@ -351,12 +352,12 @@ const styles = StyleSheet.create({
   featureText: {
     marginLeft: 12,
     fontSize: 14,
-    color: '#4B5563',
+    color: Colors.guidanceText,
   },
   urgencyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: Colors.sanctuaryWhite,
     padding: 12,
     borderRadius: 8,
     marginBottom: 24,
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
   urgencyText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#92400E',
+    color: Colors.warningAmber,
     fontWeight: '500',
   },
   actions: {
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.wisdomIndigo,
   },
   primaryButtonText: {
     color: '#FFFFFF',
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: Colors.gentleBorder,
   },
   secondaryButtonText: {
     color: '#6B7280',

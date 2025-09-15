@@ -115,7 +115,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {/* Inline Error Message */}
           {error ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIcon} />
+              <Ionicons name="alert-circle" size={18} color={Colors.alertCoral} style={styles.errorIcon} />
               <ThemedText style={styles.errorText}>{error}</ThemedText>
             </View>
           ) : null}
@@ -130,9 +130,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               disabled={loading}
             >
               {activeProvider === 'apple' ? (
-                <ActivityIndicator size="small" color="#FF6B6B" />
+                <ActivityIndicator size="small" color={Colors.alertCoral} />
               ) : (
-                <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
+                <Ionicons name="logo-apple" size={20} color={Colors.alertCoral} />
               )}
               <ThemedText weight="medium" style={styles.buttonText}>
                 {activeProvider === 'apple' ? 'Signing in...' : 'Continue with Apple'}
@@ -148,7 +148,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             {activeProvider === 'google' ? (
               <ActivityIndicator size="small" color="#FF6B6B" />
             ) : (
-              <Ionicons name="logo-google" size={20} color="#FF6B6B" />
+              <Ionicons name="logo-google" size={20} color={Colors.alertCoral} />
             )}
             <ThemedText weight="medium" style={styles.buttonText}>
               {activeProvider === 'google' ? 'Signing in...' : 'Continue with Google'}
@@ -160,7 +160,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleEmailLogin}
             disabled={loading}
           >
-            <Ionicons name="mail" size={20} color="#FF6B6B" />
+            <Ionicons name="mail" size={20} color={Colors.alertCoral} />
             <ThemedText weight="medium" style={styles.buttonText}>Continue with Email</ThemedText>
           </TouchableOpacity>
         </View>
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.divineVeil,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.divineVeil,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.divineVeil,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,

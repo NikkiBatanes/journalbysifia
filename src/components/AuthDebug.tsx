@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, TouchableOpacity, Platform, Alert } from 'react-native';
+import { ThemedText } from './ThemedText';
+import { Colors } from '../theme/colors';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import appleAuth from '@invertase/react-native-apple-authentication';
-import ThemedText from './common/ThemedText';
 
 const AuthDebug: React.FC = () => {
   const testGoogleAuth = async () => {
@@ -71,7 +72,7 @@ const AuthDebug: React.FC = () => {
           marginBottom: 10,
         }}
       >
-        <ThemedText style={{ color: 'white', textAlign: 'center' }}>
+        <ThemedText style={{ color: Colors.hopeWhite, textAlign: 'center' }}>
           Test Google Sign-In
         </ThemedText>
       </TouchableOpacity>
@@ -86,7 +87,7 @@ const AuthDebug: React.FC = () => {
             marginBottom: 10,
           }}
         >
-          <ThemedText style={{ color: 'white', textAlign: 'center' }}>
+          <ThemedText style={{ color: Colors.hopeWhite, textAlign: 'center' }}>
             Test Apple Sign-In
           </ThemedText>
         </TouchableOpacity>

@@ -275,7 +275,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [bibleVersionDraft, setBibleVersionDraft] = useState<string>('NASB');
   // Appearance modal and drafts
   const [appearanceModal, setAppearanceModal] = useState(false);
-  const [themeDraft, setThemeDraft] = useState<any>('default');
+  const [themeDraft, setThemeDraft] = useState<'default'>('default');
   const [fontDraft, setFontDraft] = useState<UserPreferences['font']>('lexend');
   const [_badgesModal, setBadgesModal] = useState(false);
   // Report Issue modal
@@ -686,10 +686,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               {(
                 [
                   { key: 'default', label: 'Default', description: 'Original brand colors' },
-                  { key: 'dark', label: 'Dark', description: 'Dark mode' },
-                  { key: 'coral', label: 'Coral', description: 'Warm coral theme' },
-                  { key: 'sunshine', label: 'Sunshine', description: 'Bright yellow theme' },
-                  { key: 'devotional', label: 'Devotional', description: 'Spiritual purple theme' },
                 ] as const
               ).map((opt) => {
                 const active = themeDraft === opt.key;
@@ -706,6 +702,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 );
               })}
             </View>
+            <Text style={[styles.fontNote, font]}>More themes coming soon! We're preparing a fresh theming system.</Text>
           </View>
 
           <View style={styles.settingItemColumn}>
@@ -1605,7 +1602,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 setPreferences(updatedPreferences);
               }
             }}
-            thumbColor={preferences.calendar?.autoSync ? Colors.hopeWhite : '#f4f3f4'}
+            thumbColor={preferences.calendar?.autoSync ? Colors.hopeWhite : Colors.contemplationGray}
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
         </TouchableOpacity>
@@ -1672,7 +1669,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Switch
             value={hapticsEnabled}
             onValueChange={onToggleHaptics}
-            thumbColor={hapticsEnabled ? Colors.hopeWhite : '#f4f3f4'}
+            thumbColor={hapticsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
         </TouchableOpacity>
@@ -1688,7 +1685,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Switch
             value={soundsEnabled}
             onValueChange={onToggleSounds}
-            thumbColor={soundsEnabled ? Colors.hopeWhite : '#f4f3f4'}
+            thumbColor={soundsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
         </TouchableOpacity>
@@ -1704,7 +1701,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Switch
             value={showTabLabelsEnabled}
             onValueChange={onToggleShowTabLabels}
-            thumbColor={showTabLabelsEnabled ? Colors.hopeWhite : '#f4f3f4'}
+            thumbColor={showTabLabelsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
         </TouchableOpacity>
@@ -2669,7 +2666,7 @@ const styles = StyleSheet.create({
   settingItemColumnNotification: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: Colors.gentleBorder,
   },
   settingHint: {
     fontSize: 14,
@@ -2754,7 +2751,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   usageCard: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: Colors.sanctuaryWhite,
     borderRadius: 8,
     padding: 12,
     flex: 0.48,
