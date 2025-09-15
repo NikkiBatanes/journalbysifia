@@ -135,25 +135,40 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         hasUser: !!effectiveUser,
         userId: effectiveUser?.id,
         email: effectiveUser?.email,
+        userObject: effectiveUser ? JSON.stringify(effectiveUser, null, 2) : 'null',
       });
 
       if (!effectiveUser) {
-        console.log('[SplashScreen] ⏳ NO USER - Rechecking session...');
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          console.log('[SplashScreen] 📋 SESSION RECHECK RESULT:', {
-            hasSession: !!session,
-            hasUser: !!session?.user,
-            userId: session?.user?.id,
-            email: session?.user?.email,
-          });
+        console.log('[SplashScreen] ⏳ NO USER - Rechecking session with retry logic...');
+        
+        // Try multiple times with delays to handle auth state propagation timing
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            console.log(`[SplashScreen] 🔄 Session check attempt ${attempt}/3`);
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log('[SplashScreen] 📋 SESSION RECHECK RESULT:', {
+              attempt,
+              hasSession: !!session,
+              hasUser: !!session?.user,
+              userId: session?.user?.id,
+              email: session?.user?.email,
+              sessionObject: session ? JSON.stringify(session, null, 2) : 'null',
+            });
 
-          if (session?.user) {
-            effectiveUser = session.user;
-            console.log('[SplashScreen] ✅ Found session user on recheck, proceeding as authenticated');
+            if (session?.user) {
+              effectiveUser = session.user;
+              console.log('[SplashScreen] ✅ Found session user on recheck, proceeding as authenticated');
+              break;
+            }
+            
+            // Wait before next attempt (except on last attempt)
+            if (attempt < 3) {
+              console.log(`[SplashScreen] ⏳ Waiting 1s before attempt ${attempt + 1}...`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          } catch (sessErr) {
+            console.warn(`[SplashScreen] ❌ Session recheck attempt ${attempt} failed:`, sessErr);
           }
-        } catch (sessErr) {
-          console.warn('[SplashScreen] ❌ Session recheck failed:', sessErr);
         }
       }
 
@@ -251,7 +266,14 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
       try {
         const onboardingService = new OnboardingService();
-        console.log('[SplashScreen] 📋 Checking onboarding completion...');
+        console.log('[SplashScreen] 📋 Checking onboarding completion for user:', effectiveUser.id);
+        console.log('[SplashScreen] 👤 User details:', {
+          id: effectiveUser.id,
+          email: effectiveUser.email,
+          created_at: effectiveUser.created_at,
+          provider: (effectiveUser as any)?.app_metadata?.provider
+        });
+        
         const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
 
         console.log('[SplashScreen] ✅ COMPLETION CHECK RESULT:', {
@@ -259,6 +281,18 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           hasCompleted,
           decision: hasCompleted ? 'MainTabs' : 'OnboardingPersonalization',
         });
+        
+        // Additional debug: Check both database sources directly
+        try {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('onboarding_completed')
+            .eq('id', effectiveUser.id)
+            .single();
+          console.log('[SplashScreen] 🔍 Direct user_profiles check:', profile);
+        } catch (e) {
+          console.log('[SplashScreen] ❌ Direct user_profiles check failed:', e);
+        }
 
         if (hasCompleted) {
           // FLOW 3: Detected user finished onboarding → Splash > Home/Dashboard
@@ -393,7 +427,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     // Always show splash screen for minimum time before making routing decisions
     let navigationTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    // Set a minimum splash display time of 1 second to allow auth state propagation
+    // Set a longer minimum splash display time to allow auth state propagation after sign-in
     navigationTimeout = setTimeout(async () => {
       console.log('[SplashScreen] ⏰ Minimum splash time elapsed, making routing decision...');
       try {
@@ -412,7 +446,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         navigation.reset({ index: 0, routes: [{ name: 'OnboardingWelcome' as any }] });
         hasNavigatedRef.current = true;
       }
-    }, 500);
+    }, 2000); // Increased from 500ms to 2000ms to allow auth state to propagate
 
     // Cleanup function for timeout
     return () => {

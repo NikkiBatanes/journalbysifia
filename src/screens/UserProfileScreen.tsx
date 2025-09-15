@@ -866,83 +866,90 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [settingsModal, user?.id, loadNotificationPreferences]);
 
   const loadProfileData = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Load user progress and stats
-      const progressResponse = await userApi.getUserProgress(user?.id || '');
-      if (progressResponse.success && progressResponse.data) {
-        setUserProgress(progressResponse.data);
+      // Parallel loading for better performance
+      const [
+        progressResponse,
+        statsResponse,
+        badgesResponse,
+        allBadgesResponse,
+      ] = await Promise.allSettled([
+        userApi.getUserProgress(user.id),
+        userApi.getProfileStats(user.id),
+        userApi.getRecentBadges(user.id, 5),
+        userApi.getAllUserBadges(user.id),
+      ]);
+
+      // Process results with proper null checks
+      if (progressResponse.status === 'fulfilled' && progressResponse.value.success && progressResponse.value.data) {
+        setUserProgress(progressResponse.value.data);
       }
 
-      // Load notification preferences
-      if (user?.id) {
-        await loadNotificationPreferences();
+      if (statsResponse.status === 'fulfilled' && statsResponse.value.success && statsResponse.value.data) {
+        setProfileStats(statsResponse.value.data);
       }
 
-      // Load profile statistics
-      const statsResponse = await userApi.getProfileStats(user?.id || '');
-      if (statsResponse.success && statsResponse.data) {
-        setProfileStats(statsResponse.data);
+      if (badgesResponse.status === 'fulfilled' && badgesResponse.value.success && badgesResponse.value.data) {
+        setRecentBadges(badgesResponse.value.data);
       }
 
-      // Load badges
-      const badgesResponse = await userApi.getRecentBadges(user?.id || '', 5);
-      if (badgesResponse.success && badgesResponse.data) {
-        setRecentBadges(badgesResponse.data);
-      }
-
-      const allBadgesResponse = await userApi.getAllUserBadges(user?.id || '');
-      if (allBadgesResponse.success && allBadgesResponse.data) {
-        setAllBadges(allBadgesResponse.data);
-        console.log('✅ Loaded user_badges count:', allBadgesResponse.data.length);
-      }
-
-      // Fallback: legacy storage uses user_profiles.badges JSON array
-      if ((!allBadgesResponse.success || !allBadgesResponse.data || allBadgesResponse.data.length === 0) && user?.id) {
-        const { data: profileRow, error: profileErr } = await supabase
-          .from('user_profiles')
-          .select('badges')
-          .eq('id', user.id)
-          .single();
-        if (!profileErr) {
-          const profileBadges = (profileRow?.badges || []) as any[];
-          const mapped: Badge[] = profileBadges.map((b: any) => ({
-            id: b.id,
-            name: b.name,
-            description: b.description,
-            icon: b.icon,
-            rarity: b.rarity || 'common',
-            category: b.category || 'achievement',
-            unlockedAt: b.unlockedAt,
-          }));
-          setAllBadges(mapped);
-          console.log('✅ Loaded user_profiles.badges count:', mapped.length);
-        }
-      }
-
-      // Load subscription and usage data
-      if (user?.id) {
+      if (allBadgesResponse.status === 'fulfilled' && allBadgesResponse.value.success && allBadgesResponse.value.data) {
+        setAllBadges(allBadgesResponse.value.data);
+        console.log('✅ Loaded user_badges count:', allBadgesResponse.value.data.length);
+      } else {
+        // Fallback: legacy storage uses user_profiles.badges JSON array
         try {
-          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
-          setSubscription(subscriptionData as any);
-
-          const usageData = {
-            playbooks_generated: subscriptionData.playbooks_used || 0,
-            devotionals_generated: subscriptionData.devotionals_used || 0,
-          };
-          setUsage(usageData);
-
-          console.log('📊 Subscription loaded:', subscriptionData.tier, subscriptionData.status);
-          console.log('📈 Usage loaded - Playbooks:', usageData.playbooks_generated, 'Devotionals:', usageData.devotionals_generated);
-        } catch (error) {
-          console.error('Failed to load subscription data:', error);
+          const { data: profileRow, error: profileErr } = await supabase
+            .from('user_profiles')
+            .select('badges')
+            .eq('id', user.id)
+            .single();
+          if (!profileErr && profileRow?.badges) {
+            const profileBadges = profileRow.badges as any[];
+            const mapped: Badge[] = profileBadges.map((b: any) => ({
+              id: b.id,
+              name: b.name,
+              description: b.description,
+              icon: b.icon,
+              rarity: b.rarity || 'common',
+              category: b.category || 'achievement',
+              unlockedAt: b.unlockedAt,
+            }));
+            setAllBadges(mapped);
+            console.log('✅ Loaded user_profiles.badges count:', mapped.length);
+          }
+        } catch (fallbackError) {
+          console.warn('Failed to load fallback badges:', fallbackError);
         }
       }
 
-      // TODO: Load user preferences from separate API or user_metadata
-      // Supabase User doesn't have preferences property by default
-      // Will need to implement separate preferences loading
+      // Load subscription and usage data separately to avoid blocking UI
+      try {
+        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+        setSubscription(subscriptionData as any);
+
+        const usageData = {
+          playbooks_generated: subscriptionData.playbooks_used || 0,
+          devotionals_generated: subscriptionData.devotionals_used || 0,
+        };
+        setUsage(usageData);
+
+        console.log('📊 Subscription loaded:', subscriptionData.tier, subscriptionData.status);
+      } catch (error) {
+        console.error('Failed to load subscription data:', error);
+      }
+
+      // Load notification preferences separately to avoid blocking
+      loadNotificationPreferences().catch(error => {
+        console.error('Failed to load notification preferences:', error);
+      });
 
     } catch (error) {
       console.error('Failed to load profile data:', error);
@@ -950,37 +957,38 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, loadNotificationPreferences]);
 
   useEffect(() => {
     loadProfileData();
   }, [loadProfileData]);
 
-  // Listen for faith points updates
+  // Listen for faith points updates - optimized to prevent multiple calls
   useEffect(() => {
+    let refreshTimeout: NodeJS.Timeout;
+    
     const handlePointsUpdate = (data?: any) => {
       console.log('🔄 Faith points updated, refreshing profile data...', data);
-      // Force multiple refreshes to ensure data is updated
-      setTimeout(() => {
-        console.log('🔄 First refresh attempt...');
+      
+      // Clear any existing timeout to prevent multiple calls
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      
+      // Single delayed refresh instead of multiple calls
+      refreshTimeout = setTimeout(() => {
+        console.log('🔄 Refreshing profile data after faith points update...');
         loadProfileData();
-      }, 200);
-
-      setTimeout(() => {
-        console.log('🔄 Second refresh attempt...');
-        loadProfileData();
-      }, 1000);
-
-      setTimeout(() => {
-        console.log('🔄 Final refresh attempt...');
-        loadProfileData();
-      }, 2000);
+      }, 500);
     };
 
     faithPointsEvents.on(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
     faithPointsEvents.on(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
 
     return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
       faithPointsEvents.off(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
       faithPointsEvents.off(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
     };
@@ -1177,10 +1185,24 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     try {
       try { triggerLightHaptic(); } catch {}
       console.log('🚪 Starting logout from profile screen...');
+      
+      // Set loading state to prevent UI interactions during logout
+      setLoading(true);
+      
+      // Clear local state before logout to prevent stale data
+      setUserProgress(null);
+      setProfileStats(null);
+      setRecentBadges([]);
+      setAllBadges([]);
+      setSubscription(null);
+      setUsage(null);
+      setNotificationPrefs(null);
+      
       await signOut();
       console.log('✅ Logout completed, navigation should handle redirect');
     } catch (error) {
       console.error('❌ Logout failed:', error);
+      setLoading(false); // Reset loading state on error
       Alert.alert('Logout Failed', 'Unable to logout. Please try again.');
     }
   };

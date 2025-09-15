@@ -84,7 +84,8 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
     return Math.max(0, Math.min(1, inLevel / span));
   }, [level, points]);
 
-  const avatarUrl = (user as any)?.user_metadata?.avatar_url as string | undefined;
+  // Don't use Google avatar - force use of custom avatar system for consistency
+  const avatarUrl = undefined; // Always use initials instead of Google avatar
   const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
   // Skeleton loading component

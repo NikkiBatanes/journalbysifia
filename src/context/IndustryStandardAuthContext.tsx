@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError as SupabaseAuthError } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
-import SessionManager from '../utils/sessionManager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import { Platform } from 'react-native';
@@ -38,7 +38,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Global session refresh coordinator
 let refreshPromise: Promise<any> | null = null;
-const sessionManager = SessionManager.getInstance();
 
 export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -207,8 +206,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
     };
 
-    // Initialize session manager
-    sessionManager.initialize();
+    // Session manager initialization removed - not needed
 
     // Listen for auth state changes (industry standard)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -249,6 +247,48 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             // Create user profile for new OAuth users
             if (session?.user) {
               await createUserProfileIfNeeded(session.user);
+            }
+            // Check onboarding completion and navigate accordingly
+            if (session?.user) {
+              try {
+                const { data: profile } = await supabase
+                  .from('user_profiles')
+                  .select('onboarding_completed')
+                  .eq('id', session.user.id)
+                  .single();
+                
+                const hasCompletedOnboarding = profile?.onboarding_completed === true;
+                console.log('🔍 Post-signin onboarding check:', { 
+                  userId: session.user.id, 
+                  hasCompleted: hasCompletedOnboarding 
+                });
+                
+                if (hasCompletedOnboarding) {
+                  // User completed onboarding - force navigation to main app
+                  console.log('🚀 User completed onboarding - forcing navigation to MainTabs');
+                  
+                  // Set a flag to trigger navigation on next render
+                  await AsyncStorage.setItem('force_navigate_to_main', 'true');
+                  
+                  // Also set the redirect as backup
+                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                    target: 'MainTabs',
+                    params: {}
+                  }));
+                  
+                  console.log('✅ Set force navigation flag and redirect to MainTabs');
+                } else {
+                  // User needs to complete onboarding - continue with personalization
+                  console.log('📝 User needs to complete onboarding, staying on personalization');
+                }
+              } catch (e) {
+                console.warn('⚠️ Failed to check onboarding status or set redirect:', e);
+                // Fallback to personalization
+                await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                  target: 'OnboardingPersonalization',
+                  params: {}
+                }));
+              }
             }
             break;
           case 'SIGNED_OUT':
@@ -691,28 +731,32 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           console.log('⚠️ Google user has incomplete name info - will be handled in personalization screen');
         }
         
-        // Try a harmless password sign-in with a temporary password to detect existing email users
-        const tempPassword = `google_${googleUser.sub}_${Date.now()}`;
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: googleUser.email,
-          password: tempPassword,
-        });
-
-        // If invalid credentials, it likely means the user already has an email/password account.
-        // Do NOT attempt to sign them up again (this causes 'User already registered').
-        if (signInError && signInError.message?.includes('Invalid login credentials')) {
-          console.warn('⚠️ Existing email account detected for Google sign-in flow. Avoiding duplicate signup.');
-          authError = {
-            message: 'This email is already registered with a password. Please log in with email first, then link Google from your profile settings.',
-            status: 400,
-          } as SupabaseAuthError;
-        } else if (signInError) {
-          console.error('❌ Manual detection sign-in failed:', signInError);
-          authError = signInError;
-        } else {
-          // Highly unlikely that temp password works; treat as success if it does.
-          console.log('✅ Manual detection sign-in unexpectedly succeeded');
-          authError = null;
+        // For nonce errors, try to proceed with Google auth anyway
+        // The original nonce error might be temporary or configuration-related
+        console.log('🔄 Nonce error detected, but proceeding with Google authentication...');
+        
+        // Try the standard Google auth flow one more time with a fresh session
+        try {
+          // Clear any stale sessions completely
+          await supabase.auth.signOut();
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Retry the Google token exchange
+          const { error: retryError } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: idToken,
+          });
+          
+          if (retryError) {
+            console.error('❌ Retry Google auth failed:', retryError);
+            authError = retryError;
+          } else {
+            console.log('✅ Retry Google auth succeeded');
+            authError = null;
+          }
+        } catch (retryErr) {
+          console.error('❌ Google auth retry failed:', retryErr);
+          authError = retryErr as SupabaseAuthError;
         }
       }
       

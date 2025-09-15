@@ -221,12 +221,12 @@
 			buildPhases = (
 				1EE4AE17E6AFF6BB8E0FACB0 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
-				1A978C1DDF87151F79E6DF5F /* Copy Hermes dSYM */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				B4459E9734A39BA6F42D9ECF /* [CP] Embed Pods Frameworks */,
 				D526C7D4B7E265A721619D94 /* [CP] Copy Pods Resources */,
+				EE329FF5E3181BAEC8936C42 /* Handle Hermes dSYM */,
 			);
 			buildRules = (
 			);
@@ -330,24 +330,6 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		1A978C1DDF87151F79E6DF5F /* Copy Hermes dSYM */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Copy Hermes dSYM";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Copy Hermes dSYM to archive for App Store submission\nif [ -d \"${PROJECT_DIR}/dSYMs/hermes.framework.dSYM\" ]; then\n    echo \"📦 Copying Hermes dSYM to archive...\"\n    mkdir -p \"${DWARF_DSYM_FOLDER_PATH}\"\n    cp -R \"${PROJECT_DIR}/dSYMs/hermes.framework.dSYM\" \"${DWARF_DSYM_FOLDER_PATH}/\"\n    echo \"✅ Hermes dSYM copied successfully\"\n    \n    # Verify the copy\n    if [ -d \"${DWARF_DSYM_FOLDER_PATH}/hermes.framework.dSYM\" ]; then\n        echo \"✅ Hermes dSYM verified in archive\"\n    else\n        echo \"❌ Hermes dSYM copy failed\"\n        exit 1\n    fi\nelse\n    echo \"⚠️  Hermes dSYM not found at ${PROJECT_DIR}/dSYMs/hermes.framework.dSYM\"\n    echo \"💡 Run ./fix-hermes-dsym-complete.sh to download it\"\nfi\n";
-		};
 		1EE4AE17E6AFF6BB8E0FACB0 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -378,13 +360,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -399,18 +377,32 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		EE329FF5E3181BAEC8936C42 /* Handle Hermes dSYM */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Handle Hermes dSYM";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+			shellPath = /bin/sh;
+			shellScript = "\"${PROJECT_DIR}/handle-hermes-dsym.sh\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -571,7 +563,10 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -641,7 +636,10 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;

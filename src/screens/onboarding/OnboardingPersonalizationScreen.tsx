@@ -10,6 +10,8 @@ import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
+import { onboardingService } from '../../services/onboardingService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, KeyboardAvoidingView, Platform, TextInput, InteractionManager, Animated, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -165,6 +167,27 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Start at step 1 (name input for OAuth, age group for email)
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = useState('');
+
+  // Check for force navigation flag after successful auth
+  React.useEffect(() => {
+    const checkForceNavigation = async () => {
+      try {
+        const forceNavigate = await AsyncStorage.getItem('force_navigate_to_main');
+        if (forceNavigate === 'true') {
+          console.log('🚀 Force navigation flag detected - navigating to MainTabs');
+          await AsyncStorage.removeItem('force_navigate_to_main');
+          (navigation as any).reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' }],
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Error checking force navigation flag:', e);
+      }
+    };
+    
+    checkForceNavigation();
+  }, [navigation]);
 
   // Debug effect for step rendering
   React.useEffect(() => {
@@ -364,18 +387,26 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Update onboarding progress
         updateOnboardingStep('personalization_completed', 2);
 
-        // Mark onboarding as completed
+        // Mark onboarding as completed using proper service method
         if (user) {
           console.log('[OnboardingPersonalization] Marking onboarding as completed for user:', user.id);
-          const { error } = await supabase
-            .from('user_profiles')
-            .update({ onboarding_completed: true })
-            .eq('id', user.id);
+          try {
+            // Use the onboarding service to properly complete onboarding
+            await onboardingService.completeOnboarding(user.id);
+            
+            // Also update user_profiles for consistency
+            const { error } = await supabase
+              .from('user_profiles')
+              .update({ onboarding_completed: true })
+              .eq('id', user.id);
 
-          if (error) {
-            console.error('[OnboardingPersonalization] Error updating onboarding status:', error);
-          } else {
-            console.log('[OnboardingPersonalization] Onboarding marked as completed');
+            if (error) {
+              console.error('[OnboardingPersonalization] Error updating user profile onboarding status:', error);
+            } else {
+              console.log('[OnboardingPersonalization] Onboarding marked as completed in both tables');
+            }
+          } catch (error) {
+            console.error('[OnboardingPersonalization] Error completing onboarding:', error);
           }
         }
 
