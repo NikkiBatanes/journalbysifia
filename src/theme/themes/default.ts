@@ -53,20 +53,15 @@ export const defaultTheme: Theme = {
     sanctuaryWhite: '#F9FAFB',      // Admin light background - sacred space
     gentleBorder: '#E5E7EB',        // Admin borders - soft boundaries
     scriptureText: '#1F2937',       // Admin primary text - scripture reading
-    peaceGray: '#F3F4F6',           // Admin secondary background - peaceful
     treasureGold: '#D4AF37',        // Gold accent - spiritual treasures
-    journeyGray: '#e0e0e0',         // Progress gray - spiritual journey
     
     // Status & Interactive Colors
     prosperityGreen: '#10B981',     // Success/growth - prosperity
     warningAmber: '#F59E0B',        // Warning - guidance needed
-    urgentRed: '#EF4444',           // Error/urgent - immediate attention
     mysticalViolet: '#8B5CF6',      // Special states - spiritual mystery
     clarityTeal: '#06B6D4',         // Info/clarity - clear understanding
     revelationBlue: '#5196f4',      // Chart highlights - divine revelations
-    sacrificeRed: '#DC2626',        // Critical actions - sacrifice
     truthBlue: '#2563EB',           // Information - truth and knowledge
-    contemplationGray: '#9CA3AF',   // Disabled/inactive - quiet contemplation
     
     // Text Hierarchy (spiritual reading context)
     meditationGray: '#374151',      // Deep thought text
@@ -92,11 +87,8 @@ export const defaultTheme: Theme = {
     gratitudeRed: '#E74C3C',        // Gratitude - love and warmth
     winGold: '#F39C12',             // Wins - celebration and joy
     timeblockGreen: '#2ECC71',      // Time management - growth
-    budgetingGreen: '#27AE60',      // Financial stewardship - responsibility
-    tithingPurple: '#8E44AD',       // Tithing - spiritual giving
     debtRed: '#C0392B',             // Debt management - urgency
     actionBackground: '#d9dfe7',    // Action step backgrounds
-    heartRed: '#FF6B6B',            // Love and compassion
   },
   typography: {
     // Typography scale matching current usage patterns - fontFamily handled by font system

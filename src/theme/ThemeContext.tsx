@@ -57,20 +57,15 @@ export interface Theme {
     sanctuaryWhite: string;      // Admin light background - sacred space
     gentleBorder: string;        // Admin borders - soft boundaries
     scriptureText: string;       // Admin primary text - scripture reading
-    peaceGray: string;           // Admin secondary background - peaceful
     treasureGold: string;        // Gold accent - spiritual treasures
-    journeyGray: string;         // Progress gray - spiritual journey
     
     // Status & Interactive Colors
     prosperityGreen: string;     // Success/growth - prosperity
     warningAmber: string;        // Warning - guidance needed
-    urgentRed: string;           // Error/urgent - immediate attention
     mysticalViolet: string;      // Special states - spiritual mystery
     clarityTeal: string;         // Info/clarity - clear understanding
     revelationBlue: string;      // Chart highlights - divine revelations
-    sacrificeRed: string;        // Critical actions - sacrifice
     truthBlue: string;           // Information - truth and knowledge
-    contemplationGray: string;   // Disabled/inactive - quiet contemplation
     
     // Text Hierarchy (spiritual reading context)
     meditationGray: string;      // Deep thought text
@@ -96,11 +91,8 @@ export interface Theme {
     gratitudeRed: string;
     winGold: string;
     timeblockGreen: string;
-    budgetingGreen: string;
-    tithingPurple: string;
     debtRed: string;
     actionBackground: string;
-    heartRed: string;
   };
   typography: {
     h1: { fontSize: number; lineHeight: number; fontFamily: string };
