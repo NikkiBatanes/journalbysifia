@@ -884,25 +884,32 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const future = isAfter(startOfDay(selectedDate), startOfToday());
   const hasItems = timeBlocks.length > 0;
 
+  // Determine if the JournalCard header should be shown
+  // Show header when there are existing items OR when editing an existing block
+  // Do NOT show header when the list is empty and user is adding a new block
+  const showHeader = useMemo(() => {
+    return hasItems || (!!editId && shouldShowAddingMode);
+  }, [hasItems, editId, shouldShowAddingMode]);
+
   // Singular/plural helper
   const sp = (singular: string, plural: string, count: number) => (count === 1 ? singular : plural);
 
-  // Header copy (shown when there are items or adding)
+  // Header copy (shown when there are items, or when editing an existing item)
   const headerTitle = useMemo(() => {
-    if (!hasItems && !shouldShowAddingMode) {return undefined;}
+    if (!showHeader) {return undefined;}
     if (future) {return sp('PLANNED TIME BLOCK', 'PLANNED TIME BLOCKS', timeBlocks.length);}
     if (isToday) {return sp('TIME BLOCK', 'TIME BLOCKS', timeBlocks.length);}
     if (isYesterday) {return sp('YESTERDAY’S TIME BLOCK', 'YESTERDAY’S TIME BLOCKS', timeBlocks.length);}
     return sp('TIME BLOCK ON THIS DAY', 'TIME BLOCKS ON THIS DAY', timeBlocks.length);
-  }, [hasItems, shouldShowAddingMode, future, isToday, isYesterday, timeBlocks.length]);
+  }, [showHeader, future, isToday, isYesterday, timeBlocks.length]);
 
   const headerSubtitle = useMemo(() => {
-    if (!hasItems && !shouldShowAddingMode) {return undefined;}
+    if (!showHeader) {return undefined;}
     if (future) {return 'Planned in faith, ready to begin';}
     if (isToday) {return 'Align your time with what matters';}
     if (isYesterday) {return 'How you spent your time';}
     return 'What filled your time on this day';
-  }, [hasItems, shouldShowAddingMode, future, isToday, isYesterday]);
+  }, [showHeader, future, isToday, isYesterday]);
 
   // Analytics and error tracking
   useEffect(() => {
@@ -1090,7 +1097,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   return (
     <JournalCard
-      icon={(hasItems || shouldShowAddingMode) ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} /> : undefined}
+      icon={showHeader ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} /> : undefined}
       title={headerTitle}
       subtitle={headerSubtitle}
       showAddButton={hasItems && !shouldShowAddingMode}
