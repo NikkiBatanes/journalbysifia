@@ -16,7 +16,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { useCalendarGating } from '../hooks/useCalendarGating';
-import { calendarSyncService, CalendarEvent } from '../services/calendarSyncService';
+import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar, CalendarEvent } from '../services/calendarSyncService';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { Linking } from 'react-native';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../utils/haptics';
 
 interface CalendarSyncButtonProps {
@@ -49,47 +51,33 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   onSyncComplete,
   compact = false,
 }) => {
+  const { user } = useAuth();
   const calendarGating = useCalendarGating();
   const [isLoading, setIsLoading] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'synced' | 'unsynced' | 'error'>
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'unsynced' | 'syncing' | 'error'>
     (calendarEventId ? 'synced' : 'unsynced');
 
+  // Check if auto-sync is enabled
+  const userPreferences = user?.user_metadata?.preferences || {};
+  const autoSyncEnabled = userPreferences.calendar?.autoSync || false;
+
   const handleSync = async () => {
-    // Check permissions first
     if (!calendarGating.canSyncToCalendar) {
       calendarGating.handleCalendarLockTap();
       return;
     }
 
-    setIsLoading(true);
+    setSyncStatus('syncing');
     triggerLightHaptic();
 
     try {
-      const calendarEvent: CalendarEvent = {
-        id: calendarEventId,
-        title: timeBlock.title,
-        startDate: timeBlock.startTime,
-        endDate: timeBlock.endTime,
-        location: timeBlock.location,
-        notes: timeBlock.notes,
-        allDay: timeBlock.isAllDay,
-        timeBlockId: timeBlock.id,
-      };
-
-      // Add recurrence rule if repeat is set
-      if (timeBlock.repeat.frequency !== 'never') {
-        calendarEvent.recurrenceRule = {
-          frequency: timeBlock.repeat.frequency as any,
-          interval: timeBlock.repeat.customFrequency?.value || 1,
-          endDate: timeBlock.repeat.endDate,
-          daysOfWeek: timeBlock.repeat.customDays,
-        };
-      }
-
-      const result = await calendarSyncService.syncToCalendar(
-        calendarEvent,
-        !!calendarEventId
-      );
+      const result = await syncTimeBlockToCalendar({
+        ...timeBlock,
+        repeat: {
+          ...timeBlock.repeat,
+          frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+        }
+      });
 
       if (result.success && result.eventId) {
         setSyncStatus('synced');
@@ -106,11 +94,28 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
         }
       } else {
         setSyncStatus('error');
-        Alert.alert(
-          'Sync Failed',
-          result.error || 'Failed to sync to calendar. Please try again.',
-          [{ text: 'OK' }]
-        );
+        
+        if (result.error?.includes('Calendar permission denied')) {
+          Alert.alert(
+            'Calendar Access Required',
+            'To sync your time blocks to your calendar, please enable calendar access for siFia.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Open Settings', 
+                onPress: () => {
+                  Linking.openSettings();
+                }
+              }
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Sync Failed',
+            result.error || 'Failed to sync to calendar',
+            [{ text: 'OK' }]
+          );
+        }
       }
     } catch (error) {
       console.error('Calendar sync error:', error);
@@ -140,11 +145,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
             setIsLoading(true);
             
             try {
-              const result = await calendarSyncService.deleteFromCalendar(
-                calendarEventId,
-                { type: 'all' },
-                timeBlock.id
-              );
+              const result = await removeTimeBlockFromCalendar(calendarEventId);
 
               if (result.success) {
                 setSyncStatus('unsynced');
@@ -210,6 +211,11 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
 
     if (isLoading) {
       return compact ? '' : 'Syncing...';
+    }
+
+    // Show different text if auto-sync is enabled
+    if (autoSyncEnabled && syncStatus === 'unsynced') {
+      return compact ? '' : 'Auto-sync On';
     }
 
     switch (syncStatus) {

@@ -19,9 +19,12 @@ interface Props {
 }
 
 const SettingsScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, signOut } = useAuth();
-  // TODO: Add updatePreferences to IndustryStandardAuthContext
-  const [preferences, setPreferences] = useState(user?.preferences || {});
+  const { user, signOut, updatePreferences } = useAuth();
+  const [preferences, setPreferences] = useState({
+    calendar: { autoSync: false },
+    notifications: {},
+    ...user?.user_metadata?.preferences || {}
+  });
 
   const handlePreferenceUpdate = async (section: string, key: string, value: any) => {
     const updatedPreferences = {
@@ -209,7 +212,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
           <SettingsRow
             icon="mail-outline"
             title="Email Verification"
-            subtitle={user?.emailVerified ? 'Verified' : 'Not verified'}
+            subtitle={user?.email_confirmed_at ? 'Verified' : 'Not verified'}
             onPress={() => navigation.navigate('EmailVerification')}
           />
         </SettingsSection>

@@ -792,6 +792,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     fontSize: 'medium',
     colorScheme: 'default',
     weekStart: 'sunday',
+    calendar: {
+      autoSync: false,
+    },
     privacy: {
       profileVisibility: 'public',
       shareProgress: true,
@@ -1515,6 +1518,74 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[styles.menuText, font]}>Notifications</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => { try { triggerLightHaptic(); } catch {}; }}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="calendar-outline" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={[styles.menuText, font]}>Auto-sync to Calendar</Text>
+          <Switch
+            value={preferences.calendar?.autoSync || false}
+            onValueChange={async (value) => {
+              try { triggerLightHaptic(); } catch {}
+              
+              // If enabling auto-sync, request calendar permissions first
+              if (value) {
+                const { requestCalendarPermissions } = await import('../services/calendarSyncService');
+                const hasPermission = await requestCalendarPermissions();
+                
+                if (!hasPermission) {
+                  // Permission denied, don't enable auto-sync
+                  return;
+                }
+                
+                // Check if user is on Seeker/Free trial plan and trying to enable auto-sync
+                const { NewSubscriptionService } = await import('../services/NewSubscriptionService');
+                try {
+                  const subscriptionData = await NewSubscriptionService.getUserSubscription(user?.id || '');
+                  if (subscriptionData.tier === 'seeker' || subscriptionData.tier === 'free_trial') {
+                    // Navigate to sales offer with return navigation context
+                    navigation.navigate('OnboardingSalesOffer', {
+                      source: 'calendar_auto_sync',
+                      feature: 'Calendar Auto-Sync & Future Planning',
+                      context: 'profile_settings',
+                      skipNotificationPreference: true,
+                      returnTo: 'UserProfile',
+                      title: 'Upgrade to Plan Ahead',
+                      subtitle: 'Unlock calendar auto-sync—plus guided journaling, playbooks, and devotionals to support your journey.',
+                      benefits: [
+                        'Auto-sync time blocks to your calendar seamlessly.',
+                        'Plan days ahead with clear focus, to-dos, and time blocks.',
+                        'Stay consistent with guided journaling that builds faithful rhythms.',
+                        'Gain momentum with personalized playbooks and devotionals.'
+                      ]
+                    });
+                    return;
+                  }
+                } catch (error) {
+                  console.error('Failed to check subscription tier:', error);
+                }
+              }
+              
+              const updatedPreferences = {
+                ...preferences,
+                calendar: {
+                  ...preferences.calendar,
+                  autoSync: value
+                }
+              };
+              const result = await updatePreferences(updatedPreferences);
+              if (result.success) {
+                setPreferences(updatedPreferences);
+              }
+            }}
+            thumbColor={preferences.calendar?.autoSync ? Colors.hopeWhite : '#f4f3f4'}
+            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity

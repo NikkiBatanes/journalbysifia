@@ -23,6 +23,8 @@ import {
   useUpdateTimeBlock,
   useDeleteTimeBlock,
 } from '../../services/hooks/useTimeBlockData';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../services/queryKeys';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { getCategoryColor, getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
@@ -161,6 +163,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   // React Query hooks
   const { data: timeBlockEntries = [], isLoading, error } = useTimeBlockData(user?.id || '', dateStr);
+  const queryClient = useQueryClient();
 
   console.log('📊 TimeBlockReactQuery: Received data:', timeBlockEntries.length, 'entries');
   const createMutation = useCreateTimeBlock();
@@ -318,13 +321,235 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setShowDeleteModal({ visible: false });
 
     try {
-      // Delete from calendar first if synced
-      if (timeBlock.calendarEventId) {
-        await removeTimeBlockFromCalendar(timeBlock.calendarEventId);
+      console.log('🗓️ Delete handler - timeBlock:', {
+        id: timeBlock.id,
+        title: timeBlock.title,
+        isRecurring: timeBlock.repeat.frequency !== 'never',
+        deleteType: options.type
+      });
+
+      // Check if this is a virtual TimeBlock (repeated instance)
+      // Virtual instances have format: uuid-YYYY-MM-DD (date at the end)
+      const datePattern = /\d{4}-\d{2}-\d{2}$/;
+      const isVirtualInstance = datePattern.test(timeBlock.id);
+      
+      console.log('🔍 Checking timeBlock ID format:', timeBlock.id);
+      console.log('🔍 Is virtual instance (ends with date):', isVirtualInstance);
+      
+      if (isVirtualInstance) {
+        // This is a virtual TimeBlock - handle differently based on delete option
+        if (options.type === 'single') {
+          // For virtual instances, create an exception record to hide this specific occurrence
+          const parts = timeBlock.id.split('-');
+          const originalId = parts.slice(0, 5).join('-'); // Reconstruct UUID
+          const instanceDate = timeBlock.startTime.toISOString().split('T')[0]; // Use startTime date
+          
+          console.log('🗓️ Virtual instance single delete - timeBlock:', {
+            id: timeBlock.id,
+            originalId,
+            instanceDate,
+            calendarEventId: timeBlock.calendarEventId,
+            startTime: timeBlock.startTime.toISOString(),
+            title: timeBlock.title
+          });
+
+          // Remove only this instance from native calendar
+          if (timeBlock.calendarEventId) {
+            console.log('🗓️ Removing calendar event for virtual instance:', timeBlock.calendarEventId);
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
+          }
+
+          // Add exception to original recurring event
+          console.log('🗓️ Adding exception to original event:', originalId, 'for date:', instanceDate);
+          
+          // Update the original event to add this date as an exception
+          await updateMutation.mutateAsync({
+            id: originalId,
+            updates: {
+              metadata: {
+                exceptions: [instanceDate] // This will be merged with existing exceptions
+              }
+            }
+          });
+          
+          console.log('🗓️ Exception added successfully');
+        } else if (options.type === 'future') {
+          // For 'future' deletion on virtual instances, set end date on original event
+          const parts = timeBlock.id.split('-');
+          const originalId = parts.slice(0, 5).join('-');
+          console.log('🗓️ Virtual instance future delete - setting end date on original:', originalId);
+          
+          // Set the end date to the day before the selected date
+          const selectedDate = new Date(timeBlock.startTime);
+          const endDate = new Date(selectedDate);
+          endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
+          
+          console.log('🗓️ Setting recurrence end date to:', endDate.toISOString().split('T')[0]);
+          
+          // Get current metadata from original event and add end date
+          const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
+          const existingMetadata = originalApiEntry?.metadata || {};
+          
+          const updateResult = await updateMutation.mutateAsync({
+            id: originalId,
+            updates: {
+              metadata: {
+                ...existingMetadata,
+                endDate: endDate.toISOString().split('T')[0] // Store as YYYY-MM-DD
+              }
+            }
+          });
+          
+          console.log('🗓️ End date set successfully on original event, result:', updateResult);
+          
+          // Force cache invalidation for the current date to update UI immediately
+          console.log('🗓️ Invalidating cache for current date:', dateStr);
+          if (user?.id) {
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
+            });
+            
+            // Also invalidate broader queries to ensure consistency
+            await queryClient.invalidateQueries({
+              queryKey: [queryKeys.timeBlocks.all[0]],
+            });
+          }
+        } else {
+          // For 'all' deletions on virtual instances, delete the original event
+          const parts = timeBlock.id.split('-');
+          const originalId = parts.slice(0, 5).join('-');
+          console.log('🗓️ Virtual instance all delete - deleting original:', originalId);
+          await deleteMutation.mutateAsync(originalId);
+        }
+      } else {
+        console.log('🗓️ Processing original/regular TimeBlock');
+        console.log('🗓️ TimeBlock ID:', timeBlock.id);
+        console.log('🗓️ Repeat frequency:', timeBlock.repeat.frequency);
+        console.log('🗓️ Delete type:', options.type);
+        console.log('🗓️ Is recurring?', timeBlock.repeat.frequency !== 'never');
+        console.log('🗓️ Is single delete?', options.type === 'single');
+        console.log('🗓️ Should use exception system?', timeBlock.repeat.frequency !== 'never' && options.type === 'single');
+        
+        // Check if this is a recurring event
+        if (timeBlock.repeat.frequency !== 'never' && options.type === 'single') {
+          console.log('🗓️ Original recurring event - single delete - USING EXCEPTION SYSTEM');
+          // For original recurring event, "single" means add exception for this date
+          const instanceDate = timeBlock.startTime.toISOString().split('T')[0];
+          
+          console.log('🗓️ Original recurring event single delete - timeBlock:', {
+            id: timeBlock.id,
+            instanceDate,
+            calendarEventId: timeBlock.calendarEventId,
+            startTime: timeBlock.startTime.toISOString(),
+            title: timeBlock.title
+          });
+
+          // Remove only this instance from native calendar
+          if (timeBlock.calendarEventId) {
+            console.log('🗓️ Removing calendar event for original recurring instance:', timeBlock.calendarEventId);
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
+          }
+
+          // Add exception to this recurring event
+          console.log('🗓️ Adding exception to recurring event:', timeBlock.id, 'for date:', instanceDate);
+          
+          // Update the event to add this date as an exception
+          try {
+            // Find the original API entry to get existing metadata
+            const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
+            const existingMetadata = originalApiEntry?.metadata || {};
+            const existingExceptions = existingMetadata.exceptions || [];
+            // Only add the date if it's not already in exceptions
+            const newExceptions = existingExceptions.includes(instanceDate) 
+              ? existingExceptions 
+              : [...existingExceptions, instanceDate];
+            
+            console.log('🗓️ Original API entry:', originalApiEntry);
+            console.log('🗓️ Existing metadata:', existingMetadata);
+            const updateResult = await updateMutation.mutateAsync({
+              id: timeBlock.id,
+              updates: {
+                metadata: {
+                  ...existingMetadata,
+                  exceptions: newExceptions
+                }
+              }
+            });
+            
+            console.log('🗓️ Exception added to original recurring event successfully, result:', updateResult);
+            console.log('🗓️ Updated metadata:', updateResult.metadata);
+            
+            // Force cache invalidation for the current date to update UI immediately
+            console.log('🗓️ Invalidating cache for current date:', dateStr);
+            if (user?.id) {
+              await queryClient.invalidateQueries({
+                queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
+              });
+              
+              // Also invalidate broader queries to ensure consistency
+              await queryClient.invalidateQueries({
+                queryKey: [queryKeys.timeBlocks.all[0]],
+              });
+            }
+            
+          } catch (updateError) {
+            console.error('🗓️ Error updating metadata:', updateError);
+            console.error('🗓️ Error details:', JSON.stringify(updateError, null, 2));
+            throw updateError;
+          }
+        } else if (options.type === 'future') {
+          console.log('🗓️ Original event - future delete - SETTING END DATE');
+          // For "This entry & future entries", set the end date to the day before the selected date
+          const selectedDate = new Date(timeBlock.startTime);
+          const endDate = new Date(selectedDate);
+          endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
+          
+          console.log('🗓️ Setting recurrence end date to:', endDate.toISOString().split('T')[0]);
+          
+          // Get current metadata and add end date
+          const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
+          const existingMetadata = originalApiEntry?.metadata || {};
+          
+          const updateResult = await updateMutation.mutateAsync({
+            id: timeBlock.id,
+            updates: {
+              metadata: {
+                ...existingMetadata,
+                endDate: endDate.toISOString().split('T')[0] // Store as YYYY-MM-DD
+              }
+            }
+          });
+          
+          console.log('🗓️ End date set successfully, result:', updateResult);
+          
+          // Force cache invalidation for the current date to update UI immediately
+          console.log('🗓️ Invalidating cache for current date:', dateStr);
+          if (user?.id) {
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
+            });
+            
+            // Also invalidate broader queries to ensure consistency
+            await queryClient.invalidateQueries({
+              queryKey: [queryKeys.timeBlocks.all[0]],
+            });
+          }
+        } else {
+          console.log('🗓️ Original event - all delete - DELETING ENTIRE EVENT');
+          // Delete from calendar first if synced
+          if (timeBlock.calendarEventId) {
+            console.log('🗓️ Removing calendar event:', timeBlock.calendarEventId);
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, options);
+          }
+
+          // Delete entire event from database
+          await deleteMutation.mutateAsync(timeBlock.id);
+        }
       }
 
-      // Delete from database
-      await deleteMutation.mutateAsync(timeBlock.id);
+      // Invalidate queries to refresh UI
+      console.log('🗓️ Invalidating queries to refresh UI');
+      // Query invalidation will happen automatically via React Query mutation
 
       try { triggerLightHaptic(); } catch {}
       
@@ -338,7 +563,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         category: timeBlock.category || 'unknown',
         duration_minutes: durationMinutes,
         was_all_day: timeBlock.isAllDay || false,
-        // was_synced: !!timeBlock.calendarEventId, // Remove for now
         date: dateStr,
       }, user?.id);
     } catch (deleteError) {
@@ -437,7 +661,48 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         const previousDuration = existingBlock ?
           Math.round((existingBlock.endTime.getTime() - existingBlock.startTime.getTime()) / (1000 * 60)) : 0;
 
-        await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
+        const updateResult = await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
+
+        // Sync updated time block to calendar
+        if (calendarGating.canSyncToCalendar) {
+          try {
+            // Convert repeat frequency for calendar sync compatibility
+            const calendarRepeat = {
+              ...newBlock.repeat,
+              frequency: newBlock.repeat.frequency === 'biweekly' ? 'weekly' : 
+                        (newBlock.repeat.frequency === 'custom' ? 'never' : newBlock.repeat.frequency)
+            };
+            
+            const timeBlockForSync = {
+              id: editId,
+              title: newBlock.title.trim(),
+              startTime: startDateTime,
+              endTime: endDateTime,
+              location: newBlock.location.trim(),
+              notes: newBlock.notes.trim(),
+              isAllDay: newBlock.isAllDay,
+              repeat: calendarRepeat,
+              calendarEventId: existingBlock?.calendarEventId,
+            };
+            
+            if (existingBlock?.calendarEventId) {
+              // Update existing calendar event
+              await syncTimeBlockToCalendar(timeBlockForSync);
+            } else {
+              // Create new calendar event if none exists
+              const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
+              if (syncResult.success && syncResult.eventId) {
+                // Update the time block with the calendar event ID
+                await updateMutation.mutateAsync({ 
+                  id: editId, 
+                  updates: { calendar_event_id: syncResult.eventId } 
+                });
+              }
+            }
+          } catch (calendarError) {
+            console.warn('Calendar sync failed during update:', calendarError);
+          }
+        }
 
         analytics.trackTimeBlockEvent('timeblock_updated', {
           timeblock_id: editId,
@@ -452,7 +717,41 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           date: dateStr,
         }, user?.id);
       } else {
-        await createMutation.mutateAsync(timeBlockData);
+        const createResult = await createMutation.mutateAsync(timeBlockData);
+
+        // Sync new time block to calendar
+        if (calendarGating.canSyncToCalendar) {
+          try {
+            // Convert repeat frequency for calendar sync compatibility
+            const calendarRepeat = {
+              ...newBlock.repeat,
+              frequency: newBlock.repeat.frequency === 'biweekly' ? 'weekly' : 
+                        (newBlock.repeat.frequency === 'custom' ? 'never' : newBlock.repeat.frequency)
+            };
+            
+            const timeBlockForSync = {
+              id: createResult.id,
+              title: newBlock.title.trim(),
+              startTime: startDateTime,
+              endTime: endDateTime,
+              location: newBlock.location.trim(),
+              notes: newBlock.notes.trim(),
+              isAllDay: newBlock.isAllDay,
+              repeat: calendarRepeat,
+            };
+            
+            const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
+            if (syncResult.success && syncResult.eventId) {
+              // Update the time block with the calendar event ID
+              await updateMutation.mutateAsync({ 
+                id: createResult.id, 
+                updates: { calendar_event_id: syncResult.eventId } 
+              });
+            }
+          } catch (calendarError) {
+            console.warn('Calendar sync failed during creation:', calendarError);
+          }
+        }
 
         analytics.trackTimeBlockEvent('timeblock_created', {
           title_length: newBlock.title.trim().length,

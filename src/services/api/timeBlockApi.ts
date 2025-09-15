@@ -68,10 +68,14 @@ export interface TimeBlockApiEntry {
   category: string;
   repeat_rule?: any; // jsonb
   repeat_until?: string; // date
+  repeat_frequency?: string;
+  repeat_end_date?: string;
+  repeat_custom_frequency?: number;
   timezone?: string;
   is_completed?: boolean;
   completed_at?: string;
   description?: string; // notes field in the UI
+  calendar_event_id?: string; // native calendar event linkage
   version?: number;
   metadata?: any; // jsonb
   created_at: string;
@@ -82,22 +86,235 @@ export class TimeBlockApi {
   // Get all time blocks for a user and date
   static async getTimeBlocks(userId: string, date: string): Promise<TimeBlockApiEntry[]> {
     try {
-      const { data, error } = await supabase
+      console.log('🔍 Fetching time blocks for user:', userId, 'date:', date);
+
+      // Get both regular blocks for this date and repeating blocks that might appear on this date
+      const { data: regularBlocks, error: regularError } = await supabase
         .from('time_blocks')
         .select('*')
         .eq('user_id', userId)
         .eq('selected_date', date)
-        .order('start_time', { ascending: true });
+        .order('start_time');
 
-      if (error) {
-        throw error;
+      if (regularError) {
+        console.error('❌ Error fetching regular blocks:', regularError);
+        throw regularError;
       }
 
-      return data || [];
+      console.log('📅 Regular blocks found:', regularBlocks?.length || 0);
+
+      // Filter out regular blocks that have the target date in their exceptions
+      const filteredBlocks = regularBlocks?.filter(block => {
+        const metadata = block.metadata || {};
+        const exceptions = metadata.exceptions || [];
+        const isExcepted = exceptions.includes(date);
+        
+        if (isExcepted) {
+          console.log('🚫 Filtering out block due to exception:', block.id, 'for date:', date);
+        }
+        
+        return !isExcepted;
+      }) || [];
+
+      console.log('📅 Filtered regular blocks:', filteredBlocks.length);
+
+      // Get exception records (hidden instances) for this date
+      const { data: exceptions, error: exceptionsError } = await supabase
+        .from('time_blocks')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('selected_date', date)
+        .eq('category', 'exception');
+
+      if (exceptionsError) {
+        console.error('❌ Error fetching exceptions:', exceptionsError);
+        throw exceptionsError;
+      }
+
+      console.log('🚫 Exception records found:', exceptions?.length || 0);
+
+      // Get repeating blocks that might appear on this date
+      const { data: repeatingBlocks, error: repeatingError } = await supabase
+        .from('time_blocks')
+        .select('*')
+        .eq('user_id', userId)
+        .not('repeat_rule', 'is', null)
+        .neq('category', 'exception') // Exclude exception records
+        .order('start_time');
+
+      if (repeatingError) {
+        console.error('❌ Error fetching repeating blocks:', repeatingError);
+        throw repeatingError;
+      }
+
+      console.log('🔄 Repeating blocks found:', repeatingBlocks?.length || 0);
+
+      // Expand repeating blocks for this specific date
+      const expandedRepeatingBlocks = this.expandRepeatingBlocks(repeatingBlocks || [], date);
+
+      // Filter out instances that have exceptions in their metadata
+      const filteredExpandedBlocks = expandedRepeatingBlocks.filter(block => {
+        // For virtual instances, find the original block to check exceptions
+        const originalBlockId = block.id.includes('-') ? block.id.split('-').slice(0, 5).join('-') : block.id;
+        const originalBlock = repeatingBlocks.find(rb => rb.id === originalBlockId);
+        
+        if (originalBlock) {
+          const originalMetadata = originalBlock.metadata || {};
+          const exceptions = originalMetadata.exceptions || [];
+          const isHidden = exceptions.includes(block.selected_date);
+          
+          if (isHidden) {
+            console.log('🚫 Filtering out hidden instance on', block.selected_date, 'due to exception in original block', originalBlockId);
+          }
+          return !isHidden;
+        }
+        
+        // Fallback: check the block's own metadata
+        const blockMetadata = block.metadata || {};
+        const blockExceptions = blockMetadata.exceptions || [];
+        const isHidden = blockExceptions.includes(block.selected_date);
+        
+        if (isHidden) {
+          console.log('🚫 Filtering out hidden instance on', block.selected_date);
+        }
+        return !isHidden;
+      });
+
+      // Combine filtered regular blocks and filtered expanded repeating blocks (exclude exception records)
+      const finalFilteredBlocks = filteredBlocks.filter(block => block.category !== 'exception');
+      const allBlocks = [...finalFilteredBlocks, ...filteredExpandedBlocks];
+
+      console.log('📊 Total blocks for', date, ':', allBlocks.length);
+      return allBlocks;
     } catch (error) {
-      // This will always throw, but TypeScript doesn't know that
-      return handleApiError(error, 'getTimeBlocks') as never;
+      console.error('❌ Error in getTimeBlocks:', error);
+      throw error;
     }
+  }
+
+  // Helper method to expand repeating blocks for a specific date
+  private static expandRepeatingBlocks(repeatingBlocks: TimeBlockApiEntry[], targetDate: string): TimeBlockApiEntry[] {
+    const expandedBlocks: TimeBlockApiEntry[] = [];
+    const targetDateObj = new Date(targetDate);
+
+    console.log('🔍 Expanding blocks for target date:', targetDate);
+
+    for (const block of repeatingBlocks) {
+      console.log('🔍 Checking block:', block.id, 'repeat_rule:', block.repeat_rule);
+      
+      if (this.shouldBlockAppearOnDate(block, targetDate)) {
+        console.log('✅ Block should appear on', targetDate);
+        
+        // Create a virtual instance for this date
+        const virtualBlock: TimeBlockApiEntry = {
+          ...block,
+          id: `${block.id}-${targetDate}`, // Virtual ID for this instance
+          selected_date: targetDate,
+          // Update start_time and end_time to the target date
+          start_time: this.adjustTimeToDate(block.start_time, targetDate),
+          end_time: this.adjustTimeToDate(block.end_time, targetDate),
+          // Virtual instances should reference the original's calendar event but with metadata
+          calendar_event_id: block.calendar_event_id ? `${block.calendar_event_id}:${targetDate}` : undefined,
+        };
+        expandedBlocks.push(virtualBlock);
+      } else {
+        console.log('❌ Block should NOT appear on', targetDate);
+      }
+    }
+
+    console.log('🔍 Total expanded blocks:', expandedBlocks.length);
+    return expandedBlocks;
+  }
+
+  // Check if a repeating block should appear on a specific date
+  private static shouldBlockAppearOnDate(block: TimeBlockApiEntry, targetDate: string): boolean {
+    const originalDate = new Date(block.selected_date);
+    const targetDateObj = new Date(targetDate);
+    
+    // Don't show on the original date (already handled by direct query)
+    if (block.selected_date === targetDate) {
+      return false;
+    }
+    
+    // Check if target date is after original date
+    if (targetDateObj <= originalDate) {
+      return false;
+    }
+    
+    // Extract repeat data from repeat_rule or direct fields
+    const repeatRule = block.repeat_rule;
+    const frequency = repeatRule?.frequency || block.repeat_frequency;
+    const customFrequency = repeatRule?.customFrequency?.value || repeatRule?.customFrequency || block.repeat_custom_frequency || 1;
+    
+    if (!frequency || frequency === 'never') {
+      return false;
+    }
+    
+    // Check end date if specified (check repeat_until, repeat_end_date, and metadata.endDate)
+    const endDateStr = block.repeat_until || block.repeat_end_date || (block.metadata && block.metadata.endDate);
+    if (endDateStr) {
+      const endDate = new Date(endDateStr);
+      if (targetDateObj > endDate) {
+        console.log('🚫 Filtering out recurring block due to end date:', block.id, 'target:', targetDate, 'end:', endDateStr);
+        return false;
+      }
+    }
+    
+    const daysDiff = Math.floor((targetDateObj.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    switch (frequency) {
+      case 'daily':
+        return daysDiff % customFrequency === 0;
+      
+      case 'weekly':
+        return daysDiff % (7 * customFrequency) === 0;
+      
+      case 'monthly':
+        // Same day of month
+        return originalDate.getDate() === targetDateObj.getDate() &&
+               this.isValidMonthlyRepeat(originalDate, targetDateObj, customFrequency);
+      
+      case 'yearly':
+        // Same month and day
+        return originalDate.getMonth() === targetDateObj.getMonth() &&
+               originalDate.getDate() === targetDateObj.getDate() &&
+               this.isValidYearlyRepeat(originalDate, targetDateObj, customFrequency);
+      
+      default:
+        return false;
+    }
+  }
+
+  // Helper to check valid monthly repeat
+  private static isValidMonthlyRepeat(originalDate: Date, targetDate: Date, frequency: number): boolean {
+    const monthsDiff = (targetDate.getFullYear() - originalDate.getFullYear()) * 12 + 
+                       (targetDate.getMonth() - originalDate.getMonth());
+    return monthsDiff > 0 && monthsDiff % frequency === 0;
+  }
+
+  // Helper to check valid yearly repeat
+  private static isValidYearlyRepeat(originalDate: Date, targetDate: Date, frequency: number): boolean {
+    const yearsDiff = targetDate.getFullYear() - originalDate.getFullYear();
+    return yearsDiff > 0 && yearsDiff % frequency === 0;
+  }
+
+  // Helper to adjust time to a specific date
+  private static adjustTimeToDate(originalTime: string, targetDate: string): string {
+    const originalDateTime = new Date(originalTime);
+    const targetDateObj = new Date(targetDate);
+    
+    // Keep the same time but change the date
+    const adjustedDateTime = new Date(
+      targetDateObj.getFullYear(),
+      targetDateObj.getMonth(),
+      targetDateObj.getDate(),
+      originalDateTime.getHours(),
+      originalDateTime.getMinutes(),
+      originalDateTime.getSeconds(),
+      originalDateTime.getMilliseconds()
+    );
+    
+    return adjustedDateTime.toISOString();
   }
 
   // Create a new time block (with upsert to handle duplicates)
@@ -112,7 +329,10 @@ export class TimeBlockApi {
     // Use upsert to handle duplicate start times gracefully
     const { data, error } = await supabase
       .from('time_blocks')
-      .upsert(timeBlockWithTimestamps, {
+      .upsert({
+        ...timeBlockWithTimestamps,
+        description: timeBlockWithTimestamps.description,
+      }, {
         onConflict: 'user_id,selected_date,start_time',
         ignoreDuplicates: false,
       })

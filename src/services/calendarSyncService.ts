@@ -92,8 +92,17 @@ export interface LocationSuggestion {
 
 export const requestCalendarPermissions = async (): Promise<boolean> => {
   try {
+    console.log('🔍 Requesting calendar permissions...');
+    
     if (Platform.OS === 'ios') {
       const status = await RNCalendarEvents.requestPermissions();
+      console.log('🔍 iOS calendar permission status:', status);
+      
+      if (status === 'denied' || status === 'restricted') {
+        console.log('🔍 Calendar permission denied/restricted. User needs to enable in Settings.');
+        return false;
+      }
+      
       return status === 'authorized';
     } else {
       const granted = await PermissionsAndroid.request(
@@ -115,6 +124,50 @@ export const requestCalendarPermissions = async (): Promise<boolean> => {
   } catch (error) {
     console.error('Calendar permission error:', error);
     return false;
+  }
+};
+
+export const updateTimeBlockInCalendar = async (
+  calendarEventId: string,
+  timeBlock: TimeBlockData
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const hasPermission = await requestCalendarPermissions();
+    if (!hasPermission) {
+      return { success: false, error: 'Calendar permission denied' };
+    }
+
+    const calendarId = await getSiFiaCalendar();
+    if (!calendarId) {
+      return { success: false, error: 'Could not access calendar' };
+    }
+
+    // Create recurrence rule if needed
+    let recurrence: string | undefined;
+    if (timeBlock.repeat.frequency !== 'never') {
+      recurrence = getRNCalendarRecurrence(timeBlock.repeat);
+    }
+
+    const eventDetails: any = {
+      id: calendarEventId,
+      title: timeBlock.title,
+      startDate: timeBlock.startTime.toISOString(),
+      endDate: timeBlock.endTime.toISOString(),
+      location: timeBlock.location || '',
+      notes: timeBlock.notes || '',
+      calendarId,
+      allDay: timeBlock.isAllDay,
+    };
+    if (recurrence) {
+      eventDetails.recurrence = recurrence;
+    }
+
+    await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Calendar update error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to update calendar event' };
   }
 };
 
@@ -144,16 +197,51 @@ export const requestLocationPermissions = async (): Promise<boolean> => {
 const getSiFiaCalendar = async (): Promise<string | null> => {
   try {
     const calendars = await RNCalendarEvents.findCalendars();
-    
-    // Look for existing siFia calendar
-    const siFiaCalendar = calendars.find(cal => cal.title === 'siFia Time Blocks');
-    if (siFiaCalendar) {
-      return siFiaCalendar.id;
+
+    // 1) Prefer an existing 'siFia' calendar
+    const existingSiFia = calendars.find(cal => cal.title === 'siFia');
+    if (existingSiFia) {
+      return existingSiFia.id;
     }
 
-    // For react-native-calendar-events, we'll use the default calendar
-    // Creating custom calendars requires more complex setup
-    const defaultCalendar = calendars.find(cal => cal.isPrimary) || calendars[0];
+    // 2) Fallback to default calendar if we cannot create (as last resort)
+    const defaultCalendar = calendars.find(cal => (cal as any).isPrimary) || calendars[0];
+
+    // 3) Try to create a dedicated 'siFia' calendar using the default calendar's source
+    // Note: RNCalendarEvents.saveCalendar requires platform-specific fields.
+    try {
+      const baseSource: any = (defaultCalendar as any)?.source || {};
+      const config: any = {
+        title: 'siFia',
+        color: '#FF6B6B',
+        entityType: 'event',
+        name: 'siFia',
+      };
+
+      if (Platform.OS === 'ios') {
+        // iOS requires a valid source. Reuse default calendar's source when possible.
+        if (baseSource && baseSource.id) {
+          config.source = baseSource;
+        }
+      } else {
+        // Android requires ownerAccount and accessLevel for local calendars
+        const ownerAccount = (defaultCalendar as any)?.ownerAccount || 'local';
+        config.ownerAccount = ownerAccount;
+        config.accessLevel = 'owner';
+        // Some Android devices require accountType to be 'LOCAL'
+        if (baseSource?.type) {
+          config.accountType = baseSource.type;
+        }
+      }
+
+      const createdId = await (RNCalendarEvents as any).saveCalendar(config);
+      if (createdId) {
+        return createdId as string;
+      }
+    } catch (createErr) {
+      console.warn('Could not create siFia calendar, falling back to default:', createErr);
+    }
+
     return defaultCalendar?.id || null;
   } catch (error) {
     console.error('Error getting calendar:', error);
@@ -182,7 +270,10 @@ export const syncTimeBlockToCalendar = async (
   try {
     const hasPermission = await requestCalendarPermissions();
     if (!hasPermission) {
-      return { success: false, error: 'Calendar permission denied' };
+      return { 
+        success: false, 
+        error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia' 
+      };
     }
 
     const calendarId = await getSiFiaCalendar();
@@ -196,7 +287,8 @@ export const syncTimeBlockToCalendar = async (
       recurrence = getRNCalendarRecurrence(timeBlock.repeat);
     }
 
-    const eventDetails = {
+    // Build event details; only add recurrence if defined to satisfy typings
+    const eventDetails: any = {
       title: timeBlock.title,
       startDate: timeBlock.startTime.toISOString(),
       endDate: timeBlock.endTime.toISOString(),
@@ -204,18 +296,23 @@ export const syncTimeBlockToCalendar = async (
       notes: timeBlock.notes || '',
       calendarId,
       allDay: timeBlock.isAllDay,
-      recurrence,
     };
+    if (recurrence) {
+      eventDetails.recurrence = recurrence;
+    }
 
     const eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
 
     // Track success analytics
     try {
       analytics.trackTimeBlockEvent('timeblock_created', {
-        timeblock_id: timeBlock.id,
+        title_length: timeBlock.title?.length || 0,
         category: 'calendar_sync',
         duration_minutes: Math.round((timeBlock.endTime.getTime() - timeBlock.startTime.getTime()) / (1000 * 60)),
-        was_all_day: timeBlock.isAllDay,
+        is_all_day: timeBlock.isAllDay,
+        has_location: !!timeBlock.location,
+        has_notes: !!timeBlock.notes,
+        repeat_frequency: timeBlock.repeat?.frequency || 'never',
         date: timeBlock.startTime.toISOString().split('T')[0],
       });
     } catch (analyticsError) {
@@ -245,7 +342,8 @@ export const syncTimeBlockToCalendar = async (
 };
 
 export const removeTimeBlockFromCalendar = async (
-  eventId: string
+  eventId: string,
+  options?: DeleteOptions
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     const hasPermission = await requestCalendarPermissions();
@@ -253,7 +351,57 @@ export const removeTimeBlockFromCalendar = async (
       return { success: false, error: 'Calendar permission denied' };
     }
 
-    await RNCalendarEvents.removeEvent(eventId);
+    // Parse virtual calendar event ID format: "realEventId:targetDate"
+    let realEventId = eventId;
+    let instanceDate = options?.date;
+    
+    if (eventId.includes(':')) {
+      const parts = eventId.split(':');
+      realEventId = parts[0];
+      // Use the date from the virtual ID if available, otherwise use options.date
+      if (parts[1]) {
+        instanceDate = new Date(parts[1]);
+      }
+    }
+
+    console.log('🗓️ Calendar removal - eventId:', eventId, 'realEventId:', realEventId, 'instanceDate:', instanceDate?.toISOString(), 'type:', options?.type);
+
+    // Check if we actually have a real event ID to work with
+    if (!realEventId || realEventId === 'undefined' || realEventId === 'null') {
+      console.warn('🗓️ No valid calendar event ID found - cannot remove from calendar');
+      return { success: false, error: 'No calendar event ID available' };
+    }
+
+    // If we have delete options and a date, attempt granular removal (iOS supports this)
+    if (options?.type === 'future' && instanceDate) {
+      try {
+        await (RNCalendarEvents as any).removeEvent(realEventId, {
+          futureEvents: true,
+          instanceStartDate: instanceDate.toISOString(),
+        });
+        console.log('🗓️ Successfully removed future events from', instanceDate.toISOString());
+      } catch (e) {
+        console.warn('🗓️ Future events removal failed, falling back to series removal:', e);
+        // Fallback: remove base event if granular removal fails
+        await RNCalendarEvents.removeEvent(realEventId);
+      }
+    } else if (options?.type === 'single' && instanceDate) {
+      try {
+        await (RNCalendarEvents as any).removeEvent(realEventId, {
+          futureEvents: false,
+          instanceStartDate: instanceDate.toISOString(),
+        });
+        console.log('🗓️ Successfully removed single instance on', instanceDate.toISOString());
+      } catch (e) {
+        console.warn('🗓️ Single instance removal not supported by provider:', e);
+        // Do NOT delete the entire series when single-instance deletion isn't supported.
+        return { success: false, error: 'GRANULAR_SINGLE_DELETE_UNSUPPORTED' };
+      }
+    } else {
+      // Default: remove this single event/series
+      console.log('🗓️ Removing entire event/series:', realEventId);
+      await RNCalendarEvents.removeEvent(realEventId);
+    }
 
     return { success: true };
   } catch (error) {

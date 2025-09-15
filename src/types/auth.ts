@@ -68,6 +68,9 @@ export interface UserPreferences {
 
   // Calendar
   weekStart?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+  calendar?: {
+    autoSync: boolean;
+  };
 
   // Privacy
   privacy: {

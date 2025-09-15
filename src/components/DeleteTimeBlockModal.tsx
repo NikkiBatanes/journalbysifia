@@ -41,6 +41,7 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
   onCancel,
   canDeleteSeries,
 }) => {
+  console.log('🗑️ DeleteTimeBlockModal render - visible:', visible, 'eventTitle:', eventTitle);
   const handleDeleteOption = (type: DeleteOptions['type']) => {
     triggerSelectionHaptic();
     onDelete({
@@ -80,10 +81,16 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
             </ThemedText>
           </View>
 
+          {/* Warning */}
+          <View style={styles.warningBox}>
+            <Ionicons name="alert-circle" size={18} color={Colors.alertCoral} style={styles.warningIcon} />
+            <ThemedText style={styles.warningText}>Warning: This action cannot be undone.</ThemedText>
+          </View>
+
           {/* Options */}
           <View style={styles.optionsContainer}>
             {isRecurring && canDeleteSeries ? (
-              // Recurring event with series options
+              // Recurring event with two options only
               <>
                 <TouchableOpacity
                   style={styles.option}
@@ -96,14 +103,13 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
                     </View>
                     <View style={styles.optionText}>
                       <ThemedText weight="medium" style={styles.optionTitle}>
-                        This Event Only
+                        This Time Block only
                       </ThemedText>
                       <ThemedText style={styles.optionDescription}>
                         Delete only on {formatDate(eventDate)}
                       </ThemedText>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.mediumGray} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -124,28 +130,6 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
                       </ThemedText>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.mediumGray} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.option}
-                  onPress={() => handleDeleteOption('all')}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.optionContent}>
-                    <View style={styles.optionIcon}>
-                      <MaterialCommunityIcons name="calendar-remove" size={20} color={Colors.alertCoral} />
-                    </View>
-                    <View style={styles.optionText}>
-                      <ThemedText weight="medium" style={styles.optionTitle}>
-                        All Events in Series
-                      </ThemedText>
-                      <ThemedText style={styles.optionDescription}>
-                        Delete the entire recurring series
-                      </ThemedText>
-                    </View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.mediumGray} />
                 </TouchableOpacity>
               </>
             ) : isRecurring && !canDeleteSeries ? (
@@ -162,17 +146,16 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
                     </View>
                     <View style={styles.optionText}>
                       <ThemedText weight="medium" style={styles.optionTitle}>
-                        Delete This Event
+                        This Time Block only
                       </ThemedText>
                       <ThemedText style={styles.optionDescription}>
-                        Only on {formatDate(eventDate)}
+                        Delete only on {formatDate(eventDate)}
                       </ThemedText>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.mediumGray} />
                 </TouchableOpacity>
 
-                {/* Locked options for Seeker tier */}
+                {/* Locked future deletion option for Seeker tier (upgrade prompt) */}
                 <View style={[styles.option, styles.lockedOption]}>
                   <View style={styles.optionContent}>
                     <View style={styles.optionIcon}>
@@ -180,10 +163,10 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
                     </View>
                     <View style={styles.optionText}>
                       <ThemedText weight="medium" style={[styles.optionTitle, styles.lockedText]}>
-                        Delete Series Options
+                        This & Future Events
                       </ThemedText>
                       <ThemedText style={[styles.optionDescription, styles.lockedText]}>
-                        Upgrade to delete future events or entire series
+                        Upgrade to delete this and all future events in the series
                       </ThemedText>
                     </View>
                   </View>
@@ -209,7 +192,6 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
                     </ThemedText>
                   </View>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={Colors.mediumGray} />
               </TouchableOpacity>
             )}
           </View>
@@ -243,10 +225,29 @@ const styles = StyleSheet.create({
   },
   modal: {
     backgroundColor: Colors.modalBlue,
-    borderRadius: 16,
+    borderRadius: 30,
     width: '100%',
     maxWidth: 400,
     overflow: 'hidden',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.12)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+  },
+  warningIcon: {
+    marginRight: 8,
+  },
+  warningText: {
+    color: Colors.hopeWhite,
+    fontSize: 13,
   },
   header: {
     alignItems: 'center',

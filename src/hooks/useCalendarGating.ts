@@ -3,7 +3,7 @@
  * Controls access to calendar sync and repeat features based on subscription tier
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { analytics } from '../utils/analytics';
@@ -35,30 +35,62 @@ export interface CalendarGatingState {
 export const useCalendarGating = (): CalendarGatingState => {
   const { user } = useAuth();
   const navigation = useNavigation();
+  const [currentTier, setCurrentTier] = useState<string>('seeker');
 
-  const currentTier = useMemo(() => {
-    // Check multiple possible locations for subscription tier
-    const userTier = (user as any)?.subscription?.tier 
-      || (user as any)?.app_metadata?.subscription_tier
-      || (user as any)?.user_metadata?.subscription_tier
-      || (user as any)?.tier
-      || 'seeker';
-    
-    console.log('🔍 useCalendarGating - User tier detection:', {
-      subscription_tier: (user as any)?.subscription?.tier,
-      app_metadata_tier: (user as any)?.app_metadata?.subscription_tier,
-      user_metadata_tier: (user as any)?.user_metadata?.subscription_tier,
-      direct_tier: (user as any)?.tier,
-      final_tier: userTier,
-      user_id: user?.id
-    });
-    
-    return userTier;
-  }, [user]);
+  useEffect(() => {
+    const loadTier = async () => {
+      if (!user?.id) {
+        setCurrentTier('seeker');
+        return;
+      }
+      
+      try {
+        // Use the same service that UserProfile uses to get accurate tier
+        const { NewSubscriptionService } = await import('../services/NewSubscriptionService');
+        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+        
+        console.log('🔍 useCalendarGating - Subscription service tier:', {
+          tier: subscriptionData.tier,
+          status: subscriptionData.status,
+          user_id: user.id
+        });
+        
+        setCurrentTier(subscriptionData.tier || 'seeker');
+      } catch (error) {
+        console.error('🔍 useCalendarGating - Failed to get subscription:', error);
+        
+        // Fallback to user object properties
+        const userTier = (user as any)?.subscription?.tier 
+          || (user as any)?.app_metadata?.subscription_tier
+          || (user as any)?.user_metadata?.subscription_tier
+          || (user as any)?.tier
+          || 'seeker';
+        
+        console.log('🔍 useCalendarGating - Fallback tier detection:', {
+          subscription_tier: (user as any)?.subscription?.tier,
+          app_metadata_tier: (user as any)?.app_metadata?.subscription_tier,
+          user_metadata_tier: (user as any)?.user_metadata?.subscription_tier,
+          direct_tier: (user as any)?.tier,
+          final_tier: userTier,
+          user_id: user?.id
+        });
+        
+        setCurrentTier(userTier);
+      }
+    };
+
+    loadTier();
+  }, [user?.id]);
 
   const isSeeker = currentTier === 'seeker';
 
   const permissions = useMemo(() => {
+    console.log('🔍 useCalendarGating - Permissions calculation:', {
+      currentTier,
+      isSeeker,
+      tierCheck: currentTier === 'seeker'
+    });
+    
     // Seeker (freemium) restrictions
     if (isSeeker) {
       return {
@@ -76,7 +108,7 @@ export const useCalendarGating = (): CalendarGatingState => {
       canUseLocationServices: true,
       canDeleteSeries: true,
     };
-  }, [isSeeker]);
+  }, [isSeeker, currentTier]);
 
   const handleCalendarLockTap = () => {
     analytics.trackTimeBlockEvent('calendar_lock_tapped', {
