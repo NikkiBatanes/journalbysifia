@@ -44,17 +44,17 @@ export interface PricingEntry {
 const US_MONTHLY: Record<Exclude<SubscriptionTier, `${string}_annual`>, PricingEntry> = {
   seeker: { amount: 0, currency: 'usd', interval: 'month' },
   free_trial: { amount: 0, currency: 'usd', interval: 'month' },
-  spark: { amount: 699, currency: 'usd', interval: 'month' },
-  growth: { amount: 1299, currency: 'usd', interval: 'month' },
+  spark: { amount: 799, currency: 'usd', interval: 'month' },
+  growth: { amount: 1499, currency: 'usd', interval: 'month' },
   transformation: { amount: 2499, currency: 'usd', interval: 'month' },
-  family: { amount: 3499, currency: 'usd', interval: 'month' },
+  family: { amount: 4499, currency: 'usd', interval: 'month' },
 };
 
 const US_ANNUAL: Record<Extract<SubscriptionTier, `${string}_annual`>, PricingEntry> = {
-  spark_annual: { amount: 4999, currency: 'usd', interval: 'year' },
-  growth_annual: { amount: 12999, currency: 'usd', interval: 'year' },
+  spark_annual: { amount: 7999, currency: 'usd', interval: 'year' },
+  growth_annual: { amount: 14999, currency: 'usd', interval: 'year' },
   transformation_annual: { amount: 24999, currency: 'usd', interval: 'year' },
-  family_annual: { amount: 34999, currency: 'usd', interval: 'year' },
+  family_annual: { amount: 44999, currency: 'usd', interval: 'year' },
 };
 
 export const PRICING_US: Record<SubscriptionTier, PricingEntry> = {
@@ -67,18 +67,17 @@ const PH_MONTHLY: Record<Exclude<SubscriptionTier, `${string}_annual`>, PricingE
   seeker: { amount: 0, currency: 'php', interval: 'month' },
   free_trial: { amount: 0, currency: 'php', interval: 'month' },
   spark: { amount: 19900, currency: 'php', interval: 'month' },
-  growth: { amount: 34900, currency: 'php', interval: 'month' },
-  transformation: { amount: 54900, currency: 'php', interval: 'month' },
-  family: { amount: 69900, currency: 'php', interval: 'month' },
+  growth: { amount: 39900, currency: 'php', interval: 'month' },
+  transformation: { amount: 59900, currency: 'php', interval: 'month' },
+  family: { amount: 129000, currency: 'php', interval: 'month' },
 };
 
 // Provide simple annual equivalents (12x monthly with ~17% off)
-const pct = (x: number, p: number) => Math.round(x * (1 - p) * 12);
 const PH_ANNUAL: Record<Extract<SubscriptionTier, `${string}_annual`>, PricingEntry> = {
-  spark_annual: { amount: pct(19900, 0.17), currency: 'php', interval: 'year' },
-  growth_annual: { amount: pct(34900, 0.17), currency: 'php', interval: 'year' },
-  transformation_annual: { amount: pct(54900, 0.17), currency: 'php', interval: 'year' },
-  family_annual: { amount: pct(69900, 0.17), currency: 'php', interval: 'year' },
+  spark_annual: { amount: 199000, currency: 'php', interval: 'year' },
+  growth_annual: { amount: 399000, currency: 'php', interval: 'year' },
+  transformation_annual: { amount: 599000, currency: 'php', interval: 'year' },
+  family_annual: { amount: 1199000, currency: 'php', interval: 'year' },
 };
 
 export const PRICING_PH: Record<SubscriptionTier, PricingEntry> = {

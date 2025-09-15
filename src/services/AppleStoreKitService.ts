@@ -40,12 +40,17 @@ export class AppleStoreKitService {
   private purchaseUpdateSubscription: any;
   private purchaseErrorSubscription: any;
 
-  // Product IDs for subscription tiers
+  // Product IDs for subscription tiers - UPDATE THESE IN APPLE DEVELOPER CONSOLE
   private static readonly PRODUCT_IDS = {
-    spark: 'com.yourcompany.sifia.spark.monthly',
-    growth: 'com.yourcompany.sifia.growth.monthly',
-    transformation: 'com.yourcompany.sifia.transformation.monthly',
-    family: 'com.yourcompany.sifia.family.monthly',
+    spark: 'app.sifia.com.spark.monthly',
+    growth: 'app.sifia.com.growth.monthly', 
+    transformation: 'app.sifia.com.transformation.monthly',
+    family: 'app.sifia.com.family.monthly',
+    // Annual subscriptions
+    spark_annual: 'app.sifia.com.spark.annual',
+    growth_annual: 'app.sifia.com.growth.annual',
+    transformation_annual: 'app.sifia.com.transformation.annual',
+    family_annual: 'app.sifia.com.family.annual',
   };
 
   private constructor() {}
@@ -200,10 +205,10 @@ export class AppleStoreKitService {
       if (Platform.OS === 'ios') {
         const receiptBody = {
           'receipt-data': purchase.transactionReceipt,
-          password: 'your-app-store-shared-secret', // Replace with actual shared secret
+          password: process.env.APPLE_SHARED_SECRET || 'your-app-store-shared-secret', // TODO: Add to .env
         };
         
-        const result = await validateReceiptIos({ receiptBody, isTest: false });
+        const result = await validateReceiptIos({ receiptBody, isTest: __DEV__ });
         return result && result.status === 0;
       } else {
         // Android validation will be handled by GooglePlayBillingService
@@ -260,13 +265,20 @@ export class AppleStoreKitService {
   }
 
   /**
-   * Get current user ID (this should be implemented based on your auth system)
+   * Get current user ID from auth context
    */
   private async getCurrentUserId(): Promise<string | null> {
-    // TODO: Implement this based on your authentication system
-    // This is a placeholder that should be replaced with actual auth logic
-    console.warn('[StoreKit] getCurrentUserId not implemented - using placeholder');
-    return null;
+    try {
+      // Import auth context dynamically to avoid circular dependencies
+      const { useAuth } = await import('../context/IndustryStandardAuthContext');
+      // Note: This needs to be called from a React component context
+      // For now, we'll need to pass userId as parameter to purchase methods
+      console.warn('[StoreKit] getCurrentUserId should be passed as parameter');
+      return null;
+    } catch (error) {
+      console.error('[StoreKit] Failed to get user ID:', error);
+      return null;
+    }
   }
 
   /**

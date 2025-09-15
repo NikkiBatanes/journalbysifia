@@ -32,14 +32,14 @@ export const getReplacementMode = (currentTier: SubscriptionTier, targetTier: Su
 // Platform-specific product IDs
 export const SUBSCRIPTION_SKUS = {
   ios: {
-    spark_monthly: 'com.sifia.spark.monthly',
-    spark_annual: 'com.sifia.spark.annual',
-    growth_monthly: 'com.sifia.growth.monthly',
-    growth_annual: 'com.sifia.growth.annual',
-    transformation_monthly: 'com.sifia.transformation.monthly',
-    transformation_annual: 'com.sifia.transformation.annual',
-    family_monthly: 'com.sifia.family.monthly',
-    family_annual: 'com.sifia.family.annual',
+    spark_monthly: 'app.sifia.com.spark.monthly',
+    spark_annual: 'app.sifia.com.spark.annual',
+    growth_monthly: 'app.sifia.com.growth.monthly',
+    growth_annual: 'app.sifia.com.growth.annual',
+    transformation_monthly: 'app.sifia.com.transformation.monthly',
+    transformation_annual: 'app.sifia.com.transformation.annual',
+    family_monthly: 'app.sifia.com.family.monthly',
+    family_annual: 'app.sifia.com.family.annual',
   },
   android: {
     spark_monthly: 'spark_monthly',

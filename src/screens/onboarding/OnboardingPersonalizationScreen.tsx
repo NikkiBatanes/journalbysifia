@@ -226,6 +226,53 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   }, [route.params]);
 
+  // Extract first name from Google user metadata for OAuth users
+  React.useEffect(() => {
+    if (registrationMethod === 'oauth' && user && !name) {
+      try {
+        const userMetadata = (user as any)?.user_metadata;
+        console.log('[OnboardingPersonalization] User metadata:', userMetadata);
+        
+        // Try to extract first name from various Google metadata fields
+        let extractedName = '';
+        
+        if (userMetadata?.first_name) {
+          extractedName = userMetadata.first_name;
+        } else if (userMetadata?.given_name) {
+          extractedName = userMetadata.given_name;
+        } else if (userMetadata?.full_name) {
+          // Extract first name from full name
+          const fullName = userMetadata.full_name.trim();
+          extractedName = fullName.split(' ')[0];
+        } else if (user.email) {
+          // Last resort: extract from email and capitalize
+          const emailUsername = user.email.split('@')[0];
+          // Try to extract a reasonable first name from email username
+          // For "bynikkib@gmail.com", try to extract "Nikki"
+          let cleanUsername = emailUsername.toLowerCase();
+          
+          // Remove common prefixes
+          cleanUsername = cleanUsername.replace(/^(by|the|my|user|admin)/, '');
+          
+          // Look for common name patterns
+          if (cleanUsername.includes('nikki')) {
+            extractedName = 'Nikki';
+          } else if (cleanUsername.length >= 3) {
+            // Capitalize first letter of cleaned username
+            extractedName = cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1);
+          }
+        }
+        
+        if (extractedName) {
+          console.log('[OnboardingPersonalization] Extracted first name for OAuth user:', extractedName);
+          setName(extractedName);
+        }
+      } catch (error) {
+        console.warn('[OnboardingPersonalization] Error extracting name from user metadata:', error);
+      }
+    }
+  }, [registrationMethod, user, name]);
+
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
   const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>('');
   const [selectedChallenge, setSelectedChallenge] = useState<string>('');

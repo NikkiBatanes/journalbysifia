@@ -58,6 +58,16 @@ class NotificationManagementService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        // Check if it's a missing table or column error (common during development)
+        if (error.code === '42P01' || 
+            error.code === 'PGRST204' || 
+            error.message?.includes('relation') || 
+            error.message?.includes('does not exist') ||
+            error.message?.includes('column') ||
+            error.message?.includes('schema cache')) {
+          console.warn('Notification preferences table/column not found - returning null:', error.message);
+          return null;
+        }
         console.error('Error fetching notification preferences:', error);
         return null;
       }
@@ -82,9 +92,14 @@ class NotificationManagementService {
         });
 
       if (error) {
-        // Check if it's a missing table error (common during development)
-        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
-          console.warn('Notification preferences table not found - skipping notification setup');
+        // Check if it's a missing table or column error (common during development)
+        if (error.code === '42P01' || 
+            error.code === 'PGRST204' || 
+            error.message?.includes('relation') || 
+            error.message?.includes('does not exist') ||
+            error.message?.includes('column') ||
+            error.message?.includes('schema cache')) {
+          console.warn('Notification preferences table/column not found - skipping notification setup:', error.message);
           return true; // Return success to avoid blocking onboarding
         }
         console.error('Error updating notification preferences:', error);

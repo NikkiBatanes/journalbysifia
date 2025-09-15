@@ -38,9 +38,9 @@ class PricingService {
         'Gentle reminders to keep you on track',
         'Track your progress week by week',
       ],
-      monthlyPrice: 6.99,
-      annualOriginal: 83.88,
-      annualPrice: 49.99,
+      monthlyPrice: 7.99,
+      annualOriginal: 95.88,
+      annualPrice: 79.99,
     },
     {
       id: 'growth',
@@ -52,9 +52,9 @@ class PricingService {
         'Advanced reflection prompts',
         'Seasonal challenges for breakthrough',
       ],
-      monthlyPrice: 12.99,
-      annualOriginal: 155.88,
-      annualPrice: 129.99,
+      monthlyPrice: 14.99,
+      annualOriginal: 179.88,
+      annualPrice: 149.99,
       isPopular: true,
     },
     {
@@ -83,20 +83,85 @@ class PricingService {
         'Family devotionals & activities',
         'Parental guidance resources',
       ],
-      monthlyPrice: 34.99,
-      annualOriginal: 419.88,
-      annualPrice: 349.99,
+      monthlyPrice: 44.99,
+      annualOriginal: 539.88,
+      annualPrice: 449.99,
     },
   ];
 
   private locationPricing: { [key: string]: LocationPricing } = {
     'US': { currency: 'USD', symbol: '$', multiplier: 1.0 },
-    'PH': { currency: 'PHP', symbol: '₱', multiplier: 56.0 }, // Approximate PHP to USD rate
+    // Note: PH uses explicit override pricing below; multiplier is ignored when override is applied
+    'PH': { currency: 'PHP', symbol: '₱', multiplier: 56.0 },
     'CA': { currency: 'USD', symbol: '$', multiplier: 1.0 },
     'GB': { currency: 'USD', symbol: '$', multiplier: 1.0 },
     'AU': { currency: 'USD', symbol: '$', multiplier: 1.0 },
     'DEFAULT': { currency: 'USD', symbol: '$', multiplier: 1.0 },
   };
+
+  // Explicit Philippines pricing override (PHP)
+  private phOverridePricing: PricingTier[] = [
+    {
+      id: 'spark',
+      name: 'Spark',
+      duration: '12 months',
+      description: 'For consistent encouragement',
+      features: [
+        '8 playbooks & 8 devotionals each month',
+        'Gentle reminders to keep you on track',
+        'Track your progress week by week',
+      ],
+      // PHP prices
+      monthlyPrice: 199,
+      annualOriginal: 199 * 12, // 2388
+      annualPrice: 1990,
+    },
+    {
+      id: 'growth',
+      name: 'Growth',
+      duration: '12 months',
+      description: 'For deeper transformation',
+      features: [
+        '20 playbooks & 20 devotionals each month',
+        'Advanced reflection prompts',
+        'Seasonal challenges for breakthrough',
+      ],
+      monthlyPrice: 399,
+      annualOriginal: 399 * 12, // 4788
+      annualPrice: 3990,
+      isPopular: true,
+    },
+    {
+      id: 'transformation',
+      name: 'Transformation',
+      duration: '12 months',
+      description: 'For complete spiritual renewal',
+      features: [
+        'Unlimited playbooks & devotionals',
+        'Personal spiritual mentor access',
+        'Custom prayer & meditation guides',
+        'Priority support & guidance',
+      ],
+      monthlyPrice: 599,
+      annualOriginal: 599 * 12, // 7188
+      annualPrice: 5990,
+    },
+    {
+      id: 'family',
+      name: 'Family',
+      duration: '12 months',
+      description: 'For the whole family\'s growth',
+      features: [
+        'Everything in Transformation',
+        'Up to 6 family member accounts',
+        'Family devotionals & activities',
+        'Parental guidance resources',
+      ],
+      monthlyPrice: 1290,
+      annualOriginal: 1290 * 12, // 15480
+      annualPrice: 11990,
+    },
+  ];
 
   private userOptOutCount = 0; // legacy in-memory (guest fallback)
   private lastOptOutTime: Date | null = null; // legacy in-memory (guest fallback)
@@ -123,6 +188,10 @@ class PricingService {
   async getLocationAdjustedPricing(): Promise<PricingTier[]> {
     const location = await this.getUserLocation();
     const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
+    // Use explicit PH pricing when market is Philippines
+    if (location === 'PH') {
+      return this.phOverridePricing;
+    }
 
     return this.baseUSDPricing.map(tier => ({
       ...tier,
@@ -290,6 +359,11 @@ class PricingService {
     const location = await this.getUserLocation();
     const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
     const upgradeTiers = this.getUpgradeTiers(currentTier);
+    if (location === 'PH') {
+      // Filter PH overrides to only include tiers above currentTier
+      const ids = upgradeTiers.map(t => t.id);
+      return this.phOverridePricing.filter(t => ids.includes(t.id));
+    }
 
     return upgradeTiers.map(tier => ({
       ...tier,
