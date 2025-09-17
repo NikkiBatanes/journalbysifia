@@ -70,8 +70,11 @@ const DevotionalsScreen = () => {
   // Subtle haptic feedback, gated by user preference
   const triggerLightHaptic = useCallback(() => {
     try {
-      const triggerFn = ReactNativeHapticFeedback.trigger;
-      if (triggerFn) {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) { return; }
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
         triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
       }
     } catch {}
@@ -271,7 +274,7 @@ const DevotionalsScreen = () => {
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressHeader}>
                   <View style={styles.progressLabel}>
-                    <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={16} color="rgba(255, 255, 255, 0.8)" style={styles.progressIcon} />
+                    <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={16} color={Colors.secondaryText} style={styles.progressIcon} />
                     <ThemedText weight="semiBold" style={styles.progressLabelText}>Progress</ThemedText>
                   </View>
                   <ThemedText weight="medium" style={styles.dayCounter}>
@@ -811,7 +814,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 18,
-    backgroundColor: 'rgba(3, 32, 61, 0.06)',
+    backgroundColor: Colors.restfulShadow,
   },
   filterTabActiveOnWhite: {
     backgroundColor: Colors.anchorBlue,
@@ -860,7 +863,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   sectionHeader: {
-    backgroundColor: '#2c4b77',
+    backgroundColor: Colors.modalBlue,
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
@@ -876,7 +879,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   devotionalCard: {
-    backgroundColor: 'rgba(255,255,255,0.08)', // Match Playbook card tint on BlueSheet
+    backgroundColor: Colors.subtleOverlay, // Match Playbook card tint on BlueSheet
     borderRadius: 26, // Increased border radius to 26
     padding: 16,
     position: 'relative',
@@ -897,7 +900,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: Colors.lightBorder,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 12,
@@ -906,7 +909,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   categoryBadgeWithPlaybook: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: Colors.lightBorder,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 12,
@@ -920,7 +923,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   playbookBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: Colors.lightBorder,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 12,
@@ -951,7 +954,7 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 10,
     fontFamily: Fonts.bold,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.secondaryText,
     letterSpacing: 0.8,
     lineHeight: 14,
     marginBottom: 4,
@@ -968,7 +971,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.holyGlow,
     marginBottom: 8,
     lineHeight: 20,
   },
@@ -977,7 +980,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+    borderTopColor: Colors.lightBorder,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -991,7 +994,7 @@ const styles = StyleSheet.create({
   },
   progressLabelText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.holyGlow,
     marginLeft: 4,
     fontFamily: Fonts.medium,
   },
@@ -1000,7 +1003,7 @@ const styles = StyleSheet.create({
   },
   dayCounter: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.secondaryText,
     fontFamily: Fonts.medium,
   },
   progressBarRow: {
@@ -1015,7 +1018,7 @@ const styles = StyleSheet.create({
   },
   nextDayText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.95)',
+    color: Colors.holyGlow,
     fontFamily: Fonts.medium,
   },
   progressWrapper: {
@@ -1024,7 +1027,7 @@ const styles = StyleSheet.create({
   barBg: {
     width: '100%',
     height: 12, // Thicker bar for better visibility
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.mediumOverlay,
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -1068,7 +1071,7 @@ const styles = StyleSheet.create({
   heroCard: {
     width: '90%',
     maxWidth: 720,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.subtleOverlay,
     borderRadius: 34,
     paddingVertical: 32,
     paddingHorizontal: 20,
@@ -1081,7 +1084,7 @@ const styles = StyleSheet.create({
   heroOverline: {
     fontSize: 12,
     letterSpacing: 1.2,
-    color: 'rgba(255,255,255,0.9)',
+    color: Colors.holyGlow,
     textTransform: 'uppercase',
     marginBottom: 8,
     fontFamily: Fonts.semiBold,
@@ -1100,7 +1103,7 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     fontSize: 14,
     textAlign: 'center',
-    color: 'rgba(255,255,255,0.75)',
+    color: Colors.tertiaryText,
     lineHeight: 22,
     marginBottom: 16,
     paddingHorizontal: 20,
@@ -1146,7 +1149,7 @@ const styles = StyleSheet.create({
   heroBenefit: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: Colors.lightOverlay,
     borderRadius: 12,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -1175,7 +1178,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: Colors.lightBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -1186,7 +1189,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   stepText: {
-    color: 'rgba(255,255,255,0.9)',
+    color: Colors.holyGlow,
     fontSize: 13,
     lineHeight: 18,
     fontFamily: Fonts.medium,
@@ -1196,7 +1199,7 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: 'rgba(20, 52, 96, 0.08)',
+    backgroundColor: Colors.restfulShadow,
     top: 80,
   },
   emptyIconContainer: {
@@ -1252,7 +1255,7 @@ const styles = StyleSheet.create({
   emptyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: Colors.restfulShadow,
     borderRadius: 12,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -1311,7 +1314,7 @@ const styles = StyleSheet.create({
   card: {
     width: 256,
     marginRight: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)', // match empty state hero card tint
+    backgroundColor: Colors.subtleOverlay, // match empty state hero card tint
     borderRadius: 30,
     padding: 16,
     // remove light border for dark card style

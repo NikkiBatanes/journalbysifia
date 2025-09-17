@@ -93,6 +93,28 @@ export interface Theme {
     timeblockGreen: string;
     debtRed: string;
     actionBackground: string;
+
+    // Enterprise Enhancement: Common Hardcoded Colors
+    placeholderText: string;
+    lightOverlay: string;
+    mediumOverlay: string;
+    modalOverlay: string;
+    chevronColor: string;
+    subtleOverlay: string;
+    strongOverlay: string;
+    darkOverlay: string;
+    veryDarkOverlay: string;
+    lightBorder: string;
+    mediumBorder: string;
+    switchTrackInactive: string;
+    switchTrackActive: string;
+    secondaryText: string;
+    tertiaryText: string;
+    mutedText: string;
+    contemplationGray: string;
+    darkerGray: string;
+    inactiveIcon: string;
+    dangerRed: string;
   };
   typography: {
     h1: { fontSize: number; lineHeight: number; fontFamily: string };

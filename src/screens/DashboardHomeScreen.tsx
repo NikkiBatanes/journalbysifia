@@ -388,7 +388,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     // Prayer Modal Styles
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: Colors.modalOverlay,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -428,7 +428,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       textTransform: 'uppercase',
     },
     prayerModalSubtitle: {
-      color: 'rgba(255, 255, 255, 0.8)',
+      color: Colors.secondaryText,
       fontSize: 14,
       marginBottom: 16,
     },
@@ -441,10 +441,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 20,
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: Colors.lightOverlay,
     },
     prayerModalTabActive: {
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: Colors.mediumOverlay,
     },
     prayerModalTabText: {
       color: Colors.hopeWhite,
@@ -455,18 +455,18 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       opacity: 0.6,
     },
     prayerModalNameInput: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: Colors.lightOverlay,
       borderRadius: 8,
       padding: 12,
       color: Colors.hopeWhite,
       fontSize: 16,
       marginBottom: 12,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: Colors.lightBorder,
       fontFamily: fontRegular,
     },
     prayerModalTextArea: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: Colors.lightOverlay,
       borderRadius: 8,
       padding: 12,
       color: Colors.hopeWhite,
@@ -474,14 +474,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       minHeight: 120,
       marginBottom: 12,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: Colors.lightBorder,
     },
     // Combined prayer input + request display container
     combinedPrayerField: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: Colors.lightOverlay,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: Colors.lightBorder,
       marginBottom: 12,
       overflow: 'hidden',
     },
@@ -495,7 +495,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     combinedDivider: {
       height: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: Colors.mediumOverlay,
     },
     prayerModalLabel: {
       color: Colors.hopeWhite,
@@ -504,7 +504,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       // weight handled by ThemedText
     },
     prayerModalPreview: {
-      color: 'rgba(255, 255, 255, 0.8)',
+      color: Colors.secondaryText,
       fontSize: 14,
       marginBottom: 16,
     },
@@ -517,7 +517,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       width: 24,
       height: 24,
       borderRadius: 20,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: Colors.mediumOverlay,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.3)',
       justifyContent: 'center',
@@ -534,10 +534,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerModalReadOnlyField: {
       marginBottom: 16,
       padding: 12,
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: Colors.subtleOverlay,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderColor: Colors.lightOverlay,
     },
     prayerModalFieldLabel: {
       color: Colors.hopeWhite,
@@ -547,7 +547,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       // weight handled by ThemedText
     },
     prayerModalReadOnlyText: {
-      color: 'rgba(255, 255, 255, 0.8)',
+      color: Colors.secondaryText,
       fontSize: 14,
       lineHeight: 20,
     },
@@ -659,15 +659,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       // weight handled by ThemedText
     },
     prayerModalTabInactiveText: {
-      color: 'rgba(255, 255, 255, 0.5)',
+      color: Colors.mutedText,
     },
     prayerModalReadOnlyInput: {
-      color: 'rgba(255, 255, 255, 0.8)',
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: Colors.secondaryText,
+      backgroundColor: Colors.subtleOverlay,
     },
     successModalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      backgroundColor: Colors.veryDarkOverlay,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -678,7 +678,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       alignItems: 'center',
       marginHorizontal: 40,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderColor: Colors.lightOverlay,
     },
     successModalTitle: {
       color: Colors.hopeWhite,
@@ -688,7 +688,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       marginBottom: 8,
     },
     successModalSubtitle: {
-      color: 'rgba(255, 255, 255, 0.7)',
+      color: Colors.tertiaryText,
       fontSize: 14,
       textAlign: 'center',
     },
@@ -712,7 +712,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingVertical: 2,
       paddingHorizontal: 8,
       borderRadius: 10,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: Colors.mediumOverlay,
       gap: 6,
     },
     prayerPaginationButtonText: {
@@ -721,10 +721,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       lineHeight: 14,
     },
     prayerShowMoreButton: {
-      backgroundColor: 'rgba(255, 107, 107, 0.1)',
+      backgroundColor: Colors.lightOverlay,
     },
     prayerShowLessButton: {
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+      backgroundColor: Colors.restfulShadow,
     },
     prayerShowMoreText: {
       color: Colors.alertCoral,
@@ -1588,7 +1588,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 value={modalPrayerName}
                 onChangeText={setModalPrayerName}
                 placeholder="Name (optional)"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                placeholderTextColor={Colors.placeholderText}
               />
 
               {/* Combined field: Prayer input + Prayer Request inside same card */}
@@ -1596,7 +1596,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 <TextInput
                   style={styles.combinedPrayerInput}
                   placeholder={`Write a prayer for ${modalPrayerName || 'them'}…`}
-                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  placeholderTextColor={Colors.placeholderText}
                   value={modalPrayerRequest}
                   onChangeText={setModalPrayerRequest}
                   onFocus={triggerSelectionHaptic}

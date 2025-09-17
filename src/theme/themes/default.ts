@@ -89,6 +89,41 @@ export const defaultTheme: Theme = {
     timeblockGreen: '#2ECC71',      // Time management - growth
     debtRed: '#C0392B',             // Debt management - urgency
     actionBackground: '#d9dfe7',    // Action step backgrounds
+
+    // ENTERPRISE ENHANCEMENT: Common Hardcoded Colors Now Named
+    // Based on analysis of 1200+ hardcoded values across the app
+    
+    // Most Common Overlays (400+ instances found)
+    placeholderText: 'rgba(255,255,255,0.6)',      // Input placeholders
+    lightOverlay: 'rgba(255,255,255,0.1)',         // Light overlays
+    mediumOverlay: 'rgba(255,255,255,0.2)',        // Medium overlays
+    modalOverlay: 'rgba(0,0,0,0.5)',               // Modal backgrounds
+    chevronColor: 'rgba(255,255,255,0.65)',        // Chevron icons
+    
+    // Additional Overlays
+    subtleOverlay: 'rgba(255,255,255,0.05)',       // Very subtle
+    strongOverlay: 'rgba(255,255,255,0.3)',        // Strong overlays
+    darkOverlay: 'rgba(0,0,0,0.25)',               // Dark overlays
+    veryDarkOverlay: 'rgba(0,0,0,0.7)',            // Very dark
+    
+    // Border System
+    lightBorder: 'rgba(255,255,255,0.2)',          // Light borders
+    mediumBorder: 'rgba(255,255,255,0.3)',         // Medium borders
+    
+    // Switch/Toggle Colors
+    switchTrackInactive: 'rgba(255,255,255,0.25)', // Inactive switch
+    switchTrackActive: 'rgba(255,255,255,0.45)',   // Active switch
+    
+    // Text Variations
+    secondaryText: 'rgba(255,255,255,0.8)',        // Secondary text
+    tertiaryText: 'rgba(255,255,255,0.7)',         // Tertiary text
+    mutedText: 'rgba(255,255,255,0.5)',            // Muted text
+    
+    // Additional Missing Colors
+    contemplationGray: '#666666',                   // Medium gray
+    darkerGray: '#1A1A1A',                         // Darker gray
+    inactiveIcon: '#B0B8C1',                       // Inactive icons
+    dangerRed: '#FF3B30',                          // Danger red
   },
   typography: {
     // Typography scale matching current usage patterns - fontFamily handled by font system

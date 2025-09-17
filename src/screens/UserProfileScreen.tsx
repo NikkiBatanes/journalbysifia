@@ -646,7 +646,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={[styles.bugInput, font]}
             placeholder="Describe the feature you'd like to see..."
-            placeholderTextColor={'rgba(255,255,255,0.6)'}
+            placeholderTextColor={theme.colors.placeholderText}
             multiline
             value={featureText}
             onChangeText={setFeatureText}
@@ -758,7 +758,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={[styles.bugInput, font]}
             placeholder="Please report your issue..."
-            placeholderTextColor={'rgba(255,255,255,0.6)'}
+            placeholderTextColor={theme.colors.placeholderText}
             multiline
             value={bugReportText}
             onChangeText={setBugReportText}
@@ -1396,7 +1396,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="share-social" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Share with Friends</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1407,7 +1407,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="star" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Leave a Review</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1421,7 +1421,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[styles.menuText, font]}>Instagram</Text>
           <Text style={[styles.menuValueText, font]}>@sifia.app</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1435,7 +1435,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[styles.menuText, font]}>Facebook</Text>
           <Text style={[styles.menuValueText, font]}>/siFiaapp</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1449,7 +1449,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[styles.menuText, font]}>X</Text>
           <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -1467,7 +1467,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="document-text" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Terms of Service</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1478,7 +1478,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="lock-closed" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Privacy Policy</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -1496,7 +1496,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="help-circle" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>FAQ</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1507,7 +1507,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="bulb" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Suggest a Feature</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1518,7 +1518,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="bug" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Report a Bug</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -1536,7 +1536,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="notifications" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Notifications</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1603,7 +1603,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               }
             }}
             thumbColor={preferences.calendar?.autoSync ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
 
@@ -1615,7 +1615,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="shield-checkmark" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>System Permissions</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -1633,7 +1633,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="book" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Bible Version</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1670,7 +1670,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={hapticsEnabled}
             onValueChange={onToggleHaptics}
             thumbColor={hapticsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
 
@@ -1686,7 +1686,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={soundsEnabled}
             onValueChange={onToggleSounds}
             thumbColor={soundsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
 
@@ -1702,7 +1702,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={showTabLabelsEnabled}
             onValueChange={onToggleShowTabLabels}
             thumbColor={showTabLabelsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
       </View>
@@ -1737,7 +1737,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     {familyGroup.current_members}/{familyGroup.max_members}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
               </TouchableOpacity>
               
               {isAdmin && (
@@ -1749,7 +1749,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     <Ionicons name="person-add" size={18} color={Colors.anchorBlue} />
                   </View>
                   <Text style={[styles.menuText, font]}>Invite Members</Text>
-                  <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+                  <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
                 </TouchableOpacity>
               )}
             </>
@@ -1770,7 +1770,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons name="add-circle" size={18} color={Colors.anchorBlue} />
               </View>
               <Text style={[styles.menuText, font]}>Create Family Group</Text>
-              <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
             </TouchableOpacity>
           )}
         </View>
@@ -1789,7 +1789,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="log-out" size={18} color={Colors.alertCoral} />
           </View>
           <Text style={[styles.menuText, styles.logoutText, font]}>Logout</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
       </View>
     </View>

@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
   stepItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: Colors.lightOverlay,
   },
   stepHeader: {
     flexDirection: 'row',
@@ -731,8 +731,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   chip: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: Colors.subtleOverlay,
+    borderColor: Colors.lightBorder,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 8,
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.mediumOverlay,
     gap: 6,
   },
   paginationButtonText: {
@@ -949,10 +949,10 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
   },
   showMoreButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    backgroundColor: Colors.lightOverlay,
   },
   showLessButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: Colors.restfulShadow,
   },
   showMoreText: {
     color: Colors.alertCoral,
