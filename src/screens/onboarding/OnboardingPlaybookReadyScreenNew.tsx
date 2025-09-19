@@ -42,6 +42,7 @@ import ActionStepsCard from '../../components/ActionStepsCard';
 import BibleVerseCard from '../../components/BibleVerseCard';
 import DirectChallengeCard from '../../components/DirectChallengeCard';
 import DevotionalModal from '../../components/DevotionalModal';
+import OnboardingTutorial from '../../components/tutorial/OnboardingTutorial';
 
 const { width, height } = Dimensions.get('window');
 
@@ -102,22 +103,26 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set());
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [devotionalVisible, setDevotionalVisible] = useState(false);
+  const [footerH, setFooterH] = useState(0);
+  
+  // Tutorial state - only show after user explores playbook
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(1);
+  const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
+  
   const [showIntroModal, setShowIntroModal] = useState(true);
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   // Delayed & persistent devotional CTA visibility
-  const [devotionalVisible, setDevotionalVisible] = useState(false);
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Heights for sticky header and fixed footer to vertically center carousel area
   const [headerH, setHeaderH] = useState(0);
-  const [footerH, setFooterH] = useState(0);
   const availableHeight = Math.max(0, height - headerH - footerH);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
-  // Animation for in-card expand hint (icon-only): stronger pulse + opacity
-  const hintPulse = useRef(new Animated.Value(1)).current; // scale
-  const hintOpacity = useRef(new Animated.Value(0.6)).current;
+  // Removed expand hint animations as requested
 
   // Read Aloud state for affirmations (consistent with Playbook Detail)
   const hasRead = usePlaybookStoreReactQuery(state => playbook?.id ? !!state.readAloudMap[playbook.id] : false);
@@ -182,26 +187,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
-    // Start a more obvious pulsing animation for the hint (only visible when needed)
-    const scalePulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(hintPulse, { toValue: 1.18, duration: 650, useNativeDriver: true }),
-        Animated.timing(hintPulse, { toValue: 1.0, duration: 650, useNativeDriver: true }),
-        Animated.delay(200),
-      ])
-    );
-    const opacityPulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(hintOpacity, { toValue: 1.0, duration: 650, useNativeDriver: true }),
-        Animated.timing(hintOpacity, { toValue: 0.6, duration: 650, useNativeDriver: true }),
-        Animated.delay(200),
-      ])
-    );
-    scalePulse.start();
-    opacityPulse.start();
+  }, []);
+
+  useEffect(() => {
+    // Cleanup timers on unmount
     return () => {
-      hintPulse.stopAnimation();
-      hintOpacity.stopAnimation();
       if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
       // Ensure any pending read haptic timers are cleared on unmount
       try {
@@ -209,7 +199,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         readHapticTimersRef.current = [];
       } catch {}
     };
-  }, [hintOpacity, hintPulse]);
+  }, []);
 
   // Chevron animation (match PlaybookDetail rotation behavior)
   const chevronAnim = useSharedValue(0);
@@ -312,6 +302,33 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     });
   }, [getCompletedStepsCount]);
 
+  // Tutorial handlers
+  const handleTapTutorialComplete = useCallback(() => {
+    setTutorialStep(2);
+  }, []);
+
+  const handleSwipeTutorialComplete = useCallback(() => {
+    setShowTutorial(false);
+    setTutorialStep(1); // Reset for next time
+  }, []);
+
+  const handleContinueJourney = useCallback(() => {
+    try {
+      triggerSuccessHaptic();
+    } catch (error) {
+      console.log('Haptic feedback error:', error);
+    }
+    navigation.navigate('OnboardingTrialSetup' as any);
+  }, [navigation]);
+
+  const toggleUserInput = useCallback(() => {
+    setShowUserInput(!showUserInput);
+  }, [showUserInput]);
+
+  const handleCreateDevotional = useCallback(() => {
+    setShowDevotionalModal(true);
+  }, []);
+
   // Initialize action steps from playbook data (similar to PlaybookDetailScreen)
   useEffect(() => {
     if (playbook?.actionSteps) {
@@ -324,32 +341,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   useEffect(() => {
     calculateProgress();
   }, [actionSteps, calculateProgress]);
-
-  const toggleUserInput = () => {
-    try { triggerLightHaptic(); } catch {}
-    setShowUserInput(!showUserInput);
-  };
-
-  const handleCreateDevotional = () => {
-    try { triggerLightHaptic(); } catch {}
-    setShowDevotionalModal(true);
-  };
-
-  const handleContinueJourney = async () => {
-    // Save action steps in the background before continuing onboarding (fire-and-forget)
-    if (playbook?.id) {
-      try {
-        console.log('[OnboardingPlaybookReady] Queuing action steps save before continuing journey');
-        // Do not await here to avoid blocking navigation
-        Promise.resolve(saveActionSteps(playbook.id))
-          .then(() => console.log('[OnboardingPlaybookReady] Action steps saved successfully'))
-          .catch((error) => console.warn('[OnboardingPlaybookReady] Background saveActionSteps failed:', error));
-      } catch (error) {
-        console.warn('[OnboardingPlaybookReady] Failed to start background saveActionSteps:', error);
-      }
-    }
-    navigation.navigate('OnboardingSalesOffer' as any);
-  };
 
   // Create carousel cards data
   const createCarouselCards = (): PlaybookCard[] => {
@@ -577,11 +568,17 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Once revealed, keep it visible even if the user navigates away from the last card.
   useEffect(() => {
     const isLast = currentIndex === carouselCards.length - 1;
+    
+    // Track if user has reached the last card
+    if (isLast) {
+      setHasReachedLastCard(true);
+    }
+    
     if (isLast && !devotionalVisible && !devotionalTimerRef.current) {
       devotionalTimerRef.current = setTimeout(() => {
         setDevotionalVisible(true);
         devotionalTimerRef.current = null;
-      }, 800); // delay in ms; adjust as desired
+      }, 1500);
     }
   }, [currentIndex, carouselCards.length, devotionalVisible]);
 
@@ -709,23 +706,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               )
             : item.component}
 
-          {/* In-card expand hint overlay */}
-          {(isTruthCard || isActionCard) && needsExpansion && !isExpanded && !dismissedHints.has(item.id) && (
-            <TouchableOpacity
-              style={styles.expandHintIcon}
-              onPress={() => toggleCardExpansion(item.id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel="Expand card"
-            >
-              { }
-              { }
-              { }
-              <Animated.View style={{ transform: [{ scale: hintPulse }], opacity: hintOpacity }}>
-                <MaterialCommunityIcons name="arrow-expand" size={18} color={Colors.hopeWhite} style={styles.iconOpacity} />
-              </Animated.View>
-            </TouchableOpacity>
-          )}
+          {/* Expand hint removed as requested */}
         </Animated.View>
         { }
       </Wrapper>
@@ -807,6 +788,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       console.warn('[OnboardingPlaybookReady] Failed to show points notification:', notificationError);
                     }
                   }
+                  
+                  // Start tutorial after points celebration is complete
+                  setTimeout(() => {
+                    setShowTutorial(true);
+                    setTutorialStep(1);
+                  }, 2500); // Wait 2.5 seconds for points celebration to finish
                 }, 150);
               }}
             >
@@ -1016,14 +1003,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {/**/}
           {
             (() => {
-              const isLast = currentIndex === Math.max(0, carouselCards.length - 1);
+              const isActive = hasReachedLastCard;
               return (
                 <>
                   <TouchableOpacity
-                    style={[styles.continueButton, !isLast && styles.continueButtonDisabled]}
-                    onPress={() => { if (!isLast) return; try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
-                    activeOpacity={isLast ? 0.8 : 1}
-                    disabled={!isLast}
+                    style={[styles.continueButton, !isActive && styles.continueButtonDisabled]}
+                    onPress={() => { if (!isActive) return; try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
+                    activeOpacity={isActive ? 0.8 : 1}
+                    disabled={!isActive}
                   >
                     <ThemedText weight="bold" style={styles.continueButtonText}>Continue My Journey</ThemedText>
                   </TouchableOpacity>
@@ -1048,10 +1035,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           playbookId={playbook.id}
           userInput={userInput}
         />
+
+        {/* TUTORIAL OVERLAY */}
+        <OnboardingTutorial
+          showTutorial={showTutorial}
+          tutorialStep={tutorialStep}
+          onTapTutorialComplete={handleTapTutorialComplete}
+          onSwipeTutorialComplete={handleSwipeTutorialComplete}
+        />
       </View>
     </>
   );
 };
+
 
 const styles = StyleSheet.create({
   modalOverlay: {
@@ -1472,8 +1468,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   skipButton: {
-    marginTop: 10,
-    paddingVertical: 8,
+    marginTop: 4,  // Reduced from 10 to 4 to move it up
+    paddingVertical: 6,  // Reduced from 8 to 6
     paddingHorizontal: 12,
     alignSelf: 'center',
   },
@@ -1496,27 +1492,9 @@ const styles = StyleSheet.create({
   },
   expandHintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   expandHintText: {
+    fontSize: 14,
     color: Colors.hopeWhite,
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  expandHintIcon: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    padding: 4,
-  },
-  expandHintChip: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
+    opacity: 0.9,
   },
   transparentBackground: {
     backgroundColor: 'transparent',

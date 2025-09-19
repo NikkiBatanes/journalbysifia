@@ -116,14 +116,7 @@ export default function TruthInLoveCard({
         </ThemedText>
       </View>
 
-      <TouchableOpacity
-        style={[styles.contentWrapper, debugStyle]}
-        activeOpacity={0.9}
-        onPress={() => (onToggleExpand ? onToggleExpand() : setIsExpanded(prev => !prev))}
-        accessibilityRole="button"
-        accessibilityLabel={isExpanded ? 'Collapse truth content' : 'Expand truth content'}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
+      <View style={[styles.contentWrapper, debugStyle]}>
         <View style={styles.textContainer}>
           <ThemedText
             weight="regular"
@@ -141,7 +134,7 @@ export default function TruthInLoveCard({
             {processedTruth}
           </ThemedText>
         </View>
-      </TouchableOpacity>
+      </View>
 
     </View>
   );
