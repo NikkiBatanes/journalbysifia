@@ -72,7 +72,29 @@ class NotificationManagementService {
         return null;
       }
 
-      return data;
+      if (!data) {
+        return null;
+      }
+
+      // Map database schema to interface
+      const preferences: NotificationPreferences = {
+        user_id: data.user_id,
+        playbook_steps: data.playbook_actions,
+        devotional_reminders: data.devotional_reminders,
+        journal_prompts: data.journal_prompts,
+        prayer_reminders: data.prayer_reminders,
+        milestone_celebrations: data.milestone_celebrations,
+        trial_notifications: data.trial_notifications,
+        streak_alerts: data.streak_alerts,
+        prayer_request_alerts: data.prayer_requests,
+        quiet_hours_start: data.quiet_hours_start,
+        quiet_hours_end: data.quiet_hours_end,
+        timezone: data.timezone,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+
+      return preferences;
     } catch (error) {
       console.error('Error in getNotificationPreferences:', error);
       return null;
@@ -84,12 +106,37 @@ class NotificationManagementService {
    */
   async updateNotificationPreferences(preferences: NotificationPreferences): Promise<boolean> {
     try {
+      // Map the interface to match the actual database schema
+      const dbPreferences = {
+        user_id: preferences.user_id,
+        push_enabled: true,
+        prayer_reminders: preferences.prayer_reminders ?? true,
+        prayer_requests: preferences.prayer_request_alerts ?? true,
+        playbook_actions: preferences.playbook_steps ?? true,
+        playbook_verses: true,
+        playbook_challenges: true,
+        playbook_affirmations: true,
+        devotional_reminders: preferences.devotional_reminders ?? true,
+        journal_prompts: preferences.journal_prompts ?? true,
+        reflection_questions: true,
+        streak_alerts: preferences.streak_alerts ?? true,
+        milestone_celebrations: preferences.milestone_celebrations ?? true,
+        trial_notifications: preferences.trial_notifications ?? true,
+        quiet_hours_enabled: true,
+        quiet_hours_start: preferences.quiet_hours_start ?? '22:00',
+        quiet_hours_end: preferences.quiet_hours_end ?? '07:00',
+        preferred_morning_time: '08:00',
+        preferred_afternoon_time: '12:00',
+        preferred_evening_time: '18:00',
+        max_daily_notifications: 5,
+        batch_notifications: false,
+        timezone: preferences.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('notification_preferences')
-        .upsert({
-          ...preferences,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(dbPreferences);
 
       if (error) {
         // Check if it's a missing table or column error (common during development)
@@ -321,7 +368,7 @@ class NotificationManagementService {
           milestone_celebrations: true,
           trial_notifications: true,
           streak_alerts: true,
-          prayer_requests: true,
+          prayer_request_alerts: true,
           quiet_hours_start: '22:00',
           quiet_hours_end: '07:00',
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

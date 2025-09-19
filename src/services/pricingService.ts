@@ -295,8 +295,8 @@ class PricingService {
     };
   }
 
-  async markDiscountRedeemed(userId: string | null | undefined, percentage: number): Promise<void> {
-    const current: DiscountState = (await loadDiscountState(userId)) || {
+  async markDiscountRedeemed(userId?: string | null, percentage?: number): Promise<void> {
+    const current = (await loadDiscountState(userId)) || {
       discountPolicyVersion: 1,
       optOutCount: 0,
       lastShownAt: null,
@@ -306,6 +306,22 @@ class PricingService {
     };
     current.redeemed = true;
     current.lastDiscountPct = percentage;
+    await saveDiscountState(current, userId);
+  }
+
+  /**
+   * Track user opt-out for dynamic discount eligibility
+   */
+  async trackOptOut(userId?: string | null): Promise<void> {
+    const current = (await loadDiscountState(userId)) || {
+      discountPolicyVersion: 1,
+      optOutCount: 0,
+      lastShownAt: null,
+      lastDiscountPct: null,
+      redeemed: false,
+      blockedUntil: null,
+    };
+    current.optOutCount = (current.optOutCount || 0) + 1;
     await saveDiscountState(current, userId);
   }
 

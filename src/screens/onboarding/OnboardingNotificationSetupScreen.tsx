@@ -16,6 +16,7 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { pushNotificationService } from '../../services/pushNotificationService';
+import { notificationManagementService } from '../../services/notificationManagementService';
 import { supabase } from '../../services/supabaseClient';
 import ThemedText from '../../components/common/ThemedText';
 
@@ -41,6 +42,11 @@ const OnboardingNotificationSetupScreen = () => {
   const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
   const { userType, tier } = (route.params as RouteParams) || {};
   
+  // Enterprise-grade state management
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown');
+  const [setupStep, setSetupStep] = useState<'preferences' | 'permissions' | 'complete'>('preferences');
+  
   // Derive display name for welcome message
   const displayName =
     ((user as any)?.user_metadata?.full_name as string | undefined)?.trim() ||
@@ -54,6 +60,22 @@ const OnboardingNotificationSetupScreen = () => {
       refreshSubscription();
     }
   }, [user?.id, refreshSubscription]);
+
+  // Enterprise-grade permission status checking
+  useEffect(() => {
+    const checkPermissionStatus = async () => {
+      try {
+        setPermissionStatus('checking');
+        const hasPermissions = await pushNotificationService.checkPermissions();
+        setPermissionStatus(hasPermissions ? 'granted' : 'unknown');
+      } catch (error) {
+        console.error('Error checking notification permissions:', error);
+        setPermissionStatus('unknown');
+      }
+    };
+
+    checkPermissionStatus();
+  }, []);
 
   // Determine effective user type from subscription or route params
   const effectiveUserType = userType || (subscription?.tier === 'free_trial' ? 'trial' : 'freemium');

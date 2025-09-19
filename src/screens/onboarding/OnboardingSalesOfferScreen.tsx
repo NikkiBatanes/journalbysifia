@@ -148,6 +148,27 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
     
+    // Check for dynamic discount eligibility first
+    try {
+      const discount = await pricingService.getDynamicDiscount(
+        user?.id,
+        selectedTier,
+        isAnnual ? 'annual' : 'monthly'
+      );
+      
+      if (discount && !isUpgradeMode) {
+        console.log('[OnboardingSalesOffer] Showing dynamic discount:', discount);
+        setDynamicDiscount(discount);
+        setShowDynamicModal(true);
+        
+        // Track opt-out for future discount eligibility
+        await pricingService.trackOptOut(user?.id);
+        return;
+      }
+    } catch (error) {
+      console.error('[OnboardingSalesOffer] Error checking dynamic discount:', error);
+    }
+    
     // Always show trial if eligible for all flows (upgrade mode and feature locks)
     console.log('[OnboardingSalesOffer] handleClose - canOfferTrial:', canOfferTrial);
     if (canOfferTrial) {

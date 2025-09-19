@@ -66,22 +66,22 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   useEffect(() => {
     if (!visible) {return;}
 
-    // Start entrance animation
+    // Start entrance animation - FASTER for immediate feedback
     const entranceAnimation = Animated.parallel([
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 600,
+        duration: 300, // Reduced from 600ms to 300ms
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 400,
+        duration: 200, // Reduced from 400ms to 200ms
         useNativeDriver: true,
       }),
       Animated.spring(scale, {
         toValue: 1,
-        tension: 100,
-        friction: 8,
+        tension: 150, // Increased tension for snappier animation
+        friction: 6, // Reduced friction for faster response
         useNativeDriver: true,
       }),
     ]);
@@ -110,17 +110,17 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       const isCompletion = at.includes('action_step_completed') || at.includes('playbook_completed');
       const isBigAward = isCompletion || points >= 20;
 
-      // For prayer_for_now, use a single light tap
+      // For prayer_for_now, use a single light tap - IMMEDIATE
       if (at === 'prayer_for_now') {
-        h1 = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 160);
+        h1 = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 50); // Reduced from 160ms
       } else if (isBigAward) {
-        // Heavy hit, then success pulse
-        h1 = setTimeout(() => { try { triggerHeavyHaptic(); } catch {} }, 140);
-        h2 = setTimeout(() => { try { triggerSuccessHaptic(); } catch {} }, 260);
+        // Heavy hit, then success pulse - FASTER
+        h1 = setTimeout(() => { try { triggerHeavyHaptic(); } catch {} }, 50); // Reduced from 140ms
+        h2 = setTimeout(() => { try { triggerSuccessHaptic(); } catch {} }, 150); // Reduced from 260ms
       } else {
-        // Medium + light double-tap
-        h1 = setTimeout(() => { try { triggerMediumHaptic(); } catch {} }, 140);
-        h2 = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 220);
+        // Medium + light double-tap - SNAPPIER
+        h1 = setTimeout(() => { try { triggerMediumHaptic(); } catch {} }, 50); // Reduced from 140ms
+        h2 = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 120); // Reduced from 220ms
       }
     } catch {}
 

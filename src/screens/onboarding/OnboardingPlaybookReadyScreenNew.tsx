@@ -318,7 +318,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch (error) {
       console.log('Haptic feedback error:', error);
     }
-    navigation.navigate('OnboardingTrialSetup' as any);
+    navigation.navigate('OnboardingSalesOffer' as any);
   }, [navigation]);
 
   const toggleUserInput = useCallback(() => {
