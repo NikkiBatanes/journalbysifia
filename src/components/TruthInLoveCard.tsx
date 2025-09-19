@@ -103,7 +103,7 @@ export default function TruthInLoveCard({
             style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="heart" size={24} color={Colors.heartRed} style={styles.heartIcon} />
+            <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.heartIcon} />
             <ThemedText weight="bold" style={[styles.heading, { color: textColor }]}>Truth in Love</ThemedText>
           </TouchableOpacity>
           {/* Keep the info/insight button as a separate tap target */}

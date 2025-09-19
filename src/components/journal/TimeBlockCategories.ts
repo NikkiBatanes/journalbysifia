@@ -13,8 +13,8 @@ export const TIMEBLOCK_CATEGORIES: TimeBlockCategory[] = [
   { name: 'Church Activities', icon: 'people', color: Colors.alertCoral }, // Community activities
   { name: 'Deep Work', icon: 'code-working', color: Colors.clarityTeal }, // Focus and clarity
   { name: 'Events', icon: 'calendar-number', color: Colors.playbookBlue }, // Planning and events
-  { name: 'Family Time', icon: 'people-circle', color: Colors.heartRed }, // Love and family
-  { name: 'Life Admin', icon: 'document-text', color: Colors.journeyGray }, // Administrative tasks
+  { name: 'Family Time', icon: 'people-circle', color: Colors.alertCoral }, // Love and family
+  { name: 'Life Admin', icon: 'document-text', color: Colors.contemplationGray }, // Administrative tasks
   { name: 'Mental Health', icon: 'heart', color: Colors.treasureGold }, // Precious mental wellness
   { name: 'Ministry', icon: 'hand-left', color: Colors.devotionalPurple }, // Spiritual service
   { name: 'Personal Growth', icon: 'person', color: Colors.wisdomIndigo }, // Wisdom and growth

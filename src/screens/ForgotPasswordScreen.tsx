@@ -16,6 +16,7 @@ import {
 import { Colors } from '../theme/colors';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import ThemedText from '../components/common/ThemedText';
+import ThemedTextInput from '../components/common/ThemedTextInput';
 
 interface Props {
   navigation: any;
@@ -96,7 +97,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.inputContainer}>
               <View style={[styles.inputWrapper, emailError ? styles.inputError : null]}>
                 <Ionicons name="mail-outline" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
-                <TextInput
+                <ThemedTextInput
                   style={styles.textInput}
                   placeholder="Enter your email"
                   placeholderTextColor="rgba(255,255,255,0.5)"
