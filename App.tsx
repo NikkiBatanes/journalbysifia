@@ -8,16 +8,15 @@ import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, ActivityIndicator, StyleSheet, LogBox, Text as RNText, TextInput as RNTextInput } from 'react-native';
+import { View, StatusBar, StyleSheet, LogBox, Text as RNText, TextInput as RNTextInput, Image } from 'react-native';
 
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { Colors } from './src/theme/colors';
 import { ThemeProvider } from './src/theme/ThemeContext';
-import AppNavigator from './src/navigation/AppNavigator';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
@@ -37,7 +36,7 @@ import { PointsNotificationProvider } from './src/context/PointsNotificationCont
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import ErrorBoundary from './src/components/ErrorBoundary/ErrorBoundary';
+// Removed ErrorBoundary unused default import (no default export)
 import { queryClient } from './src/config/queryClientConfig';
 import { trialExpiryService } from './src/services/TrialExpiryService';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
@@ -72,6 +71,22 @@ import { useAuth } from './src/context/IndustryStandardAuthContext';
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
 
   const { isAuthenticated, bootstrapping } = useAuth();
+  const navigationRef = React.useRef<NavigationContainerRef<any> | null>(null);
+  const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(undefined);
+
+  const HIDE_NETWORK_ON = React.useMemo(() => new Set<string>([
+    'OnboardingSplash',
+    'TransformJourney',
+    'OnboardingWelcome',
+    'OnboardingPersonalization',
+    'OnboardingPlaybookGeneration',
+    'OnboardingPlaybookReady',
+    'OnboardingSalesOffer',
+    'OnboardingTrialOffer',
+    'OnboardingPaymentProcessing',
+    'OnboardingPaymentConfirmation',
+    'OnboardingNotificationSetup',
+  ]), []);
 
   useEffect(() => {
     // Initialize app-level services
@@ -88,13 +103,33 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   if (!fontsLoaded || bootstrapping) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.anchorBlue} />
+        <Image
+          source={require('./assets/icons/siFiaTransparent.png')}
+          style={styles.loadingLogo}
+          resizeMode="contain"
+        />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={(ref) => {
+        navigationRef.current = ref;
+      }}
+      onReady={() => {
+        try {
+          const name = navigationRef.current?.getCurrentRoute()?.name;
+          setCurrentRouteName(name);
+        } catch {}
+      }}
+      onStateChange={() => {
+        try {
+          const name = navigationRef.current?.getCurrentRoute()?.name;
+          setCurrentRouteName(name);
+        } catch {}
+      }}
+    >
       <GestureHandlerRootView style={styles.gestureHandler}>
 
 
@@ -108,8 +143,6 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
                   <PointsNotificationProvider>
                     <LogoutContext.Provider value={{ onLogout: async () => {} }}>
                       <AuthStateMonitor>
-                      {/* OnboardingIntegration temporarily disabled to fix email registration flow */}
-                      {/* <OnboardingIntegration> */}
                         <RootStackNavigator
                           isAuthenticated={isAuthenticated}
                           handleLogin={async () => {}}
@@ -117,8 +150,9 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
                           onLogin={async () => {}}
                           AuthStack={AuthStackNavigator}
                         />
-                        <NetworkStatus />
-                      {/* </OnboardingIntegration> */}
+                        {currentRouteName && !HIDE_NETWORK_ON.has(currentRouteName) ? (
+                          <NetworkStatus />
+                        ) : null}
                       </AuthStateMonitor>
                     </LogoutContext.Provider>
                   </PointsNotificationProvider>
@@ -140,7 +174,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
+  },
+  loadingLogo: {
+    width: 160,
+    height: 160,
+    marginBottom: 16,
   },
 });
 

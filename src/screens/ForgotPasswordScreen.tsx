@@ -15,6 +15,7 @@ import {
 
 import { Colors } from '../theme/colors';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import ThemedText from '../components/common/ThemedText';
 
 interface Props {
   navigation: any;
@@ -75,38 +76,30 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBackToLogin}
-            >
-              <Ionicons name="arrow-back" size={24} color={Colors.darkGray} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Reset Password</Text>
-            <View style={styles.placeholder} />
+          {/* Header - Centered without back button */}
+          <View style={styles.headerCentered}>
+            <ThemedText weight="semiBold" style={styles.headerTitle}>Reset Password</ThemedText>
           </View>
 
           {/* Content */}
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              <Ionicons name="lock-closed-outline" size={60} color={Colors.faithGold} />
+              <Ionicons name="lock-closed-outline" size={60} color={Colors.alertCoral} />
             </View>
 
-            <Text style={styles.title}>Forgot Password?</Text>
-            <Text style={styles.subtitle}>
+            <ThemedText weight="bold" style={styles.title}>Forgot Password?</ThemedText>
+            <ThemedText style={styles.subtitle}>
               Enter your email address and we'll send you instructions to reset your password.
-            </Text>
+            </ThemedText>
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email Address</Text>
               <View style={[styles.inputWrapper, emailError ? styles.inputError : null]}>
-                <Ionicons name="mail-outline" size={20} color={Colors.textGray} style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter your email"
-                  placeholderTextColor={Colors.textGray}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -128,16 +121,16 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleResetPassword}
               disabled={loading}
             >
-              <Text style={styles.resetButtonText}>
+              <ThemedText weight="semiBold" style={styles.resetButtonText}>
                 {loading ? 'Sending...' : 'Send Reset Instructions'}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
 
             {/* Back to Login */}
             <TouchableOpacity style={styles.backToLoginButton} onPress={handleBackToLogin}>
-              <Text style={styles.backToLoginText}>
-                Remember your password? <Text style={styles.linkText}>Login</Text>
-              </Text>
+              <ThemedText style={styles.backToLoginText}>
+                Remember your password? <ThemedText weight="semiBold" style={styles.linkText}>Login</ThemedText>
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -149,7 +142,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -157,24 +150,16 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
   },
-  header: {
-    flexDirection: 'row',
+  headerCentered: {
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
   },
-  backButton: {
-    padding: 8,
-  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.darkGray,
-  },
-  placeholder: {
-    width: 40,
+    color: Colors.hopeWhite,
   },
   content: {
     flex: 1,
@@ -188,13 +173,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 15,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.textGray,
+    color: Colors.holyGlow,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
@@ -205,21 +190,21 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 15,
     height: 56,
   },
   inputError: {
-    borderColor: Colors.error,
+    borderColor: Colors.alertCoral,
   },
   inputIcon: {
     marginRight: 12,
@@ -227,15 +212,15 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 16,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
   },
   errorText: {
-    color: Colors.error,
+    color: Colors.alertCoral,
     fontSize: 14,
     marginTop: 5,
   },
   resetButton: {
-    backgroundColor: Colors.faithGold,
+    backgroundColor: Colors.alertCoral,
     borderRadius: 12,
     height: 56,
     justifyContent: 'center',
@@ -256,10 +241,10 @@ const styles = StyleSheet.create({
   },
   backToLoginText: {
     fontSize: 16,
-    color: Colors.textGray,
+    color: Colors.holyGlow,
   },
   linkText: {
-    color: Colors.faithGold,
+    color: Colors.alertCoral,
     fontWeight: '600',
   },
 });

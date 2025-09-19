@@ -162,7 +162,10 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
           <TouchableOpacity 
             style={styles.forgotPassword} 
-            onPress={() => triggerLightHaptic()}
+            onPress={() => {
+              triggerLightHaptic();
+              navigation.navigate('ForgotPassword');
+            }}
           >
             <ThemedText style={styles.forgotPasswordText}>Forgot Password?</ThemedText>
           </TouchableOpacity>

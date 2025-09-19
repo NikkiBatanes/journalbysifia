@@ -24,8 +24,11 @@ interface AuthContextType {
   loading: boolean;
   bootstrapping: boolean;
   isAuthenticated: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: SupabaseAuthError | null }>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => Promise<{ error: SupabaseAuthError | null }>;
+  resetPassword: (email: string) => Promise<{ error: SupabaseAuthError | null }>;
+  updatePassword: (newPassword: string, accessToken?: string) => Promise<{ error: SupabaseAuthError | null }>;
   updateProfile: (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
   updatePreferences: (preferences: any) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
   signInWithGoogle: () => Promise<{ error: SupabaseAuthError | null }>;
@@ -515,19 +518,77 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const resetPassword = async (email: string) => {
     try {
+      console.log('🔑 Starting password reset for:', email);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.toLowerCase().trim(),
         {
           redirectTo: 'sifia://reset-password',
+          // Enterprise-grade email configuration
+          captchaToken: undefined, // Can be added for additional security
         }
       );
 
-      return { error };
+      if (error) {
+        console.error('❌ Password reset failed:', error);
+        return { error };
+      }
+
+      console.log('✅ Password reset email sent successfully');
+      return { error: null };
     } catch (error) {
-      console.error('Reset password error:', error);
+      console.error('💥 Password reset error:', error);
       return {
         error: {
           message: 'An unexpected error occurred during password reset',
+          status: 500,
+        } as SupabaseAuthError,
+      };
+    }
+  };
+
+  const updatePassword = async (newPassword: string, accessToken?: string) => {
+    try {
+      console.log('🔑 Starting password update process...');
+      
+      // If we have an access token (from reset link), use it
+      if (accessToken) {
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+        
+        if (error) {
+          console.error('❌ Password update failed:', error);
+          return { error };
+        }
+      } else {
+        // Regular password update for authenticated user
+        if (!authState.user) {
+          return {
+            error: {
+              message: 'User not authenticated',
+              status: 401,
+            } as SupabaseAuthError,
+          };
+        }
+
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+        if (error) {
+          console.error('❌ Password update failed:', error);
+          return { error };
+        }
+      }
+
+      console.log('✅ Password updated successfully');
+      return { error: null };
+    } catch (error) {
+      console.error('💥 Password update error:', error);
+      return {
+        error: {
+          message: 'An unexpected error occurred during password update',
           status: 500,
         } as SupabaseAuthError,
       };
@@ -889,8 +950,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     loading: authState.loading,
     bootstrapping: authState.bootstrapping,
     isAuthenticated: authState.isAuthenticated,
+    signIn,
     signOut,
     signUp,
+    resetPassword,
+    updatePassword,
     updateProfile,
     updatePreferences,
     signInWithGoogle,
