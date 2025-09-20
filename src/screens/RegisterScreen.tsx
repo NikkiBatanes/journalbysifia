@@ -223,14 +223,24 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <ThemedText weight="medium" style={styles.buttonText}>Continue with Email</ThemedText>
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Login Link */}
-      <View style={styles.loginContainer}>
-        <ThemedText style={styles.loginText}>Already a member? </ThemedText>
-        <TouchableOpacity onPress={handleSignIn}>
-          <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
-        </TouchableOpacity>
+        {/* Login Link */}
+        <View style={styles.loginContainer}>
+          <ThemedText style={styles.loginText}>Already a member? </ThemedText>
+          <TouchableOpacity onPress={handleSignIn}>
+            <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Terms and Privacy */}
+        <View style={styles.termsContainer}>
+          <ThemedText style={styles.termsText}>
+            By continuing, you agree to our{' '}
+            <ThemedText style={styles.termsLink}>Terms of Service</ThemedText>
+            {' '}and{' '}
+            <ThemedText style={styles.termsLink}>Privacy Policy</ThemedText>
+          </ThemedText>
+        </View>
       </View>
     </View>
   );
@@ -243,7 +253,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
-    justifyContent: 'space-between',
   },
   contentContainer: {
     flex: 1,
@@ -424,8 +433,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 'auto',
     paddingTop: 20,
+    paddingBottom: 0,
   },
   loginText: {
     color: Colors.holyGlow,
@@ -456,6 +465,25 @@ const styles = StyleSheet.create({
   },
   errorIconMargin: {
     marginRight: 8,
+  },
+  termsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 16,
+    paddingHorizontal: 8,
+  },
+  termsText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontFamily: Fonts.system.regular,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  termsLink: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontFamily: Fonts.system.medium,
+    textDecorationLine: 'underline',
   },
 });
 

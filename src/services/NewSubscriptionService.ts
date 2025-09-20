@@ -173,9 +173,14 @@ export class NewSubscriptionService {
       playbooks_limit: limits.playbooks_limit,
       devotionals_limit: limits.devotionals_limit,
       smart_journaling_enabled: limits.smart_journaling_enabled,
-      platform: platform,
       updated_at: new Date().toISOString()
     };
+
+    // Temporarily skip platform field to avoid schema issues
+    // TODO: Re-enable once database schema is updated
+    // if (platform) {
+    //   updateData.platform = platform;
+    // }
 
     // Reset usage counters when upgrading from seeker (onboarding playbook shouldn't count)
     if (from_tier === 'seeker') {
@@ -207,6 +212,15 @@ export class NewSubscriptionService {
       .single();
 
     if (error) {
+      // Handle specific schema cache errors
+      if (error.message?.includes('Could not find') && error.message?.includes('platform')) {
+        console.error('❌ Database schema issue: platform column not found. Please apply the subscription schema.');
+        throw new SubscriptionError(
+          'Database schema not up to date. Please contact support.',
+          'SCHEMA_ERROR',
+          error
+        );
+      }
       throw new SubscriptionError(`Failed to upgrade subscription: ${error.message}`, 'UPGRADE_ERROR', error);
     }
 

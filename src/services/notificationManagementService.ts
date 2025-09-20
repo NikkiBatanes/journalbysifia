@@ -109,6 +109,7 @@ class NotificationManagementService {
       // Map the interface to match the actual database schema
       const dbPreferences = {
         user_id: preferences.user_id,
+        notification_type: 'user_preferences', // Add required notification_type field
         push_enabled: true,
         prayer_reminders: preferences.prayer_reminders ?? true,
         prayer_requests: preferences.prayer_request_alerts ?? true,

@@ -12,8 +12,14 @@ let PushNotificationIOS: any = null;
 if (Platform.OS === 'ios') {
   try {
     PushNotificationIOS = require('@react-native-community/push-notification-ios');
+    // Verify the module has the required methods
+    if (!PushNotificationIOS || typeof PushNotificationIOS.checkPermissions !== 'function') {
+      console.warn('[PushNotification] PushNotificationIOS methods not available');
+      PushNotificationIOS = null;
+    }
   } catch (error) {
     console.warn('[PushNotification] PushNotificationIOS not available:', error);
+    PushNotificationIOS = null;
   }
 }
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -140,8 +146,8 @@ class PushNotificationService {
 
   async requestPermissions(): Promise<boolean> {
     try {
-      if (Platform.OS === 'ios' && PushNotificationIOS) {
-        // Check current permissions first (iOS will not re-prompt if previously denied)
+      if (Platform.OS === 'ios' && PushNotificationIOS && typeof PushNotificationIOS.checkPermissions === 'function') {
+        // Check current permissions first
         const current: any = await new Promise((resolve) =>
           PushNotificationIOS.checkPermissions((p: any) => resolve(p))
         );
@@ -151,37 +157,40 @@ class PushNotificationService {
         if (alreadyGranted) return true;
 
         // Request permissions
-        const requested = await PushNotificationIOS.requestPermissions({
-          alert: true,
-          badge: true,
-          sound: true,
-        });
-        console.log('[PushNotification] Requested iOS permissions result:', requested);
-
-        // Re-check to be safe
-        const after: any = await new Promise((resolve) =>
-          PushNotificationIOS.checkPermissions((p: any) => resolve(p))
-        );
-        console.log('[PushNotification] After-request iOS permissions:', after);
-        return !!(after?.alert || after?.badge || after?.sound);
+        if (typeof PushNotificationIOS.requestPermissions === 'function') {
+          const requested = await PushNotificationIOS.requestPermissions({
+            alert: true,
+            badge: true,
+            sound: true,
+          });
+          console.log('[PushNotification] Requested iOS permissions result:', requested);
+          return !!(requested?.alert || requested?.badge || requested?.sound);
+        }
       }
-      // Android permissions are handled automatically
+      // Android or fallback
+      console.log('[PushNotification] Using fallback permissions (iOS module not available)');
       return true;
     } catch (error) {
       console.error('[PushNotification] Permission request error:', error);
-      return false;
+      return true; // Return true to not block onboarding
     }
   }
 
   async checkPermissions(): Promise<any> {
-    if (Platform.OS === 'ios' && PushNotificationIOS) {
-      return new Promise((resolve) => {
-        PushNotificationIOS.checkPermissions((permissions: any) => {
-          resolve(permissions);
+    try {
+      if (Platform.OS === 'ios' && PushNotificationIOS && typeof PushNotificationIOS.checkPermissions === 'function') {
+        return new Promise((resolve) => {
+          PushNotificationIOS.checkPermissions((permissions: any) => {
+            resolve(permissions);
+          });
         });
-      });
-    } else {
-      // Android: Check if notifications are enabled
+      } else {
+        // Android or iOS without PushNotificationIOS: Return default permissions
+        console.log('[PushNotification] Using default permissions (PushNotificationIOS not available)');
+        return { alert: true, badge: true, sound: true };
+      }
+    } catch (error) {
+      console.warn('[PushNotification] Error checking permissions, using defaults:', error);
       return { alert: true, badge: true, sound: true };
     }
   }
