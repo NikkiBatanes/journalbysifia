@@ -37,7 +37,34 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
   };
 
   // Don't show anything if online and no pending actions
+  // Also don't show brief offline states (less than 2 seconds)
   if (isOnline && syncStatus.pendingActions === 0 && !showDetails) {
+    return null;
+  }
+
+  // Don't show offline status immediately - wait a bit to avoid flickering
+  const [showOfflineStatus, setShowOfflineStatus] = React.useState(false);
+  
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (!isOnline) {
+      // Show offline status after 1 second delay to avoid brief network hiccups
+      timer = setTimeout(() => {
+        setShowOfflineStatus(true);
+      }, 1000);
+    } else {
+      // Hide offline status immediately when back online
+      setShowOfflineStatus(false);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isOnline]);
+
+  // Don't render if offline but haven't waited long enough
+  if (!isOnline && !showOfflineStatus && !showDetails) {
     return null;
   }
 

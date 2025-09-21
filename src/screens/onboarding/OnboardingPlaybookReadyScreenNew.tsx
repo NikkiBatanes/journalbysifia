@@ -759,7 +759,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={0.9}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                // Close modal first, then show notification slightly after so it's not under the modal layer
+                // Close modal first, then show notification immediately
                 setShowIntroModal(false);
                 setTimeout(async () => {
                   try {
@@ -789,12 +789,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     }
                   }
                   
-                  // Start tutorial after points celebration is complete
+                  // Start tutorial after points celebration is complete (reduced delay)
                   setTimeout(() => {
                     setShowTutorial(true);
                     setTutorialStep(1);
-                  }, 2500); // Wait 2.5 seconds for points celebration to finish
-                }, 150);
+                  }, 1200); // Reduced from 2.5 seconds to 1.2 seconds
+                }, 50); // Reduced from 150ms to 50ms
               }}
             >
               <ThemedText weight="bold" style={styles.modalButtonText}>Explore My First Playbook</ThemedText>

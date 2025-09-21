@@ -110,7 +110,6 @@ class NotificationManagementService {
       const dbPreferences = {
         user_id: preferences.user_id,
         notification_type: 'user_preferences', // Add required notification_type field
-        push_enabled: true,
         prayer_reminders: preferences.prayer_reminders ?? true,
         prayer_requests: preferences.prayer_request_alerts ?? true,
         playbook_actions: preferences.playbook_steps ?? true,
@@ -123,15 +122,6 @@ class NotificationManagementService {
         streak_alerts: preferences.streak_alerts ?? true,
         milestone_celebrations: preferences.milestone_celebrations ?? true,
         trial_notifications: preferences.trial_notifications ?? true,
-        quiet_hours_enabled: true,
-        quiet_hours_start: preferences.quiet_hours_start ?? '22:00',
-        quiet_hours_end: preferences.quiet_hours_end ?? '07:00',
-        preferred_morning_time: '08:00',
-        preferred_afternoon_time: '12:00',
-        preferred_evening_time: '18:00',
-        max_daily_notifications: 5,
-        batch_notifications: false,
-        timezone: preferences.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
         updated_at: new Date().toISOString(),
       };
 

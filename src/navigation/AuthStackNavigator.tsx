@@ -17,8 +17,13 @@ interface AuthStackNavigatorProps {
 export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavigatorProps) {
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false }}
-      initialRouteName="Login"
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'slide_from_right',
+        animationDuration: 300,
+        gestureEnabled: true,
+      }}
+      initialRouteName="Register"
     >
       {/* Enhanced Authentication Screens */}
       <Stack.Screen

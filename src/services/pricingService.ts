@@ -239,19 +239,41 @@ class PricingService {
     tierId?: string | null,
     billing?: 'monthly' | 'annual'
   ): Promise<DynamicDiscount | null> {
+    console.log('[PricingService] getDynamicDiscount called:', { userId, tierId, billing });
+    
     const current = (await loadDiscountState(userId)) || null;
     const optOuts = current?.optOutCount ?? this.userOptOutCount;
     const redeemed = current?.redeemed ?? false;
+    
+    console.log('[PricingService] Discount state loaded:', {
+      current,
+      optOuts,
+      redeemed,
+      userOptOutCount: this.userOptOutCount
+    });
+    
     // Enable discount starting on the first opt-out
     if (optOuts < 1 || redeemed) {
+      console.log('[PricingService] ❌ Discount not eligible:', {
+        optOuts,
+        redeemed,
+        reason: optOuts < 1 ? 'Not enough opt-outs (need >= 1)' : 'Already redeemed'
+      });
       return null;
     }
 
     const period = billing || 'any';
     const key = tierId ? `${tierId}-${period}` : `default-${period}`;
 
+    console.log('[PricingService] Checking tier/billing combination:', {
+      key,
+      shownByTier: current?.shownByTier,
+      alreadyShown: !!(current?.shownByTier && current.shownByTier[key])
+    });
+
     // If this exact combo was already shown, do not show again
     if (current?.shownByTier && current.shownByTier[key]) {
+      console.log('[PricingService] ❌ Discount already shown for this tier/billing:', key);
       return null;
     }
 
@@ -396,6 +418,39 @@ class PricingService {
   resetOptOutTracking(): void {
     this.userOptOutCount = 0;
     this.lastOptOutTime = null;
+  }
+
+  /**
+   * Force increment opt-out count for testing dynamic discounts
+   */
+  async forceIncrementOptOut(userId?: string | null): Promise<void> {
+    console.log('[PricingService] 🧪 Force incrementing opt-out count for testing');
+    await this.trackOptOut(userId);
+    const current = await loadDiscountState(userId);
+    console.log('[PricingService] 🧪 New opt-out count:', current?.optOutCount);
+  }
+
+  /**
+   * Clear discount state for testing
+   */
+  async clearDiscountState(userId?: string | null): Promise<void> {
+    console.log('[PricingService] 🧪 Clearing discount state for testing');
+    try {
+      const { saveDiscountState } = await import('./discountStorage');
+      // Reset to initial state
+      const initialState = {
+        discountPolicyVersion: 1,
+        optOutCount: 0,
+        lastShownAt: null,
+        lastDiscountPct: null,
+        redeemed: false,
+        blockedUntil: null,
+      };
+      await saveDiscountState(initialState, userId);
+      console.log('[PricingService] 🧪 Discount state cleared and reset');
+    } catch (error) {
+      console.error('[PricingService] 🧪 Failed to clear discount state:', error);
+    }
   }
 
   /**

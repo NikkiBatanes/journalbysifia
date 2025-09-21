@@ -128,32 +128,42 @@ class NetworkManager {
    * Initialize network state listener
    */
   private initializeNetworkListener() {
-    // Set up NetInfo listener
+    let debounceTimer: NodeJS.Timeout | null = null;
+    
+    // Set up NetInfo listener with debouncing to prevent rapid state changes
     const unsubscribe = NetInfo.addEventListener((state) => {
       const isOnline = Boolean(state.isConnected && state.isInternetReachable);
 
-      console.log('🌐 Network state changed:', {
-        isConnected: state.isConnected,
-        isInternetReachable: state.isInternetReachable,
-        type: state.type,
-        isOnline,
-      });
-
-      // Update network store
-      useNetworkStore.getState().setNetworkState({
-        isOnline,
-        isConnected: Boolean(state.isConnected),
-        connectionType: state.type,
-        isInternetReachable: state.isInternetReachable,
-      });
-
-      // Notify listeners
-      this.listeners.forEach((listener) => listener(isOnline));
-
-      // Trigger sync when coming back online
-      if (isOnline && !this.syncInProgress) {
-        this.syncOfflineActions();
+      // Clear previous debounce timer
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
       }
+
+      // Debounce network state changes to prevent flickering during auth flows
+      debounceTimer = setTimeout(() => {
+        console.log('🌐 Network state changed (debounced):', {
+          isConnected: state.isConnected,
+          isInternetReachable: state.isInternetReachable,
+          type: state.type,
+          isOnline,
+        });
+
+        // Update network store
+        useNetworkStore.getState().setNetworkState({
+          isOnline,
+          isConnected: Boolean(state.isConnected),
+          connectionType: state.type,
+          isInternetReachable: state.isInternetReachable,
+        });
+
+        // Notify listeners
+        this.listeners.forEach((listener) => listener(isOnline));
+
+        // Trigger sync when coming back online
+        if (isOnline && !this.syncInProgress) {
+          this.syncOfflineActions();
+        }
+      }, 500); // 500ms debounce to prevent rapid UI changes
     });
 
     // Store unsubscribe function for cleanup

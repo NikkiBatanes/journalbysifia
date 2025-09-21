@@ -170,10 +170,11 @@ const OnboardingNotificationSetupScreen = () => {
             .from('notification_preferences')
             .upsert({
               user_id: user.id,
-              playbook_steps: enabledSettings.playbooks || false,
+              notification_type: 'user_preferences', // Required field
+              prayer_reminders: enabledSettings.prayer_reminders || false,
+              playbook_actions: enabledSettings.playbooks || false,
               devotional_reminders: enabledSettings.daily_devotional || false,
               journal_prompts: enabledSettings.journal_reminders || false,
-              prayer_reminders: enabledSettings.prayer_reminders || false,
               milestone_celebrations: enabledSettings.progress_updates || false,
               trial_notifications: enabledSettings.trial_reminders || false,
               updated_at: new Date().toISOString(),

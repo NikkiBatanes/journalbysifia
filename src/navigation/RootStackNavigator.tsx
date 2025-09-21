@@ -263,7 +263,17 @@ export default function RootStackNavigator({
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
         <>
-          <Stack.Screen name="Auth">{() => <AuthStack onLogin={handleLogin} />}</Stack.Screen>
+          <Stack.Screen 
+            name="Auth"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+              animationDuration: 300,
+              gestureEnabled: true,
+            }}
+          >
+            {() => <AuthStack onLogin={handleLogin} />}
+          </Stack.Screen>
         </>
       ) : (
         <>

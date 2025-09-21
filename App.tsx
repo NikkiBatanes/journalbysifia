@@ -86,6 +86,14 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     'OnboardingPaymentProcessing',
     'OnboardingPaymentConfirmation',
     'OnboardingNotificationSetup',
+    // Auth screens - hide network status during authentication
+    'Auth',
+    'Login',
+    'Register',
+    'EmailLogin',
+    'EmailRegister',
+    'ForgotPassword',
+    'ResetPassword',
   ]), []);
 
   useEffect(() => {

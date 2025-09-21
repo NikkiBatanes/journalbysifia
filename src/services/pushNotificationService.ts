@@ -14,11 +14,11 @@ if (Platform.OS === 'ios') {
     PushNotificationIOS = require('@react-native-community/push-notification-ios');
     // Verify the module has the required methods
     if (!PushNotificationIOS || typeof PushNotificationIOS.checkPermissions !== 'function') {
-      console.warn('[PushNotification] PushNotificationIOS methods not available');
+      console.log('[PushNotification] PushNotificationIOS methods not available - using fallback');
       PushNotificationIOS = null;
     }
   } catch (error) {
-    console.warn('[PushNotification] PushNotificationIOS not available:', error);
+    console.log('[PushNotification] PushNotificationIOS not available - using fallback:', (error as Error).message);
     PushNotificationIOS = null;
   }
 }
@@ -61,14 +61,14 @@ class PushNotificationService {
       // Configure push notifications
       PushNotification.configure({
         // Called when token is generated (iOS and Android)
-        onRegister: async (token) => {
+        onRegister: async (token: any) => {
           console.log('[PushNotification] Token received:', token);
           this.deviceToken = token.token;
           await this.saveDeviceToken(userId, token.token);
         },
 
         // Called when a remote notification is received while app is in foreground
-        onNotification: (notification) => {
+        onNotification: (notification: any) => {
           console.log('[PushNotification] Notification received:', notification);
           
           // Handle notification tap
@@ -83,12 +83,12 @@ class PushNotificationService {
         },
 
         // Called when user taps notification
-        onAction: (notification) => {
+        onAction: (notification: any) => {
           console.log('[PushNotification] Action received:', notification);
         },
 
         // Called when registration fails (Android)
-        onRegistrationError: (err) => {
+        onRegistrationError: (err: any) => {
           console.error('[PushNotification] Registration error:', err);
         },
 

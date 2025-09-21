@@ -133,16 +133,48 @@ export class NewSubscriptionService {
   static async startFreeTrial(options: TrialStartOptions): Promise<Subscription> {
     const { user_id, duration_days = 3, trial_chosen_tier } = options;
 
-    const { data, error } = await supabase.rpc('start_free_trial', {
-      target_user_id: user_id,
-      chosen_tier: trial_chosen_tier
-    });
+    try {
+      // Since the start_free_trial RPC function doesn't exist, implement manually
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + duration_days);
 
-    if (error) {
-      throw new SubscriptionError(`Failed to start trial: ${error.message}`, 'TRIAL_START_ERROR', error);
+      // Create or update subscription record with trial dates for proper expiry management
+      const trialTier = (trial_chosen_tier as SubscriptionTier) || 'spark';
+      const limits = this.getTierLimits(trialTier);
+      const subscriptionData = {
+        user_id: user_id,
+        status: 'trialing',
+        tier: trialTier,
+        trial_start_date: new Date().toISOString(),
+        trial_end_date: trialEndDate.toISOString(),
+        trial_chosen_tier: trialTier,
+        playbooks_limit: limits.playbooks_limit,
+        devotionals_limit: limits.devotionals_limit,
+        smart_journaling_enabled: limits.smart_journaling_enabled,
+        playbooks_used: 0,
+        devotionals_used: 0,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log('[NewSubscriptionService] Creating trial with data:', subscriptionData);
+
+      const { data, error } = await supabase
+        .from('user_subscriptions_new')
+        .upsert(subscriptionData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[NewSubscriptionService] Error creating trial subscription:', error);
+        throw new SubscriptionError(`Failed to start trial: ${error.message}`, 'TRIAL_START_ERROR', error);
+      }
+
+      console.log('[NewSubscriptionService] ✅ Trial subscription created:', data);
+      return await this.getUserSubscription(user_id);
+    } catch (error) {
+      console.error('[NewSubscriptionService] Error in startFreeTrial:', error);
+      throw new SubscriptionError(`Failed to start trial: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TRIAL_START_ERROR', error);
     }
-
-    return await this.getUserSubscription(user_id);
   }
 
   /**

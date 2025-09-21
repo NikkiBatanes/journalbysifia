@@ -183,6 +183,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const handleCreateAccount = async () => {
     triggerLightHaptic();
     setIsLoading(true);
+    
+    // Small delay for haptic feedback, then navigate immediately
     setTimeout(() => {
       if (isAuthenticated) {
         // If already authenticated, go to personalization
@@ -195,12 +197,14 @@ const OnboardingWelcomeScreen: React.FC = () => {
         navigation.navigate('Auth', { screen: 'Register' });
       }
       setIsLoading(false);
-    }, 500);
+    }, 100); // Reduced from 500ms to 100ms to minimize overlap
   };
 
   const handleLogin = async () => {
     triggerLightHaptic();
     setIsLoading(true);
+    
+    // Small delay for haptic feedback, then navigate immediately
     setTimeout(() => {
       if (isAuthenticated) {
         // If already authenticated, go to personalization
@@ -213,7 +217,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         navigation.navigate('Auth', { screen: 'Login' });
       }
       setIsLoading(false);
-    }, 500);
+    }, 100); // Reduced from 500ms to 100ms to minimize overlap
   };
 
   const renderSlide = ({ item }: { item: Slide }) => (
