@@ -620,7 +620,9 @@ const DevotionalsScreen = () => {
   );
 
   const totalDevotionalsAll = Array.isArray(devotionals) ? devotionals.length : 0;
-  const isTrulyEmpty = !isLoading && totalDevotionalsAll === 0;
+  // Treat screen as loading until BOTH queries have settled to avoid flashing the no-playbooks empty state
+  const isInitialLoading = isLoading || isLoadingPlaybooks;
+  const isTrulyEmpty = !isInitialLoading && totalDevotionalsAll === 0;
 
   // Prefetch detail data for visible items
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: Devotional }> }) => {
@@ -693,7 +695,7 @@ const DevotionalsScreen = () => {
 
       {/* Content area within BlueSheet for consistent blue background layout */}
       <BlueSheet style={styles.contentSheet}>
-        {isLoading ? (
+        {isInitialLoading ? (
           <View style={[styles.listContent, styles.pageInner]}>
             <DevotionalSkeleton />
           </View>
@@ -710,6 +712,8 @@ const DevotionalsScreen = () => {
               </View>
             )}
             stickySectionHeadersEnabled
+            scrollEnabled={!isTrulyEmpty}
+            bounces={!isTrulyEmpty}
             contentContainerStyle={
               isTrulyEmpty
                 ? styles.emptyListContent

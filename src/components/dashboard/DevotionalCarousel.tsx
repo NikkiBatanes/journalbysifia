@@ -532,7 +532,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
           </ThemedText>
           <ThemedText style={styles.heroSubtitle}>
             {hasPlaybooks
-              ? 'Long-press one of your playbooks to create a personalized devotional \nfrom it.'
+              ? 'Long-press one of your playbooks to create a personalized devotional from it.'
               : "Create a playbook for what you're facing, then build a daily devotional from it."}
           </ThemedText>
         </View>
