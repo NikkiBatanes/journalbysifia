@@ -1,7 +1,8 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useMemo, useState } from 'react';
 import { getFontFamily } from './fonts';
 import { defaultTheme } from './themes/default';
 import { Colors } from './colors';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 
 export type FontFamily = 'system' | 'lexend' | 'poppins' | 'nunito' | 'lora';
 
@@ -140,12 +141,33 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  // Always use default theme - no theme switching
-  const theme: Theme = {
+  // Dynamically determine the current font from user preferences (with safe defaults)
+  const { user } = useAuth();
+
+  // Extract the preferred font from user metadata (if available)
+  const preferredFont = useMemo(() => {
+    try {
+      const key = (user as any)?.user_metadata?.preferences?.font as FontFamily | undefined;
+      // Validate against supported keys
+      const allowed: FontFamily[] = ['system', 'lexend', 'poppins', 'nunito', 'lora'];
+      return allowed.includes((key as any)) ? (key as FontFamily) : ('lexend' as FontFamily);
+    } catch {
+      return 'lexend' as FontFamily;
+    }
+  }, [user]);
+
+  // Keep currentFont in state so updates propagate and trigger GlobalFontApplier
+  const [currentFont, setCurrentFont] = useState<FontFamily>('lexend');
+
+  useEffect(() => {
+    setCurrentFont(preferredFont);
+  }, [preferredFont]);
+
+  const theme: Theme = useMemo(() => ({
     ...defaultTheme,
-    currentFont: 'lexend',
-    fontFamily: getFontFamily('lexend'),
-  };
+    currentFont,
+    fontFamily: getFontFamily(currentFont),
+  }), [currentFont]);
 
   return (
     <ThemeContext.Provider value={theme}>
