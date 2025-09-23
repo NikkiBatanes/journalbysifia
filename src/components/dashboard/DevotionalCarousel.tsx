@@ -75,6 +75,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const scrollX = React.useRef(new Animated.Value(0)).current;
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const devotionalIdsRef = useRef<Set<string>>(new Set());
+  const [hasPlaybooks, setHasPlaybooks] = useState(false);
 
   const formatFinishedDate = (dateStr?: string): string | undefined => {
     if (!dateStr) { return undefined; }
@@ -96,13 +97,24 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       setLoading(true);
       setError(null);
 
-      // Fetch devotionals
-      const { data: devotionalsData, error: devotionalsError } = await supabase
-        .from('devotionals')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(10);
+      // Fetch devotionals and playbooks count in parallel
+      const [devotionalsQuery, playbooksCountQuery] = await Promise.all([
+        supabase
+          .from('devotionals')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('playbooks')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+      ]);
+
+      const devotionalsData = (devotionalsQuery.data ?? []) as any[];
+      const devotionalsError = devotionalsQuery.error;
+      const playbooksCount = (playbooksCountQuery as any)?.count ?? 0;
+      setHasPlaybooks((playbooksCount || 0) > 0);
 
       if (devotionalsError) {
         console.error('Error fetching devotionals:', devotionalsError);
@@ -512,10 +524,16 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             color="rgba(255,255,255,0.85)"
             style={styles.heroIcon}
           />
-          <ThemedText weight="semiBold" style={styles.heroOverline}>No Devotionals</ThemedText>
-          <ThemedText weight="bold" style={styles.heroTitle}>Start with Scripture</ThemedText>
+          <ThemedText weight="semiBold" style={styles.heroOverline}>
+            {hasPlaybooks ? 'No Devotionals Yet' : 'No Devotionals'}
+          </ThemedText>
+          <ThemedText weight="bold" style={styles.heroTitle}>
+            {hasPlaybooks ? 'Create a Devotional' : 'Start with Scripture'}
+          </ThemedText>
           <ThemedText style={styles.heroSubtitle}>
-            Create a playbook for what you're facing, then build a daily devotional from it.
+            {hasPlaybooks
+              ? 'Long-press one of your playbooks to create a personalized devotional \nfrom it.'
+              : "Create a playbook for what you're facing, then build a daily devotional from it."}
           </ThemedText>
         </View>
       </View>

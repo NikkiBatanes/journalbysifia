@@ -17,6 +17,7 @@ import DashboardScriptureSkeleton from '../SkeletonLoader/DashboardScriptureSkel
 import ThemedText from '../common/ThemedText';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BibleCopyrightModal } from '../BibleCopyrightModal';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface BibleVerse {
   id: string;
@@ -355,7 +356,10 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                 </ThemedText>
                 <TouchableOpacity
                   style={styles.infoIcon}
-                  onPress={() => setShowCopyright(true)}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setShowCopyright(true);
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Bible translation information"
                 >

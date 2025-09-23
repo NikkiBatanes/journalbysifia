@@ -23,6 +23,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import DashboardPlaybookSkeleton from '../SkeletonLoader/DashboardPlaybookSkeleton';
 import ThemedText from '../common/ThemedText';
+import DevotionalModal from '../DevotionalModal';
 
 const { width } = Dimensions.get('window');
 // Match ReflectionQuestionsCard sizing and spacing
@@ -38,6 +39,7 @@ interface Playbook {
   title: string;
   description?: string;
   content?: any;
+  userInput?: string;
   progress: number; // 0-100
   totalSteps: number;
   completedSteps: number;
@@ -71,6 +73,9 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   const playbookIdsRef = useRef<Set<string>>(new Set());
   const refetchTimeoutRef = useRef<any>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  // Devotional creation modal state (parity with PlaybookListScreen)
+  const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
+  const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<Playbook | null>(null);
 
   const fetchPlaybooks = useCallback(async () => {
     if (!user) {return;}
@@ -100,6 +105,16 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       const playbooksWithProgress = await Promise.all(
         playbooksData.map(async (playbook) => {
           try {
+            // Attempt to resolve original user input for devotional creation
+            let userInput: string | undefined = (playbook as any)?.user_input;
+            if (!userInput) {
+              try {
+                const parsedContent = playbook.content
+                  ? (typeof playbook.content === 'string' ? JSON.parse(playbook.content) : playbook.content)
+                  : null;
+                userInput = parsedContent?.userInput || parsedContent?.input?.userInput || undefined;
+              } catch {}
+            }
             // Prefer authoritative counts from playbook_action_steps
             // Total steps
             const { count: totalStepsCount, error: totalErr } = await supabase
@@ -165,6 +180,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               title: playbook.title,
               description: playbook.description,
               content: playbook.content,
+              userInput,
               progress: progressPercentage,
               totalSteps,
               completedSteps,
@@ -178,6 +194,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               title: playbook.title,
               description: playbook.description,
               content: playbook.content,
+              userInput: (playbook as any)?.user_input,
               progress: 0,
               totalSteps: 1,
               completedSteps: 0,
@@ -384,6 +401,11 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         triggerLightHaptic();
         onPlaybookPress?.(playbook);
       }}
+      onLongPress={() => {
+        try { triggerLightHaptic(); } catch {}
+        setSelectedPlaybookForDevotional(playbook);
+        setDevotionalModalVisible(true);
+      }}
       activeOpacity={0.85}
     >
       <Animated.View
@@ -542,6 +564,17 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           {playbooks.map((pb, i) => renderPlaybookCard(pb, i))}
         </Animated.ScrollView>
       )}
+      {/* Devotional creation modal triggered by long-press on a playbook card */}
+      <DevotionalModal
+        visible={devotionalModalVisible}
+        onClose={() => setDevotionalModalVisible(false)}
+        playbookId={selectedPlaybookForDevotional?.id}
+        userInput={selectedPlaybookForDevotional?.userInput}
+        onDevotionalCreated={(devotionalId: string) => {
+          setDevotionalModalVisible(false);
+          try { navigation.navigate('DevotionalDetail' as never, { devotionalId } as never); } catch {}
+        }}
+      />
     </View>
   );
 };
