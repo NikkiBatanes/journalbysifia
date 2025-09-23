@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardTintOnBlue: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#264674',
   },
   headerRow: {
     flexDirection: 'row',

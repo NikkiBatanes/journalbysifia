@@ -42,22 +42,15 @@ const AllScreensNavigationScreen: React.FC = () => {
       },
       {
         name: 'UserInput',
-        displayName: 'AI Assistant',
-        icon: 'robot',
+        displayName: 'User Input',
+        icon: 'chat-processing',
         iconType: 'MaterialCommunityIcons',
         category: 'User & Profile',
-        description: 'Chat with siFia AI assistant',
+        description: 'Open the user input screen',
       },
     ],
     'Spiritual Growth': [
-      {
-        name: 'StreakDetail',
-        displayName: 'Streak Details',
-        icon: 'fire',
-        iconType: 'MaterialCommunityIcons',
-        category: 'Spiritual Growth',
-        description: 'View prayer and devotional streaks',
-      },
+      // Streak Details removed; dashboard provides streak information
     ],
     'Playbook System': [
       {

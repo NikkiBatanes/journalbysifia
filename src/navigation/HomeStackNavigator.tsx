@@ -3,7 +3,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DashboardHomeScreen from '../screens/DashboardHomeScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
-import StreakDetailScreen from '../screens/StreakDetailScreen';
+// StreakDetailScreen removed; dashboard provides streak information
 
 const Stack = createNativeStackNavigator();
 
@@ -29,15 +29,7 @@ export default function HomeStackNavigator() {
           gestureEnabled: true,
         }}
       />
-      <Stack.Screen
-        name="StreakDetail"
-        component={StreakDetailScreen as React.ComponentType}
-        options={{
-          headerShown: false,
-          presentation: 'card',
-          animation: 'slide_from_right',
-        }}
-      />
+      {/* StreakDetail route removed */}
     </Stack.Navigator>
   );
 }

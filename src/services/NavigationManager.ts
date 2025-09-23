@@ -12,7 +12,6 @@ export type DashboardNavigationTarget =
   | 'devotional_detail'
   | 'journal_entry'
   | 'prayer_log'
-  | 'streak_detail'
   | 'analytics'
   | 'ai_insights'
   | 'verse_detail'
@@ -66,7 +65,7 @@ class NavigationManager {
       target,
       params,
       timestamp: new Date(),
-      userId: this.userId,
+      userId: this.userId || undefined,
       source,
     };
 
@@ -97,12 +96,7 @@ class NavigationManager {
         });
         break;
 
-      case 'streak_detail':
-        this.navigationRef.navigate('Analytics', {
-          tab: 'streaks',
-          streakType: params.streakType,
-        });
-        break;
+      // Removed streak_detail: streaks are handled on the dashboard
 
       case 'analytics':
         this.navigationRef.navigate('Analytics', params);
@@ -193,7 +187,7 @@ class NavigationManager {
     this.logNavigationEvent({
       target: 'playbook_detail', // placeholder
       timestamp: new Date(),
-      userId: this.userId,
+      userId: this.userId || undefined,
       source: 'manual',
     });
   }
@@ -284,8 +278,6 @@ export const dashboardNavigation = {
   toPrayer: () =>
     navigationManager.navigateTo('prayer_log', {}, 'dashboard'),
 
-  toStreakDetail: (streakType: string) =>
-    navigationManager.navigateTo('streak_detail', { streakType }, 'dashboard'),
 
   toAnalytics: () =>
     navigationManager.navigateTo('analytics', {}, 'dashboard'),
