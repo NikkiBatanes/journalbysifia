@@ -19,13 +19,14 @@ import {
   Image,
   ActionSheetIOS,
 } from 'react-native';
-// Removed lucide-react-native to avoid module resolution issues; using Ionicons instead
+import { Pencil as LuPencil } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { initSound, releaseSound } from '../utils/soundUtils';
 
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { authApi } from '../services/authApi';
 import { supabase } from '../services/supabaseClient';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
@@ -76,7 +77,6 @@ interface ProfileStats {
   faithPoints: number;
   level: number;
   totalBadges: number;
-  currentStreak: number;
   goalsCompleted: number;
   devotionalsFinished: number;
   prayerSessions: number;
@@ -84,7 +84,7 @@ interface ProfileStats {
 }
 
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, signOut, updatePreferences, updateProfile } = useAuth();
+  const { user, session, signOut, updatePreferences, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
@@ -112,6 +112,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [profileForm, setProfileForm] = useState({
     firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name || '',
     lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name || '',
+    birthYear: (user as any)?.user_metadata?.birth_year || '',
   });
 
   // Helpers: Quiet Hours formatting and pickers
@@ -262,6 +263,62 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   // Modal states
   const [editProfileModal, setEditProfileModal] = useState(false);
+  const [deleteAccountModal, setDeleteAccountModal] = useState(false);
+  const [deleteBirthYear, setDeleteBirthYear] = useState<string>('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [yearPickerModal, setYearPickerModal] = useState(false);
+  // Delete Account helpers
+  const isValidBirthYear = useMemo(() => {
+    if (!deleteBirthYear) return false;
+    const yr = parseInt(deleteBirthYear, 10);
+    const now = new Date().getFullYear();
+    return /^(19|20)\d{2}$/.test(deleteBirthYear) && yr >= 1900 && yr <= now;
+  }, [deleteBirthYear]);
+
+  const handleConfirmDeleteAccount = useCallback(async () => {
+    try {
+      try { triggerLightHaptic(); } catch {}
+      if (!isValidBirthYear) {
+        Alert.alert('Enter valid year', 'Please enter your birth year (YYYY) to continue.');
+        return;
+      }
+      setIsDeletingAccount(true);
+      try {
+        // Get access token (fallback if session is missing)
+        let accessToken = session?.access_token as string | undefined;
+        if (!accessToken) {
+          const { data } = await supabase.auth.getSession();
+          accessToken = data.session?.access_token;
+        }
+
+        if (!accessToken) {
+          Alert.alert('Deletion unavailable', 'No active session found. Please sign in again and retry.');
+          return;
+        }
+
+        const result = await authApi.deleteAccount(accessToken);
+
+        if (result.success) {
+          setDeleteAccountModal(false);
+          setEditProfileModal(false);
+          Alert.alert('Account deleted', 'Your account has been deleted.');
+          await signOut();
+        } else {
+          const msg = result.error?.message || '';
+          // Common case: admin.deleteUser not allowed from client SDK
+          const hint = msg.toLowerCase().includes('admin') || msg.toLowerCase().includes('permission')
+            ? '\n\nTip: This action requires a server-side function. We will wire this to a secure Edge Function.'
+            : '';
+          Alert.alert('Deletion failed', (msg || 'Unable to delete account at this time.') + hint);
+        }
+      } catch (e: any) {
+        const msg = e?.message || 'Unable to delete account at this time.';
+        Alert.alert('Deletion failed', msg);
+      } finally {
+        setIsDeletingAccount(false);
+      }
+    } catch {}
+  }, [isValidBirthYear, session?.access_token, signOut]);
   // Personalization toggles
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
@@ -1005,7 +1062,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         firstName = firstName || parts[0] || '';
         lastName = lastName || (parts.slice(1).join(' ') || '');
       }
-      setProfileForm({ firstName, lastName });
+      setProfileForm(prev => ({ ...prev, firstName, lastName }));
 
       // Load preferences from user metadata if available
       const userPreferences = (user as any)?.user_metadata?.preferences;
@@ -1038,12 +1095,25 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       const first = (profileForm as any).firstName?.trim() || '';
       const last = (profileForm as any).lastName?.trim() || '';
       const full = [first, last].filter(Boolean).join(' ').trim();
+      const birthYear = String((profileForm as any).birthYear || '').trim();
+
+      // Validate birth year if provided
+      if (birthYear) {
+        const now = new Date().getFullYear();
+        const yr = parseInt(birthYear, 10);
+        const valid = /^(19|20)\d{2}$/.test(birthYear) && yr >= 1900 && yr <= now;
+        if (!valid) {
+          Alert.alert('Invalid birth year', 'Please enter a valid 4-digit birth year (e.g., 1995).');
+          return;
+        }
+      }
 
       // Persist to Supabase auth user_metadata via context
       const result = await (updateProfile as any)({
         full_name: full || undefined,
         first_name: first || undefined,
         last_name: last || undefined,
+        birth_year: birthYear || undefined,
       });
 
       if (result?.success === false) {
@@ -1245,7 +1315,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         stats={{
           faithPoints: profileStats?.faithPoints ?? 0,
           level: profileStats?.level ?? 1,
-          streakDays: profileStats?.currentStreak ?? 0,
           badgesCount: profileStats?.totalBadges ?? 0,
         }}
         onEditPress={() => { try { triggerLightHaptic(); } catch {}; setEditProfileModal(true); }}
@@ -1833,7 +1902,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 accessibilityLabel="Change profile photo"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="pencil" size={16} color={Colors.alertCoral} />
+                <LuPencil size={16} color={Colors.alertCoral} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1858,10 +1927,146 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               />
             </View>
           </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.sectionLabel, font]}>BIRTH YEAR</Text>
+            <TouchableOpacity
+              style={styles.yearSelector}
+              onPress={() => { try { triggerLightHaptic(); } catch {}; setYearPickerModal(true); }}
+            >
+              <Text style={[styles.yearSelectorText, font]}>
+                {(profileForm as any).birthYear || 'Select year'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={Colors.textGray} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Danger zone */}
+          <View style={{ marginTop: 12 }}>
+            <Text style={[styles.sectionLabel, font]}>DANGER ZONE</Text>
+            <TouchableOpacity
+              onPress={() => { try { triggerLightHaptic(); } catch {}; setDeleteAccountModal(true); }}
+              style={{
+                backgroundColor: 'rgba(255,107,107,0.12)',
+                borderWidth: 1,
+                borderColor: Colors.alertCoral,
+                borderRadius: 14,
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Delete account"
+            >
+              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} style={{ marginRight: 8 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Delete Account</Text>
+                <Text style={[{ color: Colors.textGray, fontSize: 12, marginTop: 4 }, font]}>This will permanently delete your account and data.</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </Modal>
   );
+
+  // Delete Account Confirmation Modal
+  const renderDeleteAccountModal = () => (
+    <Modal
+      visible={deleteAccountModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setDeleteAccountModal(false)}
+    >
+      <SafeAreaView edges={['top']} style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setDeleteAccountModal(false); }}>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, font]}>Delete Account</Text>
+          <View style={{ width: 48 }} />
+        </View>
+
+        <View style={styles.modalContent}>
+          <Text style={[styles.settingDescription, font]}>For security, please confirm your birth year to proceed with account deletion.</Text>
+          <View style={styles.nameContainer}>
+            <TextInput
+              style={[styles.nameField, font]}
+              value={deleteBirthYear}
+              onChangeText={setDeleteBirthYear}
+              placeholder="Birth year (YYYY)"
+              placeholderTextColor={Colors.textGray}
+              keyboardType="number-pad"
+              maxLength={4}
+            />
+          </View>
+          <Text style={[{ color: Colors.textGray, fontSize: 12, marginTop: 6 }, font]}>Enter a valid 4-digit year to continue.</Text>
+          <TouchableOpacity
+            onPress={handleConfirmDeleteAccount}
+            style={{
+              marginTop: 16,
+              backgroundColor: !isValidBirthYear || isDeletingAccount ? 'rgba(255,107,107,0.3)' : Colors.alertCoral,
+              borderRadius: 12,
+              paddingVertical: 12,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>{isDeletingAccount ? 'Deleting...' : 'Delete my account'}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  // Year Picker Modal
+  const renderYearPickerModal = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let year = currentYear; year >= 1900; year--) {
+      years.push(year);
+    }
+
+    return (
+      <Modal
+        visible={yearPickerModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setYearPickerModal(false)}
+      >
+        <SafeAreaView edges={['top']} style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setYearPickerModal(false); }}>
+              <Text style={[styles.cancelText, font]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, font]}>Select Birth Year</Text>
+            <View style={{ width: 48 }} />
+          </View>
+
+          <ScrollView style={styles.yearPickerList} showsVerticalScrollIndicator={false}>
+            {years.map((year) => {
+              const isSelected = String(year) === (profileForm as any).birthYear;
+              return (
+                <TouchableOpacity
+                  key={year}
+                  style={[styles.yearOption, isSelected && styles.yearOptionSelected]}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setProfileForm({ ...profileForm, birthYear: String(year) });
+                    setYearPickerModal(false);
+                  }}
+                >
+                  <Text style={[styles.yearOptionText, isSelected && styles.yearOptionTextSelected, font]}>
+                    {year}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    );
+  };
 
   const renderWeekStartModal = () => (
     <Modal
@@ -1890,8 +2095,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           
           <View style={styles.weekStartOptions}>
             {[
-              { key: 'sunday', label: 'Sunday', description: 'Traditional week start' },
-              { key: 'monday', label: 'Monday', description: 'ISO standard week start' },
+              { key: 'sunday', label: 'Sunday', description: '' },
+              { key: 'monday', label: 'Monday', description: '' },
               { key: 'tuesday', label: 'Tuesday', description: '' },
               { key: 'wednesday', label: 'Wednesday', description: '' },
               { key: 'thursday', label: 'Thursday', description: '' },
@@ -2213,6 +2418,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       {renderEditProfileModal()}
+      {renderDeleteAccountModal()}
+      {renderYearPickerModal()}
       {renderWeekStartModal()}
       {renderBibleVersionModal()}
       {renderAppearanceModal()}
@@ -2314,14 +2521,15 @@ const styles = StyleSheet.create({
   },
   modalEditAvatarButton: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: -1,
+    right: -1,
     backgroundColor: Colors.hopeWhite,
     width: 28,
     height: 28,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 0,
   },
   profileInfo: {
     flex: 1,
@@ -2945,6 +3153,42 @@ const styles = StyleSheet.create({
   weekStartOptionDescription: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
+  },
+  yearSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  yearSelectorText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  yearPickerList: {
+    maxHeight: 300,
+  },
+  yearOption: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  yearOptionSelected: {
+    backgroundColor: 'rgba(255,107,107,0.15)',
+  },
+  yearOptionText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+  },
+  yearOptionTextSelected: {
+    color: Colors.alertCoral,
+    fontWeight: '600',
   },
   // Removed test button styles
 });
