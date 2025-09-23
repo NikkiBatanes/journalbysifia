@@ -39,6 +39,7 @@ import {
   triggerErrorHaptic,
 } from '../../utils/haptics';
 import { PrayerStyleSelectionModal } from '../modals/PrayerStyleSelectionModal';
+import type { PluginFilters } from '../../systems/journal/types';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -266,6 +267,7 @@ interface PrayerJournalProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  filters?: PluginFilters;
 }
 
 export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
@@ -274,6 +276,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   viewMode,
   expanded,
   onExpand,
+  filters,
 }) => {
   // Global edit mode context (only for inline view)
   const globalEditMode = useEditModeSafe();
@@ -325,8 +328,56 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }));
   }, [prayerEntries]);
 
+  // Map filters to local type keys used by this component
+  const allowedTypeKeysFromFilters = useMemo(() => {
+    if (!filters) return undefined as string[] | undefined;
+    const allowed = filters.allowedJournalCategories || [];
+    const mapped: string[] = [];
+    allowed.forEach((c) => {
+      const s = (c || '').toLowerCase();
+      if (s === 'supplication') mapped.push('supplication');
+      if (s === 'personal_prayer' || s === 'open' || s === 'open_prayer' || s === 'freeform') mapped.push('freeform');
+    });
+    return mapped.length > 0 ? mapped : undefined;
+  }, [filters]);
+
+  // Derive the prayers to actually display according to filters
+  const displayPrayers = useMemo(() => {
+    let list = [...existingPrayers];
+    if (filters) {
+      // Exclude unwanted categories (acts types)
+      if (filters.excludeJournalCategories && filters.excludeJournalCategories.length > 0) {
+        const exclude = new Set(filters.excludeJournalCategories.map(s => (s || '').toLowerCase()));
+        list = list.filter(p => !exclude.has(p.type === 'freeform' ? 'personal_prayer' : p.type));
+      }
+      // Allowed categories (filter-in)
+      if (allowedTypeKeysFromFilters && allowedTypeKeysFromFilters.length > 0) {
+        const allow = new Set(allowedTypeKeysFromFilters);
+        list = list.filter(p => allow.has(p.type));
+      }
+      // Answered-only
+      if (filters.answeredOnly === true) {
+        list = list.filter(p => !!p.is_answered || p.status === 'answered' || !!p.answered_at);
+      }
+      if (filters.answeredOnly === false) {
+        list = list.filter(p => !(p.is_answered || p.status === 'answered' || !!p.answered_at));
+      }
+    }
+    return list;
+  }, [existingPrayers, filters, allowedTypeKeysFromFilters]);
+
+  // Debug: log how many prayers will be displayed under current filters
+  React.useEffect(() => {
+    console.log('🙏 [PrayerJournal] Filters applied:', {
+      hasFilters: !!filters,
+      filters,
+      existingCount: existingPrayers.length,
+      displayCount: displayPrayers.length,
+    });
+  }, [filters, existingPrayers.length, displayPrayers.length]);
+
   // Check if we have content to display
-  const hasContent = existingPrayers.length > 0;
+  const hasContent = displayPrayers.length > 0;
 
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
@@ -335,10 +386,10 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       return selectedType?.method === 'ACTS' ? 'ACTS Method Prayer' : 'Open Prayer';
     }
     if (hasContent) {
-      const totalCount = existingPrayers.length;
-      const supplicationCount = existingPrayers.filter(p => p.type === 'supplication').length;
-      const openCount = existingPrayers.filter(p => p.type === 'freeform').length;
-      const answeredCount = existingPrayers.filter(p => p.is_answered).length;
+      const totalCount = displayPrayers.length;
+      const supplicationCount = displayPrayers.filter(p => p.type === 'supplication').length;
+      const openCount = displayPrayers.filter(p => p.type === 'freeform').length;
+      const answeredCount = displayPrayers.filter(p => p.is_answered || p.status === 'answered' || !!p.answered_at).length;
 
       // Main prayer count line
       let subtitle = totalCount === 1 ? '1 Prayer' : `${totalCount} Prayers`;
@@ -543,7 +594,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       ]}
     >
       {PRAYER_TYPES.map((type) => {
-        const typePrayers = existingPrayers.filter((p: any) => p.type === type.key);
+        const typePrayers = displayPrayers.filter((p: any) => p.type === type.key);
         if (typePrayers.length === 0) { return null; }
 
         return (

@@ -7,6 +7,7 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
   selectedDate,
   refreshKey,
   viewMode,
+  filters,
 }) => {
   const Component = plugin.component;
 
@@ -16,6 +17,7 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
     ...(refreshKey !== undefined && { refreshKey }),
     // Pass viewMode for future use (backward compatible)
     ...(viewMode && { viewMode }),
+    ...(filters && { filters }),
   };
 
   return (

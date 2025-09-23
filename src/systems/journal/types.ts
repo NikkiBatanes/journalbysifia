@@ -15,6 +15,13 @@ export interface JournalPlugin {
   icon?: string | React.ReactNode;
 }
 
+// Optional filters that renderers can pass down to plugin components
+export interface PluginFilters {
+  answeredOnly?: boolean;
+  allowedJournalCategories?: string[];
+  excludeJournalCategories?: string[];
+}
+
 export interface ViewConfiguration {
   containerStyle: Record<string, any>;
   componentStyle: Record<string, any>;
@@ -36,4 +43,6 @@ export interface PluginRenderProps {
   selectedDate: Date;
   refreshKey?: number;
   viewMode: ViewMode;
+  // Optional filtering context for plugins to respect renderer-level filters
+  filters?: PluginFilters;
 }

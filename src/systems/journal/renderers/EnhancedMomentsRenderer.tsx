@@ -16,6 +16,7 @@ import { supabase } from '../../../services/supabaseClient';
 import { useAuth } from '../../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../../utils/haptics';
 import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton';
+import type { PluginFilters } from '../types';
 
 // Removed unused screenWidth variable
 
@@ -413,6 +414,35 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   // Removed unused insets variable
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
   const [_loading, setLoading] = React.useState(true);
+
+  // Derive plugin-level filters to pass into plugin components so they respect Moments filters
+  const pluginFilters: PluginFilters | undefined = useMemo(() => {
+    const keys = filterKeys || [];
+    const hasAnsweredOnly = keys.includes('answeredPrayers') && !keys.includes('unansweredPrayers');
+    const hasUnansweredOnly = keys.includes('unansweredPrayers') && !keys.includes('answeredPrayers');
+    if (hasAnsweredOnly) {
+      return {
+        answeredOnly: true,
+        allowedJournalCategories: ['supplication', 'personal_prayer'],
+        excludeJournalCategories: ['adoration', 'confession', 'thanksgiving'],
+      };
+    }
+    if (hasUnansweredOnly) {
+      return {
+        answeredOnly: false,
+        excludeJournalCategories: ['adoration', 'confession', 'thanksgiving'],
+      };
+    }
+    if (prayerAnswerFilter && prayerAnswerFilter !== 'all') {
+      return {
+        answeredOnly: prayerAnswerFilter === 'answered',
+        allowedJournalCategories: ['supplication', 'personal_prayer'],
+        excludeJournalCategories: ['adoration', 'confession', 'thanksgiving'],
+      };
+    }
+    return undefined;
+  }, [filterKeys, prayerAnswerFilter]);
+
   // Determine user's week start preference from auth user metadata if available; default to Sunday (0)
   const weekStartsOnPref = (user as any)?.user_metadata?.preferences?.weekStartsOn
     ?? (user as any)?.user_metadata?.weekStartsOn
@@ -627,16 +657,56 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
                 // Prefer Devotional plugin for devo journal entries; fallback to Prayer plugin
                 const selectedPlugin = isDevotionalJE ? (devoPlugin || prayerPluginFromJE || plugin) : plugin;
-                const momentEntry = {
-                  plugin: selectedPlugin,
-                  date: new Date(entry.selected_date || entry.created_at), // Use selected_date first, fallback to created_at
-                  category: isDevotionalJE ? 'Prayer' : 'Journal',
-                  type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
-                };
+                
+                // Check if this is a prayer-related journal entry that needs filtering
+                const isPrayerJournalEntry = isDevotionalJE || 
+                                           entry.content_type === 'prayed_devotional' ||
+                                           (entry as any).journal_category ||
+                                           (entry as any).prayer_type;
+                
+                let shouldIncludeJournalEntry = true;
+                
+                if (isPrayerJournalEntry) {
+                  // Apply same filtering logic as prayers table
+                  const isAnswered = ((entry as any).is_answered === true) || 
+                                   ((entry as any).status === 'answered') || 
+                                   !!(entry as any).answered_date;
+                  
+                  const journalCategory = ((entry as any).journal_category || '').toString().toLowerCase();
+                  const prayerType = ((entry as any).prayer_type || '').toString().toLowerCase();
+                  
+                  // Only include answered prayers from supplication or open prayer categories
+                  const isSupplicationOrOpenPrayer = journalCategory === 'supplication' || 
+                                                     journalCategory === 'personal_prayer' ||
+                                                     (prayerType === 'journal' && !['adoration', 'confession', 'thanksgiving'].includes(journalCategory));
+                  
+                  // Let all prayer journal entries through initially - the secondary filter will handle answered/category filtering
+                  shouldIncludeJournalEntry = true;
+                  
+                  console.log('🔍 [MomentsRenderer] Prayer journal entry filtering:', {
+                    content_type: entry.content_type,
+                    isAnswered,
+                    journalCategory,
+                    prayerType,
+                    shouldIncludeJournalEntry,
+                  });
+                }
+                
+                if (shouldIncludeJournalEntry) {
+                  const momentEntry = {
+                    plugin: selectedPlugin,
+                    date: new Date(entry.selected_date || entry.created_at), // Use selected_date first, fallback to created_at
+                    category: isDevotionalJE ? 'Prayer' : 'Journal',
+                    type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
+                  };
 
-                console.log('✅ [MomentsRenderer] Adding journal entry:', momentEntry);
-                entries.push(momentEntry);
-                processedCount++;
+                  console.log('✅ [MomentsRenderer] Adding journal entry:', momentEntry);
+                  entries.push(momentEntry);
+                  processedCount++;
+                } else {
+                  console.log('⚠️ [MomentsRenderer] Skipping prayer journal entry due to filtering:', entry.content_type);
+                  skippedCount++;
+                }
               } else {
                 console.log('❌ [MomentsRenderer] No plugin found for entry:', entry.content_type);
                 skippedCount++;
@@ -770,6 +840,23 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 }) ||
                 devoBooleans.some(Boolean);
               if (isDevotional) {devoCount++;}
+              
+              // Check if prayer is answered
+              const isAnswered = ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date;
+              
+              // Get prayer category
+              const journalCategory = ((prayer as any).journal_category || '').toString().toLowerCase();
+              const prayerType = ((prayer as any).prayer_type || '').toString().toLowerCase();
+              
+              // Only include answered prayers from supplication or open prayer (personal_prayer) categories
+              // Exclude adoration, confession, and thanksgiving
+              const isSupplicationOrOpenPrayer = journalCategory === 'supplication' || 
+                                                 journalCategory === 'personal_prayer' ||
+                                                 (prayerType === 'journal' && !['adoration', 'confession', 'thanksgiving'].includes(journalCategory));
+              
+              // Let all prayers through initially - the secondary filter will handle answered/category filtering
+              const shouldIncludePrayer = true;
+              
               const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isDevotional;
 
               console.log('🔍 [MomentsRenderer] Processing prayer entry:', {
@@ -778,13 +865,16 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 hasUserContent,
                 hasText,
                 isDevotional,
+                isAnswered,
+                shouldIncludePrayer,
                 journal_category: prayer.journal_category,
+                prayer_type: prayerType,
                 source: (prayer as any).source,
                 type: (prayer as any).type,
                 action: (prayer as any).action,
               });
 
-              if (hasUserContent) {
+              if (hasUserContent && shouldIncludePrayer) {
                 // Parse date-only strings as local midnight to avoid off-by-one issues
                 const selected = (prayer as any).selected_date as string | null;
                 const entryDate = selected && /^\d{4}-\d{2}-\d{2}$/.test(selected)
@@ -818,6 +908,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   type: typeLabel,
                   isAnswered: ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date,
                 };
+
+                console.log('🔍 [MomentsRenderer] Prayer entry answered status:', {
+                  type: typeLabel,
+                  is_answered: (prayer as any).is_answered,
+                  status: (prayer as any).status,
+                  answered_date: (prayer as any).answered_date,
+                  finalIsAnswered: prayerEntry.isAnswered,
+                });
 
                 console.log('✅ [MomentsRenderer] Adding prayer entry:', {
                   ...prayerEntry,
@@ -1166,9 +1264,67 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     // Exclusive handling for answered/unanswered filters: if exactly one is selected, only show matching prayers
     const hasAnsweredOnly = filterKeys.includes('answeredPrayers') && !filterKeys.includes('unansweredPrayers');
     const hasUnansweredOnly = filterKeys.includes('unansweredPrayers') && !filterKeys.includes('answeredPrayers');
+    
+    console.log('🔍 [MomentsRenderer] Filter keys debug:', {
+      filterKeys,
+      hasAnsweredOnly,
+      hasUnansweredOnly,
+      willApplyAnsweredFilter: hasAnsweredOnly || hasUnansweredOnly,
+      entriesBeforeFilter: filteredEntries.length,
+    });
+    
     if (hasAnsweredOnly || hasUnansweredOnly) {
       const wantAnswered = hasAnsweredOnly;
-      filteredEntries = filteredEntries.filter(e => e._isPrayer && (!!e.isAnswered === wantAnswered));
+      filteredEntries = filteredEntries.filter(e => {
+        if (!e._isPrayer) return false;
+        
+        // Check if prayer is answered/unanswered as requested
+        const matchesAnsweredStatus = !!e.isAnswered === wantAnswered;
+        
+        console.log('🔍 [MomentsRenderer] Prayer answered status check:', {
+          type: e.type,
+          isAnswered: e.isAnswered,
+          wantAnswered,
+          matchesAnsweredStatus,
+        });
+        
+        if (!matchesAnsweredStatus) return false;
+
+        // When showing unanswered prayers, exclude 'Prayer List for people'
+        if (!wantAnswered) {
+          const pid = (e as any)?.plugin?.id?.toLowerCase?.() || '';
+          const ptitle = (e as any)?.plugin?.title?.toLowerCase?.() || '';
+          const etype = (e.type || '').toLowerCase();
+          const isPeoplePrayerList = pid === 'peopleprayers' || ptitle.includes('prayer list') || etype.includes('prayer list') || etype.includes('people');
+          if (isPeoplePrayerList) {
+            console.log('🚫 [MomentsRenderer] Excluding people prayer list from unanswered view:', { pid, ptitle, etype });
+            return false;
+          }
+        }
+        
+        // For answered prayers, hide confession, thanksgiving, and adoration completely
+        if (wantAnswered) {
+          // Get the prayer type from the entry type
+          const entryType = (e.type || '').toLowerCase();
+          
+          // Hide these specific categories completely
+          const isExcludedCategory = entryType.includes('confession') || 
+                                   entryType.includes('thanksgiving') || 
+                                   entryType.includes('adoration');
+          
+          console.log('🔍 [MomentsRenderer] Checking answered prayer category:', {
+            type: e.type,
+            entryType,
+            isExcludedCategory,
+            willShow: !isExcludedCategory,
+          });
+          
+          // Only show if it's NOT an excluded category
+          return !isExcludedCategory;
+        }
+        
+        return true;
+      });
       console.log('🔍 [MomentsRenderer] Exclusive answered filter applied:', wantAnswered ? 'answered' : 'unanswered', filteredEntries.length);
       return filteredEntries;
     }
@@ -1188,8 +1344,17 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       console.log('🔍 [MomentsRenderer] After category filters:', filteredEntries.length);
     }
 
-    // Finally, filter prayers by answered status if requested via the legacy prop
-    if (prayerAnswerFilter !== 'all') {
+    // Skip legacy prayer answer filter if the new filterKeys system is handling it
+    const isUsingNewFilterSystem = filterKeys.includes('answeredPrayers') || filterKeys.includes('unansweredPrayers');
+    
+    console.log('🔍 [MomentsRenderer] Legacy filter check:', {
+      prayerAnswerFilter,
+      isUsingNewFilterSystem,
+      willSkipLegacyFilter: isUsingNewFilterSystem,
+      entriesBeforeLegacyFilter: filteredEntries.length,
+    });
+    
+    if (prayerAnswerFilter !== 'all' && !isUsingNewFilterSystem) {
       const wantAnswered = prayerAnswerFilter === 'answered';
       filteredEntries = filteredEntries.filter(entry => {
         if ((entry.category || '').toLowerCase() !== 'prayer') {return true;}
@@ -1198,11 +1363,21 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       console.log('🔍 [MomentsRenderer] After prayer answered filter (', prayerAnswerFilter, '):', filteredEntries.length);
     }
 
+    console.log('🔍 [MomentsRenderer] FINAL FILTERED ENTRIES COUNT:', filteredEntries.length);
+    console.log('🔍 [MomentsRenderer] FINAL ENTRIES BREAKDOWN:', {
+      total: filteredEntries.length,
+      prayers: filteredEntries.filter(e => e._isPrayer).length,
+      answeredPrayers: filteredEntries.filter(e => e._isPrayer && e.isAnswered).length,
+      unansweredPrayers: filteredEntries.filter(e => e._isPrayer && !e.isAnswered).length,
+      nonPrayers: filteredEntries.filter(e => !e._isPrayer).length,
+    });
+
     return filteredEntries;
   }, [realEntries, searchQuery, dateRange, prayerAnswerFilter, filterKeys]);
 
   // Sort entries
   const sortedEntries = React.useMemo(() => {
+    console.log('🔍 [MomentsRenderer] SORTING ENTRIES - Input count:', generateMomentEntries.length);
     const sorted = [...generateMomentEntries];
 
     switch (sortBy) {
@@ -1241,7 +1416,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       // For 'none' grouping, create carousel groups by type within the single section
       const typeGroups: Record<string, MomentEntry[]> = {};
 
-      sortedEntries.forEach((entry) => {
+      generateMomentEntries.forEach((entry) => {
         const typeKey = entry.type;
         if (!typeGroups[typeKey]) {
           typeGroups[typeKey] = [];
@@ -1276,7 +1451,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       type MonthWeeks = Record<string, { start: Date; end: Date; key: string; entries: MomentEntry[]; title: string }>
       const byMonth: Record<string, MonthWeeks> = {};
 
-      sortedEntries.forEach(entry => {
+      generateMomentEntries.forEach(entry => {
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
         const wkStart = getWeekStart(entry.date, weekStartsOn);
         const wkEnd = getWeekEnd(entry.date, weekStartsOn);
@@ -1368,7 +1543,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       type YearMonths = Record<string, { start: Date; end: Date; key: string; entries: MomentEntry[]; title: string; days: Record<string, MomentEntry[]> }>; // per month metadata
       const byYear: Record<string, YearMonths> = {};
 
-      sortedEntries.forEach((entry) => {
+      generateMomentEntries.forEach((entry) => {
         const yearKey = format(entry.date, 'yyyy');
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
         if (!byYear[yearKey]) {byYear[yearKey] = {} as YearMonths;}
@@ -1437,7 +1612,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const byYear: Record<string, YearMonths> = {};
 
       // Build Year -> Month -> Day map
-      sortedEntries.forEach((entry) => {
+      generateMomentEntries.forEach((entry) => {
         const yearKey = format(entry.date, 'yyyy');
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
         if (!byYear[yearKey]) {byYear[yearKey] = {} as YearMonths;}
@@ -1523,7 +1698,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
     const groups: Record<string, MomentEntry[]> = {};
 
-    sortedEntries.forEach((entry) => {
+    generateMomentEntries.forEach((entry) => {
       let groupKey: string;
 
       switch (groupBy) {
@@ -1636,7 +1811,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     });
 
     return sortedSections;
-  }, [sortedEntries, groupBy, sortBy, expandedWeeks, expandedMonths, expandedYears, weekStartsOn]);
+  }, [generateMomentEntries, groupBy, sortBy, expandedWeeks, expandedMonths, expandedYears, weekStartsOn]);
 
   // Only include sections with content
   const sectionsWithContent = useMemo(() => groupedSections.filter(s => (s.data?.length || 0) > 0), [groupedSections]);
@@ -1798,7 +1973,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`wday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
                   </View>
                 </View>
               </View>
@@ -1907,6 +2082,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                                 selectedDate={entry.date}
                                 refreshKey={refreshKey}
                                 viewMode="inline"
+                                filters={pluginFilters}
                               />
                             </View>
                           </View>
@@ -1967,7 +2143,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`day-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
                   </View>
                 </View>
               </View>
@@ -2055,7 +2231,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       <View key={`${month.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                         <View style={styles.momentItem}>
                           <View style={styles.momentContent}>
-                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" />
+                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
                           </View>
                         </View>
                       </View>
@@ -2191,6 +2367,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 selectedDate={entry.date}
                 refreshKey={refreshKey}
                 viewMode="inline"
+                filters={pluginFilters}
               />
             </View>
           </View>
