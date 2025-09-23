@@ -1943,14 +1943,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Danger zone */}
           <View style={{ marginTop: 12 }}>
-            <Text style={[styles.sectionLabel, font]}>DANGER ZONE</Text>
             <TouchableOpacity
               onPress={() => { try { triggerLightHaptic(); } catch {}; setDeleteAccountModal(true); }}
               style={{
                 backgroundColor: 'rgba(255,107,107,0.12)',
                 borderWidth: 1,
                 borderColor: Colors.alertCoral,
-                borderRadius: 14,
+                borderRadius: 20,
                 paddingVertical: 12,
                 paddingHorizontal: 14,
                 flexDirection: 'row',

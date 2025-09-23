@@ -10,7 +10,6 @@ export interface ProfileStatsLite {
   faithPoints: number;
   level: number;
   // Optional extras for top-row chips
-  streakDays?: number;
   badgesCount?: number;
 }
 
@@ -59,7 +58,6 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
   const level = stats?.level ?? 1;
   const points = stats?.faithPoints ?? 0;
-  const streakDays = (stats as any)?.streakDays ?? (user as any)?.streakDays ?? 0;
   const badgesCount = (stats as any)?.badgesCount ?? (user as any)?.badgesCount ?? 0;
 
   const progress = useMemo(() => {
@@ -94,7 +92,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
       <View style={[styles.planPill, styles.skeletonPill]}>
         <View style={styles.skeletonText} />
         <View style={styles.pillsRow}>
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <View key={i} style={[styles.usagePill, styles.skeletonUsagePill]}>
               <View style={styles.skeletonUsageItem} />
             </View>
@@ -131,17 +129,11 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                       </Text>
                     </View>
                   </View>
-                  {/* Move FP, Streak, Badges inside Growth container */}
+                  {/* Usage stats: Playbooks, Devotionals, Faith Points, Badges */}
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>{points} FP</Text>
-                    </View>
-                  </View>
-                  <View style={styles.usagePill}>
-                    <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="fire" size={14} color={Colors.hopeWhite} />
-                      <Text style={[styles.usageText, font]}>{streakDays}</Text>
                     </View>
                   </View>
                   <View style={styles.usagePill}>
