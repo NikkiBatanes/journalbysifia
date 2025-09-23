@@ -112,7 +112,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [profileForm, setProfileForm] = useState({
     firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name || '',
     lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name || '',
-    birthYear: (user as any)?.user_metadata?.birth_year || '',
+    birthDate: (user as any)?.user_metadata?.birth_date || '',
   });
 
   // Helpers: Quiet Hours formatting and pickers
@@ -266,7 +266,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [deleteAccountModal, setDeleteAccountModal] = useState(false);
   const [deleteBirthYear, setDeleteBirthYear] = useState<string>('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [yearPickerModal, setYearPickerModal] = useState(false);
+  const [yearPickerModal, setYearPickerModal] = useState(false); // legacy (no longer used for inline)
+  const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
+  const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
+    const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
+    if (birthDateStr) {
+      const date = new Date(birthDateStr);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    // Default to 25 years ago
+    const defaultDate = new Date();
+    defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+    return defaultDate;
+  });
   // Delete Account helpers
   const isValidBirthYear = useMemo(() => {
     if (!deleteBirthYear) return false;
@@ -1929,16 +1943,86 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.sectionLabel, font]}>BIRTH YEAR</Text>
+            <Text style={[styles.sectionLabel, font]}>BIRTH DATE</Text>
             <TouchableOpacity
               style={styles.yearSelector}
-              onPress={() => { try { triggerLightHaptic(); } catch {}; setYearPickerModal(true); }}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
+                if (birthDateStr) {
+                  const date = new Date(birthDateStr);
+                  if (!isNaN(date.getTime())) {
+                    setTempBirthDate(date);
+                  } else {
+                    // Default to 25 years ago
+                    const defaultDate = new Date();
+                    defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+                    setTempBirthDate(defaultDate);
+                  }
+                } else {
+                  // Default to 25 years ago
+                  const defaultDate = new Date();
+                  defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+                  setTempBirthDate(defaultDate);
+                }
+                setShowInlineYearPicker((prev) => !prev);
+              }}
             >
               <Text style={[styles.yearSelectorText, font]}>
-                {(profileForm as any).birthYear || 'Select year'}
+                {(profileForm as any).birthDate ? new Date((profileForm as any).birthDate).toLocaleDateString() : 'Select date'}
               </Text>
               <Ionicons name="chevron-down" size={20} color={Colors.textGray} />
             </TouchableOpacity>
+            {showInlineYearPicker && (
+              <View style={{
+                marginTop: 12,
+                paddingVertical: 12,
+                paddingHorizontal: 12,
+                alignItems: 'center',
+              }}>
+                <DateTimePicker
+                  value={tempBirthDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'spinner'}
+                  minimumDate={new Date(1900, 0, 1)}
+                  maximumDate={new Date(new Date().getFullYear(), 11, 31)}
+                  textColor={Colors.hopeWhite}
+                  themeVariant="dark"
+                  onChange={(_event, selectedDate) => {
+                    if (selectedDate) {
+                      setTempBirthDate(selectedDate);
+                    }
+                  }}
+                />
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setShowInlineYearPicker(false)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                      backgroundColor: 'rgba(255,255,255,0.2)'
+                    }}
+                  >
+                    <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setProfileForm({ ...profileForm, birthDate: tempBirthDate.toISOString().split('T')[0] });
+                      setShowInlineYearPicker(false);
+                    }}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                      backgroundColor: Colors.alertCoral
+                    }}
+                  >
+                    <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Danger zone */}
@@ -2018,54 +2102,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </Modal>
   );
 
-  // Year Picker Modal
-  const renderYearPickerModal = () => {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear; year >= 1900; year--) {
-      years.push(year);
-    }
-
-    return (
-      <Modal
-        visible={yearPickerModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setYearPickerModal(false)}
-      >
-        <SafeAreaView edges={['top']} style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setYearPickerModal(false); }}>
-              <Text style={[styles.cancelText, font]}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, font]}>Select Birth Year</Text>
-            <View style={{ width: 48 }} />
-          </View>
-
-          <ScrollView style={styles.yearPickerList} showsVerticalScrollIndicator={false}>
-            {years.map((year) => {
-              const isSelected = String(year) === (profileForm as any).birthYear;
-              return (
-                <TouchableOpacity
-                  key={year}
-                  style={[styles.yearOption, isSelected && styles.yearOptionSelected]}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setProfileForm({ ...profileForm, birthYear: String(year) });
-                    setYearPickerModal(false);
-                  }}
-                >
-                  <Text style={[styles.yearOptionText, isSelected && styles.yearOptionTextSelected, font]}>
-                    {year}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    );
-  };
+  // Year Picker Modal no longer used (kept for backward compatibility if needed)
+  const renderYearPickerModal = () => null;
 
   const renderWeekStartModal = () => (
     <Modal
@@ -2913,10 +2951,9 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginRight: 8,
   },
-  timeValue: {
-    fontSize: 14,
-    color: Colors.alertCoral,
-    fontWeight: '600',
+  yearPickerModalContainer: {
+    zIndex: 9999,
+    elevation: 9999,
   },
   // Subscription and Usage Styles
   subscriptionContainer: {
