@@ -781,26 +781,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         </TouchableOpacity>
       )}
 
-      {/* Test notification button - temporary debug */}
-      {__DEV__ && (
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 100,
-            right: 20,
-            backgroundColor: 'red',
-            padding: 10,
-            borderRadius: 5,
-            zIndex: 999999,
-          }}
-          onPress={() => {
-            console.log('[DevotionalDetail] Test button pressed');
-            notificationService.showPointsNotification(8, 'devotional_generated', 'center');
-          }}
-        >
-          <ThemedText style={{ color: 'white', fontSize: 12 }}>TEST FP</ThemedText>
-        </TouchableOpacity>
-      )}
 
       {/* Devotional Completion Modal */}
       {devotional && (

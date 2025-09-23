@@ -288,10 +288,11 @@ export const useUpdatePrayer = () => {
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
 
-      // Snapshot the previous value
+      // Snapshot previous values for rollback
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
       );
+      // (No need to snapshot other caches for update here)
 
       // Optimistically update to the new value
       queryClient.setQueryData<PrayerApiEntry[]>(
@@ -346,23 +347,58 @@ export const useDeletePrayer = () => {
       _dateStr: string;
     }) => PrayerApi.deletePrayer(id),
     onMutate: async ({ id, _userId, _dateStr }) => {
-      // Cancel any outgoing refetches
+      // Cancel any outgoing refetches to avoid race conditions
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.people(_userId, _dateStr),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
+      });
 
-      // Snapshot the previous value
+      // Snapshot previous values for rollback
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
       );
+      const previousPeople = queryClient.getQueryData<PrayerApiEntry[] | undefined>(
+        queryKeys.prayers.people(_userId, _dateStr)
+      );
+      const previousACTS = queryClient.getQueryData<any>(
+        queryKeys.prayers.acts(_userId, _dateStr)
+      );
 
-      // Optimistically update to the new value
+      // Optimistically update to the new value (entries list)
       queryClient.setQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr),
         (old = []) => old.filter(prayer => prayer.id !== id)
       );
 
-      return { previousPrayers };
+      // Optimistically update People prayers cache
+      queryClient.setQueryData<PrayerApiEntry[] | undefined>(
+        queryKeys.prayers.people(_userId, _dateStr),
+        (old) => (Array.isArray(old) ? old.filter(p => p.id !== id) : old)
+      );
+
+      // Optimistically update ACTS/freeform cache
+      queryClient.setQueryData<any>(
+        queryKeys.prayers.acts(_userId, _dateStr),
+        (old: any) => {
+          if (!old || typeof old !== 'object') { return old; }
+          const clean = (arr: any[]) => (Array.isArray(arr) ? arr.filter((p: any) => p?.id !== id) : arr);
+          return {
+            ...old,
+            adoration: clean(old.adoration),
+            confession: clean(old.confession),
+            thanksgiving: clean(old.thanksgiving),
+            supplication: clean(old.supplication),
+            freeform: clean(old.freeform),
+          };
+        }
+      );
+
+      return { previousPrayers, previousPeople, previousACTS };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       console.error('Error deleting prayer:', err);
@@ -373,11 +409,35 @@ export const useDeletePrayer = () => {
           context.previousPrayers
         );
       }
+      if (context?.previousPeople) {
+        queryClient.setQueryData(
+          queryKeys.prayers.people(_userId, _dateStr),
+          context.previousPeople
+        );
+      }
+      if (context?.previousACTS) {
+        queryClient.setQueryData(
+          queryKeys.prayers.acts(_userId, _dateStr),
+          context.previousACTS
+        );
+      }
     },
     onSettled: (data, error, { _userId, _dateStr }) => {
-      // Always refetch after error or success
+      // Always refetch after error or success to ensure all views update
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      // People list (Prayer List for People)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.people(_userId, _dateStr),
+      });
+      // ACTS + Open Prayer (Prayer Journal)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
+      });
+      // Dashboard unprayed requests list
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
     },
   });

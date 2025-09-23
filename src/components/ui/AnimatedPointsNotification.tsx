@@ -211,8 +211,6 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
             ],
             opacity,
             backgroundColor: getActivityColor(),
-            borderWidth: 3,
-            borderColor: 'white',
           },
         ]}
       >
