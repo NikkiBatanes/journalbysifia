@@ -1,18 +1,31 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  TextInput,
+} from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { X, Check, Pencil, Trash2, Edit3 } from 'lucide-react-native';
 
 import { Colors } from '../../theme/colors';
 import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
-import { Check, X, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../services/queryKeys';
 import {
   useACTSPrayerData,
   useCreatePrayer,
   useMarkSupplicationAnswered,
+  useDeletePrayer,
+  useUpdatePrayer,
 } from '../../services/hooks/usePrayerData';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { analytics } from '../../utils/analytics';
@@ -25,6 +38,7 @@ import {
   triggerSelectionHaptic,
   triggerErrorHaptic,
 } from '../../utils/haptics';
+import { PrayerStyleSelectionModal } from '../modals/PrayerStyleSelectionModal';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -74,6 +88,121 @@ const PRAYER_TYPES = [
     method: 'Freeform',
   },
 ];
+
+// SwipeablePrayerCard Component
+interface SwipeablePrayerCardProps {
+  prayer: any;
+  type: any;
+  onMarkAnswered: (id: string, isAnswered: boolean) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
+  prayer,
+  type,
+  onMarkAnswered,
+  onEdit,
+  onDelete,
+}) => {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const renderRightActions = () => (
+    <View style={styles.prayerSwipeActions}>
+      <TouchableOpacity
+        style={styles.editActionBtn}
+        onPress={() => {
+          onEdit(prayer.id);
+          swipeableRef.current?.close();
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="create-outline" size={22} color="white" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.deleteActionBtn}
+        onPress={() => {
+          onDelete(prayer.id);
+          swipeableRef.current?.close();
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="trash-outline" size={22} color="white" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <View style={styles.swipeableContainer}>
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+      >
+        <View
+          style={[
+            styles.prayerItem,
+            prayer.answered_at && styles.prayerItemAnswered,
+          ]}
+        >
+          <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
+          
+          {/* Mark as Answered Button - for supplication and open prayer when not answered */}
+          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at) && (
+            <TouchableOpacity
+              style={styles.markAnsweredButton}
+              onPress={() => {
+                Alert.alert(
+                  'Mark as Answered',
+                  'Has this prayer been answered?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Mark Answered',
+                      onPress: () => onMarkAnswered(prayer.id, true),
+                    },
+                  ]
+                );
+              }}
+            >
+              <Check size={12} color="#FF9500" />
+              <ThemedText style={styles.markAnsweredText}>Mark as Answered</ThemedText>
+            </TouchableOpacity>
+          )}
+          
+          {/* Answered Indicator - Tappable to mark as unanswered */}
+          {prayer.answered_at && (
+            <TouchableOpacity
+              style={styles.answeredIndicator}
+              onPress={() => {
+                if ((type.key === 'supplication' || type.key === 'freeform')) {
+                  Alert.alert(
+                    'Mark as Unanswered',
+                    'Mark this prayer as unanswered?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Mark Unanswered',
+                        onPress: () => onMarkAnswered(prayer.id, false),
+                      },
+                    ]
+                  );
+                }
+              }}
+            >
+              <Check size={12} color={Colors.growthGreen} />
+              <View style={styles.answeredTextContainer}>
+                <ThemedText style={styles.answeredText}>Answered</ThemedText>
+                <ThemedText style={styles.answeredTimestamp}>
+                  {formatAnsweredDate(prayer.answered_at)}
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      </Swipeable>
+    </View>
+  );
+};
 
 // Determine date category relative to local time
 const getDateCategory = (targetDate: Date): 'today' | 'yesterday' | 'earlier' => {
@@ -165,16 +294,20 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const dateCategory = getDateCategory(selectedDate);
 
   // React Query hooks
+  const queryClient = useQueryClient();
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
   const createMutation = useCreatePrayer();
   const markAnsweredMutation = useMarkSupplicationAnswered();
+  const deleteMutation = useDeletePrayer();
+  const updateMutation = useUpdatePrayer();
 
   // Local state
   const [isEditing, setIsEditing] = useState(false);
   const [selectedPrayerType, setSelectedPrayerType] = useState<string>('adoration');
-  const [activeTab, setActiveTab] = useState<'ACTS' | 'OPEN'>('ACTS');
   const [prayerText, setPrayerText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [editingPrayerId, setEditingPrayerId] = useState<string | null>(null);
 
   // Transform API data to local format
   const existingPrayers = useMemo(() => {
@@ -242,40 +375,39 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     return 'ACTS & Open Prayer';
   };
 
-  // Handle edit mode
+  // Handle edit mode - directly open modal
   const toggleEditing = useCallback(() => {
-    if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
-      globalEditMode.setGlobalEditMode(false);
-    } else if (viewMode === 'inline') {
-      globalEditMode?.setGlobalEditMode(true);
-    }
-    setIsEditing(!isEditing);
-  }, [isEditing, globalEditMode, viewMode]);
+    // Directly open modal without changing edit state
+    setShowStyleModal(true);
+  }, []);
 
   // Handle prayer type selection
   const handlePrayerTypeSelect = useCallback((type: string) => {
-    if (type !== selectedPrayerType) {
-      // Selection haptic only on actual change
-      triggerSelectionHaptic();
-    }
     setSelectedPrayerType(type);
-  }, [selectedPrayerType]);
+  }, []);
 
-  // Handle tab change and align selected type
-  const handleTabChange = useCallback((tab: 'ACTS' | 'OPEN') => {
-    // Selection haptic only when tab actually changes
-    setActiveTab(prev => {
-      if (prev !== tab) {
-        triggerSelectionHaptic();
-      }
-      return tab;
-    });
-    if (tab === 'OPEN') {
-      setSelectedPrayerType('freeform');
-    } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
-      setSelectedPrayerType('adoration');
-    }
-  }, [selectedPrayerType]);
+  // Handle style selection modal
+  const handleOpenStyleModal = useCallback(() => {
+    triggerLightHaptic();
+    setShowStyleModal(true);
+  }, []);
+
+  const handleCloseStyleModal = useCallback(() => {
+    setShowStyleModal(false);
+    setPrayerText('');
+    setSelectedPrayerType('adoration');
+    setEditingPrayerId(null);
+  }, []);
+
+  const handleConfirmStyle = useCallback(() => {
+    setShowStyleModal(false);
+    triggerSelectionHaptic();
+  }, []);
+
+  // Handle prayer text change
+  const handlePrayerTextChange = useCallback((text: string) => {
+    setPrayerText(text);
+  }, []);
 
   // Handle save prayer
   const handleSavePrayer = useCallback(async () => {
@@ -286,29 +418,53 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
     setIsSaving(true);
     try {
-      await createMutation.mutateAsync({
-        user_id: user?.id || '',
-        selected_date: dateStr,
-        prayer_type: 'journal',
-        journal_category: selectedPrayerType === 'freeform' ? 'personal_prayer' : selectedPrayerType as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
-        content: prayerText.trim(),
-        status: (selectedPrayerType === 'freeform' || selectedPrayerType === 'supplication') ? 'pending' : undefined,
-      });
+      if (editingPrayerId) {
+        // Update existing prayer
+        await updateMutation.mutateAsync({
+          id: editingPrayerId,
+          updates: {
+            content: prayerText.trim(),
+          },
+          _userId: user?.id || '',
+          _dateStr: dateStr,
+        });
+        
+        // Manually invalidate ACTS prayer cache to ensure UI updates
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.acts(user?.id || '', dateStr),
+        });
+        
+        analytics.track('prayer_journal_entry_updated', {
+          prayer_id: editingPrayerId,
+          date: dateStr,
+          content_length: prayerText.trim().length,
+        });
+      } else {
+        // Create new prayer
+        await createMutation.mutateAsync({
+          user_id: user?.id || '',
+          selected_date: dateStr,
+          prayer_type: 'journal',
+          journal_category: selectedPrayerType === 'freeform' ? 'personal_prayer' : selectedPrayerType as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          content: prayerText.trim(),
+          status: (selectedPrayerType === 'freeform' || selectedPrayerType === 'supplication') ? 'pending' : undefined,
+        });
+        
+        analytics.track('prayer_journal_entry_created', {
+          prayer_type: selectedPrayerType,
+          date: dateStr,
+          content_length: prayerText.trim().length,
+        });
+      }
 
       // Success feedback only after confirmed mutation success
       triggerSuccessHaptic();
-
-      // Track analytics
-      analytics.track('prayer_journal_entry_created', {
-        prayer_type: selectedPrayerType,
-        date: dateStr,
-        content_length: prayerText.trim().length,
-      });
 
       // Reset form
       setPrayerText('');
       setSelectedPrayerType('adoration');
       setIsEditing(false);
+      setEditingPrayerId(null);
 
       if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
         globalEditMode.setGlobalEditMode(false);
@@ -321,7 +477,13 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [prayerText, selectedPrayerType, user?.id, dateStr, createMutation, globalEditMode, viewMode]);
+  }, [prayerText, selectedPrayerType, user?.id, dateStr, createMutation, updateMutation, editingPrayerId, globalEditMode, viewMode]);
+
+  // Handle save from modal
+  const handleSaveFromModal = useCallback(async () => {
+    await handleSavePrayer();
+    setShowStyleModal(false);
+  }, [handleSavePrayer]);
 
   // Handle cancel editing
   const handleCancelEdit = useCallback(() => {
@@ -373,157 +535,15 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }
   }, [globalEditMode?.isGlobalEditMode, viewMode, isEditing]);
 
-  // Render prayer type selector
-  const renderPrayerTypeSelector = () => {
-    const actsTypes = PRAYER_TYPES.filter(type => type.method === 'ACTS');
-    const freeformTypes = PRAYER_TYPES.filter(type => type.method === 'Freeform');
 
-    return (
-      <View style={styles.prayerTypeContainer}>
-        <ThemedText style={styles.sectionTitle} weight="semiBold">Choose Prayer Style</ThemedText>
-
-        {/* Tabs */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'ACTS' && styles.tabButtonActive]}
-            onPress={() => handleTabChange('ACTS')}
-            accessibilityRole="tab"
-            accessibilityLabel="ACTS Method"
-            accessibilityState={{ selected: activeTab === 'ACTS' }}
-          >
-            <ThemedText style={[styles.tabText, activeTab === 'ACTS' && styles.tabTextActive]} weight="semiBold">ACTS Method</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'OPEN' && styles.tabButtonActive]}
-            onPress={() => handleTabChange('OPEN')}
-            accessibilityRole="tab"
-            accessibilityLabel="Open Prayer"
-            accessibilityState={{ selected: activeTab === 'OPEN' }}
-          >
-            <ThemedText style={[styles.tabText, activeTab === 'OPEN' && styles.tabTextActive]} weight="semiBold">Open Prayer</ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {activeTab === 'ACTS' ? (
-          <View style={styles.methodSection}>
-            <View style={styles.methodHeader}>
-              <ThemedText style={styles.methodTitle} weight="bold">ACTS Method</ThemedText>
-              <ThemedText style={styles.methodSubtitle}>Structured prayer approach</ThemedText>
-            </View>
-            <View style={styles.prayerTypeGrid}>
-              {actsTypes.map((type) => (
-                <TouchableOpacity
-                  key={type.key}
-                  style={[
-                    styles.prayerTypeButton,
-                    selectedPrayerType === type.key && styles.prayerTypeButtonSelected,
-                  ]}
-                  onPress={() => handlePrayerTypeSelect(type.key)}
-                >
-                  <Ionicons
-                    name={type.icon}
-                    size={18}
-                    color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.textGray}
-                  />
-                  <ThemedText
-                    style={[
-                      styles.prayerTypeText,
-                      selectedPrayerType === type.key && styles.prayerTypeTextSelected,
-                    ]}
-                    weight="semiBold"
-                  >
-                    {type.displayName}
-                  </ThemedText>
-                  <ThemedText style={styles.prayerTypeDescription}>{type.description}</ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        ) : (
-          // OPEN tab: show title with icon and place subtitle inside header to match ACTS spacing
-          <View style={styles.methodSection}>
-            <View style={styles.methodHeader}>
-              <View style={styles.methodHeaderRow}>
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={18}
-                  color={Colors.hopeWhite}
-                />
-                <ThemedText style={styles.methodTitle} weight="bold">Open Prayer</ThemedText>
-              </View>
-              <ThemedText style={styles.methodSubtitle}>A simple, unstructured prayer</ThemedText>
-            </View>
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  // Render prayer input
-  const renderPrayerInput = () => (
-    <View style={styles.inputContainer}>
-      {/* Hide the label for freeform to avoid 'Open Prayer Prayer' */}
-      {selectedPrayerType !== 'freeform' && (
-        <ThemedText style={styles.inputLabel} weight="semiBold">
-          {PRAYER_TYPES.find(t => t.key === selectedPrayerType)?.displayName} Prayer
-        </ThemedText>
-      )}
-
-      {selectedPrayerType === 'freeform' ? (
-        <TextInput
-          style={[styles.textInput, { fontFamily: regularFont }]}
-          placeholder={`Pray freely from your heart...`}
-          placeholderTextColor={Colors.textGray}
-          value={prayerText}
-          onChangeText={setPrayerText}
-          multiline
-          numberOfLines={6}
-          textAlignVertical="top"
-        />
-      ) : (
-        <TextInput
-          style={[styles.textInput, { fontFamily: regularFont }]}
-          placeholder={`Write your ${selectedPrayerType} prayer...`}
-          placeholderTextColor={Colors.textGray}
-          value={prayerText}
-          onChangeText={setPrayerText}
-          multiline
-          numberOfLines={6}
-          textAlignVertical="top"
-        />
-      )}
-
-      <View style={styles.editButtonBar}>
-        <TouchableOpacity
-          style={[styles.button, styles.cancelButton]}
-          onPress={handleCancelEdit}
-          disabled={isSaving}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel"
-        >
-          <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.saveButton, (!prayerText.trim() || isSaving) && styles.disabledButton]}
-          onPress={handleSavePrayer}
-          disabled={isSaving || !prayerText.trim()}
-          accessibilityRole="button"
-          accessibilityLabel="Save"
-        >
-          <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   // Render existing prayers
   const renderExistingPrayers = () => (
-    <ScrollView
+    <View
       style={[
         styles.prayersContainer,
         (expanded || viewMode === 'inline') && styles.prayersContainerExpanded,
       ]}
-      showsVerticalScrollIndicator={false}
     >
       {PRAYER_TYPES.map((type) => {
         const typePrayers = existingPrayers.filter((p: any) => p.type === type.key);
@@ -540,37 +560,48 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               <ThemedText style={styles.prayerTypeSectionTitle} weight="semiBold">{type.displayName}</ThemedText>
             </View>
             {typePrayers.map((prayer: any) => (
-              <View key={prayer.id} style={styles.prayerItem}>
-                <ThemedText style={styles.prayerContent}>{prayer.content}</ThemedText>
-                {(prayer.type === 'freeform' || prayer.type === 'supplication') && prayer.status === 'pending' && !prayer.is_answered && (
-                  <TouchableOpacity
-                    style={styles.markAnsweredButton}
-                    onPress={() => handleMarkAnswered(prayer.id, true)}
-                  >
-                    <Ionicons name="time-outline" size={16} color="#FF9500" />
-                    <ThemedText style={styles.markAnsweredText}>Mark Answered</ThemedText>
-                  </TouchableOpacity>
-                )}
-                {(prayer.type === 'freeform' || prayer.type === 'supplication') && prayer.is_answered && (
-                  <TouchableOpacity
-                    style={styles.answeredIndicator}
-                    onPress={() => handleMarkAnswered(prayer.id, false)}
-                  >
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
-                    <View style={styles.answeredTextContainer}>
-                      <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
-                      <ThemedText style={styles.answeredTimestamp}>
-                        {prayer.answered_at ? formatAnsweredDate(prayer.answered_at) : 'Recently'}
-                      </ThemedText>
-                    </View>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <SwipeablePrayerCard
+                key={prayer.id}
+                prayer={prayer}
+                type={type}
+                onMarkAnswered={handleMarkAnswered}
+                onEdit={(prayerId: string) => {
+                  // Find the prayer and open modal with its content
+                  const prayerToEdit = existingPrayers.find(p => p.id === prayerId);
+                  if (prayerToEdit) {
+                    setEditingPrayerId(prayerId);
+                    setSelectedPrayerType(prayerToEdit.type);
+                    setPrayerText(prayerToEdit.content);
+                    setShowStyleModal(true);
+                  }
+                }}
+                onDelete={(prayerId: string) => {
+                  Alert.alert(
+                    'Delete Prayer',
+                    'Are you sure you want to delete this prayer?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: () => {
+                          deleteMutation.mutate({
+                            id: prayerId,
+                            _userId: user?.id || '',
+                            _dateStr: dateStr,
+                          });
+                          triggerSuccessHaptic();
+                        },
+                      },
+                    ]
+                  );
+                }}
+              />
             ))}
           </View>
         );
       })}
-    </ScrollView>
+    </View>
   );
 
   return (
@@ -589,17 +620,12 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         viewMode={viewMode}
         expanded={expanded}
         onExpand={onExpand}
-        showAddButton={hasContent || isEditing ? !isEditing : false}
+        showAddButton={true}
         onAdd={toggleEditing}
         isAdding={isEditing}
         onCancelAdd={handleCancelEdit}
       >
-        {isEditing ? (
-          <View style={styles.editContainer}>
-            {renderPrayerTypeSelector()}
-            {renderPrayerInput()}
-          </View>
-        ) : hasContent ? (
+        {hasContent ? (
           renderExistingPrayers()
         ) : (viewMode === 'inline' || viewMode === 'moments') ? null : (
           <View style={styles.emptyStateContainer}>
@@ -639,6 +665,18 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             </TouchableOpacity>
           </View>
         )}
+        
+        {/* Prayer Style Selection Modal */}
+        <PrayerStyleSelectionModal
+          visible={showStyleModal}
+          selectedPrayerType={selectedPrayerType}
+          prayerText={prayerText}
+          onSelectPrayerType={handlePrayerTypeSelect}
+          onPrayerTextChange={handlePrayerTextChange}
+          onSave={handleSaveFromModal}
+          onCancel={handleCloseStyleModal}
+          isSaving={isSaving}
+        />
       </JournalCard>
     </ErrorBoundary>
   );
@@ -648,178 +686,10 @@ const styles = StyleSheet.create({
   editContainer: {
     gap: 16,
   },
-  prayerTypeContainer: {
-    gap: 16,
-  },
   sectionTitle: {
     fontSize: 16,
     color: Colors.hopeWhite,
     marginBottom: 4,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 16,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  tabButtonActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  tabText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  tabTextActive: {
-    color: Colors.hopeWhite,
-  },
-  methodSection: {
-    gap: 12,
-  },
-  methodHeader: {
-    gap: 2,
-    marginBottom: 8,
-  },
-  methodHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  methodTitle: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    letterSpacing: 0.5,
-  },
-  methodSubtitle: {
-    fontSize: 12,
-    color: Colors.textGray,
-    opacity: 0.8,
-  },
-  prayerTypeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  prayerTypeButton: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 10,
-    padding: 10,
-    alignItems: 'center',
-    gap: 3,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  prayerTypeButtonSelected: {
-    backgroundColor: Colors.growthGreen + '20',
-    borderColor: Colors.growthGreen,
-  },
-  prayerTypeButtonFreeform: {
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  prayerTypeButtonFreeformSelected: {
-    backgroundColor: Colors.growthGreen + '20',
-    borderColor: Colors.growthGreen,
-  },
-  prayerTypeText: {
-    fontSize: 15,
-    color: Colors.textGray,
-    textAlign: 'center',
-  },
-  prayerTypeTextSelected: {
-    color: Colors.hopeWhite,
-  },
-  prayerTypeTextFreeform: {
-    fontSize: 17,
-    color: Colors.textGray,
-    textAlign: 'center',
-  },
-  prayerTypeTextFreeformSelected: {
-    color: Colors.hopeWhite,
-  },
-  prayerTypeDescription: {
-    fontSize: 14,
-    color: Colors.textGray,
-    textAlign: 'center',
-    lineHeight: 20,
-    opacity: 0.8,
-    marginTop: 6,
-  },
-  prayerTypeDescriptionFreeform: {
-    fontSize: 16,
-    color: Colors.textGray,
-    textAlign: 'center',
-    lineHeight: 22,
-    opacity: 0.8,
-    marginTop: 6,
-  },
-  inputContainer: {
-    gap: 12,
-  },
-  inputLabel: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-  },
-  textInput: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    padding: 16,
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    minHeight: 140,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    lineHeight: 24,
-  },
-  freeformRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  freeformIcon: {
-    marginTop: 14,
-  },
-  freeformInput: {
-    flex: 1,
-  },
-  editButtonBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 12,
-    gap: 8,
-    padding: 0,
-  },
-  button: {
-    width: 24,
-    height: 24,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  saveButton: {
-    backgroundColor: Colors.alertCoral,
-  },
-  disabledButton: {
-    opacity: 0.5,
   },
   prayersContainer: {
     maxHeight: 200,
@@ -841,10 +711,9 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   prayerItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    backgroundColor: '#35537e',
     borderRadius: 12,
     padding: 14,
-    marginBottom: 10,
   },
   prayerContent: {
     fontSize: 16,
@@ -948,5 +817,89 @@ const styles = StyleSheet.create({
   },
   buttonIcon: {
     marginRight: 8,
+  },
+  // Swipeable prayer card styles
+  swipeableContainer: {
+    marginBottom: 10, // Match the card's marginBottom
+    overflow: 'hidden',
+    borderRadius: 12, // Match the card border radius
+  },
+  prayerItemAnswered: {
+    backgroundColor: '#35537e',
+  },
+  prayerText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+    letterSpacing: 0.1,
+  },
+  prayerItemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  prayerDate: {
+    fontSize: 12,
+    color: Colors.textGray,
+    opacity: 0.8,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    gap: 8,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+  },
+  prayerContentContainer: {
+    flex: 1,
+  },
+  actionButtonsContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 10,
+    gap: 8,
+  },
+  prayerSwipeActions: {
+    flexDirection: 'row',
+    width: 168, // Match Todos swipe area width for consistency
+    height: '100%', // Match the card height
+    marginLeft: 8, // Add consistent gap like Todos
+    overflow: 'hidden', // Ensure rounded corners are respected
+    borderRadius: 12, // Match card border radius
+  },
+  editActionBtn: {
+    flex: 1, // Fill all space left of delete button
+    height: '100%',
+    backgroundColor: Colors.anchorBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 12, // Add padding to move icon to the right
+  },
+  deleteActionBtn: {
+    width: 75, // Make delete button smaller
+    height: '100%',
+    backgroundColor: Colors.alertCoral,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
   },
 });
