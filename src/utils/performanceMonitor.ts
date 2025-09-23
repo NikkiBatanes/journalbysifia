@@ -66,8 +66,17 @@ class PerformanceMonitor {
       this.metrics = this.metrics.slice(-this.maxMetrics);
     }
 
-    // Log slow operations
-    if (metric.duration > this.getSlowThreshold(metric.type)) {
+    // Log slow operations with per-metric overrides (reduce noise for known heavy queries)
+    let threshold = this.getSlowThreshold(metric.type);
+    try {
+      // Increase threshold specifically for playbooks queries (these aggregate multiple tables)
+      if (metric.type === 'query' && typeof metric.name === 'string' && metric.name.startsWith('query:playbooks:')) {
+        // Only warn if slower than 2s for playbooks
+        threshold = Math.max(threshold, 2000);
+      }
+    } catch {}
+
+    if (metric.duration > threshold) {
       console.warn(`[Performance] Slow ${metric.type}: ${metric.name} took ${metric.duration.toFixed(2)}ms`, metric.metadata);
     }
 

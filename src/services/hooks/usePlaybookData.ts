@@ -25,7 +25,8 @@ export const usePlaybooksData = (userId: string, config?: Partial<QueryConfig>) 
     staleTime: 5 * 60 * 1000, // 5 minutes stale time
     gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
     enabled: !!userId,
-    refetchOnMount: true,
+    // Avoid refetch on mount when cache is fresh to prevent unnecessary heavy queries
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
     retry: createRetryFunction(RETRY_CONFIGS.PLAYBOOKS),
     retryDelay: createRetryDelayFunction(RETRY_CONFIGS.PLAYBOOKS),
@@ -74,14 +75,12 @@ export const usePlaybookData = (userId: string, playbookId: string, config?: Par
     queryFn: withQueryPerformance(
       async () => {
         try {
-          console.log('[usePlaybookData] Fetching playbook:', playbookId);
-          const playbooks = await getPlaybooksApi(userId);
-          const playbook = playbooks.find(p => p.id === playbookId);
-
+          console.log('[usePlaybookData] Fetching playbook detail directly:', playbookId);
+          // Fetch a single playbook directly to avoid loading all playbooks
+          const playbook = await getPlaybookApi(userId, playbookId);
           if (!playbook) {
             throw new Error(`Playbook with ID ${playbookId} not found`);
           }
-
           return playbook;
         } catch (error) {
           console.error('[usePlaybookData] Error fetching playbook:', error);

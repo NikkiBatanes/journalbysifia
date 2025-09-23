@@ -1094,7 +1094,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </View>
         </View>
       </View>
-      {loadingRequests || fetchingRequests ? (
+      {loadingRequests ? (
         <DashboardPrayerSkeleton />
       ) : unprayedRequests.length === 0 ? (
         <ThemedText weight="regular" style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</ThemedText>

@@ -419,7 +419,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   // Handle edit mode - directly open modal
   const toggleEditing = useCallback(() => {
-    // Directly open modal without changing edit state
+    // Directly open modal without changing selection
     setShowStyleModal(true);
   }, []);
 
@@ -437,6 +437,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const handleCloseStyleModal = useCallback(() => {
     setShowStyleModal(false);
     setPrayerText('');
+    // Clear selection when closing so nothing remains selected outside the modal
     setSelectedPrayerType('');
     setEditingPrayerId(null);
   }, []);
@@ -536,7 +537,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // Handle cancel editing
   const handleCancelEdit = useCallback(() => {
     setPrayerText('');
-    setSelectedPrayerType('adoration');
+    // Ensure no selection remains when cancelling add/edit
+    setSelectedPrayerType('');
     setIsEditing(false);
 
     if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
@@ -579,7 +581,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     } else if (viewMode === 'inline' && !globalEditMode?.isGlobalEditMode && isEditing) {
       setIsEditing(false);
       setPrayerText('');
-      setSelectedPrayerType('adoration');
+      setSelectedPrayerType('');
     }
   }, [globalEditMode?.isGlobalEditMode, viewMode, isEditing]);
 

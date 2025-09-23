@@ -91,11 +91,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
       triggerSelectionHaptic();
     }
     onSelectPrayerType(type);
-    
-    // Focus the input and scroll to bottom after a short delay
+    // Only focus the input; do not auto-scroll to bottom
     setTimeout(() => {
       textInputRef.current?.focus();
-      scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, [selectedPrayerType, onSelectPrayerType]);
 
@@ -112,11 +110,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
     } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
       onSelectPrayerType('adoration');
     }
-    
-    // Focus the input and scroll to bottom after tab change
+    // Only focus the input; do not auto-scroll to bottom
     setTimeout(() => {
       textInputRef.current?.focus();
-      scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 150);
   }, [selectedPrayerType, onSelectPrayerType]);
 
@@ -155,14 +151,11 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
     if (!visible) return;
 
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      // Scroll to input field when keyboard appears
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      // Do not auto-scroll when keyboard appears
     });
 
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      // Optional: scroll back when keyboard hides
+      // No-op
     });
 
     return () => {
@@ -290,34 +283,29 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           
           {/* Prayer Input Section */}
           <View style={styles.inputSection}>
-            {selectedPrayerType !== 'freeform' && (
-              <ThemedText style={styles.inputSectionTitle} weight="semiBold">
-                {PRAYER_TYPES.find(t => t.key === selectedPrayerType)?.displayName} Prayer
-              </ThemedText>
+            {/* Removed label per request and hide input when no selection */}
+            {selectedPrayerType ? (
+              <TextInput
+                ref={textInputRef}
+                style={[styles.prayerInput, { fontFamily: regularFont }]}
+                placeholder={
+                  selectedPrayerType === 'freeform'
+                    ? 'Pray freely from your heart...'
+                    : getPlaceholderForPrayerType(selectedPrayerType)
+                }
+                placeholderTextColor={Colors.textGray}
+                value={prayerText}
+                onChangeText={onPrayerTextChange}
+                multiline
+                numberOfLines={8}
+                textAlignVertical="top"
+                autoFocus={true}
+                textAlign="left"
+              />
+            ) : (
+              // When nothing is selected, hide input; placeholder text defined for completeness
+              <></>
             )}
-            
-            <TextInput
-              ref={textInputRef}
-              style={[styles.prayerInput, { fontFamily: regularFont }]}
-              placeholder={selectedPrayerType === 'freeform' ? 
-                'Pray freely from your heart...' : 
-                getPlaceholderForPrayerType(selectedPrayerType)
-              }
-              placeholderTextColor={Colors.textGray}
-              value={prayerText}
-              onChangeText={onPrayerTextChange}
-              multiline
-              numberOfLines={8}
-              textAlignVertical="top"
-              autoFocus={true}
-              textAlign="left"
-              onFocus={() => {
-                // Scroll to input when focused
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 200);
-              }}
-            />
           </View>
           
         </ScrollView>
