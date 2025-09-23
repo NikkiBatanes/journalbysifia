@@ -11,7 +11,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { X, Check, Pencil, Trash2, Edit3 } from 'lucide-react-native';
+import { X, Check, Pencil } from 'lucide-react-native';
 
 import { Colors } from '../../theme/colors';
 import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
@@ -151,17 +151,8 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
             <TouchableOpacity
               style={styles.markAnsweredButton}
               onPress={() => {
-                Alert.alert(
-                  'Mark as Answered',
-                  'Has this prayer been answered?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Mark Answered',
-                      onPress: () => onMarkAnswered(prayer.id, true),
-                    },
-                  ]
-                );
+                // Directly mark as answered (no confirmation)
+                onMarkAnswered(prayer.id, true);
               }}
             >
               <Check size={12} color="#FF9500" />
@@ -303,7 +294,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   // Local state
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('adoration');
+  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('');
   const [prayerText, setPrayerText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showStyleModal, setShowStyleModal] = useState(false);
@@ -395,7 +386,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const handleCloseStyleModal = useCallback(() => {
     setShowStyleModal(false);
     setPrayerText('');
-    setSelectedPrayerType('adoration');
+    setSelectedPrayerType('');
     setEditingPrayerId(null);
   }, []);
 
@@ -440,6 +431,12 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
           content_length: prayerText.trim().length,
         });
       } else {
+        // Require the user to choose a prayer type before creating
+        if (!selectedPrayerType) {
+          Alert.alert('Choose Prayer Type', 'Please select a prayer type (ACTS or Open Prayer) before saving.');
+          setIsSaving(false);
+          return;
+        }
         // Create new prayer
         await createMutation.mutateAsync({
           user_id: user?.id || '',
@@ -462,7 +459,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
       // Reset form
       setPrayerText('');
-      setSelectedPrayerType('adoration');
+      setSelectedPrayerType('');
       setIsEditing(false);
       setEditingPrayerId(null);
 
@@ -620,7 +617,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         viewMode={viewMode}
         expanded={expanded}
         onExpand={onExpand}
-        showAddButton={true}
+        showAddButton={hasContent || isEditing}
         onAdd={toggleEditing}
         isAdding={isEditing}
         onCancelAdd={handleCancelEdit}

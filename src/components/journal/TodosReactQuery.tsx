@@ -710,6 +710,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               weight="semiBold"
               style={styles.emptyStateTitle}
               accessibilityRole="header"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
             >
               {emptyTitle}
             </ThemedText>

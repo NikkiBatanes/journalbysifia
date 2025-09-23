@@ -536,7 +536,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               color={Colors.textGray}
               style={styles.emptyStateIcon}
             />
-            <ThemedText style={styles.sectionLabel} accessibilityRole="text">GRATITUDE LIST</ThemedText>
+            <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">GRATITUDE LIST</ThemedText>
           </View>
           <View style={styles.titleContainer}>
             <ThemedText
@@ -544,6 +544,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               accessibilityRole="header"
               numberOfLines={1}
               ellipsizeMode="tail"
+              weight="semiBold"
             >
               {isYesterday ? 'Gratitude for Yesterday' : isEarlier ? 'Gratitude on This Day' : 'Give Thanks Today'}
             </ThemedText>
