@@ -172,22 +172,22 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         }),
       ]).start();
 
-      // Kick off initial progress animation shortly after opening
+      // Kick off initial progress animation shortly after opening (snappier)
       setTimeout(() => {
         progressAnim.setValue(0);
         Animated.timing(progressAnim, {
           toValue: progress,
-          duration: 600, // Reduced from 1000ms
+          duration: 300, // Faster
           useNativeDriver: false, // Cannot use native driver for width animations
-          easing: Easing.out(Easing.quad), // Simpler easing
+          easing: Easing.out(Easing.quad),
         }).start();
-      }, 200); // Reduced delay
+      }, 80); // Minimal delay
 
-      // Checkmark reveal sequence
+      // Checkmark reveal sequence (earlier)
       setTimeout(() => {
         Animated.timing(checkAnim, {
           toValue: 1,
-          duration: 300, // Reduced from 500ms
+          duration: 260, // Slightly faster
           useNativeDriver: true,
           easing: Easing.out(Easing.back(1.2)), // Smoother than bounce
         }).start(() => {
@@ -197,7 +197,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           startBurst(8); // Reduced particle count from 12 to 8
           // Show local FP notification above this modal content for guaranteed visibility
           try {
-            const pts = faithPointsService.getPointsForActivity('devotional_generated');
+            const pts = faithPointsService.getPointsForActivity('devotional_completed');
             setLocalPoints(pts);
             // Slight delay to ensure layout is stable
             setTimeout(() => setShowLocalPoints(true), 10);
@@ -205,7 +205,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           // Notify parent that check reveal completed
           try { onCheckReveal && onCheckReveal(); } catch {}
         });
-      }, 800); // Reduced delay from 1200ms
+      }, 500); // Faster reveal
     }
 
     if (!visible) {

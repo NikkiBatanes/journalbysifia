@@ -1,3 +1,6 @@
+  // Feature flags: hide subscription badge and usage counters for all plans
+  const SHOW_SUBSCRIPTION_BADGE = false;
+  const SHOW_USAGE_COUNTERS = false;
 /**
  * DashboardHomeScreen.tsx
  * Enterprise-grade dashboard home screen with comprehensive faith-based features
@@ -1196,7 +1199,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       {/* Right side - Subscription and Profile */}
       <View style={styles.headerRight}>
         {/* Subscription Status */}
-        {(() => {
+        {SHOW_SUBSCRIPTION_BADGE && (() => {
           // Use direct subscription if available and different from cached
           const activeSubscription = (directSubscription && directSubscription.tier !== subscription?.tier)
             ? directSubscription
@@ -1229,16 +1232,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           );
         })()}
 
-        {/* Playbook Counter - hide entirely when unlimited */}
-        {(() => {
+        {/* Playbook Counter - disabled per request */}
+        {SHOW_USAGE_COUNTERS && (() => {
           const limit = subscription?.limits?.playbooks;
           const used = usage?.playbooks_generated || 0;
           const isUnlimited = !limit || limit === -1;
           if (isUnlimited) { return null; }
           const remaining = Math.max(0, limit - used);
-
-          // Removed debug logging for playbook counter
-
           return (
             <TouchableOpacity
               style={styles.counterBadge}
@@ -1250,8 +1250,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           );
         })()}
 
-        {/* Devotional Counter - hide entirely when unlimited */}
-        {(() => {
+        {/* Devotional Counter - disabled per request */}
+        {SHOW_USAGE_COUNTERS && (() => {
           const limit = subscription?.limits?.devotionals;
           const used = usage?.devotionals_generated || 0;
           const isUnlimited = !limit || limit === -1;

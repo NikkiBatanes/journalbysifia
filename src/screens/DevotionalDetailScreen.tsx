@@ -644,8 +644,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       if (user?.id) {
         setTimeout(async () => {
           try {
-            // Award faith points
-            const pointsResult = await faithPointsService.awardPoints(user.id, 'devotional_generated', { suppressNotification: true });
+            // Award faith points for completing a devotional day
+            const pointsResult = await faithPointsService.awardPoints(user.id, 'devotional_completed', { suppressNotification: true });
             console.log('[DevotionalDetail] Faith points awarded for devotional completion:', pointsResult);
 
             // Track usage for subscription

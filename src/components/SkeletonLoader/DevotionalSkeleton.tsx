@@ -37,24 +37,36 @@ const DevotionalSkeleton: React.FC = () => {
       {[1, 2, 3].map((item) => (
         <View key={item} style={styles.card}>
           <View style={styles.cardContent}>
-            {/* Date skeleton */}
+            {/* Date */}
             <Animated.View style={[styles.dateSkeleton, { opacity }]} />
 
-            {/* Title skeleton */}
+            {/* Title */}
             <Animated.View style={[styles.titleSkeleton, { opacity }]} />
 
-            {/* Progress bar skeleton */}
+            {/* Description (1-2 lines) */}
+            <Animated.View style={[styles.descriptionLine, { opacity }]} />
+
+            {/* Tags row (category + from playbook pill) */}
+            <View style={styles.tagsRow}>
+              <Animated.View style={[styles.tagPill, { opacity }]} />
+            </View>
+
+            {/* Progress header (label left + counter right) */}
+            <View style={styles.progressHeaderRow}>
+              <Animated.View style={[styles.progressHeaderLabel, { opacity }]} />
+            </View>
+
+            {/* Progress bar */}
             <View style={styles.progressContainer}>
               <View style={styles.progressRow}>
-                {/* Progress bar background */}
                 <View style={styles.progressBarContainer}>
                   <Animated.View style={[styles.progressBarSkeleton, { opacity }]} />
                 </View>
-
-                {/* Tasks text skeleton */}
-                <Animated.View style={[styles.tasksSkeleton, { opacity }]} />
               </View>
             </View>
+
+            {/* Next line */}
+            <Animated.View style={[styles.nextLine, { opacity }]} />
           </View>
         </View>
       ))}
@@ -79,31 +91,82 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 20,
-    padding: 12,
+    padding: 16,
     width: '100%',
-    height: 88,
-    marginBottom: 12,
+    height: 200,
+    marginBottom: 14,
   },
   titleSkeleton: {
-    height: 16,
+    height: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
-    marginBottom: 8,
-    marginTop: 1,
-    width: '90%',
+    marginBottom: 6,
+    marginTop: 2,
+    width: '85%',
   },
   cardContent: {
     flex: 1,
   },
   dateSkeleton: {
-    height: 10,
+    height: 15,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     marginBottom: 4,
     width: '70%',
   },
+  descriptionLine: {
+    height: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 4,
+    marginTop: 4,
+    marginBottom: 4,
+    width: '92%',
+  },
+  descriptionLineShort: {
+    height: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 4,
+    marginBottom: 8,
+    width: '70%',
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  tagPill: {
+    height: 20,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 74,
+  },
+  tagPillShort: {
+    height: 20,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 104,
+  },
+  progressHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressHeaderLabel: {
+    height: 20,
+    width: 80,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 4,
+  },
+  progressHeaderCounter: {
+    height: 15,
+    width: 120,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 4,
+  },
   progressContainer: {
-    marginTop: 'auto',
+    marginTop: 2,
   },
   progressRow: {
     flexDirection: 'row',
@@ -112,19 +175,20 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 0,
   },
   progressBarSkeleton: {
     height: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
-    width: '97%',
+    width: '100%',
   },
-  tasksSkeleton: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  nextLine: {
+    height: 15,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 4,
-    width: 60,
+    marginTop: 8,
+    width: 120,
   },
 });
 

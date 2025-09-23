@@ -200,7 +200,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   });
 
   return (
-    <View style={[styles.container, getPositionStyle(), { backgroundColor: 'rgba(255,0,0,0.5)' }]}>
+    <View style={[styles.container, getPositionStyle()]}>
       <Animated.View
         style={[
           styles.notification,
@@ -261,11 +261,13 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
                   return 'MISSION ACCOMPLISHED';
                 }
                 if (at === 'affirmation_read_aloud') {
-                  // Copy refinement: pluralize to match product copy
                   return 'AFFIRMATIONS';
                 }
                 if (at === 'prayer_for_now') {
                   return 'PRAYER';
+                }
+                if (at === 'devotional_completed') {
+                  return 'Devotional Completed';
                 }
                 return activityType.replace(/_/g, ' ').toUpperCase();
               })()}

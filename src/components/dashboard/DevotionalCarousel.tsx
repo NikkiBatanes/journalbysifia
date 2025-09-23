@@ -122,6 +122,27 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       }
 
       // Fetch completion data for each devotional
+      // Helper to derive a better category if the saved one is too generic
+      const deriveCategory = (row: any): string => {
+        const savedArray = Array.isArray(row.categories) ? row.categories : [];
+        const saved = (row.category as string) || (savedArray[0] as string) || '';
+        const isGeneric = !saved || /^(growth|spiritual\s*growth|daily\s*devotion)$/i.test(saved.trim());
+        if (!isGeneric) {
+          return saved;
+        }
+        const base = `${row.title || ''} ${row.description || ''}`.toLowerCase();
+        if (base.includes('prayer') || base.includes('pray')) return 'Prayer';
+        if (base.includes('faith') || base.includes('trust') || base.includes('believe')) return 'Faith';
+        if (base.includes('love') || base.includes('relationship') || base.includes('family')) return 'Relationships';
+        if (base.includes('peace') || base.includes('anxiety') || base.includes('worry') || base.includes('stress')) return 'Peace';
+        if (base.includes('hope') || base.includes('encouragement') || base.includes('strength')) return 'Hope';
+        if (base.includes('wisdom') || base.includes('decision') || base.includes('guidance')) return 'Wisdom';
+        if (base.includes('forgive')) return 'Forgiveness';
+        if (base.includes('gratitude') || base.includes('thank')) return 'Gratitude';
+        if (base.includes('purpose') || base.includes('calling') || base.includes('mission')) return 'Purpose';
+        return saved || 'Spiritual Growth';
+      };
+
       const devotionalsWithStatus = await Promise.all(
         devotionalsData.map(async (devotional) => {
           try {
@@ -259,7 +280,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               completedAt,
               lastAccessed,
               estimatedDuration,
-              category: devotional.category || 'Daily Devotion',
+              category: deriveCategory(devotional),
               verse,
               total_days: totalDaysForReturn,
               nextDayNumber,
@@ -274,7 +295,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               content: devotional.content,
               isCompleted: false,
               estimatedDuration: 5,
-              category: 'Daily Devotion',
+              category: deriveCategory(devotional),
             };
           }
         })

@@ -89,6 +89,31 @@ export async function generateDevotional(
 
       console.log('Devotional generated successfully, saving to database...');
 
+      // Choose a category: prefer result.category/categories if present, else derive from title/description
+      const deriveCategory = (payload: any): DevotionalCategory => {
+        try {
+          const fromResult: string | undefined = (payload?.category as string) || (Array.isArray(payload?.categories) ? payload.categories[0] : undefined);
+          if (fromResult && typeof fromResult === 'string') {
+            return fromResult as DevotionalCategory;
+          }
+          const base = `${payload?.title || ''} ${payload?.description || ''}`.toLowerCase();
+          if (base.includes('prayer') || base.includes('pray')) return 'Prayer' as DevotionalCategory;
+          if (base.includes('faith') || base.includes('trust') || base.includes('believe')) return 'Faith' as DevotionalCategory;
+          if (base.includes('love') || base.includes('relationship') || base.includes('family')) return 'Relationships' as DevotionalCategory;
+          if (base.includes('peace') || base.includes('anxiety') || base.includes('worry') || base.includes('stress')) return 'Peace' as DevotionalCategory;
+          if (base.includes('hope') || base.includes('encouragement') || base.includes('strength')) return 'Hope' as DevotionalCategory;
+          if (base.includes('wisdom') || base.includes('decision') || base.includes('guidance')) return 'Wisdom' as DevotionalCategory;
+          if (base.includes('forgive')) return 'Forgiveness' as DevotionalCategory;
+          if (base.includes('gratitude') || base.includes('thank')) return 'Gratitude' as DevotionalCategory;
+          if (base.includes('purpose') || base.includes('calling') || base.includes('mission')) return 'Purpose' as DevotionalCategory;
+          return 'Spiritual Growth' as DevotionalCategory;
+        } catch {
+          return 'Spiritual Growth' as DevotionalCategory;
+        }
+      };
+
+      const computedCategory = deriveCategory(result);
+
       // Save the generated devotional to the database
       const { data: savedDevotional, error: saveError } = await supabase
         .from('devotionals')
@@ -96,8 +121,8 @@ export async function generateDevotional(
           user_id: session.user.id,
           title: result.title || 'My Devotional',
           description: result.description || '',
-          category: 'Growth', // Default category from valid list
-          categories: ['Growth'], // Default categories array
+          category: computedCategory,
+          categories: [computedCategory],
           playbook_id: playbookId || null,
           playbook_title: null, // Will be populated if needed
           user_input: userInput || 'General spiritual growth',

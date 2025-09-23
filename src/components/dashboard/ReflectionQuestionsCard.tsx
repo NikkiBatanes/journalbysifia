@@ -57,6 +57,8 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   const queryClient = useQueryClient();
   const [questions, setQuestions] = useState<ReflectionQuestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const initialLoadRef = React.useRef(true);
   const [error, setError] = useState<string | null>(null);
   // No need to fetch today's reflections for this version
   const [_diag, setDiag] = useState<{
@@ -76,7 +78,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     }
 
     try {
-      setLoading(true);
+      // Only show skeleton on the very first load
+      if (initialLoadRef.current) {
+        setLoading(true);
+      }
       setError(null);
 
       // First, get all journaled questions to filter them out
@@ -320,6 +325,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       setError('Unable to load reflection questions');
       setQuestions([]);
     } finally {
+      // Mark initial load complete and stop showing skeletons on future refreshes
+      if (initialLoadRef.current) {
+        initialLoadRef.current = false;
+        setHasLoaded(true);
+      }
       setLoading(false);
     }
   }, [user]);
@@ -432,7 +442,8 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   }, [questions, ITEM_SIZE]);
   const scrollX = React.useRef(new Animated.Value(0)).current;
 
-  if (loading) {
+  // Only show skeleton on the very first load
+  if (loading && !hasLoaded) {
     return <DashboardReflectionSkeleton />;
   }
 

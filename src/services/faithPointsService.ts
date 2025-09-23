@@ -86,6 +86,7 @@ export class FaithPointsService {
     affirmation_read_aloud: 2,
     playbook_generated: 10,
     devotional_generated: 8,
+    devotional_completed: 5,
     journal_entry: 5,
     prayer_for_now: 2,
     subtask_completed: 1,
