@@ -31,16 +31,54 @@ export async function pickImageLocal(): Promise<{ uri: string; name: string; typ
   if (response?.errorCode) {throw new Error(response.errorMessage || 'Image picker error');}
   const asset = response?.assets?.[0];
   if (!asset?.uri) {throw new Error('No image selected');}
+  
+  // Validate URI format to prevent crashes
+  const uri = asset.uri;
+  if (!uri.startsWith('file://') && !uri.startsWith('content://') && !uri.startsWith('ph://')) {
+    throw new Error('Invalid image URI format');
+  }
+  
   const fileName = asset.fileName || `avatar_${Date.now()}.jpg`;
   const type = asset.type || 'image/jpeg';
-  return { uri: asset.uri, name: fileName, type };
+  return { uri, name: fileName, type };
 }
 
 export async function uploadAvatar(user: User, file: { uri: string; name: string; type: string }): Promise<string> {
   // Convert uri to file blob/arraybuffer depending on platform
   // For React Native, supabase-js supports uploading via fetch(uri).then(res=>res.blob())
-  const res = await fetch(file.uri);
-  const blob = await res.blob();
+  
+  // Add validation and error handling to prevent crashes
+  if (!file.uri || typeof file.uri !== 'string') {
+    throw new Error('Invalid file URI provided');
+  }
+  
+  let res: Response;
+  let blob: Blob;
+  
+  try {
+    res = await fetch(file.uri);
+    
+    if (!res.ok) {
+      throw new Error(`Failed to fetch file: ${res.status} ${res.statusText}`);
+    }
+    
+    // Check if response has valid content
+    const contentLength = res.headers.get('content-length');
+    if (contentLength === '0') {
+      throw new Error('File is empty or corrupted');
+    }
+    
+    blob = await res.blob();
+    
+    // Validate blob
+    if (!blob || blob.size === 0) {
+      throw new Error('Failed to create blob from file or file is empty');
+    }
+    
+  } catch (error) {
+    console.error('Error processing file for upload:', error);
+    throw new Error(`Failed to process file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 
   const path = `${user.id}/${Date.now()}_${file.name}`;
   const { data, error } = await supabase.storage.from('avatars').upload(path, blob, {
