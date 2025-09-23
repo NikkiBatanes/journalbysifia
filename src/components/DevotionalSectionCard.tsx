@@ -45,11 +45,8 @@ const styles = StyleSheet.create({
     padding: CARD_CONTENT_PADDING,
     marginBottom: 18,
     marginHorizontal: CARD_HORIZONTAL_PADDING,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 3,
+    // Remove shadows and elevation for flat, modern appearance
+    elevation: 0,
   },
   cardTintOnBlue: {
     backgroundColor: '#264674',

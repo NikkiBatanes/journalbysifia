@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16, // adjusted to 16 radius
+    borderRadius: 30, // increased to 30px per design request
     borderWidth: 0, // No border
     borderColor: 'transparent',
     marginVertical: 10,

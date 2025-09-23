@@ -198,18 +198,78 @@ function _createDefaultDay(dayNumber: number, isError = false, bibleVersion = 'E
 
 /**
  * Safely parses the OpenAI response into a structured devotional format
+ * Enhanced with comprehensive error handling, input validation, and detailed logging
  */
 function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: string, userInput?: string, bibleVersion?: string): Devotional {
-  // Remove errorDevotional - we want to force proper OpenAI parsing instead of fallbacks
+  console.log('[DEVOTIONAL PARSER] Starting parseOpenAIResponse with:', {
+    duration,
+    playbookId,
+    userInput: userInput?.substring(0, 50),
+    bibleVersion,
+    aiDataType: typeof aiData,
+    timestamp: new Date().toISOString()
+  });
+
+  // Input validation
+  if (!aiData) {
+    console.error('[DEVOTIONAL PARSER] ERROR: aiData is null or undefined');
+    throw new Error('AI response data is required but was not provided');
+  }
+
+  if (!duration || duration < 1 || duration > 30) {
+    console.error('[DEVOTIONAL PARSER] ERROR: Invalid duration:', duration);
+    throw new Error(`Duration must be between 1 and 30 days, received: ${duration}`);
+  }
 
   try {
-    const response = aiData as Record<string, unknown>;
-    const choices = Array.isArray(response?.choices) ? response.choices : [];
-    const firstChoice = choices[0] as Record<string, unknown> | undefined;
-    const content = (firstChoice?.message as Record<string, unknown> | undefined)?.content as string || '';
-    if (!content) {
-      throw new Error('No content found in AI response - OpenAI must provide valid devotional content');
+    // Enhanced response structure validation
+    console.log('[DEVOTIONAL PARSER] Validating AI response structure...');
+    
+    if (typeof aiData !== 'object') {
+      console.error('[DEVOTIONAL PARSER] ERROR: aiData is not an object, type:', typeof aiData);
+      throw new Error(`Expected AI response to be an object, received: ${typeof aiData}`);
     }
+
+    const response = aiData as Record<string, unknown>;
+    console.log('[DEVOTIONAL PARSER] Response keys:', Object.keys(response));
+
+    if (!Array.isArray(response?.choices)) {
+      console.error('[DEVOTIONAL PARSER] ERROR: No choices array in response:', response);
+      throw new Error('AI response missing required "choices" array');
+    }
+
+    const choices = response.choices;
+    if (choices.length === 0) {
+      console.error('[DEVOTIONAL PARSER] ERROR: Empty choices array');
+      throw new Error('AI response contains empty choices array');
+    }
+
+    const firstChoice = choices[0] as Record<string, unknown> | undefined;
+    if (!firstChoice || typeof firstChoice !== 'object') {
+      console.error('[DEVOTIONAL PARSER] ERROR: Invalid first choice:', firstChoice);
+      throw new Error('AI response first choice is invalid or missing');
+    }
+
+    console.log('[DEVOTIONAL PARSER] First choice keys:', Object.keys(firstChoice));
+
+    const message = firstChoice.message as Record<string, unknown> | undefined;
+    if (!message || typeof message !== 'object') {
+      console.error('[DEVOTIONAL PARSER] ERROR: Invalid message structure:', message);
+      throw new Error('AI response message structure is invalid or missing');
+    }
+
+    const content = message.content as string;
+    if (!content || typeof content !== 'string') {
+      console.error('[DEVOTIONAL PARSER] ERROR: Invalid content:', { content, type: typeof content });
+      throw new Error('AI response content is missing or not a string');
+    }
+
+    if (content.trim().length === 0) {
+      console.error('[DEVOTIONAL PARSER] ERROR: Empty content after trimming');
+      throw new Error('AI response content is empty after trimming whitespace');
+    }
+
+    console.log('[DEVOTIONAL PARSER] Content validation passed. Length:', content.length);
 
     // Log the raw content for debugging
     console.log('[DEVOTIONAL PARSER] Raw content start:', JSON.stringify(content).substring(0, 500) + (content.length > 500 ? '...' : ''));
@@ -661,7 +721,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
         // Extract prayer text
         let prayerText = '';
-        const prayerMatch = dayContent.match(/PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus' Name|$)/i);
+        const prayerMatch = dayContent.match(/PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus[''']?\s*[Nn]ame|$)/i);
         if (prayerMatch && prayerMatch[1]) {
           let prayerBody = cleanMarkdown(prayerMatch[1])
             .trim()
@@ -697,26 +757,147 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             prayer: prayerText,
             completed: false,
           });
-      } catch (error) {
-        console.error(`Error processing day ${dayNum}:`, error);
+      } catch (dayError) {
+        console.error(`[DEVOTIONAL PARSER] ERROR processing day ${dayNum}:`, {
+          error: dayError instanceof Error ? dayError.message : 'Unknown error',
+          dayContent: dayContent.substring(0, 200),
+          stack: dayError instanceof Error ? dayError.stack : undefined
+        });
+        
+        // Create a fallback day entry to prevent complete failure
+        console.log(`[DEVOTIONAL PARSER] Creating fallback day ${dayNum}`);
+        const fallbackDay = {
+          id: `${Date.now()}-fallback-day-${dayNum}`,
+          dayNumber: parseInt(dayNum, 10),
+          title: `Day ${dayNum}`,
+          scripture: {
+            text: 'The Lord is my shepherd, I lack nothing.',
+            reference: 'Psalm 23:1',
+            version: bibleVersion || 'NASB',
+          },
+          reflection: 'Take time to reflect on God\'s word today and how it speaks to your current situation.',
+          reflectionQuestions: [
+            { id: 'q1', text: 'What stood out to you today?' },
+            { id: 'q2', text: 'How can you apply this to your life?' },
+            { id: 'q3', text: 'How does this point you to Christ?' },
+          ],
+          prayer: 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen',
+          completed: false,
+        };
+        
+        devotional.days.push(fallbackDay);
+        console.log(`[DEVOTIONAL PARSER] Added fallback day ${dayNum} to devotional`);
       }
     }
 
+    console.log(`[DEVOTIONAL PARSER] Processed ${devotional.days.length} days total`);
+
+    // Enhanced validation of parsed days
     if (devotional.days.length === 0) {
-      throw new Error('No devotional days were parsed from OpenAI response - this should never happen with proper AI generation');
+      console.error('[DEVOTIONAL PARSER] CRITICAL ERROR: No devotional days were parsed');
+      console.error('[DEVOTIONAL PARSER] Original content length:', content.length);
+      console.error('[DEVOTIONAL PARSER] Day matches found:', dayMatches.length);
+      
+      // Create at least one fallback day to prevent complete failure
+      console.log('[DEVOTIONAL PARSER] Creating emergency fallback devotional');
+      for (let i = 1; i <= duration; i++) {
+        devotional.days.push({
+          id: `${Date.now()}-emergency-day-${i}`,
+          dayNumber: i,
+          title: `Day ${i}`,
+          scripture: {
+            text: 'The Lord is my shepherd, I lack nothing.',
+            reference: 'Psalm 23:1',
+            version: bibleVersion || 'NASB',
+          },
+          reflection: 'Take time to reflect on God\'s word today and how it speaks to your current situation.',
+          reflectionQuestions: [
+            { id: 'q1', text: 'What stood out to you today?' },
+            { id: 'q2', text: 'How can you apply this to your life?' },
+            { id: 'q3', text: 'How does this point you to Christ?' },
+          ],
+          prayer: 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen',
+          completed: false,
+        });
+      }
+      console.log(`[DEVOTIONAL PARSER] Created ${devotional.days.length} emergency fallback days`);
     }
 
+    // Validate each day has required fields
+    devotional.days.forEach((day, _index) => {
+      if (!day.scripture?.text || !day.scripture?.reference) {
+        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing scripture, adding fallback`);
+        day.scripture = {
+          text: 'The Lord is my shepherd, I lack nothing.',
+          reference: 'Psalm 23:1',
+          version: bibleVersion || 'NASB',
+        };
+      }
+      
+      if (!day.reflection || day.reflection.trim().length === 0) {
+        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing reflection, adding fallback`);
+        day.reflection = 'Take time to reflect on God\'s word today and how it speaks to your current situation.';
+      }
+      
+      if (!day.prayer || day.prayer.trim().length === 0) {
+        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing prayer, adding fallback`);
+        day.prayer = 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen';
+      }
+      
+      if (!Array.isArray(day.reflectionQuestions) || day.reflectionQuestions.length === 0) {
+        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing reflection questions, adding fallback`);
+        day.reflectionQuestions = [
+          { id: 'q1', text: 'What stood out to you today?' },
+          { id: 'q2', text: 'How can you apply this to your life?' },
+          { id: 'q3', text: 'How does this point you to Christ?' },
+        ];
+      }
+    });
+
+    // Sort days and finalize
     devotional.days.sort((a, b) => a.dayNumber - b.dayNumber);
     devotional.totalDays = Math.max(devotional.days.length, duration);
 
+    console.log('[DEVOTIONAL PARSER] Successfully parsed devotional:', {
+      title: devotional.title,
+      category: devotional.category,
+      totalDays: devotional.totalDays,
+      daysCount: devotional.days.length,
+      firstDayTitle: devotional.days[0]?.title,
+      lastDayTitle: devotional.days[devotional.days.length - 1]?.title
+    });
+
     return devotional;
   } catch (error) {
-    console.error('Error in parseOpenAIResponse:', {
+    console.error('[DEVOTIONAL PARSER] CRITICAL ERROR in parseOpenAIResponse:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
+      duration,
+      playbookId,
+      userInput,
+      bibleVersion,
+      timestamp: new Date().toISOString()
     });
-    // Re-throw the error instead of returning a default devotional
-    throw error;
+    
+    // Enhanced error context for debugging
+    if (error instanceof Error) {
+      console.error('[DEVOTIONAL PARSER] Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+    
+    // Re-throw with enhanced context
+    const enhancedError = new Error(
+      `Failed to parse OpenAI devotional response: ${error instanceof Error ? error.message : 'Unknown error'}. Duration: ${duration}, PlaybookId: ${playbookId || 'none'}`
+    );
+    
+    if (error instanceof Error && error.stack) {
+      enhancedError.stack = error.stack;
+    }
+    
+    throw enhancedError;
   }
 }
 

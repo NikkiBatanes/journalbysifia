@@ -65,7 +65,7 @@ export const useCrossComponentSync = (userId: string) => {
     console.log('[CrossComponentSync] Syncing devotional completion:', { devotionalId, playbookId });
 
     try {
-      // Award faith points for devotional completion
+      // Award faith points for devotional day completion
       const pointsResult = await faithPointsService.awardPoints(userId, 'devotional_generated', {
         devotionalId,
         playbookId,

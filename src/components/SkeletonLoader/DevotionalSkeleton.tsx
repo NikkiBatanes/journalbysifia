@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeader: {
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   card: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 20,
     padding: 12,
     width: '100%',
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   },
   titleSkeleton: {
     height: 16,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     marginBottom: 8,
     marginTop: 1,
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   dateSkeleton: {
     height: 10,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     marginBottom: 4,
     width: '70%',
@@ -116,13 +116,13 @@ const styles = StyleSheet.create({
   },
   progressBarSkeleton: {
     height: 10,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     width: '97%',
   },
   tasksSkeleton: {
     height: 12,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     width: 60,
   },

@@ -229,11 +229,11 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
   }
 
   // Ensure prayer format is correct
-  const prayerRegex = /PRAYER:[\s\S]*?In Jesus' name, Amen/i;
+  const prayerRegex = /PRAYER:[\s\S]*?In Jesus' Name, Amen/i;
   if (!prayerRegex.test(enforcedResponse)) {
     enforcedResponse = enforcedResponse.replace(
       /PRAYER:.*?(?=\n\n\w|$)/is,
-      'PRAYER:\nHeavenly Father,\n\n[Your prayer content here - be specific and personal]\n\nIn Jesus\' name, Amen'
+      'PRAYER:\nHeavenly Father,\n\n[Your prayer content here - be specific and personal]\n\nIn Jesus\' Name, Amen'
     );
   }
 

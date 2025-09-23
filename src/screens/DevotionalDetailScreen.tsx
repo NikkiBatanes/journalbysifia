@@ -47,6 +47,27 @@ import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
 import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDetailSkeleton';
 
+// Ensure consistent formatting of the prayer closing line
+// - Converts CRLF to LF
+// - Collapses 3+ newlines to 2
+// - Ensures exactly two newlines before any variant of "In Jesus' Name, Amen"
+// - Handles curly apostrophes and optional comma/amen, case-insensitive
+function normalizePrayer(raw: string): string {
+  if (!raw) { return raw; }
+  return raw
+    .replace(/\*\*/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    // Remove any spaces/tabs at line starts
+    .replace(/^[\t ]+/gm, '')
+    // Normalize apostrophes to curly for consistency
+    .replace(/Jesus['’]\s*Name/gi, (m) => m.replace(/['’]/, '’'))
+    // Ensure exactly one blank line (two newlines) before the closing phrase by consuming all preceding whitespace (including newlines)
+    .replace(/[\s]*((?:In\s+Jesus[’']?\s*Name)(?:,?\s*Amen)?)/gi, '\n\n$1')
+    // Trim trailing spaces on lines
+    .replace(/[\t ]+$/gm, '');
+}
+
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
 
   const { devotionalId } = route.params;
@@ -901,7 +922,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                 {day.scripture?.version && (
                   <TouchableOpacity
                     style={styles.infoIcon}
-                    onPress={() => setShowCopyrightModal(true)}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setShowCopyrightModal(true);
+                    }}
                     activeOpacity={0.7}
                   >
                     <Ionicons
@@ -999,12 +1023,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 <ThemedText style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
-                    ? day.prayer
-                        .replace(/\*\*/g, '')
-                        .replace(/\r\n/g, '\n')
-                        .replace(/\n{3,}/g, '\n\n')
-                        // Ensure two newlines before any variant of "In Jesus' name" (handles curly apostrophes and optional ", Amen")
-                        .replace(/[\s]*((?:In\s+Jesus[’']?\s*name)(?:,?\s*amen)?)/ig, '\n\n$1')
+                    ? normalizePrayer(day.prayer)
                     : 'No prayer for today.'}
                 </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
@@ -1343,11 +1362,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.growthGreen,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    // Remove shadows and elevation for flat, modern appearance
+    elevation: 0,
     zIndex: 100,
   },
   swipeIndicatorContainer: {

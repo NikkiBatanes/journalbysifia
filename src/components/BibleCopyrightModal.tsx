@@ -4,6 +4,7 @@ import ThemedText from './common/ThemedText';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme/ThemeContext';
 import { Colors } from '../theme';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface BibleCopyrightModalProps {
   visible: boolean;
@@ -73,7 +74,10 @@ export const BibleCopyrightModal: React.FC<BibleCopyrightModalProps> = ({
             <ThemedText weight="semiBold" style={[styles.title, { color: Colors.hopeWhite }]}>
               Bible Translation Information
             </ThemedText>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={() => {
+              triggerLightHaptic();
+              onClose();
+            }} style={styles.closeButton}>
               <Ionicons 
                 name="close" 
                 size={24} 
