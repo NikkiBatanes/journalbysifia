@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useRef, useCallback, ReactNode, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Modal } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
 import AnimatedPointsNotification from '../components/ui/AnimatedPointsNotification';
 import { notificationService } from '../services/notificationService';
@@ -47,6 +47,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
 
   // Define showPointsNotification first to avoid reference issues
   const showPointsNotification = useCallback((points: number, activityType: string, position: 'top' | 'center' | 'bottom' = 'center') => {
+    console.log('[PointsNotificationContext] showPointsNotification called:', { points, activityType, position });
     const id = uuidv4();
 
     const newNotification: PointsNotification = {
@@ -56,7 +57,13 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       position,
     };
 
-    setNotifications(prev => [...prev, newNotification]);
+    console.log('[PointsNotificationContext] Adding notification:', newNotification);
+    setNotifications(prev => {
+      console.log('[PointsNotificationContext] Previous notifications:', prev.length);
+      const updated = [...prev, newNotification];
+      console.log('[PointsNotificationContext] Updated notifications:', updated.length);
+      return updated;
+    });
 
     // Store timeout reference for cleanup
     timeouts.current[id] = setTimeout(() => {
@@ -76,12 +83,15 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
 
   // Wire up the global notification service so calls from services trigger this UI
   useEffect(() => {
+    console.log('[PointsNotificationContext] Setting up notification callback');
     isMounted.current = true;
     notificationService.setPointsNotificationCallback((points, activityType, position) => {
+      console.log('[PointsNotificationContext] Callback triggered:', { points, activityType, position });
       showPointsNotification(points, activityType, position);
     });
 
     return () => {
+      console.log('[PointsNotificationContext] Cleaning up notification callback');
       isMounted.current = false;
       notificationService.clearPointsNotificationCallback();
       // Clear any pending timeouts
@@ -111,22 +121,32 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
     <PointsNotificationContext.Provider value={{ showPointsNotification }}>
       {children}
 
-      {/* Global overlay for notifications - positioned outside normal flow */}
+      {/* Global overlay for notifications - render in a transparent Modal to sit above all content/modals */}
       {notifications.length > 0 && (
-        <View
-          style={styles.notificationOverlay}
+        <Modal
+          visible
+          transparent
+          statusBarTranslucent
+          animationType="none"
+          presentationStyle="overFullScreen"
+          onShow={() => console.log('[PointsNotificationContext] Overlay Modal shown')}
         >
-          {notifications.map((notification) => (
-            <AnimatedPointsNotification
-              key={notification.id}
-              points={notification.points}
-              activityType={notification.activityType}
-              position={notification.position}
-              visible={true}
-              onAnimationComplete={() => handleAnimationComplete(notification.id)}
-            />
-          ))}
-        </View>
+          <View style={styles.notificationOverlay}>
+            {notifications.map((notification) => {
+              console.log('[PointsNotificationContext] Rendering notification:', notification);
+              return (
+                <AnimatedPointsNotification
+                  key={notification.id}
+                  points={notification.points}
+                  activityType={notification.activityType}
+                  position={notification.position}
+                  visible={true}
+                  onAnimationComplete={() => handleAnimationComplete(notification.id)}
+                />
+              );
+            })}
+          </View>
+        </Modal>
       )}
     </PointsNotificationContext.Provider>
   );

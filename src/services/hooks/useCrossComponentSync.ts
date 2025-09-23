@@ -66,10 +66,12 @@ export const useCrossComponentSync = (userId: string) => {
 
     try {
       // Award faith points for devotional day completion
+      // Suppress global notification here to avoid duplicates (local modal shows FP)
       const pointsResult = await faithPointsService.awardPoints(userId, 'devotional_generated', {
         devotionalId,
         playbookId,
         timestamp: new Date().toISOString(),
+        suppressNotification: true,
       });
 
       console.log('[CrossComponentSync] Faith points awarded:', pointsResult);

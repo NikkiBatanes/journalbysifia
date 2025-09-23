@@ -64,7 +64,16 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   }, [translateY, opacity, scale, onAnimationComplete]);
 
   useEffect(() => {
+    console.log('[AnimatedPointsNotification] useEffect triggered, visible:', visible);
     if (!visible) {return;}
+
+    // Reset animation values to ensure proper starting state
+    translateY.setValue(50);
+    opacity.setValue(0);
+    scale.setValue(0.5);
+    sparkleRotation.setValue(0);
+
+    console.log('[AnimatedPointsNotification] Starting entrance animation');
 
     // Start entrance animation - FASTER for immediate feedback
     const entranceAnimation = Animated.parallel([
@@ -96,7 +105,9 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     );
 
     // Start animations
-    entranceAnimation.start();
+    entranceAnimation.start(() => {
+      console.log('[AnimatedPointsNotification] Entrance animation completed');
+    });
     sparkleAnimation.start();
 
     // Haptic feedback synchronized with animation
@@ -176,7 +187,12 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     return Colors.faithGold;
   };
 
-  if (!visible) {return null;}
+  if (!visible) {
+    console.log('[AnimatedPointsNotification] Not visible, returning null');
+    return null;
+  }
+
+  console.log('[AnimatedPointsNotification] Rendering notification:', { points, activityType, visible });
 
   const sparkleRotationInterpolate = sparkleRotation.interpolate({
     inputRange: [0, 1],
@@ -184,7 +200,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   });
 
   return (
-    <View style={[styles.container, getPositionStyle()]}>
+    <View style={[styles.container, getPositionStyle(), { backgroundColor: 'rgba(255,0,0,0.5)' }]}>
       <Animated.View
         style={[
           styles.notification,
@@ -195,6 +211,8 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
             ],
             opacity,
             backgroundColor: getActivityColor(),
+            borderWidth: 3,
+            borderColor: 'white',
           },
         ]}
       >

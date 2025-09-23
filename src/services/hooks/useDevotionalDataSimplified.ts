@@ -1,9 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DeviceEventEmitter } from 'react-native';
 import { DevotionalApi } from '../api/devotionalApi';
+import type { DevotionalApiEntry } from '../api/devotionalApi';
 import { queryKeys as globalQueryKeys } from '../queryKeys';
 import { defaultQueryOptions, defaultMutationOptions } from '../config/queryConfig';
 import { Devotional, DevotionalCreationParams, DevotionalCategory } from '../../interfaces/devotional';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { notificationService } from '../notificationService';
+import { faithPointsService } from '../faithPointsService';
 import { useCrossComponentSync } from './useCrossComponentSync';
 // import { analytics } from '../analytics'; // TODO: Fix analytics import
 
@@ -195,6 +199,14 @@ export const useCreateDevotionalReactQuery = () => {
       } catch {}
 
       // Analytics tracking removed for now
+
+      // Show Faith Points UI for devotional generation (do not rely on server-side triggers)
+      try {
+        const pts = faithPointsService.getPointsForActivity('devotional_generated');
+        notificationService.showPointsNotification(pts, 'devotional_generated', 'center');
+      } catch (e) {
+        console.log('[useCreateDevotionalReactQuery] Failed to show FP notification:', e);
+      }
     },
     onError: (err: Error) => {
       console.error('[useCreateDevotionalReactQuery] Error:', err);

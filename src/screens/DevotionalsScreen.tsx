@@ -303,6 +303,29 @@ const DevotionalsScreen = () => {
                   })()}
                 </View>
               </View>
+
+              {/* Rating (Completed tab only) */}
+              {filter === 'completed' && item.completed && typeof item.rating === 'number' && item.rating > 0 && (
+                <View style={styles.ratingContainer}>
+                  <View style={styles.ratingRow}>
+                    {Array.from({ length: 5 }).map((_, idx) => {
+                      const isFilled = idx < Math.round(item.rating || 0);
+                      return (
+                        <MaterialCommunityIcons
+                          key={idx}
+                          name={isFilled ? 'star' : 'star-outline'}
+                          size={18}
+                          color={isFilled ? Colors.faithGold : Colors.secondaryText}
+                          style={styles.ratingStar}
+                        />
+                      );
+                    })}
+                    <ThemedText weight="medium" style={styles.ratingValueText}>
+                      {Math.round(item.rating || 0)}/5
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
         </Swipeable>
@@ -1023,6 +1046,35 @@ const styles = StyleSheet.create({
   nextDayText: {
     fontSize: 13,
     color: Colors.holyGlow,
+    fontFamily: Fonts.medium,
+  },
+  ratingContainer: {
+    marginTop: 10,
+  },
+  ratingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  ratingIcon: {
+    marginRight: 4,
+  },
+  ratingLabelText: {
+    fontSize: 13,
+    color: Colors.holyGlow,
+    fontFamily: Fonts.medium,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingStar: {
+    marginRight: 2,
+  },
+  ratingValueText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: Colors.faithGold,
     fontFamily: Fonts.medium,
   },
   progressWrapper: {

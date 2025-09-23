@@ -14,6 +14,8 @@ import {
 import { Colors } from '../theme';
 import { OnboardingStyles } from '../theme/onboardingStyles';
 import ThemedText from './common/ThemedText';
+import AnimatedPointsNotification from './ui/AnimatedPointsNotification';
+import { faithPointsService } from '../services/faithPointsService';
 
 import { Devotional } from '../interfaces/devotional';
 import { extractCleanTitle } from '../utils/titleUtils';
@@ -55,6 +57,7 @@ interface DevotionalCompletionModalProps {
   onContinue: () => void;
   onClose: () => void;
   onRatingSubmit: (rating: number) => Promise<void>;
+  onCheckReveal?: () => void; // Called when the checkmark reveal animation completes
 }
 
 const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
@@ -65,12 +68,15 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   onContinue,
   onClose,
   onRatingSubmit,
+  onCheckReveal,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const checkAnim = useRef(new Animated.Value(0)).current;
   const [rating, setRating] = useState(0);
+  const [showLocalPoints, setShowLocalPoints] = useState(false);
+  const [localPoints, setLocalPoints] = useState<number>(0);
 
   // Simple celebratory burst particles
   type BurstParticle = {
@@ -184,11 +190,21 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           duration: 300, // Reduced from 500ms
           useNativeDriver: true,
           easing: Easing.out(Easing.back(1.2)), // Smoother than bounce
-        }).start();
-        // Subtle success haptic when check appears
-        triggerSuccessHaptic();
-        // Fire celebratory burst when checkmark appears
-        startBurst(8); // Reduced particle count from 12 to 8
+        }).start(() => {
+          // Subtle success haptic when check appears
+          triggerSuccessHaptic();
+          // Fire celebratory burst when checkmark appears
+          startBurst(8); // Reduced particle count from 12 to 8
+          // Show local FP notification above this modal content for guaranteed visibility
+          try {
+            const pts = faithPointsService.getPointsForActivity('devotional_generated');
+            setLocalPoints(pts);
+            // Slight delay to ensure layout is stable
+            setTimeout(() => setShowLocalPoints(true), 10);
+          } catch {}
+          // Notify parent that check reveal completed
+          try { onCheckReveal && onCheckReveal(); } catch {}
+        });
       }, 800); // Reduced delay from 1200ms
     }
 
@@ -525,6 +541,17 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             )}
           </View>
         </Animated.View>
+        {showLocalPoints && (
+          <View pointerEvents="none" style={styles.localPointsOverlay}>
+            <AnimatedPointsNotification
+              points={localPoints}
+              activityType={'devotional_generated'}
+              position={'center'}
+              visible={true}
+              onAnimationComplete={() => setShowLocalPoints(false)}
+            />
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -671,6 +698,14 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 16,
     color: Colors.hopeWhite,
+  },
+  localPointsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999999999,
+    elevation: 999999999,
+    pointerEvents: 'none',
   },
   ratingTitle: {
     fontSize: 14,

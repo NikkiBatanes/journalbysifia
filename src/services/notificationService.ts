@@ -19,7 +19,11 @@ class NotificationService {
    * Show animated points notification
    */
   showPointsNotification(points: number, activityType: string, position?: 'top' | 'center' | 'bottom') {
+    console.log('[NotificationService] showPointsNotification called:', { points, activityType, position });
+    console.log('[NotificationService] Has callback:', !!this.pointsNotificationCallback);
+    
     if (this.pointsNotificationCallback) {
+      console.log('[NotificationService] Calling callback...');
       this.pointsNotificationCallback(points, activityType, position);
     } else {
       console.log(`🎉 +${points} Faith Points for ${activityType}!`);

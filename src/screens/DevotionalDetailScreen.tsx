@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../context/IndustryStandardAuthContext';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
+import { notificationService } from '../services/notificationService';
 import { subscriptionService } from '../services/subscriptionService';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
@@ -644,7 +645,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         setTimeout(async () => {
           try {
             // Award faith points
-            const pointsResult = await faithPointsService.awardPoints(user.id, 'devotional_generated');
+            const pointsResult = await faithPointsService.awardPoints(user.id, 'devotional_generated', { suppressNotification: true });
             console.log('[DevotionalDetail] Faith points awarded for devotional completion:', pointsResult);
 
             // Track usage for subscription
@@ -780,6 +781,27 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         </TouchableOpacity>
       )}
 
+      {/* Test notification button - temporary debug */}
+      {__DEV__ && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 100,
+            right: 20,
+            backgroundColor: 'red',
+            padding: 10,
+            borderRadius: 5,
+            zIndex: 999999,
+          }}
+          onPress={() => {
+            console.log('[DevotionalDetail] Test button pressed');
+            notificationService.showPointsNotification(8, 'devotional_generated', 'center');
+          }}
+        >
+          <ThemedText style={{ color: 'white', fontSize: 12 }}>TEST FP</ThemedText>
+        </TouchableOpacity>
+      )}
+
       {/* Devotional Completion Modal */}
       {devotional && (
         <DevotionalCompletionModal
@@ -795,6 +817,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           onContinue={handleCompletionContinue}
           onClose={handleModalClose}
           onRatingSubmit={handleRatingSubmit}
+          onCheckReveal={() => {
+            // Local notification is now shown inside DevotionalCompletionModal for guaranteed layering
+            console.log('[DevotionalDetail] onCheckReveal fired');
+          }}
         />
       )}
 
