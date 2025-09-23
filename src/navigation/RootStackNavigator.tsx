@@ -14,7 +14,6 @@ import { useTheme } from '../theme/ThemeContext';
 import { triggerLightHaptic } from '../utils/haptics';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
-import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
@@ -34,7 +33,6 @@ import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingT
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
 
 
-import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
 
 // New Simplified Onboarding Flow Screens
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
@@ -137,18 +135,6 @@ const PlaybookHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
   />
 ));
 
-const CardHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
-  <HeaderLeft
-    color={Colors.hopeWhite}
-    onPress={() => {
-      try {
-        navigation.goBack();
-      } catch (error) {
-        console.log('Navigation error in CardHeaderLeft:', error);
-      }
-    }}
-  />
-));
 
 // Unused component - commenting out to fix linting
 // const DevotionalHeaderLeft = ({ navigation }: { navigation: any }) => (
@@ -185,16 +171,6 @@ const getPlaybookDetailOptions = (theme: any): NativeStackNavigationOptions => (
   headerShadowVisible: false,
 });
 
-const getCardDetailOptions = (theme: any): NativeStackNavigationOptions => ({
-  headerShown: true,
-  title: '',
-  headerBackVisible: false,
-  headerLeft: ({ navigation }: any) => <CardHeaderLeft navigation={navigation} />,
-  headerRight: ({ navigation }: any) => renderWhiteProfileImage({ navigation }),
-  headerStyle: { backgroundColor: theme.colors.anchorBlue },
-  headerTintColor: theme.colors.hopeWhite,
-  headerShadowVisible: false,
-});
 
 // Unused function - commenting out to fix linting
 // const _getDevotionalDetailOptions = ({ navigation }: any): NativeStackNavigationOptions => ({
@@ -228,7 +204,6 @@ export default function RootStackNavigator({
 
   // Get screen options with dynamic theme colors
   const playbookDetailOptions = getPlaybookDetailOptions(theme);
-  const cardDetailOptions = getCardDetailOptions(theme);
 
   return (
     <Stack.Navigator
@@ -324,11 +299,6 @@ export default function RootStackNavigator({
           {/* OLD SCREENS - KEEPING FOR NOW, WILL REMOVE LATER */}
 
 
-          <Stack.Screen
-            name="OnboardingComplete"
-            component={OnboardingCompleteScreen as React.ComponentType}
-            options={OnboardingAnimations.crossDissolve}
-          />
 
           {/* Main App */}
           <Stack.Screen 
@@ -359,11 +329,6 @@ export default function RootStackNavigator({
             name="PlaybookDetail"
             component={PlaybookDetailScreen as React.ComponentType}
             options={playbookDetailOptions}
-          />
-          <Stack.Screen
-            name="CardDetail"
-            component={CardDetailScreen as React.ComponentType}
-            options={cardDetailOptions}
           />
           <Stack.Screen
             name="GeneratingPlaybook"

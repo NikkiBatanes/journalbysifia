@@ -11,11 +11,9 @@ export type RootStackParamList = {
   OnboardingWelcome: undefined;
 
   OnboardingPersonalProfile: undefined;
-  OnboardingGoalsScreen: undefined;
   OnboardingTrialSetup: undefined;
   OnboardingPersonalization: { name?: string; registrationMethod?: 'email' | 'oauth' } | undefined;
   OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
-  OnboardingComplete: { playbook?: Playbook } | undefined;
 
   // New Simplified Onboarding Flow Screens
   OnboardingPlaybookReady: {
@@ -59,16 +57,6 @@ export type RootStackParamList = {
       challenge: string;
       challengeDetails: string;
     };
-  };
-  CardDetail: {
-    cardType: string;
-    cardData: any;
-    playbook: any;
-    progress: number;
-    completedTasks: number;
-    totalTasks: number;
-    viewMode: 'stack' | 'document';
-    onToggleView?: (mode: 'stack' | 'document') => void; // Made optional
   };
   GeneratingPlaybook: {
     userInput: string;

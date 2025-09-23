@@ -19,6 +19,7 @@ import DevotionalsScreen from '../screens/DevotionalsScreen';
 import JournalScreen from '../screens/JournalScreen';
 import JournalStackNavigator from './JournalStackNavigator';
 import HomeStackNavigator from './HomeStackNavigator';
+import AllScreensNavigationScreen from '../screens/AllScreensNavigationScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { experiencePreferences } from '../services/experiencePreferences';
 
@@ -128,6 +129,7 @@ const CustomTabBarComponent = ({
           Playbooks: 'Playbooks',
           Devotionals: 'Devotionals',
           Journal: 'Journal',
+          AllScreens: 'All Screens',
         };
 
         return (
@@ -160,6 +162,13 @@ const CustomTabBarComponent = ({
             ) : route.name === 'Dashboard' ? (
               <MaterialIcons
                 name={'space-dashboard'}
+                size={28}
+                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
+                style={styles.icon}
+              />
+            ) : route.name === 'AllScreens' ? (
+              <MaterialCommunityIcons
+                name={'view-grid'}
                 size={28}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
@@ -293,6 +302,15 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
         options={{
           tabBarLabel: 'Journal',
           title: 'Journal',
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="AllScreens"
+        component={AllScreensNavigationScreen}
+        options={{
+          tabBarLabel: 'All Screens',
+          title: 'All Screens',
           headerShown: false,
         }}
       />

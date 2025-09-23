@@ -1557,7 +1557,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               <TouchableOpacity
                 style={styles.onboardingContinueButton}
                 onPress={() => {
-                  navigation.navigate('OnboardingComplete' as any);
+                  navigation.navigate('MainTabs' as any);
                 }}
               >
                 <ThemedText weight="semiBold" style={styles.onboardingContinueButtonText}>
