@@ -851,21 +851,21 @@ const createStyles = (fonts: {
     justifyContent: 'center',
   },
   dayNameText: {
-    fontFamily: fonts.fontMedium,
+    fontFamily: fonts.fontSemiBold,
     fontSize: 10,
-    color: 'rgba(26, 60, 109, 0.7)',
-    marginBottom: 0,  // Removed margin
-    letterSpacing: 0.1,
+    color: 'rgba(26, 60, 109, 0.9)',
+    marginBottom: 0,
+    letterSpacing: 0.2,
   },
   dayNameTextHighlighted: {
     color: Colors.hopeWhite,
-    fontFamily: fonts.fontBold,
-    fontSize: 9,
+    fontFamily: fonts.fontSemiBold,
+    fontSize: 10,
   },
   currentDayNameText: {
     color: Colors.anchorBlue,
     fontFamily: fonts.fontBold,
-    fontSize: 9,
+    fontSize: 11,
   },
   dayNumberText: {
     fontFamily: fonts.fontBold,
