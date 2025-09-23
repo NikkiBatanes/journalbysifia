@@ -173,8 +173,8 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: '#767577', true: Colors.anchorBlue + '40' }}
-          thumbColor={value ? Colors.anchorBlue : '#f4f3f4'}
+          trackColor={{ false: Colors.switchTrackActive, true: Colors.switchTrackActive }}
+          thumbColor={Colors.hopeWhite}
         />
       }
     />

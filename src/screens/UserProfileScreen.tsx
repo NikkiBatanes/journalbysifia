@@ -1602,8 +1602,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 setPreferences(updatedPreferences);
               }
             }}
-            thumbColor={preferences.calendar?.autoSync ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
+            thumbColor={Colors.hopeWhite}
+            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
 
@@ -1669,8 +1669,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Switch
             value={hapticsEnabled}
             onValueChange={onToggleHaptics}
-            thumbColor={hapticsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
+            thumbColor={Colors.hopeWhite}
+            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
 
@@ -1685,8 +1685,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Switch
             value={soundsEnabled}
             onValueChange={onToggleSounds}
-            thumbColor={soundsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
+            thumbColor={Colors.hopeWhite}
+            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
 
@@ -1701,8 +1701,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Switch
             value={showTabLabelsEnabled}
             onValueChange={onToggleShowTabLabels}
-            thumbColor={showTabLabelsEnabled ? Colors.hopeWhite : Colors.contemplationGray}
-            trackColor={{ false: theme.colors.switchTrackInactive, true: theme.colors.switchTrackActive }}
+            thumbColor={Colors.hopeWhite}
+            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
           />
         </TouchableOpacity>
       </View>
@@ -2040,6 +2040,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Switch
                 value={notificationPrefs?.playbook_steps ?? false}
                 onValueChange={(value) => updatePref('playbook_steps', value)}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
               />
             </View>
 
@@ -2048,6 +2050,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Switch
                 value={notificationPrefs?.devotional_reminders ?? false}
                 onValueChange={(value) => updatePref('devotional_reminders', value)}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
               />
             </View>
 
@@ -2057,6 +2061,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 value={notificationPrefs?.prayer_reminders ?? false}
                 onValueChange={(value) => updatePref('prayer_reminders', value)}
                 disabled={!notificationPrefs}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
               />
             </View>
 
@@ -2066,6 +2072,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 value={notificationPrefs?.journal_prompts ?? false}
                 onValueChange={(value) => updatePref('journal_prompts', value)}
                 disabled={!notificationPrefs}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
               />
             </View>
 
@@ -2075,6 +2083,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 value={notificationPrefs?.milestone_celebrations ?? false}
                 onValueChange={(value) => updatePref('milestone_celebrations', value)}
                 disabled={!notificationPrefs}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
               />
             </View>
 
@@ -2084,6 +2094,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 value={notificationPrefs?.streak_alerts ?? false}
                 onValueChange={(value) => updatePref('streak_alerts', value)}
                 disabled={!notificationPrefs}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
               />
             </View>
 
@@ -2094,6 +2106,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   value={notificationPrefs?.trial_notifications ?? false}
                   onValueChange={(value) => updatePref('trial_notifications', value)}
                   disabled={!notificationPrefs}
+                  trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                  thumbColor={Colors.hopeWhite}
                 />
               </View>
             )}
@@ -2104,6 +2118,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 value={notificationPrefs?.prayer_requests ?? false}
                 onValueChange={(value) => updatePref('prayer_requests', value)}
                 disabled={!notificationPrefs}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
               />
             </View>
 

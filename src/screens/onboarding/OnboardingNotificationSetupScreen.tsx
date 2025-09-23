@@ -360,8 +360,8 @@ const OnboardingNotificationSetupScreen = () => {
               <Switch
                 value={setting.enabled}
                 onValueChange={() => handleToggleSetting(setting.id)}
-                trackColor={{ false: 'rgba(255, 255, 255, 0.2)', true: Colors.growthGreen }}
-                thumbColor={setting.enabled ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
+                trackColor={{ false: Colors.switchTrackInactive, true: Colors.switchTrackActive }}
+                thumbColor={setting.enabled ? Colors.hopeWhite : Colors.lightGray}
                 disabled={setting.required}
               />
             </View>
