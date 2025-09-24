@@ -25,6 +25,7 @@ import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 import { PeoplePrayerModal } from '../modals/PeoplePrayerModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/queryKeys';
+import { faithPointsService } from '../../services/faithPointsService';
 
 // Use the API interface directly
 type PersonPrayer = PrayerApiEntry;
@@ -201,6 +202,23 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         };
 
         await createPrayerMutation.mutateAsync(prayerData);
+
+        if (user?.id) {
+          const activityKey: Parameters<typeof faithPointsService.awardPoints>[1] =
+            selectedPrayerType === 'requests' ? 'prayer_list_request_added' : 'prayer_list_prayed';
+
+          faithPointsService
+            .awardPoints(user.id, activityKey, {
+              suppressNotification: true,
+              source: 'prayer_list',
+              person_name: prayerData.person_name,
+              is_prayer_request: prayerData.is_prayer_request,
+              selected_date: dateStr,
+            })
+            .catch(error => {
+              console.warn('[EnhancedPrayerListReactQuery] Failed to award prayer list faith points:', error);
+            });
+        }
       }
 
       triggerSuccessHaptic();

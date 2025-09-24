@@ -89,6 +89,11 @@ export class FaithPointsService {
     devotional_completed: 5,
     journal_entry: 5,
     prayer_for_now: 2,
+    prayer_journal_acts: 2,
+    prayer_journal_open: 2,
+    prayer_devotional_prayed: 2,
+    prayer_list_prayed: 2,
+    prayer_list_request_added: 1,
     subtask_completed: 1,
     action_step_completed: 3,
     playbook_completed: 10,
@@ -709,6 +714,7 @@ export class FaithPointsService {
   private getCategoryFromReason(reason: string): string {
     if (reason.includes('playbook')) {return 'playbook';}
     if (reason.includes('devotional')) {return 'devotional';}
+    if (reason.includes('prayer')) {return 'prayer';}
     if (reason.includes('journal')) {return 'journal';}
     if (reason.includes('streak')) {return 'streak';}
     if (reason.includes('achievement')) {return 'achievement';}

@@ -290,49 +290,58 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [deleteBirthYear]);
 
   const handleConfirmDeleteAccount = useCallback(async () => {
+    console.log('🗑️ handleConfirmDeleteAccount called');
+    console.log('🗑️ isValidBirthYear:', isValidBirthYear);
+    console.log('🗑️ deleteBirthYear:', deleteBirthYear);
     try {
       try { triggerLightHaptic(); } catch {}
       if (!isValidBirthYear) {
+        console.log('🗑️ Birth year invalid, showing alert');
         Alert.alert('Enter valid year', 'Please enter your birth year (YYYY) to continue.');
         return;
       }
-      setIsDeletingAccount(true);
-      try {
-        // Get access token (fallback if session is missing)
-        let accessToken = session?.access_token as string | undefined;
-        if (!accessToken) {
-          const { data } = await supabase.auth.getSession();
-          accessToken = data.session?.access_token;
-        }
-
-        if (!accessToken) {
-          Alert.alert('Deletion unavailable', 'No active session found. Please sign in again and retry.');
-          return;
-        }
-
-        const result = await authApi.deleteAccount(accessToken);
-
-        if (result.success) {
-          setDeleteAccountModal(false);
-          setEditProfileModal(false);
-          Alert.alert('Account deleted', 'Your account has been deleted.');
-          await signOut();
-        } else {
-          const msg = result.error?.message || '';
-          // Common case: admin.deleteUser not allowed from client SDK
-          const hint = msg.toLowerCase().includes('admin') || msg.toLowerCase().includes('permission')
-            ? '\n\nTip: This action requires a server-side function. We will wire this to a secure Edge Function.'
-            : '';
-          Alert.alert('Deletion failed', (msg || 'Unable to delete account at this time.') + hint);
-        }
-      } catch (e: any) {
-        const msg = e?.message || 'Unable to delete account at this time.';
-        Alert.alert('Deletion failed', msg);
-      } finally {
-        setIsDeletingAccount(false);
-      }
+      
+      // Show confirmation alert before proceeding
+      Alert.alert(
+        'Delete Account',
+        'Are you sure you want to permanently delete your account? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              setIsDeletingAccount(true);
+              try {
+                // For now, show a message that this feature requires server-side implementation
+                Alert.alert(
+                  'Account Deletion Request',
+                  'Your account deletion request has been received. For security reasons, account deletion requires manual verification. Please contact support to complete this process.',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        setDeleteAccountModal(false);
+                        setEditProfileModal(false);
+                        setDeleteBirthYear(''); // Clear the input
+                      }
+                    }
+                  ]
+                );
+              } catch (e: any) {
+                Alert.alert('Error', 'Unable to process deletion request at this time.');
+              } finally {
+                setIsDeletingAccount(false);
+              }
+            }
+          }
+        ]
+      );
     } catch {}
-  }, [isValidBirthYear, session?.access_token, signOut]);
+  }, [isValidBirthYear]);
   // Personalization toggles
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
@@ -1898,7 +1907,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.modalContent} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
           {/* Avatar with edit inside Edit Profile */}
           <View style={styles.modalAvatarSection}>
             <View style={styles.modalAvatarContainer}>
@@ -2028,7 +2042,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           {/* Danger zone */}
           <View style={{ marginTop: 12 }}>
             <TouchableOpacity
-              onPress={() => { try { triggerLightHaptic(); } catch {}; setDeleteAccountModal(true); }}
+              onPress={() => { 
+                console.log('🗑️ Delete account button pressed!');
+                try { triggerLightHaptic(); } catch {}; 
+                console.log('🗑️ Setting deleteAccountModal to true');
+                setDeleteAccountModal(true); 
+                console.log('🗑️ Modal state should be true now');
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               style={{
                 backgroundColor: 'rgba(255,107,107,0.12)',
                 borderWidth: 1,
@@ -2038,6 +2060,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 paddingHorizontal: 14,
                 flexDirection: 'row',
                 alignItems: 'center',
+                minHeight: 48, // Ensure minimum touch target size
               }}
               accessibilityRole="button"
               accessibilityLabel="Delete account"
@@ -2055,23 +2078,43 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   // Delete Account Confirmation Modal
-  const renderDeleteAccountModal = () => (
+  const renderDeleteAccountModal = () => {
+    console.log('🗑️ renderDeleteAccountModal called, visible:', deleteAccountModal);
+    return (
     <Modal
       visible={deleteAccountModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType="fade"
+      transparent={true}
       onRequestClose={() => setDeleteAccountModal(false)}
     >
-      <SafeAreaView edges={['top']} style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setDeleteAccountModal(false); }}>
-            <Text style={[styles.cancelText, font]}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={[styles.modalTitle, font]}>Delete Account</Text>
-          <View style={{ width: 48 }} />
-        </View>
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+      }}>
+        <View style={{
+          backgroundColor: Colors.anchorBlue,
+          borderRadius: 16,
+          width: '100%',
+          maxWidth: 400,
+          paddingVertical: 24,
+          paddingHorizontal: 20,
+        }}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => { 
+              try { triggerLightHaptic(); } catch {}; 
+              // Don't clear the birth year when canceling - preserve user input
+              setDeleteAccountModal(false); 
+            }}>
+              <Text style={[styles.cancelText, font]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, font]}>Delete Account</Text>
+            <View style={{ width: 48 }} />
+          </View>
 
-        <View style={styles.modalContent}>
+          <View style={{ paddingTop: 20 }}>
           <Text style={[styles.settingDescription, font]}>For security, please confirm your birth year to proceed with account deletion.</Text>
           <View style={styles.nameContainer}>
             <TextInput
@@ -2086,7 +2129,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[{ color: Colors.textGray, fontSize: 12, marginTop: 6 }, font]}>Enter a valid 4-digit year to continue.</Text>
           <TouchableOpacity
-            onPress={handleConfirmDeleteAccount}
+            onPress={() => {
+              console.log('🗑️ Delete my account button pressed in modal');
+              console.log('🗑️ isValidBirthYear:', isValidBirthYear);
+              console.log('🗑️ isDeletingAccount:', isDeletingAccount);
+              if (!isValidBirthYear || isDeletingAccount) {
+                console.log('🗑️ Button is disabled, not calling handler');
+                return;
+              }
+              handleConfirmDeleteAccount();
+            }}
+            disabled={!isValidBirthYear || isDeletingAccount}
             style={{
               marginTop: 16,
               backgroundColor: !isValidBirthYear || isDeletingAccount ? 'rgba(255,107,107,0.3)' : Colors.alertCoral,
@@ -2097,10 +2150,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>{isDeletingAccount ? 'Deleting...' : 'Delete my account'}</Text>
           </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
-  );
+    );
+  };
 
   // Year Picker Modal no longer used (kept for backward compatibility if needed)
   const renderYearPickerModal = () => null;

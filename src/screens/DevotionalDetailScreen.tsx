@@ -578,6 +578,19 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           }));
         },
       });
+
+      faithPointsService
+        .awardPoints(user.id, 'prayer_devotional_prayed', {
+          suppressNotification: true,
+          source: 'devotional_prayer',
+          devotional_id: devotional.id,
+          day_number: currentDay.dayNumber,
+          day_title: currentDay.title,
+          selected_date: currentDate,
+        })
+        .catch(error => {
+          console.warn('[DevotionalDetailScreen] Failed to award devotional prayer faith points:', error);
+        });
     }
   }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation]);
 

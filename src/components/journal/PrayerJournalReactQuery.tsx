@@ -40,6 +40,7 @@ import {
 } from '../../utils/haptics';
 import { PrayerStyleSelectionModal } from '../modals/PrayerStyleSelectionModal';
 import type { PluginFilters } from '../../systems/journal/types';
+import { faithPointsService } from '../../services/faithPointsService';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -498,7 +499,23 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
           content: prayerText.trim(),
           status: (selectedPrayerType === 'freeform' || selectedPrayerType === 'supplication') ? 'pending' : undefined,
         });
-        
+
+        if (user?.id) {
+          const activityKey: Parameters<typeof faithPointsService.awardPoints>[1] =
+            selectedPrayerType === 'freeform' ? 'prayer_journal_open' : 'prayer_journal_acts';
+
+          faithPointsService
+            .awardPoints(user.id, activityKey, {
+              suppressNotification: true,
+              source: 'prayer_journal',
+              journal_category: selectedPrayerType,
+              selected_date: dateStr,
+            })
+            .catch(error => {
+              console.warn('[PrayerJournalReactQuery] Failed to award prayer journal faith points:', error);
+            });
+        }
+
         analytics.track('prayer_journal_entry_created', {
           prayer_type: selectedPrayerType,
           date: dateStr,

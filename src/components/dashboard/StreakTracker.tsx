@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../../services/faithPointsEvents';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 
@@ -60,7 +61,19 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
       { type: 'journal', activityTypes: ['journal_entry'] },
       { type: 'playbook', activityTypes: ['playbook_generated', 'action_step_completed'] },
       { type: 'devotional', activityTypes: ['devotional_generated', 'daily_streak'] },
-      { type: 'prayer', activityTypes: ['daily_streak', 'prayer_for_now', 'prayer_for_others'] }, // Include current prayer activity types
+      {
+        type: 'prayer',
+        activityTypes: [
+          'daily_streak',
+          'prayer_for_now',
+          'prayer_for_others',
+          'prayer_journal_acts',
+          'prayer_journal_open',
+          'prayer_devotional_prayed',
+          'prayer_list_prayed',
+          'prayer_list_request_added',
+        ],
+      }, // Include current prayer activity types
     ];
     const streakResults: Streak[] = [];
 
@@ -193,6 +206,36 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
 
   useEffect(() => {
     fetchStreaks();
+
+    const handlePointsUpdated = (payload: any) => {
+      if (!payload) {return;}
+      const activityType = payload.activityType || payload.reason || payload.activity_type;
+      if (!activityType) {
+        fetchStreaks();
+        return;
+      }
+
+      const normalized = String(activityType).toLowerCase();
+      const isPrayerActivity = [
+        'prayer_for_now',
+        'prayer_for_others',
+        'prayer_journal_acts',
+        'prayer_journal_open',
+        'prayer_devotional_prayed',
+        'prayer_list_prayed',
+        'prayer_list_request_added',
+      ].some(key => normalized.includes(key));
+
+      if (isPrayerActivity) {
+        fetchStreaks();
+      }
+    };
+
+    faithPointsEvents.on(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdated);
+
+    return () => {
+      faithPointsEvents.off(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdated);
+    };
   }, [fetchStreaks]);
 
   const getStreakIcon = (type: string) => {
@@ -211,7 +254,16 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
     journal: ['journal_entry'],
     playbook: ['playbook_generated', 'action_step_completed'],
     devotional: ['devotional_generated', 'daily_streak'],
-    prayer: ['daily_streak', 'prayer_for_now', 'prayer_for_others'],
+    prayer: [
+      'daily_streak',
+      'prayer_for_now',
+      'prayer_for_others',
+      'prayer_journal_acts',
+      'prayer_journal_open',
+      'prayer_devotional_prayed',
+      'prayer_list_prayed',
+      'prayer_list_request_added',
+    ],
   };
 
   const getRecentActivityForType = (type: Streak['type'], days = 14) => {
