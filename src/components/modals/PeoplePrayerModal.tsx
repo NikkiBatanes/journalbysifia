@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   nameInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 30,
+    borderRadius: 20,
     padding: 16,
     color: Colors.hopeWhite,
     fontSize: 16,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 30,
+    borderRadius: 24,
     padding: 16,
     color: Colors.hopeWhite,
     fontSize: 16,

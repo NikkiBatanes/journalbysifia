@@ -401,6 +401,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
             >
               <View style={styles.dayContent}>
                 <ThemedText
+                  numberOfLines={1}
+                  ellipsizeMode="clip"
                   style={[
                     styles.dayNameText,
                     isCurrentDay && !isSelected && styles.currentDayNameText,
