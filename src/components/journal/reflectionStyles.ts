@@ -268,7 +268,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 20,
     minWidth: 120,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     marginTop: 'auto',
     justifyContent: 'center',
     alignItems: 'center',
@@ -733,5 +733,19 @@ export const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: Colors.textGray,
     fontStyle: 'italic',
+  },
+  // New styles for lock icon next to title
+  titleWithLockContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  titleWithLock: {
+    flex: 1,
+    marginRight: 12,
+  },
+  titleLockIcon: {
+    marginTop: 4, // Align with title text
+    marginLeft: 8,
   },
 });

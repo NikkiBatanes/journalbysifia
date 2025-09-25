@@ -90,29 +90,39 @@ export async function generateDevotional(
       console.log('Devotional generated successfully, saving to database...');
 
       // Choose a category: prefer result.category/categories if present, else derive from title/description
+      // Database constraint only allows: Prayer, Growth, Healing, Wisdom, Relationships, Purpose, Career, Finances, Mental Health, Parenting, Health
       const deriveCategory = (payload: any): DevotionalCategory => {
         try {
           const fromResult: string | undefined = (payload?.category as string) || (Array.isArray(payload?.categories) ? payload.categories[0] : undefined);
-          if (fromResult && typeof fromResult === 'string') {
+          
+          // Validate that the category from result is allowed by database constraint
+          const allowedCategories = ['Prayer', 'Growth', 'Healing', 'Wisdom', 'Relationships', 'Purpose', 'Career', 'Finances', 'Mental Health', 'Parenting', 'Health'];
+          if (fromResult && typeof fromResult === 'string' && allowedCategories.includes(fromResult)) {
             return fromResult as DevotionalCategory;
           }
+          
           const base = `${payload?.title || ''} ${payload?.description || ''}`.toLowerCase();
           if (base.includes('prayer') || base.includes('pray')) return 'Prayer' as DevotionalCategory;
-          if (base.includes('faith') || base.includes('trust') || base.includes('believe')) return 'Faith' as DevotionalCategory;
           if (base.includes('love') || base.includes('relationship') || base.includes('family')) return 'Relationships' as DevotionalCategory;
-          if (base.includes('peace') || base.includes('anxiety') || base.includes('worry') || base.includes('stress')) return 'Peace' as DevotionalCategory;
-          if (base.includes('hope') || base.includes('encouragement') || base.includes('strength')) return 'Hope' as DevotionalCategory;
+          if (base.includes('anxiety') || base.includes('worry') || base.includes('stress') || base.includes('mental')) return 'Mental Health' as DevotionalCategory;
           if (base.includes('wisdom') || base.includes('decision') || base.includes('guidance')) return 'Wisdom' as DevotionalCategory;
-          if (base.includes('forgive')) return 'Forgiveness' as DevotionalCategory;
-          if (base.includes('gratitude') || base.includes('thank')) return 'Gratitude' as DevotionalCategory;
           if (base.includes('purpose') || base.includes('calling') || base.includes('mission')) return 'Purpose' as DevotionalCategory;
-          return 'Spiritual Growth' as DevotionalCategory;
+          if (base.includes('heal') || base.includes('recovery') || base.includes('restoration')) return 'Healing' as DevotionalCategory;
+          if (base.includes('career') || base.includes('work') || base.includes('job')) return 'Career' as DevotionalCategory;
+          if (base.includes('money') || base.includes('financial') || base.includes('finances')) return 'Finances' as DevotionalCategory;
+          if (base.includes('parent') || base.includes('child') || base.includes('kids')) return 'Parenting' as DevotionalCategory;
+          if (base.includes('health') || base.includes('physical') || base.includes('body')) return 'Health' as DevotionalCategory;
+          // Default to Growth for spiritual growth, faith, hope, etc.
+          return 'Growth' as DevotionalCategory;
         } catch {
-          return 'Spiritual Growth' as DevotionalCategory;
+          return 'Growth' as DevotionalCategory;
         }
       };
 
       const computedCategory = deriveCategory(result);
+      console.log('[ModernDevotionalApi] Computed category for devotional:', computedCategory);
+      console.log('[ModernDevotionalApi] Devotional title:', result.title);
+      console.log('[ModernDevotionalApi] Devotional description:', result.description);
 
       // Save the generated devotional to the database
       const { data: savedDevotional, error: saveError } = await supabase

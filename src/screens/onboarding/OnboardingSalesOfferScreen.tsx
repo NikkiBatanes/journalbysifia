@@ -16,6 +16,7 @@ import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useDevotionalGating } from '../../hooks/useDevotionalGating';
 import { usePlatformSubscription } from '../../hooks/usePlatformSubscription';
 import { isDevotionalDurationLocked } from '../../utils/tierLockingRules';
+import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
 import type { SubscriptionTier } from '../../types/subscription';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
@@ -33,8 +34,8 @@ interface RouteParams {
   currentTier?: string;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
   // Navigation context flags
-  source?: string; // e.g., 'planning_lock', 'copy_todos_lock'
-  feature?: string; // e.g., 'future_planning', 'copy_todos'
+  source?: string; // e.g., 'planning_lock', 'copy_todos_lock', 'guided_prompts_lock'
+  feature?: string; // e.g., 'future_planning', 'copy_todos', 'guided_prompts'
   tier?: string; // caller-reported tier
   skipNotificationPreference?: boolean;
   // Copy todos specific data
@@ -48,6 +49,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const { upgradeSubscription } = useNewSubscription(user?.id || '');
   const devotionalGating = useDevotionalGating();
+  const guidedPromptGating = useGuidedPromptGating({ context: 'onboarding' });
   const platformSubscription = usePlatformSubscription();
   
   // Fonts: derive theme font for dynamic font switching (following Dashboard pattern)
@@ -69,6 +71,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const requestedDuration = routeParams?.requestedDuration;
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
+  const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
@@ -552,7 +555,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 ? 'Upgrade to Plan Ahead'
                 : fromCopyTodosLock
                   ? 'Unlock Copy To-Dos & More'
-                  : "You've taken your first step!"}
+                  : fromGuidedPromptsLock
+                    ? 'Unlock Unlimited Guided Prompts'
+                    : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isUpgradeMode
@@ -561,7 +566,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
                 : fromCopyTodosLock
                   ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features and unlimited devotionals.`
-                  : 'Keep walking, one faithful step at a time.'}
+                  : fromGuidedPromptsLock
+                    ? 'Access unlimited guided reflection prompts to deepen your spiritual practice, plus playbooks and devotionals.'
+                    : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}

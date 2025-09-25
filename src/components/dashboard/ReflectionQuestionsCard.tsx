@@ -23,6 +23,10 @@ import { ReflectionApi } from '../../services/api/reflectionApi';
 import { useQueryClient } from '@tanstack/react-query';
 import DashboardReflectionSkeleton from '../SkeletonLoader/DashboardReflectionSkeleton';
 import { GUIDED_PROMPTS } from '../journal/reflectionConstants';
+import { useSubscription } from '../../hooks/useSubscription';
+import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
+import GuidedPromptLockIcon from '../GuidedPromptLockIcon';
+import { useNavigation } from '@react-navigation/native';
 // Devotional-only rebuild: no date-based filtering required
 
 interface ReflectionQuestion {
@@ -40,6 +44,7 @@ interface ReflectionQuestion {
   questionKey?: string; // Which key produced this question (reflectionQuestions, questionsToPonder, etc.)
   groupLabel?: string; // Human label like 'Questions to Ponder' or 'Reflection Questions'
   totalDays?: number; // Total number of days in the devotional, when available
+  isFree?: boolean; // For guided prompts, indicates if it's a free prompt for seeker users
 }
 
 interface ReflectionQuestionsCardProps {
@@ -54,12 +59,37 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   onViewAll: _onViewAll,
 }) => {
   const { user } = useAuth();
+  const { subscription } = useSubscription();
+  const navigation = useNavigation();
   const queryClient = useQueryClient();
   const [questions, setQuestions] = useState<ReflectionQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const initialLoadRef = React.useRef(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Guided prompt gating
+  const guidedPromptGating = useGuidedPromptGating({
+    context: 'inApp',
+    onUpgradeRequired: () => {
+      // Navigate directly to sales offer screen
+      (navigation as any).navigate('OnboardingSalesOffer', {
+        source: 'guided_prompts_lock',
+        feature: 'guided_prompts',
+        tier: subscription?.tier || 'seeker',
+        upgradeMode: false,
+        skipNotificationPreference: true
+      });
+    }
+  });
+  
+  // Debug guided prompt gating
+  console.log('[ReflectionQuestionsCard] Guided prompt gating:', {
+    tier: subscription?.tier,
+    usedPrompts: guidedPromptGating.usedPrompts,
+    availablePrompts: guidedPromptGating.availablePrompts.length,
+    accessCheck: guidedPromptGating.accessCheck
+  });
   // No need to fetch today's reflections for this version
   const [_diag, setDiag] = useState<{
     devotionalCount: number;
@@ -270,55 +300,37 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       };
       setDiag(diagPayload);
 
-      // Add 5 daily-random guided prompts (deterministic per user per day)
-      /* eslint-disable no-bitwise */
-      const pickDailyGuided = (count: number): ReflectionQuestion[] => {
-        const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-        const seedStr = `${user.id}-${dateStr}`;
-        // Simple string hash -> number
-        let h = 2166136261 >>> 0;
-        for (let i = 0; i < seedStr.length; i++) {
-          h ^= seedStr.charCodeAt(i);
-          h = Math.imul(h, 16777619);
-        }
-        // Mulberry32 PRNG
-        const mulberry32 = (a: number) => () => {
-          a |= 0; a = (a + 0x6D2B79F5) | 0;
-          let t = Math.imul(a ^ (a >>> 15), 1 | a);
-          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-        const rand = mulberry32(h);
-        // Copy and shuffle indices deterministically
-        const indices = Array.from({ length: GUIDED_PROMPTS.length }, (_, i) => i);
-        for (let i = indices.length - 1; i > 0; i--) {
-          const j = Math.floor(rand() * (i + 1));
-          [indices[i], indices[j]] = [indices[j], indices[i]];
-        }
-        const selected = indices.slice(0, Math.min(count, indices.length));
-        return selected.map((idx, i) => ({
-          id: `guided-${dateStr}-${idx}`,
-          question: GUIDED_PROMPTS[idx],
-          source: 'Guided Prompt',
+      // Add guided prompts using centralized service
+      const guidedQuestions: ReflectionQuestion[] = [];
+      
+      // Use hook's daily allocation instead of duplicate logic
+      const freePrompts = guidedPromptGating.freePrompts || [];
+      const lockedPrompts = guidedPromptGating.lockedPrompts || [];
+      const allGuidedPrompts = [...freePrompts, ...lockedPrompts];
+      
+      allGuidedPrompts.forEach((prompt, i) => {
+        const isFree = freePrompts.includes(prompt);
+        guidedQuestions.push({
+          id: `guided-${new Date().toISOString().slice(0, 10)}-${i}`,
+          question: prompt,
+          source: isFree ? 'Free Guided Prompt' : 'Guided Prompt',
           sourceType: 'guided',
           category: 'Guided',
           questionIndex: i + 1,
           questionKey: 'guidedPrompt',
-          groupLabel: 'Guided Prompt',
-        }));
-      };
-
-      // Filter out guided prompts that were already completed today
-      const dateStrKey = new Date().toISOString().slice(0, 10);
-      const storageKey = `@guided_completed_${dateStrKey}`;
-      let completedGuided: string[] = [];
-      try {
-        const stored = await AsyncStorage.getItem(storageKey);
-        completedGuided = stored ? JSON.parse(stored) : [];
-      } catch {}
-
-      const guidedDaily = pickDailyGuided(5).filter(g => !completedGuided.includes(g.question));
-      setQuestions([...allQuestions, ...guidedDaily]);
+          groupLabel: isFree ? 'Free Guided Prompt' : 'Guided Prompt',
+        });
+      });
+      
+      console.log('[ReflectionQuestionsCard] Adding guided questions:', {
+        currentTier: subscription?.tier,
+        freePrompts: freePrompts.length,
+        lockedPrompts: lockedPrompts.length,
+        totalGuidedQuestions: guidedQuestions.length,
+        totalQuestions: allQuestions.length + guidedQuestions.length
+      });
+      
+      setQuestions([...allQuestions, ...guidedQuestions]);
 
     } catch (err) {
       console.error('Error fetching reflection questions:', err);
@@ -332,7 +344,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       }
       setLoading(false);
     }
-  }, [user]);
+  }, [user, guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts]);
 
   useEffect(() => {
     fetchReflectionQuestions();
@@ -512,6 +524,30 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                   { transform: [{ scale }, { translateY }], opacity },
                 ]}
               >
+                {/* Lock icon in upper right corner */}
+                {item.sourceType === 'guided' && (
+                  <View style={styles.lockIconContainer}>
+                    <GuidedPromptLockIcon
+                      tier={subscription?.tier || 'seeker'}
+                      usedPrompts={guidedPromptGating.usedPrompts}
+                      context="inApp"
+                      onLockTap={() => {
+                        (navigation as any).navigate('OnboardingSalesOffer', {
+                          source: 'guided_prompts_lock',
+                          feature: 'guided_prompts',
+                          tier: subscription?.tier || 'seeker',
+                          upgradeMode: false,
+                          skipNotificationPreference: true
+                        });
+                      }}
+                      size={20}
+                      position="right"
+                      prompt={item.question}
+                      forceShow={!(guidedPromptGating.freePrompts || []).includes(item.question)} // Show lock for non-free prompts
+                    />
+                  </View>
+                )}
+                
                 <View style={styles.sectionHeader}>
                   <MaterialCommunityIcons name={getSourceIcon(item.sourceType)} size={20} color={Colors.textGray} style={styles.sectionIcon} />
                   <ThemedText weight="semiBold" style={styles.sectionLabel}>
@@ -522,7 +558,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     style={styles.reflectButton}
-                    onPress={() => onQuestionPress?.(item)}
+                    onPress={() => {
+                      // Always allow opening the reflection editor to show the experience
+                      // The lock and upgrade flow will be handled inside the editor
+                      onQuestionPress?.(item);
+                    }}
                     accessibilityRole="button"
                     accessibilityLabel="Reflect on this question"
                   >
@@ -535,6 +575,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           })}
         </Animated.ScrollView>
       ) : null}
+      
     </View>
   );
 };
@@ -695,6 +736,16 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
+  },
+  reflectButtonDisabled: {
+    opacity: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  lockIconContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
   },
 });
 

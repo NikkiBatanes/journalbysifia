@@ -10,6 +10,10 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { useSubscription } from '../../hooks/useSubscription';
+import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
+import GuidedPromptLockIcon from '../GuidedPromptLockIcon';
+import { useNavigation } from '@react-navigation/native';
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -152,9 +156,13 @@ const fallbackStyles = {
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    alignSelf: 'center',
   },
   buttonIcon: {
     marginRight: 8,
+  },
+  headerLockIcon: {
+    marginLeft: 12,
   },
   reflectLabelText: { fontSize: 15, color: Colors.hopeWhite, letterSpacing: 0.5 },
   lockedTitleText: {
@@ -300,6 +308,30 @@ const fallbackStyles = {
     marginLeft: 6,
     fontWeight: '500',
   },
+  promptHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  lockIconContainer: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+  },
+  promptTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  lockedTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
+  },
 
   editorModeToggle: {
     flexDirection: 'row',
@@ -370,10 +402,34 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   ref
 ) => {
   const { currentFont } = useTheme();
+  const { subscription } = useSubscription();
+  const navigation = useNavigation();
   const fontKey = currentFont || 'lexend';
   const fontFamilyRegular = getFontFamily(fontKey, 'regular');
   const fontFamilyMedium = getFontFamily(fontKey, 'medium');
   const fontFamilyBold = getFontFamily(fontKey, 'bold');
+  
+  // Guided prompt gating
+  const guidedPromptGating = useGuidedPromptGating({
+    context: 'inApp',
+    onUpgradeRequired: () => {
+      // Navigate directly to sales offer screen
+      (navigation as any).navigate('OnboardingSalesOffer', {
+        source: 'guided_prompts_lock',
+        feature: 'guided_prompts',
+        tier: subscription?.tier || 'seeker',
+        upgradeMode: false,
+        skipNotificationPreference: true
+      });
+    }
+  });
+
+  const sortedGuidedPrompts = React.useMemo(() => {
+    // Use new simplified API - free prompts first, then locked
+    const freePrompts = guidedPromptGating.freePrompts || [];
+    const lockedPrompts = guidedPromptGating.lockedPrompts || [];
+    return [...freePrompts, ...lockedPrompts];
+  }, [guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts]);
   // Merge styles prop with fallbackStyles
   const s = { ...fallbackStyles, ...styles };
   // Internal state - manage view mode
@@ -417,6 +473,26 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [showFormattingModal, _setShowFormattingModal] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+
+  const isSelectedPromptLocked = React.useMemo(() => {
+    // Check both selectedPrompt and title to catch all cases
+    const promptToCheck = selectedPrompt || newEntry.title;
+    if (!promptToCheck) return false;
+    
+    // Check if prompt is in the locked prompts list
+    const lockedPrompts = guidedPromptGating.lockedPrompts || [];
+    const isLocked = lockedPrompts.includes(promptToCheck);
+    
+    console.log('[ReflectionLogEditor] Lock check:', {
+      selectedPrompt: selectedPrompt || 'null',
+      title: newEntry.title,
+      promptToCheck,
+      lockedPrompts: lockedPrompts.length,
+      isLocked
+    });
+    
+    return isLocked;
+  }, [selectedPrompt, newEntry.title, guidedPromptGating.lockedPrompts]);
   const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
 
   // Refs
@@ -593,8 +669,16 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     if (initialTitle && (newEntry.title !== initialTitle || !newEntry.title)) {
       console.log('Updating title to:', initialTitle);
       setNewEntry(prev => ({ ...prev, title: initialTitle }));
+      
+      // If this is a guided prompt, set selectedPrompt
+      // Check both source and if the title matches a guided prompt
+      const allGuidedPrompts = guidedPromptGating.allPrompts || [];
+      if ((source === 'guided' || allGuidedPrompts.includes(initialTitle)) && initialTitle) {
+        console.log('[ReflectionLogEditor] 🎯 Setting selectedPrompt from initialTitle:', initialTitle);
+        setSelectedPrompt(initialTitle);
+      }
     }
-  }, [initialTitle, newEntry.title]);
+  }, [initialTitle, newEntry.title, source, guidedPromptGating.allPrompts]);
 
   // Removed automatic focus when in locked title mode to prevent cursor from appearing automatically
 
@@ -642,10 +726,57 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   }, [isEditing, source, lockTitle]);
 
-  // Save handler - directly call onSave
+  // Save handler - check for guided prompt restrictions
   const handleSave = async () => {
+    console.log('[ReflectionLogEditor] 🔥 handleSave called!');
+    
     // Haptic feedback for save action
     triggerLightHaptic();
+    
+    console.log('[ReflectionLogEditor] 🔍 selectedPrompt check:', {
+      selectedPrompt: selectedPrompt || 'null/undefined',
+      hasSelectedPrompt: !!selectedPrompt,
+      newEntryTitle: newEntry.title,
+      source
+    });
+    
+    // Check if this is a guided prompt and if user has access
+    // Check both selectedPrompt and title to prevent loopholes
+    const promptToCheck = selectedPrompt || (guidedPromptGating.allPrompts.includes(newEntry.title) ? newEntry.title : null);
+    
+    if (promptToCheck) {
+      // Use async canUsePrompt method
+      const canUseResult = await guidedPromptGating.canUsePrompt(promptToCheck);
+      const freePrompts = guidedPromptGating.freePrompts || [];
+      const isFree = freePrompts.includes(promptToCheck);
+      
+      console.log('[ReflectionLogEditor] ⚠️ CRITICAL SAVE CHECK:', {
+        selectedPrompt: selectedPrompt || 'null',
+        titlePrompt: newEntry.title,
+        promptToCheck: promptToCheck.substring(0, 50) + '...',
+        canUse: canUseResult,
+        isFree,
+        tier: subscription?.tier
+      });
+
+      if (!canUseResult) {
+        console.log('[ReflectionLogEditor] ❌ BLOCKING SAVE - User cannot use this prompt (loophole detected)');
+        // Navigate to upgrade screen instead of saving
+        (navigation as any).navigate('OnboardingSalesOffer', {
+          source: 'guided_prompts_lock',
+          feature: 'guided_prompts',
+          tier: subscription?.tier || 'seeker',
+          upgradeMode: false,
+          skipNotificationPreference: true,
+          returnToReflection: true,
+          presentation: 'modal'
+        });
+        return; // Block the save
+      }
+    } else {
+      console.log('[ReflectionLogEditor] ℹ️ No guided prompt detected - allowing save');
+    }
+    
     // Clear any existing draft since we're saving the entry
     try {
       await AsyncStorage.removeItem(getDraftKey());
@@ -653,8 +784,16 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       console.error('Error clearing draft:', error);
     }
 
-    // Determine the entry type - if there's a selected prompt, it's a guided entry
-    const entryType = selectedPrompt ? 'guided' : viewMode;
+    // If it's a guided prompt and user has access, mark it as used
+    if (promptToCheck) {
+      const canUse = await guidedPromptGating.canUsePrompt(promptToCheck);
+      if (canUse) {
+        await guidedPromptGating.markPromptUsed(promptToCheck);
+      }
+    }
+
+    // Determine the entry type - if there's a guided prompt, it's a guided entry
+    const entryType = promptToCheck ? 'guided' : viewMode;
 
     const entry = {
       title: newEntry.title.trim(),
@@ -662,7 +801,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       tags: newEntry.tags,
       date: dateString ? new Date(dateString) : new Date(), // Use dateString if provided, fallback to current date
       type: entryType,  // Use the determined type
-      ...(selectedPrompt && { prompt: selectedPrompt }),
+      ...(promptToCheck && { prompt: promptToCheck }),
       ...(source && { source }),
       // Include devotional metadata if available
       ...(devotionalTitle && { devotionalTitle }),
@@ -752,7 +891,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             // Haptic for switching to free-form mode
             triggerLightHaptic();
             // If coming from guided mode
-            if (selectedPrompt) {
+            const switchingFromGuided = Boolean(selectedPrompt);
+            if (switchingFromGuided) {
               // If there's content, show confirmation
               if (newEntry.content.trim()) {
                 const shouldProceed = await new Promise<boolean>((resolve) => {
@@ -792,16 +932,21 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 }
               }
 
-              // Always reset title and clear content when switching from guided mode
+              // Switching from a guided prompt: clear title/content so free-form starts blank
               setNewEntry(prev => ({
                 ...prev,
                 content: '',
-                title: initialTitle || '',
+                title: source === 'guided' ? '' : (initialTitle || ''),
               }));
             }
 
             setViewMode('free-form');
-            setSelectedPrompt('');
+            // Only clear selectedPrompt if we're truly switching to blank free-form
+            // Don't clear if the title matches a guided prompt (prevents loophole)
+            const titleMatchesGuidedPrompt = guidedPromptGating.allPrompts.includes(newEntry.title);
+            if (!titleMatchesGuidedPrompt) {
+              setSelectedPrompt('');
+            }
 
             // Focus the title input after a short delay
             setTimeout(() => {
@@ -838,7 +983,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               triggerLightHaptic();
               // Always reset to show the prompt selection
               setViewMode('guided');
-              setSelectedPrompt('');
+              // Don't clear selectedPrompt - keep track of the original prompt to prevent loophole
+              // setSelectedPrompt(''); // REMOVED - this was causing the gating loophole
 
               // Reset the entry content but keep any existing title
               setNewEntry(prev => ({
@@ -876,49 +1022,103 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           {effectiveViewMode === 'free-form' ? (
             <>
               {lockTitle || (source && source !== 'freeform') ? (
-                <ThemedText
-                  weight="bold"
-                  style={[
-                    s.entryInput,
-                    s.titleInput,
-                    s.transparentInput,
-                    s.lockedTitleText,
-                  ]}
-                >
-                  {initialTitle || newEntry.title}
-                </ThemedText>
+                <View style={s.lockedTitleContainer}>
+                  <View style={s.titleWithLockContainer}>
+                    <ThemedText
+                      weight="bold"
+                      style={[
+                        s.entryInput,
+                        s.titleInput,
+                        s.transparentInput,
+                        s.lockedTitleText,
+                        s.titleWithLock,
+                      ]}
+                    >
+                      {initialTitle || newEntry.title}
+                    </ThemedText>
+                    {isSelectedPromptLocked && (
+                      <GuidedPromptLockIcon
+                        tier={subscription?.tier || 'seeker'}
+                        usedPrompts={guidedPromptGating.usedPrompts}
+                        context="inApp"
+                        onLockTap={() => {
+                          (navigation as any).navigate('OnboardingSalesOffer', {
+                            source: 'guided_prompts_lock',
+                            feature: 'guided_prompts',
+                            tier: subscription?.tier || 'seeker',
+                            upgradeMode: false,
+                            skipNotificationPreference: true,
+                            returnToReflection: true,
+                            presentation: 'modal'
+                          });
+                        }}
+                        size={20}
+                        position="right"
+                        prompt={selectedPrompt}
+                        forceShow={true}
+                        style={s.titleLockIcon}
+                      />
+                    )}
+                  </View>
+                </View>
               ) : (
-                <TextInput
-                  ref={titleInputRef}
-                  style={[
-                    s.entryInput,
-                    s.titleInput,
-                    s.transparentInput,
-                    s.editableTitle, // Match locked title opacity
-                    { fontFamily: fontFamilyBold },
-                  ]}
-                  placeholder="Name Your Reflection..."
-                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                  value={newEntry.title}
-                  onChangeText={(text: string) => {
-                    setNewEntry({ ...newEntry, title: text });
-                    checkForChanges(newEntry.content, text);
-                  }}
-                  onFocus={() => {
-                    // In edit mode, position cursor at end instead of selecting all
-                    if (isEditing && titleInputRef.current) {
-                      setTimeout(() => {
-                        const textLength = newEntry.title.length;
-                        titleInputRef.current?.setNativeProps({
-                          selection: { start: textLength, end: textLength },
+                <View style={s.titleWithLockContainer}>
+                  <TextInput
+                    ref={titleInputRef}
+                    style={[
+                      s.entryInput,
+                      s.titleInput,
+                      s.transparentInput,
+                      s.editableTitle, // Match locked title opacity
+                      s.titleWithLock, // Add flex styling
+                      { fontFamily: fontFamilyBold },
+                    ]}
+                    placeholder="Name Your Reflection..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={newEntry.title}
+                    onChangeText={(text: string) => {
+                      setNewEntry({ ...newEntry, title: text });
+                      checkForChanges(newEntry.content, text);
+                    }}
+                    onFocus={() => {
+                      // In edit mode, position cursor at end instead of selecting all
+                      if (isEditing && titleInputRef.current) {
+                        setTimeout(() => {
+                          const textLength = newEntry.title.length;
+                          titleInputRef.current?.setNativeProps({
+                            selection: { start: textLength, end: textLength },
+                          });
+                        }, 10);
+                      }
+                    }}
+                    underlineColorAndroid="transparent"
+                    selectionColor={Colors.hopeWhite}
+                    multiline={true}
+                  />
+                  {isSelectedPromptLocked && (
+                    <GuidedPromptLockIcon
+                      tier={subscription?.tier || 'seeker'}
+                      usedPrompts={guidedPromptGating.usedPrompts}
+                      context="inApp"
+                      onLockTap={() => {
+                        (navigation as any).navigate('OnboardingSalesOffer', {
+                          source: 'guided_prompts_lock',
+                          feature: 'guided_prompts',
+                          tier: subscription?.tier || 'seeker',
+                          upgradeMode: false,
+                          skipNotificationPreference: true,
+                          returnToReflection: true,
+                          presentation: 'modal'
                         });
-                      }, 10);
-                    }
-                  }}
-                  underlineColorAndroid="transparent"
-                  selectionColor={Colors.hopeWhite}
-                  multiline={true}
-                />
+                      }}
+                      size={20}
+                      position="right"
+                      prompt={selectedPrompt}
+                      forceShow={true}
+                      style={s.titleLockIcon}
+                    />
+                  )}
+                </View>
               )}
 
               {/* Simple Text Input */}
@@ -994,46 +1194,75 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           ) : (
             <View style={s.guidedContainer}>
               <View style={s.promptGrid}>
-                {GUIDED_PROMPTS.map((prompt: string, index: number) => (
-                  <View
-                    key={index}
-                    style={s.promptCard}
-                  >
-                    <ThemedText style={s.promptCardText}>{prompt}</ThemedText>
-                    <TouchableOpacity
-                      style={s.reflectLabel}
-                      onPress={async () => {
-                        // Haptic on selecting a guided prompt
-                        triggerLightHaptic();
-                        // First update the view mode
-                        await setViewMode('free-form');
-
-                        // Then update the prompt and entry
-                        await setSelectedPrompt(prompt);
-
-                        // Force a state update to ensure the view mode is applied
-                        requestAnimationFrame(() => {
-                          setNewEntry(prev => ({
-                            ...prev,
-                            title: prompt,
-                            content: prev.content || '',
-                            tags: prev.tags || [],
-                          }));
-
-                          // Focus the content input
-                          setTimeout(() => {
-                            contentInputRef.current?.focus();
-                          }, 50);
-                        });
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Reflect"
+                {sortedGuidedPrompts.map((prompt: string, index: number) => {
+                  return (
+                    <View
+                      key={index}
+                      style={s.promptCard}
                     >
-                      <Pencil size={16} color={Colors.hopeWhite} style={s.buttonIcon} />
-                      <ThemedText weight="medium" style={s.reflectLabelText}>Reflect</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                ))}
+                      {/* Lock icon in upper right corner */}
+                      <View style={s.lockIconContainer}>
+                        <GuidedPromptLockIcon
+                          tier={subscription?.tier || 'seeker'}
+                          usedPrompts={guidedPromptGating.usedPrompts}
+                          context="inApp"
+                          onLockTap={() => {
+                            console.log('[ReflectionLogEditor] Grid lock tapped - navigating to sales offer (keeping modal open)');
+                            (navigation as any).navigate('OnboardingSalesOffer', {
+                              source: 'guided_prompts_lock',
+                              feature: 'guided_prompts',
+                              tier: subscription?.tier || 'seeker',
+                              upgradeMode: false,
+                              skipNotificationPreference: true,
+                              returnToReflection: true,
+                              presentation: 'modal'
+                            });
+                          }}
+                          size={16}
+                          position="right"
+                          prompt={prompt}
+                          forceShow={!(guidedPromptGating.freePrompts || []).includes(prompt)} // Show lock for non-free prompts
+                        />
+                      </View>
+                      
+                      <View style={s.promptTextContainer}>
+                        <ThemedText style={s.promptCardText}>{prompt}</ThemedText>
+                      </View>
+                      <TouchableOpacity
+                        style={s.reflectLabel}
+                        onPress={async () => {
+                          // Haptic on selecting a guided prompt
+                          triggerLightHaptic();
+
+                          // Always allow selecting any prompt - gating happens on save
+                          console.log('[ReflectionLogEditor] Setting selectedPrompt:', { prompt });
+                          setSelectedPrompt(prompt);
+                          setViewMode('free-form');
+
+                          // Force a state update to ensure the view mode is applied
+                          requestAnimationFrame(() => {
+                            setNewEntry(prev => ({
+                              ...prev,
+                              title: prompt,
+                              content: prev.content || '',
+                              tags: prev.tags || [],
+                            }));
+
+                            // Focus the content input after the view switches
+                            setTimeout(() => {
+                              contentInputRef.current?.focus();
+                            }, 50);
+                          });
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Reflect"
+                      >
+                        <Pencil size={16} color={Colors.hopeWhite} style={s.buttonIcon} />
+                        <ThemedText weight="medium" style={s.reflectLabelText}>Reflect</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           )}
@@ -1120,6 +1349,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         </View>
       )}
     </KeyboardAvoidingView>
+
 
   </View>
   );

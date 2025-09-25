@@ -59,12 +59,6 @@ export interface Devotional {
 export type DevotionalCategory =
   | 'Prayer'
   | 'Growth'
-  | 'Spiritual Growth'
-  | 'Faith'
-  | 'Hope'
-  | 'Peace'
-  | 'Forgiveness'
-  | 'Gratitude'
   | 'Healing'
   | 'Wisdom'
   | 'Relationships'
@@ -78,12 +72,6 @@ export type DevotionalCategory =
 export const DEVOTIONAL_CATEGORIES: DevotionalCategory[] = [
   'Prayer',
   'Growth',
-  'Spiritual Growth',
-  'Faith',
-  'Hope',
-  'Peace',
-  'Forgiveness',
-  'Gratitude',
   'Healing',
   'Wisdom',
   'Relationships',
