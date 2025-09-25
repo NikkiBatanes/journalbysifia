@@ -1070,7 +1070,8 @@ function TimeBlockLogEditorInner(
 
                           <TouchableOpacity
                             style={s.frequencyUnitButton}
-                            onPress={() => {
+                            onPress={async () => {
+                              await triggerLightHaptic();
                               const units: Array<'day'|'week'|'month'|'year'> = ['day', 'week', 'month', 'year'];
                               const currentIndex = units.indexOf(customFrequency.unit);
                               const nextIndex = (currentIndex + 1) % units.length;
@@ -1093,7 +1094,8 @@ function TimeBlockLogEditorInner(
                             {['S','M','T','W','T','F','S'].map((label, idx) => (
                               <TouchableOpacity
                                 key={idx}
-                                onPress={() => {
+                                onPress={async () => {
+                                  await triggerLightHaptic();
                                   setCustomDays(prev => prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]);
                                 }}
                                 style={{
@@ -1119,13 +1121,17 @@ function TimeBlockLogEditorInner(
                     <View style={s.customModalButtons}>
                       <TouchableOpacity
                         style={[s.customModalButton, s.customModalCancelButton]}
-                        onPress={() => setShowCustomRepeatModal(false)}
+                        onPress={async () => {
+                          await triggerLightHaptic();
+                          setShowCustomRepeatModal(false);
+                        }}
                       >
                         <ThemedText weight="semiBold" style={s.customModalButtonText}>Cancel</ThemedText>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[s.customModalButton, s.customModalConfirmButton]}
-                        onPress={() => {
+                        onPress={async () => {
+                          await triggerLightHaptic();
                           const unitLabel = customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1) + (customFrequency.value > 1 ? 's' : '');
                           let label = `Every ${customFrequency.value} ${unitLabel}`;
                           if (customFrequency.unit === 'week' && customDays.length > 0) {
@@ -1171,13 +1177,17 @@ function TimeBlockLogEditorInner(
                     <View style={s.timePickerButtons}>
                       <TouchableOpacity
                         style={[s.timePickerButton, s.timePickerCancelButton]}
-                        onPress={() => setShowEndDatePicker(false)}
+                        onPress={async () => {
+                          await triggerLightHaptic();
+                          setShowEndDatePicker(false);
+                        }}
                       >
                         <Text style={[s.timePickerButtonText, s.timePickerCancelText]}>Cancel</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[s.timePickerButton, s.timePickerConfirmButton]}
-                        onPress={() => {
+                        onPress={async () => {
+                          await triggerLightHaptic();
                           setEndRepeatMode('date');
                           setShowEndDatePicker(false);
                         }}
