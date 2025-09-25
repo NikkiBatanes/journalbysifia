@@ -337,6 +337,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           overshootRight={false}
           onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
           enableTrackpadTwoFingerGesture
+          containerStyle={styles.swipeableRow}
         >
           <View style={styles.prayerItem}>
             <View style={styles.prayerHeader}>
@@ -920,6 +921,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     minHeight: 60,
+    // Make the prayer row a distinct card (like Todos)
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 12,
+    position: 'relative',
+    zIndex: 1,
   },
   prayerContentContainer: {
     marginBottom: 8,
@@ -1144,9 +1151,8 @@ const styles = StyleSheet.create({
   swipeableContainer: {
     marginBottom: 12,
     overflow: 'hidden',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 12,
+    backgroundColor: 'transparent',
   },
   swipeableRow: {
     backgroundColor: 'transparent',

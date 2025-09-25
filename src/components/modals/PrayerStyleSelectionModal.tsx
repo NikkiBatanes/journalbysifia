@@ -91,9 +91,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
       triggerSelectionHaptic();
     }
     onSelectPrayerType(type);
-    // Only focus the input; do not auto-scroll to bottom
     setTimeout(() => {
       textInputRef.current?.focus();
+      scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, [selectedPrayerType, onSelectPrayerType]);
 
@@ -110,9 +110,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
     } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
       onSelectPrayerType('adoration');
     }
-    // Only focus the input; do not auto-scroll to bottom
     setTimeout(() => {
       textInputRef.current?.focus();
+      scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 150);
   }, [selectedPrayerType, onSelectPrayerType]);
 
@@ -151,7 +151,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
     if (!visible) return;
 
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      // Do not auto-scroll when keyboard appears
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     });
 
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
@@ -199,7 +201,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
         <KeyboardAvoidingView 
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
+          keyboardVerticalOffset={0}
         >
           <ScrollView 
             ref={scrollViewRef}
@@ -301,6 +303,11 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
                 textAlignVertical="top"
                 autoFocus={true}
                 textAlign="left"
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 150);
+                }}
               />
             ) : (
               // When nothing is selected, hide input; placeholder text defined for completeness
@@ -439,7 +446,9 @@ const styles = StyleSheet.create({
   prayerInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 30,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 12 : 16,
+    paddingBottom: 20,
     color: Colors.hopeWhite,
     fontSize: 16,
     minHeight: 140,
@@ -448,7 +457,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   scrollContent: {
-    paddingBottom: 0,
+    paddingBottom: 100,
     flexGrow: 1,
   },
 });

@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
@@ -44,7 +44,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
   const theme = useTheme();
   const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
   const nameInputRef = useRef<TextInput>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
 
   // Handle tab change and align selected type
   const handleTabChange = useCallback((tab: 'Personal' | 'Requests') => {
@@ -63,7 +62,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
     // Focus the name input after tab change
     setTimeout(() => {
       nameInputRef.current?.focus();
-      scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 150);
   }, [onSelectPrayerType]);
 
@@ -105,26 +103,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
     }
   }, [visible, selectedPrayerType, onSelectPrayerType]);
 
-  // Handle keyboard events
-  useEffect(() => {
-    if (!visible) return;
-
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    });
-
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      // Optional: scroll back when keyboard hides
-    });
-
-    return () => {
-      keyboardDidShowListener?.remove();
-      keyboardDidHideListener?.remove();
-    };
-  }, [visible]);
-
   return (
     <Modal
       visible={visible}
@@ -160,10 +138,9 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
         <KeyboardAvoidingView 
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
+          keyboardVerticalOffset={0}
         >
           <ScrollView 
-            ref={scrollViewRef}
             style={styles.content} 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
@@ -220,11 +197,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
               textAlignVertical="center"
               autoFocus={true}
               textAlign="left"
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 200);
-              }}
             />
           </View>
 
@@ -240,11 +212,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
               numberOfLines={6}
               textAlignVertical="top"
               textAlign="left"
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 200);
-              }}
             />
           </View>
 
@@ -264,11 +231,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
                 numberOfLines={3}
                 textAlignVertical="top"
                 textAlign="left"
-                onFocus={() => {
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
-                  }, 200);
-                }}
               />
             </View>
           )}
@@ -393,7 +355,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 100,
     flexGrow: 1,
   },
 });
