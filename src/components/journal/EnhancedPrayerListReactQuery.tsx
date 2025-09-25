@@ -307,6 +307,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         <TouchableOpacity
           style={styles.editActionBtn}
           onPress={() => {
+            try { triggerLightHaptic(); } catch {}
             onEdit(prayer.id);
             swipeableRef.current?.close();
           }}
@@ -317,6 +318,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         <TouchableOpacity
           style={styles.deleteActionBtn}
           onPress={() => {
+            try { triggerLightHaptic(); } catch {}
             onDelete(prayer.id);
             swipeableRef.current?.close();
           }}
@@ -445,6 +447,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           }
         }}
         onDelete={(prayerId: string) => {
+          try { triggerLightHaptic(); } catch {}
           Alert.alert(
             'Delete Prayer',
             'Are you sure you want to delete this prayer?',
@@ -454,6 +457,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 text: 'Delete',
                 style: 'destructive',
                 onPress: () => {
+                  try { triggerLightHaptic(); } catch {}
                   deleteMutation.mutate({
                     id: prayerId,
                     _userId: user?.id || '',

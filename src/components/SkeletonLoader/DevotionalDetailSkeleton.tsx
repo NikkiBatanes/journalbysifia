@@ -111,8 +111,6 @@ const DevotionalDetailSkeleton: React.FC = () => {
         </View>
 
       </ScrollView>
-      {/* Floating completion FAB skeleton - outside ScrollView so it doesn't scroll */}
-      <Animated.View style={[styles.fabSkeleton, { opacity }]} />
     </SafeAreaView>
   );
 };
@@ -134,13 +132,13 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
+    borderRadius: 20,
   },
   headerTitle: {
     flex: 1,
     height: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
     marginLeft: 16,
     width: '60%',
   },
@@ -152,8 +150,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   scrollContent: {
-    paddingTop: 80,
-    paddingBottom: 80,
+    paddingTop: 0,
+    paddingBottom: 0,
     paddingHorizontal: 20,
   },
   dayDotsContainer: {
@@ -177,14 +175,14 @@ const styles = StyleSheet.create({
     width: 60,
     height: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
     marginBottom: 8,
   },
   dayTitle: {
     width: 200,
     height: 28,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
   },
   sectionContainer: {
     marginBottom: 30,
@@ -193,12 +191,12 @@ const styles = StyleSheet.create({
     width: 120,
     height: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 16,
     marginBottom: 16,
   },
   scriptureCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
+    borderRadius: 30,
     padding: 20,
     alignItems: 'center',
   },
@@ -206,36 +204,36 @@ const styles = StyleSheet.create({
     width: '90%',
     height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
     marginBottom: 8,
   },
   scriptureTextLine2: {
     width: '70%',
     height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
     marginBottom: 16,
   },
   scriptureReference: {
     width: 120,
     height: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
   },
   reflectionCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
+    borderRadius: 30,
     padding: 20,
   },
   reflectionLine: {
     height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
     marginBottom: 8,
   },
   questionCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12,
+    borderRadius: 30,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
@@ -246,24 +244,24 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
     marginRight: 12,
   },
   questionButton: {
     width: 80,
     height: 44,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 16,
+    borderRadius: 20,
   },
   prayerCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
+    borderRadius: 30,
     padding: 20,
   },
   prayerLine: {
     height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 20,
     marginBottom: 8,
   },
   prayButton: {
@@ -273,19 +271,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 16,
     alignSelf: 'center',
-  },
-  // Floating action button to mirror real screen
-  fabSkeleton: {
-    position: 'absolute',
-    bottom: 20,
-    left: '50%',
-    marginLeft: -30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    zIndex: 100,
-    elevation: 4,
   },
 });
 
