@@ -381,9 +381,10 @@ interface ReflectionLogProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  onPencilTap?: () => void; // Handler for pencil icon tap in carousel
 }
 
-export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand }) => {
+export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onPencilTap }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -839,6 +840,13 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             <TouchableOpacity
               style={styles.emptyStateButton}
               onPress={() => {
+                // Use carousel handler if provided (matching dashboard behavior)
+                if (onPencilTap) {
+                  onPencilTap();
+                  return;
+                }
+                
+                // Default behavior for non-carousel mode
                 triggerLightHaptic();
                 setNewEntry({
                   title: '',
@@ -982,15 +990,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         {typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content)}
       </ThemedText>
 
-      {entry.tags && entry.tags.filter(tag => tag !== 'playbook' && tag !== 'guided').length > 0 && (
-        <View style={styles.tagsContainer}>
-          {entry.tags.filter(tag => tag !== 'playbook' && tag !== 'guided').map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <ThemedText style={styles.tagText}>{tag}</ThemedText>
-            </View>
-          ))}
-        </View>
-      )}
+      {/* Removed lower right tags - only show upper left type tags (FREE FORM, PLAYBOOK, GUIDED PROMPT) */}
     </TouchableOpacity>
   );
 
@@ -1072,6 +1072,13 @@ return (
       }).length)}
       showAddButton={hasContentForSelectedDate && !globalEditMode?.isGlobalEditMode}
       onAdd={() => {
+        // Use carousel handler if provided (matching dashboard behavior)
+        if (onPencilTap) {
+          onPencilTap();
+          return;
+        }
+        
+        // Default behavior for non-carousel mode
         triggerLightHaptic();
         setNewEntry({
           title: '',
@@ -1090,6 +1097,13 @@ return (
       headerRight={globalEditMode?.isGlobalEditMode ? (
         <TouchableOpacity
           onPress={() => {
+            // Use carousel handler if provided (matching dashboard behavior)
+            if (onPencilTap) {
+              onPencilTap();
+              return;
+            }
+            
+            // Default behavior for non-carousel mode
             triggerLightHaptic();
             setNewEntry({
               title: '',
@@ -1123,13 +1137,14 @@ return (
       {/* Entries List */}
       {renderEntries()}
 
-      {/* Add/Edit Entry Modal */}
-      <Modal
-        visible={isAdding}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setIsAdding(false)}
-      >
+      {/* Add/Edit Entry Modal - Only show when not in carousel mode */}
+      {!onPencilTap && (
+        <Modal
+          visible={isAdding}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setIsAdding(false)}
+        >
         <ReflectionLogEditor
             onSave={async (entryData: any) => {
               triggerLightHaptic();
@@ -1202,7 +1217,7 @@ return (
                   console.log('🔍 ReflectionLog: Data refetched after save');
                 }, 100);
 
-                // Show success modal immediately without closing main modal
+                // Show success modal immediately - keyboard dismissal prevented by modal structure fix
                 successModal.showSuccess({
                   title: editingId ? 'Reflection Updated' : 'Reflection Saved',
                   message: editingId ? 'Your reflection has been updated in your journal.' : 'Your reflection has been saved to your journal.',
@@ -1268,17 +1283,21 @@ return (
             })()}
           />
 
-          {/* Success Modal - Inside main modal for proper layering */}
-          <NewSuccessModal
-            visible={successModal.isVisible}
-            config={successModal.config}
-            onDone={successModal.handleDone}
-            onEdit={successModal.handleEdit}
-          />
       </Modal>
+      )}
+
+      {/* Success Modal - Outside main modal to prevent keyboard dismissal */}
+      {!onPencilTap && (
+        <NewSuccessModal
+          visible={successModal.isVisible}
+          config={successModal.config}
+          onDone={successModal.handleDone}
+          onEdit={successModal.handleEdit}
+        />
+      )}
 
       {/* Prompt Picker Modal */}
-      {renderPromptPicker()}
+      {!onPencilTap && renderPromptPicker()}
     </JournalCard>
     </>
   );

@@ -90,7 +90,7 @@ export const styles = StyleSheet.create({
   fabDefaultPosition: {
     bottom: 16,
   },
-  androidFabWithKeyboard: {
+  fabWithKeyboard: {
     bottom: 4,
   },
   cancelFab: {

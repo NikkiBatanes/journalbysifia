@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toLocalDateString } from '../utils/date';
-import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, DeviceEventEmitter } from 'react-native';
+import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, DeviceEventEmitter, Keyboard } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -191,21 +191,27 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         entryType: entry.type,
       });
 
+      // Determine context: guided, playbook, or freeform (carousel free-form launch)
+      const isPlaybookContext = !isGuidedReflection && !!playbookId;
+      const isFreeFormContext = !isGuidedReflection && !isPlaybookContext; // opened from carousel or plain free-form
+
       const reflectionData = {
         user_id: user.id,
         title: entry.title,
         content: entry.content,
         // Use guided type/source when launched from guided prompt
-        type: (isGuidedReflection ? 'guided' : 'playbook'),
-        source: (isGuidedReflection ? 'guided' : 'playbook'),
+        // Use playbook when launched from playbook context
+        // Otherwise, default to free-form
+        type: (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'free'),
+        source: (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform'),
         selected_date: dateStr,
-        tags: [...(entry.tags || []), (isGuidedReflection ? 'guided' : 'playbook')],
+        tags: [...(entry.tags || []), (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform')],
         // Only attach playbook metadata when not guided
-        ...(!isGuidedReflection && playbookTitle ? { playbook_title: playbookTitle } : {}),
-        ...(!isGuidedReflection && playbookId ? { playbook_id: playbookId } : {}),
-        ...(!isGuidedReflection && subtaskId ? { subtask_id: subtaskId } : {}),
-        ...(!isGuidedReflection && actionStepNumber !== undefined ? { day_number: actionStepNumber } : {}),
-        ...(!isGuidedReflection && actionStepTitle ? { day_title: actionStepTitle } : {}),
+        ...(isPlaybookContext && playbookTitle ? { playbook_title: playbookTitle } : {}),
+        ...(isPlaybookContext && playbookId ? { playbook_id: playbookId } : {}),
+        ...(isPlaybookContext && subtaskId ? { subtask_id: subtaskId } : {}),
+        ...(isPlaybookContext && actionStepNumber !== undefined ? { day_number: actionStepNumber } : {}),
+        ...(isPlaybookContext && actionStepTitle ? { day_title: actionStepTitle } : {}),
       };
 
       // Track analytics
@@ -274,7 +280,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       onSave(savedReflection);
 
       // Mark subtask as completed immediately since data is saved (only for new reflections)
-      if (!existingReflection && stepId && subtaskId && handleToggleStep) {
+      if (!existingReflection && stepId && subtaskId && handleToggleStep && !isGuidedReflection && isPlaybookContext) {
         console.log('💭 SmartJournalingReflectionModal: Marking subtask as completed (data saved)', {
           stepId,
           subtaskId,
@@ -317,13 +323,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               console.log('💭 SmartJournalingReflectionModal: Step already completed, skipping toggle');
             }
           }
-        } else {
-          console.warn('💭 SmartJournalingReflectionModal: Step not found in actionSteps:', {
-            stepId,
-            availableStepIds: actionSteps?.map(s => s.id) || [],
-          });
         }
-      } else {
         console.log('💭 SmartJournalingReflectionModal: Skipping completion - editing existing reflection or missing data:', {
           hasExistingReflection: !!existingReflection,
           hasStepId: !!stepId,
@@ -385,8 +385,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       });
     }
 
-    // ReflectionLogEditor handles draft saving automatically
-    // No need for discard confirmation as drafts are preserved
+    // ReflectionLogEditor already handles keyboard dismissal and delay
+    // Don't dismiss keyboard here to avoid double dismissal conflict
     onCancel();
   };
 
@@ -406,21 +406,17 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         presentationStyle="fullScreen"
         onRequestClose={handleCancel}
       >
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
           <View style={styles.container}>
             <ReflectionLogEditor
               ref={reflectionEditorRef}
               onSave={saveReflection}
               onCancel={handleCancel}
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
-              initialTitle={preservedSubtaskTitle}
-              lockTitle={true}
-              // Use 'guided' source to hide metadata when launched from guided prompt
-              source={isGuidedReflection ? 'guided' : 'playbook'}
+              // Free-form mode (carousel): blank title with placeholder and unlocked title
+              initialTitle={isGuidedReflection ? preservedSubtaskTitle : (playbookId ? (preservedSubtaskTitle || '') : '')}
+              lockTitle={isGuidedReflection || !!playbookId}
+              // Source: guided for guided prompt, playbook for playbook context, freeform otherwise
+              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'freeform')}
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
@@ -431,8 +427,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 return year === new Date().getFullYear() ? todayString : todayStringWithYear;
               })()}
               // Only pass playbook metadata when not guided
-              playbookTitle={!isGuidedReflection ? preservedPlaybookTitle : undefined}
-              dayNumber={!isGuidedReflection ? (() => {
+              playbookTitle={(!isGuidedReflection && !!playbookId) ? preservedPlaybookTitle : undefined}
+              dayNumber={(!isGuidedReflection && !!playbookId) ? (() => {
                 console.log('🔍 SmartJournalingReflectionModal: Step info debug:', {
                   existingReflection_day_number: existingReflection?.day_number,
                   existingReflection_day_title: existingReflection?.day_title,
@@ -442,14 +438,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 });
                 return existingReflection?.day_number ?? preservedActionStepNumber;
               })() : undefined}
-              dayTitle={!isGuidedReflection ? (existingReflection?.day_title ?? preservedActionStepTitle) : undefined}
+              dayTitle={(!isGuidedReflection && !!playbookId) ? (existingReflection?.day_title ?? preservedActionStepTitle) : undefined}
               subtaskId={subtaskId}
               initialEntry={existingReflection ? {
                 title: existingReflection.title || preservedSubtaskTitle,
                 content: existingReflection.content || '',
                 tags: existingReflection.tags || [],
                 type: 'free-form',
-                source: isGuidedReflection ? 'guided' : 'playbook',
+                source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'freeform'),
               } : undefined}
               isLoading={isLoading}
             />
@@ -462,7 +458,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             onEdit={successModal.handleEdit}
           />
           </View>
-        </KeyboardAvoidingView>
       </Modal>
 
       {/* Loading overlay removed to preserve metadata visibility during save */}

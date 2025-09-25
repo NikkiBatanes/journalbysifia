@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useImperativeHandle } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
@@ -401,6 +401,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   },
   ref
 ) => {
+  // Add mounting state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
   const { currentFont } = useTheme();
   const { subscription } = useSubscription();
   const navigation = useNavigation();
@@ -471,7 +473,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       console.log('[ReflectionLogEditor] Setting to initialMode or free-form');
       setViewMode(initialMode || 'free-form');
     }
-  }, [initialMode, source, initialPrompt]);
+  }, [initialMode, source, initialPrompt]); // Removed guidedPromptGating.allPrompts to prevent infinite loops
 
   // Normalize any stored HTML <br> tags to real newlines for native TextInput
   const normalizeIncoming = (text: string): string => {
@@ -498,8 +500,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const isEditing = !!initialEntry.content;
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   const [showAddMenu, setShowAddMenu] = React.useState(false);
-  const [showFormattingModal, _setShowFormattingModal] = React.useState(false);
-  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+  const [showFormattingModal, setShowFormattingModal] = React.useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const fabAnimatedValue = useRef(new Animated.Value(16)).current; // Start at default position (16px from bottom)
 
   const isSelectedPromptLocked = React.useMemo(() => {
     // Check both selectedPrompt and title to catch all cases
@@ -603,6 +606,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
             // Only load draft if there's actual meaningful content
             if ((content && content.trim()) || (title && title.trim())) {
+              // Check if component is still mounted before state updates
+              if (!isMountedRef.current) return;
+              
               setNewEntry(prev => ({
                 ...prev,
                 content: content || prev.content,
@@ -617,6 +623,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
               // Focus the content input after a short delay
               setTimeout(() => {
+                if (!isMountedRef.current) return;
                 if (content && contentInputRef.current) {
                   contentInputRef.current.focus();
                 }
@@ -627,27 +634,37 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               if (isFirstLoad && !isEditing) {
                 // Delay showing notification until modal is fully open
                 setTimeout(() => {
+                  if (!isMountedRef.current) return;
                   setShowDraftNotification(true);
                 }, 500);
 
                 // Hide notification after 4 seconds
                 timer = setTimeout(() => {
+                  if (!isMountedRef.current) return;
                   setShowDraftNotification(false);
                 }, 4500); // 500ms delay + 4000ms display
               }
 
               // Mark that first load is complete
-              setIsFirstLoad(false);
+              if (isMountedRef.current) {
+                setIsFirstLoad(false);
+              }
 
               return timer ? () => clearTimeout(timer) : undefined;
             }
           }
         } catch (error) {
           console.error('Error loading draft:', error);
+          // Graceful fallback - continue without draft
+          setIsFirstLoad(false);
         }
       };
 
-      loadDraft();
+      // Add error boundary for async operation
+      loadDraft().catch((error) => {
+        console.error('Critical error in loadDraft:', error);
+        setIsFirstLoad(false); // Ensure component doesn't get stuck
+      });
     }
   }, [getDraftKey, isEditing, isFirstLoad]);
 
@@ -685,6 +702,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Clear draft when component unmounts (cleanup)
   useEffect(() => {
     return () => {
+      // Mark component as unmounted to prevent state updates
+      isMountedRef.current = false;
       // Only clear draft if the entry was saved (not cancelled)
       // This cleanup runs when component unmounts
     };
@@ -695,6 +714,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     console.log('initialTitle changed:', initialTitle);
     if (initialTitle && (newEntry.title !== initialTitle || !newEntry.title)) {
       console.log('Updating title to:', initialTitle);
+      
+      // Check if component is still mounted before state updates
+      if (!isMountedRef.current) return;
+      
       setNewEntry(prev => ({ ...prev, title: initialTitle }));
       
       // If this is a guided prompt, set selectedPrompt
@@ -702,26 +725,40 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       const allGuidedPrompts = guidedPromptGating.allPrompts || [];
       if ((source === 'guided' || allGuidedPrompts.includes(initialTitle)) && initialTitle) {
         console.log('[ReflectionLogEditor] 🎯 Setting selectedPrompt from initialTitle:', initialTitle);
-        setSelectedPrompt(initialTitle);
+        if (isMountedRef.current) {
+          setSelectedPrompt(initialTitle);
+        }
       }
     }
-  }, [initialTitle, newEntry.title, source, guidedPromptGating.allPrompts]);
+  }, [initialTitle, source]); // Removed newEntry.title and guidedPromptGating.allPrompts to prevent infinite loops
 
   // Removed automatic focus when in locked title mode to prevent cursor from appearing automatically
 
-  // Keyboard listeners for FAB
+  // Keep FABs at fixed initial position - no keyboard animation
   React.useEffect(() => {
-    const showSub = Platform.OS === 'ios'
-      ? Keyboard.addListener('keyboardWillShow', (e: any) => setKeyboardHeight(e.endCoordinates.height))
-      : Keyboard.addListener('keyboardDidShow', (e: any) => setKeyboardHeight(e.endCoordinates.height));
-    const hideSub = Platform.OS === 'ios'
-      ? Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0))
-      : Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    // Set FAB to fixed initial position and keep it there
+    fabAnimatedValue.setValue(16);
+    
+    // Still track keyboard height for other potential uses, but don't move FABs
+    const showSub = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      if (isMountedRef.current) {
+        setKeyboardHeight(e.endCoordinates.height);
+        // FABs stay at initial position - no animation
+      }
+    });
+    
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      if (isMountedRef.current) {
+        setKeyboardHeight(0);
+        // FABs stay at initial position - no animation
+      }
+    });
+    
     return () => {
       showSub.remove();
       hideSub.remove();
     };
-  }, []);
+  }, [fabAnimatedValue]);
 
   // Animation for formatting modal
   React.useEffect(() => {
@@ -730,13 +767,19 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
-      }).start();
+      }).start(() => {
+        // Animation completion callback with safety check
+        if (!isMountedRef.current) return;
+      });
     } else {
       Animated.timing(slideAnim, {
         toValue: 300,
         duration: 250,
         useNativeDriver: true,
-      }).start();
+      }).start(() => {
+        // Animation completion callback with safety check
+        if (!isMountedRef.current) return;
+      });
     }
   }, [showFormattingModal, slideAnim]);
 
@@ -746,7 +789,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     if (!isEditing && source === 'freeform' && !lockTitle && titleInputRef.current) {
       // Add a small delay to ensure the component is fully rendered
       const timer = setTimeout(() => {
-        titleInputRef.current?.focus();
+        if (isMountedRef.current && titleInputRef.current) {
+          titleInputRef.current.focus();
+        }
       }, 300);
 
       return () => clearTimeout(timer);
@@ -839,6 +884,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     };
 
     console.log('📝 ReflectionLogEditor: Calling onSave directly');
+    // NOTE: Do NOT call Keyboard.dismiss() here - it should remain open for user convenience
+    // The keyboard dismissal behavior differs between dashboard and journal contexts
     onSave(entry);
   };
 
@@ -856,10 +903,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       }
 
       Keyboard.dismiss();
-      // Small delay to ensure keyboard is fully dismissed before closing
+      // Longer delay to ensure keyboard is fully dismissed before closing modal
       setTimeout(() => {
         onCancel();
-      }, 10);
+      }, 200);
     } catch (error) {
       console.error('Error saving draft before cancel:', error);
       Keyboard.dismiss();
@@ -914,6 +961,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         {/* Always show pencil icon for free-form mode */}
         <TouchableOpacity
           style={s.modeButton}
+          disabled={viewMode === 'free-form' && !selectedPrompt} // Disable when active
           onPress={async () => {
             // Haptic for switching to free-form mode
             triggerLightHaptic();
@@ -1036,6 +1084,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         {!isEditing && source !== 'devotional' && source !== 'playbook' && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
+            disabled={!!selectedPrompt || viewMode === 'guided'} // Disable when active
             onPress={() => {
               // Haptic for switching to guided mode
               triggerLightHaptic();
@@ -1350,12 +1399,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       {effectiveViewMode === 'free-form' && (
         <View style={s.fabWrapper}>
           {/* Left Add FAB with Menu */}
-          <View style={[
+          <Animated.View style={[
             s.fabContainer,
             s.leftFabContainer,
-            Platform.OS === 'android' && keyboardHeight > 0
-              ? [s.androidFabWithKeyboard, { bottom: keyboardHeight + 4 }]
-              : s.fabDefaultPosition,
+            { bottom: fabAnimatedValue },
           ]}>
             {showAddMenu && (
               <View style={s.addMenu}>
@@ -1387,14 +1434,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               />
             </TouchableOpacity>
 
-          </View>
+          </Animated.View>
 
           {/* Right Action Buttons */}
-          <View style={[
+          <Animated.View style={[
             s.fabContainer,
-            Platform.OS === 'android' && keyboardHeight > 0
-              ? [s.androidFabWithKeyboard, { bottom: keyboardHeight + 4 }]
-              : s.fabDefaultPosition,
+            { bottom: fabAnimatedValue },
           ]}>
             <View style={s.fabRow}>
               {/* Cancel FAB */}
@@ -1422,11 +1467,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 )}
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </View>
       )}
     </KeyboardAvoidingView>
-
 
   </View>
   );

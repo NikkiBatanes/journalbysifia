@@ -14,6 +14,8 @@ import { TodayWinReactQuery } from './TodayWinReactQuery';
 import { LookingForwardReactQuery } from './LookingForwardReactQuery';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
+import SmartJournalingReflectionModal from '../../screens/SmartJournalingReflectionModal';
+import { useQueryClient } from '@tanstack/react-query';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
@@ -40,6 +42,10 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
+  
+  // Modal state for reflection editor (matching dashboard behavior)
+  const [showReflectionModal, setShowReflectionModal] = useState(false);
+  const queryClient = useQueryClient();
 
   // Handle scroll feedback with sound
   const handleScrollFeedback = useCallback(() => {
@@ -64,12 +70,33 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
     }
   }, [handleScrollFeedback]);
 
+  // Handler for reflection modal (matching dashboard behavior)
+  const handleReflectionModalOpen = useCallback(() => {
+    triggerLightHaptic();
+    setShowReflectionModal(true);
+  }, []);
+
+  const handleReflectionModalSave = useCallback(() => {
+    // Don't close modal immediately - success modal will handle the flow
+    // Invalidate reflection queries to ensure real-time updates
+    queryClient.invalidateQueries({
+      queryKey: ['reflections'],
+    });
+  }, [queryClient]);
+
+  const handleReflectionModalCancel = useCallback(() => {
+    setShowReflectionModal(false);
+  }, []);
+
   const carouselItems: CarouselItem[] = [
     {
       id: 'reflection',
       title: 'HEART JOURNAL',
       icon: 'bulb-outline',
-      component: <ReflectionLogReactQuery selectedDate={selectedDate} />,
+      component: <ReflectionLogReactQuery 
+        selectedDate={selectedDate} 
+        onPencilTap={handleReflectionModalOpen}
+      />,
       color: Colors.alertCoral,
     },
     {
@@ -157,6 +184,15 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
           );
         })}
       </Animated.ScrollView>
+
+      {/* Reflection Modal - Free-form mode with blank title */}
+      <SmartJournalingReflectionModal
+        visible={showReflectionModal}
+        subtaskTitle="" // Blank title with placeholder
+        isGuidedReflection={false} // Free-form mode
+        onSave={handleReflectionModalSave}
+        onCancel={handleReflectionModalCancel}
+      />
     </View>
   );
 };
