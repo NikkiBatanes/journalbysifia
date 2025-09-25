@@ -436,12 +436,39 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(
     initialMode || 'free-form'
   );
+  
+  // Debug logging for initialization
+  React.useEffect(() => {
+    console.log('[ReflectionLogEditor] INITIALIZATION DEBUG:', {
+      initialMode,
+      initialPrompt,
+      source,
+      initialTitle,
+      viewMode,
+      selectedPrompt
+    });
+  }, []);
 
   // Update view mode when initialMode or source changes
   React.useEffect(() => {
-    if (source === 'devotional' || initialPrompt) {
+    console.log('[ReflectionLogEditor] VIEW MODE UPDATE EFFECT:', {
+      source,
+      initialPrompt,
+      initialMode,
+      currentViewMode: viewMode
+    });
+    
+    if (source === 'devotional') {
+      console.log('[ReflectionLogEditor] Setting to free-form (devotional)');
+      setViewMode('free-form');
+    } else if (source === 'guided' && initialPrompt) {
+      console.log('[ReflectionLogEditor] Setting to guided mode (guided prompt)');
+      setViewMode('guided');
+    } else if (initialPrompt) {
+      console.log('[ReflectionLogEditor] Setting to free-form (other prompt)');
       setViewMode('free-form');
     } else {
+      console.log('[ReflectionLogEditor] Setting to initialMode or free-form');
       setViewMode(initialMode || 'free-form');
     }
   }, [initialMode, source, initialPrompt]);
@@ -890,8 +917,40 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           onPress={async () => {
             // Haptic for switching to free-form mode
             triggerLightHaptic();
-            // If coming from guided mode
-            const switchingFromGuided = Boolean(selectedPrompt);
+            
+            console.log('[ReflectionLogEditor] Pencil icon tapped:', {
+              currentViewMode: viewMode,
+              selectedPrompt: selectedPrompt || 'null',
+              hasContent: !!newEntry.content.trim(),
+              switchingFromGuided: viewMode === 'guided'
+            });
+            
+            // If already in free-form mode, check if this is actually a guided prompt
+            if (viewMode === 'free-form') {
+              // If this is a guided prompt that was opened in free-form mode, convert to true free-form
+              if (selectedPrompt || (guidedPromptGating.allPrompts || []).includes(newEntry.title)) {
+                console.log('[ReflectionLogEditor] Converting guided prompt to true free-form');
+                // Clear everything to create true free-form mode
+                setNewEntry(prev => ({
+                  ...prev,
+                  content: '',
+                  title: '',
+                }));
+                setSelectedPrompt('');
+                
+                // Focus title input
+                setTimeout(() => {
+                  titleInputRef.current?.focus();
+                }, 100);
+                return;
+              } else {
+                console.log('[ReflectionLogEditor] Already in true free-form mode, ignoring tap');
+                return;
+              }
+            }
+            
+            // If coming from guided mode (based on current viewMode, not selectedPrompt)
+            const switchingFromGuided = viewMode === 'guided';
             if (switchingFromGuided) {
               // If there's content, show confirmation
               if (newEntry.content.trim()) {
@@ -932,23 +991,22 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 }
               }
 
-              // Switching from a guided prompt: clear title/content so free-form starts blank
+              // Switching from guided to true free-form: clear both title and content
               setNewEntry(prev => ({
                 ...prev,
                 content: '',
-                title: source === 'guided' ? '' : (initialTitle || ''),
+                title: '', // Clear title for true free-form mode
               }));
             }
 
             setViewMode('free-form');
-            // Only clear selectedPrompt if we're truly switching to blank free-form
-            // Don't clear if the title matches a guided prompt (prevents loophole)
-            const titleMatchesGuidedPrompt = guidedPromptGating.allPrompts.includes(newEntry.title);
-            if (!titleMatchesGuidedPrompt) {
-              setSelectedPrompt('');
-            }
+            // Clear selectedPrompt to create true free-form mode (no gating, no locks)
+            setSelectedPrompt('');
+            
+            // Also clear the source to prevent title locking
+            // Note: This is a local state change, doesn't affect the original source prop
 
-            // Focus the title input after a short delay
+            // Focus the title input for true free-form mode
             setTimeout(() => {
               titleInputRef.current?.focus();
             }, 100);
@@ -1021,7 +1079,26 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         >
           {effectiveViewMode === 'free-form' ? (
             <>
-              {lockTitle || (source && source !== 'freeform') ? (
+              {(() => {
+                // Lock title if:
+                // 1. Explicit lock flag is set, OR
+                // 2. Source is non-freeform AND we have content (not switching to blank free-form), OR  
+                // 3. There's a selected prompt, OR
+                // 4. Title matches a guided prompt
+                const shouldLockTitle = lockTitle || 
+                                       (source && source !== 'freeform' && (newEntry.title || newEntry.content)) || 
+                                       selectedPrompt || 
+                                       (guidedPromptGating.allPrompts || []).includes(newEntry.title);
+                console.log('[ReflectionLogEditor] Title lock check:', {
+                  lockTitle,
+                  source,
+                  selectedPrompt: selectedPrompt || 'null',
+                  title: newEntry.title,
+                  titleMatchesGuided: (guidedPromptGating.allPrompts || []).includes(newEntry.title),
+                  shouldLockTitle
+                });
+                return shouldLockTitle;
+              })() ? (
                 <View style={s.lockedTitleContainer}>
                   <View style={s.titleWithLockContainer}>
                     <ThemedText
