@@ -40,8 +40,11 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
   }, [refreshSubscription]);
 
   const handleContinue = () => {
-    // Navigate to notification setup
-    navigation.navigate('OnboardingNotificationSetup' as never);
+    // Skip notification setup, go directly to MainTabs
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'MainTabs' as never }],
+    });
   };
 
   const handleSkipToApp = () => {

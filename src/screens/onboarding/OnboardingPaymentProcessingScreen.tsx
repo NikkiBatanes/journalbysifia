@@ -54,11 +54,11 @@ const OnboardingPaymentProcessingScreen = () => {
         setProcessingStatus('Trial activated successfully!');
         setPaymentSuccess(true);
         
-        // Navigate to success after delay
+        // Skip notification setup, navigate directly to MainTabs after delay
         setTimeout(() => {
-          navigation.navigate('OnboardingNotificationSetup' as any, { 
-            userType: 'trial',
-            tier: 'free_trial'
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' as never }],
           });
         }, 1500);
         
@@ -77,11 +77,11 @@ const OnboardingPaymentProcessingScreen = () => {
         setProcessingStatus('Subscription activated successfully!');
         setPaymentSuccess(true);
         
-        // Navigate to success after delay
+        // Skip notification setup, navigate directly to MainTabs after delay
         setTimeout(() => {
-          navigation.navigate('OnboardingNotificationSetup' as any, { 
-            userType: 'paid',
-            tier: selectedTier
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' as never }],
           });
         }, 1500);
       }

@@ -270,14 +270,23 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="OnboardingSalesOffer"
             component={OnboardingSalesOfferScreen as React.ComponentType}
-            options={OnboardingAnimations.pushFromBottom}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+              animationDuration: 400,
+              gestureEnabled: true,
+            }}
           />
           <Stack.Screen
             name="OnboardingTrialOffer"
             component={OnboardingTrialOfferScreen as React.ComponentType}
             options={{
-              ...OnboardingAnimations.crossDissolve,
               headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+              animationDuration: 400,
+              gestureEnabled: true,
             }}
           />
           <Stack.Screen

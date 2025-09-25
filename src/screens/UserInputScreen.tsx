@@ -14,7 +14,6 @@ import {
   Platform,
   StyleSheet,
   StatusBar,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -170,51 +169,7 @@ const UserInputScreen: React.FC = () => {
     }
   };
 
-  const getSeekerUpgradePrompt = () => {
-    const seekerType = getSeekerType();
-    
-    switch (seekerType) {
-      case 'fresh':
-        return {
-          title: "Start your 3-day free trial",
-          message: "Get 2 playbooks and 2 devotionals to begin your journey. If you've picked a plan in the offer, your trial uses that; otherwise we'll start with Growth.",
-          cta: "Start Free Trial"
-        };
-      case 'expired_trial':
-        return {
-          title: "Choose My Plan",
-          message: "Your trial has ended, but your walk with Christ continues. Choose a plan to stay equipped and encouraged.",
-          cta: "Choose My Plan"
-        };
-      case 'cancelled_subscription':
-        return {
-          title: "Begin Again",
-          message: "Every step in faith matters. Restart today to keep growing in wisdom and strength.",
-          cta: "Begin Again"
-        };
-      default:
-        return {
-          title: "Start your 3-day free trial",
-          message: "Get 2 playbooks and 2 devotionals to begin your journey. If you've picked a plan in the offer, your trial uses that; otherwise we'll start with Growth.",
-          cta: "Start Free Trial"
-        };
-    }
-  };
 
-  const getChosenPlanLimits = (tier: string) => {
-    switch (tier) {
-      case 'spark':
-        return { playbooks: 8, devotionals: 8 };
-      case 'growth':
-        return { playbooks: 20, devotionals: 20 };
-      case 'transformation':
-        return { playbooks: 'unlimited', devotionals: 'unlimited' };
-      case 'family':
-        return { playbooks: 'unlimited', devotionals: 'unlimited' };
-      default:
-        return { playbooks: 8, devotionals: 8 }; // Default to spark
-    }
-  };
 
   const getTierDisplayName = (subscription: any) => {
     const tier = subscription?.tier;
@@ -246,51 +201,6 @@ const UserInputScreen: React.FC = () => {
     return displayName;
   };
 
-  const getUsageLimitAlert = (subscription: any) => {
-    const tier = subscription?.tier;
-    
-    switch (tier) {
-      case 'free_trial':
-        // For debugging: let's check what tier we're getting
-        console.log('Trial subscription data:', subscription);
-        const chosenTier = subscription?.trial_chosen_tier || subscription?.tier || 'growth'; // Check trial_chosen_tier first, then current tier
-        const chosenPlanLimits = getChosenPlanLimits(chosenTier);
-        return {
-          title: "Trial Limit Reached",
-          message: `Your chosen plan will soon unlock, giving you ${chosenPlanLimits.playbooks} playbooks + ${chosenPlanLimits.devotionals} devotionals each month or you can start now and keep going today.`,
-          cta: "Unlock Now",
-          action: "unlock_plan"
-        };
-      case 'spark':
-        return {
-          title: "You've reached your Spark plan limit.",
-          message: "You've created 8 playbooks and 8 devotionals this month. Your Spark plan will refresh next month, or you can upgrade to unlock more now.",
-          cta: "Upgrade Plan",
-          action: "upgrade_plan"
-        };
-      case 'growth':
-        return {
-          title: "You've reached your Growth plan limit.",
-          message: "You've created 20 playbooks and 20 devotionals this month. Your Growth plan will refresh next month, or you can upgrade for even more.",
-          cta: "Upgrade Plan",
-          action: "upgrade_plan"
-        };
-      case 'seeker':
-        return {
-          title: "Ready to begin your journey?",
-          message: "As a Seeker, you can explore the app, but generating playbooks and devotionals is only available with a trial or plan. Start your free trial today to create your first 2 playbooks and 2 devotionals—your journey begins here.",
-          cta: "Start Free Trial",
-          action: "start_trial"
-        };
-      default:
-        return {
-          title: "Usage Limit Reached",
-          message: `You've reached your ${tier} plan limit. Upgrade for more!`,
-          cta: "Upgrade",
-          action: "upgrade_plan"
-        };
-    }
-  };
   
   // const userId = user?.id; // Unused, commented out
   const userName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
@@ -411,7 +321,8 @@ const UserInputScreen: React.FC = () => {
           useNativeDriver: false,
         }),
       ]).start();
-      Alert.alert('Input Required', 'Please share what you\'re struggling with.');
+      // Input validation - could show inline error instead of alert
+      console.log('Input validation: Please share what you\'re struggling with.');
       return;
     }
 
@@ -420,43 +331,11 @@ const UserInputScreen: React.FC = () => {
       const { subscription, playbooksRemaining, isSeeker } = subscriptionData;
       
       if (isSeeker) {
-        const upgradePrompt = getSeekerUpgradePrompt();
-        Alert.alert(
-          upgradePrompt.title,
-          upgradePrompt.message,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: upgradePrompt.cta, 
-              onPress: () => {
-                // Navigate to appropriate screen based on seeker type
-                const seekerType = getSeekerType();
-                if (seekerType === 'fresh') {
-                  console.log('Navigate to trial signup');
-                } else if (seekerType === 'expired_trial') {
-                  console.log('Navigate to subscription plans');
-                } else if (seekerType === 'cancelled_subscription') {
-                  console.log('Navigate to reactivation flow');
-                }
-              }
-            }
-          ]
-        );
+        // Navigate directly to sales offer screen - no alerts
+        navigation.navigate('OnboardingSalesOffer');
       } else if (playbooksRemaining === 0) {
-        const alertConfig = getUsageLimitAlert(subscription);
-        Alert.alert(
-          alertConfig.title,
-          alertConfig.message,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: alertConfig.cta, 
-              onPress: () => {
-                console.log(`Navigate to ${alertConfig.action}`);
-              }
-            }
-          ]
-        );
+        // Navigate to sales offer for usage limit reached
+        navigation.navigate('OnboardingSalesOffer');
       }
       return;
     }

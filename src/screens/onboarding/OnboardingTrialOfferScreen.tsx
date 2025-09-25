@@ -47,14 +47,18 @@ const OnboardingTrialOfferScreen = () => {
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
-    // User declines trial and remains as seeker (freemium)
+    // User declines trial and remains as seeker (freemium) - skip notification setup
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
     if (skipNotificationPreference) {
       // Go back twice to skip the sales offer screen and return to original screen
       navigation.goBack();
       setTimeout(() => navigation.goBack(), 100);
     } else {
-      navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+      // Skip notification setup, go directly to MainTabs
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' as never }],
+      });
     }
   };
 
@@ -73,14 +77,18 @@ const OnboardingTrialOfferScreen = () => {
         trial_chosen_tier: selectedTierId as any // Record the user's actual choice
       });
 
-      // Navigate to notification setup with trial user type
+      // Skip notification setup, go directly to MainTabs after trial start
       const skipNotificationPreference = route?.params?.skipNotificationPreference;
       if (skipNotificationPreference) {
         // Go back twice to skip the sales offer screen and return to original screen
         navigation.goBack();
         setTimeout(() => navigation.goBack(), 100);
       } else {
-        navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'trial' });
+        // Skip notification setup, go directly to MainTabs
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' as never }],
+        });
       }
     } catch (error) {
       console.error('Error starting trial:', error);
@@ -91,7 +99,11 @@ const OnboardingTrialOfferScreen = () => {
         navigation.goBack();
         setTimeout(() => navigation.goBack(), 100);
       } else {
-        navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+        // Skip notification setup, go directly to MainTabs
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' as never }],
+        });
       }
     }
   };
