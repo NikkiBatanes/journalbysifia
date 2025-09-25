@@ -6,10 +6,12 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
+    "ios:release": "npx react-native run-ios --mode Release",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "fix-testflight": "bash scripts/fix-third-party-components.sh"
   },
   "dependencies": {
     "@expensify/react-native-live-markdown": "^0.1.298",

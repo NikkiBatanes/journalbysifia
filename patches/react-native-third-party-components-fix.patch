@@ -1,0 +1,122 @@
+--- a/build/generated/ios/RCTThirdPartyComponentsProvider.mm
++++ b/build/generated/ios/RCTThirdPartyComponentsProvider.mm
+@@ -18,55 +18,85 @@
+   static dispatch_once_t nativeComponentsToken;
+ 
+   dispatch_once(&nativeComponentsToken, ^{
+-    thirdPartyComponents = @{
+-			@"MarkdownTextInputDecoratorView": NSClassFromString(@"MarkdownTextInputDecoratorComponentView"), // @expensify/react-native-live-markdown
+-			@"BlurView": NSClassFromString(@"BlurView"), // @react-native-community/blur
+-			@"VibrancyView": NSClassFromString(@"VibrancyView"), // @react-native-community/blur
+-			@"RNDateTimePicker": NSClassFromString(@"RNDateTimePickerComponentView"), // @react-native-community/datetimepicker
+-			@"RNGoogleSignInButton": NSClassFromString(@"RNGoogleSignInButtonComponentView"), // @react-native-google-signin/google-signin
+-			@"LottieAnimationView": NSClassFromString(@"LottieAnimationViewComponentView"), // lottie-react-native
+-			@"RNGestureHandlerButton": NSClassFromString(@"RNGestureHandlerButtonComponentView"), // react-native-gesture-handler
+-			@"RNCSafeAreaProvider": NSClassFromString(@"RNCSafeAreaProviderComponentView"), // react-native-safe-area-context
+-			@"RNCSafeAreaView": NSClassFromString(@"RNCSafeAreaViewComponentView"), // react-native-safe-area-context
+-			@"RNSFullWindowOverlay": NSClassFromString(@"RNSFullWindowOverlay"), // react-native-screens
+-			@"RNSModalScreen": NSClassFromString(@"RNSModalScreen"), // react-native-screens
+-			@"RNSScreenContainer": NSClassFromString(@"RNSScreenContainerView"), // react-native-screens
+-			@"RNSScreenContentWrapper": NSClassFromString(@"RNSScreenContentWrapper"), // react-native-screens
+-			@"RNSScreenFooter": NSClassFromString(@"RNSScreenFooter"), // react-native-screens
+-			@"RNSScreen": NSClassFromString(@"RNSScreenView"), // react-native-screens
+-			@"RNSScreenNavigationContainer": NSClassFromString(@"RNSScreenNavigationContainerView"), // react-native-screens
+-			@"RNSScreenStackHeaderConfig": NSClassFromString(@"RNSScreenStackHeaderConfig"), // react-native-screens
+-			@"RNSScreenStackHeaderSubview": NSClassFromString(@"RNSScreenStackHeaderSubview"), // react-native-screens
+-			@"RNSScreenStack": NSClassFromString(@"RNSScreenStackView"), // react-native-screens
+-			@"RNSSearchBar": NSClassFromString(@"RNSSearchBar"), // react-native-screens
+-			@"RNSVGCircle": NSClassFromString(@"RNSVGCircle"), // react-native-svg
+-			@"RNSVGClipPath": NSClassFromString(@"RNSVGClipPath"), // react-native-svg
+-			@"RNSVGDefs": NSClassFromString(@"RNSVGDefs"), // react-native-svg
+-			@"RNSVGEllipse": NSClassFromString(@"RNSVGEllipse"), // react-native-svg
+-			@"RNSVGFeBlend": NSClassFromString(@"RNSVGFeBlend"), // react-native-svg
+-			@"RNSVGFeColorMatrix": NSClassFromString(@"RNSVGFeColorMatrix"), // react-native-svg
+-			@"RNSVGFeComposite": NSClassFromString(@"RNSVGFeComposite"), // react-native-svg
+-			@"RNSVGFeFlood": NSClassFromString(@"RNSVGFeFlood"), // react-native-svg
+-			@"RNSVGFeGaussianBlur": NSClassFromString(@"RNSVGFeGaussianBlur"), // react-native-svg
+-			@"RNSVGFeMerge": NSClassFromString(@"RNSVGFeMerge"), // react-native-svg
+-			@"RNSVGFeOffset": NSClassFromString(@"RNSVGFeOffset"), // react-native-svg
+-			@"RNSVGFilter": NSClassFromString(@"RNSVGFilter"), // react-native-svg
+-			@"RNSVGForeignObject": NSClassFromString(@"RNSVGForeignObject"), // react-native-svg
+-			@"RNSVGGroup": NSClassFromString(@"RNSVGGroup"), // react-native-svg
+-			@"RNSVGImage": NSClassFromString(@"RNSVGImage"), // react-native-svg
+-			@"RNSVGLine": NSClassFromString(@"RNSVGLine"), // react-native-svg
+-			@"RNSVGLinearGradient": NSClassFromString(@"RNSVGLinearGradient"), // react-native-svg
+-			@"RNSVGMarker": NSClassFromString(@"RNSVGMarker"), // react-native-svg
+-			@"RNSVGMask": NSClassFromString(@"RNSVGMask"), // react-native-svg
+-			@"RNSVGPath": NSClassFromString(@"RNSVGPath"), // react-native-svg
+-			@"RNSVGPattern": NSClassFromString(@"RNSVGPattern"), // react-native-svg
+-			@"RNSVGRadialGradient": NSClassFromString(@"RNSVGRadialGradient"), // react-native-svg
+-			@"RNSVGRect": NSClassFromString(@"RNSVGRect"), // react-native-svg
+-			@"RNSVGSvgView": NSClassFromString(@"RNSVGSvgView"), // react-native-svg
+-			@"RNSVGSymbol": NSClassFromString(@"RNSVGSymbol"), // react-native-svg
+-			@"RNSVGTSpan": NSClassFromString(@"RNSVGTSpan"), // react-native-svg
+-			@"RNSVGText": NSClassFromString(@"RNSVGText"), // react-native-svg
+-			@"RNSVGTextPath": NSClassFromString(@"RNSVGTextPath"), // react-native-svg
+-			@"RNSVGUse": NSClassFromString(@"RNSVGUse"), // react-native-svg
+-    };
++    NSMutableDictionary<NSString *, Class<RCTComponentViewProtocol>> *components = [[NSMutableDictionary alloc] init];
++    
++    // Helper function to safely add components
++    void (^addComponent)(NSString *, NSString *) = ^(NSString *key, NSString *className) {
++      Class componentClass = NSClassFromString(className);
++      if (componentClass != nil) {
++        components[key] = componentClass;
++      }
++    };
++    
++    // Add components with nil safety
++    addComponent(@"MarkdownTextInputDecoratorView", @"MarkdownTextInputDecoratorComponentView"); // @expensify/react-native-live-markdown
++    addComponent(@"BlurView", @"BlurView"); // @react-native-community/blur
++    addComponent(@"VibrancyView", @"VibrancyView"); // @react-native-community/blur
++    addComponent(@"RNDateTimePicker", @"RNDateTimePickerComponentView"); // @react-native-community/datetimepicker
++    addComponent(@"RNGoogleSignInButton", @"RNGoogleSignInButtonComponentView"); // @react-native-google-signin/google-signin
++    addComponent(@"LottieAnimationView", @"LottieAnimationViewComponentView"); // lottie-react-native
++    addComponent(@"RNGestureHandlerButton", @"RNGestureHandlerButtonComponentView"); // react-native-gesture-handler
++    addComponent(@"RNCSafeAreaProvider", @"RNCSafeAreaProviderComponentView"); // react-native-safe-area-context
++    addComponent(@"RNCSafeAreaView", @"RNCSafeAreaViewComponentView"); // react-native-safe-area-context
++    addComponent(@"RNSFullWindowOverlay", @"RNSFullWindowOverlay"); // react-native-screens
++    addComponent(@"RNSModalScreen", @"RNSModalScreen"); // react-native-screens
++    addComponent(@"RNSScreenContainer", @"RNSScreenContainerView"); // react-native-screens
++    addComponent(@"RNSScreenContentWrapper", @"RNSScreenContentWrapper"); // react-native-screens
++    addComponent(@"RNSScreenFooter", @"RNSScreenFooter"); // react-native-screens
++    addComponent(@"RNSScreen", @"RNSScreenView"); // react-native-screens
++    addComponent(@"RNSScreenNavigationContainer", @"RNSScreenNavigationContainerView"); // react-native-screens
++    addComponent(@"RNSScreenStackHeaderConfig", @"RNSScreenStackHeaderConfig"); // react-native-screens
++    addComponent(@"RNSScreenStackHeaderSubview", @"RNSScreenStackHeaderSubview"); // react-native-screens
++    addComponent(@"RNSScreenStack", @"RNSScreenStackView"); // react-native-screens
++    addComponent(@"RNSSearchBar", @"RNSSearchBar"); // react-native-screens
++    addComponent(@"RNSVGCircle", @"RNSVGCircle"); // react-native-svg
++    addComponent(@"RNSVGClipPath", @"RNSVGClipPath"); // react-native-svg
++    addComponent(@"RNSVGDefs", @"RNSVGDefs"); // react-native-svg
++    addComponent(@"RNSVGEllipse", @"RNSVGEllipse"); // react-native-svg
++    addComponent(@"RNSVGFeBlend", @"RNSVGFeBlend"); // react-native-svg
++    addComponent(@"RNSVGFeColorMatrix", @"RNSVGFeColorMatrix"); // react-native-svg
++    addComponent(@"RNSVGFeComposite", @"RNSVGFeComposite"); // react-native-svg
++    addComponent(@"RNSVGFeFlood", @"RNSVGFeFlood"); // react-native-svg
++    addComponent(@"RNSVGFeGaussianBlur", @"RNSVGFeGaussianBlur"); // react-native-svg
++    addComponent(@"RNSVGFeMerge", @"RNSVGFeMerge"); // react-native-svg
++    addComponent(@"RNSVGFeOffset", @"RNSVGFeOffset"); // react-native-svg
++    addComponent(@"RNSVGFilter", @"RNSVGFilter"); // react-native-svg
++    addComponent(@"RNSVGForeignObject", @"RNSVGForeignObject"); // react-native-svg
++    addComponent(@"RNSVGGroup", @"RNSVGGroup"); // react-native-svg
++    addComponent(@"RNSVGImage", @"RNSVGImage"); // react-native-svg
++    addComponent(@"RNSVGLine", @"RNSVGLine"); // react-native-svg
++    addComponent(@"RNSVGLinearGradient", @"RNSVGLinearGradient"); // react-native-svg
++    addComponent(@"RNSVGMarker", @"RNSVGMarker"); // react-native-svg
++    addComponent(@"RNSVGMask", @"RNSVGMask"); // react-native-svg
++    addComponent(@"RNSVGPath", @"RNSVGPath"); // react-native-svg
++    addComponent(@"RNSVGPattern", @"RNSVGPattern"); // react-native-svg
++    addComponent(@"RNSVGRadialGradient", @"RNSVGRadialGradient"); // react-native-svg
++    addComponent(@"RNSVGRect", @"RNSVGRect"); // react-native-svg
++    addComponent(@"RNSVGSvgView", @"RNSVGSvgView"); // react-native-svg
++    addComponent(@"RNSVGSymbol", @"RNSVGSymbol"); // react-native-svg
++    addComponent(@"RNSVGTSpan", @"RNSVGTSpan"); // react-native-svg
++    addComponent(@"RNSVGText", @"RNSVGText"); // react-native-svg
++    addComponent(@"RNSVGTextPath", @"RNSVGTextPath"); // react-native-svg
++    addComponent(@"RNSVGUse", @"RNSVGUse"); // react-native-svg
++    
++    thirdPartyComponents = [components copy];
+   });
+ 
+   return thirdPartyComponents;
