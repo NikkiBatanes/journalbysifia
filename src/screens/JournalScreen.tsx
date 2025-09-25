@@ -867,7 +867,7 @@ const createStyles = (fonts: {
   currentDayNameText: {
     color: Colors.anchorBlue,
     fontFamily: fonts.fontBold,
-    fontSize: 11,
+    fontSize: 10,
   },
   dayNumberText: {
     fontFamily: fonts.fontBold,
