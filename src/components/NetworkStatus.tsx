@@ -28,6 +28,9 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
     forceSyncNow,
   } = useNetworkState();
 
+  // Don't show offline status immediately - wait a bit to avoid flickering
+  const [showOfflineStatus, setShowOfflineStatus] = React.useState(false);
+
   const handleSyncPress = async () => {
     try {
       await forceSyncNow();
@@ -36,17 +39,8 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
     }
   };
 
-  // Don't show anything if online and no pending actions
-  // Also don't show brief offline states (less than 2 seconds)
-  if (isOnline && syncStatus.pendingActions === 0 && !showDetails) {
-    return null;
-  }
-
-  // Don't show offline status immediately - wait a bit to avoid flickering
-  const [showOfflineStatus, setShowOfflineStatus] = React.useState(false);
-
   React.useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
 
     if (!isOnline) {
       // Show offline status after 1 second delay to avoid brief network hiccups
@@ -62,6 +56,12 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
       if (timer) {clearTimeout(timer);}
     };
   }, [isOnline]);
+
+  // Don't show anything if online and no pending actions
+  // Also don't show brief offline states (less than 2 seconds)
+  if (isOnline && syncStatus.pendingActions === 0 && !showDetails) {
+    return null;
+  }
 
   // Don't render if offline but haven't waited long enough
   if (!isOnline && !showOfflineStatus && !showDetails) {

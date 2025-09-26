@@ -212,7 +212,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       // Allow animations to run again next time it's opened
       hasOpenedRef.current = false;
     }
-  }, [visible, slideAnim, progressAnim, checkAnim, progress]);
+  }, [visible, slideAnim, progressAnim, checkAnim, progress, backdropAnim, onCheckReveal, startBurst]);
 
   // Disable progress re-animation to prevent multiple animations
   // The initial animation in the first useEffect is sufficient
@@ -246,7 +246,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       onClose();
       setRating(0);
     });
-  }, [onClose, slideAnim]);
+  }, [onClose, slideAnim, backdropAnim]);
 
   const handleStarPress = useCallback((index: number) => {
     const selectedRating = index + 1;
