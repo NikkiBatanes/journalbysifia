@@ -131,7 +131,7 @@ const PlaybookSkeletonLoader = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   contentContainer: {
     flex: 1,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     overflow: 'hidden',
-    backgroundColor: '#F5F7FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
   },
   progressBarFill: {
     borderRadius: 4,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 335, // Matches SCREEN_WIDTH - 80 when screen width is 375 (iPhone 8)
     height: 450,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.modalBlue,
     borderRadius: 28,
     padding: 24,
   },
