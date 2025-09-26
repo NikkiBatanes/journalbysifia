@@ -139,6 +139,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
   // Flag to prevent feedback loop between programmatic and user scrolls
   const isScrollingProgrammatically = useRef(false);
+  // Track content and viewport heights per day to handle short content cases
+  const [dayHeights, setDayHeights] = useState<Record<number, { content: number; viewport: number }>>({});
 
   // Bible copyright modal state
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
@@ -742,9 +744,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     const contentHeight = event.nativeEvent.contentSize.height;
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
 
-    // Show FAB only when scrolled to bottom, regardless of day completion status
-    const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 20;
-    setShowFAB(isAtBottom);
+    // If content is shorter than the viewport, always show FAB
+    if (contentHeight <= scrollViewHeight + 8) {
+      setShowFAB(true);
+    } else {
+      // Otherwise show FAB when near bottom
+      const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 20;
+      setShowFAB(isAtBottom);
+    }
 
     // Update scrollY for any animations
     scrollY.setValue(offsetY);
