@@ -79,7 +79,7 @@ const allTests = [
   hasGranularDeletion,
   hasEventIdParsing,
   hasMetadataColumn,
-  hasRepeatFrequency
+  hasRepeatFrequency,
 ];
 
 const passedTests = allTests.filter(Boolean).length;

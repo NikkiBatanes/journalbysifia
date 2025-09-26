@@ -1087,7 +1087,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       console.log('[PlaybookDetail] Expansion disabled for card type:', tappedType);
       return;
     }
-    
+
     // In stack view, toggle expand/collapse of the tapped card in-place
     if (viewMode === 'stack' && !isScrolling) {
       // Light haptic on expand/collapse
@@ -1272,7 +1272,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const COLLAPSED_HEIGHT = 450;
       // For now, allow all cards to expand for testing
       const needsExpansion = !disableExpansionForType && true; // measuredHeight > COLLAPSED_HEIGHT + 50;
-      
+
       console.log(`[DEBUG] Card ${cardIndex} - measuredHeight: ${measuredHeight}, needsExpansion: ${needsExpansion}, isExpanded: ${isExpanded}, isTopCard: ${isTopCard}`);
 
       const cardContent = (
@@ -1304,7 +1304,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 if (h > 0 && h !== measuredHeight) {
                   setContentHeights(prev => {
                     const newHeights = { ...prev, [cardIndex]: h };
-                    console.log(`[DEBUG] Updated content heights:`, newHeights);
+                    console.log('[DEBUG] Updated content heights:', newHeights);
                     return newHeights;
                   });
                 }
@@ -1323,7 +1323,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   alignSelf: 'center',
                   borderRadius: 28,
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : 'transparent',
-                }
+                },
               ]}
               showsVerticalScrollIndicator={true}
               bounces={true}
@@ -1345,10 +1345,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onPress={() => {
                   console.log(`[DEBUG] Card ${cardIndex} tapped - isTopCard: ${isTopCard}, needsExpansion: ${needsExpansion}`);
                   if (isTopCard) {
-                    console.log(`[DEBUG] Top card tapped, calling handleCardPress`);
+                    console.log('[DEBUG] Top card tapped, calling handleCardPress');
                     handleCardPress(cardIndex);
                   } else {
-                    console.log(`[DEBUG] Non-top card tapped, ignoring`);
+                    console.log('[DEBUG] Non-top card tapped, ignoring');
                   }
                 }}
                 onPressIn={() => {
@@ -1367,7 +1367,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                     overflow: 'hidden',
                     minHeight: 450,
                     backgroundColor: 'transparent',
-                  }
+                  },
                 ]}
               >
                 {cardContent}
@@ -1379,10 +1379,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               onPress={() => {
                 console.log(`[DEBUG] Card ${cardIndex} tapped - isTopCard: ${isTopCard}, needsExpansion: ${needsExpansion}`);
                 if (isTopCard) {
-                  console.log(`[DEBUG] Top card tapped, calling handleCardPress`);
+                  console.log('[DEBUG] Top card tapped, calling handleCardPress');
                   handleCardPress(cardIndex);
                 } else {
-                  console.log(`[DEBUG] Non-top card tapped, ignoring`);
+                  console.log('[DEBUG] Non-top card tapped, ignoring');
                 }
               }}
               onPressIn={() => {

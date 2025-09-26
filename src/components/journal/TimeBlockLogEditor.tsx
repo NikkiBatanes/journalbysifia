@@ -12,7 +12,7 @@ import {
   Modal,
   Switch,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
 
 import { Pencil } from 'lucide-react-native';
@@ -634,7 +634,7 @@ function TimeBlockLogEditorInner(
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const regularFont = getFontFamily(fontKey, 'regular');
-  
+
   const fonts = useMemo(() => {
     return {
       regular: getFontFamily(fontKey, 'regular'),
@@ -747,12 +747,12 @@ function TimeBlockLogEditorInner(
         // Provide repeat info mirroring journal screen
         repeatFrequency: ((): any => {
           const lower = repeatOption.toLowerCase();
-          if (lower === 'never') return 'never';
-          if (lower === 'daily') return 'daily';
-          if (lower === 'weekly') return 'weekly';
-          if (lower === 'bi-weekly' || lower === 'biweekly') return 'biweekly';
-          if (lower === 'monthly') return 'monthly';
-          if (lower === 'yearly') return 'yearly';
+          if (lower === 'never') {return 'never';}
+          if (lower === 'daily') {return 'daily';}
+          if (lower === 'weekly') {return 'weekly';}
+          if (lower === 'bi-weekly' || lower === 'biweekly') {return 'biweekly';}
+          if (lower === 'monthly') {return 'monthly';}
+          if (lower === 'yearly') {return 'yearly';}
           return 'custom';
         })(),
         repeatEndDate: endRepeatMode === 'date' ? endRepeatDate : null,
@@ -940,7 +940,7 @@ function TimeBlockLogEditorInner(
                         borderRadius: 10,
                         backgroundColor: endRepeatMode === 'never' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
                         borderWidth: 1,
-                        borderColor: endRepeatMode === 'never' ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'
+                        borderColor: endRepeatMode === 'never' ? Colors.anchorBlue : 'rgba(255,255,255,0.2)',
                       }}
                     >
                       <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>Never</ThemedText>
@@ -954,7 +954,7 @@ function TimeBlockLogEditorInner(
                         borderRadius: 10,
                         backgroundColor: endRepeatMode === 'date' && endRepeatDate ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
                         borderWidth: 1,
-                        borderColor: endRepeatMode === 'date' && endRepeatDate ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'
+                        borderColor: endRepeatMode === 'date' && endRepeatDate ? Colors.anchorBlue : 'rgba(255,255,255,0.2)',
                       }}
                     >
                       <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>
@@ -1016,7 +1016,7 @@ function TimeBlockLogEditorInner(
                         onPress={async () => {
                           // Trigger haptic feedback first
                           await triggerLightHaptic();
-                          
+
                           // Then handle the action
                           if (option === 'Custom') {
                             setShowRepeatModal(false);
@@ -1106,7 +1106,7 @@ function TimeBlockLogEditorInner(
                                   justifyContent: 'center',
                                   backgroundColor: customDays.includes(idx) ? 'rgba(255,255,255,0.3)' : 'transparent',
                                   borderWidth: 1,
-                                  borderColor: 'rgba(255,255,255,0.3)'
+                                  borderColor: 'rgba(255,255,255,0.3)',
                                 }}
                               >
                                 <ThemedText weight="medium" style={{ color: Colors.hopeWhite }}>{label}</ThemedText>

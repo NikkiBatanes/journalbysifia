@@ -24,7 +24,7 @@ const OnboardingTrialOfferScreen = () => {
   const { user } = useAuth();
   const { startTrial } = useNewSubscription(user?.id || '');
   const { currentFont } = useTheme();
-  
+
   const fonts = useMemo(() => {
     const fontKey = currentFont || 'lexend';
     return {
@@ -36,7 +36,7 @@ const OnboardingTrialOfferScreen = () => {
   }, [currentFont]);
 
   const styles = useMemo(() => createStyles(fonts), [fonts]);
-  
+
   // Read selection from params; default to annual
   const initialTierId: string = route?.params?.selectedTierId || 'growth';
   const initialBilling: 'annual' | 'monthly' = route?.params?.billing || 'annual';
@@ -71,10 +71,10 @@ const OnboardingTrialOfferScreen = () => {
 
       // Start 3-day free trial with new subscription system
       // Use the currently selected tier (not just the initial param)
-      await startTrial({ 
-        user_id: user.id, 
+      await startTrial({
+        user_id: user.id,
         duration_days: 3,
-        trial_chosen_tier: selectedTierId as any // Record the user's actual choice
+        trial_chosen_tier: selectedTierId as any, // Record the user's actual choice
       });
 
       // Skip notification setup, go directly to MainTabs after trial start

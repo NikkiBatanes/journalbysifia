@@ -59,7 +59,7 @@ export const useUserState = () => {
   }, [user]);
 
   const loadUserState = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {return;}
 
     try {
       setUserState(prev => ({ ...prev, isLoading: true }));
@@ -229,13 +229,13 @@ export const useUserState = () => {
     const isUnlimited = subscription.tier === 'transformation' || subscription.tier === 'family';
 
     return {
-      playbooks: { 
-        used: subscription.playbooks_used, 
-        total: isUnlimited ? -1 : subscription.playbooks_limit 
+      playbooks: {
+        used: subscription.playbooks_used,
+        total: isUnlimited ? -1 : subscription.playbooks_limit,
       },
-      devotionals: { 
-        used: subscription.devotionals_used, 
-        total: isUnlimited ? -1 : subscription.devotionals_limit 
+      devotionals: {
+        used: subscription.devotionals_used,
+        total: isUnlimited ? -1 : subscription.devotionals_limit,
       },
       exports: { used: 0, total: -1 }, // No export limits in new system
       intelligenceEnabled: subscription.tier !== 'seeker',
@@ -250,10 +250,10 @@ export const useUserState = () => {
   }, [subscription]);
 
   const canUseFeature = useCallback((feature: 'playbooks' | 'devotionals' | 'exports') => {
-    if (!subscription) return false;
-    
+    if (!subscription) {return false;}
+
     const isUnlimited = subscription.tier === 'transformation' || subscription.tier === 'family';
-    
+
     switch (feature) {
       case 'playbooks':
         return isUnlimited || subscription.playbooks_used < subscription.playbooks_limit;
@@ -267,8 +267,8 @@ export const useUserState = () => {
   }, [subscription]);
 
   const hasFeatureAccess = useCallback((feature: string) => {
-    if (!subscription) return false;
-    
+    if (!subscription) {return false;}
+
     switch (feature) {
       case 'intelligence':
         return subscription.tier !== 'seeker';

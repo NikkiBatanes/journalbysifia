@@ -51,7 +51,7 @@ export interface Theme {
     lightBackground: string;
     borderLight: string;
     backgroundBlue: string;
-    
+
     // Admin & Dashboard Colors (spiritual wisdom theme)
     wisdomIndigo: string;        // Admin primary - wisdom and insights
     reflectionGray: string;      // Admin secondary text - contemplation
@@ -59,7 +59,7 @@ export interface Theme {
     gentleBorder: string;        // Admin borders - soft boundaries
     scriptureText: string;       // Admin primary text - scripture reading
     treasureGold: string;        // Gold accent - spiritual treasures
-    
+
     // Status & Interactive Colors
     prosperityGreen: string;     // Success/growth - prosperity
     warningAmber: string;        // Warning - guidance needed
@@ -67,15 +67,15 @@ export interface Theme {
     clarityTeal: string;         // Info/clarity - clear understanding
     revelationBlue: string;      // Chart highlights - divine revelations
     truthBlue: string;           // Information - truth and knowledge
-    
+
     // Text Hierarchy (spiritual reading context)
     meditationGray: string;      // Deep thought text
     wisdomText: string;          // Primary wisdom text
     guidanceText: string;        // Secondary guidance text
     whisperText: string;         // Subtle instruction text
     echoText: string;            // Faint supporting text
-    
-    
+
+
     // Opacity & Overlay Colors (spiritual transparency)
     divineVeil: string;          // Light sacred overlay
     holyGlow: string;            // Bright spiritual presence

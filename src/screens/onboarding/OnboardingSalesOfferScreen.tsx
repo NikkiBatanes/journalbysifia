@@ -51,7 +51,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const devotionalGating = useDevotionalGating();
   const guidedPromptGating = useGuidedPromptGating({ context: 'onboarding' });
   const platformSubscription = usePlatformSubscription();
-  
+
   // Fonts: derive theme font for dynamic font switching (following Dashboard pattern)
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -63,7 +63,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
-  
+
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
@@ -80,7 +80,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
   const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
-  
+
   // Debug trial eligibility
   console.log('[OnboardingSalesOffer] Trial eligibility debug:', {
     subscription,
@@ -88,7 +88,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     isCurrentlyOnTrial,
     canOfferTrial,
     isUpgradeMode,
-    skipNotificationPreference: routeParams?.skipNotificationPreference
+    skipNotificationPreference: routeParams?.skipNotificationPreference,
   });
 
   // Load location-adjusted pricing and currency
@@ -97,7 +97,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const loadPricing = async () => {
       try {
         let tiers: PricingTier[];
-        
+
         if (isUpgradeMode) {
           // In upgrade mode, only show tiers higher than current user tier
           tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
@@ -105,7 +105,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // In onboarding mode, show all tiers
           tiers = await pricingService.getLocationAdjustedPricing();
         }
-        
+
         const currency = await pricingService.getCurrencyInfo();
 
         // If a specific devotional duration was requested, only show tiers that UNLOCK it
@@ -119,11 +119,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             tiers = unlocked;
           }
         }
-        
+
         if (isMounted) {
           setPricingTiers(tiers);
           setCurrencyInfo(currency);
-          
+
           // Default selection: prefer POPULAR, then 'growth', then first
           if (tiers.length > 0) {
             const popularTier = tiers.find(t => (t as any).isPopular === true);
@@ -150,28 +150,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
-    
+
     // Check for dynamic discount eligibility first
     try {
       console.log('[OnboardingSalesOffer] Checking dynamic discount eligibility:', {
         userId: user?.id,
         selectedTier,
         billing: isAnnual ? 'annual' : 'monthly',
-        isUpgradeMode
+        isUpgradeMode,
       });
 
       // First, track this opt-out to increment the count
       await pricingService.trackOptOut(user?.id);
       console.log('[OnboardingSalesOffer] Tracked opt-out, checking discount...');
-      
+
       const discount = await pricingService.getDynamicDiscount(
         user?.id,
         selectedTier,
         isAnnual ? 'annual' : 'monthly'
       );
-      
+
       console.log('[OnboardingSalesOffer] Dynamic discount result:', discount);
-      
+
       if (discount && !isUpgradeMode) {
         console.log('[OnboardingSalesOffer] ✅ Showing dynamic discount:', discount);
         setDynamicDiscount(discount);
@@ -181,13 +181,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         console.log('[OnboardingSalesOffer] ❌ Dynamic discount not shown:', {
           hasDiscount: !!discount,
           isUpgradeMode,
-          reason: !discount ? 'No discount available' : isUpgradeMode ? 'Upgrade mode (discounts disabled)' : 'Unknown'
+          reason: !discount ? 'No discount available' : isUpgradeMode ? 'Upgrade mode (discounts disabled)' : 'Unknown',
         });
       }
     } catch (error) {
       console.error('[OnboardingSalesOffer] Error checking dynamic discount:', error);
     }
-    
+
     // Always show trial if eligible for all flows (upgrade mode and feature locks)
     console.log('[OnboardingSalesOffer] handleClose - canOfferTrial:', canOfferTrial);
     if (canOfferTrial) {
@@ -199,7 +199,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       });
     } else {
       console.log('[OnboardingSalesOffer] Going back - no trial eligible');
-      
+
       // Special handling for guided prompts to prevent black screen
       const source = routeParams?.source;
       if (source === 'guided_prompts_lock') {
@@ -215,19 +215,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleUnlockPlan = async () => {
     try {
       triggerLightHaptic();
-      
+
       if (isUpgradeMode) {
         // In upgrade mode, go directly to platform subscription
         const PlatformPaymentService = (await import('../../services/PlatformPaymentService')).default;
         const paymentService = PlatformPaymentService.getInstance();
-        
+
         // For development/testing, use a fallback approach since products may not be available
         let productId: string;
-        
+
         try {
           const products = await paymentService.getAvailableProducts();
           const targetProduct = products.find(p => p.tier === selectedTier);
-          
+
           if (targetProduct) {
             productId = targetProduct.productId;
           } else {
@@ -240,14 +240,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           productId = `com.yourcompany.sifia.${selectedTier}.monthly`;
           console.warn(`[OnboardingSalesOffer] Failed to get products, using fallback: ${productId}`);
         }
-        
+
         try {
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
           if (result.success) {
             triggerSuccessHaptic();
             // Refresh subscription and close
             await devotionalGating.refreshSubscription();
-            
+
             // Navigate back to the original context instead of just going back
             const source = routeParams?.source;
             if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt') {
@@ -269,15 +269,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         await upgradeSubscription({
           target_tier: selectedTier as any,
           platform: 'local_test',
-          is_family_upgrade: selectedTier === 'family'
+          is_family_upgrade: selectedTier === 'family',
         });
-        
+
         triggerSuccessHaptic();
         navigation.navigate('OnboardingPaymentConfirmation' as any, {
           selectedTier,
           isAnnual,
           price: getCurrentPrice(),
-          success: true
+          success: true,
         });
       }
     } catch (error) {
@@ -295,7 +295,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const handleUpgradeSuccess = () => {
     triggerSuccessHaptic();
-    
+
     // Special handling for guided prompts to prevent black screen
     const source = routeParams?.source;
     if (source === 'guided_prompts_lock') {
@@ -451,16 +451,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   delayPressIn={0}
                   onPressIn={(e: any) => {
-                    if (e?.stopPropagation) e.stopPropagation();
+                    if (e?.stopPropagation) {e.stopPropagation();}
                   }}
                   onPress={(e: any) => {
                     // prevent parent card onPress from firing
-                    if (e?.stopPropagation) e.stopPropagation();
+                    if (e?.stopPropagation) {e.stopPropagation();}
                     try { triggerLightHaptic(); } catch {}
                     toggleCardExpansion(tier.id);
                   }}
                   onPressOut={(e: any) => {
-                    if (e?.stopPropagation) e.stopPropagation();
+                    if (e?.stopPropagation) {e.stopPropagation();}
                   }}
                   activeOpacity={0.8}
                 >
@@ -494,10 +494,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
           <Ionicons name="close" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
-        
+
         {/* Debug button - remove after testing */}
         {__DEV__ && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{
               position: 'absolute',
               top: 0,
@@ -653,7 +653,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       <ThemedText style={styles.statLabel}>To Copy</ThemedText>
                     </View>
                   </View>
-                  
+
                   <View style={styles.featureBullet}>
                     <Ionicons name="copy-outline" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>

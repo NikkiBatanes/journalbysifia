@@ -10,12 +10,12 @@ const colors = {
   spiritualPink: '#E91E63',
   playbookBlue: '#2196F3',
   lightPurple: '#F3E5F5',
-  
+
   // Standard UI Colors
   text: '#1A1A1A',
   textGray: '#9E9E9E',
   error: '#FF3B30',
-  
+
   // Grayscale
   white: '#FFFFFF',
   black: '#000000',
@@ -24,24 +24,24 @@ const colors = {
   lightBlue: '#E8F4FD',
   darkGray: '#424242',
   trustGrey: '#B0B8C1',
-  
+
   // UI Colors
   inputBackground: '#264777',
   inputBorder: '#3d5e8d',
   cardBackground: 'rgba(255, 255, 255, 0.95)',
   cardBorder: 'rgba(0, 0, 0, 0.05)',
-  
+
   // Backgrounds
   darkBackground: '#121212',
-  
+
   // Status
   warning: '#FFC107',
-  
+
   // Semantic colors
   lightBackground: '#f8f9fa',
   borderLight: '#e1e5e9',
   backgroundBlue: '#f0f8ff',
-  
+
   // Admin & Dashboard Colors
   wisdomIndigo: '#6366F1',
   reflectionGray: '#6B7280',
@@ -51,7 +51,7 @@ const colors = {
   peaceGray: '#F3F4F6',
   treasureGold: '#D4AF37',
   journeyGray: '#e0e0e0',
-  
+
   // Status & Interactive Colors
   prosperityGreen: '#10B981',
   warningAmber: '#F59E0B',
@@ -62,14 +62,14 @@ const colors = {
   sacrificeRed: '#DC2626',
   truthBlue: '#2563EB',
   contemplationGray: '#9CA3AF',
-  
+
   // Text Hierarchy
   meditationGray: '#374151',
   wisdomText: '#333333',
   guidanceText: '#666666',
   whisperText: '#555555',
   echoText: '#888888',
-  
+
   // ActionStepsCard colors
   prayerPurple: '#9B59B6',
   reflectionBlue: '#3498DB',
@@ -80,7 +80,7 @@ const colors = {
   tithingPurple: '#8E44AD',
   debtRed: '#C0392B',
   actionBackground: '#d9dfe7',
-  heartRed: '#FF6B6B'
+  heartRed: '#FF6B6B',
 };
 
 // Function to convert hex to RGB
@@ -89,7 +89,7 @@ function hexToRgb(hex) {
   return result ? {
     r: parseInt(result[1], 16),
     g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
+    b: parseInt(result[3], 16),
   } : null;
 }
 
@@ -97,12 +97,12 @@ function hexToRgb(hex) {
 function colorDifference(color1, color2) {
   const rgb1 = hexToRgb(color1);
   const rgb2 = hexToRgb(color2);
-  if (!rgb1 || !rgb2) return 1000;
-  
+  if (!rgb1 || !rgb2) {return 1000;}
+
   const deltaR = rgb1.r - rgb2.r;
   const deltaG = rgb1.g - rgb2.g;
   const deltaB = rgb1.b - rgb2.b;
-  
+
   return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB);
 }
 
@@ -115,7 +115,7 @@ for (let i = 0; i < colorEntries.length; i++) {
     const [name1, hex1] = colorEntries[i];
     const [name2, hex2] = colorEntries[j];
     const diff = colorDifference(hex1, hex2);
-    
+
     // Consider colors similar if difference is less than 50 (very similar) or 80 (somewhat similar)
     if (diff < 80) {
       const similarity = Math.max(0, (80 - diff) / 80 * 100);
@@ -125,7 +125,7 @@ for (let i = 0; i < colorEntries.length; i++) {
         color2: name2,
         hex2,
         difference: diff,
-        similarity: similarity.toFixed(1) + '%'
+        similarity: similarity.toFixed(1) + '%',
       });
     }
   }
@@ -142,7 +142,7 @@ console.log('');
 if (similarities.length > 0) {
   console.log('| Color 1 | Hex 1 | Color 2 | Hex 2 | Similarity | Difference |');
   console.log('|---------|-------|---------|-------|------------|------------|');
-  
+
   similarities.forEach(sim => {
     console.log(`| ${sim.color1} | ${sim.hex1} | ${sim.color2} | ${sim.hex2} | ${sim.similarity} | ${sim.difference.toFixed(1)} |`);
   });

@@ -40,7 +40,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   const { user } = useAuth();
   const giftScale = useRef(new Animated.Value(1)).current;
   const giftOpacity = useRef(new Animated.Value(1)).current;
-  
+
   // Theme integration for dynamic font switching
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -123,9 +123,9 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
       'transformation_annual': 'siFia TRANSFORMATION',
       'family': 'siFia FAMILY',
       'family_annual': 'siFia FAMILY',
-      'free_trial': 'Free Trial'
+      'free_trial': 'Free Trial',
     };
-    
+
     return tierMappings[tierName as keyof typeof tierMappings] || tierName;
   };
 

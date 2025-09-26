@@ -405,12 +405,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const isMountedRef = useRef(true);
   // Track all pending timeouts to clear them on cancel
   const pendingTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
-  
+
   // Debug: Track all focus calls
   const logFocus = (source: string, target: 'title' | 'content') => {
     console.log(`[ReflectionLogEditor] 🎯 FOCUS: ${source} -> ${target} (source: ${source}, lockTitle: ${lockTitle})`);
   };
-  
+
   // Helper to manage timeouts
   const createManagedTimeout = (callback: () => void, delay: number) => {
     const timeoutId = setTimeout(() => {
@@ -422,7 +422,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     pendingTimeoutsRef.current.add(timeoutId);
     return timeoutId;
   };
-  
+
   // Clear all pending timeouts
   const clearAllTimeouts = () => {
     pendingTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
@@ -435,7 +435,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const fontFamilyRegular = getFontFamily(fontKey, 'regular');
   const fontFamilyMedium = getFontFamily(fontKey, 'medium');
   const fontFamilyBold = getFontFamily(fontKey, 'bold');
-  
+
   // Guided prompt gating
   const guidedPromptGating = useGuidedPromptGating({
     context: 'inApp',
@@ -446,9 +446,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         feature: 'guided_prompts',
         tier: subscription?.tier || 'seeker',
         upgradeMode: false,
-        skipNotificationPreference: true
+        skipNotificationPreference: true,
       });
-    }
+    },
   });
 
   const sortedGuidedPrompts = React.useMemo(() => {
@@ -463,7 +463,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(
     initialMode || 'free-form'
   );
-  
+
   // Debug logging for initialization
   React.useEffect(() => {
     console.log('[ReflectionLogEditor] INITIALIZATION DEBUG:', {
@@ -472,7 +472,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       source,
       initialTitle,
       viewMode,
-      selectedPrompt
+      selectedPrompt,
     });
   }, []);
 
@@ -482,9 +482,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       source,
       initialPrompt,
       initialMode,
-      currentViewMode: viewMode
+      currentViewMode: viewMode,
     });
-    
+
     if (source === 'devotional') {
       console.log('[ReflectionLogEditor] Setting to free-form (devotional)');
       setViewMode('free-form');
@@ -502,13 +502,13 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Normalize any stored HTML <br> tags to real newlines for native TextInput
   const normalizeIncoming = (text: string): string => {
-    if (!text) return '';
+    if (!text) {return '';}
     return text.replace(/<br\s*\/?\s*>/gi, '\n');
   };
 
   // Ensure we save plain text with real newlines (never HTML <br>)
   const normalizeOutgoing = (text: string): string => {
-    if (!text) return '';
+    if (!text) {return '';}
     // Convert any accidental <br> back to newlines and normalize CRLF
     return text.replace(/<br\s*\/?\s*>/gi, '\n').replace(/\r\n/g, '\n');
   };
@@ -533,20 +533,20 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const isSelectedPromptLocked = React.useMemo(() => {
     // Check both selectedPrompt and title to catch all cases
     const promptToCheck = selectedPrompt || newEntry.title;
-    if (!promptToCheck) return false;
-    
+    if (!promptToCheck) {return false;}
+
     // Check if prompt is in the locked prompts list
     const lockedPrompts = guidedPromptGating.lockedPrompts || [];
     const isLocked = lockedPrompts.includes(promptToCheck);
-    
+
     console.log('[ReflectionLogEditor] Lock check:', {
       selectedPrompt: selectedPrompt || 'null',
       title: newEntry.title,
       promptToCheck,
       lockedPrompts: lockedPrompts.length,
-      isLocked
+      isLocked,
     });
-    
+
     return isLocked;
   }, [selectedPrompt, newEntry.title, guidedPromptGating.lockedPrompts]);
   const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
@@ -562,9 +562,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         source,
         lockTitle,
         hasTitleRef: !!titleInputRef.current,
-        hasContentRef: !!contentInputRef.current
+        hasContentRef: !!contentInputRef.current,
       });
-      
+
       // For freeform mode with unlocked title, focus title input first
       if (source === 'freeform' && !lockTitle && titleInputRef.current) {
         logFocus('focusInput method', 'title');
@@ -653,8 +653,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             // Only load draft if there's actual meaningful content
             if ((content && content.trim()) || (title && title.trim())) {
               // Check if component is still mounted before state updates
-              if (!isMountedRef.current) return;
-              
+              if (!isMountedRef.current) {return;}
+
               setNewEntry(prev => ({
                 ...prev,
                 content: content || prev.content,
@@ -762,12 +762,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     console.log('initialTitle changed:', initialTitle);
     if (initialTitle && (newEntry.title !== initialTitle || !newEntry.title)) {
       console.log('Updating title to:', initialTitle);
-      
+
       // Check if component is still mounted before state updates
-      if (!isMountedRef.current) return;
-      
+      if (!isMountedRef.current) {return;}
+
       setNewEntry(prev => ({ ...prev, title: initialTitle }));
-      
+
       // If this is a guided prompt, set selectedPrompt
       // Check both source and if the title matches a guided prompt
       const allGuidedPrompts = guidedPromptGating.allPrompts || [];
@@ -786,7 +786,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   React.useEffect(() => {
     // Set FAB to fixed initial position and keep it there
     fabAnimatedValue.setValue(16);
-    
+
     // Still track keyboard height for other potential uses, but don't move FABs
     const showSub = Keyboard.addListener('keyboardDidShow', (e: any) => {
       if (isMountedRef.current) {
@@ -794,14 +794,14 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         // FABs stay at initial position - no animation
       }
     });
-    
+
     const hideSub = Keyboard.addListener('keyboardDidHide', () => {
       if (isMountedRef.current) {
         setKeyboardHeight(0);
         // FABs stay at initial position - no animation
       }
     });
-    
+
     return () => {
       showSub.remove();
       hideSub.remove();
@@ -817,7 +817,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         useNativeDriver: true,
       }).start(() => {
         // Animation completion callback with safety check
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current) {return;}
       });
     } else {
       Animated.timing(slideAnim, {
@@ -826,7 +826,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         useNativeDriver: true,
       }).start(() => {
         // Animation completion callback with safety check
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current) {return;}
       });
     }
   }, [showFormattingModal, slideAnim]);
@@ -837,9 +837,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       isEditing,
       source,
       lockTitle,
-      hasTitleRef: !!titleInputRef.current
+      hasTitleRef: !!titleInputRef.current,
     });
-    
+
     // Only auto-focus for free form mode and when not editing existing entry
     if (!isEditing && source === 'freeform' && !lockTitle && titleInputRef.current) {
       console.log('[ReflectionLogEditor] Setting up title auto-focus for freeform mode');
@@ -856,34 +856,34 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Save handler - check for guided prompt restrictions
   const handleSave = async () => {
     console.log('[ReflectionLogEditor] 🔥 handleSave called!');
-    
+
     // Haptic feedback for save action
     triggerLightHaptic();
-    
+
     console.log('[ReflectionLogEditor] 🔍 selectedPrompt check:', {
       selectedPrompt: selectedPrompt || 'null/undefined',
       hasSelectedPrompt: !!selectedPrompt,
       newEntryTitle: newEntry.title,
-      source
+      source,
     });
-    
+
     // Check if this is a guided prompt and if user has access
     // Check both selectedPrompt and title to prevent loopholes
     const promptToCheck = selectedPrompt || (guidedPromptGating.allPrompts.includes(newEntry.title) ? newEntry.title : null);
-    
+
     if (promptToCheck) {
       // Use async canUsePrompt method
       const canUseResult = await guidedPromptGating.canUsePrompt(promptToCheck);
       const freePrompts = guidedPromptGating.freePrompts || [];
       const isFree = freePrompts.includes(promptToCheck);
-      
+
       console.log('[ReflectionLogEditor] ⚠️ CRITICAL SAVE CHECK:', {
         selectedPrompt: selectedPrompt || 'null',
         titlePrompt: newEntry.title,
         promptToCheck: promptToCheck.substring(0, 50) + '...',
         canUse: canUseResult,
         isFree,
-        tier: subscription?.tier
+        tier: subscription?.tier,
       });
 
       if (!canUseResult) {
@@ -896,14 +896,14 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           upgradeMode: false,
           skipNotificationPreference: true,
           returnToReflection: true,
-          presentation: 'modal'
+          presentation: 'modal',
         });
         return; // Block the save
       }
     } else {
       console.log('[ReflectionLogEditor] ℹ️ No guided prompt detected - allowing save');
     }
-    
+
     // Clear any existing draft since we're saving the entry
     try {
       await AsyncStorage.removeItem(getDraftKey());
@@ -959,7 +959,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
       // Clear all pending timeouts to prevent delayed focus
       clearAllTimeouts();
-      
+
       // Ensure text inputs release focus so keyboard doesn't reappear
       if (titleInputRef.current) {
         titleInputRef.current.blur();
@@ -981,7 +981,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       console.error('Error saving draft before cancel:', error);
       // Clear all pending timeouts to prevent delayed focus
       clearAllTimeouts();
-      
+
       if (titleInputRef.current) {
         titleInputRef.current.blur();
       }
@@ -1046,14 +1046,14 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           onPress={async () => {
             // Haptic for switching to free-form mode
             triggerLightHaptic();
-            
+
             console.log('[ReflectionLogEditor] Pencil icon tapped:', {
               currentViewMode: viewMode,
               selectedPrompt: selectedPrompt || 'null',
               hasContent: !!newEntry.content.trim(),
-              switchingFromGuided: viewMode === 'guided'
+              switchingFromGuided: viewMode === 'guided',
             });
-            
+
             // If already in free-form mode, check if this is actually a guided prompt
             if (viewMode === 'free-form') {
               // If this is a guided prompt that was opened in free-form mode, convert to true free-form
@@ -1066,7 +1066,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   title: '',
                 }));
                 setSelectedPrompt('');
-                
+
                 // Focus title input
                 createManagedTimeout(() => {
                   titleInputRef.current?.focus();
@@ -1077,7 +1077,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 return;
               }
             }
-            
+
             // If coming from guided mode (based on current viewMode, not selectedPrompt)
             const switchingFromGuided = viewMode === 'guided';
             if (switchingFromGuided) {
@@ -1131,7 +1131,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             setViewMode('free-form');
             // Clear selectedPrompt to create true free-form mode (no gating, no locks)
             setSelectedPrompt('');
-            
+
             // Also clear the source to prevent title locking
             // Note: This is a local state change, doesn't affect the original source prop
 
@@ -1212,12 +1212,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               {(() => {
                 // Lock title if:
                 // 1. Explicit lock flag is set, OR
-                // 2. Source is non-freeform AND we have content (not switching to blank free-form), OR  
+                // 2. Source is non-freeform AND we have content (not switching to blank free-form), OR
                 // 3. There's a selected prompt, OR
                 // 4. Title matches a guided prompt
-                const shouldLockTitle = lockTitle || 
-                                       (source && source !== 'freeform' && (newEntry.title || newEntry.content)) || 
-                                       selectedPrompt || 
+                const shouldLockTitle = lockTitle ||
+                                       (source && source !== 'freeform' && (newEntry.title || newEntry.content)) ||
+                                       selectedPrompt ||
                                        (guidedPromptGating.allPrompts || []).includes(newEntry.title);
                 console.log('[ReflectionLogEditor] Title lock check:', {
                   lockTitle,
@@ -1225,7 +1225,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   selectedPrompt: selectedPrompt || 'null',
                   title: newEntry.title,
                   titleMatchesGuided: (guidedPromptGating.allPrompts || []).includes(newEntry.title),
-                  shouldLockTitle
+                  shouldLockTitle,
                 });
                 return shouldLockTitle;
               })() ? (
@@ -1256,7 +1256,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                             upgradeMode: false,
                             skipNotificationPreference: true,
                             returnToReflection: true,
-                            presentation: 'modal'
+                            presentation: 'modal',
                           });
                         }}
                         size={20}
@@ -1315,7 +1315,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           upgradeMode: false,
                           skipNotificationPreference: true,
                           returnToReflection: true,
-                          presentation: 'modal'
+                          presentation: 'modal',
                         });
                       }}
                       size={20}
@@ -1422,7 +1422,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                               upgradeMode: false,
                               skipNotificationPreference: true,
                               returnToReflection: true,
-                              presentation: 'modal'
+                              presentation: 'modal',
                             });
                           }}
                           size={16}
@@ -1431,7 +1431,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           forceShow={!(guidedPromptGating.freePrompts || []).includes(prompt)} // Show lock for non-free prompts
                         />
                       </View>
-                      
+
                       <View style={s.promptTextContainer}>
                         <ThemedText style={s.promptCardText}>{prompt}</ThemedText>
                       </View>

@@ -46,7 +46,7 @@ export const defaultTheme: Theme = {
     lightBackground: '#f8f9fa',
     borderLight: '#e1e5e9',
     backgroundBlue: '#f0f8ff',
-    
+
     // Admin & Dashboard Colors (spiritual wisdom theme)
     wisdomIndigo: '#6366F1',        // Admin primary - wisdom and insights
     reflectionGray: '#6B7280',      // Admin secondary text - contemplation
@@ -54,7 +54,7 @@ export const defaultTheme: Theme = {
     gentleBorder: '#E5E7EB',        // Admin borders - soft boundaries
     scriptureText: '#1F2937',       // Admin primary text - scripture reading
     treasureGold: '#D4AF37',        // Gold accent - spiritual treasures
-    
+
     // Status & Interactive Colors
     prosperityGreen: '#10B981',     // Success/growth - prosperity
     warningAmber: '#F59E0B',        // Warning - guidance needed
@@ -62,15 +62,15 @@ export const defaultTheme: Theme = {
     clarityTeal: '#06B6D4',         // Info/clarity - clear understanding
     revelationBlue: '#5196f4',      // Chart highlights - divine revelations
     truthBlue: '#2563EB',           // Information - truth and knowledge
-    
+
     // Text Hierarchy (spiritual reading context)
     meditationGray: '#374151',      // Deep thought text
     wisdomText: '#333333',          // Primary wisdom text
     guidanceText: '#666666',        // Secondary guidance text
     whisperText: '#555555',         // Subtle instruction text
     echoText: '#888888',            // Faint supporting text
-    
-    
+
+
     // Opacity & Overlay Colors (semantic spiritual names)
     divineVeil: 'rgba(255,255,255,0.1)',     // Light sacred overlay
     holyGlow: 'rgba(255,255,255,0.8)',       // Bright spiritual presence
@@ -92,33 +92,33 @@ export const defaultTheme: Theme = {
 
     // ENTERPRISE ENHANCEMENT: Common Hardcoded Colors Now Named
     // Based on analysis of 1200+ hardcoded values across the app
-    
+
     // Most Common Overlays (400+ instances found)
     placeholderText: 'rgba(255,255,255,0.6)',      // Input placeholders
     lightOverlay: 'rgba(255,255,255,0.1)',         // Light overlays
     mediumOverlay: 'rgba(255,255,255,0.2)',        // Medium overlays
     modalOverlay: 'rgba(0,0,0,0.5)',               // Modal backgrounds
     chevronColor: 'rgba(255,255,255,0.65)',        // Chevron icons
-    
+
     // Additional Overlays
     subtleOverlay: 'rgba(255,255,255,0.05)',       // Very subtle
     strongOverlay: 'rgba(255,255,255,0.3)',        // Strong overlays
     darkOverlay: 'rgba(0,0,0,0.25)',               // Dark overlays
     veryDarkOverlay: 'rgba(0,0,0,0.7)',            // Very dark
-    
+
     // Border System
     lightBorder: 'rgba(255,255,255,0.2)',          // Light borders
     mediumBorder: 'rgba(255,255,255,0.3)',         // Medium borders
-    
+
     // Switch/Toggle Colors
     switchTrackInactive: 'rgba(255,255,255,0.25)', // Inactive switch
     switchTrackActive: 'rgba(255,255,255,0.45)',   // Active switch
-    
+
     // Text Variations
     secondaryText: 'rgba(255,255,255,0.8)',        // Secondary text
     tertiaryText: 'rgba(255,255,255,0.7)',         // Tertiary text
     mutedText: 'rgba(255,255,255,0.5)',            // Muted text
-    
+
     // Additional Missing Colors
     contemplationGray: '#666666',                   // Medium gray
     darkerGray: '#1A1A1A',                         // Darker gray

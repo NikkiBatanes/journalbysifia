@@ -8,7 +8,7 @@ export interface UseFamilySubscriptionResult {
   pendingInvitations: FamilyInvitation[];
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   createFamilyGroup: (groupName: string, platformSubscriptionId: string) => Promise<boolean>;
   inviteMember: (email: string) => Promise<boolean>;
@@ -16,7 +16,7 @@ export interface UseFamilySubscriptionResult {
   acceptInvitation: (invitationCode: string) => Promise<boolean>;
   cancelInvitation: (invitationId: string) => Promise<boolean>;
   refreshFamilyData: () => Promise<void>;
-  
+
   // Utilities
   isAdmin: boolean;
   canInviteMembers: boolean;
@@ -82,7 +82,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
 
     try {
       setError(null);
-      
+
       await FamilySubscriptionService.createFamilyGroup({
         group_name: groupName,
         admin_user_id: user.id,
@@ -109,7 +109,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
 
     try {
       setError(null);
-      
+
       await FamilySubscriptionService.inviteMember({
         family_group_id: familyGroup.id,
         invited_email: email,
@@ -119,7 +119,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       // Refresh invitations after sending
       const invitations = await FamilySubscriptionService.getPendingInvitations(familyGroup.id);
       setPendingInvitations(invitations);
-      
+
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to invite member';
@@ -138,7 +138,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
 
     try {
       setError(null);
-      
+
       await FamilySubscriptionService.removeMember(familyGroup.id, userId, user.id);
 
       // Refresh family data after removal
@@ -161,7 +161,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
 
     try {
       setError(null);
-      
+
       await FamilySubscriptionService.acceptInvitation(invitationCode, user.id);
 
       // Refresh data after accepting invitation
@@ -184,7 +184,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
 
     try {
       setError(null);
-      
+
       await FamilySubscriptionService.cancelInvitation(invitationId, user.id);
 
       // Refresh invitations after cancellation
@@ -192,7 +192,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
         const invitations = await FamilySubscriptionService.getPendingInvitations(familyGroup.id);
         setPendingInvitations(invitations);
       }
-      
+
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to cancel invitation';
@@ -239,7 +239,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     pendingInvitations,
     loading,
     error,
-    
+
     // Actions
     createFamilyGroup,
     inviteMember,
@@ -247,7 +247,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     acceptInvitation,
     cancelInvitation,
     refreshFamilyData,
-    
+
     // Utilities
     isAdmin,
     canInviteMembers,

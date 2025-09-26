@@ -26,7 +26,7 @@ describe('PlatformPaymentService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     paymentService = PlatformPaymentService.getInstance();
-    
+
     // Mock getInstance methods
     mockAppleService.getInstance = jest.fn().mockReturnValue({
       initialize: jest.fn(),
@@ -304,7 +304,7 @@ describe('PlatformPaymentService', () => {
     it('should cleanup both services', async () => {
       const mockAppleInstance = mockAppleService.getInstance();
       const mockGoogleInstance = mockGoogleService.getInstance();
-      
+
       mockAppleInstance.cleanup = jest.fn().mockResolvedValue(undefined);
       mockGoogleInstance.cleanup = jest.fn().mockResolvedValue(undefined);
 

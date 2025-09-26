@@ -55,7 +55,7 @@ export class TrialExpiryService {
   async checkUserTrialExpiry(userId: string): Promise<boolean> {
     try {
       const subscription = await this.subscriptionService.getUserSubscription(userId);
-      
+
       if (subscription.tier !== 'free_trial') {
         return false; // Not on trial
       }
@@ -67,9 +67,9 @@ export class TrialExpiryService {
 
       const now = new Date();
       const trialEnd = new Date(subscription.trial_end_date);
-      
+
       const isExpired = now > trialEnd;
-      
+
       if (isExpired) {
         console.log(`⏰ Trial expired for user ${userId}`);
         await this.downgradeTrial(userId);
@@ -102,7 +102,7 @@ export class TrialExpiryService {
           smart_journaling_enabled: false,
           trial_start_date: null,
           trial_end_date: null,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
         .eq('tier', 'free_trial');
@@ -129,13 +129,13 @@ export class TrialExpiryService {
   }> {
     try {
       const subscription = await this.subscriptionService.getUserSubscription(userId);
-      
+
       if (subscription.tier !== 'free_trial' || !subscription.trial_end_date) {
         return {
           isOnTrial: false,
           hoursRemaining: 0,
           daysRemaining: 0,
-          isExpired: false
+          isExpired: false,
         };
       }
 
@@ -148,7 +148,7 @@ export class TrialExpiryService {
           isOnTrial: true,
           hoursRemaining: 0,
           daysRemaining: 0,
-          isExpired: true
+          isExpired: true,
         };
       }
 
@@ -159,7 +159,7 @@ export class TrialExpiryService {
         isOnTrial: true,
         hoursRemaining,
         daysRemaining,
-        isExpired: false
+        isExpired: false,
       };
     } catch (error) {
       console.error('💥 Error getting trial time remaining:', error);
@@ -167,7 +167,7 @@ export class TrialExpiryService {
         isOnTrial: false,
         hoursRemaining: 0,
         daysRemaining: 0,
-        isExpired: false
+        isExpired: false,
       };
     }
   }

@@ -442,12 +442,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Helpers to normalize HTML <br> to real newlines for RN Text/TextInput
   const normalizeIncoming = useCallback((text: string): string => {
-    if (!text) return '';
+    if (!text) {return '';}
     return text.replace(/<br\s*\/?\s*>/gi, '\n');
   }, []);
 
   const normalizeOutgoing = useCallback((text: string): string => {
-    if (!text) return '';
+    if (!text) {return '';}
     return text.replace(/<br\s*\/?\s*>/gi, '\n').replace(/\r\n/g, '\n');
   }, []);
 
@@ -845,7 +845,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   onPencilTap();
                   return;
                 }
-                
+
                 // Default behavior for non-carousel mode
                 triggerLightHaptic();
                 setNewEntry({
@@ -1077,7 +1077,7 @@ return (
           onPencilTap();
           return;
         }
-        
+
         // Default behavior for non-carousel mode
         triggerLightHaptic();
         setNewEntry({
@@ -1102,7 +1102,7 @@ return (
               onPencilTap();
               return;
             }
-            
+
             // Default behavior for non-carousel mode
             triggerLightHaptic();
             setNewEntry({

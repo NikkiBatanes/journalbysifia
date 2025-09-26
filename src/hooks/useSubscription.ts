@@ -25,7 +25,7 @@ export function useSubscription(): LegacyUseSubscriptionResult {
   const newSub = useNewSubscription(userId);
 
   const usage = useMemo<LegacyUsage | null>(() => {
-    if (!newSub.subscription) return null;
+    if (!newSub.subscription) {return null;}
     const playbooksUsed = (newSub.subscription as any).playbooks_used ?? 0;
     const devotionalsUsed = (newSub.subscription as any).devotionals_used ?? 0;
     // exports count may be tracked separately; expose 0 if unknown

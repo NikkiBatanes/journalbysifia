@@ -71,12 +71,12 @@ const DevotionalDetailSkeleton: React.FC = () => {
           <Animated.View style={[styles.sectionHeader, { opacity }]} />
           <View style={styles.reflectionCard}>
             {[1, 2, 3, 4, 5].map((line) => (
-              <Animated.View 
-                key={line} 
+              <Animated.View
+                key={line}
                 style={[
-                  styles.reflectionLine, 
-                  { opacity, width: line === 5 ? '60%' : '100%' }
-                ]} 
+                  styles.reflectionLine,
+                  { opacity, width: line === 5 ? '60%' : '100%' },
+                ]}
               />
             ))}
           </View>
@@ -98,12 +98,12 @@ const DevotionalDetailSkeleton: React.FC = () => {
           <Animated.View style={[styles.sectionHeader, { opacity }]} />
           <View style={styles.prayerCard}>
             {[1, 2, 3, 4].map((line) => (
-              <Animated.View 
-                key={line} 
+              <Animated.View
+                key={line}
                 style={[
-                  styles.prayerLine, 
-                  { opacity, width: line === 4 ? '40%' : '100%' }
-                ]} 
+                  styles.prayerLine,
+                  { opacity, width: line === 4 ? '40%' : '100%' },
+                ]}
               />
             ))}
             <Animated.View style={[styles.prayButton, { opacity }]} />

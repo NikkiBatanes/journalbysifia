@@ -240,24 +240,24 @@ class PricingService {
     billing?: 'monthly' | 'annual'
   ): Promise<DynamicDiscount | null> {
     console.log('[PricingService] getDynamicDiscount called:', { userId, tierId, billing });
-    
+
     const current = (await loadDiscountState(userId)) || null;
     const optOuts = current?.optOutCount ?? this.userOptOutCount;
     const redeemed = current?.redeemed ?? false;
-    
+
     console.log('[PricingService] Discount state loaded:', {
       current,
       optOuts,
       redeemed,
-      userOptOutCount: this.userOptOutCount
+      userOptOutCount: this.userOptOutCount,
     });
-    
+
     // Enable discount starting on the first opt-out
     if (optOuts < 1 || redeemed) {
       console.log('[PricingService] ❌ Discount not eligible:', {
         optOuts,
         redeemed,
-        reason: optOuts < 1 ? 'Not enough opt-outs (need >= 1)' : 'Already redeemed'
+        reason: optOuts < 1 ? 'Not enough opt-outs (need >= 1)' : 'Already redeemed',
       });
       return null;
     }
@@ -268,7 +268,7 @@ class PricingService {
     console.log('[PricingService] Checking tier/billing combination:', {
       key,
       shownByTier: current?.shownByTier,
-      alreadyShown: !!(current?.shownByTier && current.shownByTier[key])
+      alreadyShown: !!(current?.shownByTier && current.shownByTier[key]),
     });
 
     // If this exact combo was already shown, do not show again
@@ -379,12 +379,12 @@ class PricingService {
   getUpgradeTiers(currentTier: string): PricingTier[] {
     const hierarchy = this.getTierHierarchy();
     const currentIndex = hierarchy.indexOf(currentTier);
-    
+
     if (currentIndex === -1) {
       // If current tier not found, show all tiers
       return this.baseUSDPricing;
     }
-    
+
     // Filter to only show higher tiers
     const availableTierIds = hierarchy.slice(currentIndex + 1);
     return this.baseUSDPricing.filter(tier => availableTierIds.includes(tier.id));

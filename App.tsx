@@ -8,12 +8,10 @@ import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, StyleSheet, LogBox, Text as RNText, TextInput as RNTextInput, Image } from 'react-native';
+import { View, StatusBar, StyleSheet, LogBox, Image } from 'react-native';
 
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { Colors } from './src/theme/colors';
 import { ThemeProvider } from './src/theme/ThemeContext';
@@ -27,14 +25,13 @@ import { ScrollProvider } from './src/context/ScrollContext';
 
 import IndustryStandardAuthProvider from './src/context/IndustryStandardAuthContext';
 // import AuthGuard from './src/components/AuthGuard'; // unused
-import { QueryProvider } from './src/providers/QueryProvider';
 import { NetworkStatus } from './src/components/NetworkStatus';
 import AuthStateMonitor from './src/components/AuthStateMonitor';
 import { OnboardingProvider } from './src/context/OnboardingContext';
 // import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration'; // unused
 import { PointsNotificationProvider } from './src/context/PointsNotificationContext';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 // Removed ErrorBoundary unused default import (no default export)
 import { queryClient } from './src/config/queryClientConfig';
@@ -49,7 +46,7 @@ LogBox.ignoreAllLogs(); // Ignore all log notifications
 
 // Main App Component
 function App(): React.JSX.Element {
-  const [fontsLoaded, setFontsLoaded] = useState(true); // Vector icons are auto-linked
+  const [fontsLoaded] = useState(true); // Vector icons are auto-linked
   const [playbook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
 
   // Vector icons are automatically loaded through native linking in modern versions
@@ -99,7 +96,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   useEffect(() => {
     // Initialize app-level services
     console.log(' siFia App initialized');
-    
+
     // Start trial expiry monitoring
     trialExpiryService.checkAndHandleExpiredTrials();
     trialExpiryService.scheduleTrialExpiryCheck();

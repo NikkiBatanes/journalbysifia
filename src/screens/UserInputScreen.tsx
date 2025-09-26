@@ -115,8 +115,8 @@ const UserInputScreen: React.FC = () => {
 
   const { user } = useAuth();
   const subscriptionData = useNewSubscription(user?.id || '');
-  const { hasAccess, accessResult, isLoading: accessLoading } = useFeatureAccess({ 
-    feature: 'playbook_generation' 
+  const { hasAccess, accessResult, isLoading: accessLoading } = useFeatureAccess({
+    feature: 'playbook_generation',
   });
 
   // Override hasAccess based on actual usage data
@@ -125,11 +125,11 @@ const UserInputScreen: React.FC = () => {
   // Determine seeker type based on subscription history
   const getSeekerType = () => {
     const { subscription } = subscriptionData;
-    if (!subscription) return 'fresh';
-    
+    if (!subscription) {return 'fresh';}
+
     const hasTrialHistory = subscription.trial_start_date && subscription.trial_end_date;
     const hasPaidHistory = subscription.subscription_start_date;
-    
+
     if (hasPaidHistory) {
       return 'cancelled_subscription'; // Had paid plan, now cancelled
     } else if (hasTrialHistory) {
@@ -141,31 +141,31 @@ const UserInputScreen: React.FC = () => {
 
   const getSeekerDisplayText = () => {
     const seekerType = getSeekerType();
-    
+
     switch (seekerType) {
       case 'fresh':
-        return "No playbooks";
+        return 'No playbooks';
       case 'expired_trial':
         return "Don't let your growth pause here.";
       case 'cancelled_subscription':
         return "Your journey doesn't have to end here.";
       default:
-        return "No playbooks";
+        return 'No playbooks';
     }
   };
 
   const getSeekerMessage = () => {
     const seekerType = getSeekerType();
-    
+
     switch (seekerType) {
       case 'fresh':
-        return "Start your free trial to generate playbooks!";
+        return 'Start your free trial to generate playbooks!';
       case 'expired_trial':
-        return "Upgrade to continue generating playbooks!";
+        return 'Upgrade to continue generating playbooks!';
       case 'cancelled_subscription':
-        return "Reactivate your subscription to continue!";
+        return 'Reactivate your subscription to continue!';
       default:
-        return "Start your free trial to generate playbooks!";
+        return 'Start your free trial to generate playbooks!';
     }
   };
 
@@ -174,34 +174,34 @@ const UserInputScreen: React.FC = () => {
   const getTierDisplayName = (subscription: any) => {
     const tier = subscription?.tier;
     const chosenTier = subscription?.trial_chosen_tier;
-    
+
     console.log('🔍 [UserInputScreen] getTierDisplayName debug:', {
       tier,
       chosenTier,
-      fullSubscription: subscription
+      fullSubscription: subscription,
     });
-    
+
     // Handle trial display logic
     if (tier === 'free_trial') {
       console.log('✅ [UserInputScreen] Showing Free Trial label');
       return 'Free Trial';
     }
-    
+
     // Handle other tier displays using consistent naming
     const tierDisplayMap: Record<string, string> = {
       'seeker': 'siFia SEEKER',
       'spark': 'siFia SPARK',
-      'growth': 'siFia GROWTH', 
+      'growth': 'siFia GROWTH',
       'transformation': 'siFia TRANSFORMATION',
-      'family': 'siFia FAMILY'
+      'family': 'siFia FAMILY',
     };
-    
+
     const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ').toUpperCase() || 'siFia SEEKER';
     console.log('📝 [UserInputScreen] Standard tier display:', displayName);
     return displayName;
   };
 
-  
+
   // const userId = user?.id; // Unused, commented out
   const userName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
@@ -306,7 +306,7 @@ const UserInputScreen: React.FC = () => {
   const handleGeneratePlaybook = async () => {
     try { triggerLightHaptic(); } catch {}
     animateButton();
-    
+
     if (!userInput.trim()) {
       // Show error animation
       Animated.sequence([
@@ -329,7 +329,7 @@ const UserInputScreen: React.FC = () => {
     // Check subscription access before proceeding
     if (!canGeneratePlaybook) {
       const { subscription, playbooksRemaining, isSeeker } = subscriptionData;
-      
+
       if (isSeeker) {
         // Navigate directly to sales offer screen - no alerts
         navigation.navigate('OnboardingSalesOffer');
@@ -428,7 +428,7 @@ const UserInputScreen: React.FC = () => {
                     {!subscriptionData.isUnlimited && (
                       <View style={[styles.statusInline, { flexShrink: 1, minWidth: 80 }]} pointerEvents="none">
                         <Text style={[styles.statusText, font, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
-                          {subscriptionData.isLoading 
+                          {subscriptionData.isLoading
                             ? 'Loading subscription...'
                             : !subscriptionData.subscription || subscriptionData.isSeeker
                               ? getSeekerDisplayText()

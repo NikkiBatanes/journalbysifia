@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { question, context, userId } = await req.json();
+    const { question, context } = await req.json();
 
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');

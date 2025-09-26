@@ -58,7 +58,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
     } else if (tab === 'Personal') {
       onSelectPrayerType('mine');
     }
-    
+
     // Focus the name input after tab change
     setTimeout(() => {
       nameInputRef.current?.focus();
@@ -120,11 +120,11 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
           >
             <ThemedText style={styles.headerButtonText} weight="medium">Cancel</ThemedText>
           </TouchableOpacity>
-          
+
           <ThemedText style={styles.headerTitle} weight="semiBold">
             Add to Prayer List
           </ThemedText>
-          
+
           <TouchableOpacity
             onPress={onSave}
             disabled={!name.trim() || !prayerText.trim() || isSaving}
@@ -135,13 +135,13 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
           </TouchableOpacity>
         </View>
 
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={0}
         >
-          <ScrollView 
-            style={styles.content} 
+          <ScrollView
+            style={styles.content}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -183,7 +183,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
               </ThemedText>
             </View>
           </View>
-          
+
           {/* Name Input Section (no label, use placeholder) */}
           <View style={styles.inputSection}>
             <TextInput
@@ -234,7 +234,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
               />
             </View>
           )}
-          
+
         </ScrollView>
         </KeyboardAvoidingView>
       </View>

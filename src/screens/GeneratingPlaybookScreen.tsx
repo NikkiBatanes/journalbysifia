@@ -29,9 +29,9 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const triggerLightHaptic = React.useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) {return;}
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -43,9 +43,9 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const triggerSuccessHaptic = React.useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) {return;}
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -130,9 +130,9 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             const pointsResult = await faithPointsService.awardPoints(
               user.id,
               'playbook_generated',
-              { 
+              {
                 suppressNotification: !!isFromOnboarding,
-                isOnboarding: !!isFromOnboarding
+                isOnboarding: !!isFromOnboarding,
               }
             );
             console.log('[GeneratingPlaybook] Faith points awarded:', pointsResult);
@@ -257,10 +257,10 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
       ]).start(({ finished }) => {
-        if (finished && mounted && isGenerating) loop();
+        if (finished && mounted && isGenerating) {loop();}
       });
     };
-    if (isGenerating) loop();
+    if (isGenerating) {loop();}
     return () => {
       mounted = false;
       shimmerOpacity.stopAnimation();
@@ -347,11 +347,11 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               contentContainerStyle={styles.stepTextContainer}
             >
               <View style={styles.stepTextRow}>
-                <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]} > 
+                <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]} >
                   {baseTitle}
                 </AnimatedThemedText>
                 <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-                  <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0 }]} > 
+                  <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0 }]} >
                     {'.'.repeat(dotCount)}
                   </ThemedText>
                 </View>

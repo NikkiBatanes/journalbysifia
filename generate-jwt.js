@@ -11,22 +11,22 @@ const P8_FILE_PATH = './AuthKey_B99S3W8K2W.p8'; // Path to your .p8 file (e.g., 
 
 try {
   const privateKey = fs.readFileSync(P8_FILE_PATH, 'utf8');
-  
+
   const token = jwt.sign({
     iss: TEAM_ID,
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + (180 * 24 * 60 * 60), // 6 months
     aud: 'https://appleid.apple.com',
-    sub: BUNDLE_ID
+    sub: BUNDLE_ID,
   }, privateKey, {
     algorithm: 'ES256',
-    header: { kid: KEY_ID }
+    header: { kid: KEY_ID },
   });
-  
+
   console.log('\n✅ JWT Token Generated:');
   console.log('\n' + token);
   console.log('\n📋 Copy this token to Supabase Apple Provider Client Secret field\n');
-  
+
 } catch (error) {
   console.error('❌ Error:', error.message);
   console.log('\n🔧 Steps to fix:');

@@ -17,34 +17,34 @@ function generateAppleJWT() {
   try {
     // Read the private key
     const privateKey = fs.readFileSync(P8_FILE_PATH, 'utf8');
-    
+
     // Create JWT payload
     const payload = {
       iss: TEAM_ID,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + (6 * 30 * 24 * 60 * 60), // 6 months
       aud: 'https://appleid.apple.com',
-      sub: CLIENT_ID
+      sub: CLIENT_ID,
     };
-    
+
     // Generate JWT
     const token = jwt.sign(payload, privateKey, {
       algorithm: 'ES256',
       header: {
         kid: KEY_ID,
-        typ: 'JWT'
-      }
+        typ: 'JWT',
+      },
     });
-    
+
     console.log('✅ Apple JWT Generated Successfully!');
     console.log('📋 Copy this JWT token to Supabase:');
     console.log('');
     console.log(token);
     console.log('');
     console.log('🔧 Paste this token in Supabase → Authentication → Providers → Apple → Client Secret');
-    
+
     return token;
-    
+
   } catch (error) {
     console.error('❌ Error generating Apple JWT:', error.message);
     console.log('');

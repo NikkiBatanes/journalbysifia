@@ -27,15 +27,15 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { user } = useAuth();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  
+
   // Create dynamic fonts object - match Dashboard approach
   const fonts = useMemo(() => ({
     fontRegular: getFontFamily(fontKey, 'regular'),
     fontMedium: getFontFamily(fontKey, 'medium'),
     fontSemiBold: getFontFamily(fontKey, 'semiBold'),
-    fontBold: getFontFamily(fontKey, 'bold')
+    fontBold: getFontFamily(fontKey, 'bold'),
   }), [fontKey]);
-  
+
   // Create dynamic styles with theme fonts
   const styles = useMemo(() => createStyles(fonts), [fonts]);
   // Get week start preference from user metadata

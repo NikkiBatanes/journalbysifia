@@ -58,7 +58,7 @@ export class PlatformPaymentService {
       } else if (Platform.OS === 'android') {
         return await this.googleService.initialize();
       }
-      
+
       console.warn('[PlatformPayment] Unsupported platform:', Platform.OS);
       return false;
     } catch (error) {
@@ -134,7 +134,7 @@ export class PlatformPaymentService {
       } else if (Platform.OS === 'android') {
         return await this.googleService.restorePurchases(userId);
       }
-      
+
       return false;
     } catch (error) {
       console.error('[PlatformPayment] Failed to restore purchases:', error);
@@ -149,14 +149,14 @@ export class PlatformPaymentService {
     try {
       // First, get the subscription from our database
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
-      
+
       if (!subscription) {
         return null;
       }
 
       // Check platform-specific status if available
       let platformStatus = null;
-      
+
       if (subscription.platform === 'apple' && Platform.OS === 'ios') {
         platformStatus = await this.appleService.getCurrentSubscriptionStatus(userId);
       } else if (subscription.platform === 'google' && Platform.OS === 'android') {
@@ -181,7 +181,7 @@ export class PlatformPaymentService {
   async cancelSubscription(userId: string): Promise<boolean> {
     try {
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
-      
+
       if (!subscription) {
         throw new Error('No active subscription found');
       }
@@ -209,10 +209,10 @@ export class PlatformPaymentService {
    * Map product ID to subscription tier
    */
   private getTierFromProductId(productId: string): 'spark' | 'growth' | 'transformation' | 'family' | null {
-    if (productId.includes('spark')) return 'spark';
-    if (productId.includes('growth')) return 'growth';
-    if (productId.includes('transformation')) return 'transformation';
-    if (productId.includes('family')) return 'family';
+    if (productId.includes('spark')) {return 'spark';}
+    if (productId.includes('growth')) {return 'growth';}
+    if (productId.includes('transformation')) {return 'transformation';}
+    if (productId.includes('family')) {return 'family';}
     return null;
   }
 
@@ -256,7 +256,7 @@ export class PlatformPaymentService {
         this.appleService.cleanup(),
         this.googleService.cleanup(),
       ]);
-      
+
       console.log('[PlatformPayment] Cleanup completed');
     } catch (error) {
       console.error('[PlatformPayment] Cleanup error:', error);

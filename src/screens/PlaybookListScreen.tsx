@@ -822,7 +822,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           ]}
           {...fabPanResponder.panHandlers}
         >
-          <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}> 
+          <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
             <TouchableOpacity
               style={styles.expandableButtonTouchable}
               onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}

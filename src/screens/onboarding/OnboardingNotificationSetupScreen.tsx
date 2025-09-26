@@ -41,19 +41,19 @@ const OnboardingNotificationSetupScreen = () => {
   const { user } = useAuth();
   const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
   const { userType, tier } = (route.params as RouteParams) || {};
-  
+
   // Enterprise-grade state management
   const [isProcessing, setIsProcessing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown');
   const [setupStep, setSetupStep] = useState<'preferences' | 'permissions' | 'complete'>('preferences');
-  
+
   // Derive display name for welcome message
   const displayName =
     ((user as any)?.user_metadata?.full_name as string | undefined)?.trim() ||
     ((user as any)?.user_metadata?.first_name as string | undefined)?.trim() ||
     (user?.email ? user.email.split('@')[0] : undefined) ||
     'Friend';
-  
+
   useEffect(() => {
     // Refresh subscription data when screen loads
     if (user?.id) {
@@ -79,7 +79,7 @@ const OnboardingNotificationSetupScreen = () => {
 
   // Determine effective user type from subscription or route params
   const effectiveUserType = userType || (subscription?.tier === 'free_trial' ? 'trial' : 'freemium');
-  
+
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
       id: 'playbooks',
@@ -142,20 +142,20 @@ const OnboardingNotificationSetupScreen = () => {
   const handleEnableNotifications = async () => {
     try {
       try { triggerSuccessHaptic(); } catch {}
-      
+
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
 
       // Initialize push notification service
       await pushNotificationService.initialize(user.id);
-      
+
       // Request permissions
       const permissionsGranted = await pushNotificationService.requestPermissions();
-      
+
       if (permissionsGranted) {
         console.log('✅ Push notifications enabled successfully');
-        
+
         // Save notification preferences to Supabase
         const enabledSettings = notificationSettings
           .filter(setting => setting.enabled)
@@ -188,7 +188,7 @@ const OnboardingNotificationSetupScreen = () => {
         } catch (prefsError) {
           console.error('Error saving notification preferences:', prefsError);
         }
-        
+
         Alert.alert(
           '🎉 Notifications Enabled!',
           'You\'ll receive personalized reminders to help you stay connected with God.',
@@ -264,44 +264,44 @@ const OnboardingNotificationSetupScreen = () => {
 
   const getWelcomeMessage = () => {
     const currentTier = subscription?.tier || tier || 'seeker';
-    
+
     switch (currentTier) {
       case 'free_trial':
         return {
           title: 'Make the Most of Your Free Trial',
           subtitle: 'Get timely reminders for your 2 playbooks and 2 devotionals over the next 3 days.',
-          badge: '3-Day Trial Active'
+          badge: '3-Day Trial Active',
         };
       case 'spark':
         return {
           title: 'Welcome to SPARK',
           subtitle: 'Get reminders for your 8 monthly playbooks, devotionals, and journaling.',
-          badge: 'SPARK Subscriber'
+          badge: 'SPARK Subscriber',
         };
       case 'growth':
         return {
           title: 'Welcome to GROWTH',
           subtitle: 'Make the most of your 20 monthly resources with helpful reminders.',
-          badge: 'GROWTH Subscriber'
+          badge: 'GROWTH Subscriber',
         };
       case 'transformation':
         return {
           title: 'Welcome to siFia TRANSFORMATION',
           subtitle: 'Enjoy unlimited access with gentle reminders to support your daily walk.',
-          badge: 'TRANSFORMATION Subscriber'
+          badge: 'TRANSFORMATION Subscriber',
         };
       case 'family':
         return {
           title: 'Welcome to siFia FAMILY',
           subtitle: 'Keep your family connected with notifications for unlimited resources.',
-          badge: 'FAMILY Subscriber'
+          badge: 'FAMILY Subscriber',
         };
       case 'seeker':
       default:
         return {
           title: 'Welcome, Seeker',
           subtitle: 'Stay motivated with gentle reminders and encouragement.',
-          badge: 'Seeker (Freemium)'
+          badge: 'Seeker (Freemium)',
         };
     }
   };
@@ -324,7 +324,7 @@ const OnboardingNotificationSetupScreen = () => {
           <View style={styles.badgeContainer}>
             <ThemedText weight="semiBold" style={styles.badgeText}>{welcomeData.badge}</ThemedText>
           </View>
-          
+
           <View style={styles.iconContainer}>
             <Ionicons name="notifications-outline" size={48} color={Colors.alertCoral} />
           </View>

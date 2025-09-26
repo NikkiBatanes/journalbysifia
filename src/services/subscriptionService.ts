@@ -81,9 +81,9 @@ export const subscriptionService = {
   },
 
   // Legacy: compute current usage summary used by older services
-  async getCurrentUsage(userId: string): Promise<{ 
-    playbooks_used: number; 
-    devotionals_used: number; 
+  async getCurrentUsage(userId: string): Promise<{
+    playbooks_used: number;
+    devotionals_used: number;
     exports_used: number;
     playbooks_generated: number;
     devotionals_generated: number;
@@ -94,7 +94,7 @@ export const subscriptionService = {
     const playbooksUsed = (sub as any).playbooks_used || 0;
     const devotionalsUsed = (sub as any).devotionals_used || 0;
     const exportsUsed = (tracking?.export_count as number) || 0;
-    
+
     return {
       // Legacy property names
       playbooks_used: playbooksUsed,

@@ -57,7 +57,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Dynamic theming for fonts (match dashboard)
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  
+
   // Create dynamic fonts object
   const fonts = useMemo(() => ({
     regular: getFontFamily(fontKey, 'regular'),
@@ -997,7 +997,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   inputWithTopMargin: {
     marginTop: 8,
   },
-  
+
   // Button styles
   buttonRow: {
     flexDirection: 'row',

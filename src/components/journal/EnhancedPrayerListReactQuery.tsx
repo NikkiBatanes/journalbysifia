@@ -65,7 +65,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const deleteMutation = useDeletePrayer();
-  
+
   // Check if the selected date is in the past
   const today = new Date().toLocaleDateString('en-CA'); // Use local date to match dateStr format
   const isPastDate = dateStr < today;
@@ -166,7 +166,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           _userId: user.id,
           _dateStr: dateStr,
         });
-        
+
         // Manually invalidate people prayer cache to ensure UI updates
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.people(user.id, dateStr),
@@ -255,7 +255,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     setName(prayerEntry.person_name || '');
     setPrayerText(''); // Keep prayer text empty for user to fill
     setNotes(prayerEntry.content); // Move the prayer request content to notes
-    
+
     // Open modal
     setShowModal(true);
 
@@ -389,7 +389,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                   />
                   <ThemedText style={[styles.notesText, styles.notesTextInside]} numberOfLines={3}>
                     <ThemedText style={styles.notesLabel} weight="medium">
-                      Prayer Request: 
+                      Prayer Request:
                     </ThemedText>
                     {prayer.metadata?.prayer_request_display || prayer.notes || ''}
                   </ThemedText>
@@ -583,7 +583,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             )}
           </View>
         )}
-        
+
         {/* People Prayer Modal */}
         <PeoplePrayerModal
           visible={showModal}

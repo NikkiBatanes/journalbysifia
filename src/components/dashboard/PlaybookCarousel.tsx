@@ -280,8 +280,8 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
 
     // Clean up any existing channel first
     if (channelRef.current) {
-      try { 
-        channelRef.current.unsubscribe(); 
+      try {
+        channelRef.current.unsubscribe();
       } catch {}
       channelRef.current = null;
     }

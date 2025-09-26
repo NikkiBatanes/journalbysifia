@@ -42,14 +42,14 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
     isValidUpgrade,
     isValidDowngrade,
   } = usePlatformSubscription();
-  
+
   const devotionalGating = useDevotionalGating();
   const [isProcessing, setIsProcessing] = useState(false);
   const [upgradeType, setUpgradeType] = useState<'upgrade' | 'downgrade' | null>(null);
 
   const currentTier = devotionalGating.tier;
   const currentBilling = devotionalGating.subscription?.subscription_end_date ? 'annual' : 'monthly';
-  
+
   const targetProduct = getProduct(targetTier, targetBilling);
   const currentProduct = getProduct(currentTier as SubscriptionTier, currentBilling);
 
@@ -83,12 +83,12 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
       };
 
       console.log('[SubscriptionUpgradeModal] Starting upgrade:', upgradeRequest);
-      
+
       const result = await upgradeSubscription(upgradeRequest);
-      
+
       if (result.success) {
         triggerSuccessHaptic();
-        
+
         Alert.alert(
           'Upgrade Successful!',
           `You now have access to ${targetTier} features. ${requestedDuration ? `You can now create ${requestedDuration}-day devotionals.` : ''}`,
@@ -98,18 +98,18 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
               onPress: () => {
                 onClose();
                 onUpgradeSuccess?.();
-              }
-            }
+              },
+            },
           ]
         );
       } else {
         throw new Error('Upgrade failed');
       }
-      
+
     } catch (error) {
       console.error('[SubscriptionUpgradeModal] Upgrade failed:', error);
       triggerErrorHaptic();
-      
+
       Alert.alert(
         'Upgrade Failed',
         error.message || 'Something went wrong. Please try again.',
@@ -126,20 +126,20 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
       setIsProcessing(true);
 
       const result = await requestDowngrade(currentTier as SubscriptionTier, targetTier, targetBilling);
-      
+
       if (result.requiresPlatformAction) {
         Alert.alert(
           'Manage Subscription',
           result.message,
           [
             { text: 'Cancel', style: 'cancel' },
-            { 
+            {
               text: Platform.OS === 'ios' ? 'Open Settings' : 'Open Play Store',
               onPress: () => {
                 // TODO: Open platform subscription management
                 onClose();
-              }
-            }
+              },
+            },
           ]
         );
       } else {
@@ -149,16 +149,16 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
           [
             {
               text: 'OK',
-              onPress: onClose
-            }
+              onPress: onClose,
+            },
           ]
         );
       }
-      
+
     } catch (error) {
       console.error('[SubscriptionUpgradeModal] Downgrade request failed:', error);
       triggerErrorHaptic();
-      
+
       Alert.alert(
         'Request Failed',
         error.message || 'Something went wrong. Please try again.',
@@ -181,25 +181,25 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
     if (isProcessing) {
       return upgradeType === 'upgrade' ? 'Upgrading...' : 'Processing...';
     }
-    
+
     if (upgradeType === 'upgrade') {
       return `Upgrade to ${targetTier}`;
     } else if (upgradeType === 'downgrade') {
       return `Request ${targetTier}`;
     }
-    
+
     return 'Continue';
   };
 
   const getModalTitle = () => {
     if (upgradeType === 'upgrade') {
-      return requestedDuration 
+      return requestedDuration
         ? `Unlock ${requestedDuration}-day devotionals`
         : `Upgrade to ${targetTier}`;
     } else if (upgradeType === 'downgrade') {
       return `Change to ${targetTier}`;
     }
-    
+
     return 'Subscription Change';
   };
 
@@ -213,11 +213,11 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
         ? 'Downgrades are managed through your Apple ID settings. We\'ll guide you there.'
         : 'We\'ll help you change your subscription. Some changes may take effect at your next billing cycle.';
     }
-    
+
     return 'Manage your subscription plan.';
   };
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <Modal
@@ -264,10 +264,10 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
             </View>
 
             <View style={styles.arrowContainer}>
-              <Ionicons 
-                name={upgradeType === 'upgrade' ? 'arrow-up' : 'arrow-down'} 
-                size={24} 
-                color={upgradeType === 'upgrade' ? Colors.growthGreen : Colors.alertCoral} 
+              <Ionicons
+                name={upgradeType === 'upgrade' ? 'arrow-up' : 'arrow-down'}
+                size={24}
+                color={upgradeType === 'upgrade' ? Colors.growthGreen : Colors.alertCoral}
               />
             </View>
 
@@ -290,7 +290,7 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
           <View style={styles.noticeContainer}>
             <Ionicons name="information-circle" size={20} color={Colors.faithGold} />
             <ThemedText style={styles.noticeText}>
-              {Platform.OS === 'ios' 
+              {Platform.OS === 'ios'
                 ? 'Billing is handled securely by Apple with automatic proration.'
                 : 'Billing is handled securely by Google Play with automatic proration.'
               }
@@ -324,7 +324,7 @@ const SubscriptionUpgradeModal: React.FC<SubscriptionUpgradeModalProps> = ({
           <TouchableOpacity
             style={[
               styles.primaryButton,
-              (isProcessing || isLoading) && styles.disabledButton
+              (isProcessing || isLoading) && styles.disabledButton,
             ]}
             onPress={handlePrimaryAction}
             disabled={isProcessing || isLoading || !upgradeType}

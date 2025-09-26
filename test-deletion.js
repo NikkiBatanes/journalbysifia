@@ -11,11 +11,11 @@ exec('npx tsc --noEmit --project .', (error, stdout, stderr) => {
     console.error(stderr);
     return;
   }
-  
+
   if (stderr) {
     console.warn('⚠️ TypeScript warnings:', stderr);
   }
-  
+
   console.log('✅ TypeScript compilation successful');
   console.log('📝 Files appear to be syntactically correct');
 });

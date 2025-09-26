@@ -52,7 +52,7 @@ async function debugOnboardingStatus() {
         if (userProgress) {
           const profileCompleted = profile.onboarding_completed === true;
           const progressCompleted = userProgress.is_completed === true;
-          
+
           if (profileCompleted !== progressCompleted) {
             console.log(`⚠️  MISMATCH for ${profile.email}:`);
             console.log(`     user_profiles.onboarding_completed = ${profileCompleted}`);

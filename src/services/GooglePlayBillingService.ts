@@ -75,7 +75,7 @@ export class GooglePlayBillingService {
 
       // Set up purchase listeners
       this.setupPurchaseListeners();
-      
+
       this.isInitialized = true;
       return true;
     } catch (error) {
@@ -146,7 +146,7 @@ export class GooglePlayBillingService {
       }
 
       console.log('[GooglePlay] Requesting subscription purchase:', productId);
-      
+
       await requestSubscription({ sku: productId });
 
       // The actual purchase handling will be done in the listener
@@ -174,7 +174,7 @@ export class GooglePlayBillingService {
 
       // Validate the purchase with Google Play
       const isValid = await this.validatePurchase(purchase);
-      
+
       if (!isValid) {
         console.error('[GooglePlay] Purchase validation failed');
         return;
@@ -182,7 +182,7 @@ export class GooglePlayBillingService {
 
       // Map product ID to subscription tier
       const tier = this.getSubscriptionTierFromProductId(purchase.productId);
-      
+
       if (!tier) {
         console.error('[GooglePlay] Unknown product ID:', purchase.productId);
         return;
@@ -193,7 +193,7 @@ export class GooglePlayBillingService {
 
       // Acknowledge the purchase (required for subscriptions)
       await finishTransaction({ purchase, isConsumable: false });
-      
+
       console.log('[GooglePlay] Purchase completed successfully');
     } catch (error) {
       console.error('[GooglePlay] Failed to handle purchase update:', error);
@@ -218,7 +218,7 @@ export class GooglePlayBillingService {
       };
 
       const result = await validateReceiptAndroid(receiptBody);
-      
+
       // Google Play validation should return purchase details if valid
       return result && result.purchaseState === 1; // 1 = Purchased
     } catch (error) {
@@ -251,7 +251,7 @@ export class GooglePlayBillingService {
     try {
       // This would typically be called with the current user's ID
       const userId = await this.getCurrentUserId();
-      
+
       if (!userId) {
         throw new Error('No authenticated user found');
       }
@@ -291,7 +291,7 @@ export class GooglePlayBillingService {
 
     // Map Google Play error codes to user-friendly messages
     let userMessage = 'Purchase failed. Please try again.';
-    
+
     switch (error.code) {
       case 'E_USER_CANCELLED':
         userMessage = 'Purchase was cancelled.';
@@ -327,7 +327,7 @@ export class GooglePlayBillingService {
 
       // Get available purchases (active subscriptions)
       const purchases = await RNIap.getAvailablePurchases();
-      
+
       console.log('[GooglePlay] Found purchases to restore:', purchases.length);
 
       for (const purchase of purchases) {
@@ -348,7 +348,7 @@ export class GooglePlayBillingService {
     try {
       // Get the user's current subscription from database
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
-      
+
       if (!subscription.platform_subscription_id || subscription.platform !== 'google') {
         return null;
       }
@@ -374,7 +374,7 @@ export class GooglePlayBillingService {
       // Google Play doesn't allow programmatic cancellation
       // Users must cancel through the Google Play Store
       console.log('[GooglePlay] Redirecting user to Google Play for cancellation');
-      
+
       // You could open the Google Play Store subscription management page
       // This would require additional implementation with Linking API
     } catch (error) {
@@ -390,14 +390,14 @@ export class GooglePlayBillingService {
       if (this.purchaseUpdateSubscription) {
         this.purchaseUpdateSubscription.remove();
       }
-      
+
       if (this.purchaseErrorSubscription) {
         this.purchaseErrorSubscription.remove();
       }
 
       await endConnection();
       this.isInitialized = false;
-      
+
       console.log('[GooglePlay] Cleanup completed');
     } catch (error) {
       console.error('[GooglePlay] Cleanup error:', error);

@@ -17,7 +17,7 @@ interface AuthStackNavigatorProps {
 export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavigatorProps) {
   return (
     <Stack.Navigator
-      screenOptions={{ 
+      screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
         animationDuration: 300,

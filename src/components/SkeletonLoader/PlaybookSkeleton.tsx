@@ -32,9 +32,7 @@ export const PlaybookSkeleton: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Section Header Skeleton */}
-      <View style={styles.sectionHeader}>
-        
-      </View>
+      <View style={styles.sectionHeader} />
 
       {[1, 2, 3].map((item) => (
         <View key={item} style={styles.card}>

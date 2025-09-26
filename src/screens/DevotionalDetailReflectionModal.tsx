@@ -43,7 +43,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   console.log('🔍 DevotionalDetailReflectionModal - Props received:', {
     visible,
     devotionalId,
@@ -140,7 +140,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       console.log('🔍 DevotionalDetailReflectionModal: Date string:', dateStr);
       console.log('🔍 DevotionalDetailReflectionModal: User ID:', user.id);
       console.log('🔍 DevotionalDetailReflectionModal: Existing entry:', existingEntry);
-      
+
       let result;
       if (existingEntry) {
         // Update existing entry
@@ -192,7 +192,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
       // Call the onSave callback to update parent state
       onSave(result);
-      
+
       successModal.showSuccess({
         title: 'Ponder Saved',
         message: 'Your devotional ponder has been saved to your journal.',
@@ -325,7 +325,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
               tags: existingEntry.tags || [],
               type: 'free-form' as const,
               prompt: existingEntry.prompt || question,
-              source: 'devotional'
+              source: 'devotional',
             } : undefined}
             lockTitle
             onSave={saveReflectionData}

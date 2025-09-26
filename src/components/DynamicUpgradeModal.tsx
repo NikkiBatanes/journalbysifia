@@ -32,11 +32,11 @@ const DynamicUpgradeModal: React.FC<DynamicUpgradeModalProps> = ({
   tier,
   duration,
   context,
-  usageInfo
+  usageInfo,
 }) => {
   const nextTier = getNextTier(tier);
   const upgradeMessage = getUpgradeMessage(tier, context);
-  
+
   // Get context-specific content
   const getModalContent = () => {
     if (context === 'onboarding') {
@@ -44,14 +44,14 @@ const DynamicUpgradeModal: React.FC<DynamicUpgradeModalProps> = ({
         title: 'Unlock Your Spiritual Journey',
         subtitle: upgradeMessage,
         buttonText: 'Start Your Journey',
-        description: `Begin with personalized ${duration}-day devotionals crafted for your faith walk.`
+        description: `Begin with personalized ${duration}-day devotionals crafted for your faith walk.`,
       };
     } else {
       return {
         title: 'Unlock This Feature',
         subtitle: upgradeMessage,
         buttonText: 'Upgrade Now',
-        description: `Access ${duration}-day devotionals and deepen your spiritual growth.`
+        description: `Access ${duration}-day devotionals and deepen your spiritual growth.`,
       };
     }
   };
@@ -74,21 +74,21 @@ const DynamicUpgradeModal: React.FC<DynamicUpgradeModalProps> = ({
         'Personalized devotionals',
         'Smart journaling features',
         'Progress tracking',
-        'Unlimited access to 1 & 3-day devotionals'
+        'Unlimited access to 1 & 3-day devotionals',
       ];
     } else if (tier === 'spark') {
       return [
         'Extended 5 & 7-day devotionals',
         'Advanced spiritual insights',
         'Priority support',
-        '20 monthly devotionals'
+        '20 monthly devotionals',
       ];
     } else {
       return [
         'Unlimited devotionals',
         'Premium spiritual content',
         'Advanced analytics',
-        'Priority support'
+        'Priority support',
       ];
     }
   };
@@ -101,17 +101,17 @@ const DynamicUpgradeModal: React.FC<DynamicUpgradeModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity 
-          style={StyleSheet.absoluteFill} 
-          activeOpacity={1} 
-          onPress={onClose} 
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
         />
-        
+
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.closeButton} 
+            <TouchableOpacity
+              style={styles.closeButton}
               onPress={onClose}
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
             >
@@ -177,8 +177,8 @@ const DynamicUpgradeModal: React.FC<DynamicUpgradeModalProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                style={styles.upgradeButton} 
+              <TouchableOpacity
+                style={styles.upgradeButton}
                 onPress={onUpgrade}
                 activeOpacity={0.8}
               >
@@ -187,8 +187,8 @@ const DynamicUpgradeModal: React.FC<DynamicUpgradeModalProps> = ({
                 </ThemedText>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.cancelButton} 
+              <TouchableOpacity
+                style={styles.cancelButton}
                 onPress={onClose}
                 activeOpacity={0.8}
               >

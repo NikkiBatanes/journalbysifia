@@ -90,7 +90,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
-  
+
   // Family subscription hook
   const {
     familyGroup,
@@ -117,20 +117,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   // Helpers: Quiet Hours formatting and pickers
   const formatTo12h = useCallback((time24?: string) => {
-    if (!time24) return '';
+    if (!time24) {return '';}
     const [hStr, mStr] = time24.split(':');
     let h = parseInt(hStr || '0', 10);
     const m = parseInt(mStr || '0', 10);
     const suffix = h >= 12 ? 'PM' : 'AM';
     h = h % 12;
-    if (h === 0) h = 12;
+    if (h === 0) {h = 12;}
     const mm = m.toString().padStart(2, '0');
     return `${h}:${mm} ${suffix}`;
   }, []);
 
   // Notification preferences from the notification management service
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences | null>(null);
-  
+
   // Time picker states
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [timePickerType, setTimePickerType] = useState<'start' | 'end'>('start');
@@ -157,20 +157,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     [notificationPrefs, user?.id]
   );
 
-  
+
 
   // Native time picker handler
   const showNativeTimePicker = useCallback((type: 'start' | 'end') => {
-    if (!notificationPrefs) return;
-    
-    const currentTime = type === 'start' 
+    if (!notificationPrefs) {return;}
+
+    const currentTime = type === 'start'
       ? notificationPrefs.quiet_hours_start || '22:00'
       : notificationPrefs.quiet_hours_end || '07:00';
-    
+
     const [hours, minutes] = currentTime.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
-    
+
     setTempTime(date);
     setTimePickerType(type);
     setShowTimePicker(true);
@@ -180,15 +180,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (Platform.OS === 'android') {
       setShowTimePicker(false);
     }
-    
+
     if (selectedDate && notificationPrefs && user?.id) {
       const hours = selectedDate.getHours().toString().padStart(2, '0');
       const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
       const timeString = `${hours}:${minutes}`;
-      
+
       const field = timePickerType === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
       const updated = { ...notificationPrefs, [field]: timeString };
-      
+
       console.log(`Updating ${field} to ${timeString}`);
       const success = await notificationManagementService.updateNotificationPreferences(updated);
       if (success) {
@@ -200,7 +200,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const pickQuietHour = useCallback(
     async (which: 'start' | 'end') => {
-      if (!notificationPrefs || !user?.id) return;
+      if (!notificationPrefs || !user?.id) {return;}
 
       const choices = [
         '05:00', '06:00', '07:00', '08:00', '09:00',
@@ -283,7 +283,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   });
   // Delete Account helpers
   const isValidBirthYear = useMemo(() => {
-    if (!deleteBirthYear) return false;
+    if (!deleteBirthYear) {return false;}
     const yr = parseInt(deleteBirthYear, 10);
     const now = new Date().getFullYear();
     return /^(19|20)\d{2}$/.test(deleteBirthYear) && yr >= 1900 && yr <= now;
@@ -300,7 +300,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         Alert.alert('Enter valid year', 'Please enter your birth year (YYYY) to continue.');
         return;
       }
-      
+
       // Show confirmation alert before proceeding
       Alert.alert(
         'Delete Account',
@@ -327,8 +327,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                         setDeleteAccountModal(false);
                         setEditProfileModal(false);
                         setDeleteBirthYear(''); // Clear the input
-                      }
-                    }
+                      },
+                    },
                   ]
                 );
               } catch (e: any) {
@@ -336,8 +336,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               } finally {
                 setIsDeletingAccount(false);
               }
-            }
-          }
+            },
+          },
         ]
       );
     } catch {}
@@ -350,7 +350,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [weekStartModal, setWeekStartModal] = useState(false);
   const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('sunday');
   // Bible Version modal and draft
-  
+
   const [bibleVersionModal, setBibleVersionModal] = useState(false);
   const [bibleVersionDraft, setBibleVersionDraft] = useState<string>('NASB');
   // Appearance modal and drafts
@@ -372,7 +372,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     let mounted = true;
     (async () => {
       await experiencePreferences.loadOnce();
-      if (!mounted) return;
+      if (!mounted) {return;}
       setHapticsEnabled(experiencePreferences.hapticsEnabled);
       setSoundsEnabled(experiencePreferences.soundsEnabled);
       setShowTabLabelsEnabled(experiencePreferences.showTabLabelsEnabled);
@@ -469,15 +469,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     };
 
     // 1) Try full (subject + body)
-    if (await tryOpen(mailtoFull)) return;
+    if (await tryOpen(mailtoFull)) {return;}
     // 2) Fallback: subject only
-    if (await tryOpen(mailtoSubjectOnly)) return;
+    if (await tryOpen(mailtoSubjectOnly)) {return;}
     // 3) Fallback: address only
-    if (await tryOpen(mailtoAddressOnly)) return;
+    if (await tryOpen(mailtoAddressOnly)) {return;}
     // 4) Try Gmail scheme if available
-    if (gmailFull && (await tryOpen(gmailFull))) return;
+    if (gmailFull && (await tryOpen(gmailFull))) {return;}
     // 5) Try web Gmail compose
-    if (await tryOpen(webGmail)) return;
+    if (await tryOpen(webGmail)) {return;}
 
     // Final fallback: show instructions with Copy option
     Alert.alert(
@@ -696,11 +696,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     >
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setFeatureModal(false); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setFeatureModal(false); }}>
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Suggest a Feature</Text>
-          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSubmitFeature(); }}>
+          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {} handleSubmitFeature(); }}>
             <Text style={[styles.saveText, font]}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -713,7 +713,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <TouchableOpacity
                   key={cat}
-                  onPress={() => { try { triggerLightHaptic(); } catch {}; setFeatureCategory(cat); }}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} setFeatureCategory(cat); }}
                   style={[styles.chip, active && styles.chipActive]}
                 >
                   <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{cat}</Text>
@@ -746,11 +746,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     >
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setAppearanceModal(false); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setAppearanceModal(false); }}>
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Appearance</Text>
-          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSaveAppearance(); }}>
+          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {} handleSaveAppearance(); }}>
             <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -773,7 +773,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <TouchableOpacity
                     key={opt.key}
                     style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => { try { triggerLightHaptic(); } catch {}; setThemeDraft(opt.key); }}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} setThemeDraft(opt.key); }}
                     accessibilityRole="button"
                     accessibilityLabel={`Set theme to ${opt.label}`}
                   >
@@ -801,7 +801,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <TouchableOpacity
                     key={fontOption.key}
                     style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => { try { triggerLightHaptic(); } catch {}; setFontDraft(fontOption.key); }}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} setFontDraft(fontOption.key); }}
                     accessibilityRole="button"
                     accessibilityLabel={`Set font to ${fontOption.label}`}
                   >
@@ -825,11 +825,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     >
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setReportBugModal(false); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setReportBugModal(false); }}>
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Report a Bug</Text>
-          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSubmitBug(); }}>
+          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {} handleSubmitBug(); }}>
             <Text style={[styles.saveText, font]}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -887,12 +887,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const loadNotificationPreferences = useCallback(async () => {
-    if (!user?.id) return;
-    
+    if (!user?.id) {return;}
+
     try {
       console.log('Loading notification preferences for user:', user.id);
       let prefs = await notificationManagementService.getNotificationPreferences(user.id);
-      
+
       // If no preferences exist, create defaults
       if (!prefs) {
         console.log('No preferences found, creating defaults');
@@ -908,13 +908,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        
+
         const success = await notificationManagementService.updateNotificationPreferences(defaultPrefs);
         if (success) {
           prefs = defaultPrefs;
         }
       }
-      
+
       console.log('Loaded notification preferences:', prefs);
       setNotificationPrefs(prefs);
     } catch (error) {
@@ -1043,15 +1043,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Listen for faith points updates - optimized to prevent multiple calls
   useEffect(() => {
     let refreshTimeout: NodeJS.Timeout;
-    
+
     const handlePointsUpdate = (data?: any) => {
       console.log('🔄 Faith points updated, refreshing profile data...', data);
-      
+
       // Clear any existing timeout to prevent multiple calls
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);
       }
-      
+
       // Single delayed refresh instead of multiple calls
       refreshTimeout = setTimeout(() => {
         console.log('🔄 Refreshing profile data after faith points update...');
@@ -1208,7 +1208,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const updatedPreferences = { ...preferences, weekStart: weekStart as any };
       setPreferences(updatedPreferences);
-      
+
       const result = await updatePreferences(updatedPreferences);
       if (result.success) {
         setWeekStartModal(false);
@@ -1275,10 +1275,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     try {
       try { triggerLightHaptic(); } catch {}
       console.log('🚪 Starting logout from profile screen...');
-      
+
       // Set loading state to prevent UI interactions during logout
       setLoading(true);
-      
+
       // Clear local state before logout to prevent stale data
       setUserProgress(null);
       setProfileStats(null);
@@ -1287,7 +1287,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setSubscription(null);
       setUsage(null);
       setNotificationPrefs(null);
-      
+
       await signOut();
       console.log('✅ Logout completed, navigation should handle redirect');
     } catch (error) {
@@ -1340,7 +1340,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           level: profileStats?.level ?? 1,
           badgesCount: profileStats?.totalBadges ?? 0,
         }}
-        onEditPress={() => { try { triggerLightHaptic(); } catch {}; setEditProfileModal(true); }}
+        onEditPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(true); }}
         onEditAvatar={handleEditAvatar}
         plan={planLabel}
         usage={usageSummary}
@@ -1393,7 +1393,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       devotionalUsed,
       subscription_tier: subscription?.tier,
       usage_object: usage,
-      subscription_limits: subscription?.limits
+      subscription_limits: subscription?.limits,
     });
 
     return (
@@ -1430,7 +1430,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: Colors.hopeWhite }, font]}>Badges</Text>
         {!!recentBadges.length && (
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setBadgesModal(true); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModal(true); }}>
             <Text style={[styles.viewAllText, font]}>Recent</Text>
           </TouchableOpacity>
         )}
@@ -1482,7 +1482,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; handleShareApp(); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} handleShareApp(); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="share-social" size={18} color={Colors.anchorBlue} />
@@ -1493,7 +1493,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; handleLeaveReview(); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} handleLeaveReview(); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="star" size={18} color={Colors.anchorBlue} />
@@ -1504,7 +1504,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; Linking.openURL('https://instagram.com/sifia.app'); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://instagram.com/sifia.app'); }}
           accessibilityRole="button"
           accessibilityLabel="Open Instagram @sifia.app"
         >
@@ -1518,7 +1518,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; Linking.openURL('https://www.facebook.com/siFiaapp'); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://www.facebook.com/siFiaapp'); }}
           accessibilityRole="button"
           accessibilityLabel="Open Facebook page siFiaapp"
         >
@@ -1532,7 +1532,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; Linking.openURL('https://x.com/sifiaapp'); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://x.com/sifiaapp'); }}
           accessibilityRole="button"
           accessibilityLabel="Open X (Twitter) @sifiaapp"
         >
@@ -1553,7 +1553,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="document-text" size={18} color={Colors.anchorBlue} />
@@ -1564,7 +1564,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="lock-closed" size={18} color={Colors.anchorBlue} />
@@ -1582,7 +1582,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="help-circle" size={18} color={Colors.anchorBlue} />
@@ -1593,7 +1593,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setFeatureModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setFeatureModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="bulb" size={18} color={Colors.anchorBlue} />
@@ -1604,7 +1604,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setReportBugModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setReportBugModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="bug" size={18} color={Colors.anchorBlue} />
@@ -1622,7 +1622,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="notifications" size={18} color={Colors.anchorBlue} />
@@ -1633,7 +1633,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="calendar-outline" size={18} color={Colors.anchorBlue} />
@@ -1643,17 +1643,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={preferences.calendar?.autoSync || false}
             onValueChange={async (value) => {
               try { triggerLightHaptic(); } catch {}
-              
+
               // If enabling auto-sync, request calendar permissions first
               if (value) {
                 const { requestCalendarPermissions } = await import('../services/calendarSyncService');
                 const hasPermission = await requestCalendarPermissions();
-                
+
                 if (!hasPermission) {
                   // Permission denied, don't enable auto-sync
                   return;
                 }
-                
+
                 // Check if user is on Seeker/Free trial plan and trying to enable auto-sync
                 const { NewSubscriptionService } = await import('../services/NewSubscriptionService');
                 try {
@@ -1672,8 +1672,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                         'Auto-sync time blocks to your calendar seamlessly.',
                         'Plan days ahead with clear focus, to-dos, and time blocks.',
                         'Stay consistent with guided journaling that builds faithful rhythms.',
-                        'Gain momentum with personalized playbooks and devotionals.'
-                      ]
+                        'Gain momentum with personalized playbooks and devotionals.',
+                      ],
                     });
                     return;
                   }
@@ -1681,13 +1681,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   console.error('Failed to check subscription tier:', error);
                 }
               }
-              
+
               const updatedPreferences = {
                 ...preferences,
                 calendar: {
                   ...preferences.calendar,
-                  autoSync: value
-                }
+                  autoSync: value,
+                },
               };
               const result = await updatePreferences(updatedPreferences);
               if (result.success) {
@@ -1701,7 +1701,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="shield-checkmark" size={18} color={Colors.anchorBlue} />
@@ -1719,7 +1719,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setBibleVersionModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setBibleVersionModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="book" size={18} color={Colors.anchorBlue} />
@@ -1730,7 +1730,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setWeekStartModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setWeekStartModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="calendar" size={18} color={Colors.anchorBlue} />
@@ -1741,7 +1741,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setAppearanceModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setAppearanceModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="color-palette" size={18} color={Colors.anchorBlue} />
@@ -1752,7 +1752,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="pulse" size={18} color={Colors.anchorBlue} />
@@ -1768,7 +1768,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="volume-high" size={18} color={Colors.anchorBlue} />
@@ -1784,7 +1784,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {}; onToggleShowTabLabels(!showTabLabelsEnabled); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} onToggleShowTabLabels(!showTabLabelsEnabled); }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="albums" size={18} color={Colors.anchorBlue} />
@@ -1805,8 +1805,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     // Only show family management if user has family subscription or can create one
     const canManageFamily = Boolean(familyGroup) || subscription?.tier === 'family' || subscription?.tier === 'transformation';
     const isAdmin = familyGroup?.admin_user_id === user?.id;
-    
-    if (!canManageFamily) return null;
+
+    if (!canManageFamily) {return null;}
 
     return (
       <View>
@@ -1816,7 +1816,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <>
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={() => { try { triggerLightHaptic(); } catch {}; navigation.navigate('FamilyAdminDashboard'); }}
+                onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyAdminDashboard'); }}
               >
                 <View style={styles.menuIconBox}>
                   <Ionicons name="people" size={18} color={Colors.anchorBlue} />
@@ -1831,11 +1831,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
               </TouchableOpacity>
-              
+
               {isAdmin && (
                 <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={() => { try { triggerLightHaptic(); } catch {}; navigation.navigate('FamilyInvitation'); }}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyInvitation'); }}
                 >
                   <View style={styles.menuIconBox}>
                     <Ionicons name="person-add" size={18} color={Colors.anchorBlue} />
@@ -1898,17 +1898,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.modalContainer}
       >
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setEditProfileModal(false); }} accessibilityRole="button" accessibilityLabel="Go back">
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(false); }} accessibilityRole="button" accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Edit Profile</Text>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleUpdateProfile(); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleUpdateProfile(); }}>
             <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
-          style={styles.modalContent} 
+        <ScrollView
+          style={styles.modalContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -2015,7 +2015,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       paddingHorizontal: 16,
                       paddingVertical: 8,
                       borderRadius: 10,
-                      backgroundColor: 'rgba(255,255,255,0.2)'
+                      backgroundColor: 'rgba(255,255,255,0.2)',
                     }}
                   >
                     <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Cancel</Text>
@@ -2029,7 +2029,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       paddingHorizontal: 16,
                       paddingVertical: 8,
                       borderRadius: 10,
-                      backgroundColor: Colors.alertCoral
+                      backgroundColor: Colors.alertCoral,
                     }}
                   >
                     <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Done</Text>
@@ -2042,11 +2042,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           {/* Danger zone */}
           <View style={{ marginTop: 12 }}>
             <TouchableOpacity
-              onPress={() => { 
+              onPress={() => {
                 console.log('🗑️ Delete account button pressed!');
-                try { triggerLightHaptic(); } catch {}; 
+                try { triggerLightHaptic(); } catch {}
                 console.log('🗑️ Setting deleteAccountModal to true');
-                setDeleteAccountModal(true); 
+                setDeleteAccountModal(true);
                 console.log('🗑️ Modal state should be true now');
               }}
               activeOpacity={0.7}
@@ -2103,10 +2103,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           paddingHorizontal: 20,
         }}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => { 
-              try { triggerLightHaptic(); } catch {}; 
+            <TouchableOpacity onPress={() => {
+              try { triggerLightHaptic(); } catch {}
               // Don't clear the birth year when canceling - preserve user input
-              setDeleteAccountModal(false); 
+              setDeleteAccountModal(false);
             }}>
               <Text style={[styles.cancelText, font]}>Cancel</Text>
             </TouchableOpacity>
@@ -2171,11 +2171,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.modalContainer}
       >
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setWeekStartModal(false); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setWeekStartModal(false); }}>
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Week Start</Text>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleSaveWeekStart(); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleSaveWeekStart(); }}>
             <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -2184,7 +2184,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.settingDescription, font]}>
             Choose which day your week starts on. This affects calendar views and weekly reports.
           </Text>
-          
+
           <View style={styles.weekStartOptions}>
             {[
               { key: 'sunday', label: 'Sunday', description: '' },
@@ -2200,7 +2200,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <TouchableOpacity
                   key={day.key}
                   style={[styles.weekStartOption, isSelected && styles.weekStartOptionSelected]}
-                  onPress={() => { try { triggerLightHaptic(); } catch {}; setWeekStartDraft(day.key as UserPreferences['weekStart']); }}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} setWeekStartDraft(day.key as UserPreferences['weekStart']); }}
                   accessibilityRole="button"
                   accessibilityLabel={`Set week start to ${day.label}`}
                 >
@@ -2237,11 +2237,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.modalContainer}
       >
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setBibleVersionModal(false); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setBibleVersionModal(false); }}>
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Bible Version</Text>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleSaveBibleVersion(); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleSaveBibleVersion(); }}>
             <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -2283,7 +2283,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <TouchableOpacity
                     key={ver.key}
                     style={[styles.weekStartOption, isSelected && styles.weekStartOptionSelected]}
-                    onPress={() => { try { triggerLightHaptic(); } catch {}; setBibleVersionDraft(ver.key); }}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} setBibleVersionDraft(ver.key); }}
                     accessibilityRole="button"
                     accessibilityLabel={`Set Bible version to ${ver.label}`}
                   >
@@ -2321,11 +2321,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setSettingsModal(false); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(false); }}>
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Notifications</Text>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; handleUpdatePreferences(); }}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleUpdatePreferences(); }}>
             <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -2424,8 +2424,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.settingLabel, font]}>Quiet Hours</Text>
               <Text style={[styles.settingHint, font]}>We'll pause notifications during these times.</Text>
               <View style={styles.quietHoursContainer}>
-                <TouchableOpacity 
-                  style={styles.timePickerRow} 
+                <TouchableOpacity
+                  style={styles.timePickerRow}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
                     console.log('Quiet Hours Start pressed, prefs:', notificationPrefs);
@@ -2437,8 +2437,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     {notificationPrefs?.quiet_hours_start ? formatTo12h(notificationPrefs.quiet_hours_start) : '10:00 PM'}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.timePickerRow} 
+                <TouchableOpacity
+                  style={styles.timePickerRow}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
                     console.log('Quiet Hours End pressed, prefs:', notificationPrefs);

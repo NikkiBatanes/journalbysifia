@@ -14,7 +14,7 @@ export const useJournaledQuestions = (userId: string, devotionalId: string) => {
   const [loading, setLoading] = useState(false);
 
   const fetchJournaledQuestions = useCallback(async () => {
-    if (!userId || !devotionalId) return;
+    if (!userId || !devotionalId) {return;}
 
     setLoading(true);
     try {
@@ -26,8 +26,8 @@ export const useJournaledQuestions = (userId: string, devotionalId: string) => {
       });
 
       const journaled = entries
-        .filter(entry => 
-          entry.devotional_id === devotionalId && 
+        .filter(entry =>
+          entry.devotional_id === devotionalId &&
           entry.question_number !== undefined &&
           entry.question_text
         )
@@ -64,7 +64,7 @@ export const useJournaledQuestions = (userId: string, devotionalId: string) => {
   }, [isQuestionJournaled]);
 
   const addJournaledQuestion = useCallback((entry: ReflectionApiEntry) => {
-    if (!entry.devotional_id || entry.question_number === undefined || !entry.question_text) return;
+    if (!entry.devotional_id || entry.question_number === undefined || !entry.question_text) {return;}
 
     const newJournaled: JournaledQuestion = {
       devotionalId: entry.devotional_id,
@@ -84,9 +84,9 @@ export const useJournaledQuestions = (userId: string, devotionalId: string) => {
   }, []);
 
   const updateJournaledQuestion = useCallback((updatedEntry: ReflectionApiEntry) => {
-    setJournaledQuestions(prev => 
-      prev.map(jq => 
-        jq.reflectionEntry.id === updatedEntry.id 
+    setJournaledQuestions(prev =>
+      prev.map(jq =>
+        jq.reflectionEntry.id === updatedEntry.id
           ? { ...jq, reflectionEntry: updatedEntry }
           : jq
       )

@@ -17,7 +17,7 @@ const ThemedTextInput: React.FC<ThemedTextInputProps> = ({ weight = 'regular', s
 
   const combinedStyle = [
     style,
-    { fontFamily }
+    { fontFamily },
   ];
 
   return <TextInput {...rest} style={combinedStyle} />;

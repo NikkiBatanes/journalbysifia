@@ -59,9 +59,9 @@ class NotificationManagementService {
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         // Check if it's a missing table or column error (common during development)
-        if (error.code === '42P01' || 
-            error.code === 'PGRST204' || 
-            error.message?.includes('relation') || 
+        if (error.code === '42P01' ||
+            error.code === 'PGRST204' ||
+            error.message?.includes('relation') ||
             error.message?.includes('does not exist') ||
             error.message?.includes('column') ||
             error.message?.includes('schema cache')) {
@@ -131,9 +131,9 @@ class NotificationManagementService {
 
       if (error) {
         // Check if it's a missing table or column error (common during development)
-        if (error.code === '42P01' || 
-            error.code === 'PGRST204' || 
-            error.message?.includes('relation') || 
+        if (error.code === '42P01' ||
+            error.code === 'PGRST204' ||
+            error.message?.includes('relation') ||
             error.message?.includes('does not exist') ||
             error.message?.includes('column') ||
             error.message?.includes('schema cache')) {
@@ -190,7 +190,7 @@ class NotificationManagementService {
     try {
       // Check user preferences first
       const preferences = await this.getNotificationPreferences(userId);
-      
+
       // Check if user has notifications enabled for this type
       // This is a simplified check - you might want more sophisticated logic
       if (preferences && Object.values(preferences).some(pref => pref === true)) {

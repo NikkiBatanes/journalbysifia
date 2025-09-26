@@ -15,7 +15,7 @@ const supabase = createClient(
 
 async function verifyMigration() {
   console.log('🔍 Verifying database migration...\n');
-  
+
   let allTestsPassed = true;
   const results = [];
 
@@ -25,7 +25,7 @@ async function verifyMigration() {
     const { data: tables, error } = await supabase
       .from('user_subscriptions_new')
       .select('count', { count: 'exact', head: true });
-    
+
     if (error) {
       console.log('❌ user_subscriptions_new table missing');
       results.push('❌ user_subscriptions_new table missing');
@@ -45,7 +45,7 @@ async function verifyMigration() {
     const { data, error } = await supabase
       .from('family_subscription_groups')
       .select('count', { count: 'exact', head: true });
-    
+
     if (error) {
       console.log('❌ family_subscription_groups table error:', error.message);
       console.log('Error details:', error);
@@ -66,7 +66,7 @@ async function verifyMigration() {
     const { data, error } = await supabase
       .from('family_members')
       .select('count', { count: 'exact', head: true });
-    
+
     if (error) {
       console.log('❌ family_members table error:', error.message);
       results.push('❌ family_members table error: ' + error.message);
@@ -86,7 +86,7 @@ async function verifyMigration() {
     const { data, error } = await supabase
       .from('subscription_usage_tracking')
       .select('count', { count: 'exact', head: true });
-    
+
     if (error) {
       console.log('❌ subscription_usage_tracking table missing');
       results.push('❌ subscription_usage_tracking table missing');
@@ -103,16 +103,16 @@ async function verifyMigration() {
 
   // Test 4: Check database functions
   console.log('\n2️⃣ Testing database functions...');
-  
+
   // Test create_default_seeker_subscription function
   try {
     // Create a test user ID (we won't actually create the user)
     const testUserId = '00000000-0000-0000-0000-000000000001';
-    
+
     const { data, error } = await supabase.rpc('create_default_seeker_subscription', {
-      target_user_id: testUserId
+      target_user_id: testUserId,
     });
-    
+
     if (error && !error.message.includes('violates foreign key constraint')) {
       console.log('❌ create_default_seeker_subscription function error:', error.message);
       results.push('❌ create_default_seeker_subscription function error');
@@ -130,12 +130,12 @@ async function verifyMigration() {
   // Test start_free_trial function
   try {
     const testUserId = '00000000-0000-0000-0000-000000000001';
-    
+
     const { data, error } = await supabase.rpc('start_free_trial', {
       target_user_id: testUserId,
-      duration_days: 3
+      duration_days: 3,
     });
-    
+
     if (error && !error.message.includes('violates foreign key constraint')) {
       console.log('❌ start_free_trial function error:', error.message);
       results.push('❌ start_free_trial function error');
@@ -153,7 +153,7 @@ async function verifyMigration() {
   // Test check_and_handle_expired_trials function
   try {
     const { data, error } = await supabase.rpc('check_and_handle_expired_trials');
-    
+
     if (error) {
       console.log('❌ check_and_handle_expired_trials function error:', error.message);
       results.push('❌ check_and_handle_expired_trials function error');
@@ -174,7 +174,7 @@ async function verifyMigration() {
     const { data, error } = await supabase
       .from('discount_codes')
       .select('count', { count: 'exact', head: true });
-    
+
     if (error) {
       console.log('❌ discount_codes table missing or inaccessible');
       results.push('❌ discount_codes table missing');
@@ -193,7 +193,7 @@ async function verifyMigration() {
   console.log('\n📊 Migration Verification Summary:');
   console.log('=====================================');
   results.forEach(result => console.log(result));
-  
+
   if (allTestsPassed) {
     console.log('\n🎉 Migration verification PASSED!');
     console.log('✅ All database components are ready for testing.');
@@ -209,7 +209,7 @@ async function verifyMigration() {
     console.log('2. Check that your SUPABASE_URL and SUPABASE_ANON_KEY are correct');
     console.log('3. Verify you have the necessary permissions in your Supabase project');
   }
-  
+
   return allTestsPassed;
 }
 

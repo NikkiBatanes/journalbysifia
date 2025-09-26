@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextStyle, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import React from 'react';
+import { View, StyleSheet, TextStyle } from 'react-native';
 import { BorderRadii } from '../theme/styles';
-import { Typography } from '../theme/typography';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
 

@@ -74,7 +74,7 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
           '8 Playbooks & Devotionals per month',
           'Smart Journaling with AI insights',
           'Personalized spiritual guidance',
-          'Priority customer support'
+          'Priority customer support',
         ];
       case 'growth':
         return [
@@ -82,7 +82,7 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
           'Smart Journaling with AI insights',
           'Advanced spiritual analytics',
           'Priority customer support',
-          'Exclusive content library'
+          'Exclusive content library',
         ];
       case 'transformation':
         return [
@@ -91,7 +91,7 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
           'Advanced spiritual analytics',
           'Priority customer support',
           'Exclusive content library',
-          'Personal spiritual coach access'
+          'Personal spiritual coach access',
         ];
       case 'family':
         return [
@@ -99,13 +99,13 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
           'Family spiritual dashboard',
           'Shared prayer requests',
           'Family devotional plans',
-          'All premium features included'
+          'All premium features included',
         ];
       default:
         return [
           'Premium spiritual content',
           'Enhanced features',
-          'Priority support'
+          'Priority support',
         ];
     }
   };
@@ -128,13 +128,13 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
         <View style={styles.subscriptionCard}>
           <ThemedText weight="semiBold" style={styles.subscriptionTitle}>Your Subscription</ThemedText>
           <ThemedText weight="bold" style={styles.tierName}>{getTierDisplayName(tier)} Plan</ThemedText>
-          
+
           {transactionId && (
             <ThemedText style={styles.transactionId}>
               Transaction ID: {transactionId}
             </ThemedText>
           )}
-          
+
           <ThemedText style={styles.platformInfo}>
             Platform: {platform === 'local_test' ? 'Local Test' : platform}
           </ThemedText>
@@ -156,7 +156,7 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
           <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
             <ThemedText weight="bold" style={styles.primaryButtonText}>Set Up Notifications</ThemedText>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.secondaryButton} onPress={handleSkipToApp}>
             <ThemedText weight="medium" style={styles.secondaryButtonText}>Skip for Now</ThemedText>
           </TouchableOpacity>

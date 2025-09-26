@@ -27,7 +27,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
 }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
-  
+
   // Theme integration for dynamic font switching
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';

@@ -4,14 +4,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from './useSubscription';
-import { 
+import {
   guidedPromptGatingService,
   type DailyPromptAllocation,
-  type PromptUsageCheck 
+  type PromptUsageCheck,
 } from '../services/guidedPromptGatingService';
-import { 
+import {
   checkGuidedPromptAccess,
-  type GuidedPromptAccessCheck 
+  type GuidedPromptAccessCheck,
 } from '../utils/guidedPromptGating';
 
 export interface UseGuidedPromptGatingOptions {
@@ -25,12 +25,12 @@ export interface UseGuidedPromptGatingReturn {
   lockedPrompts: string[];
   allPrompts: string[];
   isLoading: boolean;
-  
+
   // Simplified methods
   canUsePrompt: (prompt: string) => Promise<boolean>;
   markPromptUsed: (prompt: string) => Promise<void>;
   refreshAccess: () => Promise<void>;
-  
+
   // Legacy compatibility (deprecated)
   accessCheck: GuidedPromptAccessCheck;
   availablePrompts: string[];
@@ -43,7 +43,7 @@ export interface UseGuidedPromptGatingReturn {
  */
 export function useGuidedPromptGating({
   context = 'inApp',
-  onUpgradeRequired
+  onUpgradeRequired,
 }: UseGuidedPromptGatingOptions = {}): UseGuidedPromptGatingReturn {
   const { user } = useAuth();
   const { subscription } = useSubscription();
@@ -51,7 +51,7 @@ export function useGuidedPromptGating({
   const [dailyAllocation, setDailyAllocation] = useState<DailyPromptAllocation>({
     freePrompts: [],
     lockedPrompts: [],
-    allPrompts: []
+    allPrompts: [],
   });
 
   // Get current tier
@@ -72,12 +72,12 @@ export function useGuidedPromptGating({
     try {
       const allocation = guidedPromptGatingService.getDailyPrompts(user.id, currentTier);
       setDailyAllocation(allocation);
-      
+
       console.log('[useGuidedPromptGating] Loaded allocation:', {
         tier: currentTier,
         freePrompts: allocation.freePrompts.length,
         lockedPrompts: allocation.lockedPrompts.length,
-        totalPrompts: allocation.allPrompts.length
+        totalPrompts: allocation.allPrompts.length,
       });
     } catch (error) {
       console.error('[useGuidedPromptGating] Error loading allocation:', error);
@@ -88,8 +88,8 @@ export function useGuidedPromptGating({
 
   // Simplified canUsePrompt using service
   const canUsePrompt = useCallback(async (prompt: string): Promise<boolean> => {
-    if (!user?.id) return false;
-    
+    if (!user?.id) {return false;}
+
     try {
       const check = await guidedPromptGatingService.canUsePrompt(user.id, currentTier, prompt);
       return check.canUse;
@@ -101,8 +101,8 @@ export function useGuidedPromptGating({
 
   // Simplified markPromptUsed using service
   const markPromptUsed = useCallback(async (prompt: string): Promise<void> => {
-    if (!user?.id) return;
-    
+    if (!user?.id) {return;}
+
     try {
       await guidedPromptGatingService.markPromptUsed(user.id, prompt);
       // Refresh allocation to reflect changes
@@ -142,7 +142,7 @@ export function useGuidedPromptGating({
     canUsePrompt,
     markPromptUsed,
     refreshAccess,
-    
+
     // Legacy compatibility (deprecated)
     accessCheck,
     availablePrompts,

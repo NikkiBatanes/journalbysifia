@@ -5,12 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  withTiming, 
-  useAnimatedStyle, 
-  withRepeat, 
-  withSequence 
+import Animated, {
+  useSharedValue,
+  withTiming,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
 } from 'react-native-reanimated';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../theme';
@@ -25,11 +25,11 @@ interface TutorialOverlayProps {
 
 const TapToExpandTutorial = ({ onComplete }: { onComplete: () => void }) => {
   const pulseAnim = useSharedValue(1);
-  
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseAnim.value }],
   }));
-  
+
   useEffect(() => {
     pulseAnim.value = withRepeat(
       withSequence(
@@ -40,7 +40,7 @@ const TapToExpandTutorial = ({ onComplete }: { onComplete: () => void }) => {
       true
     );
   }, [pulseAnim]);
-  
+
   return (
     <>
       <View style={styles.tutorialLabel}>
@@ -56,11 +56,11 @@ const TapToExpandTutorial = ({ onComplete }: { onComplete: () => void }) => {
 
 const SwipeToNavigateTutorial = ({ onComplete }: { onComplete: () => void }) => {
   const slideAnim = useSharedValue(0);
-  
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: slideAnim.value }],
   }));
-  
+
   useEffect(() => {
     slideAnim.value = withRepeat(
       withSequence(
@@ -72,7 +72,7 @@ const SwipeToNavigateTutorial = ({ onComplete }: { onComplete: () => void }) => 
       true
     );
   }, [slideAnim]);
-  
+
   return (
     <>
       <Animated.View style={[styles.tutorialLabel, animatedStyle]}>
@@ -85,14 +85,14 @@ const SwipeToNavigateTutorial = ({ onComplete }: { onComplete: () => void }) => 
   );
 };
 
-const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({ 
-  showTutorial, 
-  tutorialStep, 
-  onTapTutorialComplete, 
-  onSwipeTutorialComplete 
+const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
+  showTutorial,
+  tutorialStep,
+  onTapTutorialComplete,
+  onSwipeTutorialComplete,
 }) => {
-  if (!showTutorial) return null;
-  
+  if (!showTutorial) {return null;}
+
   return (
     <View style={styles.tutorialOverlay}>
       {tutorialStep === 1 && (
@@ -101,9 +101,9 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
       {tutorialStep === 2 && (
         <SwipeToNavigateTutorial onComplete={onSwipeTutorialComplete} />
       )}
-      
+
       {/* Confirmation button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.skipButton}
         onPress={tutorialStep === 1 ? onTapTutorialComplete : onSwipeTutorialComplete}
         activeOpacity={0.7}

@@ -129,7 +129,7 @@ class NetworkManager {
    */
   private initializeNetworkListener() {
     let debounceTimer: NodeJS.Timeout | null = null;
-    
+
     // Set up NetInfo listener with debouncing to prevent rapid state changes
     const unsubscribe = NetInfo.addEventListener((state) => {
       const isOnline = Boolean(state.isConnected && state.isInternetReachable);

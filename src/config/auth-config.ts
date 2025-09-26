@@ -25,7 +25,7 @@ export const authConfig: AuthConfig = {
     // Your app's bundle identifier
     clientId: process.env.EXPO_PUBLIC_BUNDLE_ID || 'com.yourcompany.sifia',
     // Supabase redirect URL
-    redirectUrl: process.env.EXPO_PUBLIC_SUPABASE_URL 
+    redirectUrl: process.env.EXPO_PUBLIC_SUPABASE_URL
       ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/callback`
       : 'https://your-project.supabase.co/auth/v1/callback',
   },
@@ -50,7 +50,7 @@ export const validateAuthConfig = (): boolean => {
   ];
 
   const missing = requiredEnvVars.filter(envVar => !process.env[envVar]);
-  
+
   if (missing.length > 0) {
     console.warn('⚠️ Missing required environment variables:', missing);
     return false;

@@ -26,20 +26,20 @@ const determineDevotionalCategory = (apiEntry: DevotionalApiEntry): DevotionalCa
   if (apiEntry.category && apiEntry.category !== 'Growth') {
     return apiEntry.category as DevotionalCategory;
   }
-  
+
   // Analyze title and description for category hints
   const content = `${apiEntry.title || ''} ${apiEntry.description || ''}`.toLowerCase();
-  
-  if (content.includes('prayer') || content.includes('pray')) return 'Prayer';
-  if (content.includes('faith') || content.includes('trust') || content.includes('believe')) return 'Faith';
-  if (content.includes('love') || content.includes('relationship') || content.includes('family')) return 'Relationships';
-  if (content.includes('peace') || content.includes('anxiety') || content.includes('worry') || content.includes('stress')) return 'Peace';
-  if (content.includes('hope') || content.includes('encouragement') || content.includes('strength')) return 'Hope';
-  if (content.includes('wisdom') || content.includes('decision') || content.includes('guidance')) return 'Wisdom';
-  if (content.includes('forgiveness') || content.includes('forgive') || content.includes('mercy')) return 'Forgiveness';
-  if (content.includes('gratitude') || content.includes('thankful') || content.includes('blessing')) return 'Gratitude';
-  if (content.includes('purpose') || content.includes('calling') || content.includes('mission')) return 'Purpose';
-  
+
+  if (content.includes('prayer') || content.includes('pray')) {return 'Prayer';}
+  if (content.includes('faith') || content.includes('trust') || content.includes('believe')) {return 'Faith';}
+  if (content.includes('love') || content.includes('relationship') || content.includes('family')) {return 'Relationships';}
+  if (content.includes('peace') || content.includes('anxiety') || content.includes('worry') || content.includes('stress')) {return 'Peace';}
+  if (content.includes('hope') || content.includes('encouragement') || content.includes('strength')) {return 'Hope';}
+  if (content.includes('wisdom') || content.includes('decision') || content.includes('guidance')) {return 'Wisdom';}
+  if (content.includes('forgiveness') || content.includes('forgive') || content.includes('mercy')) {return 'Forgiveness';}
+  if (content.includes('gratitude') || content.includes('thankful') || content.includes('blessing')) {return 'Gratitude';}
+  if (content.includes('purpose') || content.includes('calling') || content.includes('mission')) {return 'Purpose';}
+
   // Default to 'Spiritual Growth' instead of just 'Growth'
   return 'Spiritual Growth';
 };
@@ -47,7 +47,7 @@ const determineDevotionalCategory = (apiEntry: DevotionalApiEntry): DevotionalCa
 // Data transformer
 const transformApiEntryToDevotional = (apiEntry: DevotionalApiEntry): Devotional => {
   const category = determineDevotionalCategory(apiEntry);
-  
+
   return {
     id: apiEntry.id,
     userId: apiEntry.user_id,
@@ -87,7 +87,7 @@ export const useDevotionalDataReactQuery = (userId: string) => {
       console.log('[useDevotionalDataReactQuery] Fetching devotionals for user:', userId);
       const apiEntries = await DevotionalApi.getDevotionals(userId);
       const transformed = apiEntries.map(transformApiEntryToDevotional);
-      
+
       // Debug logging for simulator issue
       console.log('[useDevotionalDataReactQuery] Transformed devotionals:', transformed.map(d => ({
         id: d.id,
@@ -96,7 +96,7 @@ export const useDevotionalDataReactQuery = (userId: string) => {
         title: d.title?.substring(0, 50),
         platform: require('react-native').Platform.OS,
       })));
-      
+
       return transformed;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -111,9 +111,9 @@ export const useDevotionalDataReactQuery = (userId: string) => {
  */
 export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
   const queryEnabled = !!id && !!userId && isValidUUID(id);
-  
+
   console.log('[useDevotionalByIdReactQuery] Hook called:', { userId, id, queryEnabled });
-  
+
   const result = useQuery({
     queryKey: queryKeys.devotionals.detail(userId, id),
     queryFn: async () => {
@@ -122,7 +122,7 @@ export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
         console.log('[useDevotionalByIdReactQuery] Invalid UUID, returning null');
         return null;
       }
-      
+
       try {
         console.log('[useDevotionalByIdReactQuery] Calling API...');
         const apiEntry = await DevotionalApi.getDevotionalById(id);
@@ -136,22 +136,22 @@ export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
       }
     },
     staleTime: 0, // Force fresh data temporarily
-    gcTime: 0, // No cache temporarily  
+    gcTime: 0, // No cache temporarily
     enabled: queryEnabled,
     retry: 3,
     refetchOnMount: true, // Force refetch temporarily
     refetchOnWindowFocus: false,
   });
-  
+
   console.log('[useDevotionalByIdReactQuery] Query state:', {
     data: result.data,
     isLoading: result.isLoading,
     isFetching: result.isFetching,
     error: result.error,
     status: result.status,
-    fetchStatus: result.fetchStatus
+    fetchStatus: result.fetchStatus,
   });
-  
+
   return result;
 };
 
@@ -182,7 +182,7 @@ export const useCreateDevotionalReactQuery = () => {
 
       // Use setQueryData for immediate updates without triggering re-renders
       queryClient.setQueryData(['devotionals', _userId], (oldData: any) => {
-        if (!oldData) return [data];
+        if (!oldData) {return [data];}
         return [data, ...oldData];
       });
 
@@ -254,8 +254,8 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       queryClient.setQueryData(
         queryKeys.devotionals.detail(userId, devotionalId),
         (oldData: any) => {
-          if (!oldData) return oldData;
-          
+          if (!oldData) {return oldData;}
+
           // Update the specific day's completed status
           const updatedDays = oldData.days.map((day: any, index: number) => {
             if (day.dayNumber === dayNumber) {
@@ -263,7 +263,7 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
             }
             return day;
           });
-          
+
           return { ...oldData, days: updatedDays };
         }
       );
@@ -300,7 +300,7 @@ export const useSubmitDevotionalRatingReactQuery = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.devotionals.list(userId),
       });
-      
+
       // Update detail query cache directly to prevent modal reset
       queryClient.setQueryData(
         queryKeys.devotionals.detail(userId, devotionalId),
@@ -384,19 +384,19 @@ export const useDevotionalOperations = (userId: string) => {
   const fetchPlaybookById = async (playbookId: string) => {
     try {
       console.log('[useDevotionalOperations] Fetching playbook by ID:', playbookId);
-      
+
       // Import the playbook API function
       const { getPlaybooks } = await import('../apiIntegration');
-      
+
       // Get all playbooks and find the specific one
       const playbooks = await getPlaybooks(userId);
       const playbook = playbooks.find(p => p.id === playbookId);
-      
+
       if (!playbook) {
         console.warn('[useDevotionalOperations] Playbook not found:', playbookId);
         return null;
       }
-      
+
       console.log('[useDevotionalOperations] Found playbook:', playbook.title);
       return playbook;
     } catch (error) {

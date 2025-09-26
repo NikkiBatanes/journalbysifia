@@ -1,12 +1,11 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInput, Animated, Easing, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
@@ -14,7 +13,6 @@ import SmartJournalingReflectionModal from '../screens/SmartJournalingReflection
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
-import { InteractiveCoachingModal } from './InteractiveCoachingModal';
 import { toLocalDateString } from '../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
@@ -87,15 +85,15 @@ const getJournalTypeColor = (journalType?: string): string => {
     case 'gratitude': return Colors.gratitudeRed; // Love and warmth
     case 'win': return Colors.winGold; // Celebration and joy
     case 'timeblock': return Colors.timeblockGreen; // Growth and management
-    case 'financial_budgeting': return Colors.budgetingGreen; // Financial stewardship
-    case 'financial_tithing': return Colors.tithingPurple; // Spiritual giving
+    case 'financial_budgeting': return Colors.growthGreen; // Financial stewardship
+    case 'financial_tithing': return Colors.devotionalPurple; // Spiritual giving
     case 'financial_debt': return Colors.debtRed; // Financial urgency
     case 'none': return 'transparent';
     default: return 'transparent';
   }
 };
 
-const shouldShowJournalIcon = (journalType?: string): boolean => {
+const shouldShowJournalIcon = (_journalType?: string): boolean => {
   // Always show subtasks - journal icons are optional enhancement
   return true;
 };
@@ -168,7 +166,7 @@ export default function ActionStepsCard({
   stepCircleBackground,
   playbookTitle,
   playbookId,
-  userInput,
+  userInput: _userInput,
   selectedDate,
   showExampleSubtasksInline = false,
   preferPropSteps = false,
@@ -178,18 +176,18 @@ export default function ActionStepsCard({
   const queryClient = useQueryClient();
   const [selectedSubtask, setSelectedSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [isGuidedPromptActive, setIsGuidedPromptActive] = useState(false);
+  const [_isGuidedPromptActive, _setIsGuidedPromptActive] = useState(false);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
-  // Interactive Coaching Modal State (Phase 3)
-  const [showInteractiveCoaching, setShowInteractiveCoaching] = useState(false);
-  const [coachingStepData, setCoachingStepData] = useState<{
+  // Interactive Coaching Modal State (Phase 3) - Currently unused
+  const [_showInteractiveCoaching, _setShowInteractiveCoaching] = useState(false);
+  const [_coachingStepData, _setCoachingStepData] = useState<{
     stepId: string;
     stepText: string;
     subtaskId?: string;
   } | null>(null);
 
-  
+
   const completionAnim = React.useRef<Record<string, Animated.Value>>({});
 
   // Query for existing reflection when a subtask is selected
@@ -356,7 +354,7 @@ export default function ActionStepsCard({
                 stepId,
                 subTaskId,
                 playbookId,
-                source: 'ActionStepsCard.onToggleSubTask'
+                source: 'ActionStepsCard.onToggleSubTask',
               });
 
               await AsyncStorage.setItem(awardKey, '1');
@@ -406,18 +404,18 @@ export default function ActionStepsCard({
 
     // Proceed with actual toggle update in context
     handleToggleStep(stepId, subTaskId);
-    
+
     // Invalidate queries immediately for dashboard sync
     queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
     queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
     queryClient.invalidateQueries({ queryKey: ['playbooks'] });
     queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
-    
+
     // Trigger custom event for immediate dashboard sync
-    DeviceEventEmitter.emit('playbookProgressUpdate', { 
-      stepId, subTaskId, type: 'playbook_detail_toggle' 
+    DeviceEventEmitter.emit('playbookProgressUpdate', {
+      stepId, subTaskId, type: 'playbook_detail_toggle',
     });
-  }, [handleToggleStep, steps, user?.id, playbookId]);
+  }, [handleToggleStep, steps, user?.id, playbookId, queryClient]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
     console.log('[ActionStepsCard] Journal type pressed:', {
@@ -466,7 +464,7 @@ export default function ActionStepsCard({
         }
 
         const openedFromGuidedPrompt = !stepInfo && !subTask.detected_journal_type;
-        setIsGuidedPromptActive(openedFromGuidedPrompt);
+        _setIsGuidedPromptActive(openedFromGuidedPrompt);
         setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('reflection');
@@ -878,7 +876,7 @@ export default function ActionStepsCard({
         />
         <ThemedText weight="semiBold" style={[
           styles.heading,
-          textColor ? { color: textColor } : {}
+          textColor ? { color: textColor } : {},
         ]}>
           {steps.length} Action Steps
         </ThemedText>
@@ -939,8 +937,8 @@ export default function ActionStepsCard({
                 examples = [];
               }
               const subtasks = (step.subTasks || []).filter((st) => {
-                if (typeof st.text !== 'string') return false;
-                if (showExampleSubtasksInline) return true; // include everything inline
+                if (typeof st.text !== 'string') {return false;}
+                if (showExampleSubtasksInline) {return true;} // include everything inline
                 return !st.text.toLowerCase().startsWith('example:');
               });
 
@@ -1495,7 +1493,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitButton: {
-    backgroundColor: Colors.adminPrimary,
+    backgroundColor: Colors.alertCoral,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -1533,7 +1531,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   upgradeButton: {
-    backgroundColor: Colors.adminPrimary,
+    backgroundColor: Colors.alertCoral,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

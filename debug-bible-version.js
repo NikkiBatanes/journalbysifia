@@ -24,7 +24,7 @@ async function checkBibleVersionPreference() {
       console.log(`\nProfile ${index + 1}:`);
       console.log('ID:', profile.id);
       console.log('Preferences:', JSON.stringify(profile.preferences, null, 2));
-      
+
       if (profile.preferences?.content?.bibleVersion) {
         console.log('Bible Version:', profile.preferences.content.bibleVersion);
       } else {

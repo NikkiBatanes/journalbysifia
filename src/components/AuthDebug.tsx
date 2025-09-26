@@ -10,18 +10,18 @@ const AuthDebug: React.FC = () => {
     try {
       console.log('🔍 Testing Google Auth...');
       Alert.alert('Debug', 'Starting Google Sign-In test...');
-      
+
       // Google Sign-In is configured in IndustryStandardAuthContext.tsx
       // No need to configure here to prevent conflicts
 
       // Check Play Services
       await GoogleSignin.hasPlayServices();
       console.log('✅ Play Services available');
-      
+
       // Attempt sign in
       const result = await GoogleSignin.signIn();
       console.log('✅ Google sign-in result:', result);
-      
+
       Alert.alert('Success', `Google Sign-In successful: ${result.data?.user.email}`);
     } catch (error: any) {
       console.error('❌ Google Auth Error:', error);
@@ -33,7 +33,7 @@ const AuthDebug: React.FC = () => {
     try {
       console.log('🔍 Testing Apple Auth...');
       Alert.alert('Debug', 'Starting Apple Sign-In test...');
-      
+
       if (Platform.OS !== 'ios') {
         Alert.alert('Error', 'Apple Sign-In only works on iOS');
         return;
@@ -62,7 +62,7 @@ const AuthDebug: React.FC = () => {
       <ThemedText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
         Auth Debug Panel
       </ThemedText>
-      
+
       <TouchableOpacity
         onPress={testGoogleAuth}
         style={{

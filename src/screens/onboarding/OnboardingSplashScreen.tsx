@@ -140,7 +140,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
       if (!effectiveUser) {
         console.log('[SplashScreen] ⏳ NO USER - Rechecking session with retry logic...');
-        
+
         // Try multiple times with delays to handle auth state propagation timing
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
@@ -160,7 +160,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
               console.log('[SplashScreen] ✅ Found session user on recheck, proceeding as authenticated');
               break;
             }
-            
+
             // Wait before next attempt (except on last attempt)
             if (attempt < 3) {
               console.log(`[SplashScreen] ⏳ Waiting 1s before attempt ${attempt + 1}...`);
@@ -271,9 +271,9 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           id: effectiveUser.id,
           email: effectiveUser.email,
           created_at: effectiveUser.created_at,
-          provider: (effectiveUser as any)?.app_metadata?.provider
+          provider: (effectiveUser as any)?.app_metadata?.provider,
         });
-        
+
         const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
 
         console.log('[SplashScreen] ✅ COMPLETION CHECK RESULT:', {
@@ -281,7 +281,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           hasCompleted,
           decision: hasCompleted ? 'MainTabs' : 'OnboardingPersonalization',
         });
-        
+
         // Additional debug: Check both database sources directly
         try {
           const { data: profile } = await supabase
@@ -311,13 +311,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         // FLOW 2: Detected user but did not finish onboarding
         // Check if this is a fresh account creation vs returning incomplete user
         const isNewUser = Date.now() - new Date(effectiveUser.created_at).getTime() < 5 * 60 * 1000; // 5 minutes
-        
+
         if (isNewUser) {
           // Fresh account creation → go to personalization
           const target = 'OnboardingPersonalization';
           const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
           const isOAuth = provider === 'apple' || provider === 'google';
-          
+
           // For OAuth users, always force name collection to avoid random Apple names
           let displayName = '';
           if (isOAuth) {
@@ -326,13 +326,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             displayName = '';
             console.log('[SplashScreen] OAuth user - forcing name collection:', {
               provider,
-              reason: 'Avoiding random/private relay names from Apple'
+              reason: 'Avoiding random/private relay names from Apple',
             });
           } else {
             // For email users, use first name or email prefix
             displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
           }
-          
+
           const params = {
             name: displayName,
             registrationMethod: isOAuth ? 'oauth' : 'email',
@@ -349,12 +349,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         } else {
           // Returning user with incomplete onboarding → route to personalization
           console.log('[SplashScreen] 🔄 RETURNING INCOMPLETE USER - Routing to personalization');
-          
+
           // Default: route to personalization
           const target = 'OnboardingPersonalization';
           const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
           const isOAuth = provider === 'apple' || provider === 'google';
-          
+
           // For OAuth users, always force name collection to avoid random Apple names (including on app reload)
           let displayName = '';
           if (isOAuth) {
@@ -363,13 +363,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             displayName = '';
             console.log('[SplashScreen] Returning OAuth user - forcing name collection on reload:', {
               provider,
-              reason: 'Avoiding random/private relay names from Apple on app reload'
+              reason: 'Avoiding random/private relay names from Apple on app reload',
             });
           } else {
             // For email users, use first name or email prefix
             displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
           }
-          
+
           const params = {
             name: displayName,
             registrationMethod: isOAuth ? 'oauth' : 'email',
@@ -390,7 +390,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const target = effectiveUser ? 'OnboardingPersonalization' : 'OnboardingWelcome';
           const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
           const isOAuth = provider === 'apple' || provider === 'google';
-          
+
           // For OAuth users, always force name collection to avoid random Apple names
           let displayName = '';
           if (effectiveUser) {
@@ -403,7 +403,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
               displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
             }
           }
-          
+
           const params = effectiveUser
             ? { name: displayName, registrationMethod: isOAuth ? 'oauth' : 'email' }
             : undefined;

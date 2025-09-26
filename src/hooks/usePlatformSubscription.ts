@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
-import platformSubscriptionService, { 
-  SubscriptionProduct, 
-  UpgradeRequest, 
+import platformSubscriptionService, {
+  SubscriptionProduct,
+  UpgradeRequest,
   UpgradeResult,
-  PlatformSubscriptionError 
+  PlatformSubscriptionError,
 } from '../services/platformSubscriptionService';
 import { SubscriptionTier } from '../types/subscription';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -15,14 +15,14 @@ export interface UsePlatformSubscriptionReturn {
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
-  
+
   // Actions
   initialize: () => Promise<void>;
   upgradeSubscription: (request: UpgradeRequest) => Promise<UpgradeResult>;
   requestDowngrade: (currentTier: SubscriptionTier, targetTier: SubscriptionTier, billing: 'monthly' | 'annual') => Promise<{ requiresPlatformAction: boolean; message: string }>;
   restorePurchases: () => Promise<any[]>;
   getCurrentSubscription: () => Promise<any>;
-  
+
   // Helpers
   getProduct: (tier: SubscriptionTier, billing: 'monthly' | 'annual') => SubscriptionProduct | null;
   isValidUpgrade: (currentTier: SubscriptionTier, targetTier: SubscriptionTier) => boolean;
@@ -40,25 +40,25 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
    * Initialize the platform subscription service
    */
   const initialize = useCallback(async () => {
-    if (isInitialized) return;
-    
+    if (isInitialized) {return;}
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log('[usePlatformSubscription] Initializing...');
       await platformSubscriptionService.initialize();
-      
+
       const availableProducts = platformSubscriptionService.getProducts();
       setProducts(availableProducts);
       setIsInitialized(true);
-      
+
       console.log(`[usePlatformSubscription] Initialized with ${availableProducts.length} products`);
     } catch (err) {
-      const errorMessage = err instanceof PlatformSubscriptionError 
-        ? err.message 
+      const errorMessage = err instanceof PlatformSubscriptionError
+        ? err.message
         : 'Failed to initialize subscription service';
-      
+
       console.error('[usePlatformSubscription] Initialization failed:', err);
       setError(errorMessage);
     } finally {
@@ -72,25 +72,25 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
   const upgradeSubscription = useCallback(async (request: UpgradeRequest): Promise<UpgradeResult> => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log('[usePlatformSubscription] Starting upgrade:', request);
-      
+
       // Validate upgrade
       if (!platformSubscriptionService.isValidUpgrade(request.currentTier, request.targetTier)) {
         throw new Error(`Invalid upgrade: ${request.currentTier} to ${request.targetTier}`);
       }
-      
+
       const result = await platformSubscriptionService.upgradeSubscription(request);
-      
+
       console.log('[usePlatformSubscription] Upgrade completed:', result);
       return result;
-      
+
     } catch (err) {
-      const errorMessage = err instanceof PlatformSubscriptionError 
-        ? err.message 
+      const errorMessage = err instanceof PlatformSubscriptionError
+        ? err.message
         : `Upgrade failed: ${err.message}`;
-      
+
       console.error('[usePlatformSubscription] Upgrade failed:', err);
       setError(errorMessage);
       throw err;
@@ -103,31 +103,31 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
    * Request downgrade
    */
   const requestDowngrade = useCallback(async (
-    currentTier: SubscriptionTier, 
-    targetTier: SubscriptionTier, 
+    currentTier: SubscriptionTier,
+    targetTier: SubscriptionTier,
     billing: 'monthly' | 'annual'
   ) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log('[usePlatformSubscription] Requesting downgrade:', { currentTier, targetTier, billing });
-      
+
       // Validate downgrade
       if (!platformSubscriptionService.isValidDowngrade(currentTier, targetTier)) {
         throw new Error(`Invalid downgrade: ${currentTier} to ${targetTier}`);
       }
-      
+
       const result = await platformSubscriptionService.requestDowngrade(currentTier, targetTier, billing);
-      
+
       console.log('[usePlatformSubscription] Downgrade request completed:', result);
       return result;
-      
+
     } catch (err) {
-      const errorMessage = err instanceof PlatformSubscriptionError 
-        ? err.message 
+      const errorMessage = err instanceof PlatformSubscriptionError
+        ? err.message
         : `Downgrade request failed: ${err.message}`;
-      
+
       console.error('[usePlatformSubscription] Downgrade request failed:', err);
       setError(errorMessage);
       throw err;
@@ -142,19 +142,19 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
   const restorePurchases = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log('[usePlatformSubscription] Restoring purchases...');
       const purchases = await platformSubscriptionService.restorePurchases();
-      
+
       console.log(`[usePlatformSubscription] Restored ${purchases.length} purchases`);
       return purchases;
-      
+
     } catch (err) {
-      const errorMessage = err instanceof PlatformSubscriptionError 
-        ? err.message 
+      const errorMessage = err instanceof PlatformSubscriptionError
+        ? err.message
         : 'Failed to restore purchases';
-      
+
       console.error('[usePlatformSubscription] Restore failed:', err);
       setError(errorMessage);
       throw err;
@@ -170,10 +170,10 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     try {
       console.log('[usePlatformSubscription] Getting current subscription...');
       const subscription = await platformSubscriptionService.getCurrentSubscription();
-      
+
       console.log('[usePlatformSubscription] Current subscription:', subscription);
       return subscription;
-      
+
     } catch (err) {
       console.error('[usePlatformSubscription] Failed to get current subscription:', err);
       return null;
@@ -229,14 +229,14 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     isLoading,
     isInitialized,
     error,
-    
+
     // Actions
     initialize,
     upgradeSubscription,
     requestDowngrade,
     restorePurchases,
     getCurrentSubscription,
-    
+
     // Helpers
     getProduct,
     isValidUpgrade,

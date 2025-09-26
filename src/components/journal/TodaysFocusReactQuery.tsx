@@ -616,8 +616,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         onAdd={toggleEditing}
         isAdding={shouldShowEditingMode}
         headerRight={planningGating.lockIconVisible ? (
-          <PlanningLockIcon 
-            tier={planningGating.currentTier} 
+          <PlanningLockIcon
+            tier={planningGating.currentTier}
             context="inApp"
             onLockTap={planningGating.handleLockedAction}
             size={16}

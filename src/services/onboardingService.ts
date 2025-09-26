@@ -460,7 +460,7 @@ export class OnboardingService {
   async hasCompletedOnboarding(userId: string): Promise<boolean> {
     try {
       console.log('[OnboardingService] Checking completion for user:', userId);
-      
+
       // 1) Primary source of truth: user_profiles.onboarding_completed
       try {
         const { data: profile, error: profErr } = await this.supabase
@@ -469,10 +469,10 @@ export class OnboardingService {
           .eq('id', userId)
           .single();
 
-        console.log('[OnboardingService] Profile check result:', { 
-          hasProfile: !!profile, 
+        console.log('[OnboardingService] Profile check result:', {
+          hasProfile: !!profile,
           onboardingCompleted: profile?.onboarding_completed,
-          error: profErr?.message 
+          error: profErr?.message,
         });
 
         if (!profErr && profile) {
@@ -491,13 +491,13 @@ export class OnboardingService {
       console.log('[OnboardingService] Checking fallback onboarding_progress...');
       const progress = await this.getOnboardingProgress(userId);
       const fallbackResult = progress?.is_completed === true;
-      
+
       console.log('[OnboardingService] Fallback check result:', {
         hasProgress: !!progress,
         isCompleted: progress?.is_completed,
-        finalResult: fallbackResult
+        finalResult: fallbackResult,
       });
-      
+
       return fallbackResult;
     } catch (error) {
       console.error('[OnboardingService] Error checking onboarding completion:', error);

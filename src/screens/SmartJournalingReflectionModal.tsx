@@ -138,7 +138,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   // Clear completion info when modal opens to prevent accidental triggers
   const [prevVisible, setPrevVisible] = useState(visible);
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   useEffect(() => {
     if (visible && !prevVisible) {
       // Modal is opening (transition from false to true)
@@ -151,15 +151,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       // Auto-focus the first input when modal opens for new entries
       const hasExistingContent = existingReflection?.content && existingReflection.content.trim();
       const isFreeformMode = !isGuidedReflection && !playbookId;
-      
+
       console.log('[SmartJournalingReflectionModal] Auto-focus check:', {
         hasExistingContent,
         isFreeformMode,
         isGuidedReflection,
         playbookId: !!playbookId,
-        willAutoFocus: !hasExistingContent && !isFreeformMode
+        willAutoFocus: !hasExistingContent && !isFreeformMode,
       });
-      
+
       // Skip auto-focus for freeform mode - let ReflectionLogEditor handle its own focus
       if (!hasExistingContent && !isFreeformMode) {
         console.log('[SmartJournalingReflectionModal] Setting up modal auto-focus (non-freeform mode)');

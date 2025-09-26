@@ -329,7 +329,7 @@ describe('FamilySubscriptionService', () => {
       ];
 
       jest.spyOn(FamilySubscriptionService, 'getFamilyGroup').mockResolvedValue(mockFamilyGroup as any);
-      
+
       mockNewSubscriptionService.getUserSubscription
         .mockResolvedValueOnce(mockSubscriptions[0] as any)
         .mockResolvedValueOnce(mockSubscriptions[1] as any);

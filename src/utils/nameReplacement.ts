@@ -54,7 +54,7 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
     if (match && match[1]) {
       const detectedName = match[1];
       const followingText = match[2] || ''; // Preserve following text if exists
-      
+
       // Replace if it looks like a name and is different from current name
       if (detectedName !== currentFirstName && (isLikelyName(detectedName) || detectedName.toLowerCase() === 'loaer')) {
         if (followingText) {

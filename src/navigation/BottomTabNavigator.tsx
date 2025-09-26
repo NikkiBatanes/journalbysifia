@@ -66,7 +66,7 @@ const CustomTabBarComponent = ({
     (async () => {
       try {
         await experiencePreferences.loadOnce();
-        if (!isMounted) return;
+        if (!isMounted) {return;}
         setShowLabels(experiencePreferences.showTabLabelsEnabled);
       } catch {}
     })();

@@ -25,10 +25,10 @@ interface PlanningLockIconProps {
 
 /**
  * PlanningLockIcon - Enterprise-grade lock icon for future planning features
- * 
+ *
  * Shows lock icon for Seeker tier users when accessing future planning features.
  * Uses same styling and behavior as DevotionalLockIcon for consistency.
- * 
+ *
  * @param tier - User's current subscription tier
  * @param context - Context for upgrade messaging
  * @param onLockTap - Callback when lock is tapped
@@ -44,11 +44,11 @@ export const PlanningLockIcon: React.FC<PlanningLockIconProps> = ({
   size = 20,
   showLabel = false,
   style,
-  position = 'right'
+  position = 'right',
 }) => {
   // Check access using tier locking rules
   const accessCheck = checkPlanningAccess(tier, context);
-  
+
   // Don't render if not locked
   if (!accessCheck.lockIconVisible) {
     return null;
@@ -65,7 +65,7 @@ export const PlanningLockIcon: React.FC<PlanningLockIconProps> = ({
     styles.container,
     position === 'center' && styles.centerPosition,
     position === 'left' && styles.leftPosition,
-    style
+    style,
   ];
 
   return (

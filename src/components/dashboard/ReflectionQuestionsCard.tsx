@@ -67,7 +67,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   const [hasLoaded, setHasLoaded] = useState(false);
   const initialLoadRef = React.useRef(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Guided prompt gating
   const guidedPromptGating = useGuidedPromptGating({
     context: 'inApp',
@@ -78,17 +78,17 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         feature: 'guided_prompts',
         tier: subscription?.tier || 'seeker',
         upgradeMode: false,
-        skipNotificationPreference: true
+        skipNotificationPreference: true,
       });
-    }
+    },
   });
-  
+
   // Debug guided prompt gating
   console.log('[ReflectionQuestionsCard] Guided prompt gating:', {
     tier: subscription?.tier,
     usedPrompts: guidedPromptGating.usedPrompts,
     availablePrompts: guidedPromptGating.availablePrompts.length,
-    accessCheck: guidedPromptGating.accessCheck
+    accessCheck: guidedPromptGating.accessCheck,
   });
   // No need to fetch today's reflections for this version
   const [_diag, setDiag] = useState<{
@@ -302,12 +302,12 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
       // Add guided prompts using centralized service
       const guidedQuestions: ReflectionQuestion[] = [];
-      
+
       // Use hook's daily allocation instead of duplicate logic
       const freePrompts = guidedPromptGating.freePrompts || [];
       const lockedPrompts = guidedPromptGating.lockedPrompts || [];
       const allGuidedPrompts = [...freePrompts, ...lockedPrompts];
-      
+
       allGuidedPrompts.forEach((prompt, i) => {
         const isFree = freePrompts.includes(prompt);
         guidedQuestions.push({
@@ -321,15 +321,15 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           groupLabel: isFree ? 'Free Guided Prompt' : 'Guided Prompt',
         });
       });
-      
+
       console.log('[ReflectionQuestionsCard] Adding guided questions:', {
         currentTier: subscription?.tier,
         freePrompts: freePrompts.length,
         lockedPrompts: lockedPrompts.length,
         totalGuidedQuestions: guidedQuestions.length,
-        totalQuestions: allQuestions.length + guidedQuestions.length
+        totalQuestions: allQuestions.length + guidedQuestions.length,
       });
-      
+
       setQuestions([...allQuestions, ...guidedQuestions]);
 
     } catch (err) {
@@ -376,9 +376,9 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       .subscribe();
 
     return () => {
-      try { 
+      try {
         channel.unsubscribe();
-        supabase.removeChannel(channel); 
+        supabase.removeChannel(channel);
       } catch {}
     };
   }, [user, fetchReflectionQuestions]);
@@ -537,7 +537,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                           feature: 'guided_prompts',
                           tier: subscription?.tier || 'seeker',
                           upgradeMode: false,
-                          skipNotificationPreference: true
+                          skipNotificationPreference: true,
                         });
                       }}
                       size={20}
@@ -547,7 +547,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     />
                   </View>
                 )}
-                
+
                 <View style={styles.sectionHeader}>
                   <MaterialCommunityIcons name={getSourceIcon(item.sourceType)} size={20} color={Colors.textGray} style={styles.sectionIcon} />
                   <ThemedText weight="semiBold" style={styles.sectionLabel}>
@@ -575,7 +575,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           })}
         </Animated.ScrollView>
       ) : null}
-      
+
     </View>
   );
 };

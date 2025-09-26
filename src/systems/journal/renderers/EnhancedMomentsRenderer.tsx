@@ -398,7 +398,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  
+
   // Create dynamic fonts object
   const fonts = useMemo(() => ({
     regular: getFontFamily(fontKey, 'regular'),
@@ -657,32 +657,32 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
                 // Prefer Devotional plugin for devo journal entries; fallback to Prayer plugin
                 const selectedPlugin = isDevotionalJE ? (devoPlugin || prayerPluginFromJE || plugin) : plugin;
-                
+
                 // Check if this is a prayer-related journal entry that needs filtering
-                const isPrayerJournalEntry = isDevotionalJE || 
+                const isPrayerJournalEntry = isDevotionalJE ||
                                            entry.content_type === 'prayed_devotional' ||
                                            (entry as any).journal_category ||
                                            (entry as any).prayer_type;
-                
+
                 let shouldIncludeJournalEntry = true;
-                
+
                 if (isPrayerJournalEntry) {
                   // Apply same filtering logic as prayers table
-                  const isAnswered = ((entry as any).is_answered === true) || 
-                                   ((entry as any).status === 'answered') || 
+                  const isAnswered = ((entry as any).is_answered === true) ||
+                                   ((entry as any).status === 'answered') ||
                                    !!(entry as any).answered_date;
-                  
+
                   const journalCategory = ((entry as any).journal_category || '').toString().toLowerCase();
                   const prayerType = ((entry as any).prayer_type || '').toString().toLowerCase();
-                  
+
                   // Only include answered prayers from supplication or open prayer categories
-                  const isSupplicationOrOpenPrayer = journalCategory === 'supplication' || 
+                  const isSupplicationOrOpenPrayer = journalCategory === 'supplication' ||
                                                      journalCategory === 'personal_prayer' ||
                                                      (prayerType === 'journal' && !['adoration', 'confession', 'thanksgiving'].includes(journalCategory));
-                  
+
                   // Let all prayer journal entries through initially - the secondary filter will handle answered/category filtering
                   shouldIncludeJournalEntry = true;
-                  
+
                   console.log('🔍 [MomentsRenderer] Prayer journal entry filtering:', {
                     content_type: entry.content_type,
                     isAnswered,
@@ -691,7 +691,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                     shouldIncludeJournalEntry,
                   });
                 }
-                
+
                 if (shouldIncludeJournalEntry) {
                   const momentEntry = {
                     plugin: selectedPlugin,
@@ -840,23 +840,23 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 }) ||
                 devoBooleans.some(Boolean);
               if (isDevotional) {devoCount++;}
-              
+
               // Check if prayer is answered
               const isAnswered = ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date;
-              
+
               // Get prayer category
               const journalCategory = ((prayer as any).journal_category || '').toString().toLowerCase();
               const prayerType = ((prayer as any).prayer_type || '').toString().toLowerCase();
-              
+
               // Only include answered prayers from supplication or open prayer (personal_prayer) categories
               // Exclude adoration, confession, and thanksgiving
-              const isSupplicationOrOpenPrayer = journalCategory === 'supplication' || 
+              const isSupplicationOrOpenPrayer = journalCategory === 'supplication' ||
                                                  journalCategory === 'personal_prayer' ||
                                                  (prayerType === 'journal' && !['adoration', 'confession', 'thanksgiving'].includes(journalCategory));
-              
+
               // Let all prayers through initially - the secondary filter will handle answered/category filtering
               const shouldIncludePrayer = true;
-              
+
               const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isDevotional;
 
               console.log('🔍 [MomentsRenderer] Processing prayer entry:', {
@@ -1264,7 +1264,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     // Exclusive handling for answered/unanswered filters: if exactly one is selected, only show matching prayers
     const hasAnsweredOnly = filterKeys.includes('answeredPrayers') && !filterKeys.includes('unansweredPrayers');
     const hasUnansweredOnly = filterKeys.includes('unansweredPrayers') && !filterKeys.includes('answeredPrayers');
-    
+
     console.log('🔍 [MomentsRenderer] Filter keys debug:', {
       filterKeys,
       hasAnsweredOnly,
@@ -1272,23 +1272,23 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       willApplyAnsweredFilter: hasAnsweredOnly || hasUnansweredOnly,
       entriesBeforeFilter: filteredEntries.length,
     });
-    
+
     if (hasAnsweredOnly || hasUnansweredOnly) {
       const wantAnswered = hasAnsweredOnly;
       filteredEntries = filteredEntries.filter(e => {
-        if (!e._isPrayer) return false;
-        
+        if (!e._isPrayer) {return false;}
+
         // Check if prayer is answered/unanswered as requested
         const matchesAnsweredStatus = !!e.isAnswered === wantAnswered;
-        
+
         console.log('🔍 [MomentsRenderer] Prayer answered status check:', {
           type: e.type,
           isAnswered: e.isAnswered,
           wantAnswered,
           matchesAnsweredStatus,
         });
-        
-        if (!matchesAnsweredStatus) return false;
+
+        if (!matchesAnsweredStatus) {return false;}
 
         // When showing unanswered prayers, exclude 'Prayer List for people'
         if (!wantAnswered) {
@@ -1301,28 +1301,28 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             return false;
           }
         }
-        
+
         // For answered prayers, hide confession, thanksgiving, and adoration completely
         if (wantAnswered) {
           // Get the prayer type from the entry type
           const entryType = (e.type || '').toLowerCase();
-          
+
           // Hide these specific categories completely
-          const isExcludedCategory = entryType.includes('confession') || 
-                                   entryType.includes('thanksgiving') || 
+          const isExcludedCategory = entryType.includes('confession') ||
+                                   entryType.includes('thanksgiving') ||
                                    entryType.includes('adoration');
-          
+
           console.log('🔍 [MomentsRenderer] Checking answered prayer category:', {
             type: e.type,
             entryType,
             isExcludedCategory,
             willShow: !isExcludedCategory,
           });
-          
+
           // Only show if it's NOT an excluded category
           return !isExcludedCategory;
         }
-        
+
         return true;
       });
       console.log('🔍 [MomentsRenderer] Exclusive answered filter applied:', wantAnswered ? 'answered' : 'unanswered', filteredEntries.length);
@@ -1346,14 +1346,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
     // Skip legacy prayer answer filter if the new filterKeys system is handling it
     const isUsingNewFilterSystem = filterKeys.includes('answeredPrayers') || filterKeys.includes('unansweredPrayers');
-    
+
     console.log('🔍 [MomentsRenderer] Legacy filter check:', {
       prayerAnswerFilter,
       isUsingNewFilterSystem,
       willSkipLegacyFilter: isUsingNewFilterSystem,
       entriesBeforeLegacyFilter: filteredEntries.length,
     });
-    
+
     if (prayerAnswerFilter !== 'all' && !isUsingNewFilterSystem) {
       const wantAnswered = prayerAnswerFilter === 'answered';
       filteredEntries = filteredEntries.filter(entry => {
@@ -1375,7 +1375,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     return filteredEntries;
   }, [realEntries, searchQuery, dateRange, prayerAnswerFilter, filterKeys]);
 
-  // Sort entries
+  // Sort entries (used in grouping logic)
   const sortedEntries = React.useMemo(() => {
     console.log('🔍 [MomentsRenderer] SORTING ENTRIES - Input count:', generateMomentEntries.length);
     const sorted = [...generateMomentEntries];
@@ -1416,7 +1416,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       // For 'none' grouping, create carousel groups by type within the single section
       const typeGroups: Record<string, MomentEntry[]> = {};
 
-      generateMomentEntries.forEach((entry) => {
+      sortedEntries.forEach((entry) => {
         const typeKey = entry.type;
         if (!typeGroups[typeKey]) {
           typeGroups[typeKey] = [];
@@ -1451,7 +1451,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       type MonthWeeks = Record<string, { start: Date; end: Date; key: string; entries: MomentEntry[]; title: string }>
       const byMonth: Record<string, MonthWeeks> = {};
 
-      generateMomentEntries.forEach(entry => {
+      sortedEntries.forEach(entry => {
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
         const wkStart = getWeekStart(entry.date, weekStartsOn);
         const wkEnd = getWeekEnd(entry.date, weekStartsOn);
@@ -1543,7 +1543,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       type YearMonths = Record<string, { start: Date; end: Date; key: string; entries: MomentEntry[]; title: string; days: Record<string, MomentEntry[]> }>; // per month metadata
       const byYear: Record<string, YearMonths> = {};
 
-      generateMomentEntries.forEach((entry) => {
+      sortedEntries.forEach((entry) => {
         const yearKey = format(entry.date, 'yyyy');
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
         if (!byYear[yearKey]) {byYear[yearKey] = {} as YearMonths;}
@@ -1612,7 +1612,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const byYear: Record<string, YearMonths> = {};
 
       // Build Year -> Month -> Day map
-      generateMomentEntries.forEach((entry) => {
+      sortedEntries.forEach((entry) => {
         const yearKey = format(entry.date, 'yyyy');
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
         if (!byYear[yearKey]) {byYear[yearKey] = {} as YearMonths;}
@@ -1698,7 +1698,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
     const groups: Record<string, MomentEntry[]> = {};
 
-    generateMomentEntries.forEach((entry) => {
+    sortedEntries.forEach((entry) => {
       let groupKey: string;
 
       switch (groupBy) {
@@ -1811,7 +1811,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     });
 
     return sortedSections;
-  }, [generateMomentEntries, groupBy, sortBy, expandedWeeks, expandedMonths, expandedYears, weekStartsOn]);
+  }, [sortedEntries, groupBy, sortBy, expandedWeeks, expandedMonths, expandedYears, weekStartsOn]);
 
   // Only include sections with content
   const sectionsWithContent = useMemo(() => groupedSections.filter(s => (s.data?.length || 0) > 0), [groupedSections]);
@@ -2295,7 +2295,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       // Month card within expanded year
       if (anyItem && anyItem.start && anyItem.end && anyItem.title && anyItem.key) {
         const month = anyItem as MonthItem;
-        const isExpanded = !!expandedMonths[month.key];
         const toggle = () => {
           triggerLightHaptic();
           return setExpandedMonths(prev => (prev[month.key] ? {} : ({ [month.key]: true } as Record<string, boolean>)));
@@ -2400,7 +2399,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         (sectionListRef.current as any)?.getScrollResponder?.()?.scrollTo?.({ y: 0, animated: false });
       }
     });
-  }, [listKey]);
+  }, [listKey, sectionsWithContent]);
 
   // Context-aware empty subtitle
   const emptySubtitleText = useMemo(() => {
@@ -2436,7 +2435,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         </TouchableOpacity>
       )}
     </View>
-  ), [emptySubtitleText, onAddPress]);
+  ), [emptySubtitleText, onAddPress, styles.emptyButton, styles.emptyButtonText, styles.emptyIcon, styles.emptyState, styles.emptySubtitle, styles.emptyTitle]);
 
   // Show skeleton during loading instead of empty state
   if (_loading) {

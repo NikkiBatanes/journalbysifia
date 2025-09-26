@@ -5,11 +5,11 @@
  */
 
 import { Alert } from 'react-native';
-import appleAuth, { 
-  AppleRequestOperation, 
+import appleAuth, {
+  AppleRequestOperation,
   AppleRequestScope,
   AppleCredentialState,
-  AppleError 
+  AppleError,
 } from '@invertase/react-native-apple-authentication';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { supabase } from './supabaseClient';
@@ -30,7 +30,7 @@ export interface AuthError {
 }
 
 export class EnterpriseAuthService {
-  
+
   /**
    * Initialize authentication service
    * Configure providers and validate setup
@@ -59,7 +59,7 @@ export class EnterpriseAuthService {
       if (!appleAuth.isSupported) {
         return {
           success: false,
-          error: 'Apple Sign-In is not available on this device'
+          error: 'Apple Sign-In is not available on this device',
         };
       }
 
@@ -75,17 +75,17 @@ export class EnterpriseAuthService {
       if (!identityToken) {
         return {
           success: false,
-          error: 'Apple Sign-In failed to return identity token'
+          error: 'Apple Sign-In failed to return identity token',
         };
       }
 
       // Verify credential state
       const credentialState = await appleAuth.getCredentialStateForUser(appleUserId);
-      
+
       if (credentialState !== AppleCredentialState.AUTHORIZED) {
         return {
           success: false,
-          error: 'Apple Sign-In authorization was revoked'
+          error: 'Apple Sign-In authorization was revoked',
         };
       }
 
@@ -102,23 +102,23 @@ export class EnterpriseAuthService {
         console.error('❌ Supabase Apple Sign-In error:', error);
         return {
           success: false,
-          error: `Authentication failed: ${error.message}`
+          error: `Authentication failed: ${error.message}`,
         };
       }
 
       console.log('✅ Apple Sign-In completed successfully');
-      
+
       return {
         success: true,
         user: data.user,
-        session: data.session
+        session: data.session,
       };
 
     } catch (error: any) {
       console.error('❌ Apple Sign-In error:', error);
       return {
         success: false,
-        error: this.handleAppleError(error)
+        error: this.handleAppleError(error),
       };
     }
   }
@@ -142,7 +142,7 @@ export class EnterpriseAuthService {
       if (!userInfo || !('data' in userInfo) || !userInfo.data?.idToken) {
         return {
           success: false,
-          error: 'Google Sign-In failed to return ID token'
+          error: 'Google Sign-In failed to return ID token',
         };
       }
 
@@ -158,7 +158,7 @@ export class EnterpriseAuthService {
         console.error('❌ Supabase Google Sign-In error:', error);
         return {
           success: false,
-          error: `Authentication failed: ${error.message}`
+          error: `Authentication failed: ${error.message}`,
         };
       }
 
@@ -167,14 +167,14 @@ export class EnterpriseAuthService {
       return {
         success: true,
         user: data.user,
-        session: data.session
+        session: data.session,
       };
 
     } catch (error: any) {
       console.error('❌ Google Sign-In error:', error);
       return {
         success: false,
-        error: this.handleGoogleError(error)
+        error: this.handleGoogleError(error),
       };
     }
   }
@@ -188,12 +188,12 @@ export class EnterpriseAuthService {
 
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         console.error('❌ Supabase sign out error:', error);
         return {
           success: false,
-          error: `Sign out failed: ${error.message}`
+          error: `Sign out failed: ${error.message}`,
         };
       }
 
@@ -213,7 +213,7 @@ export class EnterpriseAuthService {
       console.error('❌ Sign out error:', error);
       return {
         success: false,
-        error: `Sign out failed: ${error.message}`
+        error: `Sign out failed: ${error.message}`,
       };
     }
   }
@@ -237,23 +237,23 @@ export class EnterpriseAuthService {
   static async refreshSession(): Promise<AuthResult> {
     try {
       const { data, error } = await supabase.auth.refreshSession();
-      
+
       if (error) {
         return {
           success: false,
-          error: `Session refresh failed: ${error.message}`
+          error: `Session refresh failed: ${error.message}`,
         };
       }
 
       return {
         success: true,
         user: data.user,
-        session: data.session
+        session: data.session,
       };
     } catch (error: any) {
       return {
         success: false,
-        error: `Session refresh failed: ${error.message}`
+        error: `Session refresh failed: ${error.message}`,
       };
     }
   }

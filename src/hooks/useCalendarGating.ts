@@ -14,19 +14,19 @@ export interface CalendarGatingState {
   canUseRepeat: boolean;
   canUseLocationServices: boolean;
   canDeleteSeries: boolean;
-  
+
   // Current tier info
   currentTier: string;
   isSeeker: boolean;
-  
+
   // UI state
   showCalendarLock: boolean;
   showRepeatLock: boolean;
-  
+
   // Actions
   handleCalendarLockTap: () => void;
   handleRepeatLockTap: () => void;
-  
+
   // Upgrade prompts
   showCalendarUpgradePrompt: () => void;
   showRepeatUpgradePrompt: () => void;
@@ -43,38 +43,38 @@ export const useCalendarGating = (): CalendarGatingState => {
         setCurrentTier('seeker');
         return;
       }
-      
+
       try {
         // Use the same service that UserProfile uses to get accurate tier
         const { NewSubscriptionService } = await import('../services/NewSubscriptionService');
         const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
-        
+
         console.log('🔍 useCalendarGating - Subscription service tier:', {
           tier: subscriptionData.tier,
           status: subscriptionData.status,
-          user_id: user.id
+          user_id: user.id,
         });
-        
+
         setCurrentTier(subscriptionData.tier || 'seeker');
       } catch (error) {
         console.error('🔍 useCalendarGating - Failed to get subscription:', error);
-        
+
         // Fallback to user object properties
-        const userTier = (user as any)?.subscription?.tier 
+        const userTier = (user as any)?.subscription?.tier
           || (user as any)?.app_metadata?.subscription_tier
           || (user as any)?.user_metadata?.subscription_tier
           || (user as any)?.tier
           || 'seeker';
-        
+
         console.log('🔍 useCalendarGating - Fallback tier detection:', {
           subscription_tier: (user as any)?.subscription?.tier,
           app_metadata_tier: (user as any)?.app_metadata?.subscription_tier,
           user_metadata_tier: (user as any)?.user_metadata?.subscription_tier,
           direct_tier: (user as any)?.tier,
           final_tier: userTier,
-          user_id: user?.id
+          user_id: user?.id,
         });
-        
+
         setCurrentTier(userTier);
       }
     };
@@ -88,9 +88,9 @@ export const useCalendarGating = (): CalendarGatingState => {
     console.log('🔍 useCalendarGating - Permissions calculation:', {
       currentTier,
       isSeeker,
-      tierCheck: currentTier === 'seeker'
+      tierCheck: currentTier === 'seeker',
     });
-    
+
     // Seeker (freemium) restrictions
     if (isSeeker) {
       return {

@@ -239,7 +239,7 @@ export class ReflectionApi {
   // Search reflections with various filters
   static async searchReflections(options: SearchReflectionsOptions): Promise<ReflectionApiEntry[]> {
     const { searchTerm, devotionalId, dayNumber, questionNumber, limit = 10, userId } = options;
-    
+
     let query = supabase
       .from('reflection_entries')
       .select('*')
@@ -278,8 +278,8 @@ export class ReflectionApi {
 
   // Get reflection statistics
   static async getReflectionStats(
-    userId: string, 
-    startDate: string, 
+    userId: string,
+    startDate: string,
     endDate: string
   ): Promise<{ total: number; free: number; guided: number; devotional: number }> {
     const { data, error } = await supabase

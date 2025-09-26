@@ -121,35 +121,35 @@ export const useReflectionStats = (userId: string, startDate: string, endDate: s
 export const useIsQuestionJournaled = (questionText: string, devotionalId?: string, dayNumber?: number, questionNumber?: number) => {
   const { user } = useAuth();
   const userId = user?.id;
-  
+
   return useQuery({
     queryKey: queryKeys.reflections.byQuestion(userId || '', questionText, devotionalId, dayNumber, questionNumber),
     queryFn: async () => {
-      if (!userId) return false;
-      
+      if (!userId) {return false;}
+
       // First try to find by exact question text and devotional context
       const reflections = await ReflectionApi.searchReflections(userId, {
         searchTerm: `"${questionText}"`,
         devotionalId,
         dayNumber,
         questionNumber,
-        limit: 1
+        limit: 1,
       });
-      
+
       // If no results, try a more general search
       if (reflections.length === 0) {
         const generalResults = await ReflectionApi.searchReflections(userId, {
           searchTerm: questionText,
-          limit: 5
+          limit: 5,
         });
-        
+
         // Check if any result contains the question text
-        return generalResults.some(reflection => 
-          reflection.content?.includes(questionText) || 
+        return generalResults.some(reflection =>
+          reflection.content?.includes(questionText) ||
           reflection.prompt?.includes(questionText)
         );
       }
-      
+
       return reflections.length > 0;
     },
     ...queryOptionsPresets.stable,
@@ -202,7 +202,7 @@ export const useCreateReflection = () => {
     },
     onSuccess: (data, variables) => {
       console.log('🔍 useCreateReflection: Success callback triggered', { data, variables });
-      
+
       // Update the cache directly with the new data
       const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
       queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
@@ -210,7 +210,7 @@ export const useCreateReflection = () => {
         const filtered = old.filter(entry => !entry.id.startsWith('temp-'));
         return [...filtered, data];
       });
-      
+
       // Invalidate and refetch related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date) });
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type) });

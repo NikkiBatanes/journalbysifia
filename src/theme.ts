@@ -1,6 +1,5 @@
 // Legacy theme file - now exports from new theme system
 // This maintains backward compatibility while using the new organized theme structure
-import { Platform } from 'react-native';
 import { Colors as NewColors } from './theme/colors';
 import { Fonts as NewFonts, defaultTextStyle } from './theme/fonts';
 

@@ -438,7 +438,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       // Apply optimistic update immediately
       setDisplayWin(optimisticWin);
       console.log('🏆 TodayWin: Optimistic update applied:', optimisticWin);
-      
+
       // Close global edit mode if active
       if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
         globalEditMode.setGlobalEditMode(false);

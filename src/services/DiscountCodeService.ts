@@ -43,11 +43,11 @@ export class DiscountCodeService {
     try {
       // Get user's subscription history to determine appropriate discount
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
-      
+
       // Calculate discount based on previous tier
       let discountPercentage = 20; // Default 20% off
       let validDays = 30; // Valid for 30 days
-      
+
       switch (previousTier) {
         case 'spark':
           discountPercentage = 25;
@@ -103,7 +103,7 @@ export class DiscountCodeService {
   ): Promise<DiscountCode> {
     try {
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
-      
+
       let code: string;
       let discountPercentage: number;
       let validDays: number;
@@ -116,21 +116,21 @@ export class DiscountCodeService {
           validDays = 7;
           applicableTiers = ['spark', 'growth'];
           break;
-        
+
         case 'upgrade_incentive':
           code = this.generateDiscountCode('UPGRADE');
           discountPercentage = 20;
           validDays = 14;
           applicableTiers = subscription.tier === 'spark' ? ['growth', 'transformation'] : ['transformation', 'family'];
           break;
-        
+
         case 'retention':
           code = this.generateDiscountCode('STAY');
           discountPercentage = 25;
           validDays = 30;
           applicableTiers = [subscription.tier];
           break;
-        
+
         default:
           throw new Error('Invalid discount type');
       }
@@ -246,7 +246,7 @@ export class DiscountCodeService {
       }
 
       // Calculate discount amount (this would depend on your pricing structure)
-      const discountAmount = discount.discount_percentage 
+      const discountAmount = discount.discount_percentage
         ? this.calculatePercentageDiscount(targetTier, discount.discount_percentage)
         : discount.discount_amount || 0;
 
@@ -276,7 +276,7 @@ export class DiscountCodeService {
     try {
       // Validate the discount code first
       const validation = await this.validateDiscountCode(code, userId, targetTier);
-      
+
       if (!validation.isValid || !validation.discount) {
         throw new Error(validation.error || 'Invalid discount code');
       }
@@ -342,7 +342,7 @@ export class DiscountCodeService {
   static async createCustomDiscountCode(options: CreateDiscountCodeOptions): Promise<DiscountCode> {
     try {
       const code = options.code || this.generateDiscountCode('CUSTOM');
-      
+
       const discountData = {
         code: code.toUpperCase(),
         discount_percentage: options.discount_percentage,

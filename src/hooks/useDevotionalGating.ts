@@ -5,12 +5,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { subscriptionService } from '../services/subscriptionService';
 import type { SubscriptionTier, Subscription } from '../types/subscription';
-import { 
-  checkDevotionalAccess, 
+import {
+  checkDevotionalAccess,
   getUsageDisplayMessage,
   getUpgradeMessage,
   getTierAccessRules,
-  type DevotionalAccessCheck 
+  type DevotionalAccessCheck,
 } from '../utils/tierLockingRules';
 
 interface DevotionalGatingState {
@@ -33,19 +33,19 @@ interface DevotionalGatingResult {
   tier: SubscriptionTier;
   loading: boolean;
   error: string | null;
-  
+
   // Access checking
   checkAccess: (duration: number, context?: 'onboarding' | 'inApp') => DevotionalAccessCheck;
   canGenerate: (duration: number) => boolean;
   isLocked: (duration: number) => boolean;
-  
+
   // Usage information
   usageInfo: DevotionalUsageInfo;
-  
+
   // Messaging
   getUsageMessage: (remaining?: number) => string;
   getUpgradeMessage: (context?: 'onboarding' | 'inApp') => string;
-  
+
   // Actions
   refreshSubscription: () => Promise<void>;
 }
@@ -56,48 +56,48 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
     subscription: null,
     tier: 'seeker',
     loading: true,
-    error: null
+    error: null,
   });
 
   // Load subscription data
   const loadSubscription = async () => {
     if (!user?.id) {
-      setState(prev => ({ 
-        ...prev, 
-        loading: false, 
+      setState(prev => ({
+        ...prev,
+        loading: false,
         error: 'No user found',
         tier: 'seeker',
-        subscription: null 
+        subscription: null,
       }));
       return;
     }
 
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      
+
       const subscription = await subscriptionService.getUserSubscription(user.id);
-      
+
       setState({
         subscription,
         tier: subscription.tier,
         loading: false,
-        error: null
+        error: null,
       });
-      
+
       console.log(`[useDevotionalGating] Loaded subscription for user ${user.id}:`, {
         tier: subscription.tier,
         devotionals_used: subscription.devotionals_used,
-        devotionals_limit: subscription.devotionals_limit
+        devotionals_limit: subscription.devotionals_limit,
       });
-      
+
     } catch (error) {
       console.error('[useDevotionalGating] Failed to load subscription:', error);
-      setState(prev => ({ 
-        ...prev, 
-        loading: false, 
+      setState(prev => ({
+        ...prev,
+        loading: false,
         error: (error as Error).message || 'Failed to load subscription',
         tier: 'seeker',
-        subscription: null 
+        subscription: null,
       }));
     }
   };
@@ -114,14 +114,14 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
         used: 0,
         limit: 0,
         remaining: 0,
-        displayMessage: getUsageDisplayMessage('seeker')
+        displayMessage: getUsageDisplayMessage('seeker'),
       };
     }
 
     const { subscription } = state;
     const used = subscription.devotionals_used || 0;
     const limit = subscription.devotionals_limit === -1 ? 'Unlimited' : subscription.devotionals_limit;
-    
+
     let remaining: number | 'Unlimited';
     if (limit === 'Unlimited') {
       remaining = 'Unlimited';
@@ -129,14 +129,14 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
       remaining = Math.max(0, limit - used);
     }
 
-    const displayMessage = getUsageDisplayMessage(subscription.tier, 
+    const displayMessage = getUsageDisplayMessage(subscription.tier,
       remaining === 'Unlimited' ? undefined : remaining);
 
     return {
       used,
       limit,
       remaining,
-      displayMessage
+      displayMessage,
     };
   }, [state.subscription]);
 
@@ -176,21 +176,21 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
     tier: state.tier,
     loading: state.loading,
     error: state.error,
-    
+
     // Access checking
     checkAccess,
     canGenerate,
     isLocked,
-    
+
     // Usage information
     usageInfo,
-    
+
     // Messaging
     getUsageMessage,
     getUpgradeMessage: getUpgradeMessageForContext,
-    
+
     // Actions
-    refreshSubscription
+    refreshSubscription,
   };
 };
 

@@ -20,13 +20,13 @@ import {
   UsageLimitError,
   TrialExpiredError,
   FamilyLimitError,
-  PaymentPlatform
+  PaymentPlatform,
 } from '../types/subscription';
 
 export class NewSubscriptionService {
-  
+
   // ===== TIER CONFIGURATION =====
-  
+
   /**
    * Get limits and features for a subscription tier
    */
@@ -114,9 +114,9 @@ export class NewSubscriptionService {
    */
   static async createDefaultSeekerSubscription(userId: string): Promise<Subscription> {
     const limits = this.getTierLimits('seeker');
-    
+
     const { data, error } = await supabase.rpc('create_default_seeker_subscription', {
-      target_user_id: userId
+      target_user_id: userId,
     });
 
     if (error) {
@@ -182,7 +182,7 @@ export class NewSubscriptionService {
    */
   static async upgradeSubscription(userId: string, options: SubscriptionUpgradeOptions): Promise<Subscription> {
     const { target_tier, platform, discount_code, is_family_upgrade } = options;
-    
+
     if (!target_tier) {
       throw new SubscriptionError('Target tier is required for upgrade', 'MISSING_TARGET_TIER');
     }
@@ -191,7 +191,7 @@ export class NewSubscriptionService {
     const currentSubscription = await this.getUserSubscription(userId);
     const from_tier = currentSubscription.tier;
     const to_tier = target_tier;
-    
+
     // Validate upgrade path
     if (!this.isValidUpgrade(from_tier, to_tier)) {
       throw new SubscriptionError(`Invalid upgrade from ${from_tier} to ${to_tier}`, 'INVALID_UPGRADE');
@@ -205,7 +205,7 @@ export class NewSubscriptionService {
       playbooks_limit: limits.playbooks_limit,
       devotionals_limit: limits.devotionals_limit,
       smart_journaling_enabled: limits.smart_journaling_enabled,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     // Temporarily skip platform field to avoid schema issues
@@ -264,7 +264,7 @@ export class NewSubscriptionService {
    */
   static async cancelSubscription(userId: string): Promise<Subscription> {
     const limits = this.getTierLimits('seeker');
-    
+
     const { data, error } = await supabase
       .from('user_subscriptions_new')
       .update({
@@ -276,7 +276,7 @@ export class NewSubscriptionService {
         playbooks_used: 0, // Reset usage
         devotionals_used: 0,
         subscription_end_date: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
       .select()
@@ -299,7 +299,7 @@ export class NewSubscriptionService {
    */
   static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
     const subscription = await this.getUserSubscription(userId);
-    
+
     // Check if trial has expired
     if (subscription.tier === 'free_trial' && subscription.trial_end_date) {
       const trialEnd = new Date(subscription.trial_end_date);
@@ -320,7 +320,7 @@ export class NewSubscriptionService {
     }
 
     const limits = this.getTierLimits(subscription.tier);
-    
+
     switch (action) {
       case 'playbook':
         return this.checkPlaybookLimit(subscription, limits, isOnboarding);
@@ -356,7 +356,7 @@ export class NewSubscriptionService {
     }
 
     // Increment the appropriate counter
-    const updateField = action === 'playbook' ? 'playbooks_used' : 
+    const updateField = action === 'playbook' ? 'playbooks_used' :
                        action === 'devotional' ? 'devotionals_used' : null;
 
     if (updateField) {
@@ -368,12 +368,12 @@ export class NewSubscriptionService {
         .single();
 
       const currentValue = (currentSub as any)?.[updateField] || 0;
-      
+
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
           [updateField]: currentValue + 1,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
@@ -395,7 +395,7 @@ export class NewSubscriptionService {
    */
   static async handleExpiredTrial(userId: string): Promise<Subscription> {
     const { error } = await supabase.rpc('check_and_handle_expired_trials');
-    
+
     if (error) {
       throw new SubscriptionError(`Failed to handle expired trial: ${error.message}`, 'TRIAL_EXPIRY_ERROR', error);
     }
@@ -408,7 +408,7 @@ export class NewSubscriptionService {
    */
   static async processExpiredTrials(): Promise<number> {
     const { data, error } = await supabase.rpc('check_and_handle_expired_trials');
-    
+
     if (error) {
       throw new SubscriptionError(`Failed to process expired trials: ${error.message}`, 'BATCH_EXPIRY_ERROR', error);
     }
@@ -425,7 +425,7 @@ export class NewSubscriptionService {
     // Dynamic discount logic - simplified for Phase 1
     const discountPercentage = triggerEvent === 'cancellation' ? 25 : 15;
     const code = `DYNAMIC_${userId.slice(-8).toUpperCase()}_${Date.now()}`;
-    
+
     const { data, error } = await supabase
       .from('discount_codes')
       .insert({
@@ -437,7 +437,7 @@ export class NewSubscriptionService {
         applicable_tiers: ['spark', 'growth', 'transformation', 'family'],
         is_dynamic: true,
         generated_for_user_id: userId,
-        trigger_event: triggerEvent
+        trigger_event: triggerEvent,
       })
       .select()
       .single();
@@ -465,7 +465,7 @@ export class NewSubscriptionService {
     }
 
     const discount = data as DiscountCode;
-    
+
     // Validate discount
     if (discount.valid_until && new Date(discount.valid_until) < new Date()) {
       throw new SubscriptionError('Discount code has expired', 'DISCOUNT_EXPIRED');
@@ -498,7 +498,7 @@ export class NewSubscriptionService {
     // Convert 999999 to -1 for UI compatibility (unlimited display)
     const playbooks_ui = tierLimits.playbooks_limit === 999999 ? -1 : tierLimits.playbooks_limit;
     const devotionals_ui = tierLimits.devotionals_limit === 999999 ? -1 : tierLimits.devotionals_limit;
-    
+
     const subscription: Subscription = {
       ...data,
       limits: {
@@ -511,7 +511,7 @@ export class NewSubscriptionService {
       },
       is_trial: data.tier === 'free_trial',
       is_expired: false,
-      days_remaining: 0
+      days_remaining: 0,
     };
 
     // Calculate trial expiry
@@ -532,10 +532,10 @@ export class NewSubscriptionService {
     const tierHierarchy = ['seeker', 'free_trial', 'spark', 'growth', 'transformation', 'family'];
     const fromIndex = tierHierarchy.indexOf(from);
     const toIndex = tierHierarchy.indexOf(to);
-    
+
     // Can upgrade from any tier to family
-    if (to === 'family') return true;
-    
+    if (to === 'family') {return true;}
+
     // Can upgrade to higher tiers
     return toIndex > fromIndex;
   }
@@ -545,10 +545,10 @@ export class NewSubscriptionService {
    */
   private static checkPlaybookLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
     // Use onboarding limit for seeker tier during onboarding
-    const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding) 
+    const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
       ? this.getOnboardingPlaybookLimit(subscription.tier)
       : limits.playbooks_limit;
-    
+
     const isUnlimited = effectiveLimit === -1;
     const canGenerate = isUnlimited || subscription.playbooks_used < effectiveLimit;
     const remaining = isUnlimited ? -1 : Math.max(0, effectiveLimit - subscription.playbooks_used);
@@ -563,7 +563,7 @@ export class NewSubscriptionService {
       show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation' && subscription.tier !== 'family',
       upgrade_message: !canGenerate
         ? this.getPlaybookLimitMessage(subscription, limits)
-        : undefined
+        : undefined,
     };
   }
 
@@ -585,7 +585,7 @@ export class NewSubscriptionService {
       show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation' && subscription.tier !== 'family',
       upgrade_message: !canGenerate
         ? this.getDevotionalLimitMessage(subscription, limits)
-        : undefined
+        : undefined,
     };
   }
 
@@ -595,13 +595,13 @@ export class NewSubscriptionService {
   private static getPlaybookLimitMessage(subscription: Subscription, limits: SubscriptionLimits): string {
     switch (subscription.tier) {
       case 'free_trial':
-        return `You've reached your trial limit.`;
+        return 'You\'ve reached your trial limit.';
       case 'spark':
-        return `You've reached your Spark plan limit.`;
+        return 'You\'ve reached your Spark plan limit.';
       case 'growth':
-        return `You've reached your Growth plan limit.`;
+        return 'You\'ve reached your Growth plan limit.';
       case 'seeker':
-        return `Ready to begin your journey?`;
+        return 'Ready to begin your journey?';
       default:
         return `You've reached your ${subscription.tier} plan limit.`;
     }
@@ -613,13 +613,13 @@ export class NewSubscriptionService {
   private static getDevotionalLimitMessage(subscription: Subscription, limits: SubscriptionLimits): string {
     switch (subscription.tier) {
       case 'free_trial':
-        return `You've reached your trial limit.`;
+        return 'You\'ve reached your trial limit.';
       case 'spark':
-        return `You've reached your Spark plan limit.`;
+        return 'You\'ve reached your Spark plan limit.';
       case 'growth':
-        return `You've reached your Growth plan limit.`;
+        return 'You\'ve reached your Growth plan limit.';
       case 'seeker':
-        return `Ready to begin your journey?`;
+        return 'Ready to begin your journey?';
       default:
         return `You've reached your ${subscription.tier} plan limit.`;
     }
@@ -637,7 +637,7 @@ export class NewSubscriptionService {
       playbooks_remaining: -1,
       devotionals_remaining: -1,
       show_upgrade_prompt: !limits.smart_journaling_enabled,
-      upgrade_message: !limits.smart_journaling_enabled ? 'Smart journaling is available with Spark plan and above!' : undefined
+      upgrade_message: !limits.smart_journaling_enabled ? 'Smart journaling is available with Spark plan and above!' : undefined,
     };
   }
 
@@ -652,7 +652,7 @@ export class NewSubscriptionService {
       can_export: true,
       playbooks_remaining: -1,
       devotionals_remaining: -1,
-      show_upgrade_prompt: false
+      show_upgrade_prompt: false,
     };
   }
 

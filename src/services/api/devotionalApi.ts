@@ -248,27 +248,27 @@ export class DevotionalApi {
       const { supabase } = await import('../supabaseClient');
       const { data: { user } } = await supabase.auth.getUser();
       console.log('[DevotionalApi] User ID:', user?.id);
-      
+
       if (user) {
         // Check user_metadata first (where IndustryStandardAuthContext stores it)
         const userMetadata = user.user_metadata;
         console.log('[DevotionalApi] User metadata:', JSON.stringify(userMetadata, null, 2));
-        
+
         if (userMetadata?.preferences?.content?.bibleVersion) {
           bibleVersion = userMetadata.preferences.content.bibleVersion;
           console.log('[DevotionalApi] Found Bible version in user_metadata:', bibleVersion);
         } else {
           console.log('[DevotionalApi] No Bible version in user_metadata, checking user_profiles table...');
-          
+
           // Fallback to user_profiles table
           const { data: profile } = await supabase
             .from('user_profiles')
             .select('preferences')
             .eq('id', user.id)
             .single();
-          
+
           console.log('[DevotionalApi] Profile data:', JSON.stringify(profile, null, 2));
-          
+
           if (profile?.preferences?.content?.bibleVersion) {
             bibleVersion = profile.preferences.content.bibleVersion;
             console.log('[DevotionalApi] Found Bible version in user_profiles:', bibleVersion);

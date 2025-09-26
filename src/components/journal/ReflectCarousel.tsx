@@ -42,7 +42,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
-  
+
   // Modal state for reflection editor (matching dashboard behavior)
   const [showReflectionModal, setShowReflectionModal] = useState(false);
   const queryClient = useQueryClient();
@@ -93,8 +93,8 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       id: 'reflection',
       title: 'HEART JOURNAL',
       icon: 'bulb-outline',
-      component: <ReflectionLogReactQuery 
-        selectedDate={selectedDate} 
+      component: <ReflectionLogReactQuery
+        selectedDate={selectedDate}
         onPencilTap={handleReflectionModalOpen}
       />,
       color: Colors.alertCoral,

@@ -16,7 +16,7 @@ export const getReplacementMode = (currentTier: SubscriptionTier, targetTier: Su
   const hierarchy = ['spark', 'growth', 'transformation', 'family'];
   const currentIndex = hierarchy.indexOf(currentTier);
   const targetIndex = hierarchy.indexOf(targetTier);
-  
+
   if (targetIndex > currentIndex) {
     // Upgrade: Immediate with proration
     return GOOGLE_REPLACEMENT_MODES.IMMEDIATE_WITH_TIME_PRORATION;
@@ -50,7 +50,7 @@ export const SUBSCRIPTION_SKUS = {
     transformation_annual: 'transformation_annual',
     family_monthly: 'family_monthly',
     family_annual: 'family_annual',
-  }
+  },
 };
 
 export interface SubscriptionProduct {
@@ -100,10 +100,10 @@ class PlatformSubscriptionService {
   async initialize(): Promise<void> {
     try {
       console.log('[PlatformSubscription] Initializing...');
-      
+
       // Initialize RNIap
       await RNIap.initConnection();
-      
+
       // Get platform-specific SKUs
       const platformOS = Platform.OS;
       if (platformOS !== 'ios' && platformOS !== 'android') {
@@ -111,10 +111,10 @@ class PlatformSubscriptionService {
       }
       const skus = SUBSCRIPTION_SKUS[platformOS];
       const skuList = Object.values(skus);
-      
+
       // Fetch product details from platform
       const products = await RNIap.getSubscriptions({ skus: skuList });
-      
+
       // Map to our product interface
       this.products = products.map(product => ({
         productId: product.productId,
@@ -124,10 +124,10 @@ class PlatformSubscriptionService {
         currency: (product as any).currency || 'USD',
         localizedPrice: (product as any).localizedPrice || '$0.00',
       }));
-      
+
       this.isInitialized = true;
       console.log(`[PlatformSubscription] Initialized with ${this.products.length} products`);
-      
+
     } catch (error) {
       console.error('[PlatformSubscription] Initialization failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -167,22 +167,22 @@ class PlatformSubscriptionService {
   async upgradeSubscription(request: UpgradeRequest): Promise<UpgradeResult> {
     try {
       console.log('[PlatformSubscription] Starting upgrade:', request);
-      
+
       if (!this.isInitialized) {
         await this.initialize();
       }
 
       let result;
-      
+
       if (Platform.OS === 'ios') {
         result = await this.upgradeIOS(request);
       } else {
         result = await this.upgradeAndroid(request);
       }
-      
+
       console.log('[PlatformSubscription] Upgrade completed:', result);
       return result;
-      
+
     } catch (error) {
       console.error('[PlatformSubscription] Upgrade failed:', error);
       throw new PlatformSubscriptionError(
@@ -202,15 +202,15 @@ class PlatformSubscriptionService {
       // Apple handles proration automatically - simple SKU string
       const purchase = await RNIap.requestSubscription({
         sku: request.targetProductId,
-        andDangerouslyFinishTransactionAutomaticallyIOS: false
+        andDangerouslyFinishTransactionAutomaticallyIOS: false,
       });
-      
+
       if (!purchase) {
         throw new Error('Purchase failed - no transaction returned');
       }
-      
+
       const purchaseData = Array.isArray(purchase) ? purchase[0] : purchase;
-      
+
       return {
         success: true,
         transactionId: (purchaseData as any).transactionId || (purchaseData as any).purchaseToken,
@@ -235,31 +235,31 @@ class PlatformSubscriptionService {
     try {
       // Get current subscription token
       const currentToken = await this.getCurrentSubscriptionToken();
-      
+
       if (!currentToken) {
         throw new Error('No current subscription token found');
       }
-      
+
       // Get appropriate replacement mode
       const replacementMode = getReplacementMode(request.currentTier, request.targetTier);
-      
+
       // Android upgrade with proper subscription update params
       const purchase = await RNIap.requestSubscription({
         sku: request.targetProductId,
         subscriptionOffers: [{
           offerToken: '',
-          basePlanId: request.targetProductId
+          basePlanId: request.targetProductId,
         }],
         oldPurchaseToken: currentToken,
-        replacementMode: replacementMode
+        replacementMode: replacementMode,
       });
-      
+
       if (!purchase) {
         throw new Error('Purchase failed - no transaction returned');
       }
-      
+
       const purchaseData = Array.isArray(purchase) ? purchase[0] : purchase;
-      
+
       return {
         success: true,
         transactionId: (purchaseData as any).transactionId || (purchaseData as any).purchaseToken,
@@ -286,12 +286,12 @@ class PlatformSubscriptionService {
     targetTier: SubscriptionTier,
     billing: 'monthly' | 'annual'
   ): Promise<{ requiresPlatformAction: boolean; message: string }> {
-    
+
     if (Platform.OS === 'ios') {
       // iOS: User must downgrade through Settings
       return {
         requiresPlatformAction: true,
-        message: 'To downgrade, go to Settings > Apple ID > Subscriptions > siFia and select your new plan.'
+        message: 'To downgrade, go to Settings > Apple ID > Subscriptions > siFia and select your new plan.',
       };
     } else {
       // Android: Can be handled in-app for some cases
@@ -302,33 +302,33 @@ class PlatformSubscriptionService {
           if (!targetProduct) {
             throw new Error('Target product not found');
           }
-          
+
           const currentToken = await this.getCurrentSubscriptionToken();
           const purchase = await RNIap.requestSubscription({
             sku: targetProduct.productId,
             subscriptionOffers: [{
               offerToken: '',
-              basePlanId: targetProduct.productId
+              basePlanId: targetProduct.productId,
             }],
             oldPurchaseToken: currentToken,
-            replacementMode: GOOGLE_REPLACEMENT_MODES.DEFERRED
+            replacementMode: GOOGLE_REPLACEMENT_MODES.DEFERRED,
           });
-          
+
           return {
             requiresPlatformAction: false,
-            message: 'Downgrade scheduled for your next billing cycle.'
+            message: 'Downgrade scheduled for your next billing cycle.',
           };
         } catch (error) {
           return {
             requiresPlatformAction: true,
-            message: 'Please manage your subscription through Google Play Store.'
+            message: 'Please manage your subscription through Google Play Store.',
           };
         }
       } else {
         // Annual subscriptions: redirect to Play Store
         return {
           requiresPlatformAction: true,
-          message: 'To change your annual subscription, go to Google Play Store > Subscriptions > siFia.'
+          message: 'To change your annual subscription, go to Google Play Store > Subscriptions > siFia.',
         };
       }
     }
@@ -340,15 +340,15 @@ class PlatformSubscriptionService {
   async getCurrentSubscription(): Promise<any> {
     try {
       const purchases = await RNIap.getAvailablePurchases();
-      const subscriptions = purchases.filter(p => 
+      const subscriptions = purchases.filter(p =>
         Object.values(SUBSCRIPTION_SKUS[Platform.OS]).includes(p.productId)
       );
-      
+
       // Return the most recent subscription
-      return subscriptions.sort((a, b) => 
+      return subscriptions.sort((a, b) =>
         new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()
       )[0] || null;
-      
+
     } catch (error) {
       console.error('[PlatformSubscription] Failed to get current subscription:', error);
       return null;
@@ -391,10 +391,10 @@ class PlatformSubscriptionService {
    * Helper: Extract tier from SKU
    */
   private extractTierFromSku(sku: string): SubscriptionTier {
-    if (sku.includes('spark')) return 'spark';
-    if (sku.includes('growth')) return 'growth';
-    if (sku.includes('transformation')) return 'transformation';
-    if (sku.includes('family')) return 'family';
+    if (sku.includes('spark')) {return 'spark';}
+    if (sku.includes('growth')) {return 'growth';}
+    if (sku.includes('transformation')) {return 'transformation';}
+    if (sku.includes('family')) {return 'family';}
     return 'spark'; // fallback
   }
 
@@ -425,7 +425,7 @@ class PlatformSubscriptionService {
     const hierarchy = this.getTierHierarchy();
     const currentIndex = hierarchy.indexOf(currentTier);
     const targetIndex = hierarchy.indexOf(targetTier);
-    
+
     return targetIndex > currentIndex;
   }
 
@@ -436,7 +436,7 @@ class PlatformSubscriptionService {
     const hierarchy = this.getTierHierarchy();
     const currentIndex = hierarchy.indexOf(currentTier);
     const targetIndex = hierarchy.indexOf(targetTier);
-    
+
     return targetIndex < currentIndex;
   }
 }

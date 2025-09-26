@@ -42,23 +42,23 @@ const GuidedPromptLockIcon: React.FC<GuidedPromptLockIconProps> = ({
   style,
   position = 'right',
   prompt,
-  forceShow = false
+  forceShow = false,
 }) => {
   // Check access using guided prompt gating rules
   const accessCheck = checkGuidedPromptAccess(tier, usedPrompts, context);
-  
+
   // Only show locks when explicitly forced (for specific locked prompts)
   // Don't show locks based on tier alone
   const shouldShowLock = forceShow;
-  
+
   console.log('[GuidedPromptLockIcon] Lock check:', {
     tier,
     usedPrompts,
     forceShow,
     shouldShowLock,
-    prompt: prompt || 'no prompt specified'
+    prompt: prompt || 'no prompt specified',
   });
-  
+
   // Don't render if not locked
   if (!shouldShowLock) {
     return null;
@@ -75,7 +75,7 @@ const GuidedPromptLockIcon: React.FC<GuidedPromptLockIconProps> = ({
     styles.container,
     position === 'center' && styles.centerPosition,
     position === 'left' && styles.leftPosition,
-    style
+    style,
   ];
 
   return (

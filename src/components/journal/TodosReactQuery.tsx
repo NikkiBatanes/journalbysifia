@@ -221,7 +221,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       planningGating.handleLockedAction();
       return;
     }
-    
+
     closeAllSwipeables();
     setVisibleCount(5);
     setIsAdding(true);
@@ -552,7 +552,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       Alert.alert('No Incomplete Todos', 'There are no incomplete todos to copy.');
       return;
     }
-    
+
     // Always show the modal first so users can see how it works
     setShowCopyModal(true);
   };
@@ -637,10 +637,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             Failed to load todos
           </ThemedText>
           <TouchableOpacity
-            onPress={() => { 
-              triggerLightHaptic(); 
-              refetch(); 
-            }} 
+            onPress={() => {
+              triggerLightHaptic();
+              refetch();
+            }}
             style={styles.retryButton}
             accessibilityRole="button"
             accessibilityLabel="Retry loading todos"
@@ -802,8 +802,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
       headerRight={planningGating.lockIconVisible ? (
-        <PlanningLockIcon 
-          tier={planningGating.currentTier} 
+        <PlanningLockIcon
+          tier={planningGating.currentTier}
           context="inApp"
           onLockTap={planningGating.handleLockedAction}
           size={16}
@@ -1236,7 +1236,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               onPress={async () => {
                 triggerLightHaptic();
                 setShowCopyModal(false);
-                
+
                 if (planningGating.currentTier === 'seeker') {
                   // Navigate to OnboardingSalesOffer with copy todos context
                   (navigation as any).navigate('OnboardingSalesOffer', {

@@ -242,7 +242,7 @@ const ReadAloudButtonDoc: React.FC<{
             const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
             const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
             return (
-              <Animated.View key={p.id} style={[readDocStyles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}> 
+              <Animated.View key={p.id} style={[readDocStyles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}>
                 <Ionicons name="book" size={p.size} color={p.color} />
               </Animated.View>
             );

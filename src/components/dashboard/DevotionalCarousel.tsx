@@ -131,15 +131,15 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
           return saved;
         }
         const base = `${row.title || ''} ${row.description || ''}`.toLowerCase();
-        if (base.includes('prayer') || base.includes('pray')) return 'Prayer';
-        if (base.includes('faith') || base.includes('trust') || base.includes('believe')) return 'Faith';
-        if (base.includes('love') || base.includes('relationship') || base.includes('family')) return 'Relationships';
-        if (base.includes('peace') || base.includes('anxiety') || base.includes('worry') || base.includes('stress')) return 'Peace';
-        if (base.includes('hope') || base.includes('encouragement') || base.includes('strength')) return 'Hope';
-        if (base.includes('wisdom') || base.includes('decision') || base.includes('guidance')) return 'Wisdom';
-        if (base.includes('forgive')) return 'Forgiveness';
-        if (base.includes('gratitude') || base.includes('thank')) return 'Gratitude';
-        if (base.includes('purpose') || base.includes('calling') || base.includes('mission')) return 'Purpose';
+        if (base.includes('prayer') || base.includes('pray')) {return 'Prayer';}
+        if (base.includes('faith') || base.includes('trust') || base.includes('believe')) {return 'Faith';}
+        if (base.includes('love') || base.includes('relationship') || base.includes('family')) {return 'Relationships';}
+        if (base.includes('peace') || base.includes('anxiety') || base.includes('worry') || base.includes('stress')) {return 'Peace';}
+        if (base.includes('hope') || base.includes('encouragement') || base.includes('strength')) {return 'Hope';}
+        if (base.includes('wisdom') || base.includes('decision') || base.includes('guidance')) {return 'Wisdom';}
+        if (base.includes('forgive')) {return 'Forgiveness';}
+        if (base.includes('gratitude') || base.includes('thank')) {return 'Gratitude';}
+        if (base.includes('purpose') || base.includes('calling') || base.includes('mission')) {return 'Purpose';}
         return saved || 'Spiritual Growth';
       };
 
@@ -387,7 +387,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   // Realtime updates: refresh when devotionals or related user_progress change
   useEffect(() => {
     if (!user) { return; }
-    
+
     // Clean up any existing channel first
     const channelName = `devotionals_dashboard_${user.id}_${Date.now()}`;
     const channel = supabase.channel(channelName);
@@ -416,7 +416,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     channel.subscribe();
 
     return () => {
-      try { 
+      try {
         channel.unsubscribe();
         supabase.removeChannel(channel);
       } catch {}

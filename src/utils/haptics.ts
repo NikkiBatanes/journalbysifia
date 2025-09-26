@@ -5,8 +5,8 @@ import { isHapticsEnabled } from '../services/experiencePreferences';
 const getTriggerFn = () => {
   try {
     const { RNHapticFeedback } = NativeModules as any;
-    if (!RNHapticFeedback) return null;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    if (!RNHapticFeedback) {return null;}
+
     const Haptic = require('react-native-haptic-feedback');
     return Haptic?.default?.trigger || Haptic?.trigger || null;
   } catch {
@@ -15,7 +15,7 @@ const getTriggerFn = () => {
 };
 
 export const triggerLightHaptic = () => {
-  if (!isHapticsEnabled()) return;
+  if (!isHapticsEnabled()) {return;}
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -23,7 +23,7 @@ export const triggerLightHaptic = () => {
 };
 
 export const triggerMediumHaptic = () => {
-  if (!isHapticsEnabled()) return;
+  if (!isHapticsEnabled()) {return;}
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('impactMedium', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -31,7 +31,7 @@ export const triggerMediumHaptic = () => {
 };
 
 export const triggerHeavyHaptic = () => {
-  if (!isHapticsEnabled()) return;
+  if (!isHapticsEnabled()) {return;}
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('impactHeavy', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -39,7 +39,7 @@ export const triggerHeavyHaptic = () => {
 };
 
 export const triggerSuccessHaptic = () => {
-  if (!isHapticsEnabled()) return;
+  if (!isHapticsEnabled()) {return;}
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('notificationSuccess', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -47,7 +47,7 @@ export const triggerSuccessHaptic = () => {
 };
 
 export const triggerSelectionHaptic = () => {
-  if (!isHapticsEnabled()) return;
+  if (!isHapticsEnabled()) {return;}
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('selection', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -55,7 +55,7 @@ export const triggerSelectionHaptic = () => {
 };
 
 export const triggerErrorHaptic = () => {
-  if (!isHapticsEnabled()) return;
+  if (!isHapticsEnabled()) {return;}
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('notificationError', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });

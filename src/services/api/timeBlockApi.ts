@@ -108,11 +108,11 @@ export class TimeBlockApi {
         const metadata = block.metadata || {};
         const exceptions = metadata.exceptions || [];
         const isExcepted = exceptions.includes(date);
-        
+
         if (isExcepted) {
           console.log('🚫 Filtering out block due to exception:', block.id, 'for date:', date);
         }
-        
+
         return !isExcepted;
       }) || [];
 
@@ -157,23 +157,23 @@ export class TimeBlockApi {
         // For virtual instances, find the original block to check exceptions
         const originalBlockId = block.id.includes('-') ? block.id.split('-').slice(0, 5).join('-') : block.id;
         const originalBlock = repeatingBlocks.find(rb => rb.id === originalBlockId);
-        
+
         if (originalBlock) {
           const originalMetadata = originalBlock.metadata || {};
           const exceptions = originalMetadata.exceptions || [];
           const isHidden = exceptions.includes(block.selected_date);
-          
+
           if (isHidden) {
             console.log('🚫 Filtering out hidden instance on', block.selected_date, 'due to exception in original block', originalBlockId);
           }
           return !isHidden;
         }
-        
+
         // Fallback: check the block's own metadata
         const blockMetadata = block.metadata || {};
         const blockExceptions = blockMetadata.exceptions || [];
         const isHidden = blockExceptions.includes(block.selected_date);
-        
+
         if (isHidden) {
           console.log('🚫 Filtering out hidden instance on', block.selected_date);
         }
@@ -201,10 +201,10 @@ export class TimeBlockApi {
 
     for (const block of repeatingBlocks) {
       console.log('🔍 Checking block:', block.id, 'repeat_rule:', block.repeat_rule);
-      
+
       if (this.shouldBlockAppearOnDate(block, targetDate)) {
         console.log('✅ Block should appear on', targetDate);
-        
+
         // Create a virtual instance for this date
         const virtualBlock: TimeBlockApiEntry = {
           ...block,
@@ -230,26 +230,26 @@ export class TimeBlockApi {
   private static shouldBlockAppearOnDate(block: TimeBlockApiEntry, targetDate: string): boolean {
     const originalDate = new Date(block.selected_date);
     const targetDateObj = new Date(targetDate);
-    
+
     // Don't show on the original date (already handled by direct query)
     if (block.selected_date === targetDate) {
       return false;
     }
-    
+
     // Check if target date is after original date
     if (targetDateObj <= originalDate) {
       return false;
     }
-    
+
     // Extract repeat data from repeat_rule or direct fields
     const repeatRule = block.repeat_rule;
     const frequency = repeatRule?.frequency || block.repeat_frequency;
     const customFrequency = repeatRule?.customFrequency?.value || repeatRule?.customFrequency || block.repeat_custom_frequency || 1;
-    
+
     if (!frequency || frequency === 'never') {
       return false;
     }
-    
+
     // Check end date if specified (check repeat_until, repeat_end_date, and metadata.endDate)
     const endDateStr = block.repeat_until || block.repeat_end_date || (block.metadata && block.metadata.endDate);
     if (endDateStr) {
@@ -259,27 +259,27 @@ export class TimeBlockApi {
         return false;
       }
     }
-    
+
     const daysDiff = Math.floor((targetDateObj.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     switch (frequency) {
       case 'daily':
         return daysDiff % customFrequency === 0;
-      
+
       case 'weekly':
         return daysDiff % (7 * customFrequency) === 0;
-      
+
       case 'monthly':
         // Same day of month
         return originalDate.getDate() === targetDateObj.getDate() &&
                this.isValidMonthlyRepeat(originalDate, targetDateObj, customFrequency);
-      
+
       case 'yearly':
         // Same month and day
         return originalDate.getMonth() === targetDateObj.getMonth() &&
                originalDate.getDate() === targetDateObj.getDate() &&
                this.isValidYearlyRepeat(originalDate, targetDateObj, customFrequency);
-      
+
       default:
         return false;
     }
@@ -287,7 +287,7 @@ export class TimeBlockApi {
 
   // Helper to check valid monthly repeat
   private static isValidMonthlyRepeat(originalDate: Date, targetDate: Date, frequency: number): boolean {
-    const monthsDiff = (targetDate.getFullYear() - originalDate.getFullYear()) * 12 + 
+    const monthsDiff = (targetDate.getFullYear() - originalDate.getFullYear()) * 12 +
                        (targetDate.getMonth() - originalDate.getMonth());
     return monthsDiff > 0 && monthsDiff % frequency === 0;
   }
@@ -302,7 +302,7 @@ export class TimeBlockApi {
   private static adjustTimeToDate(originalTime: string, targetDate: string): string {
     const originalDateTime = new Date(originalTime);
     const targetDateObj = new Date(targetDate);
-    
+
     // Keep the same time but change the date
     const adjustedDateTime = new Date(
       targetDateObj.getFullYear(),
@@ -313,7 +313,7 @@ export class TimeBlockApi {
       originalDateTime.getSeconds(),
       originalDateTime.getMilliseconds()
     );
-    
+
     return adjustedDateTime.toISOString();
   }
 

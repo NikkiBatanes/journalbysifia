@@ -17,16 +17,16 @@ class ExperiencePreferences {
   private _listeners = new Set<() => void>();
 
   async loadOnce() {
-    if (this._loaded) return;
+    if (this._loaded) {return;}
     try {
       const [h, s, l] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.haptics),
         AsyncStorage.getItem(STORAGE_KEYS.sounds),
         AsyncStorage.getItem(STORAGE_KEYS.showTabLabels),
       ]);
-      if (h !== null) this._hapticsEnabled = h === 'true';
-      if (s !== null) this._soundsEnabled = s === 'true';
-      if (l !== null) this._showTabLabelsEnabled = l === 'true';
+      if (h !== null) {this._hapticsEnabled = h === 'true';}
+      if (s !== null) {this._soundsEnabled = s === 'true';}
+      if (l !== null) {this._showTabLabelsEnabled = l === 'true';}
     } catch {
       // ignore; keep defaults
     } finally {

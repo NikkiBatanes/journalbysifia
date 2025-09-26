@@ -38,41 +38,41 @@ export interface PlanningAccessCheck {
 // Lock visibility rules per tier
 export const LOCK_VISIBILITY_RULES: Record<SubscriptionTier, number[]> = {
   seeker: [1, 3, 5, 7],        // All durations locked
-  free_trial: [5, 7],          // 5-day and 7-day locked  
+  free_trial: [5, 7],          // 5-day and 7-day locked
   spark: [5, 7],               // 5-day and 7-day locked
   growth: [7],                 // Only 7-day locked
   transformation: [],          // No locks
-  family: []                   // No locks
+  family: [],                   // No locks
 };
 
 // Usage counter messages per tier
 export const USAGE_DISPLAY_RULES: Record<SubscriptionTier, string> = {
-  seeker: "Upgrade to Create Devotionals",
-  free_trial: "2 Devotionals Remaining",
-  spark: "8 Devotionals Remaining", 
-  growth: "20 Devotionals Remaining",
-  transformation: "Unlimited Devotionals",
-  family: "Unlimited Devotionals"
+  seeker: 'Upgrade to Create Devotionals',
+  free_trial: '2 Devotionals Remaining',
+  spark: '8 Devotionals Remaining',
+  growth: '20 Devotionals Remaining',
+  transformation: 'Unlimited Devotionals',
+  family: 'Unlimited Devotionals',
 };
 
 // Dynamic upgrade messages by context
 export const UPGRADE_MESSAGES = {
   onboarding: {
-    seeker: "Start your spiritual journey with Spark",
+    seeker: 'Start your spiritual journey with Spark',
     free_trial: "You've reached your trial limit",
-    spark: "You've reached your Spark limit", 
+    spark: "You've reached your Spark limit",
     growth: "You've reached your Growth limit",
-    transformation: "",
-    family: ""
+    transformation: '',
+    family: '',
   },
   inApp: {
-    seeker: "Unlock devotionals to deepen your faith",
-    free_trial: "Upgrade to continue your journey",
-    spark: "Upgrade to Growth for more devotionals",
-    growth: "Upgrade to Transformation for unlimited access",
-    transformation: "",
-    family: ""
-  }
+    seeker: 'Unlock devotionals to deepen your faith',
+    free_trial: 'Upgrade to continue your journey',
+    spark: 'Upgrade to Growth for more devotionals',
+    growth: 'Upgrade to Transformation for unlimited access',
+    transformation: '',
+    family: '',
+  },
 } as const;
 
 /**
@@ -106,7 +106,7 @@ export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: numbe
   if (tier === 'transformation' || tier === 'family') {
     return USAGE_DISPLAY_RULES[tier];
   }
-  
+
   if (typeof remaining === 'number') {
     if (tier === 'free_trial') {
       return `${remaining} Devotionals Remaining`;
@@ -118,7 +118,7 @@ export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: numbe
       return `${remaining} Devotionals Remaining`;
     }
   }
-  
+
   return USAGE_DISPLAY_RULES[tier];
 }
 
@@ -126,7 +126,7 @@ export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: numbe
  * Get upgrade message based on context
  */
 export function getUpgradeMessage(
-  tier: SubscriptionTier, 
+  tier: SubscriptionTier,
   context: 'onboarding' | 'inApp' = 'inApp'
 ): string {
   return UPGRADE_MESSAGES[context][tier] || '';
@@ -136,7 +136,7 @@ export function getUpgradeMessage(
  * Comprehensive access check for devotional duration
  */
 export function checkDevotionalAccess(
-  tier: SubscriptionTier, 
+  tier: SubscriptionTier,
   duration: number,
   context: 'onboarding' | 'inApp' = 'inApp'
 ): DevotionalAccessCheck {
@@ -144,14 +144,14 @@ export function checkDevotionalAccess(
   const canGenerate = !isLocked;
   const upgradeRequired = isLocked;
   const lockIconVisible = isLocked;
-  
+
   return {
     isLocked,
     canGenerate,
     upgradeRequired,
     lockIconVisible,
     usageMessage: getUsageDisplayMessage(tier),
-    upgradeMessage: getUpgradeMessage(tier, context)
+    upgradeMessage: getUpgradeMessage(tier, context),
   };
 }
 
@@ -161,12 +161,12 @@ export function checkDevotionalAccess(
 export function getTierAccessRules(tier: SubscriptionTier): DevotionalAccessRules {
   const lockedDurations = getLockedDurations(tier);
   const allowedDurations = getAllowedDurations(tier);
-  
+
   return {
     lockedDurations,
     allowedDurations,
     usageMessage: getUsageDisplayMessage(tier),
-    upgradeMessage: getUpgradeMessage(tier, 'inApp')
+    upgradeMessage: getUpgradeMessage(tier, 'inApp'),
   };
 }
 
@@ -182,13 +182,13 @@ export function tierHasLocks(tier: SubscriptionTier): boolean {
  */
 export function getUnlockTier(duration: number): SubscriptionTier | null {
   const tiers: SubscriptionTier[] = ['seeker', 'free_trial', 'spark', 'growth', 'transformation', 'family'];
-  
+
   for (const tier of tiers) {
     if (!isDevotionalDurationLocked(tier, duration)) {
       return tier;
     }
   }
-  
+
   return null;
 }
 
@@ -205,11 +205,11 @@ export function getTierHierarchy(): SubscriptionTier[] {
 export function getNextTier(currentTier: SubscriptionTier): SubscriptionTier | null {
   const hierarchy = getTierHierarchy();
   const currentIndex = hierarchy.indexOf(currentTier);
-  
+
   if (currentIndex === -1 || currentIndex === hierarchy.length - 1) {
     return null;
   }
-  
+
   return hierarchy[currentIndex + 1];
 }
 
@@ -224,37 +224,37 @@ export const PLANNING_LOCK_RULES: Record<SubscriptionTier, boolean> = {
   spark: false,           // Future planning allowed
   growth: false,          // Future planning allowed
   transformation: false,  // Future planning allowed
-  family: false          // Future planning allowed
+  family: false,          // Future planning allowed
 };
 
 // Planning usage messages per tier
 export const PLANNING_USAGE_MESSAGES: Record<SubscriptionTier, string> = {
-  seeker: "Future Planning Locked",
-  free_trial: "Future Planning Available",
-  spark: "Future Planning Available", 
-  growth: "Future Planning Available",
-  transformation: "Future Planning Available",
-  family: "Future Planning Available"
+  seeker: 'Future Planning Locked',
+  free_trial: 'Future Planning Available',
+  spark: 'Future Planning Available',
+  growth: 'Future Planning Available',
+  transformation: 'Future Planning Available',
+  family: 'Future Planning Available',
 };
 
 // Planning upgrade messages by context
 export const PLANNING_UPGRADE_MESSAGES = {
   onboarding: {
-    seeker: "Start planning ahead with Spark",
-    free_trial: "",
-    spark: "",
-    growth: "",
-    transformation: "",
-    family: ""
+    seeker: 'Start planning ahead with Spark',
+    free_trial: '',
+    spark: '',
+    growth: '',
+    transformation: '',
+    family: '',
   },
   inApp: {
-    seeker: "Unlock future planning to organize your spiritual journey",
-    free_trial: "",
-    spark: "",
-    growth: "",
-    transformation: "",
-    family: ""
-  }
+    seeker: 'Unlock future planning to organize your spiritual journey',
+    free_trial: '',
+    spark: '',
+    growth: '',
+    transformation: '',
+    family: '',
+  },
 };
 
 /**
@@ -268,17 +268,17 @@ export function isFuturePlanningLocked(tier: SubscriptionTier): boolean {
  * Get planning usage display message
  */
 export function getPlanningUsageMessage(tier: SubscriptionTier): string {
-  return PLANNING_USAGE_MESSAGES[tier] || "Future Planning Available";
+  return PLANNING_USAGE_MESSAGES[tier] || 'Future Planning Available';
 }
 
 /**
  * Get planning upgrade message by context
  */
 export function getPlanningUpgradeMessage(
-  tier: SubscriptionTier, 
+  tier: SubscriptionTier,
   context: 'onboarding' | 'inApp' = 'inApp'
 ): string {
-  return PLANNING_UPGRADE_MESSAGES[context][tier] || "";
+  return PLANNING_UPGRADE_MESSAGES[context][tier] || '';
 }
 
 /**
@@ -292,14 +292,14 @@ export function checkPlanningAccess(
   const canAccess = !isLocked;
   const upgradeRequired = isLocked;
   const lockIconVisible = isLocked;
-  
+
   return {
     isLocked,
     canAccess,
     upgradeRequired,
     lockIconVisible,
     usageMessage: getPlanningUsageMessage(tier),
-    upgradeMessage: getPlanningUpgradeMessage(tier, context)
+    upgradeMessage: getPlanningUpgradeMessage(tier, context),
   };
 }
 
@@ -308,11 +308,11 @@ export function checkPlanningAccess(
  */
 export function getPlanningAccessRules(tier: SubscriptionTier): PlanningAccessRules {
   const isLocked = isFuturePlanningLocked(tier);
-  
+
   return {
     futurePlanningLocked: isLocked,
     allowedFeatures: isLocked ? [] : ['focus', 'todos', 'timeblocks'],
     usageMessage: getPlanningUsageMessage(tier),
-    upgradeMessage: getPlanningUpgradeMessage(tier, 'inApp')
+    upgradeMessage: getPlanningUpgradeMessage(tier, 'inApp'),
   };
 }

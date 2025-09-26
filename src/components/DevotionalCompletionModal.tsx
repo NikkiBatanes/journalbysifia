@@ -26,8 +26,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const triggerLightHaptic = () => {
   try {
     const { RNHapticFeedback } = NativeModules as any;
-    if (!RNHapticFeedback) return;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    if (!RNHapticFeedback) {return;}
+
     const Haptic = require('react-native-haptic-feedback');
     const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
     if (typeof triggerFn === 'function') {
@@ -39,8 +39,8 @@ const triggerLightHaptic = () => {
 const triggerSuccessHaptic = () => {
   try {
     const { RNHapticFeedback } = NativeModules as any;
-    if (!RNHapticFeedback) return;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    if (!RNHapticFeedback) {return;}
+
     const Haptic = require('react-native-haptic-feedback');
     const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
     if (typeof triggerFn === 'function') {

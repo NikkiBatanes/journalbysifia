@@ -97,7 +97,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 
     try {
       const { error: updateError } = await updatePassword(password, accessToken);
-      
+
       if (updateError) {
         triggerErrorHaptic();
         setError(updateError.message || 'Failed to reset password. Please try again.');

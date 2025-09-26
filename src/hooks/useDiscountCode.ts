@@ -7,12 +7,12 @@ export interface UseDiscountCodeResult {
   validationResult: DiscountValidationResult | null;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   validateCode: (code: string, targetTier: string) => Promise<DiscountValidationResult>;
   applyCode: (code: string, targetTier: string) => Promise<boolean>;
   clearValidation: () => void;
-  
+
   // Utilities
   generatePostCancellationDiscount: (previousTier: string) => Promise<DiscountCode>;
   generatePersonalizedDiscount: (discountType: 'trial_extension' | 'upgrade_incentive' | 'retention') => Promise<DiscountCode>;
@@ -44,7 +44,7 @@ export function useDiscountCode(): UseDiscountCodeResult {
 
       const result = await DiscountCodeService.validateDiscountCode(code, user.id, targetTier);
       setValidationResult(result);
-      
+
       if (!result.isValid) {
         setError(result.error || 'Invalid discount code');
       }
@@ -53,13 +53,13 @@ export function useDiscountCode(): UseDiscountCodeResult {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to validate discount code';
       setError(errorMessage);
-      
+
       const errorResult: DiscountValidationResult = {
         isValid: false,
         discount: null,
         error: errorMessage,
       };
-      
+
       setValidationResult(errorResult);
       return errorResult;
     } finally {
@@ -83,7 +83,7 @@ export function useDiscountCode(): UseDiscountCodeResult {
       setError(null);
 
       const success = await DiscountCodeService.applyDiscountCode(user.id, code, targetTier);
-      
+
       if (success) {
         // Clear validation result after successful application
         setValidationResult(null);
@@ -162,12 +162,12 @@ export function useDiscountCode(): UseDiscountCodeResult {
     validationResult,
     loading,
     error,
-    
+
     // Actions
     validateCode,
     applyCode,
     clearValidation,
-    
+
     // Utilities
     generatePostCancellationDiscount,
     generatePersonalizedDiscount,

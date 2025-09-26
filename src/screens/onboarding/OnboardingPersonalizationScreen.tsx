@@ -185,7 +185,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         console.warn('⚠️ Error checking force navigation flag:', e);
       }
     };
-    
+
     checkForceNavigation();
   }, [navigation]);
 
@@ -211,7 +211,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Set name if provided, but only for non-OAuth users
       if ('name' in route.params && route.params.name) {
         const providedName = route.params.name as string;
-        
+
         // For OAuth users, don't set the name even if provided to force name collection
         if (method !== 'oauth') {
           setName(providedName);
@@ -232,10 +232,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       try {
         const userMetadata = (user as any)?.user_metadata;
         console.log('[OnboardingPersonalization] User metadata:', userMetadata);
-        
+
         // Try to extract first name from various Google metadata fields
         let extractedName = '';
-        
+
         if (userMetadata?.first_name) {
           extractedName = userMetadata.first_name;
         } else if (userMetadata?.given_name) {
@@ -250,10 +250,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // Try to extract a reasonable first name from email username
           // For "bynikkib@gmail.com", try to extract "Nikki"
           let cleanUsername = emailUsername.toLowerCase();
-          
+
           // Remove common prefixes
           cleanUsername = cleanUsername.replace(/^(by|the|my|user|admin)/, '');
-          
+
           // Look for common name patterns
           if (cleanUsername.includes('nikki')) {
             extractedName = 'Nikki';
@@ -262,7 +262,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             extractedName = cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1);
           }
         }
-        
+
         if (extractedName) {
           console.log('[OnboardingPersonalization] Extracted first name for OAuth user:', extractedName);
           setName(extractedName);
@@ -370,15 +370,15 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
     const onShow = (e: any) => {
       setKeyboardVisible(true);
-      if (!isDetailsStep) return;
-      
+      if (!isDetailsStep) {return;}
+
       // Scroll to bottom when keyboard appears on details step
       setTimeout(() => {
         try {
           scrollViewRef.current?.scrollToEnd({ animated: true });
         } catch {}
       }, 300);
-      
+
       const kbHeight = e?.endCoordinates?.height ?? 0;
       const safeBottom = insets?.bottom ?? 0;
       // Translate only by the portion that overlaps the safe area, leaving a margin
@@ -440,7 +440,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           try {
             // Use the onboarding service to properly complete onboarding
             await onboardingService.completeOnboarding(user.id);
-            
+
             // Also update user_profiles for consistency
             const { error } = await supabase
               .from('user_profiles')
@@ -560,7 +560,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               styles.ageOption,
               selectedAgeGroup === ageGroup.value && styles.selectedAgeOption,
             ]}
-            onPress={() => { try { triggerLightHaptic(); } catch {}; setSelectedAgeGroup(ageGroup.value); }}
+            onPress={() => { try { triggerLightHaptic(); } catch {} setSelectedAgeGroup(ageGroup.value); }}
           >
             <ThemedText weight="semiBold" style={styles.ageOptionTitle}>{ageGroup.label}</ThemedText>
           </TouchableOpacity>
@@ -585,7 +585,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               styles.faithOption,
               selectedFaithJourney === option.id && styles.selectedFaithOption,
             ]}
-            onPress={() => { try { triggerLightHaptic(); } catch {}; setSelectedFaithJourney(option.id); }}
+            onPress={() => { try { triggerLightHaptic(); } catch {} setSelectedFaithJourney(option.id); }}
           >
             <View style={styles.faithOptionIcon}>
               <Ionicons name={option.icon} size={24} color={Colors.alertCoral} />
@@ -616,7 +616,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               styles.challengeOption,
               selectedChallenge === challenge.id && styles.selectedChallengeOption,
             ]}
-            onPress={() => { try { triggerLightHaptic(); } catch {}; setSelectedChallenge(challenge.id); }}
+            onPress={() => { try { triggerLightHaptic(); } catch {} setSelectedChallenge(challenge.id); }}
           >
             <View style={styles.challengeOptionIcon}>
               <Ionicons name={challenge.icon} size={24} color={Colors.alertCoral} />
@@ -668,7 +668,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           <TouchableOpacity
             key={index}
             style={styles.exampleTag}
-            onPress={() => { try { triggerLightHaptic(); } catch {}; setChallengeDetails(example); }}
+            onPress={() => { try { triggerLightHaptic(); } catch {} setChallengeDetails(example); }}
           >
             <ThemedText style={styles.exampleTagText}>{example}</ThemedText>
           </TouchableOpacity>

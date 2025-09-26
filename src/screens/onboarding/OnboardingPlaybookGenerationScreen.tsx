@@ -90,7 +90,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         if (e.data?.action?.type === 'REPLACE' || shouldNavigate) {
           return; // Let it proceed
         }
-        
+
         // Block all other navigation attempts (back button, swipe, etc.)
         e.preventDefault();
       });
@@ -391,7 +391,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         } else {
           // Direct generation completed immediately (no queue)
           console.log('✅ Direct playbook generation completed immediately');
-          
+
           // Wait a moment for database to be ready, then check for the playbook
           setTimeout(async () => {
             try {
@@ -411,11 +411,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   // If playbook was created in the last 30 seconds, it's likely our generated one
                   if (playbookAge < 30000) {
                     console.log('✅ Found direct generation result, navigating...');
-                    
+
                     // Get complete playbook data
                     const { getPlaybook } = await import('../../services/modernPlaybookApi');
                     const completePlaybook = await getPlaybook(user.id, recentPlaybook.id);
-                    
+
                     if (completePlaybook) {
                       const realGeneratedPlaybook: any = {
                         id: completePlaybook.id,
@@ -456,10 +456,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   }
                 }
               }
-              
+
               // If we get here, direct generation may have failed
               throw new Error('Direct generation completed but no playbook found');
-              
+
             } catch (directError) {
               console.error('❌ Direct generation check failed:', directError);
               setGenerationError('Unable to generate your playbook. Please try again.');
@@ -551,10 +551,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
       ]).start(({ finished }) => {
-        if (finished && mounted && isGenerating) loop();
+        if (finished && mounted && isGenerating) {loop();}
       });
     };
-    if (isGenerating) loop();
+    if (isGenerating) {loop();}
     return () => {
       mounted = false;
       shimmerOpacity.stopAnimation();

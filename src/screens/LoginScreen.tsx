@@ -111,7 +111,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           error ? styles.titleContainerCompressed : null,
         ]}>
           <ThemedText weight="bold" style={styles.title}>Login</ThemedText>
-          
+
           {/* Inline Error Message */}
           {error ? (
             <View style={styles.errorContainer}>

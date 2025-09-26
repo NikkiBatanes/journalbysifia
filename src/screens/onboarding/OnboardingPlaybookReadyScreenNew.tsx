@@ -80,11 +80,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       // Block user-initiated navigation attempts but allow programmatic navigation
       const unsubscribe = (navigation as any).addListener?.('beforeRemove', (e: any) => {
         // Allow navigation to sales offer or main tabs (forward navigation)
-        if (e.data?.action?.payload?.name === 'OnboardingSalesOffer' || 
+        if (e.data?.action?.payload?.name === 'OnboardingSalesOffer' ||
             e.data?.action?.payload?.name === 'MainTabs') {
           return; // Let it proceed
         }
-        
+
         // Block all other navigation attempts (back to personalization)
         e.preventDefault();
       });
@@ -105,12 +105,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
   const [footerH, setFooterH] = useState(0);
-  
+
   // Tutorial state - only show after user explores playbook
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1);
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
-  
+
   const [showIntroModal, setShowIntroModal] = useState(true);
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
   const flatListRef = useRef<FlatList>(null);
@@ -379,7 +379,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       actionStepsData: playbook?.actionSteps || [],
       firstStep: playbook?.actionSteps?.[0] || null,
     });
-    
+
     if (playbook.actionSteps && playbook.actionSteps.length > 0) {
       try {
         // Debug: log subtask counts for steps 3-5 (0-based indices 2-4)
@@ -462,7 +462,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
                       const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
                       return (
-                        <Animated.View key={p.id} style={[styles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}> 
+                        <Animated.View key={p.id} style={[styles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}>
                           <Ionicons name="book" size={p.size} color={p.color} />
                         </Animated.View>
                       );
@@ -568,12 +568,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Once revealed, keep it visible even if the user navigates away from the last card.
   useEffect(() => {
     const isLast = currentIndex === carouselCards.length - 1;
-    
+
     // Track if user has reached the last card
     if (isLast) {
       setHasReachedLastCard(true);
     }
-    
+
     if (isLast && !devotionalVisible && !devotionalTimerRef.current) {
       devotionalTimerRef.current = setTimeout(() => {
         setDevotionalVisible(true);
@@ -766,9 +766,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     // Award faith points to user's account during onboarding
                     if (user?.id) {
                       console.log('[OnboardingPlaybookReady] Awarding faith points for playbook generation');
-                      await faithPointsService.awardPoints(user.id, 'playbook_generated', { 
+                      await faithPointsService.awardPoints(user.id, 'playbook_generated', {
                         isOnboarding: true,
-                        suppressNotification: false 
+                        suppressNotification: false,
                       });
                       console.log('[OnboardingPlaybookReady] Faith points awarded successfully');
                     } else {
@@ -788,7 +788,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       console.warn('[OnboardingPlaybookReady] Failed to show points notification:', notificationError);
                     }
                   }
-                  
+
                   // Start tutorial after points celebration is complete (reduced delay)
                   setTimeout(() => {
                     setShowTutorial(true);
@@ -1008,7 +1008,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 <>
                   <TouchableOpacity
                     style={[styles.continueButton, !isActive && styles.continueButtonDisabled]}
-                    onPress={() => { if (!isActive) return; try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
+                    onPress={() => { if (!isActive) {return;} try { triggerLightHaptic(); } catch {} handleContinueJourney(); }}
                     activeOpacity={isActive ? 0.8 : 1}
                     disabled={!isActive}
                   >
@@ -1016,7 +1016,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   </TouchableOpacity>
                   {/* Optional skip path for users who don't want to go through all cards now */}
                   <TouchableOpacity
-                    onPress={() => { try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} handleContinueJourney(); }}
                     style={styles.skipButton}
                     activeOpacity={0.7}
                   >

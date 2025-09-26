@@ -48,7 +48,7 @@ class PushNotificationService {
   private deviceToken: string | null = null;
 
   async initialize(userId: string): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     try {
       // Skip initialization if PushNotification is not available
@@ -70,7 +70,7 @@ class PushNotificationService {
         // Called when a remote notification is received while app is in foreground
         onNotification: (notification: any) => {
           console.log('[PushNotification] Notification received:', notification);
-          
+
           // Handle notification tap
           if (notification.userInteraction) {
             this.handleNotificationTap(notification);
@@ -154,7 +154,7 @@ class PushNotificationService {
         console.log('[PushNotification] Current iOS permissions:', current);
 
         const alreadyGranted = !!(current?.alert || current?.badge || current?.sound);
-        if (alreadyGranted) return true;
+        if (alreadyGranted) {return true;}
 
         // Request permissions
         if (typeof PushNotificationIOS.requestPermissions === 'function') {
@@ -241,7 +241,7 @@ class PushNotificationService {
         console.warn('[PushNotification] Service not available, cannot schedule notification');
         return;
       }
-      
+
       PushNotification.localNotificationSchedule({
         title: payload.title,
         message: payload.message,
@@ -302,10 +302,10 @@ class PushNotificationService {
 
   private handleNotificationTap(notification: any): void {
     console.log('[PushNotification] Notification tapped:', notification);
-    
+
     // Handle different notification types
     const { type, playbookId, devotionalId, actionStepId } = notification.data || {};
-    
+
     switch (type) {
       case 'playbook_step':
         // Navigate to specific playbook and action step

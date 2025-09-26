@@ -18,7 +18,7 @@ const OnboardingPaymentProcessingScreen = () => {
   const route = useRoute<any>();
   const { user } = useAuth();
   const { upgradeSubscription, startTrial } = useNewSubscription(user?.id || '');
-  
+
   const [isProcessing, setIsProcessing] = useState(true);
   const [processingStatus, setProcessingStatus] = useState('Initializing payment...');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -38,22 +38,22 @@ const OnboardingPaymentProcessingScreen = () => {
   const processPayment = async () => {
     try {
       setProcessingStatus('Processing payment...');
-      
+
       // Simulate payment processing delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       if (isTrial) {
         // Process free trial
         setProcessingStatus('Activating free trial...');
-        await startTrial({ 
-          user_id: user?.id || '', 
+        await startTrial({
+          user_id: user?.id || '',
           duration_days: trialDays,
-          trial_chosen_tier: selectedTier as any // Pass the selected tier from route params
+          trial_chosen_tier: selectedTier as any, // Pass the selected tier from route params
         });
-        
+
         setProcessingStatus('Trial activated successfully!');
         setPaymentSuccess(true);
-        
+
         // Skip notification setup, navigate directly to MainTabs after delay
         setTimeout(() => {
           navigation.reset({
@@ -61,22 +61,22 @@ const OnboardingPaymentProcessingScreen = () => {
             routes: [{ name: 'MainTabs' as never }],
           });
         }, 1500);
-        
+
       } else {
         // Process paid subscription
         setProcessingStatus('Activating subscription...');
-        
+
         // For local testing, simulate successful payment
         await upgradeSubscription({
           platform: 'local_test', // Will be 'apple_pay' or 'google_play' in production
           target_tier: selectedTier as any,
           billing_cycle: isAnnual ? 'annual' : 'monthly',
-          subscription_start_date: new Date().toISOString()
+          subscription_start_date: new Date().toISOString(),
         });
-        
+
         setProcessingStatus('Subscription activated successfully!');
         setPaymentSuccess(true);
-        
+
         // Skip notification setup, navigate directly to MainTabs after delay
         setTimeout(() => {
           navigation.reset({
@@ -85,9 +85,9 @@ const OnboardingPaymentProcessingScreen = () => {
           });
         }, 1500);
       }
-      
+
       setIsProcessing(false);
-      
+
     } catch (error) {
       console.error('Payment processing error:', error);
       setPaymentError('Payment failed. Please try again.');
@@ -127,7 +127,7 @@ const OnboardingPaymentProcessingScreen = () => {
             {isTrial ? 'Starting Free Trial' : 'Processing Payment'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            {isTrial 
+            {isTrial
               ? `Activating your ${trialDays}-day free trial`
               : `Subscribing to ${getTierDisplayName(selectedTier)}`
             }
@@ -137,19 +137,19 @@ const OnboardingPaymentProcessingScreen = () => {
         {/* Processing Animation */}
         <View style={styles.processingContainer}>
           {isProcessing && (
-            <ActivityIndicator 
-              size="large" 
-              color={Colors.anchorBlue} 
+            <ActivityIndicator
+              size="large"
+              color={Colors.anchorBlue}
               style={styles.spinner}
             />
           )}
-          
+
           {paymentSuccess && (
             <View style={styles.successIcon}>
               <Ionicons name="checkmark-circle" size={80} color={Colors.growthGreen} />
             </View>
           )}
-          
+
           {paymentError && (
             <View style={styles.errorIcon}>
               <Ionicons name="close-circle" size={80} color={Colors.error} />
@@ -162,11 +162,11 @@ const OnboardingPaymentProcessingScreen = () => {
           <ThemedText weight="semiBold" style={[
             styles.statusText,
             paymentSuccess && styles.successText,
-            paymentError && styles.errorText
+            paymentError && styles.errorText,
           ]}>
             {processingStatus}
           </ThemedText>
-          
+
           {!isTrial && price > 0 && (
             <ThemedText style={styles.priceText}>
               ${price.toFixed(2)} {isAnnual ? 'annually' : 'monthly'}
@@ -177,15 +177,15 @@ const OnboardingPaymentProcessingScreen = () => {
         {/* Action Buttons */}
         {paymentError && (
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.retryButton} 
+            <TouchableOpacity
+              style={styles.retryButton}
               onPress={handleRetry}
             >
               <ThemedText weight="bold" style={styles.retryButtonText}>Try Again</ThemedText>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.cancelButton} 
+
+            <TouchableOpacity
+              style={styles.cancelButton}
               onPress={handleCancel}
             >
               <ThemedText weight="medium" style={styles.cancelButtonText}>Cancel</ThemedText>

@@ -44,10 +44,10 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
 
   // Don't show offline status immediately - wait a bit to avoid flickering
   const [showOfflineStatus, setShowOfflineStatus] = React.useState(false);
-  
+
   React.useEffect(() => {
     let timer: NodeJS.Timeout;
-    
+
     if (!isOnline) {
       // Show offline status after 1 second delay to avoid brief network hiccups
       timer = setTimeout(() => {
@@ -57,9 +57,9 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
       // Hide offline status immediately when back online
       setShowOfflineStatus(false);
     }
-    
+
     return () => {
-      if (timer) clearTimeout(timer);
+      if (timer) {clearTimeout(timer);}
     };
   }, [isOnline]);
 

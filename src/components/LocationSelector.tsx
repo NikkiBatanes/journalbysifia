@@ -67,7 +67,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const { user } = useAuth();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -78,11 +78,11 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
 
   const handleGetCurrentLocation = async () => {
     setIsLoadingLocation(true);
-    
+
     try {
       // Check if native module is available before calling
       const result: LocationResult = await getCurrentLocation();
-      
+
       if (result.success && result.location) {
         setInputValue(result.location);
         onLocationSelect(result.location);
@@ -110,10 +110,10 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
     }
 
     setIsSearching(true);
-    
+
     try {
       const results = await searchLocations(query);
-      
+
       if (results && results.length > 0) {
         setSearchResults(results);
         console.log('Location search performed:', query, results.length);
@@ -131,17 +131,17 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   const handleInputChange = (text: string) => {
     setInputValue(text);
     onLocationSelect(text);
-    
+
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     // Set new timeout for search
     searchTimeoutRef.current = setTimeout(() => {
       handleSearchLocations(text);
     }, 300); // 300ms debounce
-    
+
     setShowSuggestions(text.length > 0);
   };
 
@@ -151,7 +151,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
     onLocationSelect(fullLocation);
     setShowSuggestions(false);
     Keyboard.dismiss();
-    
+
     console.log('Search location selected:', fullLocation);
   };
 
@@ -185,7 +185,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
           placeholderTextColor={Colors.textGray}
           returnKeyType="done"
         />
-        
+
         <TouchableOpacity
           style={styles.currentLocationButton}
           onPress={handleGetCurrentLocation}
@@ -208,7 +208,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
               <ThemedText style={styles.loadingText}>Searching locations...</ThemedText>
             </View>
           )}
-          
+
           {searchResults.length > 0 && (
             <FlatList
               data={searchResults}
@@ -234,7 +234,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
               showsVerticalScrollIndicator={false}
             />
           )}
-          
+
           {!isSearching && searchResults.length === 0 && inputValue.length > 2 && (
             <View style={styles.noResultsContainer}>
               <ThemedText style={styles.noResultsText}>

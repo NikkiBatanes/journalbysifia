@@ -51,7 +51,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     isAuthenticated: false,
   });
 
-  
+
   // Logout state tracking
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -59,16 +59,16 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   useEffect(() => {
     const rawWebClientId = Config.GOOGLE_WEB_CLIENT_ID;
     const rawIosClientId = Config.GOOGLE_IOS_CLIENT_ID;
-    
+
     // Clean up any duplicate prefixes from environment variables
     const webClientId = rawWebClientId?.replace('GOOGLE_WEB_CLIENT_ID=', '') || rawWebClientId;
     const iosClientId = rawIosClientId?.replace('GOOGLE_IOS_CLIENT_ID=', '') || rawIosClientId;
-    
+
     console.log('🔧 Configuring Google Sign-In with:');
     console.log('📱 iOS Client ID (raw):', rawIosClientId || 'UNDEFINED');
     console.log('📱 iOS Client ID (cleaned):', iosClientId || 'UNDEFINED');
     console.log('🌐 Web Client ID (cleaned):', webClientId || 'UNDEFINED');
-    
+
     if (!iosClientId || !webClientId) {
       console.error('❌ Missing Google OAuth client IDs in environment variables');
       console.error('Please check your .env file contains:');
@@ -76,13 +76,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       console.error('GOOGLE_WEB_CLIENT_ID=your-web-client-id.googleusercontent.com');
       return;
     }
-    
+
     GoogleSignin.configure({
       webClientId: webClientId,
       iosClientId: iosClientId,
       offlineAccess: false, // Improves speed
     });
-    
+
     console.log('✅ Google Sign-In configured successfully');
   }, []);
 
@@ -187,14 +187,14 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           console.error('❌ Error creating user profile:', insertError);
         } else {
           console.log('✅ User profile created successfully');
-          
+
           // Create default Seeker subscription for new user
           try {
             const { error: subscriptionError } = await supabase
-              .rpc('create_default_seeker_subscription', { 
-                target_user_id: user.id 
+              .rpc('create_default_seeker_subscription', {
+                target_user_id: user.id,
               });
-            
+
             if (subscriptionError) {
               console.error('❌ Error creating default subscription:', subscriptionError);
             } else {
@@ -259,26 +259,26 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   .select('onboarding_completed')
                   .eq('id', session.user.id)
                   .single();
-                
+
                 const hasCompletedOnboarding = profile?.onboarding_completed === true;
-                console.log('🔍 Post-signin onboarding check:', { 
-                  userId: session.user.id, 
-                  hasCompleted: hasCompletedOnboarding 
+                console.log('🔍 Post-signin onboarding check:', {
+                  userId: session.user.id,
+                  hasCompleted: hasCompletedOnboarding,
                 });
-                
+
                 if (hasCompletedOnboarding) {
                   // User completed onboarding - force navigation to main app
                   console.log('🚀 User completed onboarding - forcing navigation to MainTabs');
-                  
+
                   // Set a flag to trigger navigation on next render
                   await AsyncStorage.setItem('force_navigate_to_main', 'true');
-                  
+
                   // Also set the redirect as backup
                   await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                     target: 'MainTabs',
-                    params: {}
+                    params: {},
                   }));
-                  
+
                   console.log('✅ Set force navigation flag and redirect to MainTabs');
                 } else {
                   // User needs to complete onboarding - continue with personalization
@@ -289,7 +289,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                 // Fallback to personalization
                 await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                   target: 'OnboardingPersonalization',
-                  params: {}
+                  params: {},
                 }));
               }
             }
@@ -519,7 +519,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const resetPassword = async (email: string) => {
     try {
       console.log('🔑 Starting password reset for:', email);
-      
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.toLowerCase().trim(),
         {
@@ -550,13 +550,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const updatePassword = async (newPassword: string, accessToken?: string) => {
     try {
       console.log('🔑 Starting password update process...');
-      
+
       // If we have an access token (from reset link), use it
       if (accessToken) {
         const { error } = await supabase.auth.updateUser({
           password: newPassword,
         });
-        
+
         if (error) {
           console.error('❌ Password update failed:', error);
           return { error };
@@ -720,14 +720,14 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       if (Platform.OS === 'android') {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
-      
+
       // Sign in with Google
       const userInfo = await GoogleSignin.signIn();
       console.log('✅ Google sign-in successful:', userInfo.data?.user.email);
 
       // Get the ID token
       const idToken = userInfo.data?.idToken;
-      
+
       if (!idToken) {
         // User likely cancelled - don't show error, just return silently
         console.log('ℹ️ Google Sign-In cancelled by user');
@@ -736,7 +736,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
 
       console.log('🔍 Signing in to Supabase with Google token (no nonce)');
-      
+
       // Ensure we're starting with a completely clean session
       const { data: currentSession } = await supabase.auth.getSession();
       if (currentSession?.session) {
@@ -744,10 +744,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         await supabase.auth.signOut();
         await new Promise(resolve => setTimeout(resolve, 200));
       }
-      
+
       // Try alternative approach: exchange Google token for Supabase session
       console.log('🔄 Attempting direct Google token exchange...');
-      
+
       // First try the standard approach
       let authError = null;
       try {
@@ -759,24 +759,24 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       } catch (err: any) {
         authError = err;
       }
-      
+
       // If standard approach fails with nonce error, try manual user creation
       if (authError && authError.message?.includes('nonce')) {
         console.log('🔄 Nonce error detected, trying manual approach...');
-        
+
         // Decode the Google ID token to get user info
         const base64Url = idToken.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
-        
+
         const googleUser = JSON.parse(jsonPayload);
         console.log('📋 Google user info:', { email: googleUser.email, name: googleUser.name });
-        
+
         // Check if we need to collect additional user info
         const needsNameCollection = !googleUser.name || googleUser.name.trim().length === 0;
-        
+
         let userData = {
           full_name: googleUser.name || '',
           first_name: googleUser.given_name || '',
@@ -786,28 +786,28 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           google_id: googleUser.sub,
           needs_name_completion: needsNameCollection,
         };
-        
+
         // If name is missing or incomplete, we'll handle it after auth
         if (needsNameCollection) {
           console.log('⚠️ Google user has incomplete name info - will be handled in personalization screen');
         }
-        
+
         // For nonce errors, try to proceed with Google auth anyway
         // The original nonce error might be temporary or configuration-related
         console.log('🔄 Nonce error detected, but proceeding with Google authentication...');
-        
+
         // Try the standard Google auth flow one more time with a fresh session
         try {
           // Clear any stale sessions completely
           await supabase.auth.signOut();
           await new Promise(resolve => setTimeout(resolve, 500));
-          
+
           // Retry the Google token exchange
           const { error: retryError } = await supabase.auth.signInWithIdToken({
             provider: 'google',
             token: idToken,
           });
-          
+
           if (retryError) {
             console.error('❌ Retry Google auth failed:', retryError);
             authError = retryError;
@@ -820,7 +820,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           authError = retryErr as SupabaseAuthError;
         }
       }
-      
+
       if (authError) {
         console.error('❌ All Google auth methods failed:', authError);
         setAuthState(prev => ({ ...prev, loading: false }));
@@ -828,14 +828,14 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
 
       setAuthState(prev => ({ ...prev, loading: false }));
-      
+
       console.log('✅ Google authentication successful');
       return { error: null };
     } catch (error: any) {
       setAuthState(prev => ({ ...prev, loading: false }));
-      
+
       // Check if this is a user cancellation
-      if (error.code === 'SIGN_IN_CANCELLED' || 
+      if (error.code === 'SIGN_IN_CANCELLED' ||
           error.code === '12501' || // Android cancellation
           error.message?.includes('cancelled') ||
           error.message?.includes('canceled') ||
@@ -843,7 +843,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         console.log('ℹ️ Google Sign-In cancelled by user');
         return { error: null }; // Return success to avoid showing error UI
       }
-      
+
       console.error('❌ Google sign-in error:', error);
       return {
         error: {
@@ -875,7 +875,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
       const { identityToken, nonce, fullName } = appleAuthRequestResponse;
-      
+
       // Log Apple-provided data for debugging
       console.log('🍎 Apple Sign-In Response:', {
         hasIdentityToken: !!identityToken,
@@ -883,10 +883,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         fullName: fullName ? {
           givenName: fullName.givenName,
           familyName: fullName.familyName,
-          nickname: fullName.nickname
-        } : null
+          nickname: fullName.nickname,
+        } : null,
       });
-      
+
       if (!identityToken) {
         // Treat as user cancellation or benign failure: do not surface an error
         console.log('ℹ️ Apple Sign-In cancelled or no identity token');

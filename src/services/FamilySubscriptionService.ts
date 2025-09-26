@@ -155,7 +155,7 @@ export class FamilySubscriptionService {
     try {
       // Get user's subscription to find family group ID
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
-      
+
       if (!subscription.family_group_id) {
         return null;
       }
@@ -174,7 +174,7 @@ export class FamilySubscriptionService {
     try {
       // Check if family group exists and has space
       const familyGroup = await this.getFamilyGroup(options.family_group_id);
-      
+
       if (familyGroup.current_members >= familyGroup.max_members) {
         throw new Error('Family group is at maximum capacity');
       }
@@ -183,7 +183,7 @@ export class FamilySubscriptionService {
       const existingMember = familyGroup.members.find(
         member => member.email === options.invited_email
       );
-      
+
       if (existingMember) {
         throw new Error('User is already a member of this family group');
       }
@@ -255,13 +255,13 @@ export class FamilySubscriptionService {
           .from('family_invitations')
           .update({ status: 'expired' })
           .eq('id', invitation.id);
-        
+
         throw new Error('Invitation has expired');
       }
 
       // Get family group to check capacity
       const familyGroup = await this.getFamilyGroup(invitation.family_group_id);
-      
+
       if (familyGroup.current_members >= familyGroup.max_members) {
         throw new Error('Family group is at maximum capacity');
       }
@@ -318,7 +318,7 @@ export class FamilySubscriptionService {
     try {
       // Verify admin permissions
       const familyGroup = await this.getFamilyGroup(familyGroupId);
-      
+
       if (familyGroup.admin_user_id !== adminUserId) {
         throw new Error('Only family admin can remove members');
       }
@@ -452,7 +452,7 @@ export class FamilySubscriptionService {
   }> {
     try {
       const familyGroup = await this.getFamilyGroup(familyGroupId);
-      
+
       const memberUsage = await Promise.all(
         familyGroup.members.map(async (member) => {
           const subscription = await NewSubscriptionService.getUserSubscription(member.user_id);

@@ -93,16 +93,16 @@ export interface LocationSuggestion {
 export const requestCalendarPermissions = async (): Promise<boolean> => {
   try {
     console.log('🔍 Requesting calendar permissions...');
-    
+
     if (Platform.OS === 'ios') {
       const status = await RNCalendarEvents.requestPermissions();
       console.log('🔍 iOS calendar permission status:', status);
-      
+
       if (status === 'denied' || status === 'restricted') {
         console.log('🔍 Calendar permission denied/restricted. User needs to enable in Settings.');
         return false;
       }
-      
+
       return status === 'authorized';
     } else {
       const granted = await PermissionsAndroid.request(
@@ -270,9 +270,9 @@ export const syncTimeBlockToCalendar = async (
   try {
     const hasPermission = await requestCalendarPermissions();
     if (!hasPermission) {
-      return { 
-        success: false, 
-        error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia' 
+      return {
+        success: false,
+        error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia',
       };
     }
 
@@ -322,7 +322,7 @@ export const syncTimeBlockToCalendar = async (
     return { success: true, eventId };
   } catch (error) {
     console.error('Calendar sync error:', error);
-    
+
     // Track error analytics
     try {
       analytics.trackTimeBlockEvent('timeblock_error', {
@@ -334,9 +334,9 @@ export const syncTimeBlockToCalendar = async (
       console.warn('Analytics error:', analyticsError);
     }
 
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to sync to calendar' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to sync to calendar',
     };
   }
 };
@@ -354,7 +354,7 @@ export const removeTimeBlockFromCalendar = async (
     // Parse virtual calendar event ID format: "realEventId:targetDate"
     let realEventId = eventId;
     let instanceDate = options?.date;
-    
+
     if (eventId.includes(':')) {
       const parts = eventId.split(':');
       realEventId = parts[0];
@@ -406,10 +406,10 @@ export const removeTimeBlockFromCalendar = async (
     return { success: true };
   } catch (error) {
     console.error('Calendar remove error:', error);
-    
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to remove from calendar' 
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to remove from calendar',
     };
   }
 };
@@ -425,14 +425,14 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
       Geolocation.getCurrentPosition(
         async (position: any) => {
           const { latitude, longitude } = position.coords;
-          
+
           try {
             // Use reverse geocoding to get actual address
             const response = await fetch(
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
             );
             const data = await response.json();
-            
+
             let locationString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
             if (data && (data.locality || data.city)) {
               const city = data.locality || data.city || '';
@@ -440,7 +440,7 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
               const country = data.countryName || '';
               locationString = [city, region, country].filter(Boolean).join(', ');
             }
-            
+
             resolve({
               success: true,
               location: locationString,
@@ -458,9 +458,9 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
         },
         (error: any) => {
           console.error('Location error:', error);
-          resolve({ 
-            success: false, 
-            error: error.message || 'Failed to get location' 
+          resolve({
+            success: false,
+            error: error.message || 'Failed to get location',
           });
         },
         {
@@ -472,9 +472,9 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
     });
   } catch (error) {
     console.error('Location error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to get location' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get location',
     };
   }
 };
@@ -485,13 +485,13 @@ export const searchLocations = async (query: string): Promise<LocationSearchResu
     // In production, integrate with Google Places API or similar
     const mockResults: LocationSearchResult[] = [
       {
-        id: `search_1`,
+        id: 'search_1',
         name: `${query} - Main Location`,
         address: `123 ${query} Street, City, State`,
         coordinates: { latitude: 37.7749, longitude: -122.4194 },
       },
       {
-        id: `search_2`,
+        id: 'search_2',
         name: `${query} - Secondary Location`,
         address: `456 ${query} Avenue, City, State`,
         coordinates: { latitude: 37.7849, longitude: -122.4094 },
@@ -521,9 +521,9 @@ export const deleteRecurringTimeBlock = async (
     return { success: true };
   } catch (error) {
     console.error('Delete recurring error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to delete recurring time block' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete recurring time block',
     };
   }
 };

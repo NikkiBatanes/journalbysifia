@@ -238,7 +238,7 @@ export default function RootStackNavigator({
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
         <>
-          <Stack.Screen 
+          <Stack.Screen
             name="Auth"
             options={{
               headerShown: false,
@@ -310,9 +310,9 @@ export default function RootStackNavigator({
 
 
           {/* Main App */}
-          <Stack.Screen 
-            name="MainTabs" 
-            component={MainTabsScreen} 
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabsScreen}
             options={{
               headerShown: false,
               animation: 'fade',

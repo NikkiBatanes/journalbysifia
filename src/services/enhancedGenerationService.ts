@@ -140,9 +140,9 @@ export class EnhancedGenerationService {
       }
 
       // Handle database issues gracefully (schema, partitioning, etc.)
-      if ((error as any)?.code === 'PGRST204' || 
-          (error as any)?.code === '23514' || 
-          (error as any)?.message?.includes('schema') || 
+      if ((error as any)?.code === 'PGRST204' ||
+          (error as any)?.code === '23514' ||
+          (error as any)?.message?.includes('schema') ||
           (error as any)?.message?.includes('column') ||
           (error as any)?.message?.includes('partition') ||
           (error as any)?.message?.includes('no partition of relation')) {
@@ -210,19 +210,19 @@ export class EnhancedGenerationService {
   private async generateSimpleFallback(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
       console.log('[EnhancedGenerationService] Attempting simple fallback generation');
-      
+
       // Use environment config to get Supabase URL
       const { getEnvironmentConfig } = await import('../config/environment');
       const env = getEnvironmentConfig();
-      
+
       if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
         throw new Error('Missing environment configuration');
       }
-      
+
       const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-playbook`;
-      
+
       console.log('[EnhancedGenerationService] Calling Supabase function directly:', functionUrl);
-      
+
       // Resolve bible version preference (default NASB)
       const bibleVersion = await this.getPreferredBibleVersion();
 
@@ -238,20 +238,20 @@ export class EnhancedGenerationService {
           bibleVersion,
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[EnhancedGenerationService] Supabase function error:', errorText);
         throw new Error(`Generation failed: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
       console.log('[EnhancedGenerationService] Supabase function succeeded');
-      
+
       // Save the result directly to database
       try {
         const { savePlaybook } = await import('./modernPlaybookApi');
-        
+
         const playbookToSave = {
           id: result.id,
           title: result.title,
@@ -269,9 +269,9 @@ export class EnhancedGenerationService {
           progress: 0,
           totalTasks: (result.actionSteps || []).length,
         };
-        
+
         const saveResult = await savePlaybook(playbookToSave, request.userId);
-        
+
         if (saveResult.success) {
           console.log('[EnhancedGenerationService] ✅ Fallback generation and save successful');
         } else {
@@ -281,7 +281,7 @@ export class EnhancedGenerationService {
         console.error('[EnhancedGenerationService] Save error in fallback:', saveError);
         // Don't fail the entire operation for save errors
       }
-      
+
       return {
         success: true,
         queueId: 'fallback-' + Date.now(),
@@ -294,7 +294,7 @@ export class EnhancedGenerationService {
       };
     } catch (error) {
       console.error('[EnhancedGenerationService] Simple fallback generation failed:', error);
-      
+
       return {
         success: false,
         message: 'Unable to generate playbook at this time. Please check your connection and try again.',

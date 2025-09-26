@@ -357,7 +357,7 @@ export class QueueService {
         tokens_used: result.tokensUsed || 0,
         cost_cents: result.costCents || 0,
       });
-      
+
       console.log(`[QueueService] ✅ Successfully marked ${item.type} generation as completed for user ${item.user_id}`);
 
       // Track usage in subscription service
@@ -567,7 +567,7 @@ export class QueueService {
 
       // Add safe fields that are likely to exist
       const safeFields = ['started_at', 'completed_at', 'failed_at', 'result_id', 'error_message', 'retry_count', 'tokens_used', 'cost_cents'];
-      
+
       if (updates) {
         Object.keys(updates).forEach(key => {
           if (safeFields.includes(key) || key === 'status' || key === 'updated_at') {
@@ -585,7 +585,7 @@ export class QueueService {
 
       if (error) {
         console.error(`[QueueService] Failed to update queue status for ${itemId}:`, error);
-        
+
         // If schema error, try with minimal fields only
         if (error.code === 'PGRST204') {
           console.log(`[QueueService] Schema error, trying minimal update for ${itemId}`);
@@ -593,22 +593,22 @@ export class QueueService {
             status,
             updated_at: new Date().toISOString(),
           };
-          
+
           const { error: minimalError } = await this.supabase
             .from('generation_queue')
             .update(minimalUpdate)
             .eq('id', itemId);
-            
+
           if (minimalError) {
             console.error(`[QueueService] Even minimal update failed for ${itemId}:`, minimalError);
             // Don't throw - log and continue to prevent app crashes
             return;
           }
-          
+
           console.log(`[QueueService] Minimal update succeeded for ${itemId}`);
           return;
         }
-        
+
         throw error;
       }
 
@@ -616,7 +616,7 @@ export class QueueService {
     } catch (error) {
       console.error(`[QueueService] Error updating queue status for ${itemId}:`, error);
       // Don't throw to prevent cascading failures - log and continue
-      console.log(`[QueueService] Continuing despite update error to prevent app crashes`);
+      console.log('[QueueService] Continuing despite update error to prevent app crashes');
     }
   }
 

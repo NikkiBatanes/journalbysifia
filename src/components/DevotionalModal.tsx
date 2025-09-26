@@ -75,7 +75,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [_ellipsis, setEllipsis] = useState('');
   const contentRef = React.useRef<View>(null);
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
-  
+
   // Feature gating
   const devotionalGating = useDevotionalGating();
 
@@ -285,7 +285,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     // Check if this duration is locked for current tier
     const accessCheck = devotionalGating.checkAccess(days, playbookId ? 'onboarding' : 'inApp');
-    
+
     if (accessCheck.isLocked) {
       console.log(`[DevotionalModal] Duration ${days} is locked for tier ${devotionalGating.tier}`);
       onClose(); // Close the devotional modal first
@@ -293,7 +293,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         upgradeMode: true,
         currentTier: devotionalGating.tier,
         requestedDuration: days,
-        skipNotificationPreference: true
+        skipNotificationPreference: true,
       });
       return;
     }
@@ -546,13 +546,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 {DURATION_OPTIONS.map((option) => {
                   const accessCheck = devotionalGating.checkAccess(option.days, playbookId ? 'onboarding' : 'inApp');
                   const isLocked = accessCheck.isLocked;
-                  
+
                   return (
                     <TouchableOpacity
                       key={option.days}
                       style={[
                         styles.optionButton,
-                        isLocked && styles.optionButtonLocked
+                        isLocked && styles.optionButtonLocked,
                       ]}
                       onPress={() => { triggerLightHaptic(); handleSelectDuration(option.days); }}
                       disabled={isCreating}
@@ -562,18 +562,18 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                         <View style={styles.optionLeftContent}>
                           <ThemedText weight="semiBold" style={[
                             styles.optionDays,
-                            isLocked && styles.optionTextLocked
+                            isLocked && styles.optionTextLocked,
                           ]}>
                             {option.days} DAY
                           </ThemedText>
                           <ThemedText weight="semiBold" style={[
                             styles.optionTitle,
-                            isLocked && styles.optionTextLocked
+                            isLocked && styles.optionTextLocked,
                           ]}>
                             {option.title}
                           </ThemedText>
                         </View>
-                        
+
                         {/* Lock Icon */}
                         <DevotionalLockIcon
                           tier={devotionalGating.tier}
@@ -584,16 +584,16 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                             navigation.navigate('OnboardingSalesOffer' as any, {
                               upgradeMode: true,
                               currentTier: devotionalGating.tier,
-                              requestedDuration: option.days
+                              requestedDuration: option.days,
                             });
                           }}
                           size={20}
                         />
                       </View>
-                      
+
                       <ThemedText weight="regular" style={[
                         styles.optionDescription,
-                        isLocked && styles.optionTextLocked
+                        isLocked && styles.optionTextLocked,
                       ]}>
                         {option.description}
                       </ThemedText>
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)'
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   tierBadgeText: {
     color: Colors.hopeWhite,
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)'
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   countBadgeText: {
     color: Colors.hopeWhite,

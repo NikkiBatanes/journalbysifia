@@ -41,18 +41,18 @@ export class GuidedPromptGatingService {
       return {
         freePrompts: GUIDED_PROMPTS.slice(), // All prompts are free
         lockedPrompts: [],
-        allPrompts: GUIDED_PROMPTS.slice()
+        allPrompts: GUIDED_PROMPTS.slice(),
       };
     }
 
     // Seeker tier: Show ALL prompts - 2 free + rest locked
     const freePrompts = this.generateConsistentFreePrompts(userId, 2);
     const remainingPrompts = GUIDED_PROMPTS.filter(p => !freePrompts.includes(p));
-    
+
     return {
       freePrompts,
       lockedPrompts: remainingPrompts, // Show ALL remaining prompts as locked
-      allPrompts: GUIDED_PROMPTS.slice() // Show ALL prompts
+      allPrompts: GUIDED_PROMPTS.slice(), // Show ALL prompts
     };
   }
 
@@ -60,8 +60,8 @@ export class GuidedPromptGatingService {
    * Check if a user can use a specific prompt
    */
   public async canUsePrompt(
-    userId: string, 
-    tier: SubscriptionTier, 
+    userId: string,
+    tier: SubscriptionTier,
     prompt: string
   ): Promise<PromptUsageCheck> {
     // Paid tiers can use any prompt
@@ -69,7 +69,7 @@ export class GuidedPromptGatingService {
       return {
         canUse: true,
         isCompleted: false,
-        requiresUpgrade: false
+        requiresUpgrade: false,
       };
     }
 
@@ -84,7 +84,7 @@ export class GuidedPromptGatingService {
     return {
       canUse: isFreePrompt && !isCompleted,
       isCompleted,
-      requiresUpgrade: !isFreePrompt
+      requiresUpgrade: !isFreePrompt,
     };
   }
 
@@ -95,10 +95,10 @@ export class GuidedPromptGatingService {
     try {
       const dateStr = new Date().toISOString().slice(0, 10);
       const storageKey = `@guided_completed_${dateStr}`;
-      
+
       const existing = await AsyncStorage.getItem(storageKey);
       const completedList: string[] = existing ? JSON.parse(existing) : [];
-      
+
       if (!completedList.includes(prompt)) {
         completedList.push(prompt);
         await AsyncStorage.setItem(storageKey, JSON.stringify(completedList));
@@ -106,9 +106,9 @@ export class GuidedPromptGatingService {
 
       // Emit event for UI updates
       const { DeviceEventEmitter } = require('react-native');
-      DeviceEventEmitter.emit('guided_reflection_completed', { 
-        question: prompt, 
-        date: dateStr 
+      DeviceEventEmitter.emit('guided_reflection_completed', {
+        question: prompt,
+        date: dateStr,
       });
     } catch (error) {
       console.error('[GuidedPromptGatingService] Error marking prompt as used:', error);

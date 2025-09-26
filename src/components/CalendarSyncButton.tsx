@@ -75,15 +75,15 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
         ...timeBlock,
         repeat: {
           ...timeBlock.repeat,
-          frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly'
-        }
+          frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly',
+        },
       });
 
       if (result.success && result.eventId) {
         setSyncStatus('synced');
         onSyncComplete(result.eventId);
         triggerSelectionHaptic();
-        
+
         if (!calendarEventId) {
           // First time sync
           Alert.alert(
@@ -94,19 +94,19 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
         }
       } else {
         setSyncStatus('error');
-        
+
         if (result.error?.includes('Calendar permission denied')) {
           Alert.alert(
             'Calendar Access Required',
             'To sync your time blocks to your calendar, please enable calendar access for siFia.',
             [
               { text: 'Cancel', style: 'cancel' },
-              { 
-                text: 'Open Settings', 
+              {
+                text: 'Open Settings',
                 onPress: () => {
                   Linking.openSettings();
-                }
-              }
+                },
+              },
             ]
           );
         } else {
@@ -131,7 +131,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   };
 
   const handleUnsync = async () => {
-    if (!calendarEventId) return;
+    if (!calendarEventId) {return;}
 
     Alert.alert(
       'Remove from Calendar',
@@ -143,7 +143,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
           style: 'destructive',
           onPress: async () => {
             setIsLoading(true);
-            
+
             try {
               const result = await removeTimeBlockFromCalendar(calendarEventId);
 
@@ -174,7 +174,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
     if (!calendarGating.canSyncToCalendar) {
       return [styles.button, styles.lockedButton];
     }
-    
+
     switch (syncStatus) {
       case 'synced':
         return [styles.button, styles.syncedButton];

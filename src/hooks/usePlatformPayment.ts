@@ -8,13 +8,13 @@ export interface UsePlatformPaymentResult {
   loading: boolean;
   error: string | null;
   subscriptionStatus: SubscriptionStatus | null;
-  
+
   // Actions
   purchaseSubscription: (productId: string) => Promise<UnifiedPurchaseResult>;
   restorePurchases: () => Promise<boolean>;
   cancelSubscription: () => Promise<boolean>;
   refreshSubscriptionStatus: () => Promise<void>;
-  
+
   // Utilities
   isPaymentAvailable: boolean;
   getProductPricing: () => Promise<Record<string, string>>;
@@ -30,7 +30,7 @@ export function usePlatformPayment(): UsePlatformPaymentResult {
   const [error, setError] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [isPaymentAvailable, setIsPaymentAvailable] = useState(false);
-  
+
   const paymentService = PlatformPaymentService.getInstance();
 
   /**
@@ -78,16 +78,16 @@ export function usePlatformPayment(): UsePlatformPaymentResult {
 
     try {
       setError(null);
-      
+
       const result = await paymentService.purchaseSubscription(productId, user.id);
-      
+
       if (result.success) {
         // Refresh subscription status after successful purchase
         await refreshSubscriptionStatus();
       } else {
         setError(result.error || 'Purchase failed');
       }
-      
+
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Purchase failed';
@@ -109,16 +109,16 @@ export function usePlatformPayment(): UsePlatformPaymentResult {
 
     try {
       setError(null);
-      
+
       const success = await paymentService.restorePurchases(user.id);
-      
+
       if (success) {
         // Refresh subscription status after restore
         await refreshSubscriptionStatus();
       } else {
         setError('Failed to restore purchases');
       }
-      
+
       return success;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to restore purchases';
@@ -137,16 +137,16 @@ export function usePlatformPayment(): UsePlatformPaymentResult {
 
     try {
       setError(null);
-      
+
       const success = await paymentService.cancelSubscription(user.id);
-      
+
       if (success) {
         // Refresh subscription status after cancellation
         await refreshSubscriptionStatus();
       } else {
         setError('Failed to cancel subscription');
       }
-      
+
       return success;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to cancel subscription';
@@ -201,13 +201,13 @@ export function usePlatformPayment(): UsePlatformPaymentResult {
     loading,
     error,
     subscriptionStatus,
-    
+
     // Actions
     purchaseSubscription,
     restorePurchases,
     cancelSubscription,
     refreshSubscriptionStatus,
-    
+
     // Utilities
     isPaymentAvailable,
     getProductPricing,

@@ -32,38 +32,38 @@ function priorityWeight(p?: Priority) {
 }
 
 function dueDateUrgency(due?: string | null) {
-  if (!due) return 0;
+  if (!due) {return 0;}
   const today = new Date();
   const d = new Date(due);
   // Days until due (negative means overdue)
   const diffDays = Math.floor((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (isNaN(diffDays)) return 0;
-  if (diffDays < 0) return 4;         // overdue
-  if (diffDays === 0) return 3;       // due today
-  if (diffDays <= 2) return 2;        // due soon
-  if (diffDays <= 7) return 1;        // due within a week
+  if (isNaN(diffDays)) {return 0;}
+  if (diffDays < 0) {return 4;}         // overdue
+  if (diffDays === 0) {return 3;}       // due today
+  if (diffDays <= 2) {return 2;}        // due soon
+  if (diffDays <= 7) {return 1;}        // due within a week
   return 0;
 }
 
 function durationWeight(mins?: number | null) {
-  if (mins == null) return 1; // unknown
-  if (mins <= 10) return 2;   // quick wins
-  if (mins <= 25) return 1.5;
-  if (mins <= 45) return 1.2;
+  if (mins == null) {return 1;} // unknown
+  if (mins <= 10) {return 2;}   // quick wins
+  if (mins <= 25) {return 1.5;}
+  if (mins <= 45) {return 1.2;}
   return 1; // long tasks get no bonus
 }
 
 function difficultyPenalty(diff?: number | null) {
-  if (diff == null) return 0;
+  if (diff == null) {return 0;}
   // Slightly penalize harder tasks so we bubble approachable wins
-  if (diff >= 5) return -1.0;
-  if (diff >= 4) return -0.7;
-  if (diff >= 3) return -0.4;
+  if (diff >= 5) {return -1.0;}
+  if (diff >= 4) {return -0.7;}
+  if (diff >= 3) {return -0.4;}
   return 0;
 }
 
 function impactBoost(impact?: number | null) {
-  if (impact == null) return 0;
+  if (impact == null) {return 0;}
   // Normalize 1-10 to ~0-2 bonus
   return Math.max(0, Math.min(impact, 10)) / 5;
 }
@@ -100,25 +100,25 @@ export function generateCoachTip(step: RankedActionStep): string | undefined {
   const tips: string[] = [];
 
   // Priority and urgency first
-  if (step.priority === 'high') tips.push('High priority — a small start counts.');
+  if (step.priority === 'high') {tips.push('High priority — a small start counts.');}
 
   const urgency = dueDateUrgency(step.dueDate);
   // Overdue tip removed per request
-  if (urgency >= 3) tips.push('Due today — schedule 10 focused minutes.');
-  else if (urgency >= 2) tips.push('Due soon — block time in your day.');
+  if (urgency >= 3) {tips.push('Due today — schedule 10 focused minutes.');}
+  else if (urgency >= 2) {tips.push('Due soon — block time in your day.');}
 
   // Show quick win only when an explicit estimate exists and is <= 10
   if (step.estimatedMinutes != null && step.estimatedMinutes <= 10) {
     tips.push('Quick win — finish in one sitting.');
   }
 
-  if ((step.difficulty ?? 0) >= 4) tips.push('Break it down — pick the first easy subtask.');
+  if ((step.difficulty ?? 0) >= 4) {tips.push('Break it down — pick the first easy subtask.');}
 
-  if ((step.impactScore ?? 0) >= 8) tips.push('High impact — great for momentum.');
+  if ((step.impactScore ?? 0) >= 8) {tips.push('High impact — great for momentum.');}
 
-  if (step.blockers && step.blockers.trim().length > 0) tips.push('Remove one blocker to unlock progress.');
+  if (step.blockers && step.blockers.trim().length > 0) {tips.push('Remove one blocker to unlock progress.');}
 
-  if (tips.length === 0) tips.push('Take one faithful step forward.');
+  if (tips.length === 0) {tips.push('Take one faithful step forward.');}
 
   return tips[0];
 }

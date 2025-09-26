@@ -43,7 +43,7 @@ export class AppleStoreKitService {
   // Product IDs for subscription tiers - UPDATE THESE IN APPLE DEVELOPER CONSOLE
   private static readonly PRODUCT_IDS = {
     spark: 'app.sifia.com.spark.monthly',
-    growth: 'app.sifia.com.growth.monthly', 
+    growth: 'app.sifia.com.growth.monthly',
     transformation: 'app.sifia.com.transformation.monthly',
     family: 'app.sifia.com.family.monthly',
     // Annual subscriptions
@@ -76,7 +76,7 @@ export class AppleStoreKitService {
 
       // Set up purchase listeners
       this.setupPurchaseListeners();
-      
+
       this.isInitialized = true;
       return true;
     } catch (error) {
@@ -139,7 +139,7 @@ export class AppleStoreKitService {
       await this.initialize();
 
       console.log('[StoreKit] Requesting subscription purchase:', productId);
-      
+
       if (Platform.OS === 'ios') {
         await requestSubscription({ sku: productId });
       } else {
@@ -171,7 +171,7 @@ export class AppleStoreKitService {
 
       // Validate the receipt
       const isValid = await this.validateReceipt(purchase);
-      
+
       if (!isValid) {
         console.error('[StoreKit] Receipt validation failed');
         return;
@@ -179,7 +179,7 @@ export class AppleStoreKitService {
 
       // Map product ID to subscription tier
       const tier = this.getSubscriptionTierFromProductId(purchase.productId);
-      
+
       if (!tier) {
         console.error('[StoreKit] Unknown product ID:', purchase.productId);
         return;
@@ -190,7 +190,7 @@ export class AppleStoreKitService {
 
       // Finish the transaction
       await finishTransaction({ purchase, isConsumable: false });
-      
+
       console.log('[StoreKit] Purchase completed successfully');
     } catch (error) {
       console.error('[StoreKit] Failed to handle purchase update:', error);
@@ -207,7 +207,7 @@ export class AppleStoreKitService {
           'receipt-data': purchase.transactionReceipt,
           password: process.env.APPLE_SHARED_SECRET || 'your-app-store-shared-secret', // TODO: Add to .env
         };
-        
+
         const result = await validateReceiptIos({ receiptBody, isTest: __DEV__ });
         return result && result.status === 0;
       } else {
@@ -245,7 +245,7 @@ export class AppleStoreKitService {
       // This would typically be called with the current user's ID
       // For now, we'll need to get it from the auth context
       const userId = await this.getCurrentUserId();
-      
+
       if (!userId) {
         throw new Error('No authenticated user found');
       }
@@ -304,7 +304,7 @@ export class AppleStoreKitService {
 
       // This will trigger purchase update listeners for any active subscriptions
       const purchases = await RNIap.getAvailablePurchases();
-      
+
       console.log('[StoreKit] Found purchases to restore:', purchases.length);
 
       for (const purchase of purchases) {
@@ -325,7 +325,7 @@ export class AppleStoreKitService {
     try {
       // Get the user's current subscription from database
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
-      
+
       if (!subscription.platform_subscription_id) {
         return null;
       }
@@ -351,14 +351,14 @@ export class AppleStoreKitService {
       if (this.purchaseUpdateSubscription) {
         this.purchaseUpdateSubscription.remove();
       }
-      
+
       if (this.purchaseErrorSubscription) {
         this.purchaseErrorSubscription.remove();
       }
 
       await endConnection();
       this.isInitialized = false;
-      
+
       console.log('[StoreKit] Cleanup completed');
     } catch (error) {
       console.error('[StoreKit] Cleanup error:', error);

@@ -147,7 +147,7 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
           ]}
         >
           <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
-          
+
           {/* Mark as Answered Button - for supplication and open prayer when not answered */}
           {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at) && (
             <TouchableOpacity
@@ -161,7 +161,7 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
               <ThemedText style={styles.markAnsweredText}>Mark as Answered</ThemedText>
             </TouchableOpacity>
           )}
-          
+
           {/* Answered Indicator - Tappable to mark as unanswered */}
           {prayer.answered_at && (
             <TouchableOpacity
@@ -331,13 +331,13 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   // Map filters to local type keys used by this component
   const allowedTypeKeysFromFilters = useMemo(() => {
-    if (!filters) return undefined as string[] | undefined;
+    if (!filters) {return undefined as string[] | undefined;}
     const allowed = filters.allowedJournalCategories || [];
     const mapped: string[] = [];
     allowed.forEach((c) => {
       const s = (c || '').toLowerCase();
-      if (s === 'supplication') mapped.push('supplication');
-      if (s === 'personal_prayer' || s === 'open' || s === 'open_prayer' || s === 'freeform') mapped.push('freeform');
+      if (s === 'supplication') {mapped.push('supplication');}
+      if (s === 'personal_prayer' || s === 'open' || s === 'open_prayer' || s === 'freeform') {mapped.push('freeform');}
     });
     return mapped.length > 0 ? mapped : undefined;
   }, [filters]);
@@ -472,12 +472,12 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
           _userId: user?.id || '',
           _dateStr: dateStr,
         });
-        
+
         // Manually invalidate ACTS prayer cache to ensure UI updates
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.acts(user?.id || '', dateStr),
         });
-        
+
         analytics.track('prayer_journal_entry_updated', {
           prayer_id: editingPrayerId,
           date: dateStr,
@@ -732,7 +732,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             </TouchableOpacity>
           </View>
         )}
-        
+
         {/* Prayer Style Selection Modal */}
         <PrayerStyleSelectionModal
           visible={showStyleModal}

@@ -213,12 +213,12 @@ export class FaithPointsService {
     try {
       const pointsAwarded = this.POINTS_SYSTEM[activity];
       const isOnboarding = _metadata?.isOnboarding || false;
-      
+
       console.log(`[FaithPointsService] Awarding ${pointsAwarded} points for ${activity} to user ${userId}${isOnboarding ? ' (onboarding)' : ''}`);
 
       // Ensure profile exists before awarding points
       let profile = await this.getUserProfile(userId);
-      
+
       // If profile creation failed, try again with more robust error handling
       if (!profile || profile.totalPoints === undefined) {
         console.log('[FaithPointsService] Profile missing or invalid, creating new profile...');
@@ -255,7 +255,7 @@ export class FaithPointsService {
 
       let updateResult;
       let updateError;
-      
+
       // Try upsert for onboarding to handle race conditions
       if (isOnboarding) {
         const { data: upsertResult, error: upsertError } = await supabase
@@ -273,20 +273,20 @@ export class FaithPointsService {
             created_at: profile.createdAt || new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }, {
-            onConflict: 'user_id'
+            onConflict: 'user_id',
           })
           .select();
-          
+
         updateResult = upsertResult;
         updateError = upsertError;
-        
+
         if (upsertError) {
           console.error('[FaithPointsService] Upsert failed, trying regular update:', upsertError);
         } else {
           console.log('[FaithPointsService] Upsert successful for onboarding:', upsertResult);
         }
       }
-      
+
       // Fallback to regular update if upsert failed or not onboarding
       if (!updateResult || updateError) {
         const { data: regularUpdateResult, error: regularUpdateError } = await supabase
@@ -328,7 +328,7 @@ export class FaithPointsService {
           .eq('user_id', userId)
           .maybeSingle();
         console.log('[FaithPointsService] Profile state after update attempt:', afterUpdate);
-        
+
         // For onboarding, try to create profile if it doesn't exist
         if (isOnboarding && !afterUpdate) {
           console.log('[FaithPointsService] Creating profile for onboarding user...');

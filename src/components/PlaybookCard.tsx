@@ -56,7 +56,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
       style={[styles.card, containerStyle, style]}
       {...props}
     >
-      <View style={[styles.cardContent, contentStyle]}> 
+      <View style={[styles.cardContent, contentStyle]}>
         <View style={styles.titleContainer}>
           <ThemedText weight="bold" style={[styles.date, dateStyle]}>
             {formattedDate}

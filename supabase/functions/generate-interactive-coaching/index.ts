@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,7 +40,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, userMessage, conversationHistory, context, insights, userId }: InteractiveCoachingRequest = await req.json();
+    const { type, userMessage, conversationHistory, context, insights }: InteractiveCoachingRequest = await req.json();
 
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');

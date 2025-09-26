@@ -139,7 +139,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
   // Flag to prevent feedback loop between programmatic and user scrolls
   const isScrollingProgrammatically = useRef(false);
-  
+
   // Bible copyright modal state
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
 
@@ -473,7 +473,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         hasDevotional: !!devotional,
         isMarkingComplete,
         showCompletionModal,
-        modalOpened: modalOpenedRef.current
+        modalOpened: modalOpenedRef.current,
       });
       return;
     }
@@ -603,7 +603,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     // Close modal first
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
-    
+
     // Reset ALL guards
     setIsMarkingComplete(false);
     modalOpenedRef.current = false;

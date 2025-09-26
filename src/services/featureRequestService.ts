@@ -27,6 +27,6 @@ export async function reportFeature(payload: FeatureRequestPayload) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {throw error;}
   return data;
 }

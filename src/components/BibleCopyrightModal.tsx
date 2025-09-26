@@ -17,46 +17,46 @@ const getBibleCopyrightInfo = (version: string) => {
     'NASB': {
       name: 'New American Standard Bible',
       copyright: 'Scripture quotations taken from the New American Standard Bible® (NASB), Copyright © 1960, 1962, 1963, 1968, 1971, 1972, 1973, 1975, 1977, 1995 by The Lockman Foundation. Used by permission. www.Lockman.org',
-      publisher: 'The Lockman Foundation'
+      publisher: 'The Lockman Foundation',
     },
     'ESV': {
       name: 'English Standard Version',
       copyright: 'Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.',
-      publisher: 'Crossway'
+      publisher: 'Crossway',
     },
     'NIV': {
       name: 'New International Version',
       copyright: 'Scripture quotations taken from the Holy Bible, New International Version®, NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission of Zondervan. All rights reserved worldwide.',
-      publisher: 'Zondervan'
+      publisher: 'Zondervan',
     },
     'NLT': {
       name: 'New Living Translation',
       copyright: 'Scripture quotations are taken from the Holy Bible, New Living Translation, copyright ©1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Carol Stream, Illinois 60188. All rights reserved.',
-      publisher: 'Tyndale House Publishers'
+      publisher: 'Tyndale House Publishers',
     },
     'NKJV': {
       name: 'New King James Version',
       copyright: 'Scripture taken from the New King James Version®. Copyright © 1982 by Thomas Nelson. Used by permission. All rights reserved.',
-      publisher: 'Thomas Nelson'
+      publisher: 'Thomas Nelson',
     },
     'CSB': {
       name: 'Christian Standard Bible',
       copyright: 'Scripture quotations marked CSB have been taken from the Christian Standard Bible®, Copyright © 2017 by Holman Bible Publishers. Used by permission. Christian Standard Bible® and CSB® are federally registered trademarks of Holman Bible Publishers.',
-      publisher: 'Holman Bible Publishers'
-    }
+      publisher: 'Holman Bible Publishers',
+    },
   };
 
   return copyrights[version] || {
     name: version,
     copyright: `Scripture quotations are from the ${version} Bible translation.`,
-    publisher: 'Publisher information not available'
+    publisher: 'Publisher information not available',
   };
 };
 
 export const BibleCopyrightModal: React.FC<BibleCopyrightModalProps> = ({
   visible,
   onClose,
-  bibleVersion
+  bibleVersion,
 }) => {
   const theme = useTheme();
   const copyrightInfo = getBibleCopyrightInfo(bibleVersion);
@@ -78,10 +78,10 @@ export const BibleCopyrightModal: React.FC<BibleCopyrightModalProps> = ({
               triggerLightHaptic();
               onClose();
             }} style={styles.closeButton}>
-              <Ionicons 
-                name="close" 
-                size={24} 
-                color={Colors.hopeWhite} 
+              <Ionicons
+                name="close"
+                size={24}
+                color={Colors.hopeWhite}
               />
             </TouchableOpacity>
           </View>
@@ -90,7 +90,7 @@ export const BibleCopyrightModal: React.FC<BibleCopyrightModalProps> = ({
             <ThemedText weight="medium" style={[styles.versionName, { color: Colors.hopeWhite }]}>
               {copyrightInfo.name} ({bibleVersion})
             </ThemedText>
-            
+
             <ThemedText style={[styles.publisher, { color: Colors.hopeWhite }]}>
               Publisher: {copyrightInfo.publisher}
             </ThemedText>

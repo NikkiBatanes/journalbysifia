@@ -115,14 +115,14 @@ const OnboardingWelcomeScreen: React.FC = () => {
     let isActive = true;
     const unsubscribe = (navigation as any).addListener?.('focus', async () => {
       try {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated) {return;}
         const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
         if (redirectRaw) {
           const redirect = JSON.parse(redirectRaw);
           const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
 
-          if (!isActive || !target) return;
+          if (!isActive || !target) {return;}
 
           try {
             (navigation as any).reset?.({ index: 0, routes: [{ name: target, params }] });
@@ -147,7 +147,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
 
     return () => {
       isActive = false;
-      if (typeof unsubscribe === 'function') unsubscribe();
+      if (typeof unsubscribe === 'function') {unsubscribe();}
     };
   }, [isAuthenticated, navigation]);
 
@@ -183,7 +183,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const handleCreateAccount = async () => {
     triggerLightHaptic();
     setIsLoading(true);
-    
+
     // Small delay for haptic feedback, then navigate immediately
     setTimeout(() => {
       if (isAuthenticated) {
@@ -203,7 +203,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const handleLogin = async () => {
     triggerLightHaptic();
     setIsLoading(true);
-    
+
     // Small delay for haptic feedback, then navigate immediately
     setTimeout(() => {
       if (isAuthenticated) {

@@ -36,11 +36,11 @@ const DevotionalLockIcon: React.FC<DevotionalLockIconProps> = ({
   size = 20,
   showLabel = false,
   style,
-  position = 'right'
+  position = 'right',
 }) => {
   // Check access using tier locking rules
   const accessCheck = checkDevotionalAccess(tier, duration, context);
-  
+
   // Don't render if not locked
   if (!accessCheck.lockIconVisible) {
     return null;
@@ -57,7 +57,7 @@ const DevotionalLockIcon: React.FC<DevotionalLockIconProps> = ({
     styles.container,
     position === 'center' && styles.centerPosition,
     position === 'left' && styles.leftPosition,
-    style
+    style,
   ];
 
   return (

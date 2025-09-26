@@ -22,11 +22,11 @@ import { FamilyMember, FamilyInvitation } from '../services/FamilySubscriptionSe
 
 const FamilyAdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation();
-  
+
   // Theme integration
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  
+
   // Create dynamic fonts object
   const fonts = useMemo(() => ({
     regular: getFontFamily(fontKey, 'regular'),

@@ -64,27 +64,27 @@ export const getTierDisplayName = (tier: SubscriptionTier): string => {
   const tierMappings: Record<SubscriptionTier, string> = {
     // Free tier
     'free_trial': 'Free Trial',
-    
+
     // Seeker (freemium - was "basic")
     'seeker': 'siFia SEEKER',
-    
+
     // Spark (entry paid) - 8 playbooks, 8 devotionals
     'spark': 'siFia SPARK',
     'spark_annual': 'siFia SPARK',
-    
+
     // Growth (mid tier) - 20 playbooks, 20 devotionals
     'growth': 'siFia GROWTH',
     'growth_annual': 'siFia GROWTH',
-    
+
     // Transformation (premium) - unlimited
     'transformation': 'siFia TRANSFORMATION',
     'transformation_annual': 'siFia TRANSFORMATION',
-    
+
     // Family (top tier) - unlimited
     'family': 'siFia FAMILY',
-    'family_annual': 'siFia FAMILY'
+    'family_annual': 'siFia FAMILY',
   };
-  
+
   return tierMappings[tier] || 'Unknown Plan';
 };
 
@@ -99,9 +99,9 @@ export const getTierShortName = (tier: SubscriptionTier): string => {
     'transformation': 'TRANSFORMATION',
     'transformation_annual': 'TRANSFORMATION',
     'family': 'FAMILY',
-    'family_annual': 'FAMILY'
+    'family_annual': 'FAMILY',
   };
-  
+
   return shortMappings[tier] || 'UNKNOWN';
 };
 

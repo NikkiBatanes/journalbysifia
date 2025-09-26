@@ -175,6 +175,8 @@ In Jesus' Name, Amen
 - NEVER use variations like "In Jesus' name" or "In Jesus Name" or "In Jesus's Name"`,
 };
 
+// Faith heroes list - currently unused but kept for potential future features
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _FAITH_HEROES = [
   'Corrie ten Boom', 'George Müller', 'Hudson Taylor', 'Amy Carmichael', 'Jim Elliot',
   'Elisabeth Elliot', 'Dietrich Bonhoeffer', 'Oswald Chambers', 'Charles Spurgeon',
@@ -183,12 +185,12 @@ const _FAITH_HEROES = [
 
 export const applyPersonaContext = (persona: string, userInput: string, bibleVersion?: string): string => {
   let contextualPersona = persona.replace(/\[USER_INPUT\]/g, userInput);
-  
+
   // Add Bible version context if provided
   if (bibleVersion && bibleVersion !== 'NASB') {
     contextualPersona += `\n\nIMPORTANT: Use ${bibleVersion} Bible translation for all Scripture references. When citing verses, use the ${bibleVersion} version text.`;
   }
-  
+
   return contextualPersona;
 };
 

@@ -148,7 +148,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
 
   // Handle keyboard events
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {return;}
 
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setTimeout(() => {
@@ -183,11 +183,11 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           >
             <ThemedText style={styles.headerButtonText} weight="medium">Cancel</ThemedText>
           </TouchableOpacity>
-          
+
           <ThemedText style={styles.headerTitle} weight="semiBold">
             Write Prayer
           </ThemedText>
-          
+
           <TouchableOpacity
             onPress={onSave}
             disabled={!prayerText.trim() || isSaving}
@@ -198,14 +198,14 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </TouchableOpacity>
         </View>
 
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={0}
         >
-          <ScrollView 
+          <ScrollView
             ref={scrollViewRef}
-            style={styles.content} 
+            style={styles.content}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -282,7 +282,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
               </View>
             </View>
           )}
-          
+
           {/* Prayer Input Section */}
           <View style={styles.inputSection}>
             {/* Removed label per request and hide input when no selection */}
@@ -314,7 +314,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
               <></>
             )}
           </View>
-          
+
         </ScrollView>
         </KeyboardAvoidingView>
       </View>

@@ -23,19 +23,19 @@ async function runMigration() {
   console.log('🚀 Starting Automatic Database Migration...');
   console.log('📅 Migration Date:', new Date().toISOString());
   console.log('🔗 Supabase URL:', supabaseUrl.substring(0, 30) + '...');
-  
+
   try {
     // Step 1: Read and execute schema creation
     console.log('\n📋 Step 1: Creating new subscription schema...');
     const schemaPath = path.join(__dirname, 'database', 'new_subscription_schema.sql');
     const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
-    
+
     // Split SQL into individual statements
     const schemaStatements = schemaSQL
       .split(';')
       .map(stmt => stmt.trim())
       .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
-    
+
     for (const statement of schemaStatements) {
       if (statement.trim()) {
         try {
@@ -50,18 +50,18 @@ async function runMigration() {
         }
       }
     }
-    
+
     // Step 2: Read and execute migration script
     console.log('\n📋 Step 2: Running migration script...');
     const migrationPath = path.join(__dirname, 'database', 'migration_old_to_new.sql');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
-    
+
     // Split migration into individual statements
     const migrationStatements = migrationSQL
       .split(';')
       .map(stmt => stmt.trim())
       .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
-    
+
     for (const statement of migrationStatements) {
       if (statement.trim()) {
         try {
@@ -72,10 +72,10 @@ async function runMigration() {
         }
       }
     }
-    
+
     // Step 3: Verify migration success
     console.log('\n📋 Step 3: Verifying migration...');
-    
+
     // Check if new tables exist
     const { data: tables, error: tablesError } = await supabase
       .from('information_schema.tables')
@@ -85,18 +85,18 @@ async function runMigration() {
         'user_subscriptions_new',
         'family_subscription_groups',
         'discount_codes',
-        'subscription_usage_tracking'
+        'subscription_usage_tracking',
       ]);
-    
+
     if (tablesError) {
       console.log('⚠️  Could not verify tables directly, checking with RPC...');
-      
+
       // Try to query the new tables directly
       const { data: subData, error: subError } = await supabase
         .from('user_subscriptions_new')
         .select('*')
         .limit(1);
-      
+
       if (!subError) {
         console.log('✅ New subscription tables are accessible');
       } else {
@@ -105,19 +105,19 @@ async function runMigration() {
     } else {
       console.log('✅ Found', tables?.length || 0, 'new subscription tables');
     }
-    
+
     // Step 4: Test basic functionality
     console.log('\n📋 Step 4: Testing basic functionality...');
-    
+
     // Test creating a default seeker subscription
     try {
       const testUserId = 'test-migration-' + Date.now();
       const { data: testResult, error: testError } = await supabase
         .rpc('create_default_seeker_subscription', { target_user_id: testUserId });
-      
+
       if (!testError) {
         console.log('✅ Default seeker subscription creation works');
-        
+
         // Clean up test data
         await supabase
           .from('user_subscriptions_new')
@@ -129,20 +129,20 @@ async function runMigration() {
     } catch (error) {
       console.log('⚠️  Basic functionality test skipped');
     }
-    
+
     console.log('\n🎉 Migration completed successfully!');
     console.log('\n📊 Migration Summary:');
     console.log('✅ New subscription schema created');
     console.log('✅ Migration script executed');
     console.log('✅ Tables verified');
     console.log('✅ Basic functionality tested');
-    
+
     console.log('\n🔄 Next Steps:');
     console.log('1. Test the new subscription system with real users');
     console.log('2. Continue with Phase 2: Seeker tier implementation');
     console.log('3. Update remaining onboarding screens');
     console.log('4. Begin testing with app store integration');
-    
+
   } catch (error) {
     console.error('\n❌ Migration failed:', error);
     console.error('\n🔧 Troubleshooting:');

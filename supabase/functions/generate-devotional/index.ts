@@ -169,7 +169,9 @@ function cleanMarkdown(text: unknown): string {
 
 /**
  * Creates a default devotional day for error cases
+ * @deprecated This function is no longer used as we removed fallbacks for better error handling
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _createDefaultDay(dayNumber: number, isError = false, bibleVersion = 'ESV'): DevotionalDay {
   const timestamp = Date.now();
   return {
@@ -207,7 +209,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     userInput: userInput?.substring(0, 50),
     bibleVersion,
     aiDataType: typeof aiData,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 
   // Input validation
@@ -224,7 +226,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
   try {
     // Enhanced response structure validation
     console.log('[DEVOTIONAL PARSER] Validating AI response structure...');
-    
+
     if (typeof aiData !== 'object') {
       console.error('[DEVOTIONAL PARSER] ERROR: aiData is not an object, type:', typeof aiData);
       throw new Error(`Expected AI response to be an object, received: ${typeof aiData}`);
@@ -439,7 +441,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
     // Enhanced day parsing with multiple patterns to handle various OpenAI response formats
     let dayMatches: Array<[unknown, string, string]> = [];
-    
+
     // Pattern 1: **DAY X:** format (bold markdown)
     const dayRegex1 = /\*\*DAY\s*(\d+):\*\*\s*([^*]*?)(?=\*\*DAY\s*\d+:|$)/gi;
     let match1;
@@ -473,9 +475,9 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     // Pattern 4: Look for any numbered sections that might be days
     if (dayMatches.length === 0) {
       console.log('[DEVOTIONAL PARSER] Trying numbered section format...');
-      const dayRegex4 = /(?:^|\n)(\d+)[\.\)]\s*([^]*?)(?=(?:\n|^)\d+[\.\)]|$)/gi;
+      const dayRegex4 = /(?:^|\n)(\d+)[.)]\s*([^]*?)(?=(?:\n|^)\d+[.)]|$)/gi;
       let match4;
-      while ((match4 = dayRegex4.exec(content)) !== null && parseInt(match4[1]) <= 7) {
+      while ((match4 = dayRegex4.exec(content)) !== null && parseInt(match4[1], 10) <= 7) {
         console.log(`[DEVOTIONAL PARSER] Found day ${match4[1]} (numbered format) with content length:`, match4[2].length);
         dayMatches.push([null, match4[1], match4[2].trim()]);
       }
@@ -761,9 +763,9 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         console.error(`[DEVOTIONAL PARSER] ERROR processing day ${dayNum}:`, {
           error: dayError instanceof Error ? dayError.message : 'Unknown error',
           dayContent: dayContent.substring(0, 200),
-          stack: dayError instanceof Error ? dayError.stack : undefined
+          stack: dayError instanceof Error ? dayError.stack : undefined,
         });
-        
+
         // Create a fallback day entry to prevent complete failure
         console.log(`[DEVOTIONAL PARSER] Creating fallback day ${dayNum}`);
         const fallbackDay = {
@@ -784,7 +786,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           prayer: 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen',
           completed: false,
         };
-        
+
         devotional.days.push(fallbackDay);
         console.log(`[DEVOTIONAL PARSER] Added fallback day ${dayNum} to devotional`);
       }
@@ -797,7 +799,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       console.error('[DEVOTIONAL PARSER] CRITICAL ERROR: No devotional days were parsed');
       console.error('[DEVOTIONAL PARSER] Original content length:', content.length);
       console.error('[DEVOTIONAL PARSER] Day matches found:', dayMatches.length);
-      
+
       // Create at least one fallback day to prevent complete failure
       console.log('[DEVOTIONAL PARSER] Creating emergency fallback devotional');
       for (let i = 1; i <= duration; i++) {
@@ -833,17 +835,17 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           version: bibleVersion || 'NASB',
         };
       }
-      
+
       if (!day.reflection || day.reflection.trim().length === 0) {
         console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing reflection, adding fallback`);
         day.reflection = 'Take time to reflect on God\'s word today and how it speaks to your current situation.';
       }
-      
+
       if (!day.prayer || day.prayer.trim().length === 0) {
         console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing prayer, adding fallback`);
         day.prayer = 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen';
       }
-      
+
       if (!Array.isArray(day.reflectionQuestions) || day.reflectionQuestions.length === 0) {
         console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing reflection questions, adding fallback`);
         day.reflectionQuestions = [
@@ -864,7 +866,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       totalDays: devotional.totalDays,
       daysCount: devotional.days.length,
       firstDayTitle: devotional.days[0]?.title,
-      lastDayTitle: devotional.days[devotional.days.length - 1]?.title
+      lastDayTitle: devotional.days[devotional.days.length - 1]?.title,
     });
 
     return devotional;
@@ -876,27 +878,27 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       playbookId,
       userInput,
       bibleVersion,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     // Enhanced error context for debugging
     if (error instanceof Error) {
       console.error('[DEVOTIONAL PARSER] Error details:', {
         name: error.name,
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
     }
-    
+
     // Re-throw with enhanced context
     const enhancedError = new Error(
       `Failed to parse OpenAI devotional response: ${error instanceof Error ? error.message : 'Unknown error'}. Duration: ${duration}, PlaybookId: ${playbookId || 'none'}`
     );
-    
+
     if (error instanceof Error && error.stack) {
       enhancedError.stack = error.stack;
     }
-    
+
     throw enhancedError;
   }
 }
@@ -943,7 +945,7 @@ serve(async (req: Request): Promise<Response> => {
   console.log('[Generate-Devotional] Request body:', JSON.stringify(requestBody, null, 2));
   console.log('[Generate-Devotional] Bible version received:', bibleVersion);
   console.log('[Generate-Devotional] User input received:', userInput);
-  
+
   // Add anti-repetition context to user input
   const enhancedUserInput = `${userInput}
 
