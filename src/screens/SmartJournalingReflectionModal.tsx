@@ -310,10 +310,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       console.log('✅ SmartJournalingReflectionModal: Cache invalidation completed');
 
       // Emit event to refresh moments screen and journal screen
-      DeviceEventEmitter.emit('reflection_saved', { 
+      DeviceEventEmitter.emit('reflection_saved', {
         reflectionId: savedReflection.id,
         type: reflectionData.type,
-        source: reflectionData.source 
+        source: reflectionData.source,
       });
 
       // Call parent onSave callback

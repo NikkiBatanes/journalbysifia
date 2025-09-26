@@ -42,7 +42,7 @@ export const MomentsScreen: React.FC = () => {
   // New simplified grouping and filters state
   const [groupingMode, setGroupingMode] = useState<GroupingMode>('day');
   const [activeFilters, setActiveFilters] = useState<FilterKey[]>([]);
-  
+
   // Refresh key to trigger data reload when reflections are saved
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -70,7 +70,7 @@ export const MomentsScreen: React.FC = () => {
     };
 
     const subscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionSaved);
-    
+
     return () => {
       subscription.remove();
     };

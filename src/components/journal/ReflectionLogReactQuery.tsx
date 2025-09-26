@@ -1279,15 +1279,15 @@ return (
               source: newEntry.source,
               prompt: newEntry.prompt,
             }}
-            initialMode={selectedEntry ? 
+            initialMode={selectedEntry ?
               ((selectedEntry.type === 'guided' || selectedEntry.type === 'devotional') ? 'guided' : 'free-form') :
               ((newEntry.type === 'guided' || newEntry.type === 'devotional') ? 'guided' : 'free-form')
             }
-            initialPrompt={selectedEntry ? 
+            initialPrompt={selectedEntry ?
               ((selectedEntry.type === 'guided' || selectedEntry.type === 'devotional') ? (selectedEntry.prompt || selectedEntry.title || '') : '') :
               ((newEntry.type === 'guided' || newEntry.type === 'devotional') ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
             }
-            initialTitle={selectedEntry ? 
+            initialTitle={selectedEntry ?
               selectedEntry.title :
               ((newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
             }
