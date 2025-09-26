@@ -48,7 +48,7 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
           ...widthStyle,
           height,
           backgroundColor,
-          borderRadius: 4,
+          borderRadius: 10,
           opacity: pulseAnim,
         } as ViewStyle,
         style,
@@ -160,12 +160,12 @@ const styles = StyleSheet.create({
   progressBarBg: {
     flex: 1,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.16)',
   },
   progressBarFill: {
-    borderRadius: 4,
+    borderRadius: 8,
   },
   tasksText: {
     marginLeft: 12,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconSkeleton: {
-    borderRadius: 12,
+    borderRadius: 16,
   },
   cardTitleSkeleton: {
     marginBottom: 16,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     maxWidth: 335, // Matches SCREEN_WIDTH - 80 when screen width is 375 (iPhone 8)
     height: 450,
     backgroundColor: Colors.modalBlue,
-    borderRadius: 28,
+    borderRadius: 36,
     padding: 24,
   },
   summaryContainer: {
