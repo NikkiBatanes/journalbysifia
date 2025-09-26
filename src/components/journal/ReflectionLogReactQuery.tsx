@@ -1137,13 +1137,17 @@ return (
       {/* Entries List */}
       {renderEntries()}
 
-      {/* Add/Edit Entry Modal - Only show when not in carousel mode */}
-      {!onPencilTap && (
+      {/* Add/Edit Entry Modal - Show for adding new entries (when not in carousel mode) or editing existing entries */}
+      {(!onPencilTap || selectedEntry) && (
         <Modal
-          visible={isAdding}
+          visible={isAdding || !!selectedEntry}
           animationType="slide"
           transparent={false}
-          onRequestClose={() => setIsAdding(false)}
+          onRequestClose={() => {
+            setIsAdding(false);
+            setSelectedEntry(null);
+            setEditingId(null);
+          }}
         >
         <ReflectionLogEditor
             onSave={async (entryData: any) => {
@@ -1224,6 +1228,11 @@ return (
                   showEditButton: true,
                 });
 
+                // Clear editing state after successful save
+                setSelectedEntry(null);
+                setEditingId(null);
+                setIsAdding(false);
+
                 // Keep the main modal open - success modal will handle closing via callbacks
               } catch (saveError) {
                 console.error('🔍 ReflectionLog: Save failed:', saveError);
@@ -1240,6 +1249,8 @@ return (
               triggerLightHaptic();
               resetForm();
               setIsAdding(false);
+              setSelectedEntry(null);
+              setEditingId(null);
             }}
             onDelete={editingId ? async (id: string) => {
               triggerLightHaptic();
@@ -1253,7 +1264,14 @@ return (
               }
             } : undefined}
             entryId={editingId || undefined}
-            initialEntry={{
+            initialEntry={selectedEntry ? {
+              title: selectedEntry.title,
+              content: selectedEntry.content,
+              tags: selectedEntry.tags || [],
+              type: selectedEntry.type === 'free' ? 'free-form' : selectedEntry.type === 'devotional' ? 'guided' : selectedEntry.type === 'playbook' ? 'free-form' : selectedEntry.type,
+              source: selectedEntry.source,
+              prompt: selectedEntry.prompt,
+            } : {
               title: newEntry.title,
               content: newEntry.content,
               tags: newEntry.tags || [],
@@ -1261,9 +1279,18 @@ return (
               source: newEntry.source,
               prompt: newEntry.prompt,
             }}
-            initialMode={(newEntry.type === 'guided' || newEntry.type === 'devotional') ? 'guided' : 'free-form'}
-            initialPrompt={(newEntry.type === 'guided' || newEntry.type === 'devotional') ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
-            initialTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
+            initialMode={selectedEntry ? 
+              ((selectedEntry.type === 'guided' || selectedEntry.type === 'devotional') ? 'guided' : 'free-form') :
+              ((newEntry.type === 'guided' || newEntry.type === 'devotional') ? 'guided' : 'free-form')
+            }
+            initialPrompt={selectedEntry ? 
+              ((selectedEntry.type === 'guided' || selectedEntry.type === 'devotional') ? (selectedEntry.prompt || selectedEntry.title || '') : '') :
+              ((newEntry.type === 'guided' || newEntry.type === 'devotional') ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
+            }
+            initialTitle={selectedEntry ? 
+              selectedEntry.title :
+              ((newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
+            }
             lockTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt)}
             source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : editingId && selectedEntry?.source === 'playbook' ? 'playbook' : (newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
             // Pass devotional/playbook metadata for existing entries

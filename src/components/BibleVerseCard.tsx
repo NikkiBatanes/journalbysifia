@@ -7,7 +7,6 @@ import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { formatBibleVerse } from '../utils/textFormatting';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
 import { BibleCopyrightModal } from './BibleCopyrightModal';
 import ThemedText from './common/ThemedText';

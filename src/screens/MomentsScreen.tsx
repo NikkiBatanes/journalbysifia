@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, Dimensions } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, StyleSheet, RefreshControl, StatusBar, Dimensions, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
@@ -42,6 +42,9 @@ export const MomentsScreen: React.FC = () => {
   // New simplified grouping and filters state
   const [groupingMode, setGroupingMode] = useState<GroupingMode>('day');
   const [activeFilters, setActiveFilters] = useState<FilterKey[]>([]);
+  
+  // Refresh key to trigger data reload when reflections are saved
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Refs to programmatically open modals
   const groupingRef = useRef<GroupingSelectHandle>(null);
@@ -58,6 +61,20 @@ export const MomentsScreen: React.FC = () => {
     const next = mapping[groupingMode];
     if (next !== groupBy) {setGroupBy(next);}
   }, [groupBy, groupingMode]);
+
+  // Listen for reflection save events to refresh the moments view
+  useEffect(() => {
+    const handleReflectionSaved = () => {
+      console.log('📝 [MomentsScreen] Reflection saved, refreshing moments...');
+      setRefreshKey(prev => prev + 1);
+    };
+
+    const subscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionSaved);
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   // Get all available plugins
   const plugins = getAllPlugins();
@@ -135,6 +152,7 @@ export const MomentsScreen: React.FC = () => {
         searchQuery={searchQuery}
         prayerAnswerFilter={prayerAnswerFilter}
         filterKeys={activeFilters}
+        refreshKey={refreshKey}
         style={styles.momentsRenderer}
         headerComponents={[]}
         refreshControl={

@@ -7,7 +7,6 @@ import { BorderRadii } from '../theme/styles';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
 
