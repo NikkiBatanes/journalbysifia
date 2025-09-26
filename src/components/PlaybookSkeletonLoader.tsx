@@ -9,8 +9,9 @@ interface SkeletonBoxProps {
   backgroundColor?: string;
 }
 
-const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgroundColor = '#E1E9EE' }) => {
-  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgroundColor = 'rgba(255,255,255,0.18)' }) => {
+  // Dark-theme friendly shimmer range
+  const pulseAnim = useRef(new Animated.Value(0.25)).current;
   const widthAsNumber = typeof width === 'string' ? parseFloat(width) : width;
   const widthStyle = typeof width === 'string' && width.endsWith('%')
     ? { width: width as `${number}%` }
@@ -20,12 +21,12 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
     const pulse = () => {
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1,
+          toValue: 0.6,
           duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
-          toValue: 0.3,
+          toValue: 0.25,
           duration: 1000,
           useNativeDriver: true,
         }),
@@ -65,10 +66,10 @@ const PlaybookSkeletonLoader = () => {
           <View style={styles.playbookHeader}>
             <View style={styles.headerTitleContainer}>
               {/* Title */}
-              <SkeletonBox width="75%" height={32} style={styles.titleSkeleton} />
+              <SkeletonBox width="75%" height={32} style={styles.titleSkeleton} backgroundColor={'rgba(255,255,255,0.22)'} />
 
               {/* Day, date */}
-              <SkeletonBox width="40%" height={18} style={styles.dateSkeleton} />
+              <SkeletonBox width="40%" height={18} style={styles.dateSkeleton} backgroundColor={'rgba(255,255,255,0.16)'} />
             </View>
 
             {/* Progress bar */}
@@ -80,46 +81,42 @@ const PlaybookSkeletonLoader = () => {
                       width="100%"
                       height={32}
                       style={styles.progressBarFill}
-                      backgroundColor="rgba(142, 169, 167, 0.2)"
+                      backgroundColor="rgba(255, 255, 255, 0.20)"
                     />
                   </View>
 
                   {/* Tasks */}
-                  <SkeletonBox width={70} height={18} style={styles.tasksText} />
                 </View>
               </View>
 
               {/* Two icons */}
               <View style={styles.iconsWrapper}>
-                <SkeletonBox width={40} height={40} style={styles.iconSkeleton} />
-                <SkeletonBox width={40} height={40} style={styles.iconSkeleton} />
+                <SkeletonBox width={40} height={40} style={styles.iconSkeleton} backgroundColor={'rgba(255,255,255,0.10)'} />
+                <SkeletonBox width={40} height={40} style={styles.iconSkeleton} backgroundColor={'rgba(255,255,255,0.10)'} />
               </View>
             </View>
           </View>
         </View>
 
-        {/* Single card */}
         <View style={styles.cardContainer}>
           <View style={styles.card}>
             {/* Title */}
-            <SkeletonBox width="60%" height={16} style={styles.cardTitleSkeleton} />
-
-            {/* Summary - 6 lines */}
+            <SkeletonBox width="60%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.20)'} />
             <View style={styles.summaryContainer}>
-              <SkeletonBox width="100%" height={24} style={styles.summaryLine} />
-              <SkeletonBox width="95%" height={24} style={styles.summaryLine} />
-              <SkeletonBox width="98%" height={24} style={styles.summaryLine} />
-              <SkeletonBox width="92%" height={24} style={styles.summaryLine} />
-              <SkeletonBox width="96%" height={24} style={styles.summaryLine} />
-              <SkeletonBox width="85%" height={24} style={styles.summaryLine} />
+              <SkeletonBox width="100%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.20)'} />
+              <SkeletonBox width="95%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="98%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.20)'} />
+              <SkeletonBox width="92%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="96%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.20)'} />
+              <SkeletonBox width="85%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.16)'} />
             </View>
 
             {/* Text - 3 lines */}
             <View style={styles.textContainer}>
-              <SkeletonBox width="100%" height={14} style={styles.textLine} />
-              <SkeletonBox width="92%" height={14} style={styles.textLine} />
-              <SkeletonBox width="85%" height={14} style={styles.textLine} />
-              <SkeletonBox width="85%" height={14} style={styles.textLine} />
+              <SkeletonBox width="100%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+              <SkeletonBox width="92%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+              <SkeletonBox width="85%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+              <SkeletonBox width="85%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
             </View>
           </View>
         </View>
