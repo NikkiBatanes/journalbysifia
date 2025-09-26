@@ -960,10 +960,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       clearAllTimeouts();
 
       // Ensure text inputs release focus so keyboard doesn't reappear
-      if (titleInputRef.current) {
+      // Only blur if the input is currently focused to avoid unnecessary focus/blur cycle
+      if (titleInputRef.current && titleInputRef.current.isFocused()) {
         titleInputRef.current.blur();
       }
-      if (contentInputRef.current) {
+      if (contentInputRef.current && contentInputRef.current.isFocused()) {
         contentInputRef.current.blur();
       }
 

@@ -6,6 +6,7 @@ import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
 import { format, startOfMonth, endOfMonth, getWeek } from 'date-fns';
+import { isToday as isTodayFn, isYesterday as isYesterdayFn } from 'date-fns';
 import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStartUtils';
 import ThemedText from '../../../components/common/ThemedText';
 import { useTheme } from '../../../hooks/useTheme';
@@ -414,6 +415,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   // Removed unused insets variable
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
   const [_loading, setLoading] = React.useState(true);
+  // Track reflection counts per day (yyyy-MM-dd)
+  const [reflectionCounts, setReflectionCounts] = React.useState<Record<string, number>>({});
 
   // Derive plugin-level filters to pass into plugin components so they respect Moments filters
   const pluginFilters: PluginFilters | undefined = useMemo(() => {
@@ -501,6 +504,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     try {
       setLoading(true);
       let entries: MomentEntry[] = [];
+      const dayReflectionCount: Record<string, number> = {};
 
       // Fetch real journal entries from user interactions - NOT generated content
       try {
@@ -607,6 +611,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 'todays_focus': ['focus', 'plan', 'journal'],
                 'prayed_devotional': ['devotional', 'devo', 'prayer', 'journal'],
                 'devotional': ['devotional', 'devo', 'journal'],
+                // Add reflection-specific mappings
+                'reflection': ['reflection', 'journal'],
+                'free': ['reflection', 'journal'],
+                'guided': ['reflection', 'journal'],
+                'heart_journal': ['reflection', 'journal'],
+                'smart_journaling': ['reflection', 'journal'],
               };
 
               const searchTerms = contentTypeMap[entry.content_type] || (isDevotionalJE ? ['devotional', 'devo'] : ['journal']);
@@ -693,16 +703,35 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 }
 
                 if (shouldIncludeJournalEntry) {
-                  const momentEntry = {
-                    plugin: selectedPlugin,
-                    date: new Date(entry.selected_date || entry.created_at), // Use selected_date first, fallback to created_at
-                    category: isDevotionalJE ? 'Prayer' : 'Journal',
-                    type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
-                  };
+                  const entryDate = new Date(entry.selected_date || entry.created_at);
+                  const dateKey = entryDate.toDateString();
+                  const pluginKey = `${selectedPlugin.id}-${dateKey}`;
+                  
+                  // Check if we already have an entry for this plugin on this date
+                  const existingEntry = entries.find(e => 
+                    e.plugin.id === selectedPlugin.id && 
+                    e.date.toDateString() === dateKey
+                  );
+                  
+                  if (!existingEntry) {
+                    // Only create one entry per plugin per date
+                    const momentEntry = {
+                      plugin: selectedPlugin,
+                      date: entryDate,
+                      category: isDevotionalJE ? 'Prayer' : 'Journal',
+                      type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
+                    };
 
-                  console.log('✅ [MomentsRenderer] Adding journal entry:', momentEntry);
-                  entries.push(momentEntry);
-                  processedCount++;
+                    console.log('✅ [MomentsRenderer] Adding journal entry (deduplicated):', momentEntry);
+                    entries.push(momentEntry);
+                    processedCount++;
+                  } else {
+                    console.log('🔄 [MomentsRenderer] Skipping duplicate plugin entry for same date:', {
+                      plugin: selectedPlugin.id,
+                      date: dateKey,
+                      existing: existingEntry.type
+                    });
+                  }
                 } else {
                   console.log('⚠️ [MomentsRenderer] Skipping prayer journal entry due to filtering:', entry.content_type);
                   skippedCount++;
@@ -730,6 +759,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             count: journalEntries?.length || 0,
           });
         }
+
+        // Note: Reflections are processed later in the existing reflections query section
 
         // Fetch user prayer entries (from pray carousel interactions)
         const { data: prayers, error: prayersError } = await supabase
@@ -967,6 +998,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               const sourceStr = (reflection.source || '').toString().toLowerCase();
               const allowedType =
                 typeStr === '' ||
+                typeStr === 'free' ||
+                typeStr === 'guided' ||
+                typeStr === 'devotional' ||
+                typeStr === 'playbook' ||
                 typeStr.includes('freeform') ||
                 typeStr.includes('guided') ||
                 typeStr.includes('devotional') ||
@@ -974,6 +1009,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
               const allowedSource =
                 sourceStr === '' ||
+                sourceStr === 'freeform' ||
+                sourceStr === 'guided' ||
+                sourceStr === 'devotional' ||
+                sourceStr === 'playbook' ||
                 sourceStr.includes('freeform') ||
                 sourceStr.includes('guided') ||
                 sourceStr.includes('devotional') ||
@@ -996,15 +1035,32 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               });
 
               if (hasUserContent && allowedType && allowedSource) {
-                const reflectionEntry = {
-                  plugin: reflectionPlugin,
-                  date: new Date(reflection.selected_date || reflection.created_at), // Use selected_date first, fallback to created_at
-                  category: 'Reflection',
-                  type: reflection.type || 'Reflection',
-                };
+                const entryDate = new Date(reflection.selected_date || reflection.created_at);
+                const dateKey = entryDate.toDateString();
+                
+                // Check if we already have an entry for this plugin on this date
+                const existingEntry = entries.find(e => 
+                  e.plugin.id === reflectionPlugin.id && 
+                  e.date.toDateString() === dateKey
+                );
+                
+                if (!existingEntry) {
+                  const reflectionEntry = {
+                    plugin: reflectionPlugin,
+                    date: entryDate,
+                    category: 'Reflection',
+                    type: reflection.type || 'Reflection',
+                  };
 
-                console.log('✅ [MomentsRenderer] Adding reflection entry:', reflectionEntry);
-                entries.push(reflectionEntry);
+                  console.log('✅ [MomentsRenderer] Adding reflection entry (deduplicated):', reflectionEntry);
+                  entries.push(reflectionEntry);
+                } else {
+                  console.log('🔄 [MomentsRenderer] Skipping duplicate reflection entry for same date:', {
+                    plugin: reflectionPlugin.id,
+                    date: dateKey,
+                    existing: existingEntry.type
+                  });
+                }
               } else {
                 console.log('⚠️ [MomentsRenderer] Skipping reflection entry:', {
                   reason: !hasUserContent ? 'no content' : 'type/source not allowed',

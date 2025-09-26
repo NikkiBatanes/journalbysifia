@@ -385,12 +385,30 @@ interface ReflectionLogProps {
 }
 
 export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onPencilTap }) => {
+  // Debug: Track component instances
+  const instanceId = React.useRef(Math.random().toString(36).substr(2, 9));
+  console.log('🎯 ReflectionLogReactQuery INSTANCE:', {
+    instanceId: instanceId.current,
+    selectedDate: selectedDate.toISOString(),
+    viewMode,
+    expanded,
+    timestamp: new Date().toISOString()
+  });
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+  
+  // Debug logging for date handling
+  console.log('🎯 REFLECTION LOG DATE DEBUG:', {
+    selectedDate: selectedDate.toISOString(),
+    dateStr,
+    selectedDateFormatted: selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+    currentDate: new Date().toISOString(),
+    timestamp: new Date().toISOString()
+  });
   const isSelectedToday = isTodayFn(selectedDate);
   const isSelectedYesterday = isYesterdayFn(selectedDate);
   const future = isAfter(startOfDay(selectedDate), startOfToday());
@@ -399,8 +417,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const successModal = useSuccessModal(
     () => {
       resetForm();
-      setIsAdding(false);
-    }, // onDone: close the modal
+      // Editor is already closed, just reset form
+    }, // onDone: just reset form since editor is already closed
     () => {
       // onEdit: success modal will hide automatically, main modal stays open
     } // onEdit: keep modal open for editing
@@ -452,8 +470,15 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   }, []);
 
   // Transform API data to local format with memoization
-  const entries: ReflectionLogEntry[] = React.useMemo(() =>
-    reflectionEntries.map(entry => ({
+  const entries: ReflectionLogEntry[] = React.useMemo(() => {
+    console.log('🎯 REFLECTION ENTRIES DEBUG:', {
+      rawEntriesCount: reflectionEntries.length,
+      rawEntries: reflectionEntries.map(e => ({ id: e.id, title: e.title, created_at: e.created_at })),
+      dateStr,
+      timestamp: new Date().toISOString()
+    });
+    
+    return reflectionEntries.map(entry => ({
       id: entry.id,
       title: entry.title || '', // Handle optional title from API
       content: normalizeIncoming(entry.content),
@@ -475,8 +500,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       created_at: entry.created_at,
       updated_at: entry.updated_at,
       selected_date: entry.selected_date,
-    })), [reflectionEntries, normalizeIncoming]
-  );
+    }));
+  }, [reflectionEntries, normalizeIncoming]);
 
   // Determine if there's content for the selected date
   const hasContentForSelectedDate = React.useMemo(() => {
@@ -1239,17 +1264,19 @@ return (
                   console.log('🔍 ReflectionLog: Data refetched after save');
                 }, 100);
 
-                // Show success modal immediately - keyboard dismissal prevented by modal structure fix
-                successModal.showSuccess({
-                  title: editingId ? 'Reflection Updated' : 'Reflection Saved',
-                  message: editingId ? 'Your reflection has been updated in your journal.' : 'Your reflection has been saved to your journal.',
-                  showEditButton: true,
-                });
-
-                // Clear editing state after successful save
+                // Close editor modal first, then show success modal to avoid layering conflicts
                 setSelectedEntry(null);
                 setEditingId(null);
                 setIsAdding(false);
+
+                // Small delay to ensure editor modal closes before showing success modal
+                setTimeout(() => {
+                  successModal.showSuccess({
+                    title: editingId ? 'Reflection Updated' : 'Reflection Saved',
+                    message: editingId ? 'Your reflection has been updated in your journal.' : 'Your reflection has been saved to your journal.',
+                    showEditButton: false, // Don't show edit button since we're closing the editor
+                  });
+                }, 100);
 
                 // Keep the main modal open - success modal will handle closing via callbacks
               } catch (saveError) {
@@ -1319,31 +1346,25 @@ return (
             totalDays={editingId && selectedEntry ? selectedEntry.total_days : undefined}
             questionNumber={editingId && selectedEntry ? selectedEntry.question_number : undefined}
             styles={reflectionLogStyles}
-            dateString={(() => {
-              const dateToUse = selectedDate; // Use the selected date from journal
-              const year = dateToUse.getFullYear();
-              const dateString = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-              const dateStringWithYear = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-              return year === new Date().getFullYear() ? dateString : dateStringWithYear;
-            })()}
+            dateString={selectedDate.toISOString()} // Pass ISO string for proper date parsing
           />
 
       </Modal>
       )}
 
-      {/* Success Modal - Outside main modal to prevent keyboard dismissal */}
-      {!onPencilTap && (
-        <NewSuccessModal
-          visible={successModal.isVisible}
-          config={successModal.config}
-          onDone={successModal.handleDone}
-          onEdit={successModal.handleEdit}
-        />
-      )}
-
       {/* Prompt Picker Modal */}
       {!onPencilTap && renderPromptPicker()}
     </JournalCard>
+
+    {/* Success Modal - Outside JournalCard and after editor modal to ensure it appears on top */}
+    {!onPencilTap && (
+      <NewSuccessModal
+        visible={successModal.isVisible}
+        config={successModal.config}
+        onDone={successModal.handleDone}
+        onEdit={successModal.handleEdit}
+      />
+    )}
     </>
   );
 };

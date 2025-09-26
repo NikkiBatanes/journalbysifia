@@ -110,6 +110,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const dateToUse = selectedDate || new Date();
   const dateStr = toLocalDateString(dateToUse); // Use selected date for consistency
+  
+  // Debug logging for date handling
+  console.log('🎯 SmartJournalingReflectionModal DATE DEBUG:', {
+    selectedDate: selectedDate ? selectedDate.toISOString() : 'undefined',
+    dateToUse: dateToUse.toISOString(),
+    dateStr,
+    currentDate: new Date().toISOString(),
+    timestamp: new Date().toISOString()
+  });
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
 
   // Debug: Log existing reflection prop
@@ -460,12 +469,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
-                const now = new Date();
-                const year = now.getFullYear();
-                const todayString = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                return year === new Date().getFullYear() ? todayString : todayStringWithYear;
-              })()}
+                const year = dateToUse.getFullYear();
+                const currentYear = new Date().getFullYear();
+                const dateString = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                const dateStringWithYear = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                return year === currentYear ? dateString : dateStringWithYear;
+              })()} // Use the selected date for formatting
               // Only pass playbook metadata when not guided
               playbookTitle={(!isGuidedReflection && !!playbookId) ? preservedPlaybookTitle : undefined}
               dayNumber={(!isGuidedReflection && !!playbookId) ? (() => {
