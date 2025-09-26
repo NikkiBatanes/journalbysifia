@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useImperativeHandle, useState } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, useState, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
@@ -414,20 +414,20 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Helper to manage timeouts
   const createManagedTimeout = (callback: () => void, delay: number) => {
     const timeoutId = setTimeout(() => {
-      pendingTimeoutsRef.current.delete(timeoutId);
+      pendingTimeoutsRef.current.delete(timeoutId as any);
       if (isMountedRef.current) {
         callback();
       }
     }, delay);
-    pendingTimeoutsRef.current.add(timeoutId);
+    pendingTimeoutsRef.current.add(timeoutId as any);
     return timeoutId;
   };
 
   // Clear all pending timeouts
-  const clearAllTimeouts = () => {
-    pendingTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+  const clearAllTimeouts = useCallback(() => {
+    pendingTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId as any));
     pendingTimeoutsRef.current.clear();
-  };
+  }, []);
   const { currentFont } = useTheme();
   const { subscription } = useSubscription();
   const navigation = useNavigation();
