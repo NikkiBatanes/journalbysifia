@@ -77,6 +77,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const [rating, setRating] = useState(0);
   const [showLocalPoints, setShowLocalPoints] = useState(false);
   const [localPoints, setLocalPoints] = useState<number>(0);
+  const pointsShownRef = useRef(false);
 
   // Simple celebratory burst particles
   type BurstParticle = {
@@ -196,12 +197,16 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           // Fire celebratory burst when checkmark appears
           startBurst(8); // Reduced particle count from 12 to 8
           // Show local FP notification above this modal content for guaranteed visibility
-          try {
-            const pts = faithPointsService.getPointsForActivity('devotional_completed');
-            setLocalPoints(pts);
-            // Slight delay to ensure layout is stable
-            setTimeout(() => setShowLocalPoints(true), 10);
-          } catch {}
+          // Only show once per modal open to prevent flashing
+          if (!pointsShownRef.current) {
+            pointsShownRef.current = true;
+            try {
+              const pts = faithPointsService.getPointsForActivity('devotional_completed');
+              setLocalPoints(pts);
+              // Slight delay to ensure layout is stable
+              setTimeout(() => setShowLocalPoints(true), 10);
+            } catch {}
+          }
           // Notify parent that check reveal completed
           try { onCheckReveal && onCheckReveal(); } catch {}
         });
@@ -211,6 +216,8 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     if (!visible) {
       // Allow animations to run again next time it's opened
       hasOpenedRef.current = false;
+      pointsShownRef.current = false;
+      setShowLocalPoints(false);
     }
   }, [visible, slideAnim, progressAnim, checkAnim, progress, backdropAnim, onCheckReveal, startBurst]);
 
@@ -245,6 +252,8 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     ]).start(() => {
       onClose();
       setRating(0);
+      setShowLocalPoints(false);
+      pointsShownRef.current = false;
     });
   }, [onClose, slideAnim, backdropAnim]);
 
@@ -545,7 +554,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           <View pointerEvents="none" style={styles.localPointsOverlay}>
             <AnimatedPointsNotification
               points={localPoints}
-              activityType={'devotional_generated'}
+              activityType={'devotional_completed'}
               position={'center'}
               visible={true}
               onAnimationComplete={() => setShowLocalPoints(false)}

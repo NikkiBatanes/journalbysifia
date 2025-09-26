@@ -300,7 +300,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
     // Reset FAB visibility when changing days
     setShowFAB(false);
-
+    
     // Force a re-render of the ScrollView with a reset position
     // This ensures content starts at the top when changing days
     const timer = setTimeout(() => {
@@ -655,21 +655,16 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       // Submit the rating
       await submitDevotionalRating(devotional.id, rating);
 
-      // Award faith points and track usage for completing devotional (delayed to show after modal closes)
+      // Track usage only. Faith points are awarded via cross-component sync in useMarkDayCompleteReactQuery.
       if (user?.id) {
         setTimeout(async () => {
           try {
-            // Award faith points for completing a devotional day
-            const pointsResult = await faithPointsService.awardPoints(user.id, 'devotional_completed', { suppressNotification: true });
-            console.log('[DevotionalDetail] Faith points awarded for devotional completion:', pointsResult);
-
-            // Track usage for subscription
             await subscriptionService.trackUsage(user.id, 'devotional');
             console.log('[DevotionalDetail] Usage tracked for devotional completion');
           } catch (error) {
-            console.error('[DevotionalDetail] Failed to award points or track usage:', error);
+            console.error('[DevotionalDetail] Failed to track usage:', error);
           }
-        }, 1000); // Delay 1 second to let modal close
+        }, 800);
       }
 
       // React Query handles optimistic updates automatically
@@ -755,6 +750,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
     // Update scrollY for any animations
     scrollY.setValue(offsetY);
+  };
+
+  // Force FAB visibility check when content layout changes
+  const handleContentSizeChange = (contentWidth: number, contentHeight: number) => {
+    // Get the current ScrollView's viewport height from the last scroll event or use screen dimensions
+    const viewportHeight = Dimensions.get('window').height * 0.7; // Approximate viewport
+    
+    // If content is shorter than viewport, show FAB immediately
+    if (contentHeight <= viewportHeight + 8) {
+      setShowFAB(true);
+    }
   };
 
   // Handle swipe down to dismiss
@@ -905,6 +911,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                 // Reset scroll position when changing pages
                 if (index === currentDayIndex) {
                   handleScroll(event);
+                }
+              }}
+              onContentSizeChange={(contentWidth, contentHeight) => {
+                // Only handle content size changes for the current day
+                if (index === currentDayIndex) {
+                  handleContentSizeChange(contentWidth, contentHeight);
                 }
               }}
               scrollEventThrottle={16}
