@@ -42,6 +42,7 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
       </View>
       <View style={styles.contentContainer}>
         <ThemedText
+          weight="semiBold"
           style={[styles.scriptureText]}
           numberOfLines={expanded ? undefined : collapsedLines}
           ellipsizeMode={expanded ? 'clip' : 'tail'}
