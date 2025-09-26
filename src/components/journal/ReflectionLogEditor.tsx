@@ -472,9 +472,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       source,
       initialTitle,
       viewMode,
-      selectedPrompt,
     });
-  }, []);
+  }, [initialMode, initialPrompt, source, initialTitle, viewMode]);
 
   // Update view mode when initialMode or source changes
   React.useEffect(() => {
