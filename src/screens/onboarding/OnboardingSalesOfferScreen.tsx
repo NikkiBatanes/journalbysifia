@@ -199,7 +199,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       });
     } else {
       console.log('[OnboardingSalesOffer] Going back - no trial eligible');
-      navigation.goBack();
+      
+      // Special handling for guided prompts to prevent black screen
+      const source = routeParams?.source;
+      if (source === 'guided_prompts_lock') {
+        console.log('[OnboardingSalesOffer] Guided prompt context - navigating to Dashboard');
+        // Navigate to Dashboard to ensure we have a valid screen
+        navigation.navigate('Dashboard' as any);
+      } else {
+        navigation.goBack();
+      }
     }
   };
 
@@ -286,7 +295,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const handleUpgradeSuccess = () => {
     triggerSuccessHaptic();
-    navigation.goBack();
+    
+    // Special handling for guided prompts to prevent black screen
+    const source = routeParams?.source;
+    if (source === 'guided_prompts_lock') {
+      console.log('[OnboardingSalesOffer] Guided prompt context - navigating to Dashboard after upgrade');
+      navigation.navigate('Dashboard' as any);
+    } else {
+      navigation.goBack();
+    }
   };
 
   const getCurrentPrice = () => {
@@ -711,7 +728,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             setShowDynamicModal(false);
             if (isUpgradeMode) {
               // No trial in upgrade mode
-              navigation.goBack();
+              const source = routeParams?.source;
+              if (source === 'guided_prompts_lock') {
+                navigation.navigate('Dashboard' as any);
+              } else {
+                navigation.goBack();
+              }
             } else if (canOfferTrial) {
               navigation.navigate('OnboardingTrialOffer' as any, {
                 selectedTierId: selectedTier,
@@ -719,7 +741,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 skipNotificationPreference: routeParams?.skipNotificationPreference,
               });
             } else {
-              navigation.goBack();
+              const source = routeParams?.source;
+              if (source === 'guided_prompts_lock') {
+                navigation.navigate('Dashboard' as any);
+              } else {
+                navigation.goBack();
+              }
             }
           }}
           discountPercentage={dynamicDiscount.percentage}

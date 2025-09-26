@@ -137,6 +137,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   // Clear completion info when modal opens to prevent accidental triggers
   const [prevVisible, setPrevVisible] = useState(visible);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
     if (visible && !prevVisible) {
       // Modal is opening (transition from false to true)
@@ -148,16 +150,47 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
       // Auto-focus the first input when modal opens for new entries
       const hasExistingContent = existingReflection?.content && existingReflection.content.trim();
-      if (!hasExistingContent) {
-        setTimeout(() => {
+      const isFreeformMode = !isGuidedReflection && !playbookId;
+      
+      console.log('[SmartJournalingReflectionModal] Auto-focus check:', {
+        hasExistingContent,
+        isFreeformMode,
+        isGuidedReflection,
+        playbookId: !!playbookId,
+        willAutoFocus: !hasExistingContent && !isFreeformMode
+      });
+      
+      // Skip auto-focus for freeform mode - let ReflectionLogEditor handle its own focus
+      if (!hasExistingContent && !isFreeformMode) {
+        console.log('[SmartJournalingReflectionModal] Setting up modal auto-focus (non-freeform mode)');
+        focusTimeoutRef.current = setTimeout(() => {
           if (reflectionEditorRef.current) {
+            console.log('[SmartJournalingReflectionModal] Calling focusInput from modal');
             reflectionEditorRef.current.focusInput();
           }
         }, 500); // Delay to allow modal animation to complete
+      } else {
+        console.log('[SmartJournalingReflectionModal] Skipping modal auto-focus - letting ReflectionLogEditor handle it');
+      }
+    } else if (!visible && prevVisible) {
+      // Modal is closing - clear any pending focus timeout
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
+        console.log('🔄 SmartJournalingReflectionModal: Cleared pending focus timeout on modal close');
       }
     }
     setPrevVisible(visible);
   }, [visible, prevVisible, existingReflection?.content, successModal]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
+  }, []);
 
 
 

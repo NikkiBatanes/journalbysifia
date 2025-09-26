@@ -178,6 +178,7 @@ export default function ActionStepsCard({
   const queryClient = useQueryClient();
   const [selectedSubtask, setSelectedSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [isGuidedPromptActive, setIsGuidedPromptActive] = useState(false);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
   // Interactive Coaching Modal State (Phase 3)
@@ -464,6 +465,8 @@ export default function ActionStepsCard({
           }
         }
 
+        const openedFromGuidedPrompt = !stepInfo && !subTask.detected_journal_type;
+        setIsGuidedPromptActive(openedFromGuidedPrompt);
         setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('reflection');

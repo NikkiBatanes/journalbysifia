@@ -403,6 +403,31 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 ) => {
   // Add mounting state to prevent state updates after unmount
   const isMountedRef = useRef(true);
+  // Track all pending timeouts to clear them on cancel
+  const pendingTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  
+  // Debug: Track all focus calls
+  const logFocus = (source: string, target: 'title' | 'content') => {
+    console.log(`[ReflectionLogEditor] 🎯 FOCUS: ${source} -> ${target} (source: ${source}, lockTitle: ${lockTitle})`);
+  };
+  
+  // Helper to manage timeouts
+  const createManagedTimeout = (callback: () => void, delay: number) => {
+    const timeoutId = setTimeout(() => {
+      pendingTimeoutsRef.current.delete(timeoutId);
+      if (isMountedRef.current) {
+        callback();
+      }
+    }, delay);
+    pendingTimeoutsRef.current.add(timeoutId);
+    return timeoutId;
+  };
+  
+  // Clear all pending timeouts
+  const clearAllTimeouts = () => {
+    pendingTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+    pendingTimeoutsRef.current.clear();
+  };
   const { currentFont } = useTheme();
   const { subscription } = useSubscription();
   const navigation = useNavigation();
@@ -502,6 +527,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [showFormattingModal, setShowFormattingModal] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const fabAnimatedValue = useRef(new Animated.Value(16)).current; // Start at default position (16px from bottom)
 
   const isSelectedPromptLocked = React.useMemo(() => {
@@ -532,10 +558,30 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     focusInput: () => {
-      if (contentInputRef.current) {
+      console.log('[ReflectionLogEditor] focusInput called:', {
+        source,
+        lockTitle,
+        hasTitleRef: !!titleInputRef.current,
+        hasContentRef: !!contentInputRef.current
+      });
+      
+      // For freeform mode with unlocked title, focus title input first
+      if (source === 'freeform' && !lockTitle && titleInputRef.current) {
+        logFocus('focusInput method', 'title');
+        titleInputRef.current.focus();
+        // Position cursor at the end of the title
+        createManagedTimeout(() => {
+          if (titleInputRef.current) {
+            const titleLength = newEntry.title.length;
+            titleInputRef.current.setSelection(titleLength, titleLength);
+          }
+        }, 100);
+      } else if (contentInputRef.current) {
+        logFocus('focusInput method', 'content');
+        // For other modes, focus content input
         contentInputRef.current.focus();
         // Position cursor at the end of the text
-        setTimeout(() => {
+        createManagedTimeout(() => {
           if (contentInputRef.current) {
             contentInputRef.current.setSelection(newEntry.content.length, newEntry.content.length);
           }
@@ -621,26 +667,28 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 title: title || '',
               });
 
-              // Focus the content input after a short delay
-              setTimeout(() => {
-                if (!isMountedRef.current) return;
-                if (content && contentInputRef.current) {
+              // Focus the appropriate input after a short delay
+              createManagedTimeout(() => {
+                // For freeform mode with unlocked title, always focus title input (even without content)
+                if (source === 'freeform' && !lockTitle && titleInputRef.current) {
+                  logFocus('draft loading', 'title');
+                  titleInputRef.current.focus();
+                } else if (content && contentInputRef.current) {
+                  // For other modes, focus content input only if there's content
+                  logFocus('draft loading', 'content');
                   contentInputRef.current.focus();
                 }
               }, 100);
 
               // Only show notification when draft is actually loaded (not in edit mode)
-              let timer: NodeJS.Timeout | undefined;
               if (isFirstLoad && !isEditing) {
                 // Delay showing notification until modal is fully open
-                setTimeout(() => {
-                  if (!isMountedRef.current) return;
+                createManagedTimeout(() => {
                   setShowDraftNotification(true);
                 }, 500);
 
                 // Hide notification after 4 seconds
-                timer = setTimeout(() => {
-                  if (!isMountedRef.current) return;
+                createManagedTimeout(() => {
                   setShowDraftNotification(false);
                 }, 4500); // 500ms delay + 4000ms display
               }
@@ -649,8 +697,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               if (isMountedRef.current) {
                 setIsFirstLoad(false);
               }
-
-              return timer ? () => clearTimeout(timer) : undefined;
             }
           }
         } catch (error) {
@@ -704,10 +750,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     return () => {
       // Mark component as unmounted to prevent state updates
       isMountedRef.current = false;
+      // Clear all pending timeouts
+      clearAllTimeouts();
       // Only clear draft if the entry was saved (not cancelled)
       // This cleanup runs when component unmounts
     };
-  }, []);
+  }, [clearAllTimeouts]);
 
   // Update title when initialTitle changes and focus content if title is locked
   React.useEffect(() => {
@@ -785,16 +833,23 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Auto-focus title input for free form reflections
   useEffect(() => {
+    console.log('[ReflectionLogEditor] Auto-focus check:', {
+      isEditing,
+      source,
+      lockTitle,
+      hasTitleRef: !!titleInputRef.current
+    });
+    
     // Only auto-focus for free form mode and when not editing existing entry
     if (!isEditing && source === 'freeform' && !lockTitle && titleInputRef.current) {
+      console.log('[ReflectionLogEditor] Setting up title auto-focus for freeform mode');
       // Add a small delay to ensure the component is fully rendered
-      const timer = setTimeout(() => {
-        if (isMountedRef.current && titleInputRef.current) {
+      createManagedTimeout(() => {
+        if (titleInputRef.current) {
+          logFocus('auto-focus effect', 'title');
           titleInputRef.current.focus();
         }
       }, 300);
-
-      return () => clearTimeout(timer);
     }
   }, [isEditing, source, lockTitle]);
 
@@ -902,14 +957,40 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         await saveDraftHelper();
       }
 
-      Keyboard.dismiss();
-      // Longer delay to ensure keyboard is fully dismissed before closing modal
-      setTimeout(() => {
+      // Clear all pending timeouts to prevent delayed focus
+      clearAllTimeouts();
+      
+      // Ensure text inputs release focus so keyboard doesn't reappear
+      if (titleInputRef.current) {
+        titleInputRef.current.blur();
+      }
+      if (contentInputRef.current) {
+        contentInputRef.current.blur();
+      }
+
+      if (isKeyboardVisible) {
+        Keyboard.dismiss();
+        // Longer delay to ensure keyboard is fully dismissed before closing modal
+        setTimeout(() => {
+          onCancel();
+        }, 200);
+      } else {
         onCancel();
-      }, 200);
+      }
     } catch (error) {
       console.error('Error saving draft before cancel:', error);
-      Keyboard.dismiss();
+      // Clear all pending timeouts to prevent delayed focus
+      clearAllTimeouts();
+      
+      if (titleInputRef.current) {
+        titleInputRef.current.blur();
+      }
+      if (contentInputRef.current) {
+        contentInputRef.current.blur();
+      }
+      if (isKeyboardVisible) {
+        Keyboard.dismiss();
+      }
       onCancel();
     }
   };
@@ -987,7 +1068,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 setSelectedPrompt('');
                 
                 // Focus title input
-                setTimeout(() => {
+                createManagedTimeout(() => {
                   titleInputRef.current?.focus();
                 }, 100);
                 return;
@@ -1055,7 +1136,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             // Note: This is a local state change, doesn't affect the original source prop
 
             // Focus the title input for true free-form mode
-            setTimeout(() => {
+            createManagedTimeout(() => {
               titleInputRef.current?.focus();
             }, 100);
           }}
@@ -1209,7 +1290,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     onFocus={() => {
                       // In edit mode, position cursor at end instead of selecting all
                       if (isEditing && titleInputRef.current) {
-                        setTimeout(() => {
+                        createManagedTimeout(() => {
                           const textLength = newEntry.title.length;
                           titleInputRef.current?.setNativeProps({
                             selection: { start: textLength, end: textLength },
@@ -1375,7 +1456,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                             }));
 
                             // Focus the content input after the view switches
-                            setTimeout(() => {
+                            createManagedTimeout(() => {
                               contentInputRef.current?.focus();
                             }, 50);
                           });
