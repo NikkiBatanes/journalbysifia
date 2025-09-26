@@ -1466,6 +1466,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Reflection Questions Card */}
           <ReflectionQuestionsCard
             onQuestionPress={(q: any) => {
+              console.log('🎯 DASHBOARD onQuestionPress CALLED!', {
+                question: q.question,
+                sourceType: q.sourceType,
+                source: q.source,
+                id: q.id,
+                timestamp: new Date().toISOString()
+              });
               triggerLightHaptic();
               // Include enriched metadata for devotional reflections
               setSelectedReflection({
@@ -1503,7 +1510,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
       {/* Reflection Modals */}
       <SmartJournalingReflectionModal
-        visible={showSJModal}
+        visible={(() => {
+          console.log('🎯 DASHBOARD SmartJournalingReflectionModal visibility:', {
+            showSJModal,
+            selectedReflection: selectedReflection?.question,
+            timestamp: new Date().toISOString()
+          });
+          return showSJModal;
+        })()}
         subtaskTitle={selectedReflection?.question || ''}
         // Hide metadata when reflection comes from a guided prompt
         isGuidedReflection={selectedReflection?.sourceType === 'guided'}

@@ -698,7 +698,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
-    console.log('🔍 Editing entry:', entry.id, entry.title, 'type:', entry.type);
+    console.log('🎯 ENTRY PRESS HANDLER CALLED!', {
+      entryId: entry.id,
+      title: entry.title,
+      type: entry.type,
+      source: entry.source,
+      hasContent: !!entry.content,
+      timestamp: new Date().toISOString()
+    });
 
     // Set editing state
     setEditingId(entry.id);
@@ -1140,7 +1147,18 @@ return (
       {/* Add/Edit Entry Modal - Show for adding new entries (when not in carousel mode) or editing existing entries */}
       {(!onPencilTap || selectedEntry) && (
         <Modal
-          visible={isAdding || !!selectedEntry}
+          visible={(() => {
+            const shouldShow = isAdding || !!selectedEntry;
+            console.log('🎯 REFLECTION LOG MODAL visibility:', {
+              shouldShow,
+              isAdding,
+              hasSelectedEntry: !!selectedEntry,
+              selectedEntryId: selectedEntry?.id,
+              selectedEntryTitle: selectedEntry?.title,
+              timestamp: new Date().toISOString()
+            });
+            return shouldShow;
+          })()}
           animationType="slide"
           transparent={false}
           onRequestClose={() => {

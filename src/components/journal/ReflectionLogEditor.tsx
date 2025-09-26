@@ -487,8 +487,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     if (source === 'devotional') {
       console.log('[ReflectionLogEditor] Setting to free-form (devotional)');
       setViewMode('free-form');
-    } else if (source === 'guided' && initialPrompt) {
-      console.log('[ReflectionLogEditor] Setting to guided mode (guided prompt)');
+    } else if (source === 'guided' && initialPrompt && !initialEntry.content) {
+      console.log('[ReflectionLogEditor] Setting to guided mode (guided prompt - new entry)');
       setViewMode('guided');
     } else if (initialPrompt) {
       console.log('[ReflectionLogEditor] Setting to free-form (other prompt)');
