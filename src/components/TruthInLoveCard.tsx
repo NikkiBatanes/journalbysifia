@@ -66,14 +66,15 @@ export default function TruthInLoveCard({
   });
 
   // Force re-computation when user data changes
+  // Only replace placeholders, not hardcoded names to prevent duplicate name issues
   const processedTruth = React.useMemo(() => {
-    const result = freshUserData ? replaceAllNamePlaceholders(truth, freshUserData, { replaceHardcodedNames: true }) : truth;
+    const result = freshUserData ? replaceAllNamePlaceholders(truth, freshUserData, { replaceHardcodedNames: false }) : truth;
     console.log('[TruthInLoveCard] Processing truth:', { original: truth, processed: result, userData: freshUserData });
     return result;
   }, [truth, freshUserData?.firstName, freshUserData?.displayName]);
 
   const processedSummary = React.useMemo(() => {
-    const result = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: true }) : summary;
+    const result = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: false }) : summary;
     console.log('[TruthInLoveCard] Processing summary:', { original: summary, processed: result, userData: freshUserData });
     return result;
   }, [summary, freshUserData?.firstName, freshUserData?.displayName]);
