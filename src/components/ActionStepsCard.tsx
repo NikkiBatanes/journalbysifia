@@ -179,13 +179,6 @@ export default function ActionStepsCard({
   const [_isGuidedPromptActive, _setIsGuidedPromptActive] = useState(false);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
-  // Interactive Coaching Modal State (Phase 3) - Currently unused
-  const [_showInteractiveCoaching, _setShowInteractiveCoaching] = useState(false);
-  const [_coachingStepData, _setCoachingStepData] = useState<{
-    stepId: string;
-    stepText: string;
-    subtaskId?: string;
-  } | null>(null);
 
 
   const completionAnim = React.useRef<Record<string, Animated.Value>>({});
