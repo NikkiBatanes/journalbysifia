@@ -149,13 +149,18 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.anchorBlue,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   sectionTitle: {
     fontSize: 18,
@@ -359,11 +364,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
     fontSize: 18,
     fontFamily: fonts.regular,
     color: Colors.hopeWhite,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
   },
   transparentBackground: {
     backgroundColor: 'transparent',
@@ -1857,7 +1857,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const showChevron = section.key === currentStickyKey;
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-          <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }]}>
+          <View style={styles.sectionHeader}>
             <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
             <ThemedText weight="semiBold" style={styles.sectionTitle}>
               {section.title}
@@ -1875,7 +1875,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const showChevron = section.key === currentStickyKey;
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-          <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }]}>
+          <View style={styles.sectionHeader}>
             <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
             <ThemedText weight="semiBold" style={styles.sectionTitle}>
               {section.title}
