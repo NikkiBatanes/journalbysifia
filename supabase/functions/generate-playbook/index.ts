@@ -118,23 +118,23 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   if (truthSummaryMatch) {
     let summary = truthSummaryMatch[1].trim();
 
-    // Replace userName with [User's Name] placeholder for dynamic replacement
-    const usernamePrefix = new RegExp(`^${userName},?\s*`, 'i'); // eslint-disable-line no-useless-escape
-    summary = summary.replace(usernamePrefix, '[User\'s Name], ');
-
-    // Keep literal "[User's Name]," if AI outputs it (don't remove it)
-    // This ensures we always have the placeholder for dynamic replacement
-
-    // Ensure the summary starts with proper capitalization after placeholder
-    if (summary.startsWith('[User\'s Name], ')) {
-      const afterPlaceholder = summary.substring('[User\'s Name], '.length);
-      if (afterPlaceholder.length > 0) {
-        const capitalizedAfter = afterPlaceholder.charAt(0).toLowerCase() + afterPlaceholder.slice(1);
-        summary = '[User\'s Name], ' + capitalizedAfter;
+    // More robust name replacement to prevent duplicates
+    // First, check if it already has the placeholder
+    if (!summary.includes('[User\'s Name]')) {
+      // Replace any occurrence of the userName (not just at the beginning)
+      const userNameRegex = new RegExp(`\\b${userName}\\b`, 'gi');
+      summary = summary.replace(userNameRegex, '[User\'s Name]');
+      
+      // If still no placeholder found, and the summary doesn't start with the user's name,
+      // only add placeholder if the summary seems to be addressing the user directly
+      if (!summary.includes('[User\'s Name]') && summary.length > 0) {
+        // Check if it starts with a direct address pattern (like "you are", "your", etc.)
+        const directAddressPattern = /^(you\s|your\s)/i;
+        if (directAddressPattern.test(summary)) {
+          summary = '[User\'s Name], ' + summary.charAt(0).toLowerCase() + summary.slice(1);
+        }
+        // Otherwise, leave the summary as-is to avoid forced name insertion
       }
-    } else if (summary.length > 0) {
-      // If no placeholder, add it at the beginning
-      summary = '[User\'s Name], ' + summary.charAt(0).toLowerCase() + summary.slice(1);
     }
 
     playbook.truthInLove.summary = summary;
@@ -143,11 +143,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   // Parse Truth in Love
   const truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthInLoveMatch) {
-    const truthText = truthInLoveMatch[1].trim();
+    let truthText = truthInLoveMatch[1].trim();
 
-    // Keep [User's Name] placeholder for dynamic replacement in the UI
-    // This allows the name to update when user changes their name in settings
-    // truthText = truthText.replace(/\[User's Name\]/g, userName);
+    // Apply the same robust name replacement logic as summary
+    if (!truthText.includes('[User\'s Name]')) {
+      // Replace any occurrence of the userName
+      const userNameRegex = new RegExp(`\\b${userName}\\b`, 'gi');
+      truthText = truthText.replace(userNameRegex, '[User\'s Name]');
+    }
 
     playbook.truthInLove.text = truthText;
   }
