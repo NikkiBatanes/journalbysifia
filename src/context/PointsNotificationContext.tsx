@@ -43,11 +43,17 @@ interface PointsNotificationProviderProps {
 export const PointsNotificationProvider: React.FC<PointsNotificationProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<PointsNotification[]>([]);
   const isMounted = useRef(true);
-  const timeouts = useRef<Record<string, NodeJS.Timeout>>({});
+  const timeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Define showPointsNotification first to avoid reference issues
   const showPointsNotification = useCallback((points: number, activityType: string, position: 'top' | 'center' | 'bottom' = 'center') => {
-    console.log('[PointsNotificationContext] showPointsNotification called:', { points, activityType, position });
+    console.log('[PointsNotificationContext] showPointsNotification called:', { 
+      points, 
+      activityType, 
+      position, 
+      timestamp: new Date().toISOString(),
+      currentNotifications: notifications.length 
+    });
     const id = uuidv4();
 
     const newNotification: PointsNotification = {
@@ -59,9 +65,9 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
 
     console.log('[PointsNotificationContext] Adding notification:', newNotification);
     setNotifications(prev => {
-      console.log('[PointsNotificationContext] Previous notifications:', prev.length);
+      console.log('[PointsNotificationContext] Previous notifications:', prev.length, prev.map(n => n.activityType));
       const updated = [...prev, newNotification];
-      console.log('[PointsNotificationContext] Updated notifications:', updated.length);
+      console.log('[PointsNotificationContext] Updated notifications:', updated.length, updated.map(n => n.activityType));
       return updated;
     });
 
@@ -96,17 +102,23 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       notificationService.clearPointsNotificationCallback();
       // Clear any pending timeouts
       Object.values(timeouts.current).forEach(clearTimeout);
-      timeouts.current = {};
     };
   }, [showPointsNotification]);
 
   const handleAnimationComplete = useCallback((id: string) => {
     if (!isMounted.current) {return;}
+    
+    console.log('[PointsNotificationContext] Animation complete for ID:', id, 'at', new Date().toISOString());
 
     // Use requestAnimationFrame to defer the state update
     requestAnimationFrame(() => {
       if (isMounted.current) {
-        setNotifications(prev => prev.filter(n => n.id !== id));
+        setNotifications(prev => {
+          console.log('[PointsNotificationContext] Removing notification. Previous count:', prev.length);
+          const filtered = prev.filter(n => n.id !== id);
+          console.log('[PointsNotificationContext] New count after removal:', filtered.length);
+          return filtered;
+        });
 
         // Clear any pending timeout for this notification
         if (timeouts.current[id]) {
@@ -133,7 +145,10 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
         >
           <View style={styles.notificationOverlay}>
             {notifications.map((notification) => {
-              console.log('[PointsNotificationContext] Rendering notification:', notification);
+              console.log('[PointsNotificationContext] Rendering notification:', {
+                ...notification,
+                timestamp: new Date().toISOString()
+              });
               return (
                 <AnimatedPointsNotification
                   key={notification.id}

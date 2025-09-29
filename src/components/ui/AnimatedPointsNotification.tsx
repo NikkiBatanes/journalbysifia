@@ -33,6 +33,14 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   position = 'center',
   activityType = 'activity',
 }) => {
+  const componentId = useRef(Math.random().toString(36).substr(2, 9)).current;
+  console.log(`[AnimatedPointsNotification-${componentId}] Component created:`, {
+    points,
+    visible,
+    activityType,
+    position,
+    timestamp: new Date().toISOString()
+  });
   const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.5)).current;
@@ -64,8 +72,18 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   }, [translateY, opacity, scale, onAnimationComplete]);
 
   useEffect(() => {
-    console.log('[AnimatedPointsNotification] useEffect triggered, visible:', visible);
-    if (!visible) {return;}
+    console.log(`[AnimatedPointsNotification-${componentId}] useEffect triggered:`, {
+      visible,
+      activityType,
+      points,
+      position,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!visible) {
+      console.log(`[AnimatedPointsNotification-${componentId}] Not visible, returning early`);
+      return;
+    }
 
     // Reset animation values to ensure proper starting state
     translateY.setValue(50);
@@ -73,7 +91,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     scale.setValue(0.5);
     sparkleRotation.setValue(0);
 
-    console.log('[AnimatedPointsNotification] Starting entrance animation');
+    console.log(`[AnimatedPointsNotification-${componentId}] Starting entrance animation for:`, activityType);
 
     // Start entrance animation - FASTER for immediate feedback
     const entranceAnimation = Animated.parallel([
@@ -106,9 +124,11 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
 
     // Start animations
     entranceAnimation.start(() => {
-      console.log('[AnimatedPointsNotification] Entrance animation completed');
+      console.log(`[AnimatedPointsNotification-${componentId}] Entrance animation completed for:`, activityType);
     });
     sparkleAnimation.start();
+    
+    console.log(`[AnimatedPointsNotification-${componentId}] Animations started for:`, activityType);
 
     // Haptic feedback synchronized with animation
     // Distinct FAITH POINTS award feel:
@@ -137,11 +157,13 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
 
     // Auto-hide after 2.5 seconds
     const hideTimer = setTimeout(() => {
+      console.log(`[AnimatedPointsNotification-${componentId}] Auto-hide timeout triggered for:`, activityType);
       hideNotification();
     }, 2500);
 
     // Cleanup function
     return () => {
+      console.log(`[AnimatedPointsNotification-${componentId}] Cleanup for:`, activityType);
       clearTimeout(hideTimer);
       if (h1) { clearTimeout(h1); }
       if (h2) { clearTimeout(h2); }
@@ -155,7 +177,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
         scale.setValue(0.5);
       }
     };
-  }, [visible, hideNotification, translateY, opacity, scale, sparkleRotation]);
+  }, [visible, hideNotification, translateY, opacity, scale, sparkleRotation, activityType, componentId]);
 
   const getPositionStyle = () => {
     switch (position) {
@@ -188,11 +210,11 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   };
 
   if (!visible) {
-    console.log('[AnimatedPointsNotification] Not visible, returning null');
+    console.log(`[AnimatedPointsNotification-${componentId}] Not visible, returning null for:`, activityType);
     return null;
   }
 
-  console.log('[AnimatedPointsNotification] Rendering notification:', { points, activityType, visible });
+  console.log(`[AnimatedPointsNotification-${componentId}] Rendering notification:`, { points, activityType, visible, timestamp: new Date().toISOString() });
 
   const sparkleRotationInterpolate = sparkleRotation.interpolate({
     inputRange: [0, 1],
