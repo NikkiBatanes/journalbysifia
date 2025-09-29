@@ -61,17 +61,24 @@ export const useCrossComponentSync = (userId: string) => {
   }, [queryClient, userId]);
 
   // Sync devotional completion with playbook progress
-  const syncDevotionalCompletion = useCallback(async (devotionalId: string, playbookId?: string) => {
+  const syncDevotionalCompletion = useCallback(async (devotionalId: string, playbookId?: string, completionContext?: {
+    isFullDevotionalComplete?: boolean;
+    completedDaysCount?: number;
+    totalDays?: number;
+    currentDay?: number;
+  }) => {
     console.log('[CrossComponentSync] Syncing devotional completion:', { devotionalId, playbookId });
 
     try {
-      // Award faith points for devotional day completion
+      // Award faith points based on completion type
       // Suppress global notification here to avoid duplicates (local modal shows FP)
-      const pointsResult = await faithPointsService.awardPoints(userId, 'devotional_completed', {
+      const activityType = completionContext?.isFullDevotionalComplete ? 'devotional_full_completed' : 'devotional_completed';
+      const pointsResult = await faithPointsService.awardPoints(userId, activityType as any, {
         devotionalId,
         playbookId,
         timestamp: new Date().toISOString(),
         suppressNotification: true,
+        completionContext,
       });
 
       console.log('[CrossComponentSync] Faith points awarded:', pointsResult);

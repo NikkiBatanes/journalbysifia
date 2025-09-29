@@ -31,17 +31,18 @@ const determineDevotionalCategory = (apiEntry: DevotionalApiEntry): DevotionalCa
   const content = `${apiEntry.title || ''} ${apiEntry.description || ''}`.toLowerCase();
 
   if (content.includes('prayer') || content.includes('pray')) {return 'Prayer';}
-  if (content.includes('faith') || content.includes('trust') || content.includes('believe')) {return 'Faith';}
   if (content.includes('love') || content.includes('relationship') || content.includes('family')) {return 'Relationships';}
-  if (content.includes('peace') || content.includes('anxiety') || content.includes('worry') || content.includes('stress')) {return 'Peace';}
-  if (content.includes('hope') || content.includes('encouragement') || content.includes('strength')) {return 'Hope';}
+  if (content.includes('anxiety') || content.includes('worry') || content.includes('stress') || content.includes('mental')) {return 'Mental Health';}
   if (content.includes('wisdom') || content.includes('decision') || content.includes('guidance')) {return 'Wisdom';}
-  if (content.includes('forgiveness') || content.includes('forgive') || content.includes('mercy')) {return 'Forgiveness';}
-  if (content.includes('gratitude') || content.includes('thankful') || content.includes('blessing')) {return 'Gratitude';}
   if (content.includes('purpose') || content.includes('calling') || content.includes('mission')) {return 'Purpose';}
+  if (content.includes('heal') || content.includes('recovery') || content.includes('restoration')) {return 'Healing';}
+  if (content.includes('career') || content.includes('work') || content.includes('job')) {return 'Career';}
+  if (content.includes('money') || content.includes('financial') || content.includes('finances')) {return 'Finances';}
+  if (content.includes('parent') || content.includes('child') || content.includes('kids')) {return 'Parenting';}
+  if (content.includes('health') || content.includes('physical') || content.includes('body')) {return 'Health';}
 
-  // Default to 'Spiritual Growth' instead of just 'Growth'
-  return 'Spiritual Growth';
+  // Default to 'Growth' for spiritual growth, faith, hope, etc.
+  return 'Growth';
 };
 
 // Data transformer
@@ -237,7 +238,16 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
 
       // Trigger cross-component sync to award faith points and update dashboard
       try {
-        await syncDevotionalCompletion(devotionalId);
+        // Check if this completion makes the entire devotional complete
+        const completedDaysCount = data.days.filter(day => day.completed).length;
+        const isFullDevotionalComplete = completedDaysCount === data.totalDays;
+        
+        await syncDevotionalCompletion(devotionalId, undefined, {
+          isFullDevotionalComplete,
+          completedDaysCount,
+          totalDays: data.totalDays,
+          currentDay: dayNumber
+        });
         console.log('[useMarkDayCompleteReactQuery] Cross-component sync completed');
       } catch (syncError) {
         console.error('[useMarkDayCompleteReactQuery] Sync error:', syncError);

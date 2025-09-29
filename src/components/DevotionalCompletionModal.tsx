@@ -201,7 +201,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           if (!pointsShownRef.current) {
             pointsShownRef.current = true;
             try {
-              const pts = faithPointsService.getPointsForActivity('devotional_completed');
+              // Use different activity type based on whether this is the last day
+              const activityType = isLastDay ? 'devotional_full_completed' : 'devotional_completed';
+              const pts = faithPointsService.getPointsForActivity(activityType as any);
               setLocalPoints(pts);
               // Slight delay to ensure layout is stable
               setTimeout(() => setShowLocalPoints(true), 10);
@@ -554,7 +556,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           <View pointerEvents="none" style={styles.localPointsOverlay}>
             <AnimatedPointsNotification
               points={localPoints}
-              activityType={'devotional_completed'}
+              activityType={isLastDay ? 'devotional_full_completed' : 'devotional_completed'}
               position={'center'}
               visible={true}
               onAnimationComplete={() => setShowLocalPoints(false)}

@@ -86,7 +86,8 @@ export class FaithPointsService {
     affirmation_read_aloud: 2,
     playbook_generated: 10,
     devotional_generated: 8,
-    devotional_completed: 5,
+    devotional_completed: 5, // Single day completion
+    devotional_full_completed: 15, // Full devotional completion (all days)
     journal_entry: 5,
     prayer_for_now: 2,
     prayer_journal_acts: 2,

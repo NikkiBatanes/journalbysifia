@@ -265,7 +265,10 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
                   return 'PRAYER';
                 }
                 if (at === 'devotional_completed') {
-                  return 'Devotional Completed';
+                  return 'DEVO DAY COMPLETE';
+                }
+                if (at === 'devotional_full_completed') {
+                  return 'DEVOTIONAL COMPLETED';
                 }
                 return activityType.replace(/_/g, ' ').toUpperCase();
               })()}
