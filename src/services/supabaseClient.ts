@@ -37,14 +37,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           storageKey = 'USER';
         }
 
-        // Only log storage access in development for debugging
-        if (__DEV__ && process.env.NODE_ENV === 'development') {
-          console.log('[SupabaseClient] Storage getItem:', { originalKey: key, mappedKey: storageKey });
-        }
+        // Disable storage logging to improve performance
+        // if (__DEV__) {
+        //   console.log('[SupabaseClient] Storage getItem:', { originalKey: key, mappedKey: storageKey });
+        // }
         const value = await AsyncStorage.getItem(storageKey);
-        if (__DEV__ && process.env.NODE_ENV === 'development') {
-          console.log('[SupabaseClient] Retrieved from storage:', { key: storageKey, hasValue: !!value });
-        }
+        // if (__DEV__) {
+        //   console.log('[SupabaseClient] Retrieved from storage:', { key: storageKey, hasValue: !!value });
+        // }
         return value;
       },
       setItem: async (key: string, value: string) => {
@@ -60,9 +60,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           storageKey = 'USER';
         }
 
-        if (__DEV__ && process.env.NODE_ENV === 'development') {
-          console.log('[SupabaseClient] Storage setItem:', { originalKey: key, mappedKey: storageKey });
-        }
+        // Disable storage logging to improve performance
+        // if (__DEV__) {
+        //   console.log('[SupabaseClient] Storage setItem:', { originalKey: key, mappedKey: storageKey });
+        // }
         await AsyncStorage.setItem(storageKey, value);
       },
       removeItem: async (key: string) => {
@@ -78,9 +79,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           storageKey = 'USER';
         }
 
-        if (__DEV__ && process.env.NODE_ENV === 'development') {
-          console.log('[SupabaseClient] Storage removeItem:', { originalKey: key, mappedKey: storageKey });
-        }
+        // Disable storage logging to improve performance
+        // if (__DEV__) {
+        //   console.log('[SupabaseClient] Storage removeItem:', { originalKey: key, mappedKey: storageKey });
+        // }
         await AsyncStorage.removeItem(storageKey);
       },
     },

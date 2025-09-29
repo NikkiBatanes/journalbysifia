@@ -18,6 +18,9 @@ import { triggerSuccessHaptic, triggerLightHaptic, triggerMediumHaptic, triggerH
 
 const { height } = Dimensions.get('window'); // Removed unused width variable
 
+// Global guard to prevent multiple animations of the same type
+const activeAnimations = new Set<string>();
+
 interface AnimatedPointsNotificationProps {
   points: number;
   visible: boolean;
@@ -47,6 +50,9 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   const sparkleRotation = useRef(new Animated.Value(0)).current;
 
   const hideNotification = useCallback(() => {
+    const animationKey = `${activityType}-${points}`;
+    console.log(`[AnimatedPointsNotification-${componentId}] Hiding notification for:`, animationKey);
+    
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: -50,
@@ -64,12 +70,16 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
         useNativeDriver: true,
       }),
     ]).start(({ finished }) => {
+      // Remove from active animations when hide completes
+      activeAnimations.delete(animationKey);
+      console.log(`[AnimatedPointsNotification-${componentId}] Animation completed, removed key:`, animationKey);
+      
       // Only call onAnimationComplete if the animation actually finished
       if (finished) {
         onAnimationComplete?.();
       }
     });
-  }, [translateY, opacity, scale, onAnimationComplete]);
+  }, [translateY, opacity, scale, onAnimationComplete, activityType, points, componentId]);
 
   useEffect(() => {
     console.log(`[AnimatedPointsNotification-${componentId}] useEffect triggered:`, {
@@ -84,6 +94,17 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       console.log(`[AnimatedPointsNotification-${componentId}] Not visible, returning early`);
       return;
     }
+
+    // Check if animation for this activity type is already running
+    const animationKey = `${activityType}-${points}`;
+    if (activeAnimations.has(animationKey)) {
+      console.log(`[AnimatedPointsNotification-${componentId}] Animation already active for:`, animationKey);
+      return;
+    }
+    
+    // Mark this animation as active
+    activeAnimations.add(animationKey);
+    console.log(`[AnimatedPointsNotification-${componentId}] Starting animation for:`, animationKey);
 
     // Reset animation values to ensure proper starting state
     translateY.setValue(50);
@@ -164,6 +185,10 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     // Cleanup function
     return () => {
       console.log(`[AnimatedPointsNotification-${componentId}] Cleanup for:`, activityType);
+      const animationKey = `${activityType}-${points}`;
+      activeAnimations.delete(animationKey);
+      console.log(`[AnimatedPointsNotification-${componentId}] Removed animation key:`, animationKey);
+      
       clearTimeout(hideTimer);
       if (h1) { clearTimeout(h1); }
       if (h2) { clearTimeout(h2); }

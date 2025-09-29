@@ -146,6 +146,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const progress = totalDays > 0 ? (completedDays / totalDays) * 100 : 0;
   // Guard to avoid re-running the full open sequence while visible stays true
   const hasOpenedRef = useRef(false);
+  const lastVisibleState = useRef(false);
 
   // Run the slide-in and initial animations only when visibility changes to true
   useEffect(() => {
@@ -153,15 +154,17 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       visible,
       hasOpened: hasOpenedRef.current,
       pointsShown: pointsShownRef.current,
+      lastVisible: lastVisibleState.current,
       progress,
       devotionalTitle: devotional?.title,
       currentDayNumber
     });
     
-    // CRITICAL: Only run animations when modal first becomes visible
-    if (visible && !hasOpenedRef.current) {
-      console.log('[DevotionalCompletionModal] Starting modal open sequence - FIRST TIME ONLY');
+    // CRITICAL: Only run animations when visibility changes from false to true
+    if (visible && !lastVisibleState.current && !hasOpenedRef.current) {
+      console.log('[DevotionalCompletionModal] Starting modal open sequence - VISIBILITY CHANGED TO TRUE');
       hasOpenedRef.current = true;
+      lastVisibleState.current = true;
 
       // Reset and run slide-in
       slideAnim.setValue(SCREEN_HEIGHT);
@@ -234,11 +237,12 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       }, 500); // Faster reveal
     } else if (visible && hasOpenedRef.current) {
       console.log('[DevotionalCompletionModal] Modal already opened, skipping re-animation');
-    } else if (!visible) {
+    } else if (!visible && lastVisibleState.current) {
       console.log('[DevotionalCompletionModal] Modal closing, resetting state');
       // Allow animations to run again next time it's opened
       hasOpenedRef.current = false;
       pointsShownRef.current = false;
+      lastVisibleState.current = false;
       setShowLocalPoints(false);
     }
   }, [visible]); // CRITICAL: Only depend on visible to prevent re-renders
