@@ -147,6 +147,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   // Guard to avoid re-running the full open sequence while visible stays true
   const hasOpenedRef = useRef(false);
   const lastVisibleState = useRef(false);
+  const animationKeyRef = useRef<string | null>(null);
 
   // Run the slide-in and initial animations only when visibility changes to true
   useEffect(() => {
@@ -220,18 +221,23 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
               const pts = faithPointsService.getPointsForActivity(activityType as any);
               console.log('[DevotionalCompletionModal] Local points:', { activityType, pts, isLastDay });
               setLocalPoints(pts);
-              // Slight delay to ensure layout is stable
+              
+              // Set unique animation key to prevent re-renders
+              animationKeyRef.current = `${devotional?.id}-${currentDayNumber}-${Date.now()}`;
+              
+              // Delay showing points slightly to ensure modal is fully visible
               setTimeout(() => {
                 console.log('[DevotionalCompletionModal] Setting showLocalPoints to true');
                 setShowLocalPoints(true);
-              }, 10);
+              }, 100);
             } catch (e) {
-              console.error('[DevotionalCompletionModal] Error showing local points:', e);
+              console.error('[DevotionalCompletionModal] Error showing points:', e);
             }
           } else {
             console.log('[DevotionalCompletionModal] Points already shown, skipping');
           }
           // Notify parent that check reveal completed
+          
           try { onCheckReveal && onCheckReveal(); } catch {}
         });
       }, 500); // Faster reveal
@@ -243,6 +249,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       hasOpenedRef.current = false;
       pointsShownRef.current = false;
       lastVisibleState.current = false;
+      animationKeyRef.current = null;
       setShowLocalPoints(false);
     }
   }, [visible]); // CRITICAL: Only depend on visible to prevent re-renders
@@ -571,14 +578,19 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             )}
           </View>
         </Animated.View>
-        {showLocalPoints && (
+        {showLocalPoints && animationKeyRef.current && (
           <View pointerEvents="none" style={styles.localPointsOverlay}>
             <AnimatedPointsNotification
+              key={animationKeyRef.current}
               points={localPoints}
               activityType={isLastDay ? 'devotional_full_completed' : 'devotional_completed'}
               position={'center'}
               visible={true}
-              onAnimationComplete={() => setShowLocalPoints(false)}
+              onAnimationComplete={() => {
+                console.log('[DevotionalCompletionModal] Animation completed, hiding local points');
+                setShowLocalPoints(false);
+                animationKeyRef.current = null;
+              }}
             />
           </View>
         )}
