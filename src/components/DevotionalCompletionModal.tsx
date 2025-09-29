@@ -144,16 +144,23 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const completedDays = propCompletedDays;
   const totalDays = devotional?.totalDays || 0;
   const progress = totalDays > 0 ? (completedDays / totalDays) * 100 : 0;
-
   // Guard to avoid re-running the full open sequence while visible stays true
   const hasOpenedRef = useRef(false);
 
   // Run the slide-in and initial animations only when visibility changes to true
   useEffect(() => {
-    console.log('[DevotionalCompletionModal] useEffect triggered:', { visible, hasOpened: hasOpenedRef.current, pointsShown: pointsShownRef.current });
+    console.log('[DevotionalCompletionModal] useEffect triggered:', {
+      visible,
+      hasOpened: hasOpenedRef.current,
+      pointsShown: pointsShownRef.current,
+      progress,
+      devotionalTitle: devotional?.title,
+      currentDayNumber
+    });
     
+    // CRITICAL: Only run animations when modal first becomes visible
     if (visible && !hasOpenedRef.current) {
-      console.log('[DevotionalCompletionModal] Starting modal open sequence');
+      console.log('[DevotionalCompletionModal] Starting modal open sequence - FIRST TIME ONLY');
       hasOpenedRef.current = true;
 
       // Reset and run slide-in
@@ -225,21 +232,16 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           try { onCheckReveal && onCheckReveal(); } catch {}
         });
       }, 500); // Faster reveal
-    }
-
-    if (!visible) {
+    } else if (visible && hasOpenedRef.current) {
+      console.log('[DevotionalCompletionModal] Modal already opened, skipping re-animation');
+    } else if (!visible) {
       console.log('[DevotionalCompletionModal] Modal closing, resetting state');
       // Allow animations to run again next time it's opened
       hasOpenedRef.current = false;
       pointsShownRef.current = false;
       setShowLocalPoints(false);
     }
-  }, [visible, slideAnim, progressAnim, checkAnim, progress, backdropAnim, onCheckReveal, startBurst]);
-
-  // Disable progress re-animation to prevent multiple animations
-  // The initial animation in the first useEffect is sufficient
-  // useEffect(() => {
-  //   if (!visible) return;
+  }, [visible]); // CRITICAL: Only depend on visible to prevent re-renders
   //   Animated.timing(progressAnim, {
   //     toValue: progress,
   //     duration: 500,

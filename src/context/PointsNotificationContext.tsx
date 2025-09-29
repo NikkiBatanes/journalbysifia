@@ -54,6 +54,14 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       timestamp: new Date().toISOString(),
       currentNotifications: notifications.length 
     });
+    
+    // CRITICAL: Prevent duplicate notifications for the same activity type
+    const existingNotification = notifications.find(n => n.activityType === activityType && n.points === points);
+    if (existingNotification) {
+      console.log('[PointsNotificationContext] Duplicate notification prevented:', { activityType, points });
+      return;
+    }
+    
     const id = uuidv4();
 
     const newNotification: PointsNotification = {
@@ -85,7 +93,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
         delete timeouts.current[id];
       }
     };
-  }, []);
+  }, [notifications]); // Add notifications dependency for duplicate detection
 
   // Wire up the global notification service so calls from services trigger this UI
   useEffect(() => {
