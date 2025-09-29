@@ -50,11 +50,15 @@ export async function generateDevotional(
       console.log(`Generating devotional (attempt ${attempt + 1}/${maxRetries + 1})`);
       console.log('[ModernDevotionalApi] Bible version being sent to API:', bibleVersion || 'NASB');
 
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
+          'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
@@ -63,7 +67,10 @@ export async function generateDevotional(
           userInput: userInput || 'General spiritual growth',
           bibleVersion: bibleVersion || 'NASB',
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -179,32 +186,35 @@ export async function generateDevotional(
         playbookTitle: savedDevotional.playbook_title,
         totalDays: savedDevotional.total_days,
         currentDay: savedDevotional.current_day,
-        progress: savedDevotional.progress,
         completed: savedDevotional.completed,
         userInput: savedDevotional.user_input,
       };
 
-    } catch (err: unknown) {
-      const error = err as Error;
+    } catch (error: any) {
       lastError = error;
+      console.error(`Attempt ${attempt + 1} failed:`, error.message);
 
-      console.warn(`Devotional generation attempt ${attempt + 1} failed:`, error.message);
+      // Handle timeout errors
+      if (error.name === 'AbortError') {
+        console.error('Request timed out after 60 seconds');
+        throw new Error('Devotional generation timed out. Please try again with a shorter duration.');
+      }
 
-      // Don't retry on authentication errors
-      if (error.message.includes('session') || error.message.includes('token') || error.message.includes('sign in')) {
+      // Don't retry on certain errors
+      if (error.message.includes('401') || error.message.includes('403')) {
         throw error;
       }
 
+      // Wait before retrying (exponential backoff)
       if (attempt < maxRetries) {
-        // Exponential backoff delay
         const delay = API_RETRY_DELAY * Math.pow(2, attempt);
-        console.log(`Retrying in ${delay}ms...`);
+        console.log(`Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
 
-  // If we get here, all retries failed
+  // If all attempts failed, throw the last error
   const errorMessage = lastError?.message || 'Failed to generate devotional after multiple attempts';
   console.error('❌ All devotional generation attempts failed:', errorMessage);
   throw new Error(errorMessage);

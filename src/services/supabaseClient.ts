@@ -12,8 +12,8 @@ import { getEnvironmentConfig, validateEnvironment } from '../config/environment
 
 // Get environment configuration
 const env = getEnvironmentConfig();
-const supabaseUrl = env.SUPABASE_URL;
-const supabaseAnonKey = env.SUPABASE_ANON_KEY;
+const supabaseUrl = env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co';
+const supabaseAnonKey = env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM';
 
 // Validate environment on startup
 if (!validateEnvironment()) {
@@ -37,9 +37,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           storageKey = 'USER';
         }
 
-        console.log('[SupabaseClient] Storage getItem:', { originalKey: key, mappedKey: storageKey });
+        // Only log storage access in development for debugging
+        if (__DEV__ && process.env.NODE_ENV === 'development') {
+          console.log('[SupabaseClient] Storage getItem:', { originalKey: key, mappedKey: storageKey });
+        }
         const value = await AsyncStorage.getItem(storageKey);
-        console.log('[SupabaseClient] Retrieved from storage:', { key: storageKey, hasValue: !!value });
+        if (__DEV__ && process.env.NODE_ENV === 'development') {
+          console.log('[SupabaseClient] Retrieved from storage:', { key: storageKey, hasValue: !!value });
+        }
         return value;
       },
       setItem: async (key: string, value: string) => {
@@ -55,7 +60,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           storageKey = 'USER';
         }
 
-        console.log('[SupabaseClient] Storage setItem:', { originalKey: key, mappedKey: storageKey });
+        if (__DEV__ && process.env.NODE_ENV === 'development') {
+          console.log('[SupabaseClient] Storage setItem:', { originalKey: key, mappedKey: storageKey });
+        }
         await AsyncStorage.setItem(storageKey, value);
       },
       removeItem: async (key: string) => {
@@ -71,7 +78,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           storageKey = 'USER';
         }
 
-        console.log('[SupabaseClient] Storage removeItem:', { originalKey: key, mappedKey: storageKey });
+        if (__DEV__ && process.env.NODE_ENV === 'development') {
+          console.log('[SupabaseClient] Storage removeItem:', { originalKey: key, mappedKey: storageKey });
+        }
         await AsyncStorage.removeItem(storageKey);
       },
     },

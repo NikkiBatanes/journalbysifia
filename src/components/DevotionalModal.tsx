@@ -311,11 +311,23 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         console.log('[DevotionalModal] Creating devotional with params:', { duration: days, playbookId, userInput });
         // Haptic feedback when generation starts (parity with playbook generation)
         try { triggerLightHaptic(); } catch {}
+        // Show progress message for longer generations
+        let progressTimeout: ReturnType<typeof setTimeout> | null = null;
+        if (days >= 5) {
+          progressTimeout = setTimeout(() => {
+            console.log('[DevotionalModal] Long generation detected, this may take up to 60 seconds...');
+          }, 10000);
+        }
+        
         const devotional = await createDevotional({
           duration: days,
           playbookId,
           userInput,
         });
+        
+        if (progressTimeout) {
+          clearTimeout(progressTimeout);
+        }
         console.log('[DevotionalModal] Devotional created:', devotional);
 
         if (devotional && onDevotionalCreated) {
