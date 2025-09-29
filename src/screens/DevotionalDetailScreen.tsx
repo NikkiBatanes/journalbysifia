@@ -122,6 +122,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [completedDayIndex, setCompletedDayIndex] = useState<number | null>(null);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
   const modalOpenedRef = useRef(false);
+  const lastMarkCompleteRef = useRef<number>(0);
   const [prayedDays, setPrayedDays] = useState<Record<string, boolean>>({});
   // Guard to prevent multiple mark complete executions
   // Reflection modal state
@@ -470,15 +471,22 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   console.log('DevotionalDetailScreen prayer:', currentDay?.prayer);
 
   const handleMarkComplete = async () => {
-    if (!devotional || isMarkingComplete || showCompletionModal || modalOpenedRef.current) {
+    const now = Date.now();
+    const timeSinceLastMark = now - lastMarkCompleteRef.current;
+    
+    if (!devotional || isMarkingComplete || showCompletionModal || modalOpenedRef.current || timeSinceLastMark < 3000) {
       console.log('🚫 Mark complete blocked by guards:', {
         hasDevotional: !!devotional,
         isMarkingComplete,
         showCompletionModal,
         modalOpened: modalOpenedRef.current,
+        timeSinceLastMark,
+        minInterval: 3000
       });
       return;
     }
+    
+    lastMarkCompleteRef.current = now;
 
     // Get the current day
     const dayToMark = devotional.days[currentDayIndex];
@@ -602,6 +610,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       return;
     }
 
+    console.log('[DevotionalDetailScreen] Completion continue pressed');
     // Close modal first
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
@@ -609,6 +618,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     // Reset ALL guards
     setIsMarkingComplete(false);
     modalOpenedRef.current = false;
+    // Keep timing guard to prevent rapid re-completion
 
     // If we're on the last day, return to the list
     if (currentDayIndex === devotional.days.length - 1) {
@@ -632,17 +642,22 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   // Handle closing the modal by pressing the X button or backdrop
   const handleModalClose = () => {
+    console.log('[DevotionalDetailScreen] Modal closed by user');
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
     setIsMarkingComplete(false);
     modalOpenedRef.current = false;
+    // Reset timing guard to allow immediate re-marking if needed
+    lastMarkCompleteRef.current = 0;
   };
 
   const handleModalContinue = () => {
+    console.log('[DevotionalDetailScreen] Modal continue pressed');
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
     setIsMarkingComplete(false);
     modalOpenedRef.current = false;
+    // Keep timing guard to prevent rapid re-completion
   };
 
   // Handle rating submission

@@ -234,7 +234,7 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       return transformApiEntryToDevotional(apiEntry);
     },
     onSuccess: async (data, { devotionalId, dayNumber, userId: _completionUserId }) => {
-      console.log('[useMarkDayCompleteReactQuery] Success:', { devotionalId, dayNumber });
+      console.log('[useMarkDayCompleteReactQuery] Success:', { devotionalId, dayNumber, timestamp: new Date().toISOString() });
 
       // Trigger cross-component sync to award faith points and update dashboard
       try {
@@ -242,13 +242,22 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         const completedDaysCount = data.days.filter(day => day.completed).length;
         const isFullDevotionalComplete = completedDaysCount === data.totalDays;
         
-        await syncDevotionalCompletion(devotionalId, undefined, {
+        console.log('[useMarkDayCompleteReactQuery] Calling syncDevotionalCompletion with:', {
+          devotionalId,
           isFullDevotionalComplete,
           completedDaysCount,
           totalDays: data.totalDays,
           currentDay: dayNumber
         });
-        console.log('[useMarkDayCompleteReactQuery] Cross-component sync completed');
+        
+        const syncResult = await syncDevotionalCompletion(devotionalId, undefined, {
+          isFullDevotionalComplete,
+          completedDaysCount,
+          totalDays: data.totalDays,
+          currentDay: dayNumber
+        });
+        
+        console.log('[useMarkDayCompleteReactQuery] Cross-component sync completed:', syncResult);
       } catch (syncError) {
         console.error('[useMarkDayCompleteReactQuery] Sync error:', syncError);
       }

@@ -360,26 +360,36 @@ export class FaithPointsService {
 
       // Show points notification unless suppressed
       if (!_metadata?.suppressNotification) {
+        console.log('[FaithPointsService] Showing global notification for:', activity, pointsAwarded);
         notificationService.showPointsNotification(pointsAwarded, activity, 'center');
+      } else {
+        console.log('[FaithPointsService] Global notification suppressed for:', activity, pointsAwarded);
       }
 
       // Emit events for UI updates with delay to ensure database is updated
-      setTimeout(() => {
-        faithPointsEvents.emit(FAITH_POINTS_EVENTS.POINTS_UPDATED, {
-          userId,
-          pointsAwarded,
-          totalPoints: newTotalPoints,
-          level: newLevel,
-        });
-
-        if (leveledUp) {
-          faithPointsEvents.emit(FAITH_POINTS_EVENTS.LEVEL_UP, {
+      // Only emit events if not suppressed to prevent duplicate UI updates
+      if (!_metadata?.suppressNotification) {
+        setTimeout(() => {
+          console.log('[FaithPointsService] Emitting POINTS_UPDATED event for:', activity);
+          faithPointsEvents.emit(FAITH_POINTS_EVENTS.POINTS_UPDATED, {
             userId,
-            newLevel,
+            pointsAwarded,
             totalPoints: newTotalPoints,
+            level: newLevel,
           });
-        }
-      }, 100); // Small delay to ensure database transaction is complete
+
+          if (leveledUp) {
+            console.log('[FaithPointsService] Emitting LEVEL_UP event');
+            faithPointsEvents.emit(FAITH_POINTS_EVENTS.LEVEL_UP, {
+              userId,
+              newLevel,
+              totalPoints: newTotalPoints,
+            });
+          }
+        }, 100); // Small delay to ensure database transaction is complete
+      } else {
+        console.log('[FaithPointsService] Events suppressed for:', activity);
+      }
 
       return {
         pointsAwarded,

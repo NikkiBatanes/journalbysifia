@@ -150,7 +150,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
   // Run the slide-in and initial animations only when visibility changes to true
   useEffect(() => {
+    console.log('[DevotionalCompletionModal] useEffect triggered:', { visible, hasOpened: hasOpenedRef.current, pointsShown: pointsShownRef.current });
+    
     if (visible && !hasOpenedRef.current) {
+      console.log('[DevotionalCompletionModal] Starting modal open sequence');
       hasOpenedRef.current = true;
 
       // Reset and run slide-in
@@ -199,15 +202,24 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           // Show local FP notification above this modal content for guaranteed visibility
           // Only show once per modal open to prevent flashing
           if (!pointsShownRef.current) {
+            console.log('[DevotionalCompletionModal] Showing local points animation');
             pointsShownRef.current = true;
             try {
               // Use different activity type based on whether this is the last day
               const activityType = isLastDay ? 'devotional_full_completed' : 'devotional_completed';
               const pts = faithPointsService.getPointsForActivity(activityType as any);
+              console.log('[DevotionalCompletionModal] Local points:', { activityType, pts, isLastDay });
               setLocalPoints(pts);
               // Slight delay to ensure layout is stable
-              setTimeout(() => setShowLocalPoints(true), 10);
-            } catch {}
+              setTimeout(() => {
+                console.log('[DevotionalCompletionModal] Setting showLocalPoints to true');
+                setShowLocalPoints(true);
+              }, 10);
+            } catch (e) {
+              console.error('[DevotionalCompletionModal] Error showing local points:', e);
+            }
+          } else {
+            console.log('[DevotionalCompletionModal] Points already shown, skipping');
           }
           // Notify parent that check reveal completed
           try { onCheckReveal && onCheckReveal(); } catch {}
@@ -216,6 +228,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     }
 
     if (!visible) {
+      console.log('[DevotionalCompletionModal] Modal closing, resetting state');
       // Allow animations to run again next time it's opened
       hasOpenedRef.current = false;
       pointsShownRef.current = false;

@@ -3,7 +3,7 @@
  * Ensures seamless data flow between Playbooks, Devotionals, Journal, and Prayer components
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 import { faithPointsService } from '../faithPointsService';
@@ -23,6 +23,7 @@ interface SyncEvent {
  */
 export const useCrossComponentSync = (userId: string) => {
   const queryClient = useQueryClient();
+  const completionGuardRef = useRef<Record<string, number>>({});
 
   // Sync playbook progress changes with related components
   const syncPlaybookProgress = useCallback(async (playbookId: string, progress: number) => {
@@ -68,6 +69,18 @@ export const useCrossComponentSync = (userId: string) => {
     currentDay?: number;
   }) => {
     console.log('[CrossComponentSync] Syncing devotional completion:', { devotionalId, playbookId });
+    
+    // Guard against multiple calls within 2 seconds for the same devotional
+    const guardKey = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
+    const now = Date.now();
+    const lastCall = completionGuardRef.current[guardKey];
+    
+    if (lastCall && (now - lastCall) < 2000) {
+      console.log('[CrossComponentSync] Skipping duplicate completion call for:', guardKey);
+      return { pointsAwarded: 0 };
+    }
+    
+    completionGuardRef.current[guardKey] = now;
 
     try {
       // Award faith points based on completion type
@@ -132,6 +145,9 @@ export const useCrossComponentSync = (userId: string) => {
       return syncEvent;
     } catch (error) {
       console.error('[CrossComponentSync] Error syncing devotional completion:', error);
+      // Clear guard on error to allow retry
+      const guardKey = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
+      delete completionGuardRef.current[guardKey];
       throw error;
     }
   }, [queryClient, userId]);
