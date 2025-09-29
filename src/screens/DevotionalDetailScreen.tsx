@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
@@ -94,15 +94,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const { data: devotional, isLoading: devotionalLoading, isFetching: devotionalFetching, error: devotionalError, isError } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
 
-  // Debug logging for React Query state
+  // Debug logging for React Query state - only on mount and error changes
   useEffect(() => {
-    console.log('[DevotionalDetailScreen] React Query State:');
-    console.log('  - devotional:', devotional);
-    console.log('  - devotionalLoading:', devotionalLoading);
-    console.log('  - devotionalError:', devotionalError);
-    console.log('  - isError:', isError);
-    console.log('  - queryEnabled would be:', !!userId && isValidUUID(cleanDevotionalId));
-  }, [devotional, devotionalLoading, devotionalError, isError, userId, cleanDevotionalId]);
+    if (isError) {
+      console.log('[DevotionalDetailScreen] Query Error:', devotionalError);
+    }
+  }, [isError, devotionalError]);
 
   // React Query hooks for prayer data
   const { data: allDevotionalPrayers = [] } = useAllDevotionalPrayerData(user?.id || '');
@@ -464,11 +461,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   }, [currentDayIndex, scrollToDay, devotional?.id]);
 
-  // Ensure currentDay is always defined in render
-  const currentDay = devotional?.days?.[currentDayIndex];
-  // Debug log for prayer data
-  console.log('DevotionalDetailScreen currentDay:', currentDay);
-  console.log('DevotionalDetailScreen prayer:', currentDay?.prayer);
+  // Ensure currentDay is always defined in render - memoized to prevent re-renders
+  const currentDay = useMemo(() => {
+    return devotional?.days?.[currentDayIndex];
+  }, [devotional?.days, currentDayIndex]);
+  
+  // Debug log for prayer data only when currentDay actually changes
+  useEffect(() => {
+    if (currentDay) {
+      console.log('DevotionalDetailScreen currentDay changed:', currentDay.title, 'completed:', currentDay.completed);
+    }
+  }, [currentDay?.id, currentDay?.completed]);
 
   const handleMarkComplete = async () => {
     const now = Date.now();
@@ -693,31 +696,20 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // Guard: if query is not enabled yet due to missing user or invalid ID, avoid showing Not Found
   const queryEnabled = !!userId && isValidUUID(cleanDevotionalId);
 
-  // Debug logging for conditional logic decisions
+  // Debug logging only for critical state changes
   useEffect(() => {
-    console.log('[DevotionalDetailScreen] Conditional Logic Check:');
-    console.log('  - userId:', userId);
-    console.log('  - loading:', loading);
-    console.log('  - devotionalLoading:', devotionalLoading);
-    console.log('  - devotionalFetching:', devotionalFetching);
-    console.log('  - queryEnabled:', queryEnabled);
-    console.log('  - isValidUUID(cleanDevotionalId):', isValidUUID(cleanDevotionalId));
-    console.log('  - devotional exists:', !!devotional);
-    console.log('  - isError:', isError);
-    console.log('  - Will show skeleton (no userId or loading):', !userId || loading);
-    console.log('  - Will show invalid ID:', !isValidUUID(cleanDevotionalId));
-    console.log('  - Will show "not found":', queryEnabled && !loading && !devotional && !devotionalFetching && isError);
-  }, [userId, loading, devotionalLoading, devotionalFetching, queryEnabled, cleanDevotionalId, devotional, isError]);
+    if (devotional) {
+      console.log('[DevotionalDetailScreen] Devotional loaded:', devotional.title, 'Days:', devotional.days.length);
+    }
+  }, [devotional?.id]);
 
   // Show loading while user or ID validation is pending, or while fetching data
   if (!userId || loading || (queryEnabled && !devotional && !isError)) {
-    console.log('[DevotionalDetailScreen] Showing loading screen - userId:', userId, 'loading:', loading, 'queryEnabled:', queryEnabled, 'devotional:', !!devotional, 'isError:', isError);
     return <DevotionalDetailSkeleton />;
   }
 
   // Only show invalid ID error if we're certain the ID format is wrong
   if (!isValidUUID(cleanDevotionalId)) {
-    console.log('[DevotionalDetailScreen] Showing invalid ID error for:', cleanDevotionalId);
     return (
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Invalid devotional link</ThemedText>
