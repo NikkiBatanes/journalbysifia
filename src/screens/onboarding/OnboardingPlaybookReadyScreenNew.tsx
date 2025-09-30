@@ -302,6 +302,36 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     });
   }, [getCompletedStepsCount]);
 
+  // Award faith points function
+  const awardFaithPoints = useCallback(async () => {
+    try {
+      // Award faith points to user's account during onboarding
+      if (user?.id) {
+        console.log('[OnboardingPlaybookReady] Awarding faith points for playbook generation');
+        await faithPointsService.awardPoints(user.id, 'playbook_generated', {
+          isOnboarding: true,
+          suppressNotification: false,
+        });
+        console.log('[OnboardingPlaybookReady] Faith points awarded successfully');
+      } else {
+        console.warn('[OnboardingPlaybookReady] No user ID available for faith points');
+        // Still show notification even if we can't award points
+        const points = faithPointsService.getPointsForActivity('playbook_generated');
+        notificationService.showPointsNotification(points, 'playbook_generated', 'center');
+      }
+    } catch (e) {
+      // Non-blocking: if anything fails, proceed silently
+      console.warn('[OnboardingPlaybookReady] Failed to award faith points:', e);
+      // Show notification anyway
+      try {
+        const points = faithPointsService.getPointsForActivity('playbook_generated');
+        notificationService.showPointsNotification(points, 'playbook_generated', 'center');
+      } catch (notificationError) {
+        console.warn('[OnboardingPlaybookReady] Failed to show points notification:', notificationError);
+      }
+    }
+  }, [user]);
+
   // Tutorial handlers
   const handleTapTutorialComplete = useCallback(() => {
     setTutorialStep(2);
@@ -310,7 +340,20 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const handleSwipeTutorialComplete = useCallback(() => {
     setShowTutorial(false);
     setTutorialStep(1); // Reset for next time
-  }, []);
+    // Award faith points when tutorial is completed
+    setTimeout(() => {
+      awardFaithPoints();
+    }, 300);
+  }, [awardFaithPoints]);
+
+  const handleSkipTutorial = useCallback(() => {
+    setShowTutorial(false);
+    setTutorialStep(1); // Reset for next time
+    // Award faith points when tutorial is skipped
+    setTimeout(() => {
+      awardFaithPoints();
+    }, 300);
+  }, [awardFaithPoints]);
 
   const handleContinueJourney = useCallback(() => {
     try {
@@ -762,42 +805,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 // Close modal and start tutorial immediately
                 setShowIntroModal(false);
                 
-                // Start tutorial first (no delay)
+                // Start tutorial (no delay)
                 setTimeout(() => {
                   setShowTutorial(true);
                   setTutorialStep(1);
                 }, 100);
-                
-                // Award faith points silently in background (after tutorial completes)
-                // The notification will show after tutorial is done
-                setTimeout(async () => {
-                  try {
-                    // Award faith points to user's account during onboarding
-                    if (user?.id) {
-                      console.log('[OnboardingPlaybookReady] Awarding faith points for playbook generation');
-                      await faithPointsService.awardPoints(user.id, 'playbook_generated', {
-                        isOnboarding: true,
-                        suppressNotification: false,
-                      });
-                      console.log('[OnboardingPlaybookReady] Faith points awarded successfully');
-                    } else {
-                      console.warn('[OnboardingPlaybookReady] No user ID available for faith points');
-                      // Still show notification even if we can't award points
-                      const points = faithPointsService.getPointsForActivity('playbook_generated');
-                      notificationService.showPointsNotification(points, 'playbook_generated', 'center');
-                    }
-                  } catch (e) {
-                    // Non-blocking: if anything fails, proceed silently
-                    console.warn('[OnboardingPlaybookReady] Failed to award faith points:', e);
-                    // Show notification anyway
-                    try {
-                      const points = faithPointsService.getPointsForActivity('playbook_generated');
-                      notificationService.showPointsNotification(points, 'playbook_generated', 'center');
-                    } catch (notificationError) {
-                      console.warn('[OnboardingPlaybookReady] Failed to show points notification:', notificationError);
-                    }
-                  }
-                }, 3500); // Show faith points after tutorial completes (tutorial takes ~2-3 seconds)
+                // Faith points will be awarded when user completes or skips tutorial
               }}
             >
               <ThemedText weight="bold" style={styles.modalButtonText}>Explore My First Playbook</ThemedText>
@@ -1045,6 +1058,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           tutorialStep={tutorialStep}
           onTapTutorialComplete={handleTapTutorialComplete}
           onSwipeTutorialComplete={handleSwipeTutorialComplete}
+          onSkipTutorial={handleSkipTutorial}
         />
       </View>
     </>

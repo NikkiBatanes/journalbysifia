@@ -21,6 +21,7 @@ interface TutorialOverlayProps {
   tutorialStep: number;
   onTapTutorialComplete: () => void;
   onSwipeTutorialComplete: () => void;
+  onSkipTutorial: () => void;
 }
 
 const TapToExpandTutorial = ({ onComplete }: { onComplete: () => void }) => {
@@ -90,6 +91,7 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
   tutorialStep,
   onTapTutorialComplete,
   onSwipeTutorialComplete,
+  onSkipTutorial,
 }) => {
   if (!showTutorial) {return null;}
 
@@ -104,13 +106,22 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
 
       {/* Confirmation button */}
       <TouchableOpacity
-        style={styles.skipButton}
+        style={styles.confirmButton}
         onPress={tutorialStep === 1 ? onTapTutorialComplete : onSwipeTutorialComplete}
         activeOpacity={0.7}
       >
-        <ThemedText style={styles.skipText}>
+        <ThemedText style={styles.confirmText}>
           {tutorialStep === 1 ? 'Next' : 'Done'}
         </ThemedText>
+      </TouchableOpacity>
+
+      {/* Skip Tutorial button */}
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={onSkipTutorial}
+        activeOpacity={0.7}
+      >
+        <ThemedText style={styles.skipText}>Skip Tutorial</ThemedText>
       </TouchableOpacity>
     </View>
   );
@@ -163,29 +174,42 @@ const styles = StyleSheet.create({
     borderColor: Colors.alertCoral,
     backgroundColor: 'transparent',
   },
-  skipButton: {
+  confirmButton: {
     position: 'absolute',
-    top: '75%',
+    top: '70%',
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
     borderRadius: 25,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 8,
   },
-  skipText: {
+  confirmText: {
     color: Colors.hopeWhite,
     fontSize: 16,
     fontWeight: '600',
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  skipButton: {
+    position: 'absolute',
+    top: '78%',
+    alignSelf: 'center',
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  skipText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
 });
 
