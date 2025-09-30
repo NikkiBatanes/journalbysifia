@@ -1054,15 +1054,35 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 {day.prayer && day.prayer.trim().length > 0 ? (
                   <View>
-                    {normalizePrayerText(day.prayer)
-                      .split('\n')
-                      .filter(line => line.trim() !== '')
-                      .map((line, index) => (
-                        <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
-                          {line}
-                        </Text>
-                      ))
-                    }
+                    {(() => {
+                      const normalized = normalizePrayerText(day.prayer);
+                      const lines = normalized.split('\n');
+                      
+                      console.log('[PRAYER] Total lines after split:', lines.length);
+                      console.log('[PRAYER] Has blank lines:', lines.some(l => l.trim() === ''));
+                      console.log('[PRAYER] First 3 lines:', lines.slice(0, 3));
+                      console.log('[PRAYER] Last 3 lines:', lines.slice(-3));
+                      
+                      return lines.map((line, index) => 
+                        line.trim() === '' ? (
+                          <View key={index} style={{height: 8}} />
+                        ) : (
+                          <Text 
+                            key={index} 
+                            style={[styles.prayerText, {
+                              fontFamily: 'Lexend-Regular', 
+                              fontStyle: 'italic', 
+                              marginBottom: 0,
+                              flexWrap: 'wrap',
+                              width: '100%'
+                            }]}
+                            numberOfLines={0}
+                          >
+                            {line}
+                          </Text>
+                        )
+                      );
+                    })()}
                   </View>
                 ) : (
                   <ThemedText style={styles.prayerText}>No prayer for today.</ThemedText>
