@@ -16,9 +16,7 @@
 export function normalizePrayerText(raw: string): string {
   if (!raw) { return raw; }
   
-  console.log('[PrayerFormatting] Input:', raw.substring(raw.length - 50)); // Log last 50 chars
-  
-  const result = raw
+  return raw
     // Remove markdown bold markers
     .replace(/\*\*/g, '')
     // Convert CRLF to LF
@@ -37,7 +35,4 @@ export function normalizePrayerText(raw: string): string {
     .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n\n$2')
     // Trim trailing spaces on lines
     .replace(/[\t ]+$/gm, '');
-  
-  console.log('[PrayerFormatting] Output:', result.substring(result.length - 50)); // Log last 50 chars
-  return result;
 }
