@@ -296,8 +296,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     // Log for debugging
     console.log('Current day index:', currentDayIndex);
 
-    // Reset FAB visibility when changing days
-    setShowFAB(false);
+    // Show FAB for incomplete days when changing days
+    if (currentDay && !currentDay.completed) {
+      setShowFAB(true);
+    } else {
+      setShowFAB(false);
+    }
     
     // Force a re-render of the ScrollView with a reset position
     // This ensures content starts at the top when changing days
@@ -746,13 +750,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     const contentHeight = event.nativeEvent.contentSize.height;
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
 
-    // If content is shorter than the viewport, always show FAB
-    if (contentHeight <= scrollViewHeight + 8) {
+    // Always show FAB for incomplete days (removed scroll-based logic)
+    // The FAB visibility is now controlled by currentDay.completed state only
+    if (currentDay && !currentDay.completed) {
       setShowFAB(true);
-    } else {
-      // Otherwise show FAB when near bottom
-      const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 20;
-      setShowFAB(isAtBottom);
     }
 
     // Update scrollY for any animations
@@ -761,11 +762,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   // Force FAB visibility check when content layout changes
   const handleContentSizeChange = (contentWidth: number, contentHeight: number) => {
-    // Get the current ScrollView's viewport height from the last scroll event or use screen dimensions
-    const viewportHeight = Dimensions.get('window').height * 0.7; // Approximate viewport
-    
-    // If content is shorter than viewport, show FAB immediately
-    if (contentHeight <= viewportHeight + 8) {
+    // Always show FAB for incomplete days
+    if (currentDay && !currentDay.completed) {
       setShowFAB(true);
     }
   };

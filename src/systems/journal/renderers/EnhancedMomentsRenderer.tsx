@@ -415,6 +415,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   // Removed unused insets variable
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
   const [_loading, setLoading] = React.useState(true);
+  const hasLoadedOnce = useRef(false);
   // Track reflection counts per day (yyyy-MM-dd)
   const [reflectionCounts, setReflectionCounts] = React.useState<Record<string, number>>({});
 
@@ -502,7 +503,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     console.log('🔍 [MomentsRenderer] Available plugins:', plugins.map(p => ({ id: p.id, title: p.title, category: p.category })));
 
     try {
-      setLoading(true);
+      // Only show skeleton on first load, not on subsequent refetches
+      if (!hasLoadedOnce.current) {
+        setLoading(true);
+      }
       let entries: MomentEntry[] = [];
       const dayReflectionCount: Record<string, number> = {};
 
@@ -1233,6 +1237,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       setRealEntries([]);
     } finally {
       setLoading(false);
+      hasLoadedOnce.current = true;
     }
   }, [user, plugins, dateRange.startDate, dateRange.endDate, dateRange.label]);
 
