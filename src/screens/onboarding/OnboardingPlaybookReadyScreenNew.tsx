@@ -759,8 +759,17 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={0.9}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                // Close modal first, then show notification immediately
+                // Close modal and start tutorial immediately
                 setShowIntroModal(false);
+                
+                // Start tutorial first (no delay)
+                setTimeout(() => {
+                  setShowTutorial(true);
+                  setTutorialStep(1);
+                }, 100);
+                
+                // Award faith points silently in background (after tutorial completes)
+                // The notification will show after tutorial is done
                 setTimeout(async () => {
                   try {
                     // Award faith points to user's account during onboarding
@@ -788,13 +797,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       console.warn('[OnboardingPlaybookReady] Failed to show points notification:', notificationError);
                     }
                   }
-
-                  // Start tutorial after points celebration is complete (reduced delay)
-                  setTimeout(() => {
-                    setShowTutorial(true);
-                    setTutorialStep(1);
-                  }, 1200); // Reduced from 2.5 seconds to 1.2 seconds
-                }, 50); // Reduced from 150ms to 50ms
+                }, 3500); // Show faith points after tutorial completes (tutorial takes ~2-3 seconds)
               }}
             >
               <ThemedText weight="bold" style={styles.modalButtonText}>Explore My First Playbook</ThemedText>

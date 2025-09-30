@@ -109,7 +109,7 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
         activeOpacity={0.7}
       >
         <ThemedText style={styles.skipText}>
-          {tutorialStep === 1 ? 'Got it!' : 'Perfect!'}
+          {tutorialStep === 1 ? 'Next' : 'Done'}
         </ThemedText>
       </TouchableOpacity>
     </View>
