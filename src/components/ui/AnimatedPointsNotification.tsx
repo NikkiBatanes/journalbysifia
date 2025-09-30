@@ -423,4 +423,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AnimatedPointsNotification;
+// Memoize component to prevent unnecessary re-renders
+// Only re-render if points, visible, activityType, or position changes
+export default React.memo(AnimatedPointsNotification, (prevProps, nextProps) => {
+  return (
+    prevProps.points === nextProps.points &&
+    prevProps.visible === nextProps.visible &&
+    prevProps.activityType === nextProps.activityType &&
+    prevProps.position === nextProps.position
+  );
+});

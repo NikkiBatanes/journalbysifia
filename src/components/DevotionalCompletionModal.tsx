@@ -78,6 +78,13 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const [showLocalPoints, setShowLocalPoints] = useState(false);
   const [localPoints, setLocalPoints] = useState<number>(0);
   const pointsShownRef = useRef(false);
+  
+  // Memoize the animation complete callback to prevent re-renders
+  const handleAnimationComplete = useCallback(() => {
+    console.log('[DevotionalCompletionModal] Animation completed, hiding local points');
+    setShowLocalPoints(false);
+    animationKeyRef.current = null;
+  }, []);
 
   // Simple celebratory burst particles
   type BurstParticle = {
@@ -586,11 +593,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
               activityType={isLastDay ? 'devotional_full_completed' : 'devotional_completed'}
               position={'center'}
               visible={true}
-              onAnimationComplete={() => {
-                console.log('[DevotionalCompletionModal] Animation completed, hiding local points');
-                setShowLocalPoints(false);
-                animationKeyRef.current = null;
-              }}
+              onAnimationComplete={handleAnimationComplete}
             />
           </View>
         )}
