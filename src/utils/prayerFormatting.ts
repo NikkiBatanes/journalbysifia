@@ -23,18 +23,18 @@ export function normalizePrayerText(raw: string): string {
     .replace(/\*\*/g, '')
     // Convert CRLF to LF
     .replace(/\r\n/g, '\n')
-    // Collapse 3+ newlines to 2
-    .replace(/\n{3,}/g, '\n\n')
     // Remove any spaces/tabs at line starts
     .replace(/^[\t ]+/gm, '')
     // Normalize apostrophes to curly for consistency
     .replace(/Jesus[''\u2019]\s*Name/gi, (m) => m.replace(/[''\u2019]/, '\u2019'))
-    // Ensure exactly one line break after "Heavenly Father,"
-    .replace(/(Heavenly\s+Father,)\s*/gi, '$1\n')
-    // Ensure exactly one line break before the closing phrase
+    // Ensure exactly one blank line (two newlines) after "Heavenly Father,"
+    .replace(/(Heavenly\s+Father,)\s*/gi, '$1\n\n')
+    // Ensure exactly one blank line (two newlines) before the closing phrase
     // Match any amount of whitespace (including none) before "In Jesus' Name"
     // This handles cases like "You.In Jesus'" or "You. In Jesus'" or "You.\n\nIn Jesus'"
-    .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n$2')
+    .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n\n$2')
+    // NOW collapse 3+ newlines to 2 (after we've added our formatting)
+    .replace(/\n{3,}/g, '\n\n')
     // Trim trailing spaces on lines
     .replace(/[\t ]+$/gm, '');
   
