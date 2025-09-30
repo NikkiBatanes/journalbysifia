@@ -1051,11 +1051,15 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
-                <ThemedText style={styles.prayerText} numberOfLines={0}>
-                  {day.prayer && day.prayer.trim().length > 0
-                    ? normalizePrayerText(day.prayer)
-                    : 'No prayer for today.'}
-                </ThemedText>
+                {day.prayer && day.prayer.trim().length > 0 ? (
+                  normalizePrayerText(day.prayer).split('\n').map((line, index) => (
+                    <ThemedText key={index} style={styles.prayerText}>
+                      {line || ' '}
+                    </ThemedText>
+                  ))
+                ) : (
+                  <ThemedText style={styles.prayerText}>No prayer for today.</ThemedText>
+                )}
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
                   {/* Heart burst layer above the button, anchored near its position */}
                   {heartParticles.length > 0 && (
