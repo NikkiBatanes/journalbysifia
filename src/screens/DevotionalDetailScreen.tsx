@@ -446,23 +446,23 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     return devotional?.days?.[currentDayIndex];
   }, [devotional?.days, currentDayIndex]);
   
-  // Debug log for prayer data only when currentDay actually changes
-  useEffect(() => {
-    if (currentDay) {
-      console.log('DevotionalDetailScreen currentDay changed:', currentDay.title, 'completed:', currentDay.completed);
-    }
-  }, [currentDay?.id, currentDay?.completed]);
-
-  // Prepare and debug-format the prayer text for this day (must be with other hooks, before any returns)
+  // Prepare and debug-format the prayer text for current day
   const rawPrayer = currentDay?.prayer ?? '';
-  const formattedPrayer = React.useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
-  React.useEffect(() => {
+  const formattedPrayer = useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
+  useEffect(() => {
     if (rawPrayer) {
       const show = (s: string) => s.replace(/\n/g, '\\n');
       console.log('[DevotionalDetail] Prayer raw    :', show(rawPrayer));
       console.log('[DevotionalDetail] Prayer formatted:', show(formattedPrayer));
     }
   }, [rawPrayer, formattedPrayer]);
+  
+  // Debug log for prayer data only when currentDay actually changes
+  useEffect(() => {
+    if (currentDay) {
+      console.log('DevotionalDetailScreen currentDay changed:', currentDay.title, 'completed:', currentDay.completed);
+    }
+  }, [currentDay?.id, currentDay?.completed]);
 
   const handleMarkComplete = async () => {
     const now = Date.now();
