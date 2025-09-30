@@ -1054,11 +1054,15 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 {day.prayer && day.prayer.trim().length > 0 ? (
                   <View>
-                    {normalizePrayerText(day.prayer).split('\n').map((line, index) => (
-                      <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
-                        {line}
-                      </Text>
-                    ))}
+                    {normalizePrayerText(day.prayer).split('\n').map((line, index) => 
+                      line.trim() === '' ? (
+                        <View key={index} style={{height: 8}} />
+                      ) : (
+                        <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
+                          {line}
+                        </Text>
+                      )
+                    )}
                   </View>
                 ) : (
                   <ThemedText style={styles.prayerText}>No prayer for today.</ThemedText>
@@ -1421,7 +1425,7 @@ const styles = StyleSheet.create({
   prayerContainer: {
     marginTop: 8,
     position: 'relative',
-    paddingBottom: 96, // Reserve more space so content doesn't overlap the button
+    paddingBottom: 110, // Reserve more space so content doesn't overlap the button
     padding: CARD_CONTENT_PADDING,
     backgroundColor: 'rgba(26,60,109,0.08)',
     borderRadius: 12,
