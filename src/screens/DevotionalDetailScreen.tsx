@@ -34,6 +34,7 @@ import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
 import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
+import { normalizePrayerText } from '../utils/prayerFormatting';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
@@ -47,27 +48,6 @@ type DevotionalDetailScreenProps = {
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
 import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDetailSkeleton';
-
-// Ensure consistent formatting of the prayer closing line
-// - Converts CRLF to LF
-// - Collapses 3+ newlines to 2
-// - Ensures exactly two newlines before any variant of "In Jesus' Name, Amen"
-// - Handles curly apostrophes and optional comma/amen, case-insensitive
-function normalizePrayer(raw: string): string {
-  if (!raw) { return raw; }
-  return raw
-    .replace(/\*\*/g, '')
-    .replace(/\r\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    // Remove any spaces/tabs at line starts
-    .replace(/^[\t ]+/gm, '')
-    // Normalize apostrophes to curly for consistency
-    .replace(/Jesus['’]\s*Name/gi, (m) => m.replace(/['’]/, '’'))
-    // Ensure exactly one blank line (two newlines) before the closing phrase by consuming all preceding whitespace (including newlines)
-    .replace(/[\s]*((?:In\s+Jesus[’']?\s*Name)(?:,?\s*Amen)?)/gi, '\n\n$1')
-    // Trim trailing spaces on lines
-    .replace(/[\t ]+$/gm, '');
-}
 
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
 
@@ -296,12 +276,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     // Log for debugging
     console.log('Current day index:', currentDayIndex);
 
-    // Show FAB for incomplete days when changing days
-    if (currentDay && !currentDay.completed) {
-      setShowFAB(true);
-    } else {
-      setShowFAB(false);
-    }
+    // Reset FAB visibility when changing days (will be set by scroll handler)
+    setShowFAB(false);
     
     // Force a re-render of the ScrollView with a reset position
     // This ensures content starts at the top when changing days
@@ -750,10 +726,18 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     const contentHeight = event.nativeEvent.contentSize.height;
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
 
-    // Always show FAB for incomplete days (removed scroll-based logic)
-    // The FAB visibility is now controlled by currentDay.completed state only
+    // Show FAB only when scrolled to bottom for incomplete days
     if (currentDay && !currentDay.completed) {
-      setShowFAB(true);
+      // If content is shorter than viewport, always show FAB
+      if (contentHeight <= scrollViewHeight + 8) {
+        setShowFAB(true);
+      } else {
+        // Otherwise show FAB when near bottom (within 50px)
+        const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 50;
+        setShowFAB(isAtBottom);
+      }
+    } else {
+      setShowFAB(false);
     }
 
     // Update scrollY for any animations
@@ -762,8 +746,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   // Force FAB visibility check when content layout changes
   const handleContentSizeChange = (contentWidth: number, contentHeight: number) => {
-    // Always show FAB for incomplete days
-    if (currentDay && !currentDay.completed) {
+    // Get the current ScrollView's viewport height
+    const viewportHeight = Dimensions.get('window').height * 0.7; // Approximate viewport
+    
+    // If content is shorter than viewport, show FAB immediately for incomplete days
+    if (currentDay && !currentDay.completed && contentHeight <= viewportHeight + 8) {
       setShowFAB(true);
     }
   };
@@ -1066,7 +1053,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 <ThemedText style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
-                    ? normalizePrayer(day.prayer)
+                    ? normalizePrayerText(day.prayer)
                     : 'No prayer for today.'}
                 </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
