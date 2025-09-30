@@ -16,7 +16,9 @@
 export function normalizePrayerText(raw: string): string {
   if (!raw) { return raw; }
   
-  return raw
+  console.log('[PrayerFormatting] Input:', raw.substring(raw.length - 50)); // Log last 50 chars
+  
+  const result = raw
     // Remove markdown bold markers
     .replace(/\*\*/g, '')
     // Convert CRLF to LF
@@ -27,12 +29,15 @@ export function normalizePrayerText(raw: string): string {
     .replace(/^[\t ]+/gm, '')
     // Normalize apostrophes to curly for consistency
     .replace(/Jesus[''\u2019]\s*Name/gi, (m) => m.replace(/[''\u2019]/, '\u2019'))
-    // Ensure exactly one blank line (two newlines) after "Heavenly Father,"
-    .replace(/(Heavenly\s+Father,)\s*/gi, '$1\n\n')
-    // Ensure exactly one blank line (two newlines) before the closing phrase
+    // Ensure exactly one line break after "Heavenly Father,"
+    .replace(/(Heavenly\s+Father,)\s*/gi, '$1\n')
+    // Ensure exactly one line break before the closing phrase
     // Match any amount of whitespace (including none) before "In Jesus' Name"
     // This handles cases like "You.In Jesus'" or "You. In Jesus'" or "You.\n\nIn Jesus'"
-    .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n\n$2')
+    .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n$2')
     // Trim trailing spaces on lines
     .replace(/[\t ]+$/gm, '');
+  
+  console.log('[PrayerFormatting] Output:', result.substring(result.length - 50)); // Log last 50 chars
+  return result;
 }

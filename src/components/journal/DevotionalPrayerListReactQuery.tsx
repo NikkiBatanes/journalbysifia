@@ -209,14 +209,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               >
                 <View style={styles.horizontalPrayerItem}>
                   <View style={styles.prayerContentContainer}>
-                    <ThemedText style={styles.prayerText}>
-                      {normalizePrayerText(prayer.content).split('\n').map((line, index, array) => (
-                        <React.Fragment key={index}>
-                          {line}
-                          {index < array.length - 1 && '\n'}
-                        </React.Fragment>
-                      ))}
-                    </ThemedText>
+                    <ThemedText style={styles.prayerText}>{normalizePrayerText(prayer.content)}</ThemedText>
                   </View>
                   <View style={styles.metadataContainer}>
                     <View style={styles.verticalLine} />
