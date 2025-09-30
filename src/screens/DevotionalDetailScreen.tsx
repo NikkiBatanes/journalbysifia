@@ -1054,28 +1054,15 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 {day.prayer && day.prayer.trim().length > 0 ? (
                   <View>
-                    {(() => {
-                      const normalized = normalizePrayerText(day.prayer);
-                      const lines = normalized.split('\n');
-                      console.log('===== PRAYER DEBUG =====');
-                      console.log('Original prayer:', day.prayer);
-                      console.log('Normalized prayer:', normalized);
-                      console.log('Total lines:', lines.length);
-                      lines.forEach((line, i) => {
-                        console.log(`Line ${i}: "${line}" (empty: ${line.trim() === ''})`);
-                      });
-                      console.log('========================');
-                      
-                      return lines.map((line, index) => 
-                        line.trim() === '' ? (
-                          <View key={index} style={{height: 8}} />
-                        ) : (
-                          <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
-                            {line}
-                          </Text>
-                        )
-                      );
-                    })()}
+                    {normalizePrayerText(day.prayer)
+                      .split('\n')
+                      .filter(line => line.trim() !== '')
+                      .map((line, index) => (
+                        <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
+                          {line}
+                        </Text>
+                      ))
+                    }
                   </View>
                 ) : (
                   <ThemedText style={styles.prayerText}>No prayer for today.</ThemedText>
