@@ -1,13 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Dimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../../theme';
-
-const { width } = Dimensions.get('window');
-const CARD_HORIZONTAL_PADDING = 16;
-const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
-const ITEM_WIDTH = VISIBLE_WIDTH * 0.8;
-const ITEM_SPACING = 8;
-const SIDE_INSET = Math.max(0, (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
 
 const DevotionalSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -38,180 +31,164 @@ const DevotionalSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header Skeleton */}
-      <View style={styles.header}>
-        <Animated.View style={[styles.headerIcon, { opacity }]} />
-        <Animated.View style={[styles.headerTitle, { opacity }]} />
-      </View>
+      {/* Section Header Skeleton */}
+      <View style={styles.sectionHeader} />
 
-      {/* Horizontal Carousel Skeleton */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_INSET }]}
-        scrollEnabled={false}
-        style={styles.scrollExpanded}
-      >
-        {[1, 2].map((item) => (
-          <View key={item} style={[styles.carouselCard, { width: ITEM_WIDTH, marginRight: ITEM_SPACING }]}>
-            {/* Card Header - Category Badge and Status Badge */}
-            <View style={styles.cardHeader}>
-              <Animated.View style={[styles.categoryBadge, { opacity }]} />
-              <Animated.View style={[styles.statusBadge, { opacity }]} />
-            </View>
+      {[1, 2, 3].map((item) => (
+        <View key={item} style={styles.card}>
+          <View style={styles.cardContent}>
+            {/* Date */}
+            <Animated.View style={[styles.dateSkeleton, { opacity }]} />
 
             {/* Title */}
             <Animated.View style={[styles.titleSkeleton, { opacity }]} />
-            <Animated.View style={[styles.titleSkeletonShort, { opacity }]} />
 
-            {/* Verse Preview */}
-            <View style={styles.versePreview}>
-              <Animated.View style={[styles.verseText, { opacity }]} />
-              <Animated.View style={[styles.verseTextShort, { opacity }]} />
-              <Animated.View style={[styles.verseReference, { opacity }]} />
-            </View>
-
-            {/* Description */}
+            {/* Description (1-2 lines) */}
             <Animated.View style={[styles.descriptionLine, { opacity }]} />
-            <Animated.View style={[styles.descriptionLineShort, { opacity }]} />
 
-            {/* Next/Status Section */}
-            <View style={styles.statusSection}>
-              <Animated.View style={[styles.statusLabel, { opacity }]} />
-              <Animated.View style={[styles.statusInfo, { opacity }]} />
+            {/* Tags row (category + from playbook pill) */}
+            <View style={styles.tagsRow}>
+              <Animated.View style={[styles.tagPill, { opacity }]} />
             </View>
+
+            {/* Progress header (label left + counter right) */}
+            <View style={styles.progressHeaderRow}>
+              <Animated.View style={[styles.progressHeaderLabel, { opacity }]} />
+            </View>
+
+            {/* Progress bar */}
+            <View style={styles.progressContainer}>
+              <View style={styles.progressRow}>
+                <View style={styles.progressBarContainer}>
+                  <Animated.View style={[styles.progressBarSkeleton, { opacity }]} />
+                </View>
+              </View>
+            </View>
+
+            {/* Next line */}
+            <Animated.View style={[styles.nextLine, { opacity }]} />
           </View>
-        ))}
-      </ScrollView>
+        </View>
+      ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    gap: 8,
+  sectionHeader: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginTop: 30,
+    marginBottom: 10,
+    width: '30%',
+    alignSelf: 'flex-start',
   },
-  headerIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  headerTitle: {
-    height: 18,
-    width: 150,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
-  },
-  scrollContainer: {
-    paddingRight: 16,
-  },
-  scrollExpanded: {
-    overflow: 'visible',
-    marginHorizontal: -16,
-  },
-  carouselCard: {
-    backgroundColor: Colors.modalBlue,
-    borderRadius: 30,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  categoryBadge: {
-    width: 80,
-    height: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    borderRadius: 12,
-  },
-  statusBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    padding: 16,
+    width: '100%',
+    height: 200,
+    marginBottom: 14,
   },
   titleSkeleton: {
-    height: 16,
+    height: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     marginBottom: 6,
+    marginTop: 2,
     width: '85%',
   },
-  titleSkeletonShort: {
-    height: 16,
+  cardContent: {
+    flex: 1,
+  },
+  dateSkeleton: {
+    height: 15,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
-    marginBottom: 12,
-    width: '60%',
-  },
-  versePreview: {
-    backgroundColor: Colors.lightPurple,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  verseText: {
-    height: 13,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 4,
-    marginBottom: 4,
-    width: '90%',
-  },
-  verseTextShort: {
-    height: 13,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 4,
     marginBottom: 4,
     width: '70%',
   },
-  verseReference: {
-    height: 11,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
-    width: 100,
-    alignSelf: 'flex-end',
-  },
   descriptionLine: {
-    height: 14,
+    height: 15,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 4,
+    marginTop: 4,
     marginBottom: 4,
     width: '92%',
   },
   descriptionLineShort: {
-    height: 14,
+    height: 15,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 4,
-    marginBottom: 16,
-    width: '75%',
+    marginBottom: 8,
+    width: '70%',
   },
-  statusSection: {
-    gap: 4,
+  tagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
   },
-  statusLabel: {
-    height: 10,
-    width: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+  tagPill: {
+    height: 20,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 74,
+  },
+  tagPillShort: {
+    height: 20,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 104,
+  },
+  progressHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressHeaderLabel: {
+    height: 20,
+    width: 80,
+    backgroundColor: 'rgba(255,255,255,0.28)',
     borderRadius: 4,
-    marginBottom: 4,
   },
-  statusInfo: {
-    height: 13,
+  progressHeaderCounter: {
+    height: 15,
     width: 120,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     borderRadius: 4,
+  },
+  progressContainer: {
+    marginTop: 2,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressBarContainer: {
+    flex: 1,
+    marginRight: 0,
+  },
+  progressBarSkeleton: {
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    width: '100%',
+  },
+  nextLine: {
+    height: 15,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 4,
+    marginTop: 8,
+    width: 120,
   },
 });
 

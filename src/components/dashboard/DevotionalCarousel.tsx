@@ -18,7 +18,7 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
-import DevotionalSkeleton from '../SkeletonLoader/DevotionalSkeleton';
+import DevotionalCarouselSkeleton from '../SkeletonLoader/DevotionalCarouselSkeleton';
 import ThemedText from '../common/ThemedText';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -562,7 +562,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   );
 
   if (loading) {
-    return <DevotionalSkeleton />;
+    return <DevotionalCarouselSkeleton />;
   }
 
   return (
