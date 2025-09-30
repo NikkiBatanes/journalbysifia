@@ -1053,7 +1053,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 <ThemedText style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
-                    ? normalizePrayerText(day.prayer)
+                    ? normalizePrayerText(day.prayer).split('\n').map((line, index, array) => (
+                        <React.Fragment key={index}>
+                          {line}
+                          {index < array.length - 1 && '\n'}
+                        </React.Fragment>
+                      ))
                     : 'No prayer for today.'}
                 </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
