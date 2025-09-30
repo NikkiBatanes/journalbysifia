@@ -473,13 +473,36 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     }
 
     // Pattern 4: Look for any numbered sections that might be days
+    // BUT skip if they're inside REFLECTION QUESTIONS section
     if (dayMatches.length === 0) {
       console.log('[DEVOTIONAL PARSER] Trying numbered section format...');
+      
+      // First, find REFLECTION QUESTIONS sections to exclude them
+      const reflectionQuestionsRegex = /REFLECTION QUESTIONS:[\s\S]*?(?=\n\n[A-Z]+:|$)/gi;
+      const reflectionSections: Array<{start: number, end: number}> = [];
+      let reflectionMatch;
+      while ((reflectionMatch = reflectionQuestionsRegex.exec(content)) !== null) {
+        reflectionSections.push({
+          start: reflectionMatch.index,
+          end: reflectionMatch.index + reflectionMatch[0].length
+        });
+      }
+      
       const dayRegex4 = /(?:^|\n)(\d+)[.)]\s*([^]*?)(?=(?:\n|^)\d+[.)]|$)/gi;
       let match4;
       while ((match4 = dayRegex4.exec(content)) !== null && parseInt(match4[1], 10) <= 7) {
-        console.log(`[DEVOTIONAL PARSER] Found day ${match4[1]} (numbered format) with content length:`, match4[2].length);
-        dayMatches.push([null, match4[1], match4[2].trim()]);
+        // Check if this match is inside a REFLECTION QUESTIONS section
+        const matchPos = match4.index;
+        const isInReflectionQuestions = reflectionSections.some(
+          section => matchPos >= section.start && matchPos <= section.end
+        );
+        
+        if (!isInReflectionQuestions) {
+          console.log(`[DEVOTIONAL PARSER] Found day ${match4[1]} (numbered format) with content length:`, match4[2].length);
+          dayMatches.push([null, match4[1], match4[2].trim()]);
+        } else {
+          console.log(`[DEVOTIONAL PARSER] Skipping numbered item ${match4[1]} (inside REFLECTION QUESTIONS)`);
+        }
       }
     }
 
@@ -733,12 +756,16 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
           // Remove any existing 'Heavenly Father' from the prayer body
           prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
+          
+          // Normalize multiple newlines to single newlines in the prayer body
+          // This ensures consistent spacing regardless of AI output format
+          prayerBody = prayerBody.replace(/\n{2,}/g, '\n');
 
-          // Format prayer with proper spacing - space after "Heavenly Father," and before "In Jesus' Name, Amen"
-          prayerText = `Heavenly Father,\n\n${prayerBody}\n\nIn Jesus' Name, Amen`;
+          // Format prayer with proper spacing - single newline after "Heavenly Father," and before "In Jesus' Name, Amen"
+          prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
         } else {
-          // Default prayer with proper spacing
-          prayerText = 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen';
+          // No fallback - throw error if prayer not found
+          throw new Error(`Failed to parse prayer for Day ${dayNum}. AI must provide properly formatted prayer.`);
         }
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Prayer:`, prayerText.substring(0, 100));
 
@@ -750,11 +777,11 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             dayNumber,
             title: finalDayTitle,
             scripture: {
-              text: scriptureText || 'The Lord is my shepherd, I lack nothing.',
-              reference: scriptureRef || 'Psalm 23:1',
+              text: scriptureText,
+              reference: scriptureRef,
               version: bibleVersion || 'NASB',
             },
-            reflection: reflection || 'Reflect on God\'s word today.',
+            reflection: reflection,
             reflectionQuestions,
             prayer: prayerText,
             completed: false,
@@ -766,93 +793,40 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           stack: dayError instanceof Error ? dayError.stack : undefined,
         });
 
-        // Create a fallback day entry to prevent complete failure
-        console.log(`[DEVOTIONAL PARSER] Creating fallback day ${dayNum}`);
-        const fallbackDay = {
-          id: `${Date.now()}-fallback-day-${dayNum}`,
-          dayNumber: parseInt(dayNum, 10),
-          title: `Day ${dayNum}`,
-          scripture: {
-            text: 'The Lord is my shepherd, I lack nothing.',
-            reference: 'Psalm 23:1',
-            version: bibleVersion || 'NASB',
-          },
-          reflection: 'Take time to reflect on God\'s word today and how it speaks to your current situation.',
-          reflectionQuestions: [
-            { id: 'q1', text: 'What stood out to you today?' },
-            { id: 'q2', text: 'How can you apply this to your life?' },
-            { id: 'q3', text: 'How does this point you to Christ?' },
-          ],
-          prayer: 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen',
-          completed: false,
-        };
-
-        devotional.days.push(fallbackDay);
-        console.log(`[DEVOTIONAL PARSER] Added fallback day ${dayNum} to devotional`);
+        // No fallback - throw the error to force proper AI generation
+        throw new Error(`Failed to parse Day ${dayNum}: ${dayError instanceof Error ? dayError.message : 'Unknown error'}`);
       }
     }
 
     console.log(`[DEVOTIONAL PARSER] Processed ${devotional.days.length} days total`);
 
-    // Enhanced validation of parsed days
+    // Enhanced validation of parsed days - NO FALLBACKS
     if (devotional.days.length === 0) {
       console.error('[DEVOTIONAL PARSER] CRITICAL ERROR: No devotional days were parsed');
       console.error('[DEVOTIONAL PARSER] Original content length:', content.length);
       console.error('[DEVOTIONAL PARSER] Day matches found:', dayMatches.length);
+      console.error('[DEVOTIONAL PARSER] Content preview:', content.substring(0, 500));
 
-      // Create at least one fallback day to prevent complete failure
-      console.log('[DEVOTIONAL PARSER] Creating emergency fallback devotional');
-      for (let i = 1; i <= duration; i++) {
-        devotional.days.push({
-          id: `${Date.now()}-emergency-day-${i}`,
-          dayNumber: i,
-          title: `Day ${i}`,
-          scripture: {
-            text: 'The Lord is my shepherd, I lack nothing.',
-            reference: 'Psalm 23:1',
-            version: bibleVersion || 'NASB',
-          },
-          reflection: 'Take time to reflect on God\'s word today and how it speaks to your current situation.',
-          reflectionQuestions: [
-            { id: 'q1', text: 'What stood out to you today?' },
-            { id: 'q2', text: 'How can you apply this to your life?' },
-            { id: 'q3', text: 'How does this point you to Christ?' },
-          ],
-          prayer: 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen',
-          completed: false,
-        });
-      }
-      console.log(`[DEVOTIONAL PARSER] Created ${devotional.days.length} emergency fallback days`);
+      // No fallback - throw error to force proper AI generation
+      throw new Error(`No devotional days were parsed from OpenAI response. Expected ${duration} days but got 0. The AI response format was not recognized.`);
     }
 
-    // Validate each day has required fields
+    // Validate each day has required fields - NO FALLBACKS, throw errors instead
     devotional.days.forEach((day, _index) => {
       if (!day.scripture?.text || !day.scripture?.reference) {
-        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing scripture, adding fallback`);
-        day.scripture = {
-          text: 'The Lord is my shepherd, I lack nothing.',
-          reference: 'Psalm 23:1',
-          version: bibleVersion || 'NASB',
-        };
+        throw new Error(`Day ${day.dayNumber} is missing scripture. AI must provide properly formatted scripture with text and reference.`);
       }
 
       if (!day.reflection || day.reflection.trim().length === 0) {
-        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing reflection, adding fallback`);
-        day.reflection = 'Take time to reflect on God\'s word today and how it speaks to your current situation.';
+        throw new Error(`Day ${day.dayNumber} is missing reflection. AI must provide meaningful reflection content.`);
       }
 
       if (!day.prayer || day.prayer.trim().length === 0) {
-        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing prayer, adding fallback`);
-        day.prayer = 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen';
+        throw new Error(`Day ${day.dayNumber} is missing prayer. AI must provide properly formatted prayer.`);
       }
 
       if (!Array.isArray(day.reflectionQuestions) || day.reflectionQuestions.length === 0) {
-        console.warn(`[DEVOTIONAL PARSER] Day ${day.dayNumber} missing reflection questions, adding fallback`);
-        day.reflectionQuestions = [
-          { id: 'q1', text: 'What stood out to you today?' },
-          { id: 'q2', text: 'How can you apply this to your life?' },
-          { id: 'q3', text: 'How does this point you to Christ?' },
-        ];
+        throw new Error(`Day ${day.dayNumber} is missing reflection questions. AI must provide at least 3 reflection questions.`);
       }
     });
 
