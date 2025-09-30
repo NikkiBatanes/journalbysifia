@@ -1054,15 +1054,28 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 {day.prayer && day.prayer.trim().length > 0 ? (
                   <View>
-                    {normalizePrayerText(day.prayer).split('\n').map((line, index) => 
-                      line.trim() === '' ? (
-                        <View key={index} style={{height: 8}} />
-                      ) : (
-                        <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
-                          {line}
-                        </Text>
-                      )
-                    )}
+                    {(() => {
+                      const normalized = normalizePrayerText(day.prayer);
+                      const lines = normalized.split('\n');
+                      console.log('===== PRAYER DEBUG =====');
+                      console.log('Original prayer:', day.prayer);
+                      console.log('Normalized prayer:', normalized);
+                      console.log('Total lines:', lines.length);
+                      lines.forEach((line, i) => {
+                        console.log(`Line ${i}: "${line}" (empty: ${line.trim() === ''})`);
+                      });
+                      console.log('========================');
+                      
+                      return lines.map((line, index) => 
+                        line.trim() === '' ? (
+                          <View key={index} style={{height: 8}} />
+                        ) : (
+                          <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
+                            {line}
+                          </Text>
+                        )
+                      );
+                    })()}
                   </View>
                 ) : (
                   <ThemedText style={styles.prayerText}>No prayer for today.</ThemedText>
@@ -1425,8 +1438,9 @@ const styles = StyleSheet.create({
   prayerContainer: {
     marginTop: 8,
     position: 'relative',
+    paddingTop: CARD_CONTENT_PADDING,
+    paddingHorizontal: CARD_CONTENT_PADDING,
     paddingBottom: 110, // Reserve more space so content doesn't overlap the button
-    padding: CARD_CONTENT_PADDING,
     backgroundColor: 'rgba(26,60,109,0.08)',
     borderRadius: 12,
   },
