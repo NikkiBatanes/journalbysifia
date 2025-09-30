@@ -46,10 +46,11 @@ export function normalizePrayerText(
     // Ensure configured blank lines after "Heavenly Father,"
     .replace(/(Heavenly\s+Father,)\s*/gi, `$1${afterOpeningDelim}`)
     // Ensure configured blank lines before the closing phrase
-    // Case A: No newline before phrase (e.g., "You.In Jesus'")
+    // Case A: No whitespace or space-only before phrase (e.g., "You.In Jesus'" or "You. In Jesus'")
     .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, `$1${beforeClosingDelim}$2`)
-    // Case B: Exactly one newline before phrase (e.g., "You.\nIn Jesus'")
-    .replace(new RegExp(`\n(?!\n)\n{0}\s*((?:In\\s+Jesus[''\\u2019]?\\s*Name)(?:,?\\s*Amen)?)`, 'gi'), `${beforeClosingDelim}$1`)
+    // Case B: One or more newlines before phrase (e.g., "You.\nIn Jesus'" or "You.\n\nIn Jesus'")
+    // Replace any sequence of newlines with the desired delimiter
+    .replace(/\n+\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, `${beforeClosingDelim}$1`)
     // Trim trailing spaces on lines
     .replace(/[\t ]+$/gm, '');
 }
