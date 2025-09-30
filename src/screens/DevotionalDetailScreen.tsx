@@ -1053,7 +1053,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             >
               <View style={styles.prayerContainer}>
                 {day.prayer && day.prayer.trim().length > 0 ? (
-                  <View>
+                  <View style={{width: '100%', flex: 1}}>
                     {(() => {
                       const normalized = normalizePrayerText(day.prayer);
                       const lines = normalized.split('\n');
@@ -1072,11 +1072,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                             style={[styles.prayerText, {
                               fontFamily: 'Lexend-Regular', 
                               fontStyle: 'italic', 
-                              marginBottom: 0,
-                              flexWrap: 'wrap',
-                              width: '100%'
+                              marginBottom: 0
                             }]}
-                            numberOfLines={0}
                           >
                             {line}
                           </Text>
