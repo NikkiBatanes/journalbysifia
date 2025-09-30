@@ -56,5 +56,7 @@ export function normalizePrayerText(raw: string): string {
   result = result.replace(/[\t ]+$/gm, '');
   
   console.log('[PrayerFormatting] Full Output:', result);
+  console.log('[PrayerFormatting] Output has newlines:', result.includes('\n'));
+  console.log('[PrayerFormatting] Number of newlines:', (result.match(/\n/g) || []).length);
   return result;
 }
