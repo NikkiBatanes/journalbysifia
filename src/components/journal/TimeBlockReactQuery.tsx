@@ -1085,7 +1085,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         variant={variant}
         viewMode={viewMode}
       >
-        <TimeBlockSkeleton count={3} />
+        <TimeBlockSkeleton count={2} />
       </JournalCard>
     );
   }

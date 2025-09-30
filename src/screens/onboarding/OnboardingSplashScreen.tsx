@@ -492,6 +492,8 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 200,
     height: 200,
+    // Prevent image from growing during load
+    overflow: 'hidden',
   },
 });
 

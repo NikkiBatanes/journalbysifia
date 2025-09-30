@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, Dimensions, Text } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme';
 
 const { width } = Dimensions.get('window');
@@ -38,9 +39,10 @@ const DevotionalCarouselSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Section Header Skeleton */}
+      {/* Section Header - Real Title like Playbook Carousel */}
       <View style={styles.headerRow}>
-        <Animated.View style={[styles.headerTitle, { opacity }]} />
+        <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
+        <Text style={styles.headerTitle}>Your Devotionals</Text>
         <Animated.View style={[styles.viewAllButton, { opacity }]} />
       </View>
 
@@ -95,10 +97,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   headerTitle: {
-    height: 20,
-    width: 140,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginLeft: 8,
+    flex: 1,
   },
   viewAllButton: {
     height: 18,
