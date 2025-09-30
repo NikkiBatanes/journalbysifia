@@ -716,12 +716,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     );
   }
 
-  // At this point, we know devotional exists (TypeScript guard)
-  if (!devotional) {
-    return <DevotionalDetailSkeleton />;
-  }
-
-  // Prepare and debug-format the prayer text for this day
+  // Prepare and debug-format the prayer text for this day (must be before early returns)
   const rawPrayer = currentDay?.prayer ?? '';
   const formattedPrayer = React.useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
   React.useEffect(() => {
@@ -731,6 +726,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       console.log('[DevotionalDetail] Prayer formatted:', show(formattedPrayer));
     }
   }, [rawPrayer, formattedPrayer]);
+
+  // At this point, we know devotional exists (TypeScript guard)
+  if (!devotional) {
+    return <DevotionalDetailSkeleton />;
+  }
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
