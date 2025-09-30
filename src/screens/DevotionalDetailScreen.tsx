@@ -453,6 +453,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   }, [currentDay?.id, currentDay?.completed]);
 
+  // Prepare and debug-format the prayer text for this day (must be with other hooks, before any returns)
+  const rawPrayer = currentDay?.prayer ?? '';
+  const formattedPrayer = React.useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
+  React.useEffect(() => {
+    if (rawPrayer) {
+      const show = (s: string) => s.replace(/\n/g, '\\n');
+      console.log('[DevotionalDetail] Prayer raw    :', show(rawPrayer));
+      console.log('[DevotionalDetail] Prayer formatted:', show(formattedPrayer));
+    }
+  }, [rawPrayer, formattedPrayer]);
+
   const handleMarkComplete = async () => {
     const now = Date.now();
     const timeSinceLastMark = now - lastMarkCompleteRef.current;
@@ -715,17 +726,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       </SafeAreaView>
     );
   }
-
-  // Prepare and debug-format the prayer text for this day (must be before early returns)
-  const rawPrayer = currentDay?.prayer ?? '';
-  const formattedPrayer = React.useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
-  React.useEffect(() => {
-    if (rawPrayer) {
-      const show = (s: string) => s.replace(/\n/g, '\\n');
-      console.log('[DevotionalDetail] Prayer raw    :', show(rawPrayer));
-      console.log('[DevotionalDetail] Prayer formatted:', show(formattedPrayer));
-    }
-  }, [rawPrayer, formattedPrayer]);
 
   // At this point, we know devotional exists (TypeScript guard)
   if (!devotional) {
