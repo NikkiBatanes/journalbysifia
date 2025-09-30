@@ -721,6 +721,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     return <DevotionalDetailSkeleton />;
   }
 
+  // Prepare and debug-format the prayer text for this day
+  const rawPrayer = currentDay?.prayer ?? '';
+  const formattedPrayer = React.useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
+  React.useEffect(() => {
+    if (rawPrayer) {
+      const show = (s: string) => s.replace(/\n/g, '\\n');
+      console.log('[DevotionalDetail] Prayer raw    :', show(rawPrayer));
+      console.log('[DevotionalDetail] Prayer formatted:', show(formattedPrayer));
+    }
+  }, [rawPrayer, formattedPrayer]);
+
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
@@ -1052,8 +1063,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             >
               <View style={styles.prayerContainer}>
                 <ThemedText style={styles.prayerText}>
-                  {day.prayer && day.prayer.trim().length > 0
-                    ? normalizePrayerText(day.prayer)
+                  {rawPrayer && rawPrayer.trim().length > 0
+                    ? formattedPrayer
                     : 'No prayer for today.'}
                 </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
