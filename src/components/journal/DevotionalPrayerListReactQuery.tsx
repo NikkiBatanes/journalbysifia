@@ -210,7 +210,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                 <View style={styles.horizontalPrayerItem}>
                   <View style={styles.prayerContentContainer}>
                     <ThemedText style={styles.prayerText}>
-                      {normalizePrayerText(prayer.content, { blankLinesBeforeClosing: 0 })}
+                      {normalizePrayerText(prayer.content)}
                     </ThemedText>
                   </View>
                   <View style={styles.metadataContainer}>
