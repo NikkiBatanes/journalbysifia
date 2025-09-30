@@ -1053,9 +1053,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             >
               <View style={styles.prayerContainer}>
                 {day.prayer && day.prayer.trim().length > 0 ? (
-                  <Text style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic'}]}>
-                    {normalizePrayerText(day.prayer)}
-                  </Text>
+                  <View>
+                    {normalizePrayerText(day.prayer).split('\n').map((line, index) => (
+                      <Text key={index} style={[styles.prayerText, {fontFamily: 'Lexend-Regular', fontStyle: 'italic', marginBottom: 0}]}>
+                        {line}
+                      </Text>
+                    ))}
+                  </View>
                 ) : (
                   <ThemedText style={styles.prayerText}>No prayer for today.</ThemedText>
                 )}
