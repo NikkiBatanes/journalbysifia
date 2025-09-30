@@ -58,9 +58,43 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
 
   const calculateStreaks = useCallback((activityList: any[]): Streak[] => {
     const streakTypes = [
-      { type: 'journal', activityTypes: ['journal_entry'] },
-      { type: 'playbook', activityTypes: ['playbook_generated', 'action_step_completed'] },
-      { type: 'devotional', activityTypes: ['devotional_generated', 'daily_streak'] },
+      { 
+        type: 'journal', 
+        activityTypes: [
+          'journal_entry',
+          'journal_todo_added',
+          'journal_focus_set',
+          'journal_timeblock_added',
+          'journal_gratitude_added',
+          'journal_win_added',
+          'journal_looking_forward_added',
+          'reflection_saved',
+          'gratitude_saved',
+          'prayer_saved',
+          'timeblock_saved'
+        ] 
+      },
+      { 
+        type: 'playbook', 
+        activityTypes: [
+          'playbook_generated',
+          'playbook_created',
+          'action_step_completed',
+          'action_step_interacted',
+          'playbook_read_aloud',
+          'challenge_accepted'
+        ] 
+      },
+      { 
+        type: 'devotional', 
+        activityTypes: [
+          'devotional_generated',
+          'devotional_created',
+          'devotional_day_completed',
+          'devotional_completed',
+          'daily_streak'
+        ] 
+      },
       {
         type: 'prayer',
         activityTypes: [
@@ -73,7 +107,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
           'prayer_list_prayed',
           'prayer_list_request_added',
         ],
-      }, // Include current prayer activity types
+      },
     ];
     const streakResults: Streak[] = [];
 
@@ -251,9 +285,34 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
 
   // Map streak type to activity types used for calculation
   const activityTypesByStreak: Record<Streak['type'], string[]> = {
-    journal: ['journal_entry'],
-    playbook: ['playbook_generated', 'action_step_completed'],
-    devotional: ['devotional_generated', 'daily_streak'],
+    journal: [
+      'journal_entry',
+      'journal_todo_added',
+      'journal_focus_set',
+      'journal_timeblock_added',
+      'journal_gratitude_added',
+      'journal_win_added',
+      'journal_looking_forward_added',
+      'reflection_saved',
+      'gratitude_saved',
+      'prayer_saved',
+      'timeblock_saved'
+    ],
+    playbook: [
+      'playbook_generated',
+      'playbook_created',
+      'action_step_completed',
+      'action_step_interacted',
+      'playbook_read_aloud',
+      'challenge_accepted'
+    ],
+    devotional: [
+      'devotional_generated',
+      'devotional_created',
+      'devotional_day_completed',
+      'devotional_completed',
+      'daily_streak'
+    ],
     prayer: [
       'daily_streak',
       'prayer_for_now',
@@ -355,7 +414,14 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
           <MaterialCommunityIcons name="fire" size={24} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.title}>Streak Tracker</ThemedText>
         </View>
-        <ThemedText style={styles.loadingText}>Loading streaks...</ThemedText>
+        <View style={[styles.grid, { paddingHorizontal: CONTENT_HORIZONTAL_PADDING }]}>
+          {[1, 2, 3, 4].map((i) => (
+            <View key={i} style={[styles.chip, styles.chipLoading]}>
+              <MaterialCommunityIcons name="fire" size={18} color={Colors.textGray} />
+              <ThemedText weight="semiBold" style={styles.streakNumber}>-</ThemedText>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -525,6 +591,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.hopeWhite,
     marginHorizontal: 6,
+  },
+  chipLoading: {
+    opacity: 0.5,
   },
   streakLabel: {
     fontSize: 12,
