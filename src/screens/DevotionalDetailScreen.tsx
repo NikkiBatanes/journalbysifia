@@ -4,16 +4,15 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import {
   Dimensions,
   FlatList,
-  Platform,
   ScrollView,
-  View,
   StyleSheet,
   TouchableOpacity,
+  View,
+  Alert,
+  Platform,
   Animated,
-  Easing,
   NativeModules,
   StatusBar,
-  Text,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -1052,38 +1051,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
-                {day.prayer && day.prayer.trim().length > 0 ? (
-                  <View style={{width: '100%', flex: 1}}>
-                    {(() => {
-                      const normalized = normalizePrayerText(day.prayer);
-                      const lines = normalized.split('\n');
-                      
-                      console.log('[PRAYER] Total lines after split:', lines.length);
-                      console.log('[PRAYER] Has blank lines:', lines.some(l => l.trim() === ''));
-                      console.log('[PRAYER] First 3 lines:', lines.slice(0, 3));
-                      console.log('[PRAYER] Last 3 lines:', lines.slice(-3));
-                      
-                      return lines.map((line, index) => 
-                        line.trim() === '' ? (
-                          <View key={index} style={{height: 8}} />
-                        ) : (
-                          <Text 
-                            key={index} 
-                            style={[styles.prayerText, {
-                              fontFamily: 'Lexend-Regular', 
-                              fontStyle: 'italic', 
-                              marginBottom: 0
-                            }]}
-                          >
-                            {line}
-                          </Text>
-                        )
-                      );
-                    })()}
-                  </View>
-                ) : (
-                  <ThemedText style={styles.prayerText}>No prayer for today.</ThemedText>
-                )}
+                <ThemedText style={styles.prayerText}>
+                  {day.prayer && day.prayer.trim().length > 0
+                    ? normalizePrayerText(day.prayer)
+                    : 'No prayer for today.'}
+                </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
                   {/* Heart burst layer above the button, anchored near its position */}
                   {heartParticles.length > 0 && (
@@ -1442,9 +1414,8 @@ const styles = StyleSheet.create({
   prayerContainer: {
     marginTop: 8,
     position: 'relative',
-    paddingTop: CARD_CONTENT_PADDING,
-    paddingHorizontal: CARD_CONTENT_PADDING,
-    paddingBottom: 110, // Reserve more space so content doesn't overlap the button
+    paddingBottom: 96, // Reserve more space so content doesn't overlap the button
+    padding: CARD_CONTENT_PADDING,
     backgroundColor: 'rgba(26,60,109,0.08)',
     borderRadius: 12,
   },
