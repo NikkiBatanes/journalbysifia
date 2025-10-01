@@ -196,8 +196,11 @@ const OnboardingNotificationSetupScreen = () => {
             {
               text: 'Let\'s Go!',
               onPress: () => {
-                // Navigate to sales offer during onboarding
-                navigation.navigate('OnboardingSalesOffer' as any);
+                // Navigate to MainTabs after notification setup (post-purchase)
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'MainTabs' as any }],
+                });
               },
             },
           ]
@@ -211,8 +214,11 @@ const OnboardingNotificationSetupScreen = () => {
             {
               text: 'Continue Anyway',
               onPress: () => {
-                // Navigate to sales offer during onboarding
-                navigation.navigate('OnboardingSalesOffer' as any);
+                // Navigate to MainTabs after notification setup (post-purchase)
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'MainTabs' as any }],
+                });
               },
             },
             {
@@ -232,8 +238,11 @@ const OnboardingNotificationSetupScreen = () => {
           {
             text: 'Continue',
             onPress: () => {
-              // Navigate to sales offer during onboarding
-              navigation.navigate('OnboardingSalesOffer' as any);
+              // Navigate to MainTabs after notification setup (post-purchase)
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'MainTabs' as any }],
+              });
             },
           },
           {
@@ -258,8 +267,11 @@ const OnboardingNotificationSetupScreen = () => {
         {
           text: 'Skip',
           onPress: () => {
-            // Navigate to sales offer during onboarding
-            navigation.navigate('OnboardingSalesOffer' as any);
+            // Navigate to MainTabs after notification setup (post-purchase)
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'MainTabs' as any }],
+            });
           },
         },
       ]

@@ -189,7 +189,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Title */}
         <View style={styles.titleContainer}>
           <ThemedText weight="bold" style={styles.title}>Create an Account</ThemedText>
-          <ThemedText style={styles.subtitle}>Join siFia: Faith in Action</ThemedText>
+          <ThemedText style={styles.subtitle}>Join siFia: Where Faith Meets Action</ThemedText>
         </View>
 
         {/* Inline Error Banner */}

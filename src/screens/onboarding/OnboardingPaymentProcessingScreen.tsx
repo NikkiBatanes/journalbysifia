@@ -54,12 +54,9 @@ const OnboardingPaymentProcessingScreen = () => {
         setProcessingStatus('Trial activated successfully!');
         setPaymentSuccess(true);
 
-        // Skip notification setup, navigate directly to MainTabs after delay
+        // Navigate to notification setup after trial activation
         setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'MainTabs' as never }],
-          });
+          navigation.navigate('OnboardingNotificationSetup' as never);
         }, 1500);
 
       } else {
@@ -77,12 +74,9 @@ const OnboardingPaymentProcessingScreen = () => {
         setProcessingStatus('Subscription activated successfully!');
         setPaymentSuccess(true);
 
-        // Skip notification setup, navigate directly to MainTabs after delay
+        // Navigate to notification setup after subscription activation
         setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'MainTabs' as never }],
-          });
+          navigation.navigate('OnboardingNotificationSetup' as never);
         }, 1500);
       }
 

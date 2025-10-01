@@ -40,16 +40,13 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
   }, [refreshSubscription]);
 
   const handleContinue = () => {
-    // Skip notification setup, go directly to MainTabs
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' as never }],
-    });
+    // Navigate to notification setup after payment confirmation
+    navigation.navigate('OnboardingNotificationSetup' as never);
   };
 
   const handleSkipToApp = () => {
-    // Skip notification setup and go directly to main app
-    navigation.navigate('MainTabs' as never);
+    // Navigate to notification setup after payment confirmation
+    navigation.navigate('OnboardingNotificationSetup' as never);
   };
 
   const getTierDisplayName = (tierName: string) => {

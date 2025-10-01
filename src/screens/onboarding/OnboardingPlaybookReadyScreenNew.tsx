@@ -379,8 +379,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch (error) {
       console.log('Haptic feedback error:', error);
     }
-    // Navigate to notification setup first, then to sales offer
-    navigation.navigate('OnboardingNotificationSetup' as any);
+    // Navigate directly to sales offer (notification setup comes after purchase)
+    navigation.navigate('OnboardingSalesOffer' as any);
   }, [navigation]);
 
   const toggleUserInput = useCallback(() => {
@@ -640,7 +640,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       devotionalTimerRef.current = setTimeout(() => {
         setDevotionalVisible(true);
         devotionalTimerRef.current = null;
-      }, 1500);
+      }, 300); // Reduced from 1500ms to 300ms for faster appearance
     }
   }, [currentIndex, carouselCards.length, devotionalVisible]);
 
