@@ -210,20 +210,26 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
   }));
 
-  // Extract only the challenge details from userInput (remove the "I am a..." prefix)
+  // Extract only the user's typed challenge details (after the category and period)
   const extractChallengeDetails = (fullInput: string): string => {
     if (!fullInput || fullInput.trim().length === 0) {
       return '—';
     }
     
-    // Pattern: "I am a [age] on a [faith journey] faith journey, struggling with [challenge]. [details]"
-    // We want to extract everything after "struggling with "
+    // Pattern: "I am a [age] on a [faith journey] faith journey, struggling with [category]. [user details]"
+    // We want to extract only the user's typed details after the period
+    const afterPeriodMatch = fullInput.match(/struggling with [^.]+\.\s*(.+)/);
+    if (afterPeriodMatch && afterPeriodMatch[1]) {
+      return afterPeriodMatch[1].trim();
+    }
+    
+    // Fallback: if no period found, extract everything after "struggling with "
     const strugglingWithMatch = fullInput.match(/struggling with (.+)/);
     if (strugglingWithMatch && strugglingWithMatch[1]) {
       return strugglingWithMatch[1].trim();
     }
     
-    // Fallback: return the full input if pattern doesn't match
+    // Last fallback: return the full input if pattern doesn't match
     return fullInput.trim();
   };
 
@@ -352,23 +358,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, []);
 
   const handleSwipeTutorialComplete = useCallback(() => {
-    // Award faith points first, then hide tutorial to prevent flash
+    // Hide tutorial immediately for snappy UX
+    setShowTutorial(false);
+    setTutorialStep(1); // Reset for next time
+    // Award faith points right after (no delay)
     awardFaithPoints();
-    // Small delay to ensure smooth transition
-    setTimeout(() => {
-      setShowTutorial(false);
-      setTutorialStep(1); // Reset for next time
-    }, 100);
   }, [awardFaithPoints]);
 
   const handleSkipTutorial = useCallback(() => {
-    // Award faith points first, then hide tutorial to prevent flash
+    // Hide tutorial immediately for snappy UX
+    setShowTutorial(false);
+    setTutorialStep(1); // Reset for next time
+    // Award faith points right after (no delay)
     awardFaithPoints();
-    // Small delay to ensure smooth transition
-    setTimeout(() => {
-      setShowTutorial(false);
-      setTutorialStep(1); // Reset for next time
-    }, 100);
   }, [awardFaithPoints]);
 
   const handleContinueJourney = useCallback(() => {
@@ -377,7 +379,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch (error) {
       console.log('Haptic feedback error:', error);
     }
-    navigation.navigate('OnboardingSalesOffer' as any);
+    // Navigate to notification setup first, then to sales offer
+    navigation.navigate('OnboardingNotificationSetup' as any);
   }, [navigation]);
 
   const toggleUserInput = useCallback(() => {

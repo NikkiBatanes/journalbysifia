@@ -195,10 +195,10 @@ const OnboardingNotificationSetupScreen = () => {
           [
             {
               text: 'Let\'s Go!',
-              onPress: () => navigation.reset({
-                index: 0,
-                routes: [{ name: 'MainTabs' as any }],
-              }),
+              onPress: () => {
+                // Navigate to sales offer during onboarding
+                navigation.navigate('OnboardingSalesOffer' as any);
+              },
             },
           ]
         );
@@ -210,10 +210,10 @@ const OnboardingNotificationSetupScreen = () => {
           [
             {
               text: 'Continue Anyway',
-              onPress: () => navigation.reset({
-                index: 0,
-                routes: [{ name: 'MainTabs' as any }],
-              }),
+              onPress: () => {
+                // Navigate to sales offer during onboarding
+                navigation.navigate('OnboardingSalesOffer' as any);
+              },
             },
             {
               text: 'Open Settings',
@@ -231,10 +231,14 @@ const OnboardingNotificationSetupScreen = () => {
         [
           {
             text: 'Continue',
-            onPress: () => navigation.reset({
-              index: 0,
-              routes: [{ name: 'MainTabs' as any }],
-            }),
+            onPress: () => {
+              // Navigate to sales offer during onboarding
+              navigation.navigate('OnboardingSalesOffer' as any);
+            },
+          },
+          {
+            text: 'Open Settings',
+            onPress: () => pushNotificationService.openNotificationSettings(),
           },
         ]
       );
@@ -253,10 +257,10 @@ const OnboardingNotificationSetupScreen = () => {
         },
         {
           text: 'Skip',
-          onPress: () => navigation.reset({
-            index: 0,
-            routes: [{ name: 'MainTabs' as any }],
-          }),
+          onPress: () => {
+            // Navigate to sales offer during onboarding
+            navigation.navigate('OnboardingSalesOffer' as any);
+          },
         },
       ]
     );
