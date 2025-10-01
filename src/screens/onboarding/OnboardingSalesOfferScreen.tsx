@@ -206,6 +206,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         console.log('[OnboardingSalesOffer] Guided prompt context - navigating to Dashboard');
         // Navigate to Dashboard to ensure we have a valid screen
         navigation.navigate('Dashboard' as any);
+      } else if (!routeParams?.skipNotificationPreference) {
+        // During onboarding flow, go to notification setup
+        console.log('[OnboardingSalesOffer] Onboarding flow - navigating to notification setup');
+        navigation.navigate('OnboardingNotificationSetup' as any);
       } else {
         navigation.goBack();
       }

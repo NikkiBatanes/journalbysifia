@@ -47,18 +47,15 @@ const OnboardingTrialOfferScreen = () => {
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
-    // User declines trial and remains as seeker (freemium) - skip notification setup
+    // User declines trial and remains as seeker (freemium)
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
     if (skipNotificationPreference) {
       // Go back twice to skip the sales offer screen and return to original screen
       navigation.goBack();
       setTimeout(() => navigation.goBack(), 100);
     } else {
-      // Skip notification setup, go directly to MainTabs
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' as never }],
-      });
+      // Navigate to notification setup after declining trial
+      navigation.navigate('OnboardingNotificationSetup' as never);
     }
   };
 
@@ -77,18 +74,15 @@ const OnboardingTrialOfferScreen = () => {
         trial_chosen_tier: selectedTierId as any, // Record the user's actual choice
       });
 
-      // Skip notification setup, go directly to MainTabs after trial start
+      // Navigate to notification setup after trial start
       const skipNotificationPreference = route?.params?.skipNotificationPreference;
       if (skipNotificationPreference) {
         // Go back twice to skip the sales offer screen and return to original screen
         navigation.goBack();
         setTimeout(() => navigation.goBack(), 100);
       } else {
-        // Skip notification setup, go directly to MainTabs
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' as never }],
-        });
+        // Navigate to notification setup after trial activation
+        navigation.navigate('OnboardingNotificationSetup' as never);
       }
     } catch (error) {
       console.error('Error starting trial:', error);
@@ -99,11 +93,8 @@ const OnboardingTrialOfferScreen = () => {
         navigation.goBack();
         setTimeout(() => navigation.goBack(), 100);
       } else {
-        // Skip notification setup, go directly to MainTabs
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' as never }],
-        });
+        // Navigate to notification setup even on error
+        navigation.navigate('OnboardingNotificationSetup' as never);
       }
     }
   };

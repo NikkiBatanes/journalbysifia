@@ -358,19 +358,23 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, []);
 
   const handleSwipeTutorialComplete = useCallback(() => {
-    // Hide tutorial immediately for snappy UX
-    setShowTutorial(false);
-    setTutorialStep(1); // Reset for next time
-    // Award faith points right after (no delay)
+    // Award faith points first while tutorial is still visible
     awardFaithPoints();
+    // Small delay to let faith points notification appear before hiding tutorial
+    setTimeout(() => {
+      setShowTutorial(false);
+      setTutorialStep(1); // Reset for next time
+    }, 200);
   }, [awardFaithPoints]);
 
   const handleSkipTutorial = useCallback(() => {
-    // Hide tutorial immediately for snappy UX
-    setShowTutorial(false);
-    setTutorialStep(1); // Reset for next time
-    // Award faith points right after (no delay)
+    // Award faith points first while tutorial is still visible
     awardFaithPoints();
+    // Small delay to let faith points notification appear before hiding tutorial
+    setTimeout(() => {
+      setShowTutorial(false);
+      setTutorialStep(1); // Reset for next time
+    }, 200);
   }, [awardFaithPoints]);
 
   const handleContinueJourney = useCallback(() => {
