@@ -494,40 +494,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
           <Ionicons name="close" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
-
-        {/* Debug button - remove after testing */}
-        {__DEV__ && (
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 16,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              padding: 8,
-              borderRadius: 4,
-            }}
-            onPress={async () => {
-              console.log('🧪 Debug: Force testing discount');
-              try {
-                // Clear state first
-                await pricingService.clearDiscountState(user?.id);
-                // Force increment opt-out
-                await pricingService.forceIncrementOptOut(user?.id);
-                // Test discount
-                const discount = await pricingService.getDynamicDiscount(user?.id, selectedTier, isAnnual ? 'annual' : 'monthly');
-                console.log('🧪 Debug discount result:', discount);
-                if (discount) {
-                  setDynamicDiscount(discount);
-                  setShowDynamicModal(true);
-                }
-              } catch (error) {
-                console.error('🧪 Debug error:', error);
-              }
-            }}
-          >
-            <ThemedText style={{ color: Colors.hopeWhite, fontSize: 10 }}>Test Discount</ThemedText>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Body content: sticky toggle header + scrollable content */}
