@@ -210,10 +210,24 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
   }));
 
-  // Show only the user's freeform input for the challenge
-  const resolvedChallengeDetails = (userInput && userInput.trim().length > 0)
-    ? userInput.trim()
-    : '—';
+  // Extract only the challenge details from userInput (remove the "I am a..." prefix)
+  const extractChallengeDetails = (fullInput: string): string => {
+    if (!fullInput || fullInput.trim().length === 0) {
+      return '—';
+    }
+    
+    // Pattern: "I am a [age] on a [faith journey] faith journey, struggling with [challenge]. [details]"
+    // We want to extract everything after "struggling with "
+    const strugglingWithMatch = fullInput.match(/struggling with (.+)/);
+    if (strugglingWithMatch && strugglingWithMatch[1]) {
+      return strugglingWithMatch[1].trim();
+    }
+    
+    // Fallback: return the full input if pattern doesn't match
+    return fullInput.trim();
+  };
+
+  const resolvedChallengeDetails = extractChallengeDetails(userInput);
 
   const onboardingData = {
     name: 'Friend', // You could get this from user context
@@ -338,21 +352,23 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, []);
 
   const handleSwipeTutorialComplete = useCallback(() => {
-    setShowTutorial(false);
-    setTutorialStep(1); // Reset for next time
-    // Award faith points when tutorial is completed
+    // Award faith points first, then hide tutorial to prevent flash
+    awardFaithPoints();
+    // Small delay to ensure smooth transition
     setTimeout(() => {
-      awardFaithPoints();
-    }, 300);
+      setShowTutorial(false);
+      setTutorialStep(1); // Reset for next time
+    }, 100);
   }, [awardFaithPoints]);
 
   const handleSkipTutorial = useCallback(() => {
-    setShowTutorial(false);
-    setTutorialStep(1); // Reset for next time
-    // Award faith points when tutorial is skipped
+    // Award faith points first, then hide tutorial to prevent flash
+    awardFaithPoints();
+    // Small delay to ensure smooth transition
     setTimeout(() => {
-      awardFaithPoints();
-    }, 300);
+      setShowTutorial(false);
+      setTutorialStep(1); // Reset for next time
+    }, 100);
   }, [awardFaithPoints]);
 
   const handleContinueJourney = useCallback(() => {
