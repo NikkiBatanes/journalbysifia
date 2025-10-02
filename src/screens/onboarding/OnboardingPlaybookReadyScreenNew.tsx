@@ -111,16 +111,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [tutorialStep, setTutorialStep] = useState(1);
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
 
-  // Only show intro modal once when component first mounts
-  // Use ref to persist across re-renders and prevent modal from showing again
-  const hasShownIntroModal = useRef(false);
+  // Only show intro modal once - use a module-level flag to persist across component remounts
   const [showIntroModal, setShowIntroModal] = useState(false);
   
   // Initialize modal visibility only once on mount
   useEffect(() => {
-    if (!hasShownIntroModal.current) {
+    // Check if modal has been shown in this session
+    const hasShown = (global as any).hasShownPlaybookIntroModal;
+    if (!hasShown) {
       setShowIntroModal(true);
-      hasShownIntroModal.current = true;
+      (global as any).hasShownPlaybookIntroModal = true;
     }
   }, []);
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
@@ -836,6 +836,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={0.9}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
+                // Mark as permanently shown
+                (global as any).hasShownPlaybookIntroModal = true;
                 // Start tutorial first, then close modal (prevents flash)
                 setShowTutorial(true);
                 setTutorialStep(1);
