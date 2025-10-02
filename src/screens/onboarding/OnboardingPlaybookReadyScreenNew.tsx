@@ -116,11 +116,18 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   
   // Initialize modal visibility only once on mount
   useEffect(() => {
+    console.log('[OnboardingPlaybookReady] Component mounted/re-rendered');
+    console.log('[OnboardingPlaybookReady] Global flag value:', (global as any).hasShownPlaybookIntroModal);
+    console.log('[OnboardingPlaybookReady] Current showIntroModal state:', showIntroModal);
+    
     // Check if modal has been shown in this session
     const hasShown = (global as any).hasShownPlaybookIntroModal;
     if (!hasShown) {
+      console.log('[OnboardingPlaybookReady] First time showing modal, setting flag');
       setShowIntroModal(true);
       (global as any).hasShownPlaybookIntroModal = true;
+    } else {
+      console.log('[OnboardingPlaybookReady] Modal already shown, skipping');
     }
   }, []);
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
@@ -836,6 +843,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={0.9}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
+                console.log('[OnboardingPlaybookReady] Button pressed - closing intro modal');
+                console.log('[OnboardingPlaybookReady] Setting global flag to true');
                 // Mark as permanently shown
                 (global as any).hasShownPlaybookIntroModal = true;
                 // Start tutorial first, then close modal (prevents flash)
@@ -844,6 +853,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 
                 // Close modal immediately after tutorial starts (no delay)
                 setShowIntroModal(false);
+                console.log('[OnboardingPlaybookReady] Intro modal closed, tutorial started');
                 // Faith points will be awarded when user completes or skips tutorial
               }}
             >
