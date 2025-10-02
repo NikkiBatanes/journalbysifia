@@ -836,14 +836,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={0.9}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                // Close modal and start tutorial immediately
-                setShowIntroModal(false);
+                // Start tutorial first, then close modal (prevents flash)
+                setShowTutorial(true);
+                setTutorialStep(1);
                 
-                // Start tutorial (no delay)
-                setTimeout(() => {
-                  setShowTutorial(true);
-                  setTutorialStep(1);
-                }, 100);
+                // Close modal immediately after tutorial starts (no delay)
+                setShowIntroModal(false);
                 // Faith points will be awarded when user completes or skips tutorial
               }}
             >
