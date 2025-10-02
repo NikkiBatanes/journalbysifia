@@ -192,8 +192,17 @@ export class NewSubscriptionService {
     const from_tier = currentSubscription.tier;
     const to_tier = target_tier;
 
-    // Validate upgrade path
-    if (!this.isValidUpgrade(from_tier, to_tier)) {
+    // Validate upgrade path (allow same-tier if converting from trial to paid)
+    const isTrialConversion = from_tier === 'free_trial';
+    const isSameTierUpgrade = from_tier === to_tier;
+    
+    // Allow same-tier "upgrade" if converting from trial, otherwise require actual upgrade
+    if (!isTrialConversion && isSameTierUpgrade) {
+      console.log(`[NewSubscriptionService] Skipping same-tier upgrade: ${from_tier} → ${to_tier}`);
+      return currentSubscription; // Return existing subscription, no upgrade needed
+    }
+    
+    if (!isTrialConversion && !this.isValidUpgrade(from_tier, to_tier)) {
       throw new SubscriptionError(`Invalid upgrade from ${from_tier} to ${to_tier}`, 'INVALID_UPGRADE');
     }
 
