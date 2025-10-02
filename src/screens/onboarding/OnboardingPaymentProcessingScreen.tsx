@@ -31,6 +31,19 @@ const OnboardingPaymentProcessingScreen = () => {
   const trialDays = route?.params?.trialDays || 3;
   const price = route?.params?.price || 0;
 
+  // Safety check: if user reloads on this screen without proper navigation context,
+  // redirect to main app to prevent black screen
+  useEffect(() => {
+    if (!user?.id) {
+      console.warn('[OnboardingPaymentProcessing] No user found on reload, redirecting to MainTabs');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' as never }],
+      });
+      return;
+    }
+  }, [user?.id, navigation]);
+
   useEffect(() => {
     processPayment();
   }, []);

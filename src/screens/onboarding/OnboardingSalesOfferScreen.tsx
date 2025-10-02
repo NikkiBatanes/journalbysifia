@@ -91,6 +91,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     skipNotificationPreference: routeParams?.skipNotificationPreference,
   });
 
+  // Safety check: if user reloads on this screen without proper navigation context,
+  // redirect to main app to prevent black screen
+  useEffect(() => {
+    if (!user?.id) {
+      console.warn('[OnboardingSalesOffer] No user found on reload, redirecting to MainTabs');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' as never }],
+      });
+      return;
+    }
+  }, [user?.id, navigation]);
+
   // Load location-adjusted pricing and currency
   useEffect(() => {
     let isMounted = true;

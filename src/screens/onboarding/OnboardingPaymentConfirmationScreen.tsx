@@ -34,6 +34,19 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
   const params = route?.params || {};
   const { tier = 'spark', platform = 'local_test', transactionId } = params;
 
+  // Safety check: if user reloads on this screen without proper navigation context,
+  // redirect to main app to prevent black screen
+  useEffect(() => {
+    if (!user?.id) {
+      console.warn('[OnboardingPaymentConfirmation] No user found on reload, redirecting to MainTabs');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' as never }],
+      });
+      return;
+    }
+  }, [user?.id, navigation]);
+
   useEffect(() => {
     // Refresh subscription data to get the latest status
     refreshSubscription();

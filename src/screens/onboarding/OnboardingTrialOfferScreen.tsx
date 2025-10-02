@@ -112,6 +112,19 @@ const OnboardingTrialOfferScreen = () => {
     }
   };
 
+  // Safety check: if user reloads on this screen without proper navigation context,
+  // redirect to main app to prevent black screen
+  useEffect(() => {
+    if (!user?.id) {
+      console.warn('[OnboardingTrialOffer] No user found on reload, redirecting to MainTabs');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' as never }],
+      });
+      return;
+    }
+  }, [user?.id, navigation]);
+
   // Load pricing and currency for dynamic copy
   useEffect(() => {
     let mounted = true;
