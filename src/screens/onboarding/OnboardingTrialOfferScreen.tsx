@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
-
+  Alert,
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
@@ -44,9 +44,18 @@ const OnboardingTrialOfferScreen = () => {
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = async () => {
-    try { triggerLightHaptic(); } catch {}
+    if (isClosing || isStartingTrial) return; // Prevent double-tap
+    
+    try { 
+      triggerLightHaptic(); 
+      setIsClosing(true);
+    } catch {}
+    
+    console.log('[OnboardingTrialOffer] User declined trial');
     // User declines trial and remains as seeker (freemium)
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
     if (skipNotificationPreference) {
@@ -60,12 +69,20 @@ const OnboardingTrialOfferScreen = () => {
   };
 
   const handleStartTrial = async () => {
-    try { triggerSuccessHaptic(); } catch {}
+    if (isStartingTrial || isClosing) return; // Prevent double-tap
+    
+    try { 
+      triggerSuccessHaptic(); 
+      setIsStartingTrial(true);
+    } catch {}
+    
     try {
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
 
+      console.log('[OnboardingTrialOffer] Starting trial for user:', user.id);
+      
       // Start 3-day free trial with new subscription system
       // Use the currently selected tier (not just the initial param)
       await startTrial({
@@ -74,6 +91,8 @@ const OnboardingTrialOfferScreen = () => {
         trial_chosen_tier: selectedTierId as any, // Record the user's actual choice
       });
 
+      console.log('[OnboardingTrialOffer] Trial started successfully');
+      
       // Navigate to notification setup after trial start
       const skipNotificationPreference = route?.params?.skipNotificationPreference;
       if (skipNotificationPreference) {
@@ -84,18 +103,35 @@ const OnboardingTrialOfferScreen = () => {
         // Navigate to notification setup after trial activation
         navigation.navigate('OnboardingNotificationSetup' as never);
       }
-    } catch (error) {
-      console.error('Error starting trial:', error);
-      // Fallback: continue as freemium user
-      const skipNotificationPreference = route?.params?.skipNotificationPreference;
-      if (skipNotificationPreference) {
-        // Go back twice to skip the sales offer screen and return to original screen
-        navigation.goBack();
-        setTimeout(() => navigation.goBack(), 100);
-      } else {
-        // Navigate to notification setup even on error
-        navigation.navigate('OnboardingNotificationSetup' as never);
-      }
+    } catch (error: any) {
+      console.error('[OnboardingTrialOffer] Error starting trial:', error);
+      setIsStartingTrial(false);
+      
+      // Show user-friendly error message
+      const errorMessage = error?.message || 'Unable to start trial';
+      const isSchemaError = errorMessage.includes('trial_chosen_tier') || errorMessage.includes('schema cache');
+      
+      Alert.alert(
+        'Trial Unavailable',
+        isSchemaError 
+          ? 'We\'re updating our systems. Please try again in a moment or continue as a free user.'
+          : errorMessage,
+        [
+          {
+            text: 'Continue as Free User',
+            onPress: () => {
+              const skipNotificationPreference = route?.params?.skipNotificationPreference;
+              if (skipNotificationPreference) {
+                navigation.goBack();
+                setTimeout(() => navigation.goBack(), 100);
+              } else {
+                navigation.navigate('OnboardingNotificationSetup' as never);
+              }
+            }
+          },
+          { text: 'Try Again', style: 'cancel' }
+        ]
+      );
     }
   };
 
@@ -237,7 +273,13 @@ const OnboardingTrialOfferScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={handleClose} accessibilityRole="button" accessibilityLabel="Close">
+        <TouchableOpacity 
+          style={[styles.closeButton, (isClosing || isStartingTrial) && { opacity: 0.6 }]} 
+          onPress={handleClose} 
+          accessibilityRole="button" 
+          accessibilityLabel="Close"
+          disabled={isClosing || isStartingTrial}
+        >
           <Ionicons name="close" size={22} color={Colors.hopeWhite} />
         </TouchableOpacity>
         <View style={styles.headerTextBlock}>
@@ -320,8 +362,15 @@ const OnboardingTrialOfferScreen = () => {
 
         {/* CTA and Footer */}
         <View style={styles.footerBlock}>
-          <TouchableOpacity style={styles.startTrialButton} onPress={handleStartTrial} activeOpacity={0.9}>
-            <ThemedText weight="bold" style={styles.startTrialButtonText}>Start your free 3‑day trial</ThemedText>
+          <TouchableOpacity 
+            style={[styles.startTrialButton, (isStartingTrial || isClosing) && { opacity: 0.6 }]} 
+            onPress={handleStartTrial} 
+            activeOpacity={0.9}
+            disabled={isStartingTrial || isClosing}
+          >
+            <ThemedText weight="bold" style={styles.startTrialButtonText}>
+              {isStartingTrial ? 'Starting Trial...' : 'Start your free 3‑day trial'}
+            </ThemedText>
           </TouchableOpacity>
           <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
             Try 3 days free. No pressure. Cancel anytime

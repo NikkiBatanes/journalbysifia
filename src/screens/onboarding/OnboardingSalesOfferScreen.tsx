@@ -232,6 +232,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleUnlockPlan = async () => {
     try {
       triggerLightHaptic();
+      
+      console.log('[OnboardingSalesOffer] handleUnlockPlan called', {
+        isUpgradeMode,
+        selectedTier,
+        isAnnual,
+        price: getCurrentPrice()
+      });
 
       if (isUpgradeMode) {
         // In upgrade mode, go directly to platform subscription
@@ -282,31 +289,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           Alert.alert('Purchase Failed', purchaseError?.message || 'Something went wrong. Please try again.');
         }
       } else {
-        // In onboarding mode, use existing flow
-        await upgradeSubscription({
-          target_tier: selectedTier as any,
-          platform: 'local_test',
-          is_family_upgrade: selectedTier === 'family',
-        });
-
-        triggerSuccessHaptic();
-        navigation.navigate('OnboardingPaymentConfirmation' as any, {
-          selectedTier,
-          isAnnual,
-          price: getCurrentPrice(),
-          success: true,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to process subscription:', error);
-      if (!isUpgradeMode) {
-        // Navigate to payment processing for real payment flow
+        // In onboarding mode, go directly to payment processing
+        console.log('[OnboardingSalesOffer] Onboarding mode - navigating to payment processing');
         navigation.navigate('OnboardingPaymentProcessing' as any, {
           selectedTier,
           isAnnual,
           price: getCurrentPrice(),
+          isTrial: false,
         });
       }
+    } catch (error) {
+      console.error('[OnboardingSalesOffer] Error in handleUnlockPlan:', error);
+      Alert.alert(
+        'Error',
+        'Something went wrong. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
