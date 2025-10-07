@@ -23,6 +23,7 @@ const OnboardingPaymentProcessingScreen = () => {
   const [processingStatus, setProcessingStatus] = useState('Initializing payment...');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [hasProcessed, setHasProcessed] = useState(false);
 
   // Get parameters from navigation
   const selectedTier = route?.params?.selectedTier || 'spark';
@@ -33,6 +34,7 @@ const OnboardingPaymentProcessingScreen = () => {
 
   const processPayment = useCallback(async () => {
     try {
+      setHasProcessed(true); // Mark as processed to prevent re-runs on hot reload
       setProcessingStatus('Processing payment...');
 
       // Simulate payment processing delay
@@ -88,21 +90,24 @@ const OnboardingPaymentProcessingScreen = () => {
 
   // Safety check and process payment on mount
   useEffect(() => {
+    // Skip if already processed (prevents re-run on hot reload)
+    if (hasProcessed) {
+      console.log('[OnboardingPaymentProcessing] Already processed, skipping');
+      return;
+    }
+
     if (!user?.id) {
-      console.warn('[OnboardingPaymentProcessing] No user found on reload, redirecting to MainTabs');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' as never }],
-      });
+      console.warn('[OnboardingPaymentProcessing] No user found, waiting for auth...');
+      // Don't redirect immediately - wait for auth to load
       return;
     }
     
-    // Only process payment if we have a valid user
+    // Only process payment if we have a valid user and haven't processed yet
     console.log('[OnboardingPaymentProcessing] Screen mounted with user:', user.id);
     console.log('[OnboardingPaymentProcessing] Route params:', route.params);
     processPayment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [user?.id, hasProcessed]); // Run when user loads or hasProcessed changes
 
   const handleRetry = () => {
     setIsProcessing(true);
