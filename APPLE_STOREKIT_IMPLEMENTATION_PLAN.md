@@ -82,64 +82,130 @@ For each tier, create TWO products (monthly + annual):
 
 **⚠️ STATUS:** Missing metadata - need to complete section 2.3 below
 
+**IMPORTANT: You need to create 16 total subscriptions (8 without trial + 8 with trial)**
+
 **SPARK Tier:**
 ```
-Monthly:
+Monthly (No Trial):
 - Product ID: app.sifia.com.spark.monthly
 - Reference Name: siFia SPARK Monthly
 - Duration: 1 Month
-- Price: $9.99 (or your price)
+- Price: $7.99
+- Free Trial: None
 
-Annual:
+Monthly (With Trial):
+- Product ID: app.sifia.com.spark.monthly.freetrial
+- Reference Name: siFia SPARK Monthly (Free Trial)
+- Duration: 1 Month
+- Price: $7.99
+- Free Trial: 3 days
+
+Annual (No Trial):
 - Product ID: app.sifia.com.spark.annual
 - Reference Name: siFia SPARK Annual
 - Duration: 1 Year
-- Price: $99.99 (or your price)
+- Price: $79.99
+- Free Trial: None
+
+Annual (With Trial):
+- Product ID: app.sifia.com.spark.annual.freetrial
+- Reference Name: siFia SPARK Annual (Free Trial)
+- Duration: 1 Year
+- Price: $79.99
+- Free Trial: 3 days
 ```
 
 **GROWTH Tier:**
 ```
-Monthly:
+Monthly (No Trial):
 - Product ID: app.sifia.com.growth.monthly
 - Reference Name: siFia GROWTH Monthly
 - Duration: 1 Month
-- Price: $19.99
+- Price: $14.99
+- Free Trial: None
 
-Annual:
+Monthly (With Trial):
+- Product ID: app.sifia.com.growth.monthly.freetrial
+- Reference Name: siFia GROWTH Monthly (Free Trial)
+- Duration: 1 Month
+- Price: $14.99
+- Free Trial: 3 days
+
+Annual (No Trial):
 - Product ID: app.sifia.com.growth.annual
 - Reference Name: siFia GROWTH Annual
 - Duration: 1 Year
-- Price: $199.99
+- Price: $149.99
+- Free Trial: None
+
+Annual (With Trial):
+- Product ID: app.sifia.com.growth.annual.freetrial
+- Reference Name: siFia GROWTH Annual (Free Trial)
+- Duration: 1 Year
+- Price: $149.99
+- Free Trial: 3 days
 ```
 
 **TRANSFORMATION Tier:**
 ```
-Monthly:
+Monthly (No Trial):
 - Product ID: app.sifia.com.transformation.monthly
 - Reference Name: siFia TRANSFORMATION Monthly
 - Duration: 1 Month
-- Price: $29.99
+- Price: $24.99
+- Free Trial: None
 
-Annual:
+Monthly (With Trial):
+- Product ID: app.sifia.com.transformation.monthly.freetrial
+- Reference Name: siFia TRANSFORMATION Monthly (Free Trial)
+- Duration: 1 Month
+- Price: $24.99
+- Free Trial: 3 days
+
+Annual (No Trial):
 - Product ID: app.sifia.com.transformation.annual
 - Reference Name: siFia TRANSFORMATION Annual
 - Duration: 1 Year
-- Price: $299.99
+- Price: $249.99
+- Free Trial: None
+
+Annual (With Trial):
+- Product ID: app.sifia.com.transformation.annual.freetrial
+- Reference Name: siFia TRANSFORMATION Annual (Free Trial)
+- Duration: 1 Year
+- Price: $249.99
+- Free Trial: 3 days
 ```
 
 **FAMILY Tier:**
 ```
-Monthly:
+Monthly (No Trial):
 - Product ID: app.sifia.com.family.monthly
 - Reference Name: siFia FAMILY Monthly
 - Duration: 1 Month
-- Price: $39.99
+- Price: $44.99
+- Free Trial: None
 
-Annual:
+Monthly (With Trial):
+- Product ID: app.sifia.com.family.monthly.freetrial
+- Reference Name: siFia FAMILY Monthly (Free Trial)
+- Duration: 1 Month
+- Price: $44.99
+- Free Trial: 3 days
+
+Annual (No Trial):
 - Product ID: app.sifia.com.family.annual
 - Reference Name: siFia FAMILY Annual
 - Duration: 1 Year
-- Price: $399.99
+- Price: $449.99
+- Free Trial: None
+
+Annual (With Trial):
+- Product ID: app.sifia.com.family.annual.freetrial
+- Reference Name: siFia FAMILY Annual (Free Trial)
+- Duration: 1 Year
+- Price: $449.99
+- Free Trial: 3 days
 ```
 
 #### 2.3 Configure Subscription Details ⚠️ IN PROGRESS - **DO THIS NOW**

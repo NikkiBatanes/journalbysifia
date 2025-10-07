@@ -50,17 +50,32 @@ export class AppleStoreKitService {
   private purchaseUpdateSubscription: any;
   private purchaseErrorSubscription: any;
 
-  // Product IDs for subscription tiers - UPDATE THESE IN APPLE DEVELOPER CONSOLE
+  // Product IDs for subscription tiers
+  // Format: app.sifia.com.{tier}.{billing}[.freetrial]
   private static readonly PRODUCT_IDS = {
+    // Monthly subscriptions (no free trial)
     spark: 'app.sifia.com.spark.monthly',
     growth: 'app.sifia.com.growth.monthly',
     transformation: 'app.sifia.com.transformation.monthly',
     family: 'app.sifia.com.family.monthly',
-    // Annual subscriptions
+    
+    // Annual subscriptions (no free trial)
     spark_annual: 'app.sifia.com.spark.annual',
     growth_annual: 'app.sifia.com.growth.annual',
     transformation_annual: 'app.sifia.com.transformation.annual',
     family_annual: 'app.sifia.com.family.annual',
+    
+    // Monthly subscriptions WITH free trial
+    spark_trial: 'app.sifia.com.spark.monthly.freetrial',
+    growth_trial: 'app.sifia.com.growth.monthly.freetrial',
+    transformation_trial: 'app.sifia.com.transformation.monthly.freetrial',
+    family_trial: 'app.sifia.com.family.monthly.freetrial',
+    
+    // Annual subscriptions WITH free trial
+    spark_annual_trial: 'app.sifia.com.spark.annual.freetrial',
+    growth_annual_trial: 'app.sifia.com.growth.annual.freetrial',
+    transformation_annual_trial: 'app.sifia.com.transformation.annual.freetrial',
+    family_annual_trial: 'app.sifia.com.family.annual.freetrial',
   };
 
   private constructor() {}
