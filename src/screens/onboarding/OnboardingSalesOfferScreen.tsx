@@ -245,8 +245,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         const PlatformPaymentService = (await import('../../services/PlatformPaymentService')).default;
         const paymentService = PlatformPaymentService.getInstance();
 
-        // For development/testing, use a fallback approach since products may not be available
+        // Determine product ID based on trial eligibility and billing period
         let productId: string;
+        const billing = isAnnual ? 'annual' : 'monthly';
+        
+        // Check if user is eligible for free trial
+        const isEligibleForTrial = canOfferTrial && !isUpgradeMode;
+        
+        console.log('[OnboardingSalesOffer] Product ID selection:', {
+          selectedTier,
+          billing,
+          isEligibleForTrial,
+          canOfferTrial,
+          isUpgradeMode
+        });
 
         try {
           const products = await paymentService.getAvailableProducts();
@@ -255,14 +267,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           if (targetProduct) {
             productId = targetProduct.productId;
           } else {
-            // Fallback: construct expected product ID format
-            productId = `com.yourcompany.sifia.${selectedTier}.monthly`;
-            console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier}, using fallback: ${productId}`);
+            // Construct product ID based on trial eligibility
+            const trialSuffix = isEligibleForTrial ? '.freetrial' : '';
+            productId = `app.sifia.com.${selectedTier}.${billing}${trialSuffix}`;
+            console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier}, using constructed ID: ${productId}`);
           }
         } catch (error) {
-          // Fallback if getAvailableProducts fails
-          productId = `com.yourcompany.sifia.${selectedTier}.monthly`;
-          console.warn(`[OnboardingSalesOffer] Failed to get products, using fallback: ${productId}`);
+          // Fallback: construct product ID
+          const trialSuffix = isEligibleForTrial ? '.freetrial' : '';
+          productId = `app.sifia.com.${selectedTier}.${billing}${trialSuffix}`;
+          console.warn(`[OnboardingSalesOffer] Failed to get products, using constructed ID: ${productId}`);
         }
 
         try {
