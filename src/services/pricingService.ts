@@ -252,13 +252,19 @@ class PricingService {
 
   /**
    * Get dynamic discount based on user behavior
-   * SIMPLIFIED: Always returns Tier 1 discount (one step down pricing)
+   * DISABLED FOR LAUNCH: Focus on free trial only, no promotional discounts
+   * TODO: Re-enable after launch when promotional offers are set up in App Store Connect
    */
   async getDynamicDiscount(
     userId?: string | null,
     tierId?: string | null,
     billing?: 'monthly' | 'annual'
   ): Promise<DynamicDiscount | null> {
+    // DISABLED FOR LAUNCH - Return null to skip dynamic discount flow
+    console.log('[PricingService] ⚠️ Dynamic discount disabled for launch');
+    return null;
+
+    /* COMMENTED OUT FOR LAUNCH - Uncomment when ready to enable promotional offers
     console.log('[PricingService] getDynamicDiscount called:', { userId, tierId, billing });
 
     const current = (await loadDiscountState(userId)) || null;
@@ -317,6 +323,7 @@ class PricingService {
       reason: 'Special offer for returning users',
       expiresInMinutes: 15,
     };
+    */
   }
 
   async markDiscountRedeemed(userId?: string | null, percentage?: number): Promise<void> {

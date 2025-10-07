@@ -1,7 +1,16 @@
-# 🎁 Promotional Offers Setup Guide (SIMPLIFIED)
+# 🎁 Promotional Offers Setup Guide (DISABLED FOR LAUNCH)
 
-## Overview
-This guide explains how to set up **ONE promotional offer per subscription** (Tier 1 discount only) in App Store Connect. This is a simplified approach with one step-down pricing for all countries.
+## ⚠️ IMPORTANT: DISABLED FOR LAUNCH
+
+**Dynamic discount pricing has been DISABLED for the initial launch.**
+
+- Focus on **FREE TRIAL** only for launch
+- No promotional offers needed in App Store Connect right now
+- Code is ready but commented out
+- Can be re-enabled post-launch when ready
+
+## Overview (For Future Reference)
+This guide explains how to set up **ONE promotional offer per subscription** (Tier 1 discount only) in App Store Connect when you're ready to enable it post-launch.
 
 ---
 
