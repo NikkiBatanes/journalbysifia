@@ -304,12 +304,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         }
       } else {
         // In onboarding mode, go directly to payment processing
-        console.log('[OnboardingSalesOffer] Onboarding mode - navigating to payment processing');
+        // Check if user is eligible for trial
+        const isEligibleForTrial = canOfferTrial;
+        
+        console.log('[OnboardingSalesOffer] Onboarding mode - navigating to payment processing', {
+          selectedTier,
+          isAnnual,
+          canOfferTrial,
+          isEligibleForTrial,
+        });
+        
         navigation.navigate('OnboardingPaymentProcessing' as any, {
           selectedTier,
           isAnnual,
           price: getCurrentPrice(),
-          isTrial: false,
+          isTrial: isEligibleForTrial,
+          trialDays: 3,
         });
       }
     } catch (error) {
