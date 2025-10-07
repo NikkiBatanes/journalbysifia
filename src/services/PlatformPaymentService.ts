@@ -92,17 +92,18 @@ export class PlatformPaymentService {
   }
 
   /**
-   * Purchase a subscription
+   * Purchase a subscription with optional promotional offer
    */
   async purchaseSubscription(
     productId: string,
-    userId: string
+    userId: string,
+    offerIdentifier?: string
   ): Promise<UnifiedPurchaseResult> {
     try {
       let result: PurchaseResult | GooglePlayPurchaseResult;
 
       if (Platform.OS === 'ios') {
-        result = await this.appleService.purchaseSubscription(productId, userId);
+        result = await this.appleService.purchaseSubscription(productId, userId, offerIdentifier);
       } else if (Platform.OS === 'android') {
         result = await this.googleService.purchaseSubscription(productId, userId);
       } else {
@@ -121,6 +122,21 @@ export class PlatformPaymentService {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
+    }
+  }
+
+  /**
+   * Get promotional offers for a product (iOS only)
+   */
+  async getPromotionalOffers(productId: string): Promise<any[]> {
+    try {
+      if (Platform.OS === 'ios') {
+        return await this.appleService.getPromotionalOffers(productId);
+      }
+      return [];
+    } catch (error) {
+      console.error('[PlatformPayment] Failed to get promotional offers:', error);
+      return [];
     }
   }
 

@@ -37,6 +37,9 @@ class PricingService {
         '8 playbooks & 8 devotionals each month',
         'Gentle reminders to keep you on track',
         'Track your progress week by week',
+        'Journaling tools to capture your reflections',
+        'Calendar Sync to stay on track',
+        'Copy To-Dos to other dates for flexibility',
       ],
       monthlyPrice: 7.99,
       annualOriginal: 95.88,
@@ -51,6 +54,9 @@ class PricingService {
         '20 playbooks & 20 devotionals each month',
         'Advanced reflection prompts',
         'Seasonal challenges for breakthrough',
+        'Journaling tools to capture your reflections',
+        'Calendar Sync to stay on track',
+        'Copy To-Dos to other dates for flexibility',
       ],
       monthlyPrice: 14.99,
       annualOriginal: 179.88,
@@ -61,12 +67,15 @@ class PricingService {
       id: 'transformation',
       name: 'Transformation',
       duration: '12 months',
-      description: 'For complete spiritual renewal',
+      description: 'For a life transformed in spirit and purpose',
       features: [
         'Unlimited playbooks & devotionals',
         'Personal spiritual mentor access',
-        'Custom prayer & meditation guides',
         'Priority support & guidance',
+        'Journaling tools to capture your reflections',
+        'Calendar Sync to stay on track',
+        'Copy To-Dos to other dates for flexibility',
+        'Smart Journaling for personalized reflection',
       ],
       monthlyPrice: 24.99,
       annualOriginal: 299.88,
@@ -79,9 +88,7 @@ class PricingService {
       description: 'For the whole family\'s growth',
       features: [
         'Everything in Transformation',
-        'Up to 6 family member accounts',
-        'Family devotionals & activities',
-        'Parental guidance resources',
+        'Up to 5 family member accounts',
       ],
       monthlyPrice: 44.99,
       annualOriginal: 539.88,
@@ -110,6 +117,9 @@ class PricingService {
         '8 playbooks & 8 devotionals each month',
         'Gentle reminders to keep you on track',
         'Track your progress week by week',
+        'Journaling tools to capture your reflections',
+        'Calendar Sync to stay on track',
+        'Copy To-Dos to other dates for flexibility',
       ],
       // PHP prices
       monthlyPrice: 199,
@@ -125,6 +135,9 @@ class PricingService {
         '20 playbooks & 20 devotionals each month',
         'Advanced reflection prompts',
         'Seasonal challenges for breakthrough',
+        'Journaling tools to capture your reflections',
+        'Calendar Sync to stay on track',
+        'Copy To-Dos to other dates for flexibility',
       ],
       monthlyPrice: 399,
       annualOriginal: 399 * 12, // 4788
@@ -141,6 +154,9 @@ class PricingService {
         'Personal spiritual mentor access',
         'Custom prayer & meditation guides',
         'Priority support & guidance',
+        'Journaling tools to capture your reflections',
+        'Calendar Sync to stay on track',
+        'Copy To-Dos to other dates for flexibility',
       ],
       monthlyPrice: 599,
       annualOriginal: 599 * 12, // 7188
@@ -156,6 +172,9 @@ class PricingService {
         'Up to 6 family member accounts',
         'Family devotionals & activities',
         'Parental guidance resources',
+        'Journaling tools to capture your reflections',
+        'Calendar Sync to stay on track',
+        'Copy To-Dos to other dates for flexibility',
       ],
       monthlyPrice: 1290,
       annualOriginal: 1290 * 12, // 15480
@@ -233,6 +252,7 @@ class PricingService {
 
   /**
    * Get dynamic discount based on user behavior
+   * SIMPLIFIED: Always returns Tier 1 discount (one step down pricing)
    */
   async getDynamicDiscount(
     userId?: string | null,
@@ -277,24 +297,8 @@ class PricingService {
       return null;
     }
 
-    // Determine base percentage from opt-outs
-    const baseFromOptOut = optOuts >= 4 ? 30 : optOuts >= 3 ? 20 : 10;
-
-    // Cooldown logic: if a discount was offered recently, reuse that percent (no escalation)
-    const cooldownMinutes = 60; // avoid escalation within 60 minutes across plan/billing switches
-    let reuseLast = false;
-    if (current?.lastShownAt) {
-      const last = new Date(current.lastShownAt);
-      const now = new Date();
-      const diffMin = (now.getTime() - last.getTime()) / 60000;
-      if (diffMin <= cooldownMinutes && (current.lastDiscountPct ?? 0) > 0) {
-        reuseLast = true;
-      }
-    }
-
-    const percentage = reuseLast
-      ? (current?.lastDiscountPct as number)
-      : baseFromOptOut;
+    // SIMPLIFIED: Always use Tier 1 discount (one step down pricing)
+    const percentage = 10; // Fixed at 10% - maps to discount_tier_1
 
     // Update last shown metadata and also mark this tier/billing as shown
     const next: DiscountState = {
@@ -310,9 +314,7 @@ class PricingService {
 
     return {
       percentage,
-      reason: reuseLast
-        ? 'Limited time offer (reserved)'
-        : 'Limited time offer for returning users',
+      reason: 'Special offer for returning users',
       expiresInMinutes: 15,
     };
   }
@@ -356,6 +358,18 @@ class PricingService {
    */
   applyDiscount(originalPrice: number, discountPercentage: number): number {
     return Math.round(originalPrice * (1 - discountPercentage / 100) * 100) / 100;
+  }
+
+  /**
+   * Map discount percentage to Apple promotional offer identifier
+   * SIMPLIFIED: Always returns tier_1 since we only use one discount level
+   */
+  getPromotionalOfferIdentifier(discountPercentage: number): string | undefined {
+    // Always return tier_1 for any discount (simplified to one tier)
+    if (discountPercentage > 0) {
+      return 'discount_tier_1';
+    }
+    return undefined;
   }
 
   /**

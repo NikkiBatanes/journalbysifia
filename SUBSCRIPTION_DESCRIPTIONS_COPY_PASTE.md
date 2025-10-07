@@ -18,6 +18,9 @@ Ignite your faith journey with:
 • Prayer tracking & reminders
 • Faith points & streak tracking
 • Priority support
+• Journaling tools to capture your reflections
+• Calendar Sync to stay on track
+• Copy To-Dos to other dates for flexibility
 
 Perfect for individuals seeking spiritual growth.
 ```
@@ -38,6 +41,9 @@ Accelerate your spiritual growth with:
 • Enhanced devotional content
 • Priority generation queue
 • Early access to new features
+• Journaling tools to capture your reflections
+• Calendar Sync to stay on track
+• Copy To-Dos to other dates for flexibility
 
 Ideal for committed believers pursuing transformation.
 ```
@@ -58,6 +64,9 @@ Transform your life with Christ:
 • Advanced analytics & insights
 • Custom devotional series
 • VIP support & coaching
+• Journaling tools to capture your reflections
+• Calendar Sync to stay on track
+• Copy To-Dos to other dates for flexibility
 
 For those seeking profound spiritual transformation.
 ```
@@ -78,6 +87,9 @@ Grow together in faith:
 • Shared prayer lists
 • Family progress tracking
 • Dedicated family support
+• Journaling tools to capture your reflections
+• Calendar Sync to stay on track
+• Copy To-Dos to other dates for flexibility
 
 Perfect for families building faith together.
 ```

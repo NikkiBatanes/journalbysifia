@@ -4,6 +4,7 @@ import RNIap, {
   ProductPurchase,
   PurchaseError,
   Subscription,
+  SubscriptionOffer,
   initConnection,
   endConnection,
   getProducts,
@@ -25,6 +26,15 @@ export interface StoreProduct {
   localizedPrice: string;
   title: string;
   description: string;
+  discounts?: SubscriptionOffer[];
+}
+
+export interface PromotionalOffer {
+  identifier: string;
+  price: string;
+  localizedPrice: string;
+  currency: string;
+  numberOfPeriods: number;
 }
 
 export interface PurchaseResult {
@@ -121,6 +131,7 @@ export class AppleStoreKitService {
         localizedPrice: (product as any).localizedPrice || '$0.00',
         title: product.title || '',
         description: product.description || '',
+        discounts: (product as any).discounts || [],
       }));
     } catch (error) {
       console.error('[StoreKit] Failed to get products:', error);
@@ -129,19 +140,59 @@ export class AppleStoreKitService {
   }
 
   /**
-   * Purchase a subscription
+   * Get promotional offers for a product
+   */
+  async getPromotionalOffers(productId: string): Promise<PromotionalOffer[]> {
+    try {
+      const products = await this.getAvailableProducts();
+      const product = products.find(p => p.productId === productId);
+
+      if (!product || !product.discounts) {
+        return [];
+      }
+
+      return product.discounts.map((discount: any) => ({
+        identifier: discount.identifier,
+        price: discount.price || '0',
+        localizedPrice: discount.localizedPrice || '$0.00',
+        currency: discount.currency || 'USD',
+        numberOfPeriods: discount.numberOfPeriods || 1,
+      }));
+    } catch (error) {
+      console.error('[StoreKit] Failed to get promotional offers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Purchase a subscription with optional promotional offer
    */
   async purchaseSubscription(
     productId: string,
-    userId: string
+    userId: string,
+    offerIdentifier?: string
   ): Promise<PurchaseResult> {
     try {
       await this.initialize();
 
-      console.log('[StoreKit] Requesting subscription purchase:', productId);
+      console.log('[StoreKit] Requesting subscription purchase:', {
+        productId,
+        offerIdentifier,
+      });
 
       if (Platform.OS === 'ios') {
-        await requestSubscription({ sku: productId });
+        const purchaseParams: any = { sku: productId };
+        
+        // Add promotional offer if provided
+        if (offerIdentifier) {
+          purchaseParams.withOffer = {
+            identifier: offerIdentifier,
+            // Note: For promotional offers, you may need to generate a signature
+            // This depends on your App Store Connect setup
+          };
+        }
+        
+        await requestSubscription(purchaseParams);
       } else {
         // For Android, we'll handle this in GooglePlayBillingService
         throw new Error('Use GooglePlayBillingService for Android purchases');
