@@ -34,18 +34,16 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
   const params = route?.params || {};
   const { tier = 'spark', platform = 'local_test', transactionId } = params;
 
-  // Safety check: if user reloads on this screen without proper navigation context,
-  // redirect to main app to prevent black screen
+  // Safety check: Wait for user to load on hot reload instead of redirecting
+  // Redirecting causes black screen during hot reload
   useEffect(() => {
     if (!user?.id) {
-      console.warn('[OnboardingPaymentConfirmation] No user found on reload, redirecting to MainTabs');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' as never }],
-      });
+      console.warn('[OnboardingPaymentConfirmation] No user found, waiting for auth to load...');
+      // Don't redirect - just wait for auth context to initialize
       return;
     }
-  }, [user?.id, navigation]);
+    console.log('[OnboardingPaymentConfirmation] User loaded:', user.id);
+  }, [user?.id]);
 
   useEffect(() => {
     // Refresh subscription data to get the latest status

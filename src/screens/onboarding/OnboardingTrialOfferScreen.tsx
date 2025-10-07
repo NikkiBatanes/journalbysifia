@@ -148,18 +148,16 @@ const OnboardingTrialOfferScreen = () => {
     }
   };
 
-  // Safety check: if user reloads on this screen without proper navigation context,
-  // redirect to main app to prevent black screen
+  // Safety check: Wait for user to load on hot reload instead of redirecting
+  // Redirecting causes black screen during hot reload
   useEffect(() => {
     if (!user?.id) {
-      console.warn('[OnboardingTrialOffer] No user found on reload, redirecting to MainTabs');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' as never }],
-      });
+      console.warn('[OnboardingTrialOffer] No user found, waiting for auth to load...');
+      // Don't redirect - just wait for auth context to initialize
       return;
     }
-  }, [user?.id, navigation]);
+    console.log('[OnboardingTrialOffer] User loaded:', user.id);
+  }, [user?.id]);
 
   // Load pricing and currency for dynamic copy
   useEffect(() => {
