@@ -1364,7 +1364,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const renderUsageCounters = () => {
     if (!subscription || !usage) {return null;}
 
-    const isTrialing = subscription.status === 'trialing';
+    const isTrialing = subscription.status === 'active' && (subscription as any).trial_start_date && (subscription as any).trial_end_date;
     const isCanceled = subscription.status === 'canceled';
 
     console.log('🔍 Subscription Debug:', {

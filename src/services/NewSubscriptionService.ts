@@ -143,7 +143,7 @@ export class NewSubscriptionService {
       const limits = this.getTierLimits(trialTier);
       const subscriptionData = {
         user_id: user_id,
-        status: 'trialing',
+        status: 'active', // Trial users have 'active' status, distinguished by trial_start_date
         tier: trialTier,
         trial_start_date: new Date().toISOString(),
         trial_end_date: trialEndDate.toISOString(),
