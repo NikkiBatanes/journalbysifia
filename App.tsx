@@ -126,14 +126,28 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
         try {
           const name = navigationRef.current?.getCurrentRoute()?.name;
           setCurrentRouteName(name);
-        } catch {}
+          console.log('[App] Navigation ready, current route:', name);
+        } catch (err) {
+          console.warn('[App] Error getting current route on ready:', err);
+        }
       }}
       onStateChange={() => {
         try {
           const name = navigationRef.current?.getCurrentRoute()?.name;
           setCurrentRouteName(name);
-        } catch {}
+        } catch (err) {
+          console.warn('[App] Error getting current route on state change:', err);
+        }
       }}
+      fallback={
+        <View style={styles.loadingContainer}>
+          <Image
+            source={require('./assets/icons/siFiaTransparent.png')}
+            style={styles.loadingLogo}
+            resizeMode="contain"
+          />
+        </View>
+      }
     >
       <GestureHandlerRootView style={styles.gestureHandler}>
 
