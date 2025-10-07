@@ -26,24 +26,29 @@ import {
 export class NewSubscriptionService {
 
   // ===== TIER CONFIGURATION =====
-
   /**
    * Get limits and features for a subscription tier
    */
-  static getTierLimits(tier: SubscriptionTier): SubscriptionLimits {
+  static getTierLimits(tier: SubscriptionTier): {
+    playbooks_limit: number;
+    devotionals_limit: number;
+    smart_journaling_enabled: boolean;
+    show_dashboard_counts: boolean;
+  } {
     switch (tier) {
       case 'seeker':
         return {
           playbooks_limit: 0,
           devotionals_limit: 0,
           smart_journaling_enabled: false,
-          show_dashboard_counts: false,
+          show_dashboard_counts: true,
         };
       case 'free_trial':
+        // Free trial: Limited to 2 playbooks and 2 devotionals for 3 days
         return {
           playbooks_limit: 2,
           devotionals_limit: 2,
-          smart_journaling_enabled: false,
+          smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
       case 'spark':
@@ -139,17 +144,18 @@ export class NewSubscriptionService {
       trialEndDate.setDate(trialEndDate.getDate() + duration_days);
 
       // Create or update subscription record with trial dates for proper expiry management
-      const trialTier = (trial_chosen_tier as SubscriptionTier) || 'spark';
-      const limits = this.getTierLimits(trialTier);
+      // Store the tier they want to subscribe to, but give them free_trial tier during trial
+      const chosenTier = (trial_chosen_tier as SubscriptionTier) || 'spark';
+      const limits = this.getTierLimits('free_trial'); // Use free_trial limits (2/2)
       const subscriptionData = {
         user_id: user_id,
         status: 'active', // Trial users have 'active' status, distinguished by trial_start_date
-        tier: trialTier,
+        tier: 'free_trial', // Give them free_trial tier (2 playbooks, 2 devotionals)
         trial_start_date: new Date().toISOString(),
         trial_end_date: trialEndDate.toISOString(),
-        trial_chosen_tier: trialTier,
-        playbooks_limit: limits.playbooks_limit,
-        devotionals_limit: limits.devotionals_limit,
+        trial_chosen_tier: chosenTier, // Remember which tier they want after trial
+        playbooks_limit: limits.playbooks_limit, // 2 playbooks
+        devotionals_limit: limits.devotionals_limit, // 2 devotionals
         smart_journaling_enabled: limits.smart_journaling_enabled,
         playbooks_used: 0,
         devotionals_used: 0,
