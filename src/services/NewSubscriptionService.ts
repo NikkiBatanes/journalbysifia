@@ -187,6 +187,56 @@ export class NewSubscriptionService {
   }
 
   /**
+   * Convert trial to paid subscription after successful payment
+   * This upgrades the user from free_trial tier to their chosen tier
+   */
+  static async convertTrialToPaid(userId: string): Promise<Subscription> {
+    try {
+      const subscription = await this.getUserSubscription(userId);
+
+      // Verify user is on trial
+      if (subscription.tier !== 'free_trial') {
+        console.log('[NewSubscriptionService] User is not on trial, skipping conversion');
+        return subscription;
+      }
+
+      // Get the tier they chose during trial signup
+      const chosenTier = (subscription as any).trial_chosen_tier || 'spark';
+      const limits = this.getTierLimits(chosenTier);
+
+      console.log('[NewSubscriptionService] Converting trial to paid:', {
+        from: 'free_trial',
+        to: chosenTier,
+        limits,
+      });
+
+      // Upgrade to paid tier with full limits
+      const { data, error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          tier: chosenTier,
+          playbooks_limit: limits.playbooks_limit,
+          devotionals_limit: limits.devotionals_limit,
+          smart_journaling_enabled: limits.smart_journaling_enabled,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new SubscriptionError(`Failed to convert trial: ${error.message}`, 'TRIAL_CONVERSION_ERROR', error);
+      }
+
+      console.log('[NewSubscriptionService] ✅ Trial converted to paid:', data);
+      return await this.getUserSubscription(userId);
+    } catch (error) {
+      console.error('[NewSubscriptionService] Error converting trial:', error);
+      throw new SubscriptionError(`Failed to convert trial: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TRIAL_CONVERSION_ERROR', error);
+    }
+  }
+
+  /**
    * Upgrade subscription to paid tier
    */
   static async upgradeSubscription(userId: string, options: SubscriptionUpgradeOptions): Promise<Subscription> {
