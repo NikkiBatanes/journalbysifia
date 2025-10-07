@@ -79,14 +79,14 @@ class NotificationManagementService {
       // Map database schema to interface
       const preferences: NotificationPreferences = {
         user_id: data.user_id,
-        playbook_steps: data.playbook_actions,
+        playbook_steps: data.playbook_steps,
         devotional_reminders: data.devotional_reminders,
         journal_prompts: data.journal_prompts,
         prayer_reminders: data.prayer_reminders,
         milestone_celebrations: data.milestone_celebrations,
         trial_notifications: data.trial_notifications,
         streak_alerts: data.streak_alerts,
-        prayer_request_alerts: data.prayer_requests,
+        prayer_request_alerts: data.prayer_request_alerts,
         quiet_hours_start: data.quiet_hours_start,
         quiet_hours_end: data.quiet_hours_end,
         timezone: data.timezone,
@@ -109,19 +109,18 @@ class NotificationManagementService {
       // Map the interface to match the actual database schema
       const dbPreferences = {
         user_id: preferences.user_id,
-        notification_type: 'user_preferences', // Add required notification_type field
+        notification_type: 'user_preferences', // Required NOT NULL field in deployed database
         prayer_reminders: preferences.prayer_reminders ?? true,
-        prayer_requests: preferences.prayer_request_alerts ?? true,
-        playbook_actions: preferences.playbook_steps ?? true,
-        playbook_verses: true,
-        playbook_challenges: true,
-        playbook_affirmations: true,
+        prayer_request_alerts: preferences.prayer_request_alerts ?? true,
+        playbook_steps: preferences.playbook_steps ?? true,
         devotional_reminders: preferences.devotional_reminders ?? true,
         journal_prompts: preferences.journal_prompts ?? true,
-        reflection_questions: true,
         streak_alerts: preferences.streak_alerts ?? true,
         milestone_celebrations: preferences.milestone_celebrations ?? true,
         trial_notifications: preferences.trial_notifications ?? true,
+        quiet_hours_start: preferences.quiet_hours_start ?? '22:00',
+        quiet_hours_end: preferences.quiet_hours_end ?? '07:00',
+        timezone: preferences.timezone ?? 'UTC',
         updated_at: new Date().toISOString(),
       };
 

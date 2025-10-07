@@ -316,12 +316,21 @@ export class AppleStoreKitService {
         throw new Error('No authenticated user found');
       }
 
-      await NewSubscriptionService.upgradeSubscription(userId, {
-        target_tier: tier as any,
-        platform: 'apple',
-        platform_subscription_id: purchase.productId,
-        platform_transaction_id: purchase.transactionId,
-      });
+      // Check if user is on trial - if so, convert to paid
+      const currentSubscription = await NewSubscriptionService.getUserSubscription(userId);
+      
+      if (currentSubscription.tier === 'free_trial') {
+        console.log('[StoreKit] Converting trial to paid subscription');
+        await NewSubscriptionService.convertTrialToPaid(userId);
+      } else {
+        // Regular upgrade/subscription
+        await NewSubscriptionService.upgradeSubscription(userId, {
+          target_tier: tier as any,
+          platform: 'apple',
+          platform_subscription_id: purchase.productId,
+          platform_transaction_id: purchase.transactionId,
+        });
+      }
 
       console.log('[StoreKit] User subscription updated successfully');
     } catch (error) {

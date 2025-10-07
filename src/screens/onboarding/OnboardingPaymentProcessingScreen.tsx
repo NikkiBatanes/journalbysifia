@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -31,24 +31,7 @@ const OnboardingPaymentProcessingScreen = () => {
   const trialDays = route?.params?.trialDays || 3;
   const price = route?.params?.price || 0;
 
-  // Safety check: if user reloads on this screen without proper navigation context,
-  // redirect to main app to prevent black screen
-  useEffect(() => {
-    if (!user?.id) {
-      console.warn('[OnboardingPaymentProcessing] No user found on reload, redirecting to MainTabs');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' as never }],
-      });
-      return;
-    }
-  }, [user?.id, navigation]);
-
-  useEffect(() => {
-    processPayment();
-  }, []);
-
-  const processPayment = async () => {
+  const processPayment = useCallback(async () => {
     try {
       setProcessingStatus('Processing payment...');
 
@@ -101,7 +84,25 @@ const OnboardingPaymentProcessingScreen = () => {
       setProcessingStatus('Payment failed');
       setIsProcessing(false);
     }
-  };
+  }, [isTrial, startTrial, user?.id, trialDays, selectedTier, upgradeSubscription, isAnnual, navigation]);
+
+  // Safety check and process payment on mount
+  useEffect(() => {
+    if (!user?.id) {
+      console.warn('[OnboardingPaymentProcessing] No user found on reload, redirecting to MainTabs');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' as never }],
+      });
+      return;
+    }
+    
+    // Only process payment if we have a valid user
+    console.log('[OnboardingPaymentProcessing] Screen mounted with user:', user.id);
+    console.log('[OnboardingPaymentProcessing] Route params:', route.params);
+    processPayment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const handleRetry = () => {
     setIsProcessing(true);

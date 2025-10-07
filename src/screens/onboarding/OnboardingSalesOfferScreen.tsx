@@ -392,7 +392,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             pointerEvents="none"
             style={[
               styles.selectedOverlay,
-              { backgroundColor: tier.id === 'growth' ? Colors.alertCoral : Colors.growthGreen },
+              { backgroundColor: selectedTier === 'growth' ? Colors.alertCoral : Colors.growthGreen },
             ]}
           />
         )}
