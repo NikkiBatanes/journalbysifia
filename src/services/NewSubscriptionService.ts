@@ -158,9 +158,12 @@ export class NewSubscriptionService {
 
       console.log('[NewSubscriptionService] Creating trial with data:', subscriptionData);
 
+      // Upsert with onConflict to handle existing subscription
       const { data, error } = await supabase
         .from('user_subscriptions_new')
-        .upsert(subscriptionData)
+        .upsert(subscriptionData, {
+          onConflict: 'user_id', // Update existing record if user_id already exists
+        })
         .select()
         .single();
 
