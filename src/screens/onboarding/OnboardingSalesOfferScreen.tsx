@@ -302,22 +302,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         }
       } else {
         // In onboarding mode, go directly to payment processing
-        // Check if user is eligible for trial
-        const isEligibleForTrial = canOfferTrial;
+        // Sales Offer Screen is for PAID subscriptions only (no trial)
+        // Trial is only offered on OnboardingTrialOfferScreen
         
-        console.log('[OnboardingSalesOffer] Onboarding mode - navigating to payment processing', {
+        console.log('[OnboardingSalesOffer] Onboarding mode - navigating to PAID subscription processing', {
           selectedTier,
           isAnnual,
-          canOfferTrial,
-          isEligibleForTrial,
+          price: getCurrentPrice(),
+          isTrial: false, // Sales offer is always paid, never trial
         });
         
         navigation.navigate('OnboardingPaymentProcessing' as any, {
           selectedTier,
           isAnnual,
           price: getCurrentPrice(),
-          isTrial: isEligibleForTrial,
-          trialDays: 3,
+          isTrial: false, // IMPORTANT: Sales offer is always paid subscription
+          trialDays: 0, // No trial
         });
       }
     } catch (error) {
