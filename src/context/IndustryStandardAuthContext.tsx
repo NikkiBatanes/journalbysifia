@@ -254,16 +254,24 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             // Check onboarding completion and navigate accordingly
             if (session?.user) {
               try {
-                const { data: profile } = await supabase
+                console.log('🔍 Checking onboarding status for user:', session.user.id);
+                
+                const { data: profile, error: profileError } = await supabase
                   .from('user_profiles')
                   .select('onboarding_completed')
                   .eq('id', session.user.id)
                   .single();
 
+                if (profileError) {
+                  console.error('❌ Error fetching profile:', profileError);
+                  throw profileError;
+                }
+
                 const hasCompletedOnboarding = profile?.onboarding_completed === true;
                 console.log('🔍 Post-signin onboarding check:', {
                   userId: session.user.id,
                   hasCompleted: hasCompletedOnboarding,
+                  profileData: profile,
                 });
 
                 if (hasCompletedOnboarding) {
@@ -282,15 +290,44 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   console.log('✅ Set force navigation flag and redirect to MainTabs');
                 } else {
                   // User needs to complete onboarding - continue with personalization
-                  console.log('📝 User needs to complete onboarding, staying on personalization');
+                  console.log('📝 User needs to complete onboarding, setting redirect to personalization');
+                  
+                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                    target: 'OnboardingPersonalization',
+                    params: {},
+                  }));
                 }
               } catch (e) {
-                console.warn('⚠️ Failed to check onboarding status or set redirect:', e);
-                // Fallback to personalization
-                await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                  target: 'OnboardingPersonalization',
-                  params: {},
-                }));
+                console.error('❌ CRITICAL: Failed to check onboarding status:', e);
+                // IMPORTANT: On error, check if profile exists at all
+                try {
+                  const { data: profileCheck } = await supabase
+                    .from('user_profiles')
+                    .select('id, onboarding_completed')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+                  
+                  if (profileCheck) {
+                    console.log('✅ Profile exists, onboarding_completed:', profileCheck.onboarding_completed);
+                    const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
+                    await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                      target,
+                      params: {},
+                    }));
+                  } else {
+                    console.warn('⚠️ No profile found, defaulting to personalization');
+                    await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                      target: 'OnboardingPersonalization',
+                      params: {},
+                    }));
+                  }
+                } catch (retryError) {
+                  console.error('❌ Retry failed, defaulting to personalization:', retryError);
+                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                    target: 'OnboardingPersonalization',
+                    params: {},
+                  }));
+                }
               }
             }
             break;
