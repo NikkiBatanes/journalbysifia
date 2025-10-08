@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -23,7 +23,7 @@ const OnboardingPaymentProcessingScreen = () => {
   const [processingStatus, setProcessingStatus] = useState('Initializing payment...');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [hasProcessed, setHasProcessed] = useState(false);
+  const hasProcessedRef = useRef(false); // Use ref instead of state to prevent re-renders
 
   // Get parameters from navigation
   const selectedTier = route?.params?.selectedTier || 'spark';
@@ -34,7 +34,6 @@ const OnboardingPaymentProcessingScreen = () => {
 
   const processPayment = useCallback(async () => {
     try {
-      setHasProcessed(true); // Mark as processed to prevent re-runs on hot reload
       setProcessingStatus('Processing payment...');
 
       // Simulate payment processing delay
@@ -51,6 +50,7 @@ const OnboardingPaymentProcessingScreen = () => {
 
         setProcessingStatus('Trial activated successfully!');
         setPaymentSuccess(true);
+        hasProcessedRef.current = true; // Mark as processed after success
 
         // Navigate to notification setup after trial activation
         setTimeout(() => {
@@ -71,6 +71,7 @@ const OnboardingPaymentProcessingScreen = () => {
 
         setProcessingStatus('Subscription activated successfully!');
         setPaymentSuccess(true);
+        hasProcessedRef.current = true; // Mark as processed after success
 
         // Navigate to notification setup after subscription activation
         setTimeout(() => {
@@ -91,7 +92,7 @@ const OnboardingPaymentProcessingScreen = () => {
   // Safety check and process payment on mount
   useEffect(() => {
     // Skip if already processed (prevents re-run on hot reload)
-    if (hasProcessed) {
+    if (hasProcessedRef.current) {
       console.log('[OnboardingPaymentProcessing] Already processed, skipping');
       return;
     }
@@ -107,7 +108,7 @@ const OnboardingPaymentProcessingScreen = () => {
     console.log('[OnboardingPaymentProcessing] Route params:', route.params);
     processPayment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, hasProcessed]); // Run when user loads or hasProcessed changes
+  }, [user?.id]); // Run when user loads (ref doesn't trigger re-render)
 
   const handleRetry = () => {
     setIsProcessing(true);
