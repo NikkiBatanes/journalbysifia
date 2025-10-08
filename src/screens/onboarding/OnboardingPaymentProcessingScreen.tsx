@@ -25,6 +25,8 @@ const OnboardingPaymentProcessingScreen = () => {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const hasProcessedRef = useRef(false); // Use ref instead of state to prevent re-renders
 
+  console.log('[OnboardingPaymentProcessing] 🎬 SCREEN RENDERING');
+
   // Get parameters from navigation
   const selectedTier = route?.params?.selectedTier || 'spark';
   const isAnnual = route?.params?.isAnnual || true;
@@ -53,8 +55,15 @@ const OnboardingPaymentProcessingScreen = () => {
         hasProcessedRef.current = true; // Mark as processed after success
 
         // Navigate to notification setup after trial activation
+        console.log('[OnboardingPaymentProcessing] Navigating to notification setup in 1.5s...');
         setTimeout(() => {
-          navigation.navigate('OnboardingNotificationSetup' as never);
+          console.log('[OnboardingPaymentProcessing] Attempting navigation to OnboardingNotificationSetup');
+          try {
+            navigation.navigate('OnboardingNotificationSetup' as never);
+            console.log('[OnboardingPaymentProcessing] Navigation successful');
+          } catch (err) {
+            console.error('[OnboardingPaymentProcessing] Navigation failed:', err);
+          }
         }, 1500);
 
       } else {
