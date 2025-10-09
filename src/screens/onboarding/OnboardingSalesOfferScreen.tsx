@@ -63,6 +63,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -228,7 +229,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   };
 
   const handleUnlockPlan = async () => {
+    // Prevent multiple simultaneous purchases
+    if (isPurchasing) {
+      console.log('[OnboardingSalesOffer] Purchase already in progress, ignoring');
+      return;
+    }
+
     try {
+      setIsPurchasing(true);
       triggerLightHaptic();
       
       console.log('[OnboardingSalesOffer] handleUnlockPlan called', {
@@ -351,6 +359,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         'Something went wrong. Please try again.',
         [{ text: 'OK' }]
       );
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
