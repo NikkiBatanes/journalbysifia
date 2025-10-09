@@ -29,6 +29,7 @@
 		858DEB2F5F957127C0759488 /* libPods-siFia.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A73D7CE0B6F3F4B2CD509E4E /* libPods-siFia.a */; };
 		882BD8642E3CA88200EB01BA /* libRNSound.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 882BD8632E3CA88200EB01BA /* libRNSound.a */; };
 		882BD8662E3CA8FB00EB01BA /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */; };
+		886290582E9683BA0002024B /* StoreKitConfiguration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 886290572E9683BA0002024B /* StoreKitConfiguration.storekit */; };
 		9F72F288FABC4A0D87C03863 /* Lexend-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */; };
 		9FC146FE68FF4846B8380F3F /* EvilIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5DD6404215904366A8E904EB /* EvilIcons.ttf */; };
 		A54B2E1C950443E1B510C6B1 /* Poppins-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D2764BA199D4440A1D5D017 /* Poppins-Bold.ttf */; };
@@ -81,6 +82,7 @@
 		882BD8632E3CA88200EB01BA /* libRNSound.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libRNSound.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-SemiBold.ttf"; path = "../assets/fonts/Poppins/Poppins-SemiBold.ttf"; sourceTree = "<group>"; };
+		886290572E9683BA0002024B /* StoreKitConfiguration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfiguration.storekit; sourceTree = "<group>"; };
 		9597A569D46646D295EF6F5A /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialCommunityIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"; sourceTree = "<group>"; };
 		9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Medium.ttf"; path = "../assets/fonts/Poppins/Poppins-Medium.ttf"; sourceTree = "<group>"; };
 		A73D7CE0B6F3F4B2CD509E4E /* libPods-siFia.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-siFia.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -144,6 +146,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				886290572E9683BA0002024B /* StoreKitConfiguration.storekit */,
 				13B07FAE1A68108700A75B9A /* siFia */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
@@ -303,6 +306,7 @@
 				7ADF05D083C34AA3A4423748 /* Fontisto.ttf in Resources */,
 				D37821ED79654A7A8BB73652 /* Foundation.ttf in Resources */,
 				B4446F8E95DA47298B6724D9 /* Ionicons.ttf in Resources */,
+				886290582E9683BA0002024B /* StoreKitConfiguration.storekit in Resources */,
 				F4C834B540964A97A6FCA860 /* MaterialCommunityIcons.ttf in Resources */,
 				C3EE6FD1018E4BDA946FF488 /* MaterialIcons.ttf in Resources */,
 				48D6E9A541CC449A82470E34 /* Octicons.ttf in Resources */,
@@ -338,9 +342,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -395,9 +403,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -563,10 +575,7 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -636,10 +645,7 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;

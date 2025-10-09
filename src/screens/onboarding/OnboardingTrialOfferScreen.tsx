@@ -81,14 +81,18 @@ const OnboardingTrialOfferScreen = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('[OnboardingTrialOffer] Starting trial for user:', user.id);
+      console.log('[OnboardingTrialOffer] Starting trial for user:', user.id, {
+        tier: selectedTierId,
+        billing: isAnnual ? 'annual' : 'monthly',
+      });
       
       // Start 3-day free trial with new subscription system
-      // Use the currently selected tier (not just the initial param)
+      // Use the currently selected tier and billing period
       await startTrial({
         user_id: user.id,
         duration_days: 3,
         trial_chosen_tier: selectedTierId as any, // Record the user's actual choice
+        billing_cycle: isAnnual ? 'annual' : 'monthly', // Record billing preference
       });
 
       console.log('[OnboardingTrialOffer] Trial started successfully');

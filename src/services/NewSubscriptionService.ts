@@ -136,7 +136,7 @@ export class NewSubscriptionService {
    * Start free trial for user (during onboarding)
    */
   static async startFreeTrial(options: TrialStartOptions): Promise<Subscription> {
-    const { user_id, duration_days = 3, trial_chosen_tier } = options;
+    const { user_id, duration_days = 3, trial_chosen_tier, billing_cycle = 'annual' } = options;
 
     try {
       // Since the start_free_trial RPC function doesn't exist, implement manually
