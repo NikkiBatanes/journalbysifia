@@ -334,15 +334,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             console.log('[OnboardingSalesOffer] ✅ Purchase successful, navigating to notification setup');
             triggerSuccessHaptic();
             
-            // Refresh subscription data
-            console.log('[OnboardingSalesOffer] Refreshing subscription...');
-            await devotionalGating.refreshSubscription();
-            console.log('[OnboardingSalesOffer] Subscription refreshed');
-            
-            // Navigate to notification setup after successful purchase
+            // Navigate IMMEDIATELY to prevent re-renders from canceling navigation
             console.log('[OnboardingSalesOffer] Attempting navigation to OnboardingNotificationSetup');
             navigation.navigate('OnboardingNotificationSetup' as never);
             console.log('[OnboardingSalesOffer] Navigation called');
+            
+            // Refresh subscription data in background (after navigation)
+            console.log('[OnboardingSalesOffer] Refreshing subscription in background...');
+            devotionalGating.refreshSubscription().then(() => {
+              console.log('[OnboardingSalesOffer] Subscription refreshed in background');
+            }).catch(err => {
+              console.warn('[OnboardingSalesOffer] Background subscription refresh failed:', err);
+            });
           } else {
             console.log('[OnboardingSalesOffer] ❌ Purchase not successful, throwing error');
             throw new Error(result.error || 'Purchase failed');
