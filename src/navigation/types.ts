@@ -22,23 +22,18 @@ export type RootStackParamList = {
       name: string;
       ageGroup: string;
       faithJourney: string;
-      challenge: string;
       challengeDetails: string;
     };
   };
   OnboardingSalesOffer: undefined;
   OnboardingTrialOffer: undefined;
-  OnboardingPaymentProcessing: {
+  OnboardingPaymentConfirmation: {
+    userType: 'trial' | 'paid' | 'freemium';
     selectedTier?: string;
     isAnnual?: boolean;
     price?: number;
     isDiscounted?: boolean;
     discountPercentage?: number;
-  };
-  OnboardingPaymentConfirmation: {
-    userType: 'trial' | 'paid' | 'freemium';
-    selectedTier?: string;
-    isAnnual?: boolean;
   };
   OnboardingNotificationSetup: {
     userType: 'trial' | 'paid' | 'freemium';

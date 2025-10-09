@@ -101,10 +101,10 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
       console.warn('Failed to mark discount redeemed', e);
     }
     onClose();
-    navigation.navigate('OnboardingPaymentProcessing' as any, {
+    // Navigate to sales offer screen with discount applied
+    navigation.navigate('OnboardingSalesOffer' as any, {
       selectedTier: tier,
       isAnnual,
-      price: discountedPrice,
       isDiscounted: true,
       discountPercentage,
     });
