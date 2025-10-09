@@ -208,6 +208,132 @@
           "referenceName" : "Growth Monthly",
           "subscriptionGroupID" : "21586960",
           "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "79.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6738991245",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Spark Annual subscription",
+              "displayName" : "Spark Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.spark.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Spark Annual",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "149.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6738991246",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Growth Annual subscription",
+              "displayName" : "Growth Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.growth.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Growth Annual",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "24.99",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "6738991247",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Transformation Monthly subscription",
+              "displayName" : "Transformation Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.transformation.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Transformation Monthly",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "249.99",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "6738991248",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Transformation Annual subscription",
+              "displayName" : "Transformation Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.transformation.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Transformation Annual",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "44.99",
+          "familyShareable" : false,
+          "groupNumber" : 4,
+          "internalID" : "6738991249",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Family Monthly subscription",
+              "displayName" : "Family Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.family.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Family Monthly",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "449.99",
+          "familyShareable" : false,
+          "groupNumber" : 4,
+          "internalID" : "6738991250",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Family Annual subscription",
+              "displayName" : "Family Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.family.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Family Annual",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
         }
       ]
     }
