@@ -321,18 +321,30 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         
         try {
           // Show Apple's payment sheet and process purchase
+          console.log('[OnboardingSalesOffer] Calling purchaseSubscription...');
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
+          
+          console.log('[OnboardingSalesOffer] Purchase result:', {
+            success: result.success,
+            error: result.error,
+            hasResult: !!result,
+          });
           
           if (result.success) {
             console.log('[OnboardingSalesOffer] ✅ Purchase successful, navigating to notification setup');
             triggerSuccessHaptic();
             
             // Refresh subscription data
+            console.log('[OnboardingSalesOffer] Refreshing subscription...');
             await devotionalGating.refreshSubscription();
+            console.log('[OnboardingSalesOffer] Subscription refreshed');
             
             // Navigate to notification setup after successful purchase
+            console.log('[OnboardingSalesOffer] Attempting navigation to OnboardingNotificationSetup');
             navigation.navigate('OnboardingNotificationSetup' as never);
+            console.log('[OnboardingSalesOffer] Navigation called');
           } else {
+            console.log('[OnboardingSalesOffer] ❌ Purchase not successful, throwing error');
             throw new Error(result.error || 'Purchase failed');
           }
         } catch (purchaseError: any) {
