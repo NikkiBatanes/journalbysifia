@@ -1,0 +1,219 @@
+{
+  "identifier" : "StoreKitConfiguration",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "6738991234",
+    "_developerTeamID" : "YOUR_TEAM_ID",
+    "_failTransactionsEnabled" : false,
+    "_lastAutoRenewableSubscriptionGroupID" : "21586960",
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21586960",
+      "localizations" : [],
+      "name" : "siFia Subscriptions",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "7.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6738991235",
+          "introductoryOffer" : {
+            "internalID" : "6738991236",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Spark Monthly with 3-day free trial",
+              "displayName" : "Spark Monthly (Free Trial)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.spark.monthly.freetrial",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Spark Monthly Free Trial",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "79.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6738991237",
+          "introductoryOffer" : {
+            "internalID" : "6738991238",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Spark Annual with 3-day free trial",
+              "displayName" : "Spark Annual (Free Trial)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.spark.annual.freetrial",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Spark Annual Free Trial",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "14.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6738991239",
+          "introductoryOffer" : {
+            "internalID" : "6738991240",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Growth Monthly with 3-day free trial",
+              "displayName" : "Growth Monthly (Free Trial)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.growth.monthly.freetrial",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Growth Monthly Free Trial",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "149.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6738991241",
+          "introductoryOffer" : {
+            "internalID" : "6738991242",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Growth Annual with 3-day free trial",
+              "displayName" : "Growth Annual (Free Trial)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.growth.annual.freetrial",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Growth Annual Free Trial",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "7.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6738991243",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Spark Monthly subscription",
+              "displayName" : "Spark Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.spark.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Spark Monthly",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "14.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6738991244",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Growth Monthly subscription",
+              "displayName" : "Growth Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "app.sifia.com.growth.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Growth Monthly",
+          "subscriptionGroupID" : "21586960",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
