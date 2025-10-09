@@ -238,44 +238,44 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         price: getCurrentPrice()
       });
 
-      if (isUpgradeMode) {
-        // In upgrade mode, go directly to platform subscription
-        const PlatformPaymentService = (await import('../../services/PlatformPaymentService')).default;
-        const paymentService = PlatformPaymentService.getInstance();
+      // Initialize payment service (needed for both upgrade and onboarding)
+      const PlatformPaymentService = (await import('../../services/PlatformPaymentService')).default;
+      const paymentService = PlatformPaymentService.getInstance();
 
-        // Determine product ID based on trial eligibility and billing period
-        let productId: string;
-        const billing = isAnnual ? 'annual' : 'monthly';
-        
-        // Check if user is eligible for free trial
-        const isEligibleForTrial = canOfferTrial && !isUpgradeMode;
-        
-        console.log('[OnboardingSalesOffer] Product ID selection:', {
-          selectedTier,
-          billing,
-          isEligibleForTrial,
-          canOfferTrial,
-          isUpgradeMode
-        });
+      // Determine product ID based on trial eligibility and billing period
+      let productId: string;
+      const billing = isAnnual ? 'annual' : 'monthly';
+      
+      // Check if user is eligible for free trial (only in onboarding, not upgrade)
+      const isEligibleForTrial = canOfferTrial && !isUpgradeMode;
+      
+      console.log('[OnboardingSalesOffer] Product ID selection:', {
+        selectedTier,
+        billing,
+        isEligibleForTrial,
+        canOfferTrial,
+        isUpgradeMode
+      });
 
-        try {
-          const products = await paymentService.getAvailableProducts();
-          const targetProduct = products.find(p => p.tier === selectedTier);
+      try {
+        const products = await paymentService.getAvailableProducts();
+        const targetProduct = products.find(p => p.tier === selectedTier);
 
-          if (targetProduct) {
-            productId = targetProduct.productId;
-          } else {
-            // Construct product ID based on trial eligibility
-            const trialSuffix = isEligibleForTrial ? '.freetrial' : '';
-            productId = `app.sifia.com.${selectedTier}.${billing}${trialSuffix}`;
-            console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier}, using constructed ID: ${productId}`);
-          }
-        } catch (error) {
-          // Fallback: construct product ID
-          const trialSuffix = isEligibleForTrial ? '.freetrial' : '';
-          productId = `app.sifia.com.${selectedTier}.${billing}${trialSuffix}`;
-          console.warn(`[OnboardingSalesOffer] Failed to get products, using constructed ID: ${productId}`);
+        if (targetProduct) {
+          productId = targetProduct.productId;
+        } else {
+          // Construct product ID - NO trial suffix for sales offer (always paid)
+          productId = `app.sifia.com.${selectedTier}.${billing}`;
+          console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier}, using constructed ID: ${productId}`);
         }
+      } catch (error) {
+        // Fallback: construct product ID - NO trial suffix for sales offer
+        productId = `app.sifia.com.${selectedTier}.${billing}`;
+        console.warn(`[OnboardingSalesOffer] Failed to get products, using constructed ID: ${productId}`);
+      }
+
+      if (isUpgradeMode) {
+        // In upgrade mode, purchase and go back to previous screen
 
         try {
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
@@ -301,24 +301,48 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           Alert.alert('Purchase Failed', purchaseError?.message || 'Something went wrong. Please try again.');
         }
       } else {
-        // In onboarding mode, go directly to payment processing
-        // Sales Offer Screen is for PAID subscriptions only (no trial)
-        // Trial is only offered on OnboardingTrialOfferScreen
+        // In onboarding mode, use StoreKit to purchase subscription
+        // This matches production behavior - Apple handles the payment UI
         
-        console.log('[OnboardingSalesOffer] Onboarding mode - navigating to PAID subscription processing', {
+        console.log('[OnboardingSalesOffer] Onboarding mode - initiating StoreKit purchase', {
           selectedTier,
           isAnnual,
           price: getCurrentPrice(),
-          isTrial: false, // Sales offer is always paid, never trial
+          productId,
         });
         
-        navigation.navigate('OnboardingPaymentProcessing' as any, {
-          selectedTier,
-          isAnnual,
-          price: getCurrentPrice(),
-          isTrial: false, // IMPORTANT: Sales offer is always paid subscription
-          trialDays: 0, // No trial
-        });
+        try {
+          // Show Apple's payment sheet and process purchase
+          const result = await paymentService.purchaseSubscription(productId, user?.id || '');
+          
+          if (result.success) {
+            console.log('[OnboardingSalesOffer] ✅ Purchase successful, navigating to notification setup');
+            triggerSuccessHaptic();
+            
+            // Refresh subscription data
+            await devotionalGating.refreshSubscription();
+            
+            // Navigate to notification setup after successful purchase
+            navigation.navigate('OnboardingNotificationSetup' as never);
+          } else {
+            throw new Error(result.error || 'Purchase failed');
+          }
+        } catch (purchaseError: any) {
+          console.error('[OnboardingSalesOffer] Purchase failed:', purchaseError);
+          
+          // Check if user cancelled
+          if (purchaseError?.message?.toLowerCase().includes('cancel')) {
+            console.log('[OnboardingSalesOffer] User cancelled purchase');
+            // Don't show error for cancellation
+            return;
+          }
+          
+          Alert.alert(
+            'Purchase Failed', 
+            purchaseError?.message || 'Something went wrong. Please try again.',
+            [{ text: 'OK' }]
+          );
+        }
       }
     } catch (error) {
       console.error('[OnboardingSalesOffer] Error in handleUnlockPlan:', error);
