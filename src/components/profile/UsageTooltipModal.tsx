@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
@@ -44,13 +45,16 @@ const UsageTooltipModal: React.FC<Props> = ({
   usage,
   stats,
 }) => {
+  const navigation = useNavigation();
   if (!type || !visible) return null;
 
   const getTooltipContent = (): TooltipContent => {
     const tier = subscription?.tier || 'seeker';
     const trialChosenTier = subscription?.trial_chosen_tier;
-    const displayName = subscription?.subscription_display_name || 'siFia Seeker';
+    const rawDisplayName = subscription?.subscription_display_name || 'siFia Seeker';
+    // Add "Plan" for paid users (not trials)
     const isOnTrial = tier === 'free_trial';
+    const displayName = isOnTrial ? rawDisplayName : `${rawDisplayName} Plan`;
     const trialEndDate = subscription?.trial_end_date;
     
     // Calculate days remaining for trial
@@ -77,12 +81,15 @@ const UsageTooltipModal: React.FC<Props> = ({
           if (playbooksRemaining === 0) {
             // All trial playbooks used
             const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} trial ${playbooksLimit === 1 ? 'playbook' : 'playbooks'}.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
           } else {
             playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
           }
         } else if (playbooksLimit === -1) {
           playbooksDesc = `You are on ${displayName}. You have unlimited playbooks! Generate as many as you need to support your spiritual journey.`;
+        } else if (playbooksLimit === 0) {
+          // Seeker tier - no playbooks
+          playbooksDesc = `You are on the free Seeker plan. This plan does not include playbook generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared playbooks\n• Explore all app features\n\nUpgrade to unlock personalized playbook generation!`;
         } else {
           playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available each month and have used ${playbooksUsed}.\n\n${playbooksRemaining} ${playbooksRemaining === 1 ? 'playbook' : 'playbooks'} remaining this month.`;
         }
@@ -105,12 +112,15 @@ const UsageTooltipModal: React.FC<Props> = ({
           if (devotionalsRemaining === 0) {
             // All trial devotionals used
             const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} trial ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'}.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
           } else {
             devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
           }
         } else if (devotionalsLimit === -1) {
           devotionalsDesc = `You are on ${displayName}. You have unlimited devotionals! Generate as many as you need for your daily spiritual growth.`;
+        } else if (devotionalsLimit === 0) {
+          // Seeker tier - no devotionals
+          devotionalsDesc = `You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!`;
         } else {
           devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month.`;
         }
@@ -119,7 +129,7 @@ const UsageTooltipModal: React.FC<Props> = ({
           title: 'Devotionals',
           description: devotionalsDesc,
           icon: 'book',
-          iconColor: Colors.growthGreen,
+          iconColor: Colors.alertCoral,
         };
 
       case 'faithPoints':
@@ -144,7 +154,7 @@ const UsageTooltipModal: React.FC<Props> = ({
           title: 'Faith Points',
           description: faithDesc,
           icon: 'star-four-points',
-          iconColor: Colors.faithGold,
+          iconColor: Colors.alertCoral,
         };
 
       case 'badges':
@@ -184,6 +194,17 @@ const UsageTooltipModal: React.FC<Props> = ({
   };
 
   const content = getTooltipContent();
+  
+  // Check if user is on Seeker tier (0 limits)
+  const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) || 
+                   subscription?.tier === 'seeker';
+  const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
+
+  const handleUpgrade = () => {
+    onClose();
+    // Navigate to OnboardingSalesOffer screen
+    (navigation as any).navigate('OnboardingSalesOffer');
+  };
 
   return (
     <Modal
@@ -221,11 +242,26 @@ const UsageTooltipModal: React.FC<Props> = ({
               </View>
 
               {/* Footer */}
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <ThemedText weight="semiBold" style={styles.closeButtonText}>
-                  Got it!
-                </ThemedText>
-              </TouchableOpacity>
+              {showUpgradeButton ? (
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
+                    <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
+                      Upgrade Now
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
+                    <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
+                      Maybe Later
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <ThemedText weight="semiBold" style={styles.closeButtonText}>
+                    Got it!
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -288,6 +324,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    margin: 20,
+    marginTop: 0,
+  },
+  upgradeButton: {
+    flex: 1,
+    backgroundColor: Colors.alertCoral,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+  },
+  secondaryButtonText: {
     fontSize: 16,
     color: Colors.hopeWhite,
   },
