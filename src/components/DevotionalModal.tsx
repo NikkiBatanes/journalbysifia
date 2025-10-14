@@ -77,6 +77,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const contentRef = React.useRef<View>(null);
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
   const [showUsageLimitModal, setShowUsageLimitModal] = useState(false);
+  const [usageLimitModalData, setUsageLimitModalData] = useState<{
+    isOnTrial: boolean;
+    tier: string;
+    trialChosenTier: string;
+    devotionalsLimit: number;
+    trialEndDate: string | null;
+  } | null>(null);
 
   // Feature gating
   const devotionalGating = useDevotionalGating();
@@ -326,6 +333,18 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       await new Promise(resolve => setTimeout(resolve, 300));
       console.log('[DevotionalModal] Current tier AFTER refresh:', devotionalGating.tier);
       console.log('[DevotionalModal] Current subscription AFTER refresh:', devotionalGating.subscription);
+      
+      // Capture the current state to use in modal (prevents reactivity issues)
+      const currentTier = devotionalGating.tier;
+      const isOnTrial = currentTier === 'free_trial';
+      setUsageLimitModalData({
+        isOnTrial,
+        tier: currentTier,
+        trialChosenTier: devotionalGating.subscription?.trial_chosen_tier || 'spark',
+        devotionalsLimit: devotionalGating.subscription?.devotionals_limit || 0,
+        trialEndDate: devotionalGating.subscription?.trial_end_date || null,
+      });
+      
       setShowUsageLimitModal(true);
       return;
     }
@@ -730,12 +749,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         />
 
         {/* Usage Limit Modal */}
-        {showUsageLimitModal && (
+        {showUsageLimitModal && usageLimitModalData && (
           <Modal
             visible={showUsageLimitModal}
             transparent
-            animationType="fade"
-            onRequestClose={() => setShowUsageLimitModal(false)}
+            animationType="none"
+            onRequestClose={() => {
+              setShowUsageLimitModal(false);
+              setUsageLimitModalData(null);
+            }}
           >
             <View style={styles.usageLimitOverlay}>
               <View style={styles.usageLimitContainer}>
@@ -748,20 +770,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
                 <ThemedText weight="regular" style={styles.usageLimitMessage}>
                   {(() => {
-                    const isOnTrial = devotionalGating.tier === 'free_trial';
-                    const limit = devotionalGating.subscription?.devotionals_limit || 0;
+                    const { isOnTrial, trialChosenTier, devotionalsLimit, trialEndDate } = usageLimitModalData;
+                    const limit = devotionalsLimit;
                     const limitText = limit === 1 ? '1 devotional' : `${limit} devotionals`;
                     
-                    console.log('[DevotionalModal] Usage Limit Modal - Debug:', {
-                      tier: devotionalGating.tier,
-                      isOnTrial,
-                      subscription: devotionalGating.subscription,
-                      trial_chosen_tier: devotionalGating.subscription?.trial_chosen_tier,
-                    });
+                    console.log('[DevotionalModal] Usage Limit Modal - Rendering with data:', usageLimitModalData);
                     
                     if (isOnTrial) {
-                      // Trial user message
-                      const trialChosenTier = devotionalGating.subscription?.trial_chosen_tier || 'spark';
+                      // Trial user message - use captured data
                       const tierName = trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1);
                       
                       // Get full tier limits
@@ -779,14 +795,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                           : `${fullLimit} devotionals`;
                       
                       // Calculate when subscription starts (trial end date)
-                      const trialEndDate = devotionalGating.subscription?.trial_end_date 
-                        ? new Date(devotionalGating.subscription.trial_end_date)
-                        : new Date();
+                      const trialEnd = trialEndDate ? new Date(trialEndDate) : new Date();
                       const now = new Date();
-                      const daysUntilSubscriptionStarts = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                      const daysUntilSubscriptionStarts = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
                       const dayText = daysUntilSubscriptionStarts === 1 ? 'day' : 'days';
                       
-                      const subscriptionStartDate = trialEndDate.toLocaleDateString('en-US', { 
+                      const subscriptionStartDate = trialEnd.toLocaleDateString('en-US', { 
                         month: 'long', 
                         day: 'numeric', 
                         year: 'numeric' 
@@ -817,10 +831,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     style={styles.upgradeButtonFull}
                     onPress={() => {
                       setShowUsageLimitModal(false);
+                      setUsageLimitModalData(null);
                       onClose();
                       navigation.navigate('OnboardingSalesOffer' as any, {
                         upgradeMode: true,
-                        currentTier: devotionalGating.tier,
+                        currentTier: usageLimitModalData?.tier || 'spark',
                         skipNotificationPreference: true,
                       });
                     }}
@@ -831,7 +846,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.cancelButton}
-                    onPress={() => setShowUsageLimitModal(false)}
+                    onPress={() => {
+                      setShowUsageLimitModal(false);
+                      setUsageLimitModalData(null);
+                    }}
                   >
                     <ThemedText weight="semiBold" style={styles.cancelButtonText}>
                       Maybe Later
