@@ -97,6 +97,9 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
 
+      // Remove " Trial" from name if present
+      const paidName = currentTier.name.replace(/ Trial$/, '');
+
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
@@ -104,7 +107,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
           status: 'active',
           trial_end_date: yesterday.toISOString(),
           subscription_start_date: now.toISOString(),
-          subscription_display_name: currentTier.name,
+          subscription_display_name: paidName,
           playbooks_limit: currentTier.playbooks,
           devotionals_limit: currentTier.devotionals,
           playbooks_used: 0,
@@ -114,12 +117,18 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
 
       if (error) throw error;
 
+      // Update local state to reflect paid name
+      setCurrentTier({
+        ...currentTier,
+        name: paidName,
+      });
+
       // Trigger refresh if callback provided (longer delay for tier change)
       if (onRefresh) {
         setTimeout(() => onRefresh(), 1000);
       }
 
-      Alert.alert('Success', `Converted to paid ${currentTier.name} (${currentTier.playbooks === -1 ? 'Unlimited' : `${currentTier.playbooks}/${currentTier.devotionals}`}). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+      Alert.alert('Success', `Converted to paid ${paidName} (${currentTier.playbooks === -1 ? 'Unlimited' : `${currentTier.playbooks}/${currentTier.devotionals}`}). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -138,6 +147,10 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 3);
 
+      // Remove " Trial" from name if present, then add it back
+      const baseName = currentTier.name.replace(/ Trial$/, '');
+      const trialName = `${baseName} Trial`;
+
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
@@ -146,7 +159,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
           trial_start_date: new Date().toISOString(),
           trial_end_date: trialEnd.toISOString(),
           trial_chosen_tier: currentTier.tier,
-          subscription_display_name: `${currentTier.name} Trial`,
+          subscription_display_name: trialName,
           playbooks_limit: 2,
           devotionals_limit: 2,
           playbooks_used: 0,
@@ -156,12 +169,18 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
 
       if (error) throw error;
 
+      // Update local state to reflect trial name
+      setCurrentTier({
+        ...currentTier,
+        name: trialName,
+      });
+
       // Trigger refresh if callback provided (longer delay for tier change)
       if (onRefresh) {
         setTimeout(() => onRefresh(), 1000);
       }
 
-      Alert.alert('Success', `Reset to 3-day ${currentTier.name} Trial (2/2). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+      Alert.alert('Success', `Reset to 3-day ${trialName} (2/2). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
