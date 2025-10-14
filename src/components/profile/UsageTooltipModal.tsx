@@ -231,6 +231,26 @@ const UsageTooltipModal: React.FC<Props> = ({
   };
 
   const content = getTooltipContent();
+  
+  // Check if user is on Seeker tier (0 limits)
+  const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) || 
+                   subscription?.tier === 'seeker';
+  const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
+
+  const handleUpgrade = () => {
+    console.log('[UsageTooltipModal] Upgrade Now tapped');
+    console.log('[UsageTooltipModal] Subscription tier:', subscription?.tier);
+    onClose();
+    // Navigate to OnboardingSalesOffer screen
+    setTimeout(() => {
+      console.log('[UsageTooltipModal] Navigating to OnboardingSalesOffer');
+      (navigation as any).navigate('OnboardingSalesOffer', {
+        upgradeMode: true,
+        currentTier: subscription?.tier || 'seeker',
+        skipNotificationPreference: true,
+      });
+    }, 100);
+  };
 
   return (
     <Modal
@@ -268,11 +288,26 @@ const UsageTooltipModal: React.FC<Props> = ({
               </View>
 
               {/* Footer */}
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <ThemedText weight="semiBold" style={styles.closeButtonText}>
-                  Got it!
-                </ThemedText>
-              </TouchableOpacity>
+              {showUpgradeButton ? (
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
+                    <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
+                      Upgrade Now
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
+                    <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
+                      Maybe Later
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <ThemedText weight="semiBold" style={styles.closeButtonText}>
+                    Got it!
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableWithoutFeedback>
         </View>
