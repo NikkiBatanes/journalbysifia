@@ -122,6 +122,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         }
 
         const currency = await pricingService.getCurrencyInfo();
+        console.log('[OnboardingSalesOffer] Currency info loaded:', currency);
 
         // If a specific devotional duration was requested, only show tiers that UNLOCK it
         if (requestedDuration && tiers.length > 0) {
@@ -585,6 +586,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Show loading state while pricing tiers are loading
   if (pricingTiers.length === 0 || !currencyInfo) {
+    console.log('[OnboardingSalesOffer] Showing loading state:', {
+      tiersLength: pricingTiers.length,
+      hasCurrency: !!currencyInfo,
+      currencyInfo,
+    });
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -595,6 +601,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ThemedText style={{ color: Colors.hopeWhite, fontSize: 16 }}>
             Loading pricing options...
+          </ThemedText>
+          <ThemedText style={{ color: Colors.hopeWhite, fontSize: 12, marginTop: 8 }}>
+            Tiers: {pricingTiers.length}, Currency: {currencyInfo ? 'loaded' : 'loading...'}
           </ThemedText>
         </View>
       </SafeAreaView>
