@@ -108,6 +108,11 @@ export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: numbe
   }
 
   if (typeof remaining === 'number') {
+    // Show "No Devotionals Remaining" when count is 0
+    if (remaining === 0) {
+      return 'No Devotionals Remaining';
+    }
+    
     if (tier === 'free_trial') {
       return `${remaining} Devotionals Remaining`;
     }
