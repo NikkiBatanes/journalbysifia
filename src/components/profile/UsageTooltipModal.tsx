@@ -74,11 +74,17 @@ const UsageTooltipModal: React.FC<Props> = ({
         if (isOnTrial) {
           // Get the full tier limits for after trial
           const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
-          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} playbooks available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+          if (playbooksRemaining === 0) {
+            // All trial playbooks used
+            const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
+            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} trial ${playbooksLimit === 1 ? 'playbook' : 'playbooks'}.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+          } else {
+            playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+          }
         } else if (playbooksLimit === -1) {
           playbooksDesc = `You are on ${displayName}. You have unlimited playbooks! Generate as many as you need to support your spiritual journey.`;
         } else {
-          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} playbooks available each month and have used ${playbooksUsed}.\n\n${playbooksRemaining} playbook${playbooksRemaining !== 1 ? 's' : ''} remaining this month.`;
+          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available each month and have used ${playbooksUsed}.\n\n${playbooksRemaining} ${playbooksRemaining === 1 ? 'playbook' : 'playbooks'} remaining this month.`;
         }
         
         return {
@@ -96,11 +102,17 @@ const UsageTooltipModal: React.FC<Props> = ({
         let devotionalsDesc = '';
         if (isOnTrial) {
           const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
-          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} devotionals available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+          if (devotionalsRemaining === 0) {
+            // All trial devotionals used
+            const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
+            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} trial ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'}.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+          } else {
+            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+          }
         } else if (devotionalsLimit === -1) {
           devotionalsDesc = `You are on ${displayName}. You have unlimited devotionals! Generate as many as you need for your daily spiritual growth.`;
         } else {
-          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} devotionals available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} devotional${devotionalsRemaining !== 1 ? 's' : ''} remaining this month.`;
+          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month.`;
         }
         
         return {

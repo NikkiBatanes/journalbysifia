@@ -365,8 +365,9 @@ const styles = StyleSheet.create({
   pillsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: 4 as any,
+    flexShrink: 1,
   },
   faithPointsPill: {
     marginLeft: 0,
