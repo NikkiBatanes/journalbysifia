@@ -30,6 +30,7 @@ import { authApi } from '../services/authApi';
 import { supabase } from '../services/supabaseClient';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
+import { TrialDebugMenu } from '../components/debug/TrialDebugMenu';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
@@ -2506,6 +2507,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           }
           showsVerticalScrollIndicator={false}
         >
+          {/* Debug Menu - DEV ONLY */}
+          {__DEV__ && <TrialDebugMenu />}
+          
           {/* Badges removed from main container */}
           {renderMenuOptions()}
           {renderFamilyManagementSection()}
