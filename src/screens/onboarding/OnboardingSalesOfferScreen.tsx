@@ -583,6 +583,24 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     );
   };
 
+  // Show loading state while pricing tiers are loading
+  if (pricingTiers.length === 0 || !currencyInfo) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
+            <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ThemedText style={{ color: Colors.hopeWhite, fontSize: 16 }}>
+            Loading pricing options...
+          </ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
