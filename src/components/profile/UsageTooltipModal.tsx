@@ -74,11 +74,11 @@ const UsageTooltipModal: React.FC<Props> = ({
         if (isOnTrial) {
           // Get the full tier limits for after trial
           const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
-          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} available tokens to generate playbooks and you have used ${playbooksUsed}.\n\nAfter ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks every month`}.`;
+          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} playbooks available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
         } else if (playbooksLimit === -1) {
           playbooksDesc = `You are on ${displayName}. You have unlimited playbooks! Generate as many as you need to support your spiritual journey.`;
         } else {
-          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} playbooks available each month and you have used ${playbooksUsed}.\n\n${playbooksRemaining} playbook${playbooksRemaining !== 1 ? 's' : ''} remaining this month.`;
+          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} playbooks available each month and have used ${playbooksUsed}.\n\n${playbooksRemaining} playbook${playbooksRemaining !== 1 ? 's' : ''} remaining this month.`;
         }
         
         return {
@@ -96,11 +96,11 @@ const UsageTooltipModal: React.FC<Props> = ({
         let devotionalsDesc = '';
         if (isOnTrial) {
           const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
-          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} available tokens to generate devotionals and you have used ${devotionalsUsed}.\n\nAfter ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals every month`}.`;
+          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} devotionals available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
         } else if (devotionalsLimit === -1) {
           devotionalsDesc = `You are on ${displayName}. You have unlimited devotionals! Generate as many as you need for your daily spiritual growth.`;
         } else {
-          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} devotionals available each month and you have used ${devotionalsUsed}.\n\n${devotionalsRemaining} devotional${devotionalsRemaining !== 1 ? 's' : ''} remaining this month.`;
+          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} devotionals available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} devotional${devotionalsRemaining !== 1 ? 's' : ''} remaining this month.`;
         }
         
         return {
