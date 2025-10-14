@@ -745,15 +745,21 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                           ? '1 devotional' 
                           : `${fullLimit} devotionals`;
                       
-                      // Calculate trial end date
+                      // Calculate when subscription starts (trial end date)
                       const trialEndDate = devotionalGating.subscription?.trial_end_date 
                         ? new Date(devotionalGating.subscription.trial_end_date)
                         : new Date();
                       const now = new Date();
-                      const daysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-                      const dayText = daysRemaining === 1 ? 'day' : 'days';
+                      const daysUntilSubscriptionStarts = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                      const dayText = daysUntilSubscriptionStarts === 1 ? 'day' : 'days';
                       
-                      return `You have used all ${limitText} available during your trial.\n\nAfter your trial ends in ${daysRemaining} ${dayText}, you will have ${fullLimitText} every month with ${tierName}.\n\nWant unlimited devotionals now? Upgrade to Transformation!`;
+                      const subscriptionStartDate = trialEndDate.toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      });
+                      
+                      return `You have used all ${limitText} available during your free trial.\n\nYour ${tierName} subscription will start in ${daysUntilSubscriptionStarts} ${dayText} on ${subscriptionStartDate}, and you'll be able to generate ${fullLimitText} again.\n\nWant unlimited devotionals now? Upgrade to Transformation!`;
                     } else {
                       // Paid user message
                       // Calculate renewal date (first day of next month)
