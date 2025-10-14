@@ -151,7 +151,22 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
 
   // Access checking function
   const checkAccess = (duration: number, context: 'onboarding' | 'inApp' = 'inApp'): DevotionalAccessCheck => {
-    return checkDevotionalAccess(state.tier, duration, context);
+    const tierAccess = checkDevotionalAccess(state.tier, duration, context);
+    
+    // Also check usage limits (except for unlimited tiers)
+    const hasRemainingUsage = usageInfo.remaining === 'Unlimited' || usageInfo.remaining > 0;
+    
+    // User can generate only if tier allows AND they have remaining usage
+    const canGenerate = tierAccess.canGenerate && hasRemainingUsage;
+    const isLocked = tierAccess.isLocked || !hasRemainingUsage;
+    
+    return {
+      ...tierAccess,
+      canGenerate,
+      isLocked,
+      upgradeRequired: isLocked,
+      lockIconVisible: isLocked,
+    };
   };
 
   // Simple access checks
