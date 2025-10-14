@@ -113,14 +113,17 @@ export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: numbe
       return 'No Devotionals Remaining';
     }
     
+    // Handle singular/plural
+    const devotionalText = remaining === 1 ? 'Devotional' : 'Devotionals';
+    
     if (tier === 'free_trial') {
-      return `${remaining} Devotionals Remaining`;
+      return `${remaining} ${devotionalText} Remaining`;
     }
     if (tier === 'spark') {
-      return `${remaining} Devotionals Remaining`;
+      return `${remaining} ${devotionalText} Remaining`;
     }
     if (tier === 'growth') {
-      return `${remaining} Devotionals Remaining`;
+      return `${remaining} ${devotionalText} Remaining`;
     }
   }
 
