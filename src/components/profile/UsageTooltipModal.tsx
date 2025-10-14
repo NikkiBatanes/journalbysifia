@@ -37,6 +37,24 @@ interface Props {
   } | null;
 }
 
+// Apple monthly renewal helper: renews on the same calendar day each month.
+// If that day does not exist in the target month (e.g., 31), it renews on the last day of that month.
+function getNextAppleMonthlyResetDate(subscriptionStartISO?: string | null): Date {
+  const now = new Date();
+  if (!subscriptionStartISO) {
+    // Fallback: first day of the next month
+    return new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }
+  const start = new Date(subscriptionStartISO);
+  const targetDay = start.getDate();
+  const candidateMonth = now.getDate() < targetDay ? now.getMonth() : now.getMonth() + 1;
+  const candidateYear = candidateMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
+  const normalizedMonth = (candidateMonth + 12) % 12;
+  const lastDayOfMonth = new Date(candidateYear, normalizedMonth + 1, 0).getDate();
+  const day = Math.min(targetDay, lastDayOfMonth);
+  return new Date(candidateYear, normalizedMonth, day);
+}
+
 const UsageTooltipModal: React.FC<Props> = ({
   visible,
   type,
@@ -129,11 +147,18 @@ const UsageTooltipModal: React.FC<Props> = ({
           // Seeker tier - no devotionals
           devotionalsDesc = `You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!`;
         } else {
+          // Paid plan with monthly limit: use Apple-style monthly reset date from subscription_start_date
+          const resetDate = getNextAppleMonthlyResetDate(subscription?.subscription_start_date);
+          const now = new Date();
+          const daysUntilReset = Math.max(0, Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+          const dayText = daysUntilReset === 1 ? 'day' : 'days';
+          const resetDateStr = resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
           if (devotionalsRemaining === 0) {
             // All devotionals used for paid plans
-            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available this month.\n\nYour devotionals will reset at the start of next month.`;
+            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available this month.\n\nYour devotionals will reset in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
           } else {
-            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month.`;
+            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month. Resets in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
           }
         }
         

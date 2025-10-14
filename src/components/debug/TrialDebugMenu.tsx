@@ -261,6 +261,48 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
     }
   };
 
+  const setSubscriptionStartDate = async (dayOfMonth: number) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'No user found');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      // Get last day of current month
+      const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      
+      // Clamp day to valid range
+      const validDay = Math.min(dayOfMonth, lastDayOfMonth);
+      
+      // Create date with specified day
+      const startDate = new Date(currentYear, currentMonth, validDay);
+
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          subscription_start_date: startDate.toISOString(),
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 500);
+      }
+
+      Alert.alert('Success', `Subscription start date set to day ${validDay} of month. ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🔧 Trial Debug Menu</Text>
@@ -375,6 +417,62 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
             </View>
           </View>
 
+          {/* Set Subscription Start Date */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Set Subscription Start Date (Day of Month):</Text>
+            <Text style={styles.helperText}>Test Apple monthly billing cycle reset dates</Text>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setSubscriptionStartDate(1)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>1st</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setSubscriptionStartDate(10)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>10th</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setSubscriptionStartDate(15)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>15th</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.buttonRow, { marginTop: 8 }]}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setSubscriptionStartDate(25)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>25th</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setSubscriptionStartDate(30)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>30th</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => {
+                  const now = new Date();
+                  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                  setSubscriptionStartDate(lastDay);
+                }}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>Last</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Change Tier */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Change Tier:</Text>
@@ -485,6 +583,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  helperText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   advancedToggle: {
     padding: 12,
