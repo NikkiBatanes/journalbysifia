@@ -54,7 +54,9 @@ const UsageTooltipModal: React.FC<Props> = ({
     const rawDisplayName = subscription?.subscription_display_name || 'siFia Seeker';
     // Add "Plan" for paid users (not trials)
     const isOnTrial = tier === 'free_trial';
-    const displayName = isOnTrial ? rawDisplayName : `${rawDisplayName} Plan`;
+    // Strip " Trial" suffix before adding " Plan" (defensive coding for edge cases)
+    const cleanName = rawDisplayName.replace(/ Trial$/, '');
+    const displayName = isOnTrial ? rawDisplayName : `${cleanName} Plan`;
     const trialEndDate = subscription?.trial_end_date;
     
     // Calculate days remaining for trial
