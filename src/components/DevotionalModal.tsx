@@ -8,6 +8,7 @@ import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import DevotionalLockIcon from './DevotionalLockIcon';
 import { useDevotionalGating } from '../hooks/useDevotionalGating';
+import UsageTooltipModal from './profile/UsageTooltipModal';
 
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -90,6 +91,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Success state and checkmark animation
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Tooltip state
+  const [tooltipVisible, setTooltipVisible] = useState(false);
 
   // Generating UI state (progress bar, shimmering step text, animated dots)
   const progressAnim = React.useRef(new Animated.Value(0)).current; // 0..100
@@ -619,7 +623,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     <View style={styles.badgeRow}>
       <View style={styles.tierBadgeContainer}>
         <ThemedText weight="semiBold" style={styles.tierBadgeText}>
-          {`siFia ${devotionalGating.tier.toUpperCase()}`}
+          {devotionalGating.subscription?.subscription_display_name || `siFia ${devotionalGating.tier.charAt(0).toUpperCase() + devotionalGating.tier.slice(1)}`}
         </ThemedText>
       </View>
       {devotionalGating.tier === 'seeker' ? (
@@ -642,11 +646,19 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           </ThemedText>
         </TouchableOpacity>
       ) : (
-        <View style={styles.countBadgeContainer}>
+        <TouchableOpacity
+          style={styles.countBadgeContainer}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            setTooltipVisible(true);
+          }}
+          activeOpacity={0.85}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
           <ThemedText weight="semiBold" style={styles.countBadgeText}>
             {devotionalGating.usageInfo.displayMessage}
           </ThemedText>
-        </View>
+        </TouchableOpacity>
       )}
     </View>
   )}
@@ -657,6 +669,22 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             </View>
           </View>
         </Animated.View>
+
+        {/* Usage Tooltip Modal */}
+        <UsageTooltipModal
+          visible={tooltipVisible}
+          onClose={() => setTooltipVisible(false)}
+          type="devotionals"
+          subscription={devotionalGating.subscription}
+          usage={{
+            playbooks: { used: 0, limit: 0 },
+            devotionals: {
+              used: devotionalGating.subscription?.devotionals_used || 0,
+              limit: devotionalGating.subscription?.devotionals_limit || 0,
+            },
+          }}
+          stats={null}
+        />
       </View>
     </Modal>
   );
