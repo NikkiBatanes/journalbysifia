@@ -308,6 +308,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     
     if (hasNoRemaining) {
       console.log('[DevotionalModal] No devotionals remaining, showing usage limit modal');
+      console.log('[DevotionalModal] Current tier BEFORE refresh:', devotionalGating.tier);
+      console.log('[DevotionalModal] Current subscription BEFORE refresh:', devotionalGating.subscription);
+      // Force refresh before showing modal
+      await devotionalGating.refreshSubscription();
+      // Small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('[DevotionalModal] Current tier AFTER refresh:', devotionalGating.tier);
+      console.log('[DevotionalModal] Current subscription AFTER refresh:', devotionalGating.subscription);
       setShowUsageLimitModal(true);
       return;
     }
