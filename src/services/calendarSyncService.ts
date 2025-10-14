@@ -429,22 +429,32 @@ export const removeTimeBlockFromCalendar = async (
 
 export const getCurrentLocation = async (): Promise<LocationResult> => {
   try {
+    console.log('📍 [getCurrentLocation] Starting location request...');
+    
     const hasPermission = await requestLocationPermissions();
+    console.log('📍 [getCurrentLocation] Permission status:', hasPermission);
+    
     if (!hasPermission) {
+      console.log('📍 [getCurrentLocation] ❌ Permission denied');
       return { success: false, error: 'Location permission denied' };
     }
 
     return new Promise((resolve) => {
+      console.log('📍 [getCurrentLocation] Calling Geolocation.getCurrentPosition...');
+      
       Geolocation.getCurrentPosition(
         async (position: any) => {
           const { latitude, longitude } = position.coords;
+          console.log('📍 [getCurrentLocation] Got coordinates:', latitude, longitude);
 
           try {
             // Use reverse geocoding to get actual address
+            console.log('📍 [getCurrentLocation] Fetching reverse geocode...');
             const response = await fetch(
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
             );
             const data = await response.json();
+            console.log('📍 [getCurrentLocation] Reverse geocode response:', data);
 
             let locationString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
             if (data && (data.locality || data.city)) {
@@ -452,16 +462,22 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
               const region = data.principalSubdivision || '';
               const country = data.countryName || '';
               locationString = [city, region, country].filter(Boolean).join(', ');
+              console.log('📍 [getCurrentLocation] Formatted location:', locationString);
+            } else {
+              console.log('📍 [getCurrentLocation] No city data, using coordinates:', locationString);
             }
 
+            console.log('📍 [getCurrentLocation] ✅ Success:', locationString);
             resolve({
               success: true,
               location: locationString,
               coordinates: { latitude, longitude },
             });
           } catch (error) {
+            console.error('📍 [getCurrentLocation] Reverse geocoding failed:', error);
             // Fallback to coordinates if reverse geocoding fails
             const locationString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            console.log('📍 [getCurrentLocation] ✅ Fallback to coordinates:', locationString);
             resolve({
               success: true,
               location: locationString,
@@ -470,7 +486,7 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
           }
         },
         (error: any) => {
-          console.error('Location error:', error);
+          console.error('📍 [getCurrentLocation] ❌ Geolocation error:', error);
           resolve({
             success: false,
             error: error.message || 'Failed to get location',

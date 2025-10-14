@@ -77,29 +77,35 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   }, [currentLocation]);
 
   const handleGetCurrentLocation = async () => {
+    console.log('🗺️ [LocationSelector] Get current location button tapped');
     setIsLoadingLocation(true);
 
     try {
       // Check if native module is available before calling
+      console.log('🗺️ [LocationSelector] Calling getCurrentLocation...');
       const result: LocationResult = await getCurrentLocation();
+      console.log('🗺️ [LocationSelector] Result:', result);
 
       if (result.success && result.location) {
+        console.log('🗺️ [LocationSelector] ✅ Setting location:', result.location);
         setInputValue(result.location);
         onLocationSelect(result.location);
         setShowSuggestions(false);
-        console.log('Current location used:', result.location);
+        console.log('🗺️ [LocationSelector] Current location used:', result.location);
       } else {
+        console.log('🗺️ [LocationSelector] ❌ Failed, error:', result.error);
         // Fallback to manual entry prompt
         setInputValue('');
         setShowSuggestions(true);
       }
     } catch (error) {
-      console.error('GPS not available:', error);
+      console.error('🗺️ [LocationSelector] ❌ Exception:', error);
       // Graceful fallback - just focus the input for manual entry
       setInputValue('');
       setShowSuggestions(true);
     } finally {
       setIsLoadingLocation(false);
+      console.log('🗺️ [LocationSelector] Loading finished');
     }
   };
 
