@@ -163,6 +163,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
 
+    // For Seeker users in upgrade mode, just go back immediately
+    const currentTier = routeParams?.currentTier;
+    if (currentTier === 'seeker' && isUpgradeMode) {
+      console.log('[OnboardingSalesOffer] Seeker user closing - going back to previous screen');
+      navigation.goBack();
+      return;
+    }
+
     // Check for dynamic discount eligibility first
     try {
       console.log('[OnboardingSalesOffer] Checking dynamic discount eligibility:', {
@@ -198,13 +206,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('[OnboardingSalesOffer] Error checking dynamic discount:', error);
-    }
-
-    // Special handling for Seeker users - just go back, don't show trial offer
-    if (currentUserTier === 'seeker' && routeParams?.skipNotificationPreference) {
-      console.log('[OnboardingSalesOffer] Seeker user closing - going back directly');
-      navigation.goBack();
-      return;
     }
 
     // Always show trial if eligible for all flows (upgrade mode and feature locks)

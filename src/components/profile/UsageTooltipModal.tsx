@@ -239,11 +239,10 @@ const UsageTooltipModal: React.FC<Props> = ({
 
   const handleUpgrade = () => {
     onClose();
-    // Navigate to OnboardingSalesOffer screen with proper params
+    // Navigate to OnboardingSalesOffer screen
     (navigation as any).navigate('OnboardingSalesOffer', {
       upgradeMode: true,
-      currentTier: 'seeker',
-      skipNotificationPreference: true,
+      currentTier: subscription?.tier || 'seeker',
     });
   };
 
