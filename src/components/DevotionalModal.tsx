@@ -303,8 +303,18 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     console.log('[DevotionalModal] Current props:', { playbookId, userInput, onSelectDuration });
     console.log('[DevotionalModal] User ID:', user?.id);
 
-    // Check if user has no remaining devotionals (but tier allows it)
-    const hasNoRemaining = devotionalGating.usageInfo.remaining !== 'Unlimited' && devotionalGating.usageInfo.remaining === 0;
+    // Check if user has no remaining devotionals - check directly from subscription
+    const devotionalsUsed = devotionalGating.subscription?.devotionals_used || 0;
+    const devotionalsLimit = devotionalGating.subscription?.devotionals_limit || 0;
+    const hasNoRemaining = devotionalsLimit !== -1 && devotionalsUsed >= devotionalsLimit;
+    
+    console.log('[DevotionalModal] Usage check:', {
+      used: devotionalsUsed,
+      limit: devotionalsLimit,
+      hasNoRemaining,
+      usageInfo: devotionalGating.usageInfo,
+      tier: devotionalGating.tier,
+    });
     
     if (hasNoRemaining) {
       console.log('[DevotionalModal] No devotionals remaining, showing usage limit modal');
