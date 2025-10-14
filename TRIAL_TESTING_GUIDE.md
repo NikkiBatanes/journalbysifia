@@ -145,15 +145,19 @@ After modifying trial state, check these screens:
    - Header badge (top right)
    - Tap playbooks badge → tooltip
    - Tap devotionals badge → tooltip
+   - ✅ **Auto-refreshes** after debug menu changes
 
 2. **User Input Screen**
    - Bottom badge in text input area
    - Shows: "X of Y Playbooks Remaining"
    - Tier badge: "siFia Growth Trial" or "siFia Growth"
+   - ⚠️ **Requires app restart** to see changes
 
 3. **Devotional Modal**
    - Bottom badges
    - Tier badge and usage counter
+   - ⚠️ **Close and reopen modal** after debug menu changes
+   - Or restart the app to see updates
 
 ---
 
@@ -186,18 +190,33 @@ Generate as many as you need to support your spiritual journey.
 
 ## 🚨 **Important Notes**
 
-1. **Refresh Required**: After changing database values, you must:
-   - Pull down to refresh the screen, OR
-   - Close and reopen the app
+1. **User Profile Screen**: ✅ Auto-refreshes after debug menu changes
+   - Tooltips update automatically
+   - No manual refresh needed
 
-2. **Cache Issues**: If changes don't appear:
+2. **Other Screens**: ⚠️ Require manual refresh
+   - **UserInputScreen**: Restart app to see changes
+   - **DevotionalModal**: Close and reopen modal, or restart app
+   - These screens cache subscription data and don't auto-refresh
+
+3. **Testing Flow**:
+   ```
+   1. Use debug menu on User Profile screen
+   2. Check User Profile tooltips (auto-refreshed ✅)
+   3. To test other screens:
+      - Close app completely
+      - Reopen app
+      - Navigate to screen to test
+   ```
+
+4. **Cache Issues**: If changes don't appear:
    - Force quit the app completely
    - Clear React Query cache (restart app)
    - Check Supabase to confirm changes were saved
 
-3. **User ID**: Replace `'YOUR_USER_ID'` with your actual user ID from Supabase
+5. **User ID**: Replace `'YOUR_USER_ID'` with your actual user ID from Supabase
 
-4. **Remove Debug Menu**: Before production, remove:
+6. **Remove Debug Menu**: Before production, remove:
    ```tsx
    {__DEV__ && <TrialDebugMenu />}
    ```
