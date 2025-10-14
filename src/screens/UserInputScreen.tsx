@@ -446,7 +446,7 @@ const UserInputScreen: React.FC = () => {
                                 ? 'No Playbooks Remaining'
                                 : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} Playbooks Remaining`}
                         </Text>
-                        <Text style={[styles.tierBadgeInline, font]}>
+                        <Text style={[styles.tierBadgeInline, font]} numberOfLines={1} ellipsizeMode="tail">
                           {getTierDisplayName(subscriptionData.subscription)}
                         </Text>
                       </View>
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     overflow: 'hidden',
     textAlign: 'center',
-    maxWidth: 80,
+    maxWidth: 120,
     flexShrink: 0,
   },
   askHintButtonInline: {

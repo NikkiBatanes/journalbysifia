@@ -387,6 +387,13 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
             >
               <Text style={styles.buttonText}>Transformation (Unlimited)</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, { marginBottom: 8 }]}
+              onPress={() => changeTier('family', 'siFia Family', -1, -1)}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>Family (Unlimited)</Text>
+            </TouchableOpacity>
           </View>
         </>
       )}

@@ -91,10 +91,12 @@ const UsageTooltipModal: React.FC<Props> = ({
           // Seeker tier - no playbooks
           playbooksDesc = `You are on the free Seeker plan. This plan does not include playbook generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared playbooks\n• Explore all app features\n\nUpgrade to unlock personalized playbook generation!`;
         } else {
-          const remainingText = playbooksRemaining === 0 
-            ? 'No playbooks remaining this month.'
-            : `${playbooksRemaining} ${playbooksRemaining === 1 ? 'playbook' : 'playbooks'} remaining this month.`;
-          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available each month and have used ${playbooksUsed}.\n\n${remainingText}`;
+          if (playbooksRemaining === 0) {
+            // All playbooks used for paid plans
+            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available this month.\n\nYour playbooks will reset at the start of next month.`;
+          } else {
+            playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available each month and have used ${playbooksUsed}.\n\n${playbooksRemaining} ${playbooksRemaining === 1 ? 'playbook' : 'playbooks'} remaining this month.`;
+          }
         }
         
         return {
@@ -125,10 +127,12 @@ const UsageTooltipModal: React.FC<Props> = ({
           // Seeker tier - no devotionals
           devotionalsDesc = `You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!`;
         } else {
-          const remainingText = devotionalsRemaining === 0
-            ? 'No devotionals remaining this month.'
-            : `${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month.`;
-          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${remainingText}`;
+          if (devotionalsRemaining === 0) {
+            // All devotionals used for paid plans
+            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available this month.\n\nYour devotionals will reset at the start of next month.`;
+          } else {
+            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month.`;
+          }
         }
         
         return {
