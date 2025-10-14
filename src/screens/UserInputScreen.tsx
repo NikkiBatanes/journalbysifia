@@ -175,7 +175,7 @@ const UserInputScreen: React.FC = () => {
     // Use subscription_display_name if available (e.g., "siFia Spark Trial")
     if (subscription?.subscription_display_name) {
       console.log('✅ [UserInputScreen] Using subscription_display_name:', subscription.subscription_display_name);
-      return subscription.subscription_display_name.toUpperCase();
+      return subscription.subscription_display_name;
     }
 
     // Fallback to tier-based logic
@@ -190,23 +190,23 @@ const UserInputScreen: React.FC = () => {
 
     // Handle trial display logic with chosen tier
     if (tier === 'free_trial' && chosenTier) {
-      const tierName = chosenTier.replace('_', ' ').toUpperCase();
+      const tierName = chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1);
       console.log('✅ [UserInputScreen] Showing Trial label with tier:', tierName);
-      return `siFia ${tierName} TRIAL`;
+      return `siFia ${tierName} Trial`;
     } else if (tier === 'free_trial') {
-      return 'siFia TRIAL';
+      return 'siFia Trial';
     }
 
     // Handle other tier displays using consistent naming
     const tierDisplayMap: Record<string, string> = {
-      'seeker': 'siFia SEEKER',
-      'spark': 'siFia SPARK',
-      'growth': 'siFia GROWTH',
-      'transformation': 'siFia TRANSFORMATION',
-      'family': 'siFia FAMILY',
+      'seeker': 'siFia Seeker',
+      'spark': 'siFia Spark',
+      'growth': 'siFia Growth',
+      'transformation': 'siFia Transformation',
+      'family': 'siFia Family',
     };
 
-    const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ').toUpperCase() || 'siFia SEEKER';
+    const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ') || 'siFia Seeker';
     console.log('📝 [UserInputScreen] Standard tier display:', displayName);
     return displayName;
   };
@@ -442,7 +442,7 @@ const UserInputScreen: React.FC = () => {
                             ? 'Loading subscription...'
                             : !subscriptionData.subscription || subscriptionData.isSeeker
                               ? getSeekerDisplayText()
-                              : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} playbooks remaining`}
+                              : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} Playbooks Remaining`}
                         </Text>
                         <Text style={[styles.tierBadgeInline, font]}>
                           {getTierDisplayName(subscriptionData.subscription)}
