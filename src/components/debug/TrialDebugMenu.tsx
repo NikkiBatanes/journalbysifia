@@ -16,6 +16,41 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [currentTier, setCurrentTier] = useState<{tier: string, name: string, playbooks: number, devotionals: number}>({
+    tier: 'growth',
+    name: 'siFia Growth',
+    playbooks: 20,
+    devotionals: 20,
+  });
+
+  // Load current tier on mount
+  React.useEffect(() => {
+    const loadCurrentTier = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('user_subscriptions_new')
+        .select('tier, subscription_display_name, playbooks_limit, devotionals_limit, trial_chosen_tier')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) {
+        // If on trial, use trial_chosen_tier
+        const effectiveTier = data.tier === 'free_trial' && data.trial_chosen_tier 
+          ? data.trial_chosen_tier 
+          : data.tier;
+        
+        setCurrentTier({
+          tier: effectiveTier,
+          name: data.subscription_display_name || 'siFia Growth',
+          playbooks: data.playbooks_limit || 20,
+          devotionals: data.devotionals_limit || 20,
+        });
+      }
+    };
+    
+    loadCurrentTier();
+  }, [user?.id]);
 
   const setTrialState = async (daysRemaining: number) => {
     if (!user?.id) {
@@ -65,13 +100,13 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
-          tier: 'growth',
+          tier: currentTier.tier,
           status: 'active',
           trial_end_date: yesterday.toISOString(),
           subscription_start_date: now.toISOString(),
-          subscription_display_name: 'siFia Growth',
-          playbooks_limit: 20,
-          devotionals_limit: 20,
+          subscription_display_name: currentTier.name,
+          playbooks_limit: currentTier.playbooks,
+          devotionals_limit: currentTier.devotionals,
           playbooks_used: 0,
           devotionals_used: 0,
         })
@@ -84,7 +119,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         setTimeout(() => onRefresh(), 1000);
       }
 
-      Alert.alert('Success', `Converted to paid Growth plan (20/20). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+      Alert.alert('Success', `Converted to paid ${currentTier.name} (${currentTier.playbooks === -1 ? 'Unlimited' : `${currentTier.playbooks}/${currentTier.devotionals}`}). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -110,8 +145,8 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
           status: 'active',
           trial_start_date: new Date().toISOString(),
           trial_end_date: trialEnd.toISOString(),
-          trial_chosen_tier: 'growth',
-          subscription_display_name: 'siFia Growth Trial',
+          trial_chosen_tier: currentTier.tier,
+          subscription_display_name: `${currentTier.name} Trial`,
           playbooks_limit: 2,
           devotionals_limit: 2,
           playbooks_used: 0,
@@ -126,7 +161,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         setTimeout(() => onRefresh(), 1000);
       }
 
-      Alert.alert('Success', `Reset to 3-day Growth trial (2/2). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+      Alert.alert('Success', `Reset to 3-day ${currentTier.name} Trial (2/2). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -186,6 +221,14 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      // Update local state so Convert/Reset buttons use this tier
+      setCurrentTier({
+        tier,
+        name: tierName,
+        playbooks: playbooksLimit,
+        devotionals: devotionalsLimit,
+      });
 
       if (onRefresh) {
         setTimeout(() => onRefresh(), 1000);
