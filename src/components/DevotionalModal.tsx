@@ -722,22 +722,54 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
                 <ThemedText weight="regular" style={styles.usageLimitMessage}>
                   {(() => {
+                    const isOnTrial = devotionalGating.tier === 'free_trial';
                     const limit = devotionalGating.subscription?.devotionals_limit || 0;
                     const limitText = limit === 1 ? '1 devotional' : `${limit} devotionals`;
                     
-                    // Calculate renewal date (first day of next month)
-                    const now = new Date();
-                    const renewalDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-                    const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    const dayText = daysUntilRenewal === 1 ? 'day' : 'days';
-                    
-                    const renewalDateStr = renewalDate.toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    });
-                    
-                    return `You have used all ${limitText} for this month.\n\nYour devotionals will renew in ${daysUntilRenewal} ${dayText} on ${renewalDateStr}, giving you ${limitText} again.\n\nWant unlimited devotionals? Upgrade now!`;
+                    if (isOnTrial) {
+                      // Trial user message
+                      const trialChosenTier = devotionalGating.subscription?.trial_chosen_tier || 'spark';
+                      const tierName = trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1);
+                      
+                      // Get full tier limits
+                      const tierLimits: Record<string, number> = {
+                        spark: 8,
+                        growth: 20,
+                        transformation: -1,
+                        family: -1,
+                      };
+                      const fullLimit = tierLimits[trialChosenTier] || 8;
+                      const fullLimitText = fullLimit === -1 
+                        ? 'unlimited devotionals' 
+                        : fullLimit === 1 
+                          ? '1 devotional' 
+                          : `${fullLimit} devotionals`;
+                      
+                      // Calculate trial end date
+                      const trialEndDate = devotionalGating.subscription?.trial_end_date 
+                        ? new Date(devotionalGating.subscription.trial_end_date)
+                        : new Date();
+                      const now = new Date();
+                      const daysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                      const dayText = daysRemaining === 1 ? 'day' : 'days';
+                      
+                      return `You have used all ${limitText} available during your trial.\n\nAfter your trial ends in ${daysRemaining} ${dayText}, you will have ${fullLimitText} every month with ${tierName}.\n\nWant unlimited devotionals now? Upgrade to Transformation!`;
+                    } else {
+                      // Paid user message
+                      // Calculate renewal date (first day of next month)
+                      const now = new Date();
+                      const renewalDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                      const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      const dayText = daysUntilRenewal === 1 ? 'day' : 'days';
+                      
+                      const renewalDateStr = renewalDate.toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      });
+                      
+                      return `You have used all ${limitText} for this month.\n\nYour devotionals will renew in ${daysUntilRenewal} ${dayText} on ${renewalDateStr}, giving you ${limitText} again.\n\nWant unlimited devotionals? Upgrade to Transformation!`;
+                    }
                   })()}
                 </ThemedText>
 
@@ -1137,7 +1169,7 @@ const styles = StyleSheet.create({
   },
   usageLimitContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
+    borderRadius: 30,
     padding: 24,
     width: '100%',
     maxWidth: 400,
