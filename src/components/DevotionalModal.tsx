@@ -80,6 +80,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   // Feature gating
   const devotionalGating = useDevotionalGating();
 
+  // Refresh gating data when modal becomes visible
+  React.useEffect(() => {
+    if (visible) {
+      devotionalGating.refreshSubscription();
+    }
+  }, [visible]);
+
   // Haptics
   const hapticOptions = React.useMemo(() => ({
     enableVibrateFallback: true,

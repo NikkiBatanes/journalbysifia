@@ -15,6 +15,7 @@ interface TrialDebugMenuProps {
 export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const setTrialState = async (daysRemaining: number) => {
     if (!user?.id) {
@@ -78,9 +79,9 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
 
       if (error) throw error;
 
-      // Trigger refresh if callback provided
+      // Trigger refresh if callback provided (longer delay for tier change)
       if (onRefresh) {
-        setTimeout(() => onRefresh(), 500);
+        setTimeout(() => onRefresh(), 1000);
       }
 
       Alert.alert('Success', `Converted to paid Growth plan (20/20). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
@@ -120,12 +121,77 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
 
       if (error) throw error;
 
-      // Trigger refresh if callback provided
+      // Trigger refresh if callback provided (longer delay for tier change)
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 1000);
+      }
+
+      Alert.alert('Success', `Reset to 3-day Growth trial (2/2). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setUsage = async (playbooksUsed: number, devotionalsUsed: number) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'No user found');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          playbooks_used: playbooksUsed,
+          devotionals_used: devotionalsUsed,
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
       if (onRefresh) {
         setTimeout(() => onRefresh(), 500);
       }
 
-      Alert.alert('Success', `Reset to 3-day Growth trial (2/2). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+      Alert.alert('Success', `Usage set to ${playbooksUsed} playbooks, ${devotionalsUsed} devotionals. ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeTier = async (tier: string, tierName: string, playbooksLimit: number, devotionalsLimit: number) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'No user found');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          tier,
+          status: 'active',
+          subscription_display_name: tierName,
+          playbooks_limit: playbooksLimit,
+          devotionals_limit: devotionalsLimit,
+          playbooks_used: 0,
+          devotionals_used: 0,
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 1000);
+      }
+
+      Alert.alert('Success', `Changed to ${tierName}. ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -183,8 +249,107 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         </TouchableOpacity>
       </View>
 
+      {/* Advanced Options Toggle */}
+      <TouchableOpacity
+        style={styles.advancedToggle}
+        onPress={() => setShowAdvanced(!showAdvanced)}
+        disabled={loading}
+      >
+        <Text style={styles.advancedToggleText}>
+          {showAdvanced ? '▼' : '▶'} Advanced Options
+        </Text>
+      </TouchableOpacity>
+
+      {showAdvanced && (
+        <>
+          {/* Set Usage */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Set Usage (Playbooks / Devotionals):</Text>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setUsage(0, 0)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>0 / 0</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setUsage(1, 1)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>1 / 1</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setUsage(2, 2)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>2 / 2</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.buttonRow, { marginTop: 8 }]}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setUsage(5, 5)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>5 / 5</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setUsage(10, 10)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>10 / 10</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setUsage(20, 20)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>20 / 20</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Change Tier */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Change Tier:</Text>
+            <TouchableOpacity
+              style={[styles.button, { marginBottom: 8 }]}
+              onPress={() => changeTier('seeker', 'siFia Seeker', 0, 0)}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>Seeker (0/0)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, { marginBottom: 8 }]}
+              onPress={() => changeTier('spark', 'siFia Spark', 8, 8)}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>Spark (8/8)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, { marginBottom: 8 }]}
+              onPress={() => changeTier('growth', 'siFia Growth', 20, 20)}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>Growth (20/20)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, { marginBottom: 8 }]}
+              onPress={() => changeTier('transformation', 'siFia Transformation', -1, -1)}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>Transformation (Unlimited)</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
       <Text style={styles.note}>
-        💡 After changing state, pull down to refresh or restart the app to see changes.
+        💡 After changing state, the screen will auto-refresh.
       </Text>
     </View>
   );
@@ -251,5 +416,15 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  advancedToggle: {
+    padding: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  advancedToggleText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
