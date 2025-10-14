@@ -337,6 +337,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       // Capture the current state to use in modal (prevents reactivity issues)
       const currentTier = devotionalGating.tier;
       const isOnTrial = currentTier === 'free_trial';
+      
+      console.log('[DevotionalModal] ===== CAPTURING DATA FOR MODAL =====');
+      console.log('[DevotionalModal] currentTier:', currentTier);
+      console.log('[DevotionalModal] isOnTrial:', isOnTrial);
+      console.log('[DevotionalModal] subscription:', devotionalGating.subscription);
+      console.log('[DevotionalModal] trial_chosen_tier:', devotionalGating.subscription?.trial_chosen_tier);
+      console.log('[DevotionalModal] =====================================');
+      
       setUsageLimitModalData({
         isOnTrial,
         tier: currentTier,
@@ -681,7 +689,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               </View>
   )}
   {/* Usage Badges moved near footer and centered */}
-  {!devotionalGating.loading && devotionalGating.tier !== 'transformation' && devotionalGating.tier !== 'family' && (
+  {devotionalGating.tier && devotionalGating.tier !== 'transformation' && devotionalGating.tier !== 'family' && (
     <View style={styles.badgeRow}>
       <View style={styles.tierBadgeContainer}>
         <ThemedText weight="semiBold" style={styles.tierBadgeText}>
