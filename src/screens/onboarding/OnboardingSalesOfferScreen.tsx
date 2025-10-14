@@ -112,10 +112,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         if (isUpgradeMode) {
           // In upgrade mode, only show tiers higher than current user tier
+          console.log('[OnboardingSalesOffer] Loading upgrade tiers for:', currentUserTier);
           tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
+          console.log('[OnboardingSalesOffer] Upgrade tiers loaded:', tiers.length, tiers.map(t => t.id));
         } else {
           // In onboarding mode, show all tiers
           tiers = await pricingService.getLocationAdjustedPricing();
+          console.log('[OnboardingSalesOffer] All tiers loaded:', tiers.length);
         }
 
         const currency = await pricingService.getCurrencyInfo();
@@ -755,7 +758,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               )
             )}
           </View>
-          <View style={styles.cardsContainer}>{pricingTiers.map(renderPricingCard)}</View>
+          <View style={styles.cardsContainer}>
+            {pricingTiers.length > 0 ? (
+              pricingTiers.map(renderPricingCard)
+            ) : (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <ThemedText style={{ color: Colors.hopeWhite, textAlign: 'center' }}>
+                  Loading pricing options...
+                </ThemedText>
+              </View>
+            )}
+          </View>
         </ScrollView>
       </View>
 
