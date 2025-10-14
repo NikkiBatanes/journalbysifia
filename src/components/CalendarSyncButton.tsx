@@ -16,7 +16,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { useCalendarGating } from '../hooks/useCalendarGating';
-import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar, CalendarEvent } from '../services/calendarSyncService';
+import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar, updateTimeBlockInCalendar, CalendarEvent } from '../services/calendarSyncService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Linking } from 'react-native';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../utils/haptics';
@@ -71,13 +71,28 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
     triggerLightHaptic();
 
     try {
-      const result = await syncTimeBlockToCalendar({
-        ...timeBlock,
-        repeat: {
-          ...timeBlock.repeat,
-          frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly',
-        },
-      });
+      let result;
+      
+      // If already synced, update the existing event instead of creating a new one
+      if (calendarEventId) {
+        const updateResult = await updateTimeBlockInCalendar(calendarEventId, {
+          ...timeBlock,
+          repeat: {
+            ...timeBlock.repeat,
+            frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly',
+          },
+        });
+        result = { ...updateResult, eventId: calendarEventId };
+      } else {
+        // First time sync - create new event
+        result = await syncTimeBlockToCalendar({
+          ...timeBlock,
+          repeat: {
+            ...timeBlock.repeat,
+            frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly',
+          },
+        });
+      }
 
       if (result.success && result.eventId) {
         setSyncStatus('synced');
