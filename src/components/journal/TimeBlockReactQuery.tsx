@@ -1049,16 +1049,19 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         calendarEventId={block.calendarEventId}
                         onSyncComplete={async (eventId) => {
                           // Update the timeblock with calendar event ID
+                          console.log('🟢 [onSyncComplete] Called with eventId:', eventId);
+                          console.log('🟢 [onSyncComplete] block.id:', block.id);
                           try {
+                            console.log('🟢 [onSyncComplete] Calling updateMutation...');
                             await updateMutation.mutateAsync({
                               id: block.id,
                               updates: {
                                 calendar_event_id: eventId || undefined,
                               },
                             });
-                            console.log('✅ Updated time block with calendar event ID:', eventId);
+                            console.log('🟢 [onSyncComplete] ✅ Updated time block with calendar event ID:', eventId);
                           } catch (error) {
-                            console.error('❌ Failed to update time block with calendar event ID:', error);
+                            console.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID:', error);
                           }
                         }}
                         compact

@@ -268,8 +268,13 @@ export const syncTimeBlockToCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; eventId?: string; error?: string }> => {
   try {
+    console.log('📅 [syncTimeBlockToCalendar] Starting sync for:', timeBlock.title);
+    
     const hasPermission = await requestCalendarPermissions();
+    console.log('📅 [syncTimeBlockToCalendar] Permission status:', hasPermission);
+    
     if (!hasPermission) {
+      console.log('📅 [syncTimeBlockToCalendar] ❌ Permission denied');
       return {
         success: false,
         error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia',
@@ -277,7 +282,10 @@ export const syncTimeBlockToCalendar = async (
     }
 
     const calendarId = await getSiFiaCalendar();
+    console.log('📅 [syncTimeBlockToCalendar] Calendar ID:', calendarId);
+    
     if (!calendarId) {
+      console.log('📅 [syncTimeBlockToCalendar] ❌ No calendar ID');
       return { success: false, error: 'Could not access calendar' };
     }
 
@@ -301,7 +309,12 @@ export const syncTimeBlockToCalendar = async (
       eventDetails.recurrence = recurrence;
     }
 
+    console.log('📅 [syncTimeBlockToCalendar] Event details:', eventDetails);
+    console.log('📅 [syncTimeBlockToCalendar] Calling RNCalendarEvents.saveEvent...');
+    
     const eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
+    
+    console.log('📅 [syncTimeBlockToCalendar] ✅ Event created with ID:', eventId);
 
     // Track success analytics
     try {
