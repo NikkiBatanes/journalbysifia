@@ -231,20 +231,6 @@ const UsageTooltipModal: React.FC<Props> = ({
   };
 
   const content = getTooltipContent();
-  
-  // Check if user is on Seeker tier (0 limits)
-  const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) || 
-                   subscription?.tier === 'seeker';
-  const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
-
-  const handleUpgrade = () => {
-    onClose();
-    // Navigate to OnboardingSalesOffer screen
-    (navigation as any).navigate('OnboardingSalesOffer', {
-      upgradeMode: true,
-      currentTier: subscription?.tier || 'seeker',
-    });
-  };
 
   return (
     <Modal
@@ -282,26 +268,11 @@ const UsageTooltipModal: React.FC<Props> = ({
               </View>
 
               {/* Footer */}
-              {showUpgradeButton ? (
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
-                    <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
-                      Upgrade Now
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
-                    <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
-                      Maybe Later
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                  <ThemedText weight="semiBold" style={styles.closeButtonText}>
-                    Got it!
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <ThemedText weight="semiBold" style={styles.closeButtonText}>
+                  Got it!
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
         </View>
