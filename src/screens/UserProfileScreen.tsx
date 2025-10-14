@@ -1307,29 +1307,29 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       // Use subscription_display_name if available
       const branded = (() => {
         if ((subscription as any)?.subscription_display_name) {
-          return (subscription as any).subscription_display_name.toUpperCase();
+          return (subscription as any).subscription_display_name;
         }
         
         // Fallback to tier-based logic
         switch (tierBase) {
           // Legacy IDs
           case 'basic':
-            return 'siFia SEEKER';
+            return 'siFia Seeker';
           case 'seeker':
-            return 'siFia SEEKER';
+            return 'siFia Seeker';
           case 'spark':
-            return 'siFia SPARK';
+            return 'siFia Spark';
           case 'growth':
-            return 'siFia GROWTH';
+            return 'siFia Growth';
           case 'transformation':
-            return 'siFia TRANSFORMATION';
+            return 'siFia Transformation';
           case 'family':
-            return 'siFia FAMILY';
+            return 'siFia Family';
           case 'free_trial':
             {
               const chosen = (subscription as any)?.trial_chosen_tier || 'growth';
-              const tierName = String(chosen).replace('_', ' ').toUpperCase();
-              return `siFia ${tierName} TRIAL`;
+              const tierName = String(chosen).charAt(0).toUpperCase() + String(chosen).slice(1);
+              return `siFia ${tierName} Trial`;
             }
           default:
             return undefined;
@@ -1337,7 +1337,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       })();
 
       // If canceled, user effectively falls back to free tier presentation
-      planLabel = subscription.status === 'canceled' ? 'siFia SEEKER' : (branded || 'siFia SEEKER');
+      planLabel = subscription.status === 'canceled' ? 'siFia Seeker' : (branded || 'siFia Seeker');
     }
     return (
       <ProfileHeader
