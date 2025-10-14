@@ -60,10 +60,10 @@ const DynamicUpgradeModal: React.FC<DynamicUpgradeModalProps> = ({
 
   const getTierDisplayName = (tierName: SubscriptionTier): string => {
     switch (tierName) {
-      case 'spark': return 'siFia SPARK';
-      case 'growth': return 'siFia GROWTH';
-      case 'transformation': return 'siFia TRANSFORMATION';
-      case 'family': return 'siFia FAMILY';
+      case 'spark': return 'siFia Spark';
+      case 'growth': return 'siFia Growth';
+      case 'transformation': return 'siFia Transformation';
+      case 'family': return 'siFia Family';
       default: return tierName.charAt(0).toUpperCase() + tierName.slice(1);
     }
   };

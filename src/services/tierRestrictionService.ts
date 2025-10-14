@@ -366,16 +366,16 @@ class TierRestrictionService {
     };
 
     const tierNames: Record<SubscriptionTier, string> = {
-      'seeker': 'siFia SEEKER',
+      'seeker': 'siFia Seeker',
       'free_trial': 'Free Trial',
-      'spark': 'siFia SPARK',
-      'spark_annual': 'siFia SPARK Annual',
-      'growth': 'siFia GROWTH',
-      'growth_annual': 'siFia GROWTH Annual',
-      'transformation': 'siFia TRANSFORMATION',
-      'transformation_annual': 'siFia TRANSFORMATION Annual',
-      'family': 'siFia FAMILY',
-      'family_annual': 'siFia FAMILY Annual',
+      'spark': 'siFia Spark',
+      'spark_annual': 'siFia Spark Annual',
+      'growth': 'siFia Growth',
+      'growth_annual': 'siFia Growth Annual',
+      'transformation': 'siFia Transformation',
+      'transformation_annual': 'siFia Transformation Annual',
+      'family': 'siFia Family',
+      'family_annual': 'siFia Family Annual',
     };
 
     const featureName = featureNames[feature] || feature;

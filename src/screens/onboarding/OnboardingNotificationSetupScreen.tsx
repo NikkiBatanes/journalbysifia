@@ -290,27 +290,27 @@ const OnboardingNotificationSetupScreen = () => {
         };
       case 'spark':
         return {
-          title: 'Welcome to SPARK',
+          title: 'Welcome to Spark',
           subtitle: 'Get reminders for your 8 monthly playbooks, devotionals, and journaling.',
-          badge: 'SPARK Subscriber',
+          badge: 'Spark Subscriber',
         };
       case 'growth':
         return {
-          title: 'Welcome to GROWTH',
+          title: 'Welcome to Growth',
           subtitle: 'Make the most of your 20 monthly resources with helpful reminders.',
-          badge: 'GROWTH Subscriber',
+          badge: 'Growth Subscriber',
         };
       case 'transformation':
         return {
-          title: 'Welcome to siFia TRANSFORMATION',
+          title: 'Welcome to siFia Transformation',
           subtitle: 'Enjoy unlimited access with gentle reminders to support your daily walk.',
-          badge: 'TRANSFORMATION Subscriber',
+          badge: 'Transformation Subscriber',
         };
       case 'family':
         return {
-          title: 'Welcome to siFia FAMILY',
+          title: 'Welcome to siFia Family',
           subtitle: 'Keep your family connected with notifications for unlimited resources.',
-          badge: 'FAMILY Subscriber',
+          badge: 'Family Subscriber',
         };
       case 'seeker':
       default:

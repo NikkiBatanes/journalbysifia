@@ -142,12 +142,12 @@ const OnboardingTrialOfferScreen = () => {
   const getTierDisplayName = (tierName: string) => {
     switch (tierName) {
       case 'seeker':
-      case 'basic': return 'siFia SEEKER';
+      case 'basic': return 'siFia Seeker';
       case 'spark':
-      case 'starter': return 'siFia SPARK';
-      case 'growth': return 'siFia GROWTH';
-      case 'transformation': return 'siFia TRANSFORMATION';
-      case 'family': return 'siFia FAMILY';
+      case 'starter': return 'siFia Spark';
+      case 'growth': return 'siFia Growth';
+      case 'transformation': return 'siFia Transformation';
+      case 'family': return 'siFia Family';
       default: return tierName;
     }
   };
@@ -216,7 +216,7 @@ const OnboardingTrialOfferScreen = () => {
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia GROWTH PLAN free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.',
+      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
