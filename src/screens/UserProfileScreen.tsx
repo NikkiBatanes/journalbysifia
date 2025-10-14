@@ -1303,7 +1303,14 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (subscription) {
       const rawTier = subscription.tier || '';
       const tierBase = rawTier.replace(/_annual$/, '');
+      
+      // Use subscription_display_name if available
       const branded = (() => {
+        if ((subscription as any)?.subscription_display_name) {
+          return (subscription as any).subscription_display_name.toUpperCase();
+        }
+        
+        // Fallback to tier-based logic
         switch (tierBase) {
           // Legacy IDs
           case 'basic':
@@ -1322,7 +1329,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             {
               const chosen = (subscription as any)?.trial_chosen_tier || 'growth';
               const tierName = String(chosen).replace('_', ' ').toUpperCase();
-              return `siFia ${tierName} FREE TRIAL`;
+              return `siFia ${tierName} TRIAL`;
             }
           default:
             return undefined;
@@ -1344,6 +1351,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         onEditAvatar={handleEditAvatar}
         plan={planLabel}
         usage={usageSummary}
+        subscription={subscription} // Pass subscription for tooltips
         isLoading={loading || !subscription || !usage}
       />
     );

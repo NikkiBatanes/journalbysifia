@@ -144,19 +144,27 @@ export class NewSubscriptionService {
       trialEndDate.setDate(trialEndDate.getDate() + duration_days);
 
       // Create or update subscription record with trial dates for proper expiry management
-      // Store the tier they want to subscribe to, but give them free_trial tier during trial
       const chosenTier = (trial_chosen_tier as SubscriptionTier) || 'spark';
-      const limits = this.getTierLimits('free_trial'); // Use free_trial limits (2/2)
+      
+      // IMPORTANT: All trials get 2/2 limits regardless of chosen tier
+      // The chosen tier only applies AFTER they convert to paid
+      const trialLimits = this.getTierLimits('free_trial'); // Always 2/2 for trials
+      
+      // Generate display name for trial: "siFia Spark Trial", "siFia Growth Trial", etc.
+      const tierDisplayName = this.getTierDisplayName(chosenTier);
+      const displayName = `${tierDisplayName} Trial`;
+      
       const subscriptionData = {
         user_id: user_id,
         status: 'active', // Trial users have 'active' status, distinguished by trial_start_date
-        tier: 'free_trial', // Give them free_trial tier (2 playbooks, 2 devotionals)
+        tier: 'free_trial', // Set tier to 'free_trial' during trial period
         trial_start_date: new Date().toISOString(),
         trial_end_date: trialEndDate.toISOString(),
         trial_chosen_tier: chosenTier, // Remember which tier they want after trial
-        playbooks_limit: limits.playbooks_limit, // 2 playbooks
-        devotionals_limit: limits.devotionals_limit, // 2 devotionals
-        smart_journaling_enabled: limits.smart_journaling_enabled,
+        subscription_display_name: displayName, // e.g., "siFia Spark Trial"
+        playbooks_limit: trialLimits.playbooks_limit, // Always 2 for trials
+        devotionals_limit: trialLimits.devotionals_limit, // Always 2 for trials
+        smart_journaling_enabled: trialLimits.smart_journaling_enabled,
         playbooks_used: 0,
         devotionals_used: 0,
         updated_at: new Date().toISOString(),
@@ -203,18 +211,21 @@ export class NewSubscriptionService {
       // Get the tier they chose during trial signup
       const chosenTier = (subscription as any).trial_chosen_tier || 'spark';
       const limits = this.getTierLimits(chosenTier);
+      const displayName = this.getTierDisplayName(chosenTier); // Remove "Trial" suffix
 
       console.log('[NewSubscriptionService] Converting trial to paid:', {
         from: 'free_trial',
         to: chosenTier,
         limits,
+        displayName,
       });
 
-      // Upgrade to paid tier with full limits
+      // Upgrade to paid tier with full limits and updated display name
       const { data, error } = await supabase
         .from('user_subscriptions_new')
         .update({
           tier: chosenTier,
+          subscription_display_name: displayName, // e.g., "siFia Spark" (no "Trial")
           playbooks_limit: limits.playbooks_limit,
           devotionals_limit: limits.devotionals_limit,
           smart_journaling_enabled: limits.smart_journaling_enabled,
@@ -266,10 +277,13 @@ export class NewSubscriptionService {
     }
 
     const limits = this.getTierLimits(to_tier);
+    const displayName = this.getTierDisplayName(to_tier);
+    
     const updateData: any = {
       tier: to_tier,
       status: 'active',
       subscription_start_date: new Date().toISOString(),
+      subscription_display_name: displayName, // e.g., "siFia Spark", "siFia Growth"
       playbooks_limit: limits.playbooks_limit,
       devotionals_limit: limits.devotionals_limit,
       smart_journaling_enabled: limits.smart_journaling_enabled,
@@ -557,6 +571,28 @@ export class NewSubscriptionService {
   }
 
   // ===== HELPER METHODS =====
+
+  /**
+   * Get user-friendly display name for a tier
+   */
+  private static getTierDisplayName(tier: SubscriptionTier): string {
+    switch (tier) {
+      case 'seeker':
+        return 'siFia Seeker';
+      case 'spark':
+        return 'siFia Spark';
+      case 'growth':
+        return 'siFia Growth';
+      case 'transformation':
+        return 'siFia Transformation';
+      case 'family':
+        return 'siFia Family';
+      case 'free_trial':
+        return 'siFia Trial';
+      default:
+        return `siFia ${String(tier).replace('_', ' ')}`;
+    }
+  }
 
   /**
    * Enrich subscription data with computed properties

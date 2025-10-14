@@ -458,7 +458,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-
+      
       {/* Logo Section */}
       <View style={styles.logoSection}>
         <Image
@@ -466,8 +466,6 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           style={styles.logoImage}
           resizeMode="contain"
         />
-
-
       </View>
     </View>
   );
@@ -484,15 +482,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 0,
-  },
   logoImage: {
     width: 200,
     height: 200,
-    // Prevent image from growing during load
     overflow: 'hidden',
   },
 });

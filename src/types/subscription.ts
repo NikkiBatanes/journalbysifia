@@ -37,6 +37,9 @@ export interface Subscription {
   user_id: string;
   tier: SubscriptionTier;
   status: SubscriptionStatus;
+  
+  // Display name (e.g., "siFia Spark Trial", "siFia Growth")
+  subscription_display_name?: string;
 
   // Trial and subscription dates
   trial_start_date?: string;

@@ -172,19 +172,29 @@ const UserInputScreen: React.FC = () => {
 
 
   const getTierDisplayName = (subscription: any) => {
+    // Use subscription_display_name if available (e.g., "siFia Spark Trial")
+    if (subscription?.subscription_display_name) {
+      console.log('✅ [UserInputScreen] Using subscription_display_name:', subscription.subscription_display_name);
+      return subscription.subscription_display_name.toUpperCase();
+    }
+
+    // Fallback to tier-based logic
     const tier = subscription?.tier;
     const chosenTier = subscription?.trial_chosen_tier;
 
-    console.log('🔍 [UserInputScreen] getTierDisplayName debug:', {
+    console.log('🔍 [UserInputScreen] getTierDisplayName fallback:', {
       tier,
       chosenTier,
       fullSubscription: subscription,
     });
 
-    // Handle trial display logic
-    if (tier === 'free_trial') {
-      console.log('✅ [UserInputScreen] Showing Free Trial label');
-      return 'Free Trial';
+    // Handle trial display logic with chosen tier
+    if (tier === 'free_trial' && chosenTier) {
+      const tierName = chosenTier.replace('_', ' ').toUpperCase();
+      console.log('✅ [UserInputScreen] Showing Trial label with tier:', tierName);
+      return `siFia ${tierName} TRIAL`;
+    } else if (tier === 'free_trial') {
+      return 'siFia TRIAL';
     }
 
     // Handle other tier displays using consistent naming

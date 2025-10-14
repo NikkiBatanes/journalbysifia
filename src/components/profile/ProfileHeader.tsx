@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil as LuPencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../theme/ThemeContext';
+import UsageTooltipModal, { TooltipType } from './UsageTooltipModal';
 
 export interface ProfileStatsLite {
   faithPoints: number;
@@ -39,12 +40,28 @@ interface Props {
   onEditAvatar?: () => void;
   plan?: string; // e.g., 'Starter', 'Growth', 'Premium', 'Basic'
   usage?: UsageSummary | null;
+  subscription?: any | null; // Add subscription data for tooltips
   isLoading?: boolean; // Add loading state
 }
 
-const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage, isLoading = false }) => {
+const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage, subscription, isLoading = false }) => {
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
+  
+  // Tooltip state
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipType, setTooltipType] = useState<TooltipType | null>(null);
+
+  const showTooltip = (type: TooltipType) => {
+    setTooltipType(type);
+    setTooltipVisible(true);
+  };
+
+  const hideTooltip = () => {
+    setTooltipVisible(false);
+    // Clear type after animation completes to prevent flash
+    setTimeout(() => setTooltipType(null), 300);
+  };
   const displayName = useMemo(() => {
     const meta = (user as any)?.user_metadata || {};
     return (
@@ -111,7 +128,11 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
               <Text style={[styles.planText, font]}>{String(plan)}</Text>
               {!!usage && (
                 <View style={styles.pillsRow}>
-                  <View style={styles.usagePill}>
+                  <TouchableOpacity 
+                    style={styles.usagePill}
+                    onPress={() => showTooltip('playbooks')}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="clipboard-text-play" size={14} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>
@@ -119,8 +140,12 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                         {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
                       </Text>
                     </View>
-                  </View>
-                  <View style={styles.usagePill}>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.usagePill}
+                    onPress={() => showTooltip('devotionals')}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="book" size={14} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>
@@ -128,20 +153,28 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                         {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                   {/* Usage stats: Playbooks, Devotionals, Faith Points, Badges */}
-                  <View style={styles.usagePill}>
+                  <TouchableOpacity 
+                    style={styles.usagePill}
+                    onPress={() => showTooltip('faithPoints')}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>{points} FP</Text>
                     </View>
-                  </View>
-                  <View style={styles.usagePill}>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.usagePill}
+                    onPress={() => showTooltip('badges')}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="trophy" size={14} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>{badgesCount}</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -220,6 +253,16 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
         {/* Right-side edit pencil removed per request */}
       </View>
+
+      {/* Tooltip Modal */}
+      <UsageTooltipModal
+        visible={tooltipVisible}
+        type={tooltipType}
+        onClose={hideTooltip}
+        subscription={subscription || null}
+        usage={usage || null}
+        stats={stats}
+      />
     </View>
   );
 };

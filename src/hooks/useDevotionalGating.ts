@@ -77,15 +77,24 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
 
       const subscription = await subscriptionService.getUserSubscription(user.id);
 
+      // IMPORTANT: For trials, use trial_chosen_tier for gating (not 'free_trial')
+      // This ensures Growth Trial gets Growth tier's feature unlocks (5-day devotionals)
+      // while still having trial limits (2/2)
+      const effectiveTier = subscription.tier === 'free_trial' && (subscription as any).trial_chosen_tier
+        ? (subscription as any).trial_chosen_tier
+        : subscription.tier;
+
       setState({
         subscription,
-        tier: subscription.tier,
+        tier: effectiveTier, // Use chosen tier for gating
         loading: false,
         error: null,
       });
 
       console.log(`[useDevotionalGating] Loaded subscription for user ${user.id}:`, {
         tier: subscription.tier,
+        effectiveTier: effectiveTier,
+        trial_chosen_tier: (subscription as any).trial_chosen_tier,
         devotionals_used: subscription.devotionals_used,
         devotionals_limit: subscription.devotionals_limit,
       });
