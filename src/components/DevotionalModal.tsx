@@ -88,6 +88,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }
   }, [visible]);
 
+  // Refresh gating data when usage limit modal is shown
+  React.useEffect(() => {
+    if (showUsageLimitModal) {
+      console.log('[DevotionalModal] Usage limit modal shown, refreshing subscription data...');
+      devotionalGating.refreshSubscription();
+    }
+  }, [showUsageLimitModal]);
+
   // Haptics
   const hapticOptions = React.useMemo(() => ({
     enableVibrateFallback: true,
@@ -725,6 +733,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     const isOnTrial = devotionalGating.tier === 'free_trial';
                     const limit = devotionalGating.subscription?.devotionals_limit || 0;
                     const limitText = limit === 1 ? '1 devotional' : `${limit} devotionals`;
+                    
+                    console.log('[DevotionalModal] Usage Limit Modal - Debug:', {
+                      tier: devotionalGating.tier,
+                      isOnTrial,
+                      subscription: devotionalGating.subscription,
+                      trial_chosen_tier: devotionalGating.subscription?.trial_chosen_tier,
+                    });
                     
                     if (isOnTrial) {
                       // Trial user message
