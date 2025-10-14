@@ -1047,9 +1047,19 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       <CalendarSyncButton
                         timeBlock={block}
                         calendarEventId={block.calendarEventId}
-                        onSyncComplete={(eventId) => {
+                        onSyncComplete={async (eventId) => {
                           // Update the timeblock with calendar event ID
-                          // This would typically trigger a refetch or optimistic update
+                          try {
+                            await updateMutation.mutateAsync({
+                              id: block.id,
+                              updates: {
+                                calendar_event_id: eventId || undefined,
+                              },
+                            });
+                            console.log('✅ Updated time block with calendar event ID:', eventId);
+                          } catch (error) {
+                            console.error('❌ Failed to update time block with calendar event ID:', error);
+                          }
                         }}
                         compact
                       />
