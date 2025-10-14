@@ -4,11 +4,15 @@ import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { Colors } from '../../theme/colors';
 
+interface TrialDebugMenuProps {
+  onRefresh?: () => void;
+}
+
 /**
  * DEBUG COMPONENT - Remove before production
  * Allows testing different trial states without manually editing database
  */
-export const TrialDebugMenu: React.FC = () => {
+export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +36,12 @@ export const TrialDebugMenu: React.FC = () => {
 
       if (error) throw error;
 
-      Alert.alert('Success', `Trial set to ${daysRemaining} day(s) remaining. Refresh the app to see changes.`);
+      // Trigger refresh if callback provided
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 500);
+      }
+
+      Alert.alert('Success', `Trial set to ${daysRemaining} day(s) remaining. ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -69,7 +78,12 @@ export const TrialDebugMenu: React.FC = () => {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Converted to paid Growth plan (20/20). Refresh the app to see changes.');
+      // Trigger refresh if callback provided
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 500);
+      }
+
+      Alert.alert('Success', `Converted to paid Growth plan (20/20). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -92,7 +106,7 @@ export const TrialDebugMenu: React.FC = () => {
         .from('user_subscriptions_new')
         .update({
           tier: 'free_trial',
-          status: 'trialing',
+          status: 'active',
           trial_start_date: new Date().toISOString(),
           trial_end_date: trialEnd.toISOString(),
           trial_chosen_tier: 'growth',
@@ -106,7 +120,12 @@ export const TrialDebugMenu: React.FC = () => {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Reset to 3-day Growth trial (2/2). Refresh the app to see changes.');
+      // Trigger refresh if callback provided
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 500);
+      }
+
+      Alert.alert('Success', `Reset to 3-day Growth trial (2/2). ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {

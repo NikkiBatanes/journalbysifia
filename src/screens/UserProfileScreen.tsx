@@ -2508,7 +2508,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
           {/* Debug Menu - DEV ONLY */}
-          {__DEV__ && <TrialDebugMenu />}
+          {__DEV__ && <TrialDebugMenu onRefresh={onRefresh} />}
           
           {/* Badges removed from main container */}
           {renderMenuOptions()}
