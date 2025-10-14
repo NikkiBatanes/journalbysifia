@@ -342,10 +342,18 @@ const UserInputScreen: React.FC = () => {
 
       if (isSeeker) {
         // Navigate directly to sales offer screen - no alerts
-        navigation.navigate('OnboardingSalesOffer');
+        (navigation as any).navigate('OnboardingSalesOffer', {
+          upgradeMode: true,
+          currentTier: 'seeker',
+          skipNotificationPreference: true,
+        });
       } else if (playbooksRemaining === 0) {
         // Navigate to sales offer for usage limit reached
-        navigation.navigate('OnboardingSalesOffer');
+        (navigation as any).navigate('OnboardingSalesOffer', {
+          upgradeMode: true,
+          currentTier: subscription?.tier || 'seeker',
+          skipNotificationPreference: true,
+        });
       }
       return;
     }
