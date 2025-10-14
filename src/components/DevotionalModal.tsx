@@ -348,7 +348,21 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     });
     
     if (hasNoRemaining) {
-      console.log('[DevotionalModal] No devotionals remaining, showing usage limit modal');
+      console.log('[DevotionalModal] No devotionals remaining');
+      
+      // For Seeker users, skip the popup and go directly to sales offer
+      if (devotionalGating.tier === 'seeker') {
+        console.log('[DevotionalModal] Seeker user - navigating directly to sales offer');
+        onClose(); // Close the devotional modal first
+        navigation.navigate('OnboardingSalesOffer' as any, {
+          upgradeMode: true,
+          currentTier: 'seeker',
+          skipNotificationPreference: true,
+        });
+        return;
+      }
+      
+      console.log('[DevotionalModal] Showing usage limit modal');
       console.log('[DevotionalModal] Current tier BEFORE refresh:', devotionalGating.tier);
       console.log('[DevotionalModal] Current subscription BEFORE refresh:', devotionalGating.subscription);
       // Force refresh before showing modal

@@ -200,6 +200,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       console.error('[OnboardingSalesOffer] Error checking dynamic discount:', error);
     }
 
+    // Special handling for Seeker users - just go back, don't show trial offer
+    if (currentUserTier === 'seeker' && routeParams?.skipNotificationPreference) {
+      console.log('[OnboardingSalesOffer] Seeker user closing - going back directly');
+      navigation.goBack();
+      return;
+    }
+
     // Always show trial if eligible for all flows (upgrade mode and feature locks)
     console.log('[OnboardingSalesOffer] handleClose - canOfferTrial:', canOfferTrial);
     if (canOfferTrial) {

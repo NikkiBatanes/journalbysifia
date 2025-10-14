@@ -144,13 +144,13 @@ const UserInputScreen: React.FC = () => {
 
     switch (seekerType) {
       case 'fresh':
-        return '0 Playbooks Remaining';
+        return 'No Playbooks Remaining';
       case 'expired_trial':
-        return '0 Playbooks Remaining';
+        return 'No Playbooks Remaining';
       case 'cancelled_subscription':
-        return '0 Playbooks Remaining';
+        return 'No Playbooks Remaining';
       default:
-        return '0 Playbooks Remaining';
+        return 'No Playbooks Remaining';
     }
   };
 
