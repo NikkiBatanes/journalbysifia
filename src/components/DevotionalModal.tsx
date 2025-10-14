@@ -76,6 +76,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [_ellipsis, setEllipsis] = useState('');
   const contentRef = React.useRef<View>(null);
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
+  const [showUsageLimitModal, setShowUsageLimitModal] = useState(false);
 
   // Feature gating
   const devotionalGating = useDevotionalGating();
@@ -293,6 +294,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     console.log('[DevotionalModal] Button pressed for duration:', days);
     console.log('[DevotionalModal] Current props:', { playbookId, userInput, onSelectDuration });
     console.log('[DevotionalModal] User ID:', user?.id);
+
+    // Check if user has no remaining devotionals (but tier allows it)
+    const hasNoRemaining = devotionalGating.usageInfo.remaining !== 'Unlimited' && devotionalGating.usageInfo.remaining === 0;
+    
+    if (hasNoRemaining) {
+      console.log('[DevotionalModal] No devotionals remaining, showing usage limit modal');
+      setShowUsageLimitModal(true);
+      return;
+    }
 
     // Check if this duration is locked for current tier
     const accessCheck = devotionalGating.checkAccess(days, playbookId ? 'onboarding' : 'inApp');
@@ -692,6 +702,75 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           }}
           stats={null}
         />
+
+        {/* Usage Limit Modal */}
+        {showUsageLimitModal && (
+          <Modal
+            visible={showUsageLimitModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowUsageLimitModal(false)}
+          >
+            <View style={styles.usageLimitOverlay}>
+              <View style={styles.usageLimitContainer}>
+                <View style={styles.usageLimitHeader}>
+                  <MaterialCommunityIcons name="information" size={32} color={Colors.alertCoral} />
+                  <ThemedText weight="bold" style={styles.usageLimitTitle}>
+                    No Devotionals Remaining
+                  </ThemedText>
+                </View>
+
+                <ThemedText weight="regular" style={styles.usageLimitMessage}>
+                  {(() => {
+                    const limit = devotionalGating.subscription?.devotionals_limit || 0;
+                    const limitText = limit === 1 ? '1 devotional' : `${limit} devotionals`;
+                    
+                    // Calculate renewal date (first day of next month)
+                    const now = new Date();
+                    const renewalDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                    const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    const dayText = daysUntilRenewal === 1 ? 'day' : 'days';
+                    
+                    const renewalDateStr = renewalDate.toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    });
+                    
+                    return `You have used all ${limitText} for this month.\n\nYour devotionals will renew in ${daysUntilRenewal} ${dayText} on ${renewalDateStr}, giving you ${limitText} again.\n\nWant unlimited devotionals? Upgrade now!`;
+                  })()}
+                </ThemedText>
+
+                <View style={styles.usageLimitButtons}>
+                  <TouchableOpacity
+                    style={styles.upgradeButtonFull}
+                    onPress={() => {
+                      setShowUsageLimitModal(false);
+                      onClose();
+                      navigation.navigate('OnboardingSalesOffer' as any, {
+                        upgradeMode: true,
+                        currentTier: devotionalGating.tier,
+                        skipNotificationPreference: true,
+                      });
+                    }}
+                  >
+                    <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
+                      Upgrade Now
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setShowUsageLimitModal(false)}
+                  >
+                    <ThemedText weight="semiBold" style={styles.cancelButtonText}>
+                      Maybe Later
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
       </View>
     </Modal>
   );
@@ -1047,6 +1126,68 @@ const styles = StyleSheet.create({
   },
   stepTextNoPadding: {
     paddingHorizontal: 0,
+  },
+  // Usage Limit Modal Styles
+  usageLimitOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  usageLimitContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  usageLimitHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  usageLimitTitle: {
+    fontSize: 22,
+    color: Colors.hopeWhite,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  usageLimitMessage: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  usageLimitButtons: {
+    gap: 12,
+  },
+  upgradeButtonFull: {
+    backgroundColor: Colors.alertCoral,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
 });
 
