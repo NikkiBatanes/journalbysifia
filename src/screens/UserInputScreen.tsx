@@ -442,7 +442,9 @@ const UserInputScreen: React.FC = () => {
                             ? 'Loading subscription...'
                             : !subscriptionData.subscription || subscriptionData.isSeeker
                               ? getSeekerDisplayText()
-                              : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} Playbooks Remaining`}
+                              : subscriptionData.playbooksRemaining === 0
+                                ? 'No Playbooks Remaining'
+                                : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} Playbooks Remaining`}
                         </Text>
                         <Text style={[styles.tierBadgeInline, font]}>
                           {getTierDisplayName(subscriptionData.subscription)}

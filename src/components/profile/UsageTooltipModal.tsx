@@ -91,7 +91,10 @@ const UsageTooltipModal: React.FC<Props> = ({
           // Seeker tier - no playbooks
           playbooksDesc = `You are on the free Seeker plan. This plan does not include playbook generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared playbooks\n• Explore all app features\n\nUpgrade to unlock personalized playbook generation!`;
         } else {
-          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available each month and have used ${playbooksUsed}.\n\n${playbooksRemaining} ${playbooksRemaining === 1 ? 'playbook' : 'playbooks'} remaining this month.`;
+          const remainingText = playbooksRemaining === 0 
+            ? 'No playbooks remaining this month.'
+            : `${playbooksRemaining} ${playbooksRemaining === 1 ? 'playbook' : 'playbooks'} remaining this month.`;
+          playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available each month and have used ${playbooksUsed}.\n\n${remainingText}`;
         }
         
         return {
@@ -122,7 +125,10 @@ const UsageTooltipModal: React.FC<Props> = ({
           // Seeker tier - no devotionals
           devotionalsDesc = `You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!`;
         } else {
-          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month.`;
+          const remainingText = devotionalsRemaining === 0
+            ? 'No devotionals remaining this month.'
+            : `${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month.`;
+          devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${remainingText}`;
         }
         
         return {
