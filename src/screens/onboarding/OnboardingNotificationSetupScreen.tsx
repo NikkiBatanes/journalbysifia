@@ -41,10 +41,7 @@ const OnboardingNotificationSetupScreen = () => {
   const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
   const { userType, tier } = (route.params as RouteParams) || {};
 
-  // Enterprise-grade state management
-  const [isProcessing, setIsProcessing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown');
-  const [setupStep, setSetupStep] = useState<'preferences' | 'permissions' | 'complete'>('preferences');
 
   // Derive display name for welcome message (first name only)
   const displayName = (() => {

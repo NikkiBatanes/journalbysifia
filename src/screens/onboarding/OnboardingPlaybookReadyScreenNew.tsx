@@ -61,7 +61,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { getCompletedStepsCount, actionSteps, setActionSteps, saveActionSteps } = useActionSteps(); // Use context for dynamic progress
+  const { getCompletedStepsCount, actionSteps, setActionSteps } = useActionSteps(); // Use context for dynamic progress
   const { user } = useAuth();
 
   // Block back navigation to prevent multiple free playbook generation
@@ -702,7 +702,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Truth and Action cards can expand/collapse. Only allow tap-to-expand when currently collapsed and overflowing.
     const needsExpansionTruth = isTruthCard && (measured > COLLAPSED_HEIGHT + 1) && !isExpanded;
     const needsExpansionAction = isActionCard && (measured > COLLAPSED_HEIGHT + 1) && !isExpanded;
-    const needsExpansion = needsExpansionTruth || needsExpansionAction;
 
     const inputRange = [
       (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
