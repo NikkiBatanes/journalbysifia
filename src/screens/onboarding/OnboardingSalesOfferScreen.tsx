@@ -402,11 +402,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               }
             } catch (refreshError) {
               console.error('[OnboardingSalesOffer] Failed to refresh subscription:', refreshError);
+              // Continue to navigation even if refresh fails
             }
 
-            // Now navigate
+            // ALWAYS navigate after successful purchase, even if refresh failed
             console.log('[OnboardingSalesOffer] Navigating to OnboardingNotificationSetup');
-            navigation.navigate('OnboardingNotificationSetup' as never);
+            setTimeout(() => {
+              navigation.navigate('OnboardingNotificationSetup' as never);
+            }, 100);
           } else {
             console.log('[OnboardingSalesOffer] ❌ Purchase not successful, throwing error');
             throw new Error(result.error || 'Purchase failed');
