@@ -334,7 +334,7 @@ const OnboardingTrialOfferScreen = () => {
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nTry with 2 playbooks + 2 devotionals during trial.',
+      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
@@ -381,7 +381,7 @@ const OnboardingTrialOfferScreen = () => {
               No pressure, no catch.{'\n'}
               Experience personalized guidance and see how it fits your story.{'\n\n'}
               <ThemedText weight="semiBold" style={styles.includedText}>
-                Try with 2 playbooks + 2 devotionals during trial
+                Includes: 2 playbooks + 2 devotionals to get you started
               </ThemedText>
             </ThemedText>
           ) : (
@@ -589,13 +589,24 @@ const OnboardingTrialOfferScreen = () => {
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setShowPlanSelector(false)}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            setShowPlanSelector(false);
+          }}
         >
           <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>
-              <ThemedText weight="bold" style={styles.modalTitle}>Choose Your Plan</ThemedText>
+              <View style={styles.modalTitleContainer}>
+                <ThemedText weight="bold" style={styles.modalTitle}>Choose Your Plan</ThemedText>
+                <ThemedText style={styles.modalSubtitle}>
+                  {isAnnual ? 'Annual Billing' : 'Monthly Billing'}
+                </ThemedText>
+              </View>
               <TouchableOpacity
-                onPress={() => setShowPlanSelector(false)}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setShowPlanSelector(false);
+                }}
                 style={styles.modalCloseButton}
               >
                 <Ionicons name="close" size={24} color={Colors.hopeWhite} />
@@ -779,14 +790,11 @@ const createStyles = (fonts: any) => StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
     minWidth: 160,
     marginRight: 8,
   },
   selectedPlanOptionExpanded: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: Colors.growthGreen,
   },
   planOptionContent: {
     flex: 1,
@@ -1093,10 +1101,20 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  modalTitleContainer: {
+    flex: 1,
+  },
   modalTitle: {
     fontSize: 20,
     fontFamily: fonts.bold,
     color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
   },
   modalCloseButton: {
     width: 32,
