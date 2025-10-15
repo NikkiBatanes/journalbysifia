@@ -42,7 +42,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     visible,
     activityType,
     position,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
   const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -52,7 +52,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   const hideNotification = useCallback(() => {
     const animationKey = `${activityType}-${points}`;
     console.log(`[AnimatedPointsNotification-${componentId}] Hiding notification for:`, animationKey);
-    
+
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: -50,
@@ -73,7 +73,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       // Remove from active animations when hide completes
       activeAnimations.delete(animationKey);
       console.log(`[AnimatedPointsNotification-${componentId}] Animation completed, removed key:`, animationKey);
-      
+
       // Only call onAnimationComplete if the animation actually finished
       if (finished) {
         onAnimationComplete?.();
@@ -87,9 +87,9 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       activityType,
       points,
       position,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     if (!visible) {
       console.log(`[AnimatedPointsNotification-${componentId}] Not visible, returning early`);
       return;
@@ -101,7 +101,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       console.log(`[AnimatedPointsNotification-${componentId}] Animation already active for:`, animationKey);
       return;
     }
-    
+
     // Mark this animation as active
     activeAnimations.add(animationKey);
     console.log(`[AnimatedPointsNotification-${componentId}] Starting animation for:`, animationKey);
@@ -148,7 +148,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       console.log(`[AnimatedPointsNotification-${componentId}] Entrance animation completed for:`, activityType);
     });
     sparkleAnimation.start();
-    
+
     console.log(`[AnimatedPointsNotification-${componentId}] Animations started for:`, activityType);
 
     // Haptic feedback synchronized with animation
@@ -188,7 +188,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       const animationKey = `${activityType}-${points}`;
       activeAnimations.delete(animationKey);
       console.log(`[AnimatedPointsNotification-${componentId}] Removed animation key:`, animationKey);
-      
+
       clearTimeout(hideTimer);
       if (h1) { clearTimeout(h1); }
       if (h2) { clearTimeout(h2); }

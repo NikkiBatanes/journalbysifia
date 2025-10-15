@@ -112,10 +112,10 @@ export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: numbe
     if (remaining === 0) {
       return 'No Devotionals Remaining';
     }
-    
+
     // Handle singular/plural
     const devotionalText = remaining === 1 ? 'Devotional' : 'Devotionals';
-    
+
     if (tier === 'free_trial') {
       return `${remaining} ${devotionalText} Remaining`;
     }

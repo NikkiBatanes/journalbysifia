@@ -53,7 +53,7 @@ export async function generateDevotional(
       // Create AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-      
+
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -69,7 +69,7 @@ export async function generateDevotional(
         }),
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
 
       if (!response.ok) {

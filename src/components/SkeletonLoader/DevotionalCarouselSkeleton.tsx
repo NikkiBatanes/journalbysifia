@@ -49,14 +49,14 @@ const DevotionalCarouselSkeleton: React.FC = () => {
       {/* Horizontal Carousel Cards */}
       <View style={[styles.carouselContainer, { paddingHorizontal: SIDE_INSET }]}>
         {[1, 2].map((item) => (
-          <View 
-            key={item} 
+          <View
+            key={item}
             style={[
               styles.carouselCard,
-              { 
+              {
                 width: ITEM_WIDTH,
                 marginRight: item === 1 ? ITEM_SPACING : 0,
-              }
+              },
             ]}
           >
             {/* Card Header - Category Badge and Status Badge */}

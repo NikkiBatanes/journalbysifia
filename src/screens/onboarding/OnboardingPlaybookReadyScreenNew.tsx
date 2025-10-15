@@ -113,13 +113,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Only show intro modal once - use a module-level flag to persist across component remounts
   const [showIntroModal, setShowIntroModal] = useState(false);
-  
+
   // Initialize modal visibility only once on mount
   useEffect(() => {
     console.log('[OnboardingPlaybookReady] Component mounted/re-rendered');
     console.log('[OnboardingPlaybookReady] Global flag value:', (global as any).hasShownPlaybookIntroModal);
     console.log('[OnboardingPlaybookReady] Current showIntroModal state:', showIntroModal);
-    
+
     // Check if modal has been shown in this session
     const hasShown = (global as any).hasShownPlaybookIntroModal;
     if (!hasShown) {
@@ -233,20 +233,20 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     if (!fullInput || fullInput.trim().length === 0) {
       return '—';
     }
-    
+
     // Pattern: "I am a [age] on a [faith journey] faith journey, struggling with [category]. [user details]"
     // We want to extract only the user's typed details after the period
     const afterPeriodMatch = fullInput.match(/struggling with [^.]+\.\s*(.+)/);
     if (afterPeriodMatch && afterPeriodMatch[1]) {
       return afterPeriodMatch[1].trim();
     }
-    
+
     // Fallback: if no period found, extract everything after "struggling with "
     const strugglingWithMatch = fullInput.match(/struggling with (.+)/);
     if (strugglingWithMatch && strugglingWithMatch[1]) {
       return strugglingWithMatch[1].trim();
     }
-    
+
     // Last fallback: return the full input if pattern doesn't match
     return fullInput.trim();
   };
@@ -850,7 +850,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 // Start tutorial first, then close modal (prevents flash)
                 setShowTutorial(true);
                 setTutorialStep(1);
-                
+
                 // Close modal immediately after tutorial starts (no delay)
                 setShowIntroModal(false);
                 console.log('[OnboardingPlaybookReady] Intro modal closed, tutorial started');

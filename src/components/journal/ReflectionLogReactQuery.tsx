@@ -392,7 +392,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     selectedDate: selectedDate.toISOString(),
     viewMode,
     expanded,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
@@ -400,14 +400,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
-  
+
   // Debug logging for date handling
   console.log('🎯 REFLECTION LOG DATE DEBUG:', {
     selectedDate: selectedDate.toISOString(),
     dateStr,
     selectedDateFormatted: selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
     currentDate: new Date().toISOString(),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
   const isSelectedToday = isTodayFn(selectedDate);
   const isSelectedYesterday = isYesterdayFn(selectedDate);
@@ -475,9 +475,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       rawEntriesCount: reflectionEntries.length,
       rawEntries: reflectionEntries.map(e => ({ id: e.id, title: e.title, created_at: e.created_at })),
       dateStr,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     return reflectionEntries.map(entry => ({
       id: entry.id,
       title: entry.title || '', // Handle optional title from API
@@ -729,7 +729,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       type: entry.type,
       source: entry.source,
       hasContent: !!entry.content,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     // Set editing state
@@ -1180,7 +1180,7 @@ return (
               hasSelectedEntry: !!selectedEntry,
               selectedEntryId: selectedEntry?.id,
               selectedEntryTitle: selectedEntry?.title,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
             });
             return shouldShow;
           })()}

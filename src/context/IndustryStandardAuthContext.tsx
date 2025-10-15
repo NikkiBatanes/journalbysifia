@@ -255,7 +255,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             if (session?.user) {
               try {
                 console.log('🔍 Checking onboarding status for user:', session.user.id);
-                
+
                 const { data: profile, error: profileError } = await supabase
                   .from('user_profiles')
                   .select('onboarding_completed')
@@ -291,7 +291,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                 } else {
                   // User needs to complete onboarding - continue with personalization
                   console.log('📝 User needs to complete onboarding, setting redirect to personalization');
-                  
+
                   await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                     target: 'OnboardingPersonalization',
                     params: {},
@@ -306,7 +306,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     .select('id, onboarding_completed')
                     .eq('id', session.user.id)
                     .maybeSingle();
-                  
+
                   if (profileCheck) {
                     console.log('✅ Profile exists, onboarding_completed:', profileCheck.onboarding_completed);
                     const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';

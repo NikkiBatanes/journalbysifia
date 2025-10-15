@@ -96,13 +96,13 @@ function transformPlaybookRow(
 
   return {
     id: playbookRow.id,
-    userId: playbookRow.user_id,
+    user_id: playbookRow.user_id,
     title: playbookRow.title,
     userInput: playbookRow.user_input || '',
     truthInLove: playbookRow.truth_in_love,
     bibleVerse: playbookRow.bible_verse,
     directChallenge: playbookRow.direct_challenge,
-    challengeCTA: playbookRow.challenge_cta,
+    challengeCTA: playbookRow.challenge_cta ?? undefined,
     actionSteps: transformedActionSteps,
     affirmations: transformedAffirmations,
     status: playbookRow.status,

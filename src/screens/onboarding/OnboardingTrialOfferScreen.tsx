@@ -48,13 +48,13 @@ const OnboardingTrialOfferScreen = () => {
   const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = async () => {
-    if (isClosing || isStartingTrial) return; // Prevent double-tap
-    
-    try { 
-      triggerLightHaptic(); 
+    if (isClosing || isStartingTrial) {return;} // Prevent double-tap
+
+    try {
+      triggerLightHaptic();
       setIsClosing(true);
     } catch {}
-    
+
     console.log('[OnboardingTrialOffer] User declined trial');
     // User declines trial and remains as seeker (freemium)
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
@@ -69,13 +69,13 @@ const OnboardingTrialOfferScreen = () => {
   };
 
   const handleStartTrial = async () => {
-    if (isStartingTrial || isClosing) return; // Prevent double-tap
-    
-    try { 
-      triggerLightHaptic(); 
+    if (isStartingTrial || isClosing) {return;} // Prevent double-tap
+
+    try {
+      triggerLightHaptic();
       setIsStartingTrial(true);
     } catch {}
-    
+
     try {
       if (!user?.id) {
         throw new Error('User not authenticated');
@@ -85,7 +85,7 @@ const OnboardingTrialOfferScreen = () => {
         tier: selectedTierId,
         billing: isAnnual ? 'annual' : 'monthly',
       });
-      
+
       // CRITICAL: Trial Offer Screen uses a DIFFERENT product ID than Sales Offer
       // Strategy:
       // - Sales Offer: app.sifia.com.spark.monthly (no trial)
@@ -93,25 +93,25 @@ const OnboardingTrialOfferScreen = () => {
       // Both products are in the same subscription group, so they give the same access
       const { PlatformPaymentService } = await import('../../services/PlatformPaymentService');
       const paymentService = PlatformPaymentService.getInstance();
-      
+
       // Use the .freetrial product ID - this one has the 3-day free trial configured
       const billing = isAnnual ? 'annual' : 'monthly';
       const productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
-      
+
       console.log('[OnboardingTrialOffer] Purchasing TRIAL subscription:', productId);
       console.log('[OnboardingTrialOffer] This product has 3-day free trial configured in App Store Connect');
-      
+
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX"
       const result = await paymentService.purchaseSubscription(productId, user.id);
-      
+
       if (result.success) {
         console.log('[OnboardingTrialOffer] ✅ Trial subscription authorized by Apple');
         triggerSuccessHaptic();
-        
+
         // The purchase listener will update the database to free_trial status
         // Wait a moment for it to complete
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         // Navigate to notification setup
         const skipNotificationPreference = route?.params?.skipNotificationPreference;
         if (skipNotificationPreference) {
@@ -126,21 +126,21 @@ const OnboardingTrialOfferScreen = () => {
     } catch (error: any) {
       console.error('[OnboardingTrialOffer] Error starting trial:', error);
       setIsStartingTrial(false);
-      
+
       // Check if user cancelled
-      const isCancelled = 
+      const isCancelled =
         error?.message === 'USER_CANCELLED' ||
         error?.code === 'USER_CANCELLED' ||
         error?.message?.toLowerCase().includes('cancel');
-      
+
       if (isCancelled) {
         console.log('[OnboardingTrialOffer] User cancelled trial - no error shown');
         return;
       }
-      
+
       // Show user-friendly error message
       const errorMessage = error?.message || 'Unable to start trial';
-      
+
       Alert.alert(
         'Trial Unavailable',
         errorMessage,
@@ -155,9 +155,9 @@ const OnboardingTrialOfferScreen = () => {
               } else {
                 navigation.navigate('OnboardingNotificationSetup' as never);
               }
-            }
+            },
           },
-          { text: 'Try Again', style: 'cancel' }
+          { text: 'Try Again', style: 'cancel' },
         ]
       );
     }
@@ -201,7 +201,7 @@ const OnboardingTrialOfferScreen = () => {
           tier: tiers[0].id,
           monthly: tiers[0].monthlyPrice,
           annual: tiers[0].annualPrice,
-          symbol: currency.symbol
+          symbol: currency.symbol,
         } : 'No tiers');
         if (mounted) {
           setPricingTiers(tiers || []);
@@ -306,10 +306,10 @@ const OnboardingTrialOfferScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={[styles.closeButton, (isClosing || isStartingTrial) && { opacity: 0.6 }]} 
-          onPress={handleClose} 
-          accessibilityRole="button" 
+        <TouchableOpacity
+          style={[styles.closeButton, (isClosing || isStartingTrial) && { opacity: 0.6 }]}
+          onPress={handleClose}
+          accessibilityRole="button"
           accessibilityLabel="Close"
           disabled={isClosing || isStartingTrial}
         >
@@ -395,9 +395,9 @@ const OnboardingTrialOfferScreen = () => {
 
         {/* CTA and Footer */}
         <View style={styles.footerBlock}>
-          <TouchableOpacity 
-            style={[styles.startTrialButton, (isStartingTrial || isClosing) && { opacity: 0.6 }]} 
-            onPress={handleStartTrial} 
+          <TouchableOpacity
+            style={[styles.startTrialButton, (isStartingTrial || isClosing) && { opacity: 0.6 }]}
+            onPress={handleStartTrial}
             activeOpacity={0.9}
             disabled={isStartingTrial || isClosing}
           >

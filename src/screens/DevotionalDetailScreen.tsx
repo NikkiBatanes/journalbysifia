@@ -278,7 +278,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
     // Reset FAB visibility when changing days (will be set by scroll handler)
     setShowFAB(false);
-    
+
     // Force a re-render of the ScrollView with a reset position
     // This ensures content starts at the top when changing days
     const timer = setTimeout(() => {
@@ -445,7 +445,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const currentDay = useMemo(() => {
     return devotional?.days?.[currentDayIndex];
   }, [devotional?.days, currentDayIndex]);
-  
+
   // Prepare and debug-format the prayer text for current day
   const rawPrayer = currentDay?.prayer ?? '';
   const formattedPrayer = useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
@@ -456,7 +456,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       console.log('[DevotionalDetail] Prayer formatted:', show(formattedPrayer));
     }
   }, [rawPrayer, formattedPrayer]);
-  
+
   // Debug log for prayer data only when currentDay actually changes
   useEffect(() => {
     if (currentDay) {
@@ -467,7 +467,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const handleMarkComplete = async () => {
     const now = Date.now();
     const timeSinceLastMark = now - lastMarkCompleteRef.current;
-    
+
     if (!devotional || isMarkingComplete || showCompletionModal || modalOpenedRef.current || timeSinceLastMark < 3000) {
       console.log('🚫 Mark complete blocked by guards:', {
         hasDevotional: !!devotional,
@@ -475,11 +475,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         showCompletionModal,
         modalOpened: modalOpenedRef.current,
         timeSinceLastMark,
-        minInterval: 3000
+        minInterval: 3000,
       });
       return;
     }
-    
+
     lastMarkCompleteRef.current = now;
 
     // Get the current day
@@ -759,7 +759,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const handleContentSizeChange = (contentWidth: number, contentHeight: number) => {
     // Get the current ScrollView's viewport height
     const viewportHeight = Dimensions.get('window').height * 0.7; // Approximate viewport
-    
+
     // If content is shorter than viewport, show FAB immediately for incomplete days
     if (currentDay && !currentDay.completed && contentHeight <= viewportHeight + 8) {
       setShowFAB(true);

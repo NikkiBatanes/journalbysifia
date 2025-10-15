@@ -241,22 +241,22 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         // Check if this completion makes the entire devotional complete
         const completedDaysCount = data.days.filter(day => day.completed).length;
         const isFullDevotionalComplete = completedDaysCount === data.totalDays;
-        
+
         console.log('[useMarkDayCompleteReactQuery] Calling syncDevotionalCompletion with:', {
           devotionalId,
           isFullDevotionalComplete,
           completedDaysCount,
           totalDays: data.totalDays,
-          currentDay: dayNumber
+          currentDay: dayNumber,
         });
-        
+
         const syncResult = await syncDevotionalCompletion(devotionalId, undefined, {
           isFullDevotionalComplete,
           completedDaysCount,
           totalDays: data.totalDays,
-          currentDay: dayNumber
+          currentDay: dayNumber,
         });
-        
+
         console.log('[useMarkDayCompleteReactQuery] Cross-component sync completed:', syncResult);
       } catch (syncError) {
         console.error('[useMarkDayCompleteReactQuery] Sync error:', syncError);

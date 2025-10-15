@@ -15,7 +15,7 @@
  */
 export function normalizePrayerText(raw: string): string {
   if (!raw) { return raw; }
-  
+
   return raw
     // Remove markdown bold markers
     .replace(/\*\*/g, '')

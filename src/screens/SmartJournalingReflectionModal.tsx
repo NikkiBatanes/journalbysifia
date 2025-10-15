@@ -110,14 +110,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const dateToUse = selectedDate || new Date();
   const dateStr = toLocalDateString(dateToUse); // Use selected date for consistency
-  
+
   // Debug logging for date handling
   console.log('🎯 SmartJournalingReflectionModal DATE DEBUG:', {
     selectedDate: selectedDate ? selectedDate.toISOString() : 'undefined',
     dateToUse: dateToUse.toISOString(),
     dateStr,
     currentDate: new Date().toISOString(),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
 

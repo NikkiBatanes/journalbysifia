@@ -220,7 +220,7 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
       const baseSource: any = (defaultCalendar as any)?.source || {};
       console.log('📆 [getSiFiaCalendar] Base source:', baseSource);
       console.log('📆 [getSiFiaCalendar] Platform:', Platform.OS);
-      
+
       const config: any = {
         title: 'siFia',
         color: '#FF6B6B',
@@ -251,7 +251,7 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
       console.log('📆 [getSiFiaCalendar] Attempting to create calendar with config:', config);
       const createdId = await (RNCalendarEvents as any).saveCalendar(config);
       console.log('📆 [getSiFiaCalendar] saveCalendar returned:', createdId);
-      
+
       if (createdId) {
         console.log('📆 [getSiFiaCalendar] ✅ Successfully created siFia calendar:', createdId);
         return createdId as string;
@@ -291,10 +291,10 @@ export const syncTimeBlockToCalendar = async (
 ): Promise<{ success: boolean; eventId?: string; error?: string }> => {
   try {
     console.log('📅 [syncTimeBlockToCalendar] Starting sync for:', timeBlock.title);
-    
+
     const hasPermission = await requestCalendarPermissions();
     console.log('📅 [syncTimeBlockToCalendar] Permission status:', hasPermission);
-    
+
     if (!hasPermission) {
       console.log('📅 [syncTimeBlockToCalendar] ❌ Permission denied');
       return {
@@ -305,7 +305,7 @@ export const syncTimeBlockToCalendar = async (
 
     const calendarId = await getSiFiaCalendar();
     console.log('📅 [syncTimeBlockToCalendar] Calendar ID:', calendarId);
-    
+
     if (!calendarId) {
       console.log('📅 [syncTimeBlockToCalendar] ❌ No calendar ID');
       return { success: false, error: 'Could not access calendar' };
@@ -333,9 +333,9 @@ export const syncTimeBlockToCalendar = async (
 
     console.log('📅 [syncTimeBlockToCalendar] Event details:', eventDetails);
     console.log('📅 [syncTimeBlockToCalendar] Calling RNCalendarEvents.saveEvent...');
-    
+
     const eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
-    
+
     console.log('📅 [syncTimeBlockToCalendar] ✅ Event created with ID:', eventId);
 
     // Track success analytics
@@ -452,10 +452,10 @@ export const removeTimeBlockFromCalendar = async (
 export const getCurrentLocation = async (): Promise<LocationResult> => {
   try {
     console.log('📍 [getCurrentLocation] Starting location request...');
-    
+
     const hasPermission = await requestLocationPermissions();
     console.log('📍 [getCurrentLocation] Permission status:', hasPermission);
-    
+
     if (!hasPermission) {
       console.log('📍 [getCurrentLocation] ❌ Permission denied');
       return { success: false, error: 'Location permission denied' };
@@ -463,7 +463,7 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
 
     return new Promise((resolve) => {
       console.log('📍 [getCurrentLocation] Calling Geolocation.getCurrentPosition...');
-      
+
       Geolocation.getCurrentPosition(
         async (position: any) => {
           const { latitude, longitude } = position.coords;

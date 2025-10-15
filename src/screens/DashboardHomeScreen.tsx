@@ -1471,7 +1471,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 sourceType: q.sourceType,
                 source: q.source,
                 id: q.id,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
               });
               triggerLightHaptic();
               // Include enriched metadata for devotional reflections
@@ -1514,7 +1514,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           console.log('🎯 DASHBOARD SmartJournalingReflectionModal visibility:', {
             showSJModal,
             selectedReflection: selectedReflection?.question,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
           return showSJModal;
         })()}

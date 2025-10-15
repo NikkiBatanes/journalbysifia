@@ -78,7 +78,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const [showLocalPoints, setShowLocalPoints] = useState(false);
   const [localPoints, setLocalPoints] = useState<number>(0);
   const pointsShownRef = useRef(false);
-  
+
   // Memoize the animation complete callback to prevent re-renders
   const handleAnimationComplete = useCallback(() => {
     console.log('[DevotionalCompletionModal] Animation completed, hiding local points');
@@ -165,9 +165,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       lastVisible: lastVisibleState.current,
       progress,
       devotionalTitle: devotional?.title,
-      currentDayNumber
+      currentDayNumber,
     });
-    
+
     // CRITICAL: Only run animations when visibility changes from false to true
     if (visible && !lastVisibleState.current && !hasOpenedRef.current) {
       console.log('[DevotionalCompletionModal] Starting modal open sequence - VISIBILITY CHANGED TO TRUE');
@@ -228,10 +228,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
               const pts = faithPointsService.getPointsForActivity(activityType as any);
               console.log('[DevotionalCompletionModal] Local points:', { activityType, pts, isLastDay });
               setLocalPoints(pts);
-              
+
               // Set unique animation key to prevent re-renders
               animationKeyRef.current = `${devotional?.id}-${currentDayNumber}-${Date.now()}`;
-              
+
               // Delay showing points slightly to ensure modal is fully visible
               setTimeout(() => {
                 console.log('[DevotionalCompletionModal] Setting showLocalPoints to true');
@@ -244,7 +244,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             console.log('[DevotionalCompletionModal] Points already shown, skipping');
           }
           // Notify parent that check reveal completed
-          
+
           try { onCheckReveal && onCheckReveal(); } catch {}
         });
       }, 500); // Faster reveal

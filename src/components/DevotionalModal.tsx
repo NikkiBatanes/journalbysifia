@@ -339,7 +339,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     const devotionalsLimit = devotionalGating.subscription?.devotionals_limit || 0;
     const hasNoRemaining = devotionalsLimit !== -1 && devotionalsUsed >= devotionalsLimit;
     const isSeeker = devotionalGating.tier === 'seeker';
-    
+
     console.log('[DevotionalModal] Usage check:', {
       used: devotionalsUsed,
       limit: devotionalsLimit,
@@ -348,7 +348,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       usageInfo: devotionalGating.usageInfo,
       tier: devotionalGating.tier,
     });
-    
+
     // For Seeker users, skip popup and go directly to sales offer
     if (isSeeker && hasNoRemaining) {
       console.log('[DevotionalModal] Seeker user with no access - navigating directly to sales offer');
@@ -360,7 +360,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
       return;
     }
-    
+
     if (hasNoRemaining) {
       console.log('[DevotionalModal] No devotionals remaining, showing usage limit modal');
       console.log('[DevotionalModal] Current tier BEFORE refresh:', devotionalGating.tier);
@@ -371,13 +371,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       await new Promise(resolve => setTimeout(resolve, 300));
       console.log('[DevotionalModal] Current tier AFTER refresh:', devotionalGating.tier);
       console.log('[DevotionalModal] Current subscription AFTER refresh:', devotionalGating.subscription);
-      
+
       // Capture the current state to use in modal (prevents reactivity issues)
       // IMPORTANT: Check the ACTUAL tier from subscription, not the effectiveTier
       // because useDevotionalGating returns trial_chosen_tier as the tier for feature gating
       const actualTier = devotionalGating.subscription?.tier || devotionalGating.tier;
       const isOnTrial = actualTier === 'free_trial';
-      
+
       console.log('[DevotionalModal] ===== CAPTURING DATA FOR MODAL =====');
       console.log('[DevotionalModal] devotionalGating.tier (effectiveTier):', devotionalGating.tier);
       console.log('[DevotionalModal] subscription.tier (actualTier):', actualTier);
@@ -385,7 +385,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       console.log('[DevotionalModal] subscription:', devotionalGating.subscription);
       console.log('[DevotionalModal] trial_chosen_tier:', devotionalGating.subscription?.trial_chosen_tier);
       console.log('[DevotionalModal] =====================================');
-      
+
       setUsageLimitModalData({
         isOnTrial,
         tier: actualTier,
@@ -393,7 +393,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         devotionalsLimit: devotionalGating.subscription?.devotionals_limit || 0,
         trialEndDate: devotionalGating.subscription?.trial_end_date || null,
       });
-      
+
       setShowUsageLimitModal(true);
       return;
     }
@@ -433,13 +433,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             console.log('[DevotionalModal] Long generation detected, this may take up to 60 seconds...');
           }, 10000);
         }
-        
+
         const devotional = await createDevotional({
           duration: days,
           playbookId,
           userInput,
         });
-        
+
         if (progressTimeout) {
           clearTimeout(progressTimeout);
         }
@@ -823,16 +823,16 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     const { isOnTrial, trialChosenTier, devotionalsLimit, trialEndDate } = usageLimitModalData;
                     const limit = devotionalsLimit;
                     const limitText = limit === 1 ? '1 devotional' : `${limit} devotionals`;
-                    
+
                     console.log('[DevotionalModal] Usage Limit Modal - Rendering with data:', usageLimitModalData);
-                    
+
                     const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation' || trialChosenTier === 'family');
                     const showUpgradeCta = !isUnlimitedTrial; // hide CTA for transformation/family trial
-                    
+
                     if (isOnTrial) {
                       // Trial user message - use captured data
                       const tierName = trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1);
-                      
+
                       // Get full tier limits
                       const tierLimits: Record<string, number> = {
                         spark: 8,
@@ -841,24 +841,24 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                         family: -1,
                       };
                       const fullLimit = tierLimits[trialChosenTier] || 8;
-                      const fullLimitText = fullLimit === -1 
-                        ? 'unlimited devotionals' 
-                        : fullLimit === 1 
-                          ? '1 devotional' 
+                      const fullLimitText = fullLimit === -1
+                        ? 'unlimited devotionals'
+                        : fullLimit === 1
+                          ? '1 devotional'
                           : `${fullLimit} devotionals`;
-                      
+
                       // Calculate when subscription starts (trial end date)
                       const trialEnd = trialEndDate ? new Date(trialEndDate) : new Date();
                       const now = new Date();
                       const daysUntilSubscriptionStarts = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
                       const dayText = daysUntilSubscriptionStarts === 1 ? 'day' : 'days';
-                      
-                      const subscriptionStartDate = trialEnd.toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric', 
-                        year: 'numeric' 
+
+                      const subscriptionStartDate = trialEnd.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
                       });
-                      const cta = showUpgradeCta ? `\n\nWant unlimited devotionals now?\nUpgrade to siFia Transformation Plan!` : '';
+                      const cta = showUpgradeCta ? '\n\nWant unlimited devotionals now?\nUpgrade to siFia Transformation Plan!' : '';
                       return `You have used all ${limitText} available during your free trial.\n\nYour siFia ${tierName} Plan Subscription will start in ${daysUntilSubscriptionStarts} ${dayText} on ${subscriptionStartDate}, and you'll be able to generate ${fullLimitText}.${cta}`;
                     } else {
                       // Paid user message

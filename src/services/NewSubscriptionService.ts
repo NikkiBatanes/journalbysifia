@@ -145,15 +145,15 @@ export class NewSubscriptionService {
 
       // Create or update subscription record with trial dates for proper expiry management
       const chosenTier = (trial_chosen_tier as SubscriptionTier) || 'spark';
-      
+
       // IMPORTANT: All trials get 2/2 limits regardless of chosen tier
       // The chosen tier only applies AFTER they convert to paid
       const trialLimits = this.getTierLimits('free_trial'); // Always 2/2 for trials
-      
+
       // Generate display name for trial: "siFia Spark Trial", "siFia Growth Trial", etc.
       const tierDisplayName = this.getTierDisplayName(chosenTier);
       const displayName = `${tierDisplayName} Trial`;
-      
+
       const subscriptionData = {
         user_id: user_id,
         status: 'active', // Trial users have 'active' status, distinguished by trial_start_date
@@ -265,20 +265,20 @@ export class NewSubscriptionService {
     // Validate upgrade path (allow same-tier if converting from trial to paid)
     const isTrialConversion = from_tier === 'free_trial';
     const isSameTierUpgrade = from_tier === to_tier;
-    
+
     // Allow same-tier "upgrade" if converting from trial, otherwise require actual upgrade
     if (!isTrialConversion && isSameTierUpgrade) {
       console.log(`[NewSubscriptionService] Skipping same-tier upgrade: ${from_tier} → ${to_tier}`);
       return currentSubscription; // Return existing subscription, no upgrade needed
     }
-    
+
     if (!isTrialConversion && !this.isValidUpgrade(from_tier, to_tier)) {
       throw new SubscriptionError(`Invalid upgrade from ${from_tier} to ${to_tier}`, 'INVALID_UPGRADE');
     }
 
     const limits = this.getTierLimits(to_tier);
     const displayName = this.getTierDisplayName(to_tier);
-    
+
     const updateData: any = {
       tier: to_tier,
       status: 'active',

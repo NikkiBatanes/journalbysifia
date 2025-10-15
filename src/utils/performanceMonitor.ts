@@ -406,8 +406,8 @@ export const PerformanceDebug = {
 
 // Export for global access in development
 if (__DEV__) {
-  (global as any).PerformanceDebug = PerformanceDebug;
-  (global as any).performanceMonitor = performanceMonitor;
+  (globalThis as any).PerformanceDebug = PerformanceDebug;
+  (globalThis as any).performanceMonitor = performanceMonitor;
 }
 
 export default performanceMonitor;

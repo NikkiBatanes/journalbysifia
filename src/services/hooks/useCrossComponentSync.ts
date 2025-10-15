@@ -69,17 +69,17 @@ export const useCrossComponentSync = (userId: string) => {
     currentDay?: number;
   }) => {
     console.log('[CrossComponentSync] Syncing devotional completion:', { devotionalId, playbookId });
-    
+
     // Guard against multiple calls within 2 seconds for the same devotional
     const guardKey = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
     const now = Date.now();
     const lastCall = completionGuardRef.current[guardKey];
-    
+
     if (lastCall && (now - lastCall) < 2000) {
       console.log('[CrossComponentSync] Skipping duplicate completion call for:', guardKey);
       return { pointsAwarded: 0 };
     }
-    
+
     completionGuardRef.current[guardKey] = now;
 
     try {

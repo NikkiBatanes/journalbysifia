@@ -47,21 +47,21 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
 
   // Define showPointsNotification first to avoid reference issues
   const showPointsNotification = useCallback((points: number, activityType: string, position: 'top' | 'center' | 'bottom' = 'center') => {
-    console.log('[PointsNotificationContext] showPointsNotification called:', { 
-      points, 
-      activityType, 
-      position, 
+    console.log('[PointsNotificationContext] showPointsNotification called:', {
+      points,
+      activityType,
+      position,
       timestamp: new Date().toISOString(),
-      currentNotifications: notifications.length 
+      currentNotifications: notifications.length,
     });
-    
+
     // CRITICAL: Prevent duplicate notifications for the same activity type
     const existingNotification = notifications.find(n => n.activityType === activityType && n.points === points);
     if (existingNotification) {
       console.log('[PointsNotificationContext] Duplicate notification prevented:', { activityType, points });
       return;
     }
-    
+
     const id = uuidv4();
 
     const newNotification: PointsNotification = {
@@ -115,7 +115,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
 
   const handleAnimationComplete = useCallback((id: string) => {
     if (!isMounted.current) {return;}
-    
+
     console.log('[PointsNotificationContext] Animation complete for ID:', id, 'at', new Date().toISOString());
 
     // Use requestAnimationFrame to defer the state update
@@ -155,7 +155,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
             {notifications.map((notification) => {
               console.log('[PointsNotificationContext] Rendering notification:', {
                 ...notification,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
               });
               return (
                 <AnimatedPointsNotification

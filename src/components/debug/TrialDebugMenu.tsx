@@ -26,20 +26,20 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
   // Load current tier on mount
   React.useEffect(() => {
     const loadCurrentTier = async () => {
-      if (!user?.id) return;
-      
+      if (!user?.id) {return;}
+
       const { data } = await supabase
         .from('user_subscriptions_new')
         .select('tier, subscription_display_name, playbooks_limit, devotionals_limit, trial_chosen_tier')
         .eq('user_id', user.id)
         .single();
-      
+
       if (data) {
         // If on trial, use trial_chosen_tier
-        const effectiveTier = data.tier === 'free_trial' && data.trial_chosen_tier 
-          ? data.trial_chosen_tier 
+        const effectiveTier = data.tier === 'free_trial' && data.trial_chosen_tier
+          ? data.trial_chosen_tier
           : data.tier;
-        
+
         setCurrentTier({
           tier: effectiveTier,
           name: data.subscription_display_name || 'siFia Growth',
@@ -48,7 +48,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         });
       }
     };
-    
+
     loadCurrentTier();
   }, [user?.id]);
 
@@ -70,7 +70,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Trigger refresh if callback provided
       if (onRefresh) {
@@ -115,7 +115,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Update local state to reflect paid name
       setCurrentTier({
@@ -167,7 +167,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Update local state to reflect trial name
       setCurrentTier({
@@ -204,7 +204,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       if (onRefresh) {
         setTimeout(() => onRefresh(), 500);
@@ -239,7 +239,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Update local state so Convert/Reset buttons use this tier
       setCurrentTier({
@@ -271,7 +271,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
     try {
       const now = new Date();
       const startDate = new Date(now);
-      
+
       // Set subscription start date to X days ago
       if (daysAgo === -1) {
         // "Last day" means last day of previous month
@@ -287,7 +287,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       if (onRefresh) {
         setTimeout(() => onRefresh(), 500);

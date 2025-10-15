@@ -127,7 +127,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           tier: tiers[0].id,
           monthly: tiers[0].monthlyPrice,
           annual: tiers[0].annualPrice,
-          symbol: currency.symbol
+          symbol: currency.symbol,
         } : 'No tiers');
 
         // If a specific devotional duration was requested, only show tiers that UNLOCK it
@@ -256,12 +256,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     try {
       setIsPurchasing(true);
       triggerLightHaptic();
-      
+
       console.log('[OnboardingSalesOffer] handleUnlockPlan called', {
         isUpgradeMode,
         selectedTier,
         isAnnual,
-        price: getCurrentPrice()
+        price: getCurrentPrice(),
       });
 
       // Initialize payment service (needed for both upgrade and onboarding)
@@ -271,23 +271,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Determine product ID based on trial eligibility and billing period
       let productId: string;
       const billing = isAnnual ? 'annual' : 'monthly';
-      
+
       // Check if user is eligible for free trial (only in onboarding, not upgrade)
       const isEligibleForTrial = canOfferTrial && !isUpgradeMode;
-      
+
       console.log('[OnboardingSalesOffer] Product ID selection:', {
         selectedTier,
         billing,
         isEligibleForTrial,
         canOfferTrial,
-        isUpgradeMode
+        isUpgradeMode,
       });
 
       try {
         const products = await paymentService.getAvailableProducts();
         // Match BOTH tier AND billing period to ensure correct product selection
-        const targetProduct = products.find(p => 
-          p.tier === selectedTier && 
+        const targetProduct = products.find(p =>
+          p.tier === selectedTier &&
           p.productId.includes(billing)
         );
 
@@ -329,62 +329,62 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           }
         } catch (purchaseError: any) {
           console.error('[OnboardingSalesOffer] Upgrade purchase failed:', purchaseError);
-          
+
           // Check if user cancelled
-          const isCancelled = 
+          const isCancelled =
             purchaseError?.message === 'USER_CANCELLED' ||
             purchaseError?.code === 'USER_CANCELLED' ||
             purchaseError?.message?.toLowerCase().includes('cancel') ||
             purchaseError?.message?.toLowerCase().includes('timeout');
-          
+
           if (isCancelled) {
             console.log('[OnboardingSalesOffer] User cancelled upgrade - no error shown');
             return;
           }
-          
+
           Alert.alert('Purchase Failed', purchaseError?.message || 'Something went wrong. Please try again.');
         }
       } else {
         // In onboarding mode, use StoreKit to purchase subscription
         // This matches production behavior - Apple handles the payment UI
-        
+
         console.log('[OnboardingSalesOffer] Onboarding mode - initiating StoreKit purchase', {
           selectedTier,
           isAnnual,
           price: getCurrentPrice(),
           productId,
         });
-        
+
         try {
           // Show Apple's payment sheet and process purchase
           console.log('[OnboardingSalesOffer] Calling purchaseSubscription...');
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
-          
+
           console.log('[OnboardingSalesOffer] Purchase result:', {
             success: result.success,
             error: result.error,
             hasResult: !!result,
           });
-          
+
           if (result.success) {
             console.log('[OnboardingSalesOffer] ✅ Purchase successful!');
             triggerSuccessHaptic();
-            
+
             // CRITICAL: Wait for subscription to refresh BEFORE navigating
             console.log('[OnboardingSalesOffer] Refreshing subscription data...');
             try {
               await devotionalGating.refreshSubscription();
               console.log('[OnboardingSalesOffer] ✅ Subscription refreshed successfully');
-              
+
               // Verify the subscription was actually updated
               const newTier = devotionalGating.tier;
               console.log('[OnboardingSalesOffer] New tier after refresh:', newTier);
-              
+
               if (newTier === 'seeker') {
                 console.warn('[OnboardingSalesOffer] ⚠️ Still showing seeker after purchase!');
                 console.warn('[OnboardingSalesOffer] This means the database was not updated by the purchase listener');
                 console.warn('[OnboardingSalesOffer] Attempting manual purchase restoration...');
-                
+
                 // Try to restore purchases to trigger the listener
                 try {
                   const AppleStoreKitService = (await import('../../services/AppleStoreKitService')).AppleStoreKitService;
@@ -394,7 +394,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 } catch (restoreError) {
                   console.error('[OnboardingSalesOffer] Restore failed:', restoreError);
                 }
-                
+
                 // Give it one more second and try again
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 await devotionalGating.refreshSubscription();
@@ -403,7 +403,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             } catch (refreshError) {
               console.error('[OnboardingSalesOffer] Failed to refresh subscription:', refreshError);
             }
-            
+
             // Now navigate
             console.log('[OnboardingSalesOffer] Navigating to OnboardingNotificationSetup');
             navigation.navigate('OnboardingNotificationSetup' as never);
@@ -413,22 +413,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           }
         } catch (purchaseError: any) {
           console.error('[OnboardingSalesOffer] Purchase failed:', purchaseError);
-          
+
           // Check if user cancelled (multiple ways to detect)
-          const isCancelled = 
+          const isCancelled =
             purchaseError?.message === 'USER_CANCELLED' ||
             purchaseError?.code === 'USER_CANCELLED' ||
             purchaseError?.message?.toLowerCase().includes('cancel') ||
             purchaseError?.message?.toLowerCase().includes('timeout');
-          
+
           if (isCancelled) {
             console.log('[OnboardingSalesOffer] User cancelled purchase - no error shown');
             // Don't show error for cancellation
             return;
           }
-          
+
           Alert.alert(
-            'Purchase Failed', 
+            'Purchase Failed',
             purchaseError?.message || 'Something went wrong. Please try again.',
             [{ text: 'OK' }]
           );

@@ -54,7 +54,7 @@ export class TrialExpiryService {
    */
   async checkUserTrialExpiry(userId: string): Promise<boolean> {
     try {
-      const subscription = await this.subscriptionService.getUserSubscription(userId);
+      const subscription = await NewSubscriptionService.getUserSubscription(userId);
 
       if (subscription.tier !== 'free_trial') {
         return false; // Not on trial
@@ -128,7 +128,7 @@ export class TrialExpiryService {
     isExpired: boolean;
   }> {
     try {
-      const subscription = await this.subscriptionService.getUserSubscription(userId);
+      const subscription = await NewSubscriptionService.getUserSubscription(userId);
 
       if (subscription.tier !== 'free_trial' || !subscription.trial_end_date) {
         return {

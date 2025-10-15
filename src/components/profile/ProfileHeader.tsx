@@ -47,7 +47,7 @@ interface Props {
 const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage, subscription, isLoading = false }) => {
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
-  
+
   // Tooltip state
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipType, setTooltipType] = useState<TooltipType | null>(null);
@@ -128,7 +128,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
               <Text style={[styles.planText, font]}>{String(plan)}</Text>
               {!!usage && (
                 <View style={styles.pillsRow}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.usagePill}
                     onPress={() => showTooltip('playbooks')}
                     activeOpacity={0.7}
@@ -141,7 +141,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.usagePill}
                     onPress={() => showTooltip('devotionals')}
                     activeOpacity={0.7}
@@ -155,7 +155,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                     </View>
                   </TouchableOpacity>
                   {/* Usage stats: Playbooks, Devotionals, Faith Points, Badges */}
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.usagePill}
                     onPress={() => showTooltip('faithPoints')}
                     activeOpacity={0.7}
@@ -165,7 +165,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                       <Text style={[styles.usageText, font]}>{points} FP</Text>
                     </View>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.usagePill}
                     onPress={() => showTooltip('badges')}
                     activeOpacity={0.7}

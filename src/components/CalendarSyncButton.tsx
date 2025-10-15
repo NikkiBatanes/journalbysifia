@@ -66,7 +66,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
     console.log('🔵 [CalendarSyncButton] canSyncToCalendar:', calendarGating.canSyncToCalendar);
     console.log('🔵 [CalendarSyncButton] calendarEventId:', calendarEventId);
     console.log('🔵 [CalendarSyncButton] timeBlock:', timeBlock);
-    
+
     if (!calendarGating.canSyncToCalendar) {
       console.log('🔵 [CalendarSyncButton] ❌ Cannot sync - showing lock tap');
       calendarGating.handleCalendarLockTap();
@@ -78,7 +78,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
 
     try {
       let result;
-      
+
       // If already synced, update the existing event instead of creating a new one
       if (calendarEventId) {
         console.log('🔵 [CalendarSyncButton] Updating existing event:', calendarEventId);

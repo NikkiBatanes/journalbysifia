@@ -64,7 +64,7 @@ const UsageTooltipModal: React.FC<Props> = ({
   stats,
 }) => {
   const navigation = useNavigation();
-  if (!type || !visible) return null;
+  if (!type || !visible) {return null;}
 
   const getTooltipContent = (): TooltipContent => {
     const tier = subscription?.tier || 'seeker';
@@ -76,7 +76,7 @@ const UsageTooltipModal: React.FC<Props> = ({
     const cleanName = rawDisplayName.replace(/ Trial$/, '');
     const displayName = isOnTrial ? rawDisplayName : `${cleanName} Plan`;
     const trialEndDate = subscription?.trial_end_date;
-    
+
     // Calculate days remaining for trial
     let daysRemaining = 0;
     if (isOnTrial && trialEndDate) {
@@ -93,7 +93,7 @@ const UsageTooltipModal: React.FC<Props> = ({
         const playbooksUsed = usage?.playbooks.used || 0;
         const playbooksLimit = usage?.playbooks.limit || 0;
         const playbooksRemaining = Math.max(0, playbooksLimit - playbooksUsed);
-        
+
         let playbooksDesc = '';
         if (isOnTrial) {
           // Get the full tier limits for after trial
@@ -109,7 +109,7 @@ const UsageTooltipModal: React.FC<Props> = ({
           playbooksDesc = `You are on ${displayName}. You have unlimited playbooks! Generate as many as you need to support your spiritual journey.`;
         } else if (playbooksLimit === 0) {
           // Seeker tier - no playbooks
-          playbooksDesc = `You are on the free Seeker plan. This plan does not include playbook generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared playbooks\n• Explore all app features\n\nUpgrade to unlock personalized playbook generation!`;
+          playbooksDesc = 'You are on the free Seeker plan. This plan does not include playbook generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared playbooks\n• Explore all app features\n\nUpgrade to unlock personalized playbook generation!';
         } else {
           if (playbooksRemaining === 0) {
             // All playbooks used for paid plans
@@ -118,7 +118,7 @@ const UsageTooltipModal: React.FC<Props> = ({
             playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available each month and have used ${playbooksUsed}.\n\n${playbooksRemaining} ${playbooksRemaining === 1 ? 'playbook' : 'playbooks'} remaining this month.`;
           }
         }
-        
+
         return {
           title: 'Playbooks',
           description: playbooksDesc,
@@ -130,7 +130,7 @@ const UsageTooltipModal: React.FC<Props> = ({
         const devotionalsUsed = usage?.devotionals.used || 0;
         const devotionalsLimit = usage?.devotionals.limit || 0;
         const devotionalsRemaining = Math.max(0, devotionalsLimit - devotionalsUsed);
-        
+
         let devotionalsDesc = '';
         if (isOnTrial) {
           const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
@@ -145,7 +145,7 @@ const UsageTooltipModal: React.FC<Props> = ({
           devotionalsDesc = `You are on ${displayName}. You have unlimited devotionals! Generate as many as you need for your daily spiritual growth.`;
         } else if (devotionalsLimit === 0) {
           // Seeker tier - no devotionals
-          devotionalsDesc = `You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!`;
+          devotionalsDesc = 'You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!';
         } else {
           // Paid plan with monthly limit: use Apple-style monthly reset date from subscription_start_date
           const resetDate = getNextAppleMonthlyResetDate(subscription?.subscription_start_date);
@@ -161,7 +161,7 @@ const UsageTooltipModal: React.FC<Props> = ({
             devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month. Resets in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
           }
         }
-        
+
         return {
           title: 'Devotionals',
           description: devotionalsDesc,
@@ -178,15 +178,15 @@ const UsageTooltipModal: React.FC<Props> = ({
         };
         const currentLevelTitle = levelTitles[level] || 'Seeker';
         const nextLevelTitle = levelTitles[level + 1] || 'Ambassador';
-        
+
         // Calculate points needed for next level
         const levelThresholds = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
         const currentThreshold = levelThresholds[level - 1] || 0;
         const nextThreshold = levelThresholds[level] || 10000;
         const pointsNeeded = Math.max(0, nextThreshold - points);
-        
+
         const faithDesc = `You currently have ${points} Faith Points and are at Level ${level}: ${currentLevelTitle}.\n\nFaith Points are earned by:\n• Completing playbook action steps\n• Finishing devotionals\n• Daily journaling\n• Prayer activities\n• Maintaining streaks\n\n${level < 10 ? `You need ${pointsNeeded} more points to reach Level ${level + 1}: ${nextLevelTitle}.` : 'You have reached the maximum level! Keep growing in faith.'}`;
-        
+
         return {
           title: 'Faith Points',
           description: faithDesc,
@@ -197,7 +197,7 @@ const UsageTooltipModal: React.FC<Props> = ({
       case 'badges':
         const badgesCount = stats?.badgesCount || 0;
         const badgesDesc = `You have earned ${badgesCount} badge${badgesCount !== 1 ? 's' : ''}!\n\nBadges are awarded for:\n• Completing playbooks\n• Maintaining prayer streaks\n• Finishing devotional series\n• Reaching faith point milestones\n• Consistent journaling\n• Special achievements\n\nKeep growing in your spiritual journey to earn more badges!`;
-        
+
         return {
           title: 'Badges',
           description: badgesDesc,
@@ -231,9 +231,9 @@ const UsageTooltipModal: React.FC<Props> = ({
   };
 
   const content = getTooltipContent();
-  
+
   // Check if user is on Seeker tier (0 limits)
-  const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) || 
+  const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) ||
                    subscription?.tier === 'seeker';
   const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
 

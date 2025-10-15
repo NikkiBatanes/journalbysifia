@@ -710,13 +710,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   const entryDate = new Date(entry.selected_date || entry.created_at);
                   const dateKey = entryDate.toDateString();
                   const pluginKey = `${selectedPlugin.id}-${dateKey}`;
-                  
+
                   // Check if we already have an entry for this plugin on this date
-                  const existingEntry = entries.find(e => 
-                    e.plugin.id === selectedPlugin.id && 
+                  const existingEntry = entries.find(e =>
+                    e.plugin.id === selectedPlugin.id &&
                     e.date.toDateString() === dateKey
                   );
-                  
+
                   if (!existingEntry) {
                     // Only create one entry per plugin per date
                     const momentEntry = {
@@ -733,7 +733,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                     console.log('🔄 [MomentsRenderer] Skipping duplicate plugin entry for same date:', {
                       plugin: selectedPlugin.id,
                       date: dateKey,
-                      existing: existingEntry.type
+                      existing: existingEntry.type,
                     });
                   }
                 } else {
@@ -1041,13 +1041,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               if (hasUserContent && allowedType && allowedSource) {
                 const entryDate = new Date(reflection.selected_date || reflection.created_at);
                 const dateKey = entryDate.toDateString();
-                
+
                 // Check if we already have an entry for this plugin on this date
-                const existingEntry = entries.find(e => 
-                  e.plugin.id === reflectionPlugin.id && 
+                const existingEntry = entries.find(e =>
+                  e.plugin.id === reflectionPlugin.id &&
                   e.date.toDateString() === dateKey
                 );
-                
+
                 if (!existingEntry) {
                   const reflectionEntry = {
                     plugin: reflectionPlugin,
@@ -1062,7 +1062,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   console.log('🔄 [MomentsRenderer] Skipping duplicate reflection entry for same date:', {
                     plugin: reflectionPlugin.id,
                     date: dateKey,
-                    existing: existingEntry.type
+                    existing: existingEntry.type,
                   });
                 }
               } else {

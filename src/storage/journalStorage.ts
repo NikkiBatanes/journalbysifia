@@ -273,7 +273,7 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
     user_id: userId,
     created_at: now,
     updated_at: now,
-    selected_date: typeof data.selected_date === 'string' ? data.selected_date : toLocalDateString(data.selected_date || dateFromKey ? new Date(dateFromKey) : new Date()),
+    selected_date: typeof data.selected_date === 'string' ? data.selected_date : toLocalDateString(data.selected_date || (dateFromKey ? new Date(dateFromKey) : new Date())),
     content_type: data.content_type || 'unknown',
     content: data.content || {},
   };

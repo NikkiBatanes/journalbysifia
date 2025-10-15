@@ -58,8 +58,8 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
 
   const calculateStreaks = useCallback((activityList: any[]): Streak[] => {
     const streakTypes = [
-      { 
-        type: 'journal', 
+      {
+        type: 'journal',
         activityTypes: [
           'journal_entry',
           'journal_todo_added',
@@ -71,29 +71,29 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
           'reflection_saved',
           'gratitude_saved',
           'prayer_saved',
-          'timeblock_saved'
-        ] 
+          'timeblock_saved',
+        ],
       },
-      { 
-        type: 'playbook', 
+      {
+        type: 'playbook',
         activityTypes: [
           'playbook_generated',
           'playbook_created',
           'action_step_completed',
           'action_step_interacted',
           'playbook_read_aloud',
-          'challenge_accepted'
-        ] 
+          'challenge_accepted',
+        ],
       },
-      { 
-        type: 'devotional', 
+      {
+        type: 'devotional',
         activityTypes: [
           'devotional_generated',
           'devotional_created',
           'devotional_day_completed',
           'devotional_completed',
-          'daily_streak'
-        ] 
+          'daily_streak',
+        ],
       },
       {
         type: 'prayer',
@@ -296,7 +296,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
       'reflection_saved',
       'gratitude_saved',
       'prayer_saved',
-      'timeblock_saved'
+      'timeblock_saved',
     ],
     playbook: [
       'playbook_generated',
@@ -304,14 +304,14 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
       'action_step_completed',
       'action_step_interacted',
       'playbook_read_aloud',
-      'challenge_accepted'
+      'challenge_accepted',
     ],
     devotional: [
       'devotional_generated',
       'devotional_created',
       'devotional_day_completed',
       'devotional_completed',
-      'daily_streak'
+      'daily_streak',
     ],
     prayer: [
       'daily_streak',

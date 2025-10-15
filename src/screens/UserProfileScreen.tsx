@@ -1304,13 +1304,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (subscription) {
       const rawTier = subscription.tier || '';
       const tierBase = rawTier.replace(/_annual$/, '');
-      
+
       // Use subscription_display_name if available
       const branded = (() => {
         if ((subscription as any)?.subscription_display_name) {
           return (subscription as any).subscription_display_name;
         }
-        
+
         // Fallback to tier-based logic
         switch (tierBase) {
           // Legacy IDs
@@ -2509,7 +2509,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         >
           {/* Debug Menu - DEV ONLY */}
           {__DEV__ && <TrialDebugMenu onRefresh={onRefresh} />}
-          
+
           {/* Badges removed from main container */}
           {renderMenuOptions()}
           {renderFamilyManagementSection()}
