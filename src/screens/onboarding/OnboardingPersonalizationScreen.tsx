@@ -226,46 +226,61 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   }, [route.params]);
 
-  // Extract first name from Google user metadata for OAuth users
+  // Helper function to check if a name looks valid (not a random string from Apple private relay)
+  const isValidName = (name: string): boolean => {
+    if (!name || name.length < 2) return false;
+    
+    // Check if it's from Apple's private relay (random characters)
+    const isApplePrivateRelay = user?.email?.includes('@privaterelay.appleid.com') || 
+                                user?.email?.includes('@icloud.com');
+    
+    // If from Apple private relay and name looks random (all lowercase, no vowels pattern, etc)
+    if (isApplePrivateRelay) {
+      // Random Apple names are usually 6-10 lowercase chars with no clear pattern
+      const looksRandom = /^[a-z]{6,10}$/.test(name) && 
+                         !name.match(/[aeiou]{2,}/) && // No double vowels (common in real names)
+                         name.length < 8; // Real names are usually longer
+      if (looksRandom) {
+        console.log('[OnboardingPersonalization] Detected random Apple private relay name:', name);
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  // Extract first name from OAuth user metadata
   React.useEffect(() => {
     if (registrationMethod === 'oauth' && user && !name) {
       try {
         const userMetadata = (user as any)?.user_metadata;
         console.log('[OnboardingPersonalization] User metadata:', userMetadata);
 
-        // Try to extract first name from various Google metadata fields
+        // Try to extract first name from various OAuth metadata fields
         let extractedName = '';
 
-        if (userMetadata?.first_name) {
+        if (userMetadata?.first_name && isValidName(userMetadata.first_name)) {
           extractedName = userMetadata.first_name;
-        } else if (userMetadata?.given_name) {
+        } else if (userMetadata?.given_name && isValidName(userMetadata.given_name)) {
           extractedName = userMetadata.given_name;
         } else if (userMetadata?.full_name) {
           // Extract first name from full name
           const fullName = userMetadata.full_name.trim();
-          extractedName = fullName.split(' ')[0];
-        } else if (user.email) {
-          // Last resort: extract from email and capitalize
-          const emailUsername = user.email.split('@')[0];
-          // Try to extract a reasonable first name from email username
-          // For "bynikkib@gmail.com", try to extract "Nikki"
-          let cleanUsername = emailUsername.toLowerCase();
-
-          // Remove common prefixes
-          cleanUsername = cleanUsername.replace(/^(by|the|my|user|admin)/, '');
-
-          // Look for common name patterns
-          if (cleanUsername.includes('nikki')) {
-            extractedName = 'Nikki';
-          } else if (cleanUsername.length >= 3) {
-            // Capitalize first letter of cleaned username
-            extractedName = cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1);
+          const firstName = fullName.split(' ')[0];
+          if (isValidName(firstName)) {
+            extractedName = firstName;
           }
         }
 
+        // Don't try to extract from email for OAuth users - force them to enter their real name
+        // This prevents using random strings like "aoerja" from Apple private relay
+
         if (extractedName) {
-          console.log('[OnboardingPersonalization] Extracted first name for OAuth user:', extractedName);
+          console.log('[OnboardingPersonalization] Extracted valid first name for OAuth user:', extractedName);
           setName(extractedName);
+        } else {
+          console.log('[OnboardingPersonalization] No valid name found - user will be prompted to enter name');
+          // Leave name empty to force name collection step
         }
       } catch (error) {
         console.warn('[OnboardingPersonalization] Error extracting name from user metadata:', error);
