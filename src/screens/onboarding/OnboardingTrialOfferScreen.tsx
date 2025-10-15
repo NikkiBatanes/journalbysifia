@@ -565,7 +565,7 @@ const OnboardingTrialOfferScreen = () => {
               </View>
             </View>
             <ThemedText weight="bold" style={styles.pricingTitle}>
-              {`3 days free, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} per ${isAnnual ? 'year' : 'month'}`}
+              {`3 days free with 2 playbooks & 2 devotionals, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} per ${isAnnual ? 'year' : 'month'}`}
             </ThemedText>
             {isAnnual ? (
               <ThemedText weight="bold" style={styles.pricingSubtitle}>
