@@ -493,6 +493,45 @@ const OnboardingTrialOfferScreen = () => {
           {/* How Trial Works */}
           <ThemedText weight="semiBold" style={styles.sectionTitle}>So, how the trial works:</ThemedText>
 
+          {/* Plan Selector - Change Plan Option */}
+          <View style={styles.planSelectorContainer}>
+            <ThemedText weight="semiBold" style={styles.planSelectorTitle}>Choose Your Plan</ThemedText>
+            <View style={styles.planOptions}>
+              {pricingTiers.map((tier) => (
+                <TouchableOpacity
+                  key={tier.id}
+                  style={[
+                    styles.planOption,
+                    selectedTierId === tier.id && styles.selectedPlanOption,
+                  ]}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    _setSelectedTierId(tier.id);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText
+                    weight={selectedTierId === tier.id ? 'bold' : 'medium'}
+                    style={[
+                      styles.planOptionText,
+                      selectedTierId === tier.id && styles.selectedPlanOptionText,
+                    ]}
+                  >
+                    {getTierDisplayName(tier.id)}
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.planOptionPrice,
+                      selectedTierId === tier.id && styles.selectedPlanOptionPrice,
+                    ]}
+                  >
+                    {isAnnual ? `$${(tier.annualPrice || 0).toFixed(2)}/yr` : `$${(tier.monthlyPrice || 0).toFixed(2)}/mo`}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* Plan Toggle */}
           <View style={styles.toggleContainer}>
             <TouchableOpacity
@@ -659,6 +698,60 @@ const createStyles = (fonts: any) => StyleSheet.create({
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 16,
+  },
+  planSelectorContainer: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  planSelectorTitle: {
+    fontSize: 17,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  planOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    gap: 8,
+  },
+  planOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    minWidth: 80,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  selectedPlanOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.growthGreen,
+  },
+  planOptionText: {
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 4,
+    opacity: 0.9,
+  },
+  selectedPlanOptionText: {
+    color: Colors.hopeWhite,
+    opacity: 1,
+  },
+  planOptionPrice: {
+    fontSize: 10,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+  selectedPlanOptionPrice: {
+    color: Colors.hopeWhite,
+    opacity: 1,
   },
   toggleContainer: {
     flexDirection: 'row',
