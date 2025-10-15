@@ -351,11 +351,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             purchaseError?.message?.toLowerCase().includes('timeout');
 
           if (isCancelled) {
-            console.log('[OnboardingSalesOffer] User cancelled upgrade - no error shown');
+            console.log('[OnboardingSalesOffer] User cancelled upgrade - silently continuing');
             return;
           }
 
-          Alert.alert('Purchase Failed', purchaseError?.message || 'Something went wrong. Please try again.');
+          // For other errors, log silently instead of showing alert
+          console.error('[OnboardingSalesOffer] Purchase error (silent):', purchaseError?.message || 'Unknown error');
         }
       } else {
         // In onboarding mode, use StoreKit to purchase subscription
@@ -444,16 +445,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             purchaseError?.message?.toLowerCase().includes('timeout');
 
           if (isCancelled) {
-            console.log('[OnboardingSalesOffer] User cancelled purchase - no error shown');
+            console.log('[OnboardingSalesOffer] User cancelled purchase - silently continuing');
             // Don't show error for cancellation
             return;
           }
 
-          Alert.alert(
-            'Purchase Failed',
-            purchaseError?.message || 'Something went wrong. Please try again.',
-            [{ text: 'OK' }]
-          );
+          // For other errors, log silently instead of showing alert
+          console.error('[OnboardingSalesOffer] Purchase error (silent):', purchaseError?.message || 'Unknown error');
         }
       }
     } catch (error) {

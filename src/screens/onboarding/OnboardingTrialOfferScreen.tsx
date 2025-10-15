@@ -149,40 +149,17 @@ const OnboardingTrialOfferScreen = () => {
         error?.message?.toLowerCase().includes('cancel');
 
       if (isCancelled) {
-        console.log('[OnboardingTrialOffer] User cancelled trial - continuing as free user');
-        // Navigate to notification setup (user remains as Seeker/free)
-        const skipNotificationPreference = route?.params?.skipNotificationPreference;
-        if (skipNotificationPreference) {
-          navigation.goBack();
-          setTimeout(() => navigation.goBack(), 100);
-        } else {
-          navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'freemium' } as never);
-        }
+        console.log('[OnboardingTrialOffer] User cancelled trial - silently continuing');
+        // User changed their mind - don't show error, just stay on screen
         return;
       }
 
-      // Show user-friendly error message
-      const errorMessage = error?.message || 'Unable to start trial';
-
-      Alert.alert(
-        'Trial Unavailable',
-        errorMessage,
-        [
-          {
-            text: 'Continue as Free User',
-            onPress: () => {
-              const skipNotificationPreference = route?.params?.skipNotificationPreference;
-              if (skipNotificationPreference) {
-                navigation.goBack();
-                setTimeout(() => navigation.goBack(), 100);
-              } else {
-                navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'freemium' } as never);
-              }
-            },
-          },
-          { text: 'Try Again', style: 'cancel' },
-        ]
-      );
+      // For other errors (network, invalid product, etc), just log silently
+      // Don't show alert to avoid interrupting user experience
+      console.error('[OnboardingTrialOffer] Trial error (silent):', error?.message || 'Unknown error');
+      
+      // Optionally show a subtle error state in UI instead of alert
+      // For now, just reset the button state so user can try again if they want
     }
   };
 
