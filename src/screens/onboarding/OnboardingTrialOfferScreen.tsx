@@ -553,6 +553,28 @@ const OnboardingTrialOfferScreen = () => {
             {timelineItems.map((item, index) => renderTimelineItem(item, index))}
           </View>
 
+          {/* What's Included Section - More Visually Appealing */}
+          <View style={styles.whatsIncludedSection}>
+            <ThemedText weight="semiBold" style={styles.whatsIncludedTitle}>What's Included in Your Trial</ThemedText>
+            <View style={styles.benefitsContainer}>
+              <View style={styles.benefitItem}>
+                <View style={[styles.benefitIcon, { backgroundColor: Colors.growthGreen }]}>
+                  <Ionicons name="book" size={24} color={Colors.hopeWhite} />
+                </View>
+                <ThemedText style={styles.benefitText}>2 Playbooks</ThemedText>
+                <ThemedText style={styles.benefitSubtext}>Guided spiritual journeys</ThemedText>
+              </View>
+              <View style={styles.benefitDivider} />
+              <View style={styles.benefitItem}>
+                <View style={[styles.benefitIcon, { backgroundColor: Colors.alertCoral }]}>
+                  <Ionicons name="heart" size={24} color={Colors.hopeWhite} />
+                </View>
+                <ThemedText style={styles.benefitText}>2 Devotionals</ThemedText>
+                <ThemedText style={styles.benefitSubtext}>Daily spiritual practice</ThemedText>
+              </View>
+            </View>
+          </View>
+
           {/* Pricing Summary (dynamic) */}
           <View style={styles.pricingSummary}>
             {/* Rounded divider with floating centered tag */}
@@ -565,7 +587,7 @@ const OnboardingTrialOfferScreen = () => {
               </View>
             </View>
             <ThemedText weight="bold" style={styles.pricingTitle}>
-              {`3 days free with 2 playbooks & 2 devotionals, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} per ${isAnnual ? 'year' : 'month'}`}
+              {`3 days free, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} per ${isAnnual ? 'year' : 'month'}`}
             </ThemedText>
             {isAnnual ? (
               <ThemedText weight="bold" style={styles.pricingSubtitle}>
@@ -720,6 +742,58 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   timelineContainer: {
     marginBottom: 20,
+  },
+  whatsIncludedSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  whatsIncludedTitle: {
+    fontSize: 16,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  benefitsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  benefitItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  benefitIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  benefitText: {
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  benefitSubtext: {
+    fontSize: 11,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  benefitDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 16,
   },
   timelineItem: {
     flexDirection: 'row',
