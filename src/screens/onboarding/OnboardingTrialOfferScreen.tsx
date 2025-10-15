@@ -56,15 +56,25 @@ const OnboardingTrialOfferScreen = () => {
     } catch {}
 
     console.log('[OnboardingTrialOffer] User declined trial');
-    // User declines trial and remains as seeker (freemium)
-    const skipNotificationPreference = route?.params?.skipNotificationPreference;
-    if (skipNotificationPreference) {
-      // Go back twice to skip the sales offer screen and return to original screen
-      navigation.goBack();
-      setTimeout(() => navigation.goBack(), 100);
-    } else {
-      // Navigate to notification setup after declining trial
-      navigation.navigate('OnboardingNotificationSetup' as never);
+    
+    try {
+      // User declines trial and remains as seeker (freemium)
+      const skipNotificationPreference = route?.params?.skipNotificationPreference;
+      if (skipNotificationPreference) {
+        // Go back twice to skip the sales offer screen and return to original screen
+        navigation.goBack();
+        setTimeout(() => navigation.goBack(), 100);
+      } else {
+        // Navigate to notification setup after declining trial
+        console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup');
+        setTimeout(() => {
+          navigation.navigate('OnboardingNotificationSetup' as never);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('[OnboardingTrialOffer] Navigation failed:', error);
+      // Reset state if navigation fails
+      setIsClosing(false);
     }
   };
 
