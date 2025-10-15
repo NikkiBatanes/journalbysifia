@@ -100,26 +100,26 @@ const OnboardingTrialOfferScreen = () => {
             }, 500);
           }, 100);
         } else {
-          // Modal presentation: Navigate to notification in background, then dismiss modal
-          console.log('[OnboardingTrialOffer] Navigating to Notification (background), then dismissing modal', { userType: 'freemium', display: 'seeker' });
+          // Use navigation.reset to completely replace navigation state
+          // This dismisses all modals and navigates to Notification in one action
+          console.log('[OnboardingTrialOffer] Resetting navigation to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
           
-          // Navigate to notification (happens in background)
-          navigation.navigate(
-            'OnboardingNotificationSetup' as never,
-            { userType: 'freemium', displayName: 'siFia Seeker' } as never
-          );
+          (navigation as any).reset({
+            index: 0,
+            routes: [
+              {
+                name: 'OnboardingNotificationSetup',
+                params: { userType: 'freemium', displayName: 'siFia Seeker' }
+              }
+            ]
+          });
           
-          // Dismiss modal after short delay to reveal notification screen
+          // Reset after navigation completes
           setTimeout(() => {
-            navigation.goBack();
-            
-            // Reset after modal dismisses
-            setTimeout(() => {
-              navigationInProgressRef.current = false;
-              setIsClosing(false);
-              clearTimeout(watchdog);
-            }, 300);
-          }, 100);
+            navigationInProgressRef.current = false;
+            setIsClosing(false);
+            clearTimeout(watchdog);
+          }, 300);
         }
       } catch (error) {
         console.error('[OnboardingTrialOffer] Navigation failed:', error);
