@@ -114,20 +114,36 @@ const OnboardingTrialOfferScreen = () => {
       const billing = isAnnual ? 'annual' : 'monthly';
       let productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
 
-      console.log('[OnboardingTrialOffer] Attempting TRIAL subscription:', productId);
+      console.log('[OnboardingTrialOffer] ========================================');
+      console.log('[OnboardingTrialOffer] TRIAL PRODUCT VERIFICATION');
+      console.log('[OnboardingTrialOffer] Target product ID:', productId);
+      console.log('[OnboardingTrialOffer] ========================================');
       
-      // TESTFLIGHT FIX: Verify the .freetrial product exists in App Store Connect
-      // If not found, fall back to regular product (TestFlight might not have trial products configured)
+      // CRITICAL: Verify the .freetrial product exists in App Store Connect
+      // Even if configured, it might not be synced to TestFlight yet
       try {
         const availableProducts = await paymentService.getAvailableProducts();
+        
+        console.log('[OnboardingTrialOffer] 📦 ALL AVAILABLE PRODUCTS FROM APP STORE:');
+        availableProducts.forEach((p, index) => {
+          console.log(`[OnboardingTrialOffer] ${index + 1}. ${p.productId}`);
+          console.log(`[OnboardingTrialOffer]    Price: ${p.localizedPrice}`);
+          console.log(`[OnboardingTrialOffer]    Title: ${p.title}`);
+        });
+        console.log('[OnboardingTrialOffer] ========================================');
+        
         const trialProduct = availableProducts.find(p => p.productId === productId);
         
         if (!trialProduct) {
           console.warn('[OnboardingTrialOffer] ⚠️ .freetrial product NOT found in App Store!');
-          console.warn('[OnboardingTrialOffer] This usually means:');
-          console.warn('[OnboardingTrialOffer] 1. Trial product not configured in App Store Connect');
-          console.warn('[OnboardingTrialOffer] 2. TestFlight build doesn\'t have trial products enabled');
-          console.warn('[OnboardingTrialOffer] 3. Product ID mismatch');
+          console.warn('[OnboardingTrialOffer] Expected:', productId);
+          console.warn('[OnboardingTrialOffer] ');
+          console.warn('[OnboardingTrialOffer] POSSIBLE CAUSES:');
+          console.warn('[OnboardingTrialOffer] 1. Product ID mismatch - check App Store Connect');
+          console.warn('[OnboardingTrialOffer] 2. Trial offer not approved yet');
+          console.warn('[OnboardingTrialOffer] 3. TestFlight build needs to be refreshed');
+          console.warn('[OnboardingTrialOffer] 4. Cleared for sale = NO in App Store Connect');
+          console.warn('[OnboardingTrialOffer] ');
           
           // Fallback to regular product ID
           const fallbackProductId = `app.sifia.com.${selectedTierId}.${billing}`;
@@ -135,16 +151,23 @@ const OnboardingTrialOfferScreen = () => {
           
           if (regularProduct) {
             console.log('[OnboardingTrialOffer] ✅ Using regular product as fallback:', fallbackProductId);
+            console.log('[OnboardingTrialOffer] ⚠️ USER WILL NOT GET FREE TRIAL - will be charged immediately');
             productId = fallbackProductId;
           } else {
             console.error('[OnboardingTrialOffer] ❌ Neither trial nor regular product found!');
-            console.error('[OnboardingTrialOffer] Available products:', availableProducts.map(p => p.productId));
+            console.error('[OnboardingTrialOffer] This is a critical error - no products available');
+            throw new Error(`Product not found: ${productId} or ${fallbackProductId}`);
           }
         } else {
-          console.log('[OnboardingTrialOffer] ✅ Trial product found with 3-day free trial');
+          console.log('[OnboardingTrialOffer] ✅✅✅ TRIAL PRODUCT FOUND!');
+          console.log('[OnboardingTrialOffer] Product ID:', trialProduct.productId);
+          console.log('[OnboardingTrialOffer] Price:', trialProduct.localizedPrice);
+          console.log('[OnboardingTrialOffer] Title:', trialProduct.title);
+          console.log('[OnboardingTrialOffer] User will see: "Free for 3 days, then ${trialProduct.localizedPrice}"');
         }
       } catch (productError) {
-        console.error('[OnboardingTrialOffer] Failed to verify products:', productError);
+        console.error('[OnboardingTrialOffer] ❌ Failed to verify products:', productError);
+        console.error('[OnboardingTrialOffer] Continuing with original productId (risky)');
         // Continue with original productId
       }
 
