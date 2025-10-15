@@ -288,7 +288,11 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="OnboardingNotificationSetup"
             component={OnboardingNotificationSetupScreen as React.ComponentType}
-            options={{ headerShown: false }}
+            options={{
+              headerShown: false,
+              animation: 'fade',
+              animationDuration: 300,
+            }}
           />
 
           {/* OLD SCREENS - KEEPING FOR NOW, WILL REMOVE LATER */}
