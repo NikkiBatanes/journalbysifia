@@ -1118,7 +1118,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
+    borderRadius: 30,
     paddingTop: 20,
     paddingBottom: 20,
     width: '100%',

@@ -506,7 +506,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const renderPricingCard = (tier: PricingTier) => {
     const isSelected = selectedTier === tier.id;
-    const isFocused = tier.id === 'growth'; // Growth tier always focused
+    // Only highlight the currently selected tier, not always the growth tier
+    const isFocused = isSelected; // Remove hardcoded growth tier focus
     const isExpanded = expandedCards.has(tier.id);
     const growthVisible = pricingTiers.some(t => t.id === 'growth');
 
@@ -529,7 +530,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             pointerEvents="none"
             style={[
               styles.selectedOverlay,
-              { backgroundColor: selectedTier === 'growth' ? Colors.alertCoral : Colors.growthGreen },
+              { backgroundColor: isFocused ? Colors.alertCoral : Colors.growthGreen },
             ]}
           />
         )}
