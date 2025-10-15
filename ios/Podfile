@@ -31,8 +31,7 @@ target 'siFia' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
-    # Suppress non-modular-include-in-framework-module warnings
-    installer.pods_project.targets.each do |target|
+    
     # Fix for Xcode 26 C++ header issues
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
@@ -43,9 +42,6 @@ target 'siFia' do
         config.build_settings['HEADER_SEARCH_PATHS'] << '"$(SDKROOT)/usr/include/c++/v1"'
         # Ensure C++20 is used
         config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-      end
-    end
-      target.build_configurations.each do |config|
       end
     end
   end
