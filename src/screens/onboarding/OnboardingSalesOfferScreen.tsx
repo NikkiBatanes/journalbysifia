@@ -486,7 +486,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         }
       }
     } catch (error) {
-      logger.error('Error in handleUnlockPlan:', error);
+      logger.error('Error in handleUnlockPlan', error as Error);
       Alert.alert(
         'Error',
         'Something went wrong. Please try again.',
@@ -681,7 +681,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Show loading state while pricing tiers are loading
   if (pricingTiers.length === 0 || !currencyInfo) {
-    logger.debug('Showing loading state:', {
+    logger.debug('Showing loading state', {
       tiersLength: pricingTiers.length,
       hasCurrency: !!currencyInfo,
       currencyInfo,
