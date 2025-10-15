@@ -117,7 +117,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           style={[
             styles.modalContainer,
             {
-              backgroundColor: '#2C5F7F', // Anchor blue background
+              backgroundColor: '#2C5F7F', // Anchor blue background - ensure it's applied
               opacity: fadeAnim,
             },
           ]}
@@ -127,26 +127,26 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
             style={[
               styles.iconContainer,
               {
-                backgroundColor: stepInfo.color + '20',
+                backgroundColor: '#FF6B6B' + '20', // Alert coral with transparency
                 transform: [{ scale: pulseAnim }],
               },
             ]}
           >
-            <Ionicons name={stepInfo.icon} size={48} color={stepInfo.color} />
+            <Ionicons name={stepInfo.icon} size={48} color="#FF6B6B" />
           </Animated.View>
 
           {/* Title */}
-          <Text style={[styles.title, { color: theme.colors.text }]}>
+          <Text style={[styles.title, { color: '#F8F9FA' }]}>
             {stepInfo.title}
           </Text>
 
           {/* Description */}
-          <Text style={[styles.description, { color: theme.colors.secondaryText }]}>
+          <Text style={[styles.description, { color: '#F8F9FA' }]}>
             {stepInfo.description}
           </Text>
 
           {/* Progress Bar */}
-          <View style={[styles.progressBarContainer, { backgroundColor: theme.colors.cardBorder }]}>
+          <View style={[styles.progressBarContainer, { backgroundColor: 'rgba(248, 249, 250, 0.2)' }]}>
             <Animated.View
               style={[
                 styles.progressBar,
@@ -159,14 +159,14 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           </View>
 
           {/* Progress Percentage */}
-          <Text style={[styles.progressText, { color: theme.colors.secondaryText }]}>
+          <Text style={[styles.progressText, { color: '#F8F9FA' }]}>
             {stepInfo.progress}% Complete
           </Text>
 
           {/* Spinner */}
           <ActivityIndicator
             size="large"
-            color={stepInfo.color}
+            color="#FF6B6B"
             style={styles.spinner}
           />
 
