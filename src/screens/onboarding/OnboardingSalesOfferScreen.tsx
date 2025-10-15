@@ -387,10 +387,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setLoadingStep('processing');
 
           // Show Apple's payment sheet and process purchase
-          logger.debug('Calling purchaseSubscription...');
+          logger.debug('Calling purchaseSubscription', {});
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
 
-          logger.debug('Purchase result:', {
+          logger.debug('Purchase result', {
             success: result.success,
             error: result.error,
             hasResult: !!result,
@@ -398,7 +398,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           if (result.success) {
             setLoadingStep('validating');
-            logger.onboarding.navigation('✅ Purchase successful!');
+            logger.info('✅ Purchase successful!');
             triggerSuccessHaptic();
 
             // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
@@ -407,7 +407,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               throw new Error('Invalid purchase - no transaction ID');
             }
 
-            logger.debug('Transaction verification:', {
+            logger.debug('Transaction verification', {
               hasTransactionId: !!result.transactionId,
               transactionId: result.transactionId?.substring(0, 10) + '...',
             });
@@ -418,15 +418,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
               const storeKitService = AppleStoreKitService.getInstance();
               await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '');
-              logger.onboarding.navigation('✅ Subscription synced with Apple');
+              logger.info('✅ Subscription synced with Apple');
 
               // Also refresh local state
               await devotionalGating.refreshSubscription();
-              logger.onboarding.navigation('✅ Local subscription state refreshed');
+              logger.info('✅ Local subscription state refreshed');
 
               // Verify the subscription was actually updated
               const newTier = devotionalGating.tier;
-              logger.debug('New tier after refresh:', newTier);
+              logger.debug('New tier after refresh', { newTier });
 
               if (newTier === 'seeker') {
                 logger.warn('⚠️ Still showing seeker after purchase!');
@@ -438,18 +438,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   const { AppleStoreKitService: AppleStoreKit } = await import('../../services/AppleStoreKitService');
                   const storeKit = AppleStoreKit.getInstance();
                   await storeKit.restorePurchases(user?.id || '');
-                  logger.onboarding.stepCompleted('Restore purchases completed');
+                  logger.info('Restore purchases completed');
                 } catch (restoreError) {
-                  logger.error('Restore failed:', restoreError);
+                  logger.error('Restore failed', restoreError as Error);
                 }
 
                 // Give it one more second and try again
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 await devotionalGating.refreshSubscription();
-                logger.debug('Second refresh - tier:', devotionalGating.tier);
+                logger.debug('Second refresh - tier', { tier: devotionalGating.tier });
               }
             } catch (refreshError) {
-              logger.error('Failed to refresh subscription:', refreshError);
+              logger.error('Failed to refresh subscription', refreshError as Error);
               // Continue to navigation even if refresh fails
             }
 
