@@ -89,7 +89,6 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     'Register',
     'EmailLogin',
     'EmailRegister',
-    'ForgotPassword',
     'ResetPassword',
   ]), []);
 
@@ -100,10 +99,35 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     // Start trial expiry monitoring
     trialExpiryService.checkAndHandleExpiredTrials();
     trialExpiryService.scheduleTrialExpiryCheck();
-  }, []);
+    
+    // ENTERPRISE: Sync subscription status on app launch
+    const syncSubscriptionStatus = async () => {
+      if (isAuthenticated) {
+        try {
+          const { AppleStoreKitService } = await import('./src/services/AppleStoreKitService');
+          const { useAuth: getAuth } = await import('./src/context/IndustryStandardAuthContext');
+          
+          // Get user ID from auth context
+          const authContext = getAuth();
+          const userId = authContext?.user?.id;
+          
+          if (userId) {
+            console.log('[App] Syncing subscription status on launch...');
+            const storeKit = AppleStoreKitService.getInstance();
+            await storeKit.checkAndSyncSubscriptionStatus(userId);
+            console.log('[App] Subscription status synced');
+          }
+        } catch (error) {
+          console.error('[App] Failed to sync subscription status:', error);
+        }
+      }
+    };
+    
+    syncSubscriptionStatus();
+  }, [isAuthenticated]);
 
   // Only block initial render while bootstrapping the initial session.
-  // Do NOT block on transient auth action loading to avoid navigator remounts
+  // DO NOT block on transient auth action loading to avoid navigator remounts
   // that can reset to onboarding after failed logins.
   if (!fontsLoaded || bootstrapping) {
     return (

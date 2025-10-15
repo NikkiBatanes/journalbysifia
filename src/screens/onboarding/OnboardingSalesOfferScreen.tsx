@@ -123,6 +123,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         const currency = await pricingService.getCurrencyInfo();
         console.log('[OnboardingSalesOffer] Currency info loaded:', currency);
+        console.log('[OnboardingSalesOffer] Sample tier prices:', tiers[0] ? {
+          tier: tiers[0].id,
+          monthly: tiers[0].monthlyPrice,
+          annual: tiers[0].annualPrice,
+          symbol: currency.symbol
+        } : 'No tiers');
 
         // If a specific devotional duration was requested, only show tiers that UNLOCK it
         if (requestedDuration && tiers.length > 0) {
@@ -279,14 +285,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       try {
         const products = await paymentService.getAvailableProducts();
-        const targetProduct = products.find(p => p.tier === selectedTier);
+        // Match BOTH tier AND billing period to ensure correct product selection
+        const targetProduct = products.find(p => 
+          p.tier === selectedTier && 
+          p.productId.includes(billing)
+        );
 
         if (targetProduct) {
           productId = targetProduct.productId;
+          console.log(`[OnboardingSalesOffer] Found matching product: ${productId}`);
         } else {
           // Construct product ID - NO trial suffix for sales offer (always paid)
           productId = `app.sifia.com.${selectedTier}.${billing}`;
-          console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier}, using constructed ID: ${productId}`);
+          console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`);
         }
       } catch (error) {
         // Fallback: construct product ID - NO trial suffix for sales offer
@@ -317,7 +328,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             throw new Error(result.error || 'Purchase failed');
           }
         } catch (purchaseError: any) {
-          console.error('Purchase failed:', purchaseError);
+          console.error('[OnboardingSalesOffer] Upgrade purchase failed:', purchaseError);
+          
+          // Check if user cancelled
+          const isCancelled = 
+            purchaseError?.message === 'USER_CANCELLED' ||
+            purchaseError?.code === 'USER_CANCELLED' ||
+            purchaseError?.message?.toLowerCase().includes('cancel') ||
+            purchaseError?.message?.toLowerCase().includes('timeout');
+          
+          if (isCancelled) {
+            console.log('[OnboardingSalesOffer] User cancelled upgrade - no error shown');
+            return;
+          }
+          
           Alert.alert('Purchase Failed', purchaseError?.message || 'Something went wrong. Please try again.');
         }
       } else {
@@ -343,21 +367,46 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
           
           if (result.success) {
-            console.log('[OnboardingSalesOffer] ✅ Purchase successful, navigating to notification setup');
+            console.log('[OnboardingSalesOffer] ✅ Purchase successful!');
             triggerSuccessHaptic();
             
-            // Navigate IMMEDIATELY to prevent re-renders from canceling navigation
-            console.log('[OnboardingSalesOffer] Attempting navigation to OnboardingNotificationSetup');
-            navigation.navigate('OnboardingNotificationSetup' as never);
-            console.log('[OnboardingSalesOffer] Navigation called');
+            // CRITICAL: Wait for subscription to refresh BEFORE navigating
+            console.log('[OnboardingSalesOffer] Refreshing subscription data...');
+            try {
+              await devotionalGating.refreshSubscription();
+              console.log('[OnboardingSalesOffer] ✅ Subscription refreshed successfully');
+              
+              // Verify the subscription was actually updated
+              const newTier = devotionalGating.tier;
+              console.log('[OnboardingSalesOffer] New tier after refresh:', newTier);
+              
+              if (newTier === 'seeker') {
+                console.warn('[OnboardingSalesOffer] ⚠️ Still showing seeker after purchase!');
+                console.warn('[OnboardingSalesOffer] This means the database was not updated by the purchase listener');
+                console.warn('[OnboardingSalesOffer] Attempting manual purchase restoration...');
+                
+                // Try to restore purchases to trigger the listener
+                try {
+                  const AppleStoreKitService = (await import('../../services/AppleStoreKitService')).AppleStoreKitService;
+                  const storeKit = AppleStoreKitService.getInstance();
+                  await storeKit.restorePurchases(user?.id || '');
+                  console.log('[OnboardingSalesOffer] Restore purchases completed');
+                } catch (restoreError) {
+                  console.error('[OnboardingSalesOffer] Restore failed:', restoreError);
+                }
+                
+                // Give it one more second and try again
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                await devotionalGating.refreshSubscription();
+                console.log('[OnboardingSalesOffer] Second refresh - tier:', devotionalGating.tier);
+              }
+            } catch (refreshError) {
+              console.error('[OnboardingSalesOffer] Failed to refresh subscription:', refreshError);
+            }
             
-            // Refresh subscription data in background (after navigation)
-            console.log('[OnboardingSalesOffer] Refreshing subscription in background...');
-            devotionalGating.refreshSubscription().then(() => {
-              console.log('[OnboardingSalesOffer] Subscription refreshed in background');
-            }).catch(err => {
-              console.warn('[OnboardingSalesOffer] Background subscription refresh failed:', err);
-            });
+            // Now navigate
+            console.log('[OnboardingSalesOffer] Navigating to OnboardingNotificationSetup');
+            navigation.navigate('OnboardingNotificationSetup' as never);
           } else {
             console.log('[OnboardingSalesOffer] ❌ Purchase not successful, throwing error');
             throw new Error(result.error || 'Purchase failed');
@@ -365,9 +414,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         } catch (purchaseError: any) {
           console.error('[OnboardingSalesOffer] Purchase failed:', purchaseError);
           
-          // Check if user cancelled
-          if (purchaseError?.message?.toLowerCase().includes('cancel')) {
-            console.log('[OnboardingSalesOffer] User cancelled purchase');
+          // Check if user cancelled (multiple ways to detect)
+          const isCancelled = 
+            purchaseError?.message === 'USER_CANCELLED' ||
+            purchaseError?.code === 'USER_CANCELLED' ||
+            purchaseError?.message?.toLowerCase().includes('cancel') ||
+            purchaseError?.message?.toLowerCase().includes('timeout');
+          
+          if (isCancelled) {
+            console.log('[OnboardingSalesOffer] User cancelled purchase - no error shown');
             // Don't show error for cancellation
             return;
           }

@@ -1,4 +1,4 @@
-
+import { Platform, NativeModules } from 'react-native';
 import { loadDiscountState, saveDiscountState, mergeGuestToUser, type DiscountState } from './discountStorage';
 
 export interface PricingTier {
@@ -190,13 +190,35 @@ class PricingService {
    */
   async getUserLocation(): Promise<string> {
     try {
-      // In a real app, you would use a location service or IP geolocation
-      // For now, we'll simulate this
-
-      return 'US'; // Default to US, change to 'PH' for Philippines testing
-    // eslint-disable-next-line no-unreachable
+      let locale = '';
+      
+      if (Platform.OS === 'ios') {
+        // iOS: Get locale from settings
+        locale = NativeModules.SettingsManager?.settings?.AppleLocale || 
+                 NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] || '';
+      } else if (Platform.OS === 'android') {
+        // Android: Get locale from I18nManager
+        locale = NativeModules.I18nManager?.localeIdentifier || '';
+      }
+      
+      console.log('[PricingService] Detected device locale:', locale);
+      
+      // Extract country code from locale (e.g., "en_PH" -> "PH", "en-PH" -> "PH")
+      const countryMatch = locale.match(/[-_]([A-Z]{2})$/i);
+      const countryCode = countryMatch ? countryMatch[1].toUpperCase() : '';
+      
+      console.log('[PricingService] Extracted country code:', countryCode);
+      
+      // Return country code if we have pricing for it, otherwise default to US
+      if (countryCode && this.locationPricing[countryCode]) {
+        console.log('[PricingService] Using country-specific pricing:', countryCode);
+        return countryCode;
+      }
+      
+      console.log('[PricingService] Using default US pricing');
+      return 'US';
     } catch (error) {
-      console.error('Error getting user location:', error);
+      console.error('[PricingService] Error getting user location:', error);
       return 'DEFAULT';
     }
   }

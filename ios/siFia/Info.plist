@@ -17,11 +17,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1.0</string>
+	<string>1.2.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>3</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -34,7 +34,9 @@
 	<key>NSCalendarsUsageDescription</key>
 	<string>siFia needs access to your calendar to sync your time blocks and help you stay organized with your spiritual practices.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>siFia uses your location to personalize your experience (for example, local pricing and regional content). We only access your location when the app is in use.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>siFia may access your location to personalize your experience (for example, local pricing and regional content). Location is only used to improve the app experience and is not shared.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app may save images to your photo library when updating your profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

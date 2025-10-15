@@ -72,7 +72,7 @@ const OnboardingTrialOfferScreen = () => {
     if (isStartingTrial || isClosing) return; // Prevent double-tap
     
     try { 
-      triggerSuccessHaptic(); 
+      triggerLightHaptic(); 
       setIsStartingTrial(true);
     } catch {}
     
@@ -81,45 +81,69 @@ const OnboardingTrialOfferScreen = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('[OnboardingTrialOffer] Starting trial for user:', user.id, {
+      console.log('[OnboardingTrialOffer] Starting trial subscription with Apple', {
         tier: selectedTierId,
         billing: isAnnual ? 'annual' : 'monthly',
       });
       
-      // Start 3-day free trial with new subscription system
-      // Use the currently selected tier and billing period
-      await startTrial({
-        user_id: user.id,
-        duration_days: 3,
-        trial_chosen_tier: selectedTierId as any, // Record the user's actual choice
-        billing_cycle: isAnnual ? 'annual' : 'monthly', // Record billing preference
-      });
-
-      console.log('[OnboardingTrialOffer] Trial started successfully');
+      // CRITICAL: Trial Offer Screen uses a DIFFERENT product ID than Sales Offer
+      // Strategy:
+      // - Sales Offer: app.sifia.com.spark.monthly (no trial)
+      // - Trial Offer: app.sifia.com.spark.monthly.freetrial (3-day free trial)
+      // Both products are in the same subscription group, so they give the same access
+      const { PlatformPaymentService } = await import('../../services/PlatformPaymentService');
+      const paymentService = PlatformPaymentService.getInstance();
       
-      // Navigate to notification setup after trial start
-      const skipNotificationPreference = route?.params?.skipNotificationPreference;
-      if (skipNotificationPreference) {
-        // Go back twice to skip the sales offer screen and return to original screen
-        navigation.goBack();
-        setTimeout(() => navigation.goBack(), 100);
+      // Use the .freetrial product ID - this one has the 3-day free trial configured
+      const billing = isAnnual ? 'annual' : 'monthly';
+      const productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
+      
+      console.log('[OnboardingTrialOffer] Purchasing TRIAL subscription:', productId);
+      console.log('[OnboardingTrialOffer] This product has 3-day free trial configured in App Store Connect');
+      
+      // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX"
+      const result = await paymentService.purchaseSubscription(productId, user.id);
+      
+      if (result.success) {
+        console.log('[OnboardingTrialOffer] ✅ Trial subscription authorized by Apple');
+        triggerSuccessHaptic();
+        
+        // The purchase listener will update the database to free_trial status
+        // Wait a moment for it to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Navigate to notification setup
+        const skipNotificationPreference = route?.params?.skipNotificationPreference;
+        if (skipNotificationPreference) {
+          navigation.goBack();
+          setTimeout(() => navigation.goBack(), 100);
+        } else {
+          navigation.navigate('OnboardingNotificationSetup' as never);
+        }
       } else {
-        // Navigate to notification setup after trial activation
-        navigation.navigate('OnboardingNotificationSetup' as never);
+        throw new Error(result.error || 'Trial subscription failed');
       }
     } catch (error: any) {
       console.error('[OnboardingTrialOffer] Error starting trial:', error);
       setIsStartingTrial(false);
       
+      // Check if user cancelled
+      const isCancelled = 
+        error?.message === 'USER_CANCELLED' ||
+        error?.code === 'USER_CANCELLED' ||
+        error?.message?.toLowerCase().includes('cancel');
+      
+      if (isCancelled) {
+        console.log('[OnboardingTrialOffer] User cancelled trial - no error shown');
+        return;
+      }
+      
       // Show user-friendly error message
       const errorMessage = error?.message || 'Unable to start trial';
-      const isSchemaError = errorMessage.includes('trial_chosen_tier') || errorMessage.includes('schema cache');
       
       Alert.alert(
         'Trial Unavailable',
-        isSchemaError 
-          ? 'We\'re updating our systems. Please try again in a moment or continue as a free user.'
-          : errorMessage,
+        errorMessage,
         [
           {
             text: 'Continue as Free User',
@@ -172,12 +196,19 @@ const OnboardingTrialOfferScreen = () => {
           pricingService.getLocationAdjustedPricing(),
           pricingService.getCurrencyInfo(),
         ]);
+        console.log('[OnboardingTrialOffer] Currency info loaded:', currency);
+        console.log('[OnboardingTrialOffer] Sample tier prices:', tiers[0] ? {
+          tier: tiers[0].id,
+          monthly: tiers[0].monthlyPrice,
+          annual: tiers[0].annualPrice,
+          symbol: currency.symbol
+        } : 'No tiers');
         if (mounted) {
           setPricingTiers(tiers || []);
           setCurrencyInfo(currency || null);
         }
       } catch (e) {
-        console.error('Failed to load pricing for trial screen', e);
+        console.error('[OnboardingTrialOffer] Failed to load pricing:', e);
       }
     })();
     return () => {
