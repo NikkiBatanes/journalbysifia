@@ -86,17 +86,14 @@ const OnboardingTrialOfferScreen = () => {
         billing: isAnnual ? 'annual' : 'monthly',
       });
 
-      // CRITICAL: Trial Offer Screen uses a DIFFERENT product ID than Sales Offer
-      // Strategy:
-      // - Sales Offer: app.sifia.com.spark.monthly (no trial)
-      // - Trial Offer: app.sifia.com.spark.monthly.freetrial (3-day free trial)
-      // Both products are in the same subscription group, so they give the same access
+      // CRITICAL: Use the regular product IDs which have 3-day free trial configured in App Store Connect
+      // The trial is configured on the product itself in App Store Connect, not via a different product ID
       const { PlatformPaymentService } = await import('../../services/PlatformPaymentService');
       const paymentService = PlatformPaymentService.getInstance();
 
-      // Use the .freetrial product ID - this one has the 3-day free trial configured
+      // Use the regular product ID - it already has the 3-day free trial configured in App Store Connect
       const billing = isAnnual ? 'annual' : 'monthly';
-      const productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
+      const productId = `app.sifia.com.${selectedTierId}.${billing}`;
 
       console.log('[OnboardingTrialOffer] Purchasing TRIAL subscription:', productId);
       console.log('[OnboardingTrialOffer] This product has 3-day free trial configured in App Store Connect');
