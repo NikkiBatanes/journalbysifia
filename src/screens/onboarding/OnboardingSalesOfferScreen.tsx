@@ -96,10 +96,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // When screen regains focus after Trial modal dismisses, navigate to Notification
   useFocusEffect(
     React.useCallback(() => {
+      console.log('[OnboardingSalesOffer] Screen focused - checking trial flag:', {
+        trialModalDismissed: trialModalDismissedRef.current,
+        skipNotificationPreference: routeParams?.skipNotificationPreference
+      });
+      
       if (trialModalDismissedRef.current && !routeParams?.skipNotificationPreference) {
-        console.log('[OnboardingSalesOffer] Trial modal dismissed - navigating to Notification');
+        console.log('[OnboardingSalesOffer] ✅ Trial modal dismissed - navigating to Notification');
         trialModalDismissedRef.current = false;
-        navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium', displayName: 'siFia Seeker' });
+        
+        // Small delay to ensure modal is fully dismissed before navigating
+        setTimeout(() => {
+          navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium', displayName: 'siFia Seeker' });
+        }, 300);
       }
     }, [navigation, routeParams?.skipNotificationPreference])
   );
