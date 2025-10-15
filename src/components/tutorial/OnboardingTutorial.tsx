@@ -15,6 +15,7 @@ import Animated, {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../theme';
 import ThemedText from '../common/ThemedText';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface TutorialOverlayProps {
   showTutorial: boolean;
@@ -107,7 +108,10 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
       {/* Confirmation button */}
       <TouchableOpacity
         style={styles.confirmButton}
-        onPress={tutorialStep === 1 ? onTapTutorialComplete : onSwipeTutorialComplete}
+        onPress={() => {
+          try { triggerLightHaptic(); } catch {}
+          tutorialStep === 1 ? onTapTutorialComplete() : onSwipeTutorialComplete();
+        }}
         activeOpacity={0.7}
       >
         <ThemedText style={styles.confirmText}>
@@ -118,7 +122,10 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
       {/* Skip Tutorial button */}
       <TouchableOpacity
         style={styles.skipButton}
-        onPress={onSkipTutorial}
+        onPress={() => {
+          try { triggerLightHaptic(); } catch {}
+          onSkipTutorial();
+        }}
         activeOpacity={0.7}
       >
         <ThemedText style={styles.skipText}>Skip Tutorial</ThemedText>

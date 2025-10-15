@@ -1515,6 +1515,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 0,
+    marginBottom: 20,  // Add space below button
     height: 56,
     alignSelf: 'stretch',
     marginHorizontal: 16,
@@ -1529,15 +1530,16 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   skipButton: {
-    marginTop: 4,  // Reduced from 10 to 4 to move it up
-    paddingVertical: 6,  // Reduced from 8 to 6
-    paddingHorizontal: 12,
+    marginTop: 0,  // Remove top margin
+    paddingVertical: 12,  // Increase padding for easier tapping
+    paddingHorizontal: 20,  // Increase horizontal padding
     alignSelf: 'center',
+    minHeight: 44,  // Ensure minimum tap target size
   },
   skipButtonText: {
     color: Colors.hopeWhite,
     opacity: 0.85,
-    fontSize: 14,
+    fontSize: 15,  // Slightly larger for better readability
     fontWeight: '600',
   },
   expandHintButton: {
