@@ -47,12 +47,15 @@ const OnboardingTrialOfferScreen = () => {
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const navigationInProgressRef = React.useRef(false);
 
   const handleClose = async () => {
-    if (isClosing || isStartingTrial) {
-      console.log('[OnboardingTrialOffer] handleClose ignored (isClosing/isStartingTrial)', { isClosing, isStartingTrial });
-      return; // Prevent double-tap
+    if (isClosing || isStartingTrial || navigationInProgressRef.current) {
+      console.log('[OnboardingTrialOffer] handleClose ignored', { isClosing, isStartingTrial, navigationInProgress: navigationInProgressRef.current });
+      return; // Prevent double-tap and multiple navigation calls
     }
+    
+    navigationInProgressRef.current = true;
 
     try {
       triggerLightHaptic();
@@ -100,11 +103,13 @@ const OnboardingTrialOfferScreen = () => {
       } catch (error) {
         console.error('[OnboardingTrialOffer] Navigation failed:', error);
         setIsClosing(false);
+        navigationInProgressRef.current = false;
       } finally {
         // Release lock shortly after initiating navigation unless watchdog already handled
         setTimeout(() => {
           if (!watchdogFired) {
             setIsClosing(false);
+            navigationInProgressRef.current = false;
             clearTimeout(watchdog);
           }
         }, 200);

@@ -1039,20 +1039,21 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
         {/* FIXED FOOTER (translucent so cards scroll behind) - Button only */}
         {/* eslint-disable react-native/no-inline-styles */}
-        <View onLayout={({ nativeEvent }) => setFooterH(nativeEvent.layout.height)} style={[
-          styles.footer,
-          {
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            // Collapse top padding when helper text is hidden (cards expanded)
-            paddingTop: expandedCards.size === 0 ? 8 : 0,
-            // Keep only a little space between bottom and footer content (minimize safe-area gap)
-            paddingBottom: 6,
-            backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
-          },
-        ]}>
+        <View onLayout={({ nativeEvent }) => setFooterH(nativeEvent.layout.height)}          style={[
+            styles.footerContainer,
+            {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // Collapse top padding when helper text is hidden (cards expanded)
+              paddingTop: expandedCards.size === 0 ? 8 : 0,
+              // Move the footer content (Continue + Skip) up slightly from the very bottom
+              // accounting for safe area; this makes 'Skip for now' easier to tap
+              paddingBottom: Math.max(insets.bottom, 16) + 8,
+              backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
+            },
+          ]}>
           {/* Compute last card status to gate CTA */}
           {/**/}
           {(() => { return null; })()}
@@ -1541,6 +1542,12 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     fontSize: 15,  // Slightly larger for better readability
     fontWeight: '600',
+  },
+  // Base container for bottom footer (CTA + Skip). Having a named style avoids TS/ESLint errors
+  footerContainer: {
+    paddingHorizontal: 16,
+    borderTopLeftRadius: BorderRadii.cardXL,
+    borderTopRightRadius: BorderRadii.cardXL,
   },
   expandHintButton: {
     position: 'absolute',
