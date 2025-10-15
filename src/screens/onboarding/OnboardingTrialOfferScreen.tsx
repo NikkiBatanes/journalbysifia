@@ -148,19 +148,11 @@ const OnboardingTrialOfferScreen = () => {
           logger.warn('3. TestFlight build needs to be refreshed');
           logger.warn('4. Cleared for sale = NO in App Store Connect');
 
-          // Fallback to regular product ID
-          const fallbackProductId = `app.sifia.com.${selectedTierId}.${billing}`;
-          const regularProduct = availableProducts.find(p => p.productId === fallbackProductId);
-
-          if (regularProduct) {
-            logger.info('✅ Using regular product as fallback', { fallbackProductId });
-            logger.warn('⚠️ USER WILL NOT GET FREE TRIAL - will be charged immediately');
-            productId = fallbackProductId;
-          } else {
-            logger.error('❌ Neither trial nor regular product found!');
-            logger.error('This is a critical error - no products available');
-            throw new Error(`Product not found: ${productId} or ${fallbackProductId}`);
-          }
+          // CRITICAL FIX: Don't fallback to regular products for trial screen
+          // This prevents immediate charging instead of free trial
+          logger.error('❌ Trial product not found - cannot offer free trial');
+          logger.error('User should see error message instead of being charged');
+          throw new Error(`Free trial not available. Please contact support or try again later.`);
         } else {
           logger.info('✅✅✅ TRIAL PRODUCT FOUND!');
           logger.debug('Product ID', { productId: trialProduct.productId });
@@ -170,8 +162,8 @@ const OnboardingTrialOfferScreen = () => {
         }
       } catch (productError) {
         logger.error('❌ Failed to verify products', productError as Error);
-        logger.error('Continuing with original productId (risky)', new Error('Product verification failed'));
-        // Continue with original productId
+        logger.error('Cannot determine if trial product exists - blocking trial to prevent charging');
+        throw new Error(`Unable to verify trial availability. Please try again later or contact support.`);
       }
 
       logger.debug('Final product ID', { productId });
@@ -244,7 +236,14 @@ const OnboardingTrialOfferScreen = () => {
         error?.message?.toLowerCase().includes('receipt') ||
         error?.message?.toLowerCase().includes('verify');
 
-      if (isNetworkError) {
+      const isTrialUnavailableError =
+        error?.message?.toLowerCase().includes('trial not available') ||
+        error?.message?.toLowerCase().includes('free trial not available') ||
+        error?.message?.toLowerCase().includes('unable to verify trial');
+
+      if (isTrialUnavailableError) {
+        setErrorType('unknown'); // Map to unknown since trial_unavailable isn't supported by modal
+      } else if (isNetworkError) {
         setErrorType('network');
       } else if (isValidationError) {
         setErrorType('validation');
