@@ -91,28 +91,33 @@ const OnboardingTrialOfferScreen = () => {
         if (skipNotificationPreference) {
           console.log('[OnboardingTrialOffer] Skip pref set – performing double goBack()');
           navigation.goBack();
-          setTimeout(() => navigation.goBack(), 100);
+          setTimeout(() => {
+            navigation.goBack();
+            // Reset after navigation completes
+            setTimeout(() => {
+              navigationInProgressRef.current = false;
+              setIsClosing(false);
+            }, 500);
+          }, 100);
         } else {
-          // Pass canonical user type plus display label
-          console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
-          navigation.navigate(
-            'OnboardingNotificationSetup' as never,
-            { userType: 'freemium', displayName: 'siFia Seeker' } as never
+          // Use push to force a new screen transition
+          console.log('[OnboardingTrialOffer] PUSHING OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
+          (navigation as any).push(
+            'OnboardingNotificationSetup',
+            { userType: 'freemium', displayName: 'siFia Seeker' }
           );
+          // Reset after push completes
+          setTimeout(() => {
+            navigationInProgressRef.current = false;
+            setIsClosing(false);
+            clearTimeout(watchdog);
+          }, 500);
         }
       } catch (error) {
         console.error('[OnboardingTrialOffer] Navigation failed:', error);
         setIsClosing(false);
         navigationInProgressRef.current = false;
-      } finally {
-        // Release lock shortly after initiating navigation unless watchdog already handled
-        setTimeout(() => {
-          if (!watchdogFired) {
-            setIsClosing(false);
-            navigationInProgressRef.current = false;
-            clearTimeout(watchdog);
-          }
-        }, 200);
+        clearTimeout(watchdog);
       }
     };
 

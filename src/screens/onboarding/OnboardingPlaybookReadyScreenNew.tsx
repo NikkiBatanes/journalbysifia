@@ -1048,9 +1048,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               bottom: 0,
               // Collapse top padding when helper text is hidden (cards expanded)
               paddingTop: expandedCards.size === 0 ? 8 : 0,
-              // Move the footer content (Continue + Skip) up slightly from the very bottom
-              // accounting for safe area; this makes 'Skip for now' easier to tap
-              paddingBottom: Math.max(insets.bottom, 16) + 8,
+              // Keep footer at natural position with just safe area padding
+              paddingBottom: Math.max(insets.bottom, 8),
               backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
             },
           ]}>
