@@ -337,7 +337,7 @@ const OnboardingTrialOfferScreen = () => {
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes 2 playbooks and 2 devotionals.',
+      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nTry with 2 playbooks + 2 devotionals during trial.',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
@@ -379,16 +379,11 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.timelineContent}>
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
           {item.id === 1 ? (
-            <>
-              <ThemedText style={styles.timelineDescription}>
-                Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
-                No pressure, no catch.{'\n'}
-                Experience personalized guidance and see how it fits your story.
-              </ThemedText>
-              <ThemedText weight="semiBold" style={styles.includedText}>
-                2 Playbooks + 2 Devotionals included
-              </ThemedText>
-            </>
+            <ThemedText style={styles.timelineDescription}>
+              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
+              No pressure, no catch.{'\n'}
+              Experience personalized guidance and see how it fits your story.
+            </ThemedText>
           ) : (
             <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
           )}
@@ -828,14 +823,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 18,
     opacity: 0.9,
-  },
-  includedText: {
-    fontSize: 12,
-    fontFamily: fonts.semiBold,
-    color: Colors.hopeWhite,
-    textAlign: 'left',
-    marginTop: 8,
-    opacity: 0.85,
   },
   strong: {
     fontFamily: fonts.bold,
