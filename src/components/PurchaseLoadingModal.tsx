@@ -117,7 +117,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           style={[
             styles.modalContainer,
             {
-              backgroundColor: '#1a3c6d', // Correct anchor blue from theme
+              backgroundColor: '#1A3C6D', // Solid anchor blue
               opacity: fadeAnim,
             },
           ]}
@@ -127,7 +127,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
             style={[
               styles.iconContainer,
               {
-                backgroundColor: '#FF6B6B' + '20', // Alert coral with transparency
+                backgroundColor: 'rgba(255, 107, 107, 0.15)', // Alert coral with transparency
                 transform: [{ scale: pulseAnim }],
               },
             ]}
@@ -141,7 +141,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           </Text>
 
           {/* Description */}
-          <Text style={[styles.description, { color: '#F8F9FA' }]}>
+          <Text style={[styles.description, { color: '#F8F9FA', opacity: 0.9 }]}>
             {stepInfo.description}
           </Text>
 

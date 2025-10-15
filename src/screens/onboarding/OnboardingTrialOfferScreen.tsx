@@ -169,6 +169,16 @@ const OnboardingTrialOfferScreen = () => {
       logger.debug('Final product ID', { productId });
       logger.debug('Showing Apple payment sheet', {});
 
+      console.log(`[OnboardingTrialOffer] 🛒 INITIATING TRIAL PURCHASE:`, {
+        productId,
+        selectedTierId,
+        billing: isAnnual ? 'annual' : 'monthly',
+        userId: user.id,
+      });
+      console.log(`[OnboardingTrialOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!`);
+      console.log(`[OnboardingTrialOffer] Expected: "Free for 3 days, then $X.XX"`);
+      console.log(`[OnboardingTrialOffer] If payment sheet doesn't show, check AppleStoreKitService`);
+
       // ENTERPRISE IMPROVEMENT: Show loading modal
       setLoadingStep('processing');
 

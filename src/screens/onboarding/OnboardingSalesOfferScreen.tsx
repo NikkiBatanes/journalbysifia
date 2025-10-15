@@ -287,17 +287,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         if (targetProduct) {
           productId = targetProduct.productId;
-          console.log(`[OnboardingSalesOffer] Found matching product: ${productId}`);
+          console.log(`[OnboardingSalesOffer] ✅ Found matching product: ${productId}`);
+          console.log(`[OnboardingSalesOffer] Product details:`, {
+            tier: targetProduct.tier,
+            price: targetProduct.price,
+            title: targetProduct.title,
+          });
         } else {
           // Construct product ID - NO trial suffix for sales offer (always paid)
           productId = `app.sifia.com.${selectedTier}.${billing}`;
-          console.warn(`[OnboardingSalesOffer] No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`);
+          console.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`);
         }
       } catch (error) {
         // Fallback: construct product ID - NO trial suffix for sales offer
         productId = `app.sifia.com.${selectedTier}.${billing}`;
-        console.warn(`[OnboardingSalesOffer] Failed to get products, using constructed ID: ${productId}`);
+        console.warn(`[OnboardingSalesOffer] ⚠️ Failed to get products, using constructed ID: ${productId}`);
       }
+
+      console.log(`[OnboardingSalesOffer] 🛒 INITIATING PURCHASE:`, {
+        productId,
+        selectedTier,
+        billing,
+        isUpgradeMode,
+        userId: user?.id,
+      });
+      console.log(`[OnboardingSalesOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!`);
+      console.log(`[OnboardingSalesOffer] If payment sheet doesn't show, check AppleStoreKitService`);
+
 
       if (isUpgradeMode) {
         // In upgrade mode, purchase and go back to previous screen
