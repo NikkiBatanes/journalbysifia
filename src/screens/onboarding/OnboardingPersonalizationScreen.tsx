@@ -166,6 +166,7 @@ const challengeOptions: Challenge[] = [
 ];
 
 import { useRoute } from '@react-navigation/native';
+import { logger } from '../../utils/logger';
 
 const OnboardingPersonalizationScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -205,22 +206,22 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Debug effect for step rendering
   React.useEffect(() => {
-    console.log('[OnboardingPersonalization] Render State - currentStep:', currentStep, 'showNameStep:', showNameStep, 'registrationMethod:', registrationMethod);
+    logger.onboarding.stepCompleted('Render State - currentStep:', currentStep, 'showNameStep:', showNameStep, 'registrationMethod:', registrationMethod);
   }, [currentStep, showNameStep, registrationMethod]);
 
   // Handle route params and determine registration method
   React.useEffect(() => {
-    console.log('[OnboardingPersonalization] Route params:', route.params);
+    logger.debug('Route params:', route.params);
     if (route.params && typeof route.params === 'object') {
       // Get registration method
       const method = (route.params as any).registrationMethod || 'email';
-      console.log('[OnboardingPersonalization] Registration method:', method);
+      logger.debug('Registration method:', method);
       setRegistrationMethod(method);
 
       // ALWAYS show name step for OAuth users (Apple/Google) to ensure we get real names
       // For email users, skip it (they already provided name during registration)
       const needsNameStep = method === 'oauth';
-      console.log('[OnboardingPersonalization] Show name step:', needsNameStep, 'Method:', method);
+      logger.debug('Show name step:', needsNameStep, 'Method:', method);
       setShowNameStep(needsNameStep);
 
       // Set name if provided, but ONLY for email users
@@ -230,25 +231,25 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         if (method !== 'oauth') {
           // Email users: use the provided name
           setName(providedName);
-          console.log('[OnboardingPersonalization] ✅ Setting name for email user:', providedName);
+          logger.onboarding.navigation('✅ Setting name for email user:', providedName);
         } else {
           // OAuth users: ALWAYS force name collection, ignore any provided name
-          console.log('[OnboardingPersonalization] 🔒 OAuth user - forcing name collection (ignoring:', providedName, ')');
+          logger.debug('🔒 OAuth user - forcing name collection (ignoring:', providedName, ')');
           setName(''); // Ensure name is empty to show name step
         }
       } else if (method === 'oauth') {
         // OAuth user with no provided name - ensure name is empty
-        console.log('[OnboardingPersonalization] 🔒 OAuth user - forcing name collection');
+        logger.debug('🔒 OAuth user - forcing name collection');
         setName('');
       } else {
         // Email user with no provided name - extract from email
-        console.log('[OnboardingPersonalization] Email user - extracting name from email');
+        logger.debug('Email user - extracting name from email');
         if (user?.email) {
           const emailUsername = user.email.split('@')[0];
           // Extract first name from email (e.g., "bynikkib" → "Nikki")
           const extractedName = extractNameFromEmail(emailUsername);
           setName(extractedName);
-          console.log('[OnboardingPersonalization] ✅ Extracted name from email:', emailUsername, '→', extractedName);
+          logger.onboarding.navigation('✅ Extracted name from email:', emailUsername, '→', extractedName);
         }
       }
 
@@ -452,7 +453,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
         // Mark onboarding as completed using proper service method
         if (user) {
-          console.log('[OnboardingPersonalization] Marking onboarding as completed for user:', user.id);
+          logger.onboarding.stepCompleted('Marking onboarding as completed for user:', user.id);
           try {
             // Use the onboarding service to properly complete onboarding
             await onboardingService.completeOnboarding(user.id);
@@ -464,12 +465,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               .eq('id', user.id);
 
             if (error) {
-              console.error('[OnboardingPersonalization] Error updating user profile onboarding status:', error);
+              logger.error('Error updating user profile onboarding status:', error);
             } else {
-              console.log('[OnboardingPersonalization] Onboarding marked as completed in both tables');
+              logger.onboarding.stepCompleted('Onboarding marked as completed in both tables');
             }
           } catch (error) {
-            console.error('[OnboardingPersonalization] Error completing onboarding:', error);
+            logger.error('Error completing onboarding:', error);
           }
         }
 
@@ -477,7 +478,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
 
         // Skip redundant screens and go directly to playbook generation
-        console.log('[OnboardingPersonalization] Proceeding directly to Playbook Generation');
+        logger.debug('Proceeding directly to Playbook Generation');
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
           userInput,
@@ -489,9 +490,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           },
         });
       } catch (error) {
-        console.error('[OnboardingPersonalization] Error in handleContinue:', error);
+        logger.error('Error in handleContinue:', error);
         // Continue with navigation even if onboarding update fails
-        console.log('[OnboardingPersonalization] Error occurred, but continuing to Playbook Generation');
+        logger.error('Error occurred, but continuing to Playbook Generation');
         const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',

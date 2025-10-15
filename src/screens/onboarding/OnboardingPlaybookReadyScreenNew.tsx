@@ -45,6 +45,7 @@ import BibleVerseCard from '../../components/BibleVerseCard';
 import DirectChallengeCard from '../../components/DirectChallengeCard';
 import DevotionalModal from '../../components/DevotionalModal';
 import OnboardingTutorial from '../../components/tutorial/OnboardingTutorial';
+import { logger } from '../../utils/logger';
 
 const { width, height } = Dimensions.get('window');
 
@@ -119,17 +120,17 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Initialize modal visibility only once on mount
   useEffect(() => {
-    console.log('[OnboardingPlaybookReady] Component mounted/re-rendered');
-    console.log('[OnboardingPlaybookReady] Module flag value:', hasShownPlaybookIntroModal);
-    console.log('[OnboardingPlaybookReady] Current showIntroModal state:', showIntroModal);
+    logger.debug('Component mounted/re-rendered');
+    logger.debug('Module flag value:', hasShownPlaybookIntroModal);
+    logger.debug('Current showIntroModal state:', showIntroModal);
 
     // Check if modal has been shown in this session
     if (!hasShownPlaybookIntroModal) {
-      console.log('[OnboardingPlaybookReady] First time showing modal, setting flag');
+      logger.debug('First time showing modal, setting flag');
       setShowIntroModal(true);
       hasShownPlaybookIntroModal = true;
     } else {
-      console.log('[OnboardingPlaybookReady] Modal already shown, skipping');
+      logger.debug('Modal already shown, skipping');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally run only on mount
@@ -348,27 +349,27 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     try {
       // Award faith points to user's account during onboarding
       if (user?.id) {
-        console.log('[OnboardingPlaybookReady] Awarding faith points for playbook generation');
+        logger.debug('Awarding faith points for playbook generation');
         await faithPointsService.awardPoints(user.id, 'playbook_generated', {
           isOnboarding: true,
           suppressNotification: false,
         });
-        console.log('[OnboardingPlaybookReady] Faith points awarded successfully');
+        logger.debug('Faith points awarded successfully');
       } else {
-        console.warn('[OnboardingPlaybookReady] No user ID available for faith points');
+        logger.warn('No user ID available for faith points');
         // Still show notification even if we can't award points
         const points = faithPointsService.getPointsForActivity('playbook_generated');
         notificationService.showPointsNotification(points, 'playbook_generated', 'center');
       }
     } catch (e) {
       // Non-blocking: if anything fails, proceed silently
-      console.warn('[OnboardingPlaybookReady] Failed to award faith points:', e);
+      logger.warn('Failed to award faith points:', e);
       // Show notification anyway
       try {
         const points = faithPointsService.getPointsForActivity('playbook_generated');
         notificationService.showPointsNotification(points, 'playbook_generated', 'center');
       } catch (notificationError) {
-        console.warn('[OnboardingPlaybookReady] Failed to show points notification:', notificationError);
+        logger.warn('Failed to show points notification:', notificationError);
       }
     }
   }, [user]);
@@ -419,7 +420,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Initialize action steps from playbook data (similar to PlaybookDetailScreen)
   useEffect(() => {
     if (playbook?.actionSteps) {
-      console.log('[OnboardingPlaybookReady] Syncing action steps from playbook:', playbook.actionSteps.length, 'steps');
+      logger.debug('Syncing action steps from playbook:', playbook.actionSteps.length, 'steps');
       setActionSteps(playbook.actionSteps);
     }
   }, [playbook?.actionSteps, setActionSteps]);
@@ -460,7 +461,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     }
 
     // Action Steps card
-    console.log('[OnboardingPlaybookReady] Action Steps Check:', {
+    logger.onboarding.stepCompleted('Action Steps Check:', {
       hasActionSteps: !!(playbook.actionSteps && playbook.actionSteps.length > 0),
       actionStepsLength: playbook?.actionSteps?.length || 0,
       actionStepsData: playbook?.actionSteps || [],
@@ -477,9 +478,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           subTasksCount: Array.isArray(s?.subTasks) ? s.subTasks.length : 0,
           lastSubtaskText: Array.isArray(s?.subTasks) && s.subTasks.length > 0 ? (s.subTasks[s.subTasks.length - 1]?.text) : undefined,
         }));
-        console.log('[OnboardingPlaybookReady] Action steps pre-render debug (first 5 steps):', dbg);
+        logger.debug('Action steps pre-render debug (first 5 steps):', dbg);
       } catch (e) {
-        console.warn('[OnboardingPlaybookReady] Debug logging failed:', e);
+        logger.warn('Debug logging failed:', e);
       }
       cards.push({
         id: 'action',
@@ -501,7 +502,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         backgroundColor: undefined,
       });
     } else {
-      console.log('[OnboardingPlaybookReady] No action steps found - card will not be created');
+      logger.debug('No action steps found - card will not be created');
     }
 
     // Affirmations card - single card with all affirmations
@@ -842,8 +843,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={0.9}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                console.log('[OnboardingPlaybookReady] Button pressed - closing intro modal');
-                console.log('[OnboardingPlaybookReady] Setting module flag to true');
+                logger.debug('Button pressed - closing intro modal');
+                logger.debug('Setting module flag to true');
                 // Mark as permanently shown
                 hasShownPlaybookIntroModal = true;
                 // Start tutorial first, then close modal (prevents flash)
@@ -852,7 +853,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
                 // Close modal immediately after tutorial starts (no delay)
                 setShowIntroModal(false);
-                console.log('[OnboardingPlaybookReady] Intro modal closed, tutorial started');
+                logger.debug('Intro modal closed, tutorial started');
                 // Faith points will be awarded when user completes or skips tutorial
               }}
             >
@@ -1656,7 +1657,7 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
       try {
         return await getPlaybook(userId || '', playbookId);
       } catch (err) {
-        console.error('[OnboardingPlaybookReady] getPlaybook failed:', err);
+        logger.error('getPlaybook failed:', err);
         throw err;
       }
     },
@@ -1683,17 +1684,17 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
         const isSetOnFinal = getReadAloud(finalId);
         if (wasRead && !isSetOnFinal) {
           setReadAloud(finalId, true);
-          console.log('[OnboardingPlaybookReady] Migrated Read Aloud state from', routeId, 'to', finalId);
+          logger.debug('Migrated Read Aloud state from', routeId, 'to', finalId);
         }
       } catch (e) {
-        console.warn('[OnboardingPlaybookReady] Read Aloud migration failed:', e);
+        logger.warn('Read Aloud migration failed:', e);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routePlaybook?.id, (playbook as any)?.id, getReadAloud, setReadAloud]); // Complex expression needed for playbook comparison
 
   // Debug logging to check action steps data
-  console.log('[OnboardingPlaybookReady] Debug Info:', {
+  logger.debug('Debug Info:', {
     isFullPlaybook,
     routeHasFullSubtasks,
     shouldFetchFromDB,

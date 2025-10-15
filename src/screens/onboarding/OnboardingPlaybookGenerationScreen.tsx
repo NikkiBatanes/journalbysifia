@@ -25,6 +25,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 // import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
+import { logger } from '../../utils/logger';
 
 interface RouteParams {
   challengeCategory: string;
@@ -313,9 +314,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   console.log('🔍 Affirmations count:', playbook.affirmations?.length || 0);
 
                   // DEBUG: Log what we got from getPlaybook
-                  console.log('[DEBUG] OnboardingGeneration: Raw playbook from getPlaybook:', JSON.stringify(playbook, null, 2));
-                  console.log('[DEBUG] OnboardingGeneration: Action steps from getPlaybook:', playbook.actionSteps);
-                  console.log('[DEBUG] OnboardingGeneration: Affirmations from getPlaybook:', playbook.affirmations);
+                  logger.debug('OnboardingGeneration: Raw playbook from getPlaybook:', JSON.stringify(playbook, null, 2));
+                  logger.debug('OnboardingGeneration: Action steps from getPlaybook:', playbook.actionSteps);
+                  logger.debug('OnboardingGeneration: Affirmations from getPlaybook:', playbook.affirmations);
 
                   // Convert database playbook to UI format - use any type to avoid TypeScript issues
                   const realGeneratedPlaybook: any = {
@@ -338,7 +339,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   };
 
                   // DEBUG: Log what we're passing to the ready screen
-                  console.log('[DEBUG] OnboardingGeneration: Passing to ready screen:', JSON.stringify(realGeneratedPlaybook, null, 2));
+                  logger.debug('OnboardingGeneration: Passing to ready screen:', JSON.stringify(realGeneratedPlaybook, null, 2));
 
                   // First ensure progress bar is complete, then navigate immediately
                   return new Promise<void>((resolve) => {

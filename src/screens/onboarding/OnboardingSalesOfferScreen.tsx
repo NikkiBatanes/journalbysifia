@@ -19,6 +19,7 @@ import PlatformPaymentService from '../../services/PlatformPaymentService';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
+import { logger } from '../../utils/logger';
 
 // removed Dimensions width as unused
 
@@ -73,7 +74,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
 
   // Debug trial eligibility
-  console.log('[OnboardingSalesOffer] Trial eligibility debug:', {
+  logger.debug('Trial eligibility debug:', {
     subscription,
     hasEverStartedTrial,
     isCurrentlyOnTrial,
@@ -87,11 +88,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Redirecting causes black screen during hot reload
   useEffect(() => {
     if (!user?.id) {
-      console.warn('[OnboardingSalesOffer] No user found, waiting for auth to load...');
+      logger.warn('No user found, waiting for auth to load...');
       // Don't redirect - just wait for auth context to initialize
       return;
     }
-    console.log('[OnboardingSalesOffer] User loaded:', user.id);
+    logger.debug('User loaded:', user.id);
   }, [user?.id]);
 
   // Load location-adjusted pricing and currency
@@ -103,18 +104,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         if (isUpgradeMode) {
           // In upgrade mode, only show tiers higher than current user tier
-          console.log('[OnboardingSalesOffer] Loading upgrade tiers for:', currentUserTier);
+          logger.debug('Loading upgrade tiers for:', currentUserTier);
           tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
-          console.log('[OnboardingSalesOffer] Upgrade tiers loaded:', tiers.length, tiers.map(t => t.id));
+          logger.debug('Upgrade tiers loaded:', tiers.length, tiers.map(t => t.id));
         } else {
           // In onboarding mode, show all tiers
           tiers = await pricingService.getLocationAdjustedPricing();
-          console.log('[OnboardingSalesOffer] All tiers loaded:', tiers.length);
+          logger.debug('All tiers loaded:', tiers.length);
         }
 
         const currency = await pricingService.getCurrencyInfo();
-        console.log('[OnboardingSalesOffer] Currency info loaded:', currency);
-        console.log('[OnboardingSalesOffer] Sample tier prices:', tiers[0] ? {
+        logger.debug('Currency info loaded:', currency);
+        logger.debug('Sample tier prices:', tiers[0] ? {
           tier: tiers[0].id,
           monthly: tiers[0].monthlyPrice,
           annual: tiers[0].annualPrice,
@@ -168,14 +169,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     // For Seeker users in upgrade mode, just go back immediately
     const currentTier = routeParams?.currentTier;
     if (currentTier === 'seeker' && isUpgradeMode) {
-      console.log('[OnboardingSalesOffer] Seeker user closing - going back to previous screen');
+      logger.debug('Seeker user closing - going back to previous screen');
       navigation.goBack();
       return;
     }
 
     // Check for dynamic discount eligibility first
     try {
-      console.log('[OnboardingSalesOffer] Checking dynamic discount eligibility:', {
+      logger.debug('Checking dynamic discount eligibility:', {
         userId: user?.id,
         selectedTier,
         billing: isAnnual ? 'annual' : 'monthly',
@@ -184,7 +185,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       // First, track this opt-out to increment the count
       await pricingService.trackOptOut(user?.id);
-      console.log('[OnboardingSalesOffer] Tracked opt-out, checking discount...');
+      logger.debug('Tracked opt-out, checking discount...');
 
       const discount = await pricingService.getDynamicDiscount(
         user?.id,
@@ -192,45 +193,45 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         isAnnual ? 'annual' : 'monthly'
       );
 
-      console.log('[OnboardingSalesOffer] Dynamic discount result:', discount);
+      logger.debug('Dynamic discount result:', discount);
 
       if (discount && !isUpgradeMode) {
-        console.log('[OnboardingSalesOffer] ✅ Showing dynamic discount:', discount);
+        logger.onboarding.navigation('✅ Showing dynamic discount:', discount);
         setDynamicDiscount(discount);
         setShowDynamicModal(true);
         return;
       } else {
-        console.log('[OnboardingSalesOffer] ❌ Dynamic discount not shown:', {
+        logger.debug('❌ Dynamic discount not shown:', {
           hasDiscount: !!discount,
           isUpgradeMode,
           reason: !discount ? 'No discount available' : isUpgradeMode ? 'Upgrade mode (discounts disabled)' : 'Unknown',
         });
       }
     } catch (error) {
-      console.error('[OnboardingSalesOffer] Error checking dynamic discount:', error);
+      logger.error('Error checking dynamic discount:', error);
     }
 
     // Always show trial if eligible for all flows (upgrade mode and feature locks)
-    console.log('[OnboardingSalesOffer] handleClose - canOfferTrial:', canOfferTrial);
+    logger.debug('handleClose - canOfferTrial:', canOfferTrial);
     if (canOfferTrial) {
-      console.log('[OnboardingSalesOffer] Navigating to trial offer');
+      logger.debug('Navigating to trial offer');
       navigation.navigate('OnboardingTrialOffer' as any, {
         selectedTierId: selectedTier,
         billing: isAnnual ? 'annual' : 'monthly',
         skipNotificationPreference: routeParams?.skipNotificationPreference,
       });
     } else {
-      console.log('[OnboardingSalesOffer] Going back - no trial eligible');
+      logger.debug('Going back - no trial eligible');
 
       // Special handling for guided prompts to prevent black screen
       const source = routeParams?.source;
       if (source === 'guided_prompts_lock') {
-        console.log('[OnboardingSalesOffer] Guided prompt context - navigating to Dashboard');
+        logger.debug('Guided prompt context - navigating to Dashboard');
         // Navigate to Dashboard to ensure we have a valid screen
         navigation.navigate('Dashboard' as any);
       } else if (!routeParams?.skipNotificationPreference) {
         // During onboarding flow, go to notification setup
-        console.log('[OnboardingSalesOffer] Onboarding flow - navigating to notification setup');
+        logger.debug('Onboarding flow - navigating to notification setup');
         navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' } as any);
       } else {
         navigation.goBack();
@@ -241,7 +242,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleUnlockPlan = async () => {
     // Prevent multiple simultaneous purchases
     if (isPurchasing) {
-      console.log('[OnboardingSalesOffer] Purchase already in progress, ignoring');
+      logger.debug('Purchase already in progress, ignoring');
       return;
     }
 
@@ -249,7 +250,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       setIsPurchasing(true);
       triggerLightHaptic();
 
-      console.log('[OnboardingSalesOffer] handleUnlockPlan called', {
+      logger.debug('handleUnlockPlan called', {
         isUpgradeMode,
         selectedTier,
         isAnnual,
@@ -266,7 +267,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Check if user is eligible for free trial (only in onboarding, not upgrade)
       const isEligibleForTrial = canOfferTrial && !isUpgradeMode;
 
-      console.log('[OnboardingSalesOffer] Product ID selection:', {
+      logger.debug('Product ID selection:', {
         selectedTier,
         billing,
         isEligibleForTrial,
@@ -319,7 +320,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             throw new Error(result.error || 'Purchase failed');
           }
         } catch (purchaseError: any) {
-          console.error('[OnboardingSalesOffer] Upgrade purchase failed:', purchaseError);
+          logger.error('Upgrade purchase failed:', purchaseError);
 
           // Check if user cancelled
           const isCancelled =
@@ -329,18 +330,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             purchaseError?.message?.toLowerCase().includes('timeout');
 
           if (isCancelled) {
-            console.log('[OnboardingSalesOffer] User cancelled upgrade - silently continuing');
+            logger.debug('User cancelled upgrade - silently continuing');
             return;
           }
 
           // For other errors, log silently instead of showing alert
-          console.error('[OnboardingSalesOffer] Purchase error (silent):', purchaseError?.message || 'Unknown error');
+          logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
         }
       } else {
         // In onboarding mode, use StoreKit to purchase subscription
         // This matches production behavior - Apple handles the payment UI
 
-        console.log('[OnboardingSalesOffer] Onboarding mode - initiating StoreKit purchase', {
+        logger.debug('Onboarding mode - initiating StoreKit purchase', {
           selectedTier,
           isAnnual,
           price: getCurrentPrice(),
@@ -349,71 +350,71 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         try {
           // Show Apple's payment sheet and process purchase
-          console.log('[OnboardingSalesOffer] Calling purchaseSubscription...');
+          logger.debug('Calling purchaseSubscription...');
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
 
-          console.log('[OnboardingSalesOffer] Purchase result:', {
+          logger.debug('Purchase result:', {
             success: result.success,
             error: result.error,
             hasResult: !!result,
           });
 
           if (result.success) {
-            console.log('[OnboardingSalesOffer] ✅ Purchase successful!');
+            logger.onboarding.navigation('✅ Purchase successful!');
             triggerSuccessHaptic();
 
             // CRITICAL: Wait for subscription to refresh BEFORE navigating
-            console.log('[OnboardingSalesOffer] Syncing subscription with Apple...');
+            logger.debug('Syncing subscription with Apple...');
             try {
               const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
               const storeKitService = AppleStoreKitService.getInstance();
               await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '');
-              console.log('[OnboardingSalesOffer] ✅ Subscription synced with Apple');
+              logger.onboarding.navigation('✅ Subscription synced with Apple');
 
               // Also refresh local state
               await devotionalGating.refreshSubscription();
-              console.log('[OnboardingSalesOffer] ✅ Local subscription state refreshed');
+              logger.onboarding.navigation('✅ Local subscription state refreshed');
 
               // Verify the subscription was actually updated
               const newTier = devotionalGating.tier;
-              console.log('[OnboardingSalesOffer] New tier after refresh:', newTier);
+              logger.debug('New tier after refresh:', newTier);
 
               if (newTier === 'seeker') {
-                console.warn('[OnboardingSalesOffer] ⚠️ Still showing seeker after purchase!');
-                console.warn('[OnboardingSalesOffer] This means the database was not updated by the purchase listener');
-                console.warn('[OnboardingSalesOffer] Attempting manual purchase restoration...');
+                logger.warn('⚠️ Still showing seeker after purchase!');
+                logger.warn('This means the database was not updated by the purchase listener');
+                logger.warn('Attempting manual purchase restoration...');
 
                 // Try to restore purchases to trigger the listener
                 try {
                   const { AppleStoreKitService: AppleStoreKit } = await import('../../services/AppleStoreKitService');
                   const storeKit = AppleStoreKit.getInstance();
                   await storeKit.restorePurchases(user?.id || '');
-                  console.log('[OnboardingSalesOffer] Restore purchases completed');
+                  logger.onboarding.stepCompleted('Restore purchases completed');
                 } catch (restoreError) {
-                  console.error('[OnboardingSalesOffer] Restore failed:', restoreError);
+                  logger.error('Restore failed:', restoreError);
                 }
 
                 // Give it one more second and try again
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 await devotionalGating.refreshSubscription();
-                console.log('[OnboardingSalesOffer] Second refresh - tier:', devotionalGating.tier);
+                logger.debug('Second refresh - tier:', devotionalGating.tier);
               }
             } catch (refreshError) {
-              console.error('[OnboardingSalesOffer] Failed to refresh subscription:', refreshError);
+              logger.error('Failed to refresh subscription:', refreshError);
               // Continue to navigation even if refresh fails
             }
 
             // ALWAYS navigate after successful purchase, even if refresh failed
-            console.log('[OnboardingSalesOffer] Navigating to OnboardingNotificationSetup');
+            logger.debug('Navigating to OnboardingNotificationSetup');
             setTimeout(() => {
               (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
             }, 100);
           } else {
-            console.log('[OnboardingSalesOffer] ❌ Purchase not successful, throwing error');
+            logger.debug('❌ Purchase not successful, throwing error');
             throw new Error(result.error || 'Purchase failed');
           }
         } catch (purchaseError: any) {
-          console.error('[OnboardingSalesOffer] Purchase failed:', purchaseError);
+          logger.error('Purchase failed:', purchaseError);
 
           // Check if user cancelled (multiple ways to detect)
           const isCancelled =
@@ -423,19 +424,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             purchaseError?.message?.toLowerCase().includes('timeout');
 
           if (isCancelled) {
-            console.log('[OnboardingSalesOffer] User cancelled purchase - silently continuing');
+            logger.debug('User cancelled purchase - silently continuing');
             // Reset purchasing state so user can try again
             setIsPurchasing(false);
             return;
           }
 
           // For other errors, log silently instead of showing alert
-          console.error('[OnboardingSalesOffer] Purchase error (silent):', purchaseError?.message || 'Unknown error');
+          logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
           setIsPurchasing(false);
         }
       }
     } catch (error) {
-      console.error('[OnboardingSalesOffer] Error in handleUnlockPlan:', error);
+      logger.error('Error in handleUnlockPlan:', error);
       Alert.alert(
         'Error',
         'Something went wrong. Please try again.',
@@ -629,7 +630,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Show loading state while pricing tiers are loading
   if (pricingTiers.length === 0 || !currencyInfo) {
-    console.log('[OnboardingSalesOffer] Showing loading state:', {
+    logger.debug('Showing loading state:', {
       tiersLength: pricingTiers.length,
       hasCurrency: !!currencyInfo,
       currencyInfo,

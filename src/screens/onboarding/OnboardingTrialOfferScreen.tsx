@@ -15,6 +15,7 @@ import ThemedText from '../../components/common/ThemedText';
 import { useTheme } from '../../theme/ThemeContext';
 import { getFontFamily } from '../../theme/fonts';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
+import { logger } from '../../utils/logger';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
@@ -47,11 +48,11 @@ const OnboardingTrialOfferScreen = () => {
 
   const handleClose = async () => {
     if (isClosing || isStartingTrial || navigationInProgressRef.current) {
-      console.log('[OnboardingTrialOffer] handleClose ignored - already processing');
+      logger.debug('handleClose ignored - already processing');
       return;
     }
 
-    console.log('[OnboardingTrialOffer] User declined trial - navigating to Notification');
+    logger.debug('User declined trial - navigating to Notification');
     navigationInProgressRef.current = true;
     setIsClosing(true);
 
@@ -96,7 +97,7 @@ const OnboardingTrialOfferScreen = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('[OnboardingTrialOffer] Starting trial subscription with Apple', {
+      logger.debug('Starting trial subscription with Apple', {
         tier: selectedTierId,
         billing: isAnnual ? 'annual' : 'monthly',
       });
@@ -109,71 +110,71 @@ const OnboardingTrialOfferScreen = () => {
       const billing = isAnnual ? 'annual' : 'monthly';
       let productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
 
-      console.log('[OnboardingTrialOffer] ========================================');
-      console.log('[OnboardingTrialOffer] TRIAL PRODUCT VERIFICATION');
-      console.log('[OnboardingTrialOffer] Target product ID:', productId);
-      console.log('[OnboardingTrialOffer] ========================================');
+      logger.debug('========================================');
+      logger.debug('TRIAL PRODUCT VERIFICATION');
+      logger.debug('Target product ID:', productId);
+      logger.debug('========================================');
 
       // CRITICAL: Verify the .freetrial product exists in App Store Connect
       // Even if configured, it might not be synced to TestFlight yet
       try {
         const availableProducts = await paymentService.getAvailableProducts();
 
-        console.log('[OnboardingTrialOffer] 📦 ALL AVAILABLE PRODUCTS FROM APP STORE:');
+        logger.debug('📦 ALL AVAILABLE PRODUCTS FROM APP STORE:');
         availableProducts.forEach((p, index) => {
           console.log(`[OnboardingTrialOffer] ${index + 1}. ${p.productId}`);
           console.log(`[OnboardingTrialOffer]    Price: ${p.localizedPrice}`);
           console.log(`[OnboardingTrialOffer]    Title: ${p.title}`);
         });
-        console.log('[OnboardingTrialOffer] ========================================');
+        logger.debug('========================================');
 
         const trialProduct = availableProducts.find(p => p.productId === productId);
 
         if (!trialProduct) {
-          console.warn('[OnboardingTrialOffer] ⚠️ .freetrial product NOT found in App Store!');
-          console.warn('[OnboardingTrialOffer] Expected:', productId);
-          console.warn('[OnboardingTrialOffer] ');
-          console.warn('[OnboardingTrialOffer] POSSIBLE CAUSES:');
-          console.warn('[OnboardingTrialOffer] 1. Product ID mismatch - check App Store Connect');
-          console.warn('[OnboardingTrialOffer] 2. Trial offer not approved yet');
-          console.warn('[OnboardingTrialOffer] 3. TestFlight build needs to be refreshed');
-          console.warn('[OnboardingTrialOffer] 4. Cleared for sale = NO in App Store Connect');
-          console.warn('[OnboardingTrialOffer] ');
+          logger.warn('⚠️ .freetrial product NOT found in App Store!');
+          logger.warn('Expected:', productId);
+          logger.warn('');
+          logger.warn('POSSIBLE CAUSES:');
+          logger.warn('1. Product ID mismatch - check App Store Connect');
+          logger.warn('2. Trial offer not approved yet');
+          logger.warn('3. TestFlight build needs to be refreshed');
+          logger.warn('4. Cleared for sale = NO in App Store Connect');
+          logger.warn('');
 
           // Fallback to regular product ID
           const fallbackProductId = `app.sifia.com.${selectedTierId}.${billing}`;
           const regularProduct = availableProducts.find(p => p.productId === fallbackProductId);
 
           if (regularProduct) {
-            console.log('[OnboardingTrialOffer] ✅ Using regular product as fallback:', fallbackProductId);
-            console.log('[OnboardingTrialOffer] ⚠️ USER WILL NOT GET FREE TRIAL - will be charged immediately');
+            logger.onboarding.navigation('✅ Using regular product as fallback:', fallbackProductId);
+            logger.warn('⚠️ USER WILL NOT GET FREE TRIAL - will be charged immediately');
             productId = fallbackProductId;
           } else {
-            console.error('[OnboardingTrialOffer] ❌ Neither trial nor regular product found!');
-            console.error('[OnboardingTrialOffer] This is a critical error - no products available');
+            logger.error('❌ Neither trial nor regular product found!');
+            logger.error('This is a critical error - no products available');
             throw new Error(`Product not found: ${productId} or ${fallbackProductId}`);
           }
         } else {
-          console.log('[OnboardingTrialOffer] ✅✅✅ TRIAL PRODUCT FOUND!');
-          console.log('[OnboardingTrialOffer] Product ID:', trialProduct.productId);
-          console.log('[OnboardingTrialOffer] Price:', trialProduct.localizedPrice);
-          console.log('[OnboardingTrialOffer] Title:', trialProduct.title);
-          console.log('[OnboardingTrialOffer] User will see: "Free for 3 days, then ${trialProduct.localizedPrice}"');
+          logger.onboarding.navigation('✅✅✅ TRIAL PRODUCT FOUND!');
+          logger.debug('Product ID:', trialProduct.productId);
+          logger.debug('Price:', trialProduct.localizedPrice);
+          logger.debug('Title:', trialProduct.title);
+          logger.debug('User will see: "Free for 3 days, then ${trialProduct.localizedPrice}"');
         }
       } catch (productError) {
-        console.error('[OnboardingTrialOffer] ❌ Failed to verify products:', productError);
-        console.error('[OnboardingTrialOffer] Continuing with original productId (risky)');
+        logger.error('❌ Failed to verify products:', productError);
+        logger.error('Continuing with original productId (risky)');
         // Continue with original productId
       }
 
-      console.log('[OnboardingTrialOffer] Final product ID:', productId);
-      console.log('[OnboardingTrialOffer] Showing Apple payment sheet...');
+      logger.debug('Final product ID:', productId);
+      logger.debug('Showing Apple payment sheet...');
 
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
       const result = await paymentService.purchaseSubscription(productId, user.id);
 
       if (result.success) {
-        console.log('[OnboardingTrialOffer] ✅ Trial subscription authorized by Apple');
+        logger.onboarding.navigation('✅ Trial subscription authorized by Apple');
         triggerSuccessHaptic();
 
         // The purchase listener will update the database to free_trial status
@@ -181,14 +182,14 @@ const OnboardingTrialOfferScreen = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Sync subscription status to refresh the app state
-        console.log('[OnboardingTrialOffer] Syncing subscription status...');
+        logger.debug('Syncing subscription status...');
         try {
           const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
           const storeKitService = AppleStoreKitService.getInstance();
           await storeKitService.checkAndSyncSubscriptionStatus(user.id);
-          console.log('[OnboardingTrialOffer] ✅ Subscription synced');
+          logger.onboarding.navigation('✅ Subscription synced');
         } catch (syncError) {
-          console.error('[OnboardingTrialOffer] Subscription sync failed:', syncError);
+          logger.error('Subscription sync failed:', syncError);
           // Continue anyway - the purchase was successful
         }
 
@@ -204,7 +205,7 @@ const OnboardingTrialOfferScreen = () => {
         throw new Error(result.error || 'Trial subscription failed');
       }
     } catch (error: any) {
-      console.error('[OnboardingTrialOffer] Error starting trial:', error);
+      logger.error('Error starting trial:', error);
       setIsStartingTrial(false);
 
       // Check if user cancelled
@@ -214,7 +215,7 @@ const OnboardingTrialOfferScreen = () => {
         error?.message?.toLowerCase().includes('cancel');
 
       if (isCancelled) {
-        console.log('[OnboardingTrialOffer] User cancelled trial - silently continuing');
+        logger.debug('User cancelled trial - silently continuing');
         // Reset trial state so user can try again
         setIsStartingTrial(false);
         return;
@@ -222,7 +223,7 @@ const OnboardingTrialOfferScreen = () => {
 
       // For other errors (network, invalid product, etc), just log silently
       // Don't show alert to avoid interrupting user experience
-      console.error('[OnboardingTrialOffer] Trial error (silent):', error?.message || 'Unknown error');
+      logger.error('Trial error (silent):', error?.message || 'Unknown error');
 
       // Reset trial state so user can try again
       setIsStartingTrial(false);
@@ -246,11 +247,11 @@ const OnboardingTrialOfferScreen = () => {
   // Redirecting causes black screen during hot reload
   useEffect(() => {
     if (!user?.id) {
-      console.warn('[OnboardingTrialOffer] No user found, waiting for auth to load...');
+      logger.warn('No user found, waiting for auth to load...');
       // Don't redirect - just wait for auth context to initialize
       return;
     }
-    console.log('[OnboardingTrialOffer] User loaded:', user.id);
+    logger.debug('User loaded:', user.id);
   }, [user?.id]);
 
   // Load pricing and currency for dynamic copy
@@ -262,8 +263,8 @@ const OnboardingTrialOfferScreen = () => {
           pricingService.getLocationAdjustedPricing(),
           pricingService.getCurrencyInfo(),
         ]);
-        console.log('[OnboardingTrialOffer] Currency info loaded:', currency);
-        console.log('[OnboardingTrialOffer] Sample tier prices:', tiers[0] ? {
+        logger.debug('Currency info loaded:', currency);
+        logger.debug('Sample tier prices:', tiers[0] ? {
           tier: tiers[0].id,
           monthly: tiers[0].monthlyPrice,
           annual: tiers[0].annualPrice,
@@ -274,7 +275,7 @@ const OnboardingTrialOfferScreen = () => {
           setCurrencyInfo(currency || null);
         }
       } catch (e) {
-        console.error('[OnboardingTrialOffer] Failed to load pricing:', e);
+        logger.error('Failed to load pricing:', e);
       }
     })();
     return () => {
