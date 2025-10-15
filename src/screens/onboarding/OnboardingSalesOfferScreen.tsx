@@ -416,7 +416,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // ALWAYS navigate after successful purchase, even if refresh failed
             console.log('[OnboardingSalesOffer] Navigating to OnboardingNotificationSetup');
             setTimeout(() => {
-              navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'paid' } as never);
+              (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
             }, 100);
           } else {
             console.log('[OnboardingSalesOffer] ❌ Purchase not successful, throwing error');
