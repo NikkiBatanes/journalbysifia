@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -61,36 +61,36 @@ const OnboardingTrialOfferScreen = () => {
       return;
     }
 
-    logger.debug('User declined trial - navigating to Notification');
+    logger.info('User cancelled trial offer - navigating to notification setup');
     navigationInProgressRef.current = true;
-    setIsClosing(true);
 
     try {
       triggerLightHaptic();
     } catch {}
 
-    // Navigate directly to Notification to avoid loop back to Sales Offer
-    // Use setTimeout to allow haptic to complete
-    setTimeout(() => {
-      const skipNotificationPreference = route?.params?.skipNotificationPreference;
-      if (skipNotificationPreference) {
-        // If skip pref set, go back twice (dismiss Trial, then Sales)
-        navigation.goBack();
-        setTimeout(() => navigation.goBack(), 100);
-      } else {
-        // Navigate to notification (user remains freemium/seeker)
-        (navigation as any).navigate('OnboardingNotificationSetup', {
-          userType: 'freemium',
-          displayName: 'siFia Seeker',
-        });
-      }
+    // Always go to notification setup for cancelled trial - this is the expected flow
+    const skipNotificationPreference = route?.params?.skipNotificationPreference;
+    if (skipNotificationPreference) {
+      // If skip pref set, go back to sales offer (they can try again or go back further)
+      logger.info('Skip notifications set - going back to sales offer');
+      navigation.goBack();
+    } else {
+      // Navigate to notification setup for cancelled trial users
+      logger.info('Navigating cancelled trial user to notification setup');
+      (navigation as any).navigate('OnboardingNotificationSetup', {
+        userType: 'freemium',
+        fromCancelledTrial: true
+      });
+    }
 
-      // Reset state after navigation
-      setTimeout(() => {
-        navigationInProgressRef.current = false;
-        setIsClosing(false);
-      }, 300);
-    }, 100);
+    // Set isClosing AFTER navigation to avoid blocking the navigation
+    setIsClosing(true);
+
+    // Reset state after navigation
+    setTimeout(() => {
+      navigationInProgressRef.current = false;
+      setIsClosing(false);
+    }, 1000);
   };
 
   const handleStartTrial = async () => {
@@ -396,32 +396,70 @@ const OnboardingTrialOfferScreen = () => {
     );
   };
 
-  // ENTERPRISE IMPROVEMENT: Handle success modal continue
-  const handleSuccessModalContinue = () => {
-    setShowSuccessModal(false);
-    
-    // Navigate to notification setup
-    const skipNotificationPreference = route?.params?.skipNotificationPreference;
-    if (skipNotificationPreference) {
-      navigation.goBack();
-      setTimeout(() => navigation.goBack(), 100);
-    } else {
-      (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'trial' });
+  // ENTERPRISE IMPROVEMENT: Simple navigation wrapper without complex guards
+  const safeNavigate = useCallback((action: () => void, actionName: string) => {
+    try {
+      action();
+      logger.info('Navigation action completed', { actionName });
+    } catch (error) {
+      logger.error('Navigation action failed', error as Error, { actionName });
+      // Fallback to basic navigation
+      try {
+        navigation.goBack();
+      } catch (fallbackError) {
+        logger.error('Fallback navigation also failed', fallbackError as Error);
+      }
     }
-  };
+  }, [navigation]);
+
+  // ENTERPRISE IMPROVEMENT: Enhanced success modal continue handler
+  const handleSuccessModalContinue = useCallback(() => {
+    setShowSuccessModal(false);
+
+    // Use a more reliable navigation approach
+    const skipNotificationPreference = route?.params?.skipNotificationPreference;
+
+    logger.info('Success modal continue pressed', {
+      skipNotificationPreference,
+      navigationState: 'success_modal_complete'
+    });
+
+    // Small delay to ensure modal is fully hidden
+    setTimeout(() => {
+      if (skipNotificationPreference) {
+        logger.info('Skipping notifications - going back to sales offer');
+        safeNavigate(() => navigation.goBack(), 'go_back_to_sales');
+      } else {
+        logger.info('Navigating to notification setup for trial user');
+        // Navigate to notification setup - use replace to avoid stack issues
+        safeNavigate(() => {
+          (navigation as any).replace('OnboardingNotificationSetup', {
+            userType: 'trial',
+            fromTrial: true,
+            navigationGuarded: true
+          });
+        }, 'navigate_to_notification');
+      }
+    }, 100);
+  }, [route?.params?.skipNotificationPreference, navigation, safeNavigate]);
 
   // ENTERPRISE IMPROVEMENT: Handle error modal actions
-  const handleErrorRetry = () => {
+  const handleErrorRetry = useCallback(() => {
     setShowErrorModal(false);
     // Retry the purchase after a brief delay
     setTimeout(() => {
       handleStartTrial();
     }, 300);
-  };
+  }, []);
 
-  const handleErrorClose = () => {
+  const handleErrorClose = useCallback(() => {
     setShowErrorModal(false);
-  };
+    // Go to notification setup for cancelled/error states
+    (navigation as any).navigate('OnboardingNotificationSetup', {
+      userType: 'freemium',
+      fromError: true
+    });
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>

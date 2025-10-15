@@ -74,7 +74,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
 
   // Debug trial eligibility
-  logger.debug('Trial eligibility debug:', {
+  logger.debug('Trial eligibility debug', {
     subscription,
     hasEverStartedTrial,
     isCurrentlyOnTrial,
@@ -174,6 +174,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       return;
     }
 
+    logger.info('Sales offer cancelled - navigating to notification setup');
+
     // Check for dynamic discount eligibility first
     try {
       logger.debug('Checking dynamic discount eligibility:', {
@@ -196,46 +198,44 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       logger.debug('Dynamic discount result:', discount);
 
       if (discount && !isUpgradeMode) {
-        logger.onboarding.navigation('✅ Showing dynamic discount:', discount);
+        logger.info('Showing dynamic discount modal');
         setDynamicDiscount(discount);
         setShowDynamicModal(true);
         return;
       } else {
-        logger.debug('❌ Dynamic discount not shown:', {
-          hasDiscount: !!discount,
-          isUpgradeMode,
-          reason: !discount ? 'No discount available' : isUpgradeMode ? 'Upgrade mode (discounts disabled)' : 'Unknown',
-        });
+        logger.debug('No discount or upgrade mode - proceeding to notification');
       }
     } catch (error) {
-      logger.error('Error checking dynamic discount:', error);
+      logger.error('Error checking dynamic discount', error as Error);
+      // Continue to navigation even if discount check fails
     }
 
-    // Always show trial if eligible for all flows (upgrade mode and feature locks)
-    logger.debug('handleClose - canOfferTrial:', canOfferTrial);
+    // Always show trial if eligible for cancelled sales offer
+    logger.info('Sales offer cancelled - checking trial eligibility');
     if (canOfferTrial) {
-      logger.debug('Navigating to trial offer');
-      navigation.navigate('OnboardingTrialOffer' as any, {
-        selectedTierId: selectedTier,
-        billing: isAnnual ? 'annual' : 'monthly',
-        skipNotificationPreference: routeParams?.skipNotificationPreference,
-      });
+      logger.info('User eligible for trial - navigating to trial offer');
+      setTimeout(() => {
+        (navigation as any).navigate('OnboardingTrialOffer', {
+          selectedTierId: selectedTier,
+          billing: isAnnual ? 'annual' : 'monthly',
+          skipNotificationPreference: routeParams?.skipNotificationPreference,
+        });
+      }, 100);
     } else {
-      logger.debug('Going back - no trial eligible');
-
-      // Special handling for guided prompts to prevent black screen
-      const source = routeParams?.source;
-      if (source === 'guided_prompts_lock') {
-        logger.debug('Guided prompt context - navigating to Dashboard');
-        // Navigate to Dashboard to ensure we have a valid screen
-        navigation.navigate('Dashboard' as any);
-      } else if (!routeParams?.skipNotificationPreference) {
-        // During onboarding flow, go to notification setup
-        logger.debug('Onboarding flow - navigating to notification setup');
-        navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' } as any);
-      } else {
-        navigation.goBack();
-      }
+      logger.info('No trial eligible - navigating to notification setup');
+      setTimeout(() => {
+        if (!routeParams?.skipNotificationPreference) {
+          // During onboarding flow, go to notification setup
+          logger.debug('Onboarding flow - navigating to notification setup');
+          (navigation as any).navigate('OnboardingNotificationSetup', {
+            userType: 'freemium',
+            fromCancelledSales: true
+          });
+        } else {
+          // If skip pref set, go back
+          navigation.goBack();
+        }
+      }, 100);
     }
   };
 
