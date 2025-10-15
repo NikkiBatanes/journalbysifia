@@ -230,22 +230,37 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const isValidName = (name: string): boolean => {
     if (!name || name.length < 2) return false;
     
-    // Check if it's from Apple's private relay (random characters)
-    const isApplePrivateRelay = user?.email?.includes('@privaterelay.appleid.com') || 
-                                user?.email?.includes('@icloud.com');
+    const nameLower = name.toLowerCase();
     
-    // If from Apple private relay and name looks random (all lowercase, no vowels pattern, etc)
-    if (isApplePrivateRelay) {
-      // Random Apple names are usually 6-10 lowercase chars with no clear pattern
-      const looksRandom = /^[a-z]{6,10}$/.test(name) && 
-                         !name.match(/[aeiou]{2,}/) && // No double vowels (common in real names)
-                         name.length < 8; // Real names are usually longer
+    // Check if it's from Apple's private relay or iCloud
+    const isAppleEmail = user?.email?.includes('@privaterelay.appleid.com') || 
+                         user?.email?.includes('@icloud.com');
+    
+    // Detect random Apple-generated names
+    // Examples: "pzgttqh2gh", "aoerja", "xkcdpwz"
+    const hasNumbers = /\d/.test(name); // Contains numbers (like "pzgttqh2gh")
+    const allLowercase = name === nameLower; // All lowercase (unusual for real names)
+    const hasConsecutiveConsonants = /[bcdfghjklmnpqrstvwxyz]{4,}/i.test(name); // 4+ consonants in a row
+    const noVowelPattern = !name.match(/[aeiou]{2,}/i); // No double vowels
+    const shortLength = name.length < 10; // Shorter than 10 chars
+    
+    // If from Apple and looks random, reject it
+    if (isAppleEmail) {
+      const looksRandom = (hasNumbers || (allLowercase && hasConsecutiveConsonants) || 
+                          (allLowercase && noVowelPattern && shortLength));
       if (looksRandom) {
-        console.log('[OnboardingPersonalization] Detected random Apple private relay name:', name);
+        console.log('[OnboardingPersonalization] ❌ Detected random Apple name:', name, {
+          hasNumbers,
+          allLowercase,
+          hasConsecutiveConsonants,
+          noVowelPattern,
+          shortLength
+        });
         return false;
       }
     }
     
+    console.log('[OnboardingPersonalization] ✅ Name looks valid:', name);
     return true;
   };
 
