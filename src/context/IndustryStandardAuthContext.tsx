@@ -256,46 +256,109 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
               try {
                 console.log('🔍 Checking onboarding status for user:', session.user.id);
 
-                const { data: profile, error: profileError } = await supabase
-                  .from('user_profiles')
-                  .select('onboarding_completed')
-                  .eq('id', session.user.id)
-                  .single();
+                // Check if this is a social auth sign-in (Google/Apple)
+                const isSocialAuth = session.user.app_metadata?.provider === 'google' ||
+                                   session.user.app_metadata?.provider === 'apple' ||
+                                   (session.user as any)?.identities?.some((identity: any) =>
+                                     identity.provider === 'google' || identity.provider === 'apple');
 
-                if (profileError) {
-                  console.error('❌ Error fetching profile:', profileError);
-                  throw profileError;
-                }
+                if (isSocialAuth) {
+                  console.log('🔍 Social auth detected, checking if account exists');
 
-                const hasCompletedOnboarding = profile?.onboarding_completed === true;
-                console.log('🔍 Post-signin onboarding check:', {
-                  userId: session.user.id,
-                  hasCompleted: hasCompletedOnboarding,
-                  profileData: profile,
-                });
+                  // For social auth, check if this user already had an account before this sign-in
+                  // We can detect this by checking if user profile existed before this session
+                  const { data: existingProfile, error: profileError } = await supabase
+                    .from('user_profiles')
+                    .select('onboarding_completed, created_at')
+                    .eq('id', session.user.id)
+                    .single();
 
-                if (hasCompletedOnboarding) {
-                  // User completed onboarding - force navigation to main app
-                  console.log('🚀 User completed onboarding - forcing navigation to MainTabs');
+                  if (profileError && profileError.code !== 'PGRST116') {
+                    console.error('❌ Error checking existing profile:', profileError);
+                    throw profileError;
+                  }
 
-                  // Set a flag to trigger navigation on next render
-                  await AsyncStorage.setItem('force_navigate_to_main', 'true');
+                  if (existingProfile) {
+                    // User profile already exists - this means they had an account before
+                    console.log('🔍 Existing account detected for social auth user');
 
-                  // Also set the redirect as backup
-                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                    target: 'MainTabs',
-                    params: {},
-                  }));
+                    if (existingProfile.onboarding_completed) {
+                      // User completed onboarding - go to main app
+                      console.log('🚀 Existing user with completed onboarding - navigating to MainTabs');
+                      await AsyncStorage.setItem('force_navigate_to_main', 'true');
+                      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                        target: 'MainTabs',
+                        params: {},
+                      }));
+                    } else {
+                      // User exists but didn't complete onboarding - they should sign in instead of going through onboarding again
+                      console.log('🔑 Existing user with incomplete onboarding - redirecting to sign-in');
+                      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                        target: 'OnboardingWelcome', // This will allow them to sign in properly
+                        params: { showSignInPrompt: true },
+                      }));
+                    }
+                  } else {
+                    // No existing profile - this is a new social auth user
+                    console.log('🆕 New social auth user - proceeding with onboarding');
 
-                  console.log('✅ Set force navigation flag and redirect to MainTabs');
+                    const hasCompletedOnboarding = false; // New user by definition
+
+                    if (hasCompletedOnboarding) {
+                      // User completed onboarding - force navigation to main app
+                      console.log('🚀 New user completed onboarding - forcing navigation to MainTabs');
+                      await AsyncStorage.setItem('force_navigate_to_main', 'true');
+                      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                        target: 'MainTabs',
+                        params: {},
+                      }));
+                    } else {
+                      // User needs to complete onboarding - continue with personalization
+                      console.log('📝 New user needs to complete onboarding, setting redirect to personalization');
+                      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                        target: 'OnboardingPersonalization',
+                        params: {},
+                      }));
+                    }
+                  }
                 } else {
-                  // User needs to complete onboarding - continue with personalization
-                  console.log('📝 User needs to complete onboarding, setting redirect to personalization');
+                  // Regular email/password auth - use existing logic
+                  console.log('🔍 Email auth detected, using existing onboarding check logic');
 
-                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                    target: 'OnboardingPersonalization',
-                    params: {},
-                  }));
+                  const { data: profile, error: profileError } = await supabase
+                    .from('user_profiles')
+                    .select('onboarding_completed')
+                    .eq('id', session.user.id)
+                    .single();
+
+                  if (profileError) {
+                    console.error('❌ Error fetching profile:', profileError);
+                    throw profileError;
+                  }
+
+                  const hasCompletedOnboarding = profile?.onboarding_completed === true;
+                  console.log('🔍 Post-signin onboarding check:', {
+                    userId: session.user.id,
+                    hasCompleted: hasCompletedOnboarding,
+                    profileData: profile,
+                  });
+
+                  if (hasCompletedOnboarding) {
+                    // User completed onboarding - force navigation to main app
+                    console.log('🚀 User completed onboarding - forcing navigation to MainTabs');
+                    await AsyncStorage.setItem('force_navigate_to_main', 'true');
+                    await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                      target: 'MainTabs',
+                      params: {},
+                    }));
+                  } else {
+                    // User needs to complete onboarding - continue with personalization
+                    console.log('📝 User needs to complete onboarding, setting redirect to personalization');
+                    await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                      target: 'OnboardingPersonalization',
+                      params: {},
+                    }));
+                  }
                 }
               } catch (e) {
                 console.error('❌ CRITICAL: Failed to check onboarding status:', e);
