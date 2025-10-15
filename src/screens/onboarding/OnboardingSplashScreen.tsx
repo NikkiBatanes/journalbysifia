@@ -326,12 +326,14 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           return true;
         }
 
-        // FLOW 2: Detected user but did not finish onboarding
+        // FLOW 2: Detected user but did not finish onboarding → Show tutorial first
+        logger.debug('🎯 USER HAS NOT COMPLETED ONBOARDING - Showing tutorial first');
+
         // Check if this is a fresh account creation vs returning incomplete user
         const isNewUser = Date.now() - new Date(effectiveUser.created_at).getTime() < 5 * 60 * 1000; // 5 minutes
 
         if (isNewUser) {
-          // Fresh account creation → go to personalization
+          // Fresh account creation → go to personalization directly (skip tutorial for very new users)
           const target = 'OnboardingPersonalization';
 
           // More robust provider detection for Apple login users
@@ -382,55 +384,17 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           hasNavigatedRef.current = true;
           return true;
         } else {
-          // Returning user with incomplete onboarding → route to personalization
-          logger.debug('🔄 RETURNING INCOMPLETE USER - Routing to personalization');
+          // Returning user with incomplete onboarding → show tutorial first
+          logger.debug('🔄 RETURNING INCOMPLETE USER - Showing tutorial before personalization');
 
-          // Default: route to personalization
-          const target = 'OnboardingPersonalization';
-
-          // More robust provider detection for Apple login users
-          let provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
-          if (!provider && (effectiveUser as any)?.identities) {
-            // Check identities array for provider info
-            const identities = (effectiveUser as any).identities;
-            if (Array.isArray(identities) && identities.length > 0) {
-              provider = identities[0]?.provider;
-            }
-          }
-
-          const isOAuth = provider === 'apple' || provider === 'google';
-
-          logger.debug('Provider detection (returning user):', {
-            app_metadata_provider: (effectiveUser as any)?.app_metadata?.provider,
-            identities_provider: (effectiveUser as any)?.identities?.[0]?.provider,
-            final_provider: provider,
-            isOAuth,
-          });
-
-          // For OAuth users, always force name collection to avoid random Apple names (including on app reload)
-          let displayName = '';
-          if (isOAuth) {
-            // For Apple/Google users, always start with empty name to force collection
-            // This prevents random Apple-generated names like "aoigeaoirg" on app reload
-            displayName = '';
-            logger.debug('Returning OAuth user - forcing name collection on reload:', {
-              provider,
-              reason: 'Avoiding random/private relay names from Apple on app reload',
-            });
-          } else {
-            // For email users, use first name or email prefix
-            displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
-          }
-
-          const params = {
-            name: displayName,
-            registrationMethod: isOAuth ? 'oauth' : 'email',
-          };
-          logger.onboarding.stepCompleted('👋 ROUTING TO PERSONALIZATION - Onboarding not completed');
+          // Show tutorial for existing users who haven't completed onboarding
+          const target = 'TransformJourney';
+          logger.onboarding.stepCompleted('🎬 ROUTING TO TUTORIAL - Show value proposition');
+          logger.debug('📋 FLOW: Splash > TransformJourney > Welcome > Personalization');
           try {
-            navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+            navigation.reset({ index: 0, routes: [{ name: target as any }] });
           } catch (navErr) {
-            navigation.navigate(target as any, params);
+            navigation.navigate(target as any);
           }
           hasNavigatedRef.current = true;
           return true;
@@ -439,7 +403,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         logger.warn('❌ ONBOARDING CHECK FAILED. Applying safer fallback based on auth state:', obErr);
         // If we have an authenticated user, prefer going straight to Personalization rather than Welcome
         try {
-          const target = effectiveUser ? 'OnboardingPersonalization' : 'OnboardingWelcome';
+          const target = effectiveUser ? 'TransformJourney' : 'OnboardingWelcome';
 
           // More robust provider detection for Apple login users
           let provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
