@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -559,7 +560,12 @@ const OnboardingTrialOfferScreen = () => {
 
             {/* Plan Options - Show when button tapped */}
             {showPlanSelector && (
-              <View style={styles.planOptionsExpanded}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.planOptionsScrollContent}
+                style={styles.planOptionsScroll}
+              >
                 {pricingTiers.map((tier) => (
                   <TouchableOpacity
                     key={tier.id}
@@ -598,7 +604,7 @@ const OnboardingTrialOfferScreen = () => {
                     )}
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
           </View>
         </View>
@@ -732,25 +738,26 @@ const createStyles = (fonts: any) => StyleSheet.create({
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
-  planOptionsExpanded: {
+  planOptionsScroll: {
+    marginTop: 12,
     marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  planOptionsScrollContent: {
+    paddingHorizontal: 8,
+    gap: 12,
   },
   planOptionExpanded: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    minWidth: 160,
+    marginRight: 8,
   },
   selectedPlanOptionExpanded: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
