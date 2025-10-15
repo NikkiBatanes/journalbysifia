@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   securityText: {
     fontSize: 12,
-    color: '#4CAF50',
+    color: '#F8F9FA', // Hope white as requested
     marginLeft: 6,
     fontWeight: '500',
   },
