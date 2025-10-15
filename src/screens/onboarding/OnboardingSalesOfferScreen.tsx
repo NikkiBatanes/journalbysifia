@@ -312,6 +312,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Refresh subscription and close
             await devotionalGating.refreshSubscription();
 
+            // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
+            if (!result.transactionId) {
+              logger.error('❌ Upgrade missing transaction ID - possible stale state');
+              throw new Error('Invalid purchase - no transaction ID');
+            }
+
+            logger.debug('Upgrade transaction verification:', {
+              hasTransactionId: !!result.transactionId,
+              transactionId: result.transactionId?.substring(0, 10) + '...',
+            });
+
             // Navigate back to the original context instead of just going back
             const source = routeParams?.source;
             if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt') {
@@ -373,6 +384,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             setLoadingStep('validating');
             logger.onboarding.navigation('✅ Purchase successful!');
             triggerSuccessHaptic();
+
+            // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
+            if (!result.transactionId) {
+              logger.error('❌ Purchase missing transaction ID - possible stale state');
+              throw new Error('Invalid purchase - no transaction ID');
+            }
+
+            logger.debug('Transaction verification:', {
+              hasTransactionId: !!result.transactionId,
+              transactionId: result.transactionId?.substring(0, 10) + '...',
+            });
 
             // CRITICAL: Wait for subscription to refresh BEFORE navigating
             logger.debug('Syncing subscription with Apple...');
@@ -436,8 +458,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           if (isCancelled) {
             logger.debug('User cancelled purchase - silently continuing');
-            // Reset purchasing state so user can try again
+            // CRITICAL: Reset ALL purchase state to prevent stale/cached validation
             setIsPurchasing(false);
+            setLoadingStep('processing');
             return;
           }
 

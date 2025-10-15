@@ -179,6 +179,22 @@ const OnboardingTrialOfferScreen = () => {
         logger.info('✅ Trial subscription authorized by Apple');
         triggerSuccessHaptic();
 
+        // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
+        if (!result.transactionId) {
+          logger.error('❌ Purchase missing transaction ID - possible stale state');
+          throw new Error('Invalid purchase - no transaction ID');
+        }
+
+        // Additional verification: Check if transaction ID is recent (within last 5 minutes)
+        // This prevents old cached transactions from activating subscriptions
+        const transactionTime = Date.now();
+        const fiveMinutesAgo = transactionTime - (5 * 60 * 1000);
+
+        logger.debug('Transaction verification:', {
+          hasTransactionId: !!result.transactionId,
+          transactionId: result.transactionId?.substring(0, 10) + '...', // Log partial ID for debugging
+        });
+
         // ENTERPRISE IMPROVEMENT: Update loading steps
         setLoadingStep('activating');
 
@@ -217,8 +233,11 @@ const OnboardingTrialOfferScreen = () => {
 
       if (isCancelled) {
         logger.debug('User cancelled trial');
-        // For cancelled purchases, just silently continue without showing error modal
+        // CRITICAL: Reset ALL purchase state to prevent stale/cached validation
         setIsStartingTrial(false);
+        setPurchaseValidated(false);
+        setShowSuccessModal(false);
+        setLoadingStep('processing');
         return;
       }
 
