@@ -51,90 +51,27 @@ const OnboardingTrialOfferScreen = () => {
 
   const handleClose = async () => {
     if (isClosing || isStartingTrial || navigationInProgressRef.current) {
-      console.log('[OnboardingTrialOffer] handleClose ignored', { isClosing, isStartingTrial, navigationInProgress: navigationInProgressRef.current });
-      return; // Prevent double-tap and multiple navigation calls
+      console.log('[OnboardingTrialOffer] handleClose ignored - already processing');
+      return;
     }
     
+    console.log('[OnboardingTrialOffer] User declined trial - dismissing modal');
     navigationInProgressRef.current = true;
+    setIsClosing(true);
 
     try {
       triggerLightHaptic();
     } catch {}
-    setIsClosing(true);
 
-    // Debug context dump
-    const navState = (navigation as any)?.getState?.();
-    console.log('[OnboardingTrialOffer] User declined trial – beginning close sequence', {
-      skipNotificationPreference: route?.params?.skipNotificationPreference,
-      selectedTierId,
-      isAnnual,
-      navRoutes: navState?.routes?.map((r: any) => r.name),
-      navIndex: navState?.index,
-    });
-
-    // Watchdog: if navigation does not complete, release UI lock and notify
-    let watchdogFired = false;
-    const watchdog = setTimeout(() => {
-      watchdogFired = true;
-      console.warn('[OnboardingTrialOffer] Watchdog fired – navigation did not complete in time. Releasing UI lock.');
+    // Simple approach: Just go back and let Sales Offer handle the rest
+    // Sales Offer will check canOfferTrial and navigate appropriately
+    navigation.goBack();
+    
+    // Reset state after modal dismisses
+    setTimeout(() => {
+      navigationInProgressRef.current = false;
       setIsClosing(false);
-      Alert.alert(
-        'Please try again',
-        'We could not proceed to notification setup. Tap close again or try Continue My Journey.',
-        [{ text: 'OK' }]
-      );
-    }, 1500);
-
-    const proceed = () => {
-      try {
-        const skipNotificationPreference = route?.params?.skipNotificationPreference;
-        if (skipNotificationPreference) {
-          console.log('[OnboardingTrialOffer] Skip pref set – performing double goBack()');
-          navigation.goBack();
-          setTimeout(() => {
-            navigation.goBack();
-            // Reset after navigation completes
-            setTimeout(() => {
-              navigationInProgressRef.current = false;
-              setIsClosing(false);
-            }, 500);
-          }, 100);
-        } else {
-          // Use navigation.reset to completely replace navigation state
-          // This dismisses all modals and navigates to Notification in one action
-          console.log('[OnboardingTrialOffer] Resetting navigation to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
-          
-          (navigation as any).reset({
-            index: 0,
-            routes: [
-              {
-                name: 'OnboardingNotificationSetup',
-                params: { userType: 'freemium', displayName: 'siFia Seeker' }
-              }
-            ]
-          });
-          
-          // Reset after navigation completes
-          setTimeout(() => {
-            navigationInProgressRef.current = false;
-            setIsClosing(false);
-            clearTimeout(watchdog);
-          }, 300);
-        }
-      } catch (error) {
-        console.error('[OnboardingTrialOffer] Navigation failed:', error);
-        setIsClosing(false);
-        navigationInProgressRef.current = false;
-        clearTimeout(watchdog);
-      }
-    };
-
-    // Schedule after current animations/interactions to avoid conflicts
-    InteractionManager.runAfterInteractions(() => {
-      console.log('[OnboardingTrialOffer] runAfterInteractions – proceeding to navigate');
-      // Small delay to allow overlay to animate out (slide down) before new screen
-      setTimeout(proceed, 120);
-    });
+    }, 500);
   };
 
   const handleStartTrial = async () => {
