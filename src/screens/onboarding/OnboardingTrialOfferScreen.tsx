@@ -100,26 +100,28 @@ const OnboardingTrialOfferScreen = () => {
             }, 500);
           }, 100);
         } else {
-          // This screen is a fullScreenModal, so we need to dismiss it first, then navigate
-          console.log('[OnboardingTrialOffer] Dismissing modal and navigating to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
+          // This screen is a fullScreenModal opened from Sales Offer
+          // We need to go back to Sales Offer, then immediately navigate to Notification
+          // Solution: Navigate to Notification first, then dismiss this modal
+          console.log('[OnboardingTrialOffer] Navigating to Notification, then dismissing modal', { userType: 'freemium', display: 'seeker' });
           
-          // First, go back to dismiss the modal
-          navigation.goBack();
+          // First navigate to notification (this happens in the background stack)
+          navigation.navigate(
+            'OnboardingNotificationSetup' as never,
+            { userType: 'freemium', displayName: 'siFia Seeker' } as never
+          );
           
-          // Then navigate to notification setup after modal dismisses
+          // Then dismiss the modal to reveal the notification screen
           setTimeout(() => {
-            navigation.navigate(
-              'OnboardingNotificationSetup' as never,
-              { userType: 'freemium', displayName: 'siFia Seeker' } as never
-            );
+            navigation.goBack();
             
-            // Reset after navigation completes
+            // Reset after modal dismisses
             setTimeout(() => {
               navigationInProgressRef.current = false;
               setIsClosing(false);
               clearTimeout(watchdog);
             }, 300);
-          }, 300);
+          }, 100);
         }
       } catch (error) {
         console.error('[OnboardingTrialOffer] Navigation failed:', error);
