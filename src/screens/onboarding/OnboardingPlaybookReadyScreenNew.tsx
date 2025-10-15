@@ -208,8 +208,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally run only on mount
+  }, []);
 
   useEffect(() => {
     // Cleanup timers on unmount

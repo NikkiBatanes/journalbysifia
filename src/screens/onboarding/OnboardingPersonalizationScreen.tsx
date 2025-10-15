@@ -12,19 +12,19 @@ import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
 import { onboardingService } from '../../services/onboardingService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
+import {
   View,
-  StyleSheet, 
-  TouchableOpacity, 
-  Image, 
-  ScrollView, 
-  StatusBar, 
-  KeyboardAvoidingView, 
-  Platform, 
-  TextInput, 
-  InteractionManager, 
-  Animated, 
-  Keyboard 
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+  InteractionManager,
+  Animated,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -259,7 +259,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Helper function to extract first name from email username
   const extractNameFromEmail = (emailUsername: string): string => {
-    if (!emailUsername) return '';
+    if (!emailUsername) {
+      return '';
+    }
 
     let cleanUsername = emailUsername.toLowerCase();
 
@@ -354,8 +356,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         scrollViewRef.current?.scrollTo({ y, animated: true });
       }, 100);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally run only on mount
+  }, []);
 
   // When the user changes challenge, clear details so the new placeholder is visible
   React.useEffect(() => {

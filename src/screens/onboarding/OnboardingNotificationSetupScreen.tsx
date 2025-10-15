@@ -48,13 +48,17 @@ const OnboardingNotificationSetupScreen = () => {
   const displayName = (() => {
     // Try first_name first
     const firstName = (user as any)?.user_metadata?.first_name?.trim();
-    if (firstName) return firstName;
+    if (firstName) {
+      return firstName;
+    }
 
     // Try to extract first name from full_name
     const fullName = user?.user_metadata?.full_name;
     if (fullName) {
       const firstNameFromFull = String(fullName).trim().split(/\s+/)[0];
-      if (firstNameFromFull) return firstNameFromFull;
+      if (firstNameFromFull) {
+        return firstNameFromFull;
+      }
     }
 
     // Extract from email if needed

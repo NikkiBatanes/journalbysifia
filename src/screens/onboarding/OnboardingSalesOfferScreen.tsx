@@ -369,7 +369,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               const storeKitService = AppleStoreKitService.getInstance();
               await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '');
               console.log('[OnboardingSalesOffer] ✅ Subscription synced with Apple');
-              
+
               // Also refresh local state
               await devotionalGating.refreshSubscription();
               console.log('[OnboardingSalesOffer] ✅ Local subscription state refreshed');
@@ -385,8 +385,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
                 // Try to restore purchases to trigger the listener
                 try {
-                  const AppleStoreKitService = (await import('../../services/AppleStoreKitService')).AppleStoreKitService;
-                  const storeKit = AppleStoreKitService.getInstance();
+                  const { AppleStoreKitService: AppleStoreKit } = await import('../../services/AppleStoreKitService');
+                  const storeKit = AppleStoreKit.getInstance();
                   await storeKit.restorePurchases(user?.id || '');
                   console.log('[OnboardingSalesOffer] Restore purchases completed');
                 } catch (restoreError) {
@@ -847,10 +847,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.unlockButton,
-            isPurchasing && { opacity: 0.6 }
+            isPurchasing && { opacity: 0.6 },
           ]}
           onPress={() => {
-            if (isPurchasing) return;
+            if (isPurchasing) {
+              return;
+            }
             try { triggerSuccessHaptic(); } catch {}
             handleUnlockPlan();
           }}

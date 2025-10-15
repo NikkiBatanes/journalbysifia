@@ -50,7 +50,7 @@ const OnboardingTrialOfferScreen = () => {
       console.log('[OnboardingTrialOffer] handleClose ignored - already processing');
       return;
     }
-    
+
     console.log('[OnboardingTrialOffer] User declined trial - navigating to Notification');
     navigationInProgressRef.current = true;
     setIsClosing(true);
@@ -69,12 +69,12 @@ const OnboardingTrialOfferScreen = () => {
         setTimeout(() => navigation.goBack(), 100);
       } else {
         // Navigate to notification (user remains freemium/seeker)
-        (navigation as any).navigate('OnboardingNotificationSetup', { 
-          userType: 'freemium', 
-          displayName: 'siFia Seeker' 
+        (navigation as any).navigate('OnboardingNotificationSetup', {
+          userType: 'freemium',
+          displayName: 'siFia Seeker',
         });
       }
-      
+
       // Reset state after navigation
       setTimeout(() => {
         navigationInProgressRef.current = false;
@@ -113,12 +113,12 @@ const OnboardingTrialOfferScreen = () => {
       console.log('[OnboardingTrialOffer] TRIAL PRODUCT VERIFICATION');
       console.log('[OnboardingTrialOffer] Target product ID:', productId);
       console.log('[OnboardingTrialOffer] ========================================');
-      
+
       // CRITICAL: Verify the .freetrial product exists in App Store Connect
       // Even if configured, it might not be synced to TestFlight yet
       try {
         const availableProducts = await paymentService.getAvailableProducts();
-        
+
         console.log('[OnboardingTrialOffer] 📦 ALL AVAILABLE PRODUCTS FROM APP STORE:');
         availableProducts.forEach((p, index) => {
           console.log(`[OnboardingTrialOffer] ${index + 1}. ${p.productId}`);
@@ -126,9 +126,9 @@ const OnboardingTrialOfferScreen = () => {
           console.log(`[OnboardingTrialOffer]    Title: ${p.title}`);
         });
         console.log('[OnboardingTrialOffer] ========================================');
-        
+
         const trialProduct = availableProducts.find(p => p.productId === productId);
-        
+
         if (!trialProduct) {
           console.warn('[OnboardingTrialOffer] ⚠️ .freetrial product NOT found in App Store!');
           console.warn('[OnboardingTrialOffer] Expected:', productId);
@@ -139,11 +139,11 @@ const OnboardingTrialOfferScreen = () => {
           console.warn('[OnboardingTrialOffer] 3. TestFlight build needs to be refreshed');
           console.warn('[OnboardingTrialOffer] 4. Cleared for sale = NO in App Store Connect');
           console.warn('[OnboardingTrialOffer] ');
-          
+
           // Fallback to regular product ID
           const fallbackProductId = `app.sifia.com.${selectedTierId}.${billing}`;
           const regularProduct = availableProducts.find(p => p.productId === fallbackProductId);
-          
+
           if (regularProduct) {
             console.log('[OnboardingTrialOffer] ✅ Using regular product as fallback:', fallbackProductId);
             console.log('[OnboardingTrialOffer] ⚠️ USER WILL NOT GET FREE TRIAL - will be charged immediately');

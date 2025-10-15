@@ -85,7 +85,9 @@ const slides: Slide[] = [
 
 // Helper function to extract first name from email username
 const extractNameFromEmail = (emailUsername: string): string => {
-  if (!emailUsername) return '';
+  if (!emailUsername) {
+    return '';
+  }
 
   let cleanUsername = emailUsername.toLowerCase();
 
