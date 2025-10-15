@@ -314,6 +314,21 @@ const OnboardingTrialOfferScreen = () => {
     if (!t) {return 0;}
     return (t.annualPrice / 12);
   };
+  const getAnnualSavings = () => {
+    const t = getSelectedTier();
+    if (!t) {return 0;}
+    const monthlyTotal = t.monthlyPrice * 12;
+    const savings = monthlyTotal - t.annualPrice;
+    return savings;
+  };
+  const getSavingsPercentage = () => {
+    const t = getSelectedTier();
+    if (!t) {return 0;}
+    const monthlyTotal = t.monthlyPrice * 12;
+    const savings = monthlyTotal - t.annualPrice;
+    const percentage = (savings / monthlyTotal) * 100;
+    return Math.round(percentage);
+  };
 
   // Removed duplicate handleStartTrial function
 
@@ -540,9 +555,14 @@ const OnboardingTrialOfferScreen = () => {
               {`3 days free, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} per ${isAnnual ? 'year' : 'month'}`}
             </ThemedText>
             {isAnnual ? (
-              <ThemedText weight="bold" style={styles.pricingSubtitle}>
-                {`Only ${(currencyInfo?.symbol || '$')}${getMonthlyEquivalent().toFixed(2)}/month`}
-              </ThemedText>
+              <View style={styles.savingsContainer}>
+                <ThemedText weight="bold" style={styles.pricingSubtitle}>
+                  {`Only ${(currencyInfo?.symbol || '$')}${getMonthlyEquivalent().toFixed(2)}/month`}
+                </ThemedText>
+                <ThemedText weight="semiBold" style={styles.savingsText}>
+                  {`Save ${(currencyInfo?.symbol || '$')}${getAnnualSavings().toFixed(2)} (${getSavingsPercentage()}%)`}
+                </ThemedText>
+              </View>
             ) : null}
 
             {/* Plan Selector - Change Plan Button */}
@@ -977,6 +997,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     paddingVertical: 16,
+  },
+  savingsContainer: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  savingsText: {
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+    color: Colors.growthGreen,
+    textAlign: 'center',
+    marginTop: 4,
   },
   dividerWrapper: {
     width: '100%',
