@@ -24,7 +24,6 @@ import { enhancedGenerationService } from '../../services/enhancedGenerationServ
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 // import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 import { triggerLightHaptic } from '../../utils/haptics';
-import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../../components/common/ThemedText';
 
 interface RouteParams {
@@ -55,7 +54,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  const theme = useTheme();
   const AnimatedThemedText = Animated.createAnimatedComponent(ThemedText);
   // const { updateOnboardingStep } = useUserState(); // Unused for now
   const params = route.params as RouteParams;

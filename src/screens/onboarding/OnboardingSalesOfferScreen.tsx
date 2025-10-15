@@ -12,18 +12,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useDevotionalGating } from '../../hooks/useDevotionalGating';
-import { usePlatformSubscription } from '../../hooks/usePlatformSubscription';
 import { isDevotionalDurationLocked } from '../../utils/tierLockingRules';
-import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
 import type { SubscriptionTier } from '../../types/subscription';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
-import { getFontFamily } from '../../theme/fonts';
 
 // removed Dimensions width as unused
 
@@ -50,13 +46,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
 
-  // Fonts: derive theme font for dynamic font switching (following Dashboard pattern)
+  // Theme font for dynamic font switching
   const { currentFont } = useTheme();
-  const fonts = useMemo(() => {
-    const fontKey = currentFont || 'lexend';
-    const fontRegular = getFontFamily(fontKey, 'regular');
-    return { fontRegular };
-  }, [currentFont]);
 
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');

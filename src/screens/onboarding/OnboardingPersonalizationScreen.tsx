@@ -12,7 +12,20 @@ import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
 import { onboardingService } from '../../services/onboardingService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, KeyboardAvoidingView, Platform, TextInput, InteractionManager, Animated, Keyboard } from 'react-native';
+import { 
+  View,
+  StyleSheet, 
+  TouchableOpacity, 
+  Image, 
+  ScrollView, 
+  StatusBar, 
+  KeyboardAvoidingView, 
+  Platform, 
+  TextInput, 
+  InteractionManager, 
+  Animated, 
+  Keyboard 
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
