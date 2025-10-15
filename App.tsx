@@ -67,7 +67,7 @@ import { useAuth } from './src/context/IndustryStandardAuthContext';
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
 
-  const { isAuthenticated, bootstrapping } = useAuth();
+  const { isAuthenticated, bootstrapping, user } = useAuth();
   const navigationRef = React.useRef<NavigationContainerRef<any> | null>(null);
   const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(undefined);
 
@@ -102,21 +102,14 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     
     // ENTERPRISE: Sync subscription status on app launch
     const syncSubscriptionStatus = async () => {
-      if (isAuthenticated) {
+      if (isAuthenticated && user?.id) {
         try {
           const { AppleStoreKitService } = await import('./src/services/AppleStoreKitService');
-          const { useAuth: getAuth } = await import('./src/context/IndustryStandardAuthContext');
           
-          // Get user ID from auth context
-          const authContext = getAuth();
-          const userId = authContext?.user?.id;
-          
-          if (userId) {
-            console.log('[App] Syncing subscription status on launch...');
-            const storeKit = AppleStoreKitService.getInstance();
-            await storeKit.checkAndSyncSubscriptionStatus(userId);
-            console.log('[App] Subscription status synced');
-          }
+          console.log('[App] Syncing subscription status on launch...');
+          const storeKit = AppleStoreKitService.getInstance();
+          await storeKit.checkAndSyncSubscriptionStatus(user.id);
+          console.log('[App] Subscription status synced');
         } catch (error) {
           console.error('[App] Failed to sync subscription status:', error);
         }
@@ -124,7 +117,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     };
     
     syncSubscriptionStatus();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id]);
 
   // Only block initial render while bootstrapping the initial session.
   // DO NOT block on transient auth action loading to avoid navigator remounts
