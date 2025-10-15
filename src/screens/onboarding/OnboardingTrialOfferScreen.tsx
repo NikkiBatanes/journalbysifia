@@ -382,7 +382,10 @@ const OnboardingTrialOfferScreen = () => {
             <ThemedText style={styles.timelineDescription}>
               Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
               No pressure, no catch.{'\n'}
-              Experience personalized guidance and see how it fits your story.
+              Experience personalized guidance and see how it fits your story.{'\n\n'}
+              <ThemedText weight="semiBold" style={styles.includedText}>
+                Try with 2 playbooks + 2 devotionals during trial
+              </ThemedText>
             </ThemedText>
           ) : (
             <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
@@ -823,6 +826,14 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 18,
     opacity: 0.9,
+  },
+  includedText: {
+    fontSize: 12,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    marginTop: 8,
+    opacity: 0.85,
   },
   strong: {
     fontFamily: fonts.bold,
