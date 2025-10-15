@@ -100,20 +100,26 @@ const OnboardingTrialOfferScreen = () => {
             }, 500);
           }, 100);
         } else {
-          // Now that this is a regular card screen (not modal), we can navigate normally
-          console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
+          // Modal presentation: Navigate to notification in background, then dismiss modal
+          console.log('[OnboardingTrialOffer] Navigating to Notification (background), then dismissing modal', { userType: 'freemium', display: 'seeker' });
           
+          // Navigate to notification (happens in background)
           navigation.navigate(
             'OnboardingNotificationSetup' as never,
             { userType: 'freemium', displayName: 'siFia Seeker' } as never
           );
           
-          // Reset after navigation
+          // Dismiss modal after short delay to reveal notification screen
           setTimeout(() => {
-            navigationInProgressRef.current = false;
-            setIsClosing(false);
-            clearTimeout(watchdog);
-          }, 300);
+            navigation.goBack();
+            
+            // Reset after modal dismisses
+            setTimeout(() => {
+              navigationInProgressRef.current = false;
+              setIsClosing(false);
+              clearTimeout(watchdog);
+            }, 300);
+          }, 100);
         }
       } catch (error) {
         console.error('[OnboardingTrialOffer] Navigation failed:', error);
