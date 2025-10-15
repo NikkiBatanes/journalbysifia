@@ -19,6 +19,7 @@ import PlatformPaymentService from '../../services/PlatformPaymentService';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
+import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { logger } from '../../utils/logger';
 
 // removed Dimensions width as unused
@@ -55,6 +56,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -301,8 +303,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         // In upgrade mode, purchase and go back to previous screen
 
         try {
+          setIsPurchasing(true);
+          setLoadingStep('processing');
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
           if (result.success) {
+            setLoadingStep('validating');
             triggerSuccessHaptic();
             // Refresh subscription and close
             await devotionalGating.refreshSubscription();
@@ -331,11 +336,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           if (isCancelled) {
             logger.debug('User cancelled upgrade - silently continuing');
+            setIsPurchasing(false);
             return;
           }
 
           // For other errors, log silently instead of showing alert
           logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
+          setIsPurchasing(false);
         }
       } else {
         // In onboarding mode, use StoreKit to purchase subscription
@@ -349,6 +356,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         });
 
         try {
+          setIsPurchasing(true);
+          setLoadingStep('processing');
+
           // Show Apple's payment sheet and process purchase
           logger.debug('Calling purchaseSubscription...');
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
@@ -360,6 +370,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
 
           if (result.success) {
+            setLoadingStep('validating');
             logger.onboarding.navigation('✅ Purchase successful!');
             triggerSuccessHaptic();
 
@@ -656,6 +667,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ENTERPRISE IMPROVEMENT: Loading Modal */}
+      <PurchaseLoadingModal
+        visible={isPurchasing}
+        step={loadingStep}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         {/* Close button top-right */}
