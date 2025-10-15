@@ -100,28 +100,20 @@ const OnboardingTrialOfferScreen = () => {
             }, 500);
           }, 100);
         } else {
-          // This screen is a fullScreenModal opened from Sales Offer
-          // We need to go back to Sales Offer, then immediately navigate to Notification
-          // Solution: Navigate to Notification first, then dismiss this modal
-          console.log('[OnboardingTrialOffer] Navigating to Notification, then dismissing modal', { userType: 'freemium', display: 'seeker' });
+          // Now that this is a regular card screen (not modal), we can navigate normally
+          console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
           
-          // First navigate to notification (this happens in the background stack)
           navigation.navigate(
             'OnboardingNotificationSetup' as never,
             { userType: 'freemium', displayName: 'siFia Seeker' } as never
           );
           
-          // Then dismiss the modal to reveal the notification screen
+          // Reset after navigation
           setTimeout(() => {
-            navigation.goBack();
-            
-            // Reset after modal dismisses
-            setTimeout(() => {
-              navigationInProgressRef.current = false;
-              setIsClosing(false);
-              clearTimeout(watchdog);
-            }, 300);
-          }, 100);
+            navigationInProgressRef.current = false;
+            setIsClosing(false);
+            clearTimeout(watchdog);
+          }, 300);
         }
       } catch (error) {
         console.error('[OnboardingTrialOffer] Navigation failed:', error);
