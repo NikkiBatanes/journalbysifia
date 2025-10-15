@@ -203,105 +203,34 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       console.log('[OnboardingPersonalization] Registration method:', method);
       setRegistrationMethod(method);
 
-      // For OAuth users, show name step; for email users, skip it
+      // ALWAYS show name step for OAuth users (Apple/Google) to ensure we get real names
+      // For email users, skip it (they already provided name during registration)
       const needsNameStep = method === 'oauth';
-      console.log('[OnboardingPersonalization] Show name step:', needsNameStep);
+      console.log('[OnboardingPersonalization] Show name step:', needsNameStep, 'Method:', method);
       setShowNameStep(needsNameStep);
 
-      // Set name if provided, but only for non-OAuth users
+      // Set name if provided, but ONLY for email users
       if ('name' in route.params && route.params.name) {
         const providedName = route.params.name as string;
 
-        // For OAuth users, don't set the name even if provided to force name collection
         if (method !== 'oauth') {
+          // Email users: use the provided name
           setName(providedName);
-          console.log('[OnboardingPersonalization] Setting name for email user:', providedName);
+          console.log('[OnboardingPersonalization] ✅ Setting name for email user:', providedName);
         } else {
-          console.log('[OnboardingPersonalization] Ignoring provided name for OAuth user:', providedName);
-          setName(''); // Ensure name is empty for OAuth users
+          // OAuth users: ALWAYS force name collection, ignore any provided name
+          console.log('[OnboardingPersonalization] 🔒 OAuth user - forcing name collection (ignoring:', providedName, ')');
+          setName(''); // Ensure name is empty to show name step
         }
+      } else if (method === 'oauth') {
+        // OAuth user with no provided name - ensure name is empty
+        console.log('[OnboardingPersonalization] 🔒 OAuth user - forcing name collection');
+        setName('');
       }
 
       console.log('📝 Registration method:', method, 'Show name step:', needsNameStep);
     }
   }, [route.params]);
-
-  // Helper function to check if a name looks valid (not a random string from Apple private relay)
-  const isValidName = (name: string): boolean => {
-    if (!name || name.length < 2) return false;
-    
-    const nameLower = name.toLowerCase();
-    
-    // Check if it's from Apple's private relay or iCloud
-    const isAppleEmail = user?.email?.includes('@privaterelay.appleid.com') || 
-                         user?.email?.includes('@icloud.com');
-    
-    // Detect random Apple-generated names
-    // Examples: "pzgttqh2gh", "aoerja", "xkcdpwz"
-    const hasNumbers = /\d/.test(name); // Contains numbers (like "pzgttqh2gh")
-    const allLowercase = name === nameLower; // All lowercase (unusual for real names)
-    const hasConsecutiveConsonants = /[bcdfghjklmnpqrstvwxyz]{4,}/i.test(name); // 4+ consonants in a row
-    const noVowelPattern = !name.match(/[aeiou]{2,}/i); // No double vowels
-    const shortLength = name.length < 10; // Shorter than 10 chars
-    
-    // If from Apple and looks random, reject it
-    if (isAppleEmail) {
-      const looksRandom = (hasNumbers || (allLowercase && hasConsecutiveConsonants) || 
-                          (allLowercase && noVowelPattern && shortLength));
-      if (looksRandom) {
-        console.log('[OnboardingPersonalization] ❌ Detected random Apple name:', name, {
-          hasNumbers,
-          allLowercase,
-          hasConsecutiveConsonants,
-          noVowelPattern,
-          shortLength
-        });
-        return false;
-      }
-    }
-    
-    console.log('[OnboardingPersonalization] ✅ Name looks valid:', name);
-    return true;
-  };
-
-  // Extract first name from OAuth user metadata
-  React.useEffect(() => {
-    if (registrationMethod === 'oauth' && user && !name) {
-      try {
-        const userMetadata = (user as any)?.user_metadata;
-        console.log('[OnboardingPersonalization] User metadata:', userMetadata);
-
-        // Try to extract first name from various OAuth metadata fields
-        let extractedName = '';
-
-        if (userMetadata?.first_name && isValidName(userMetadata.first_name)) {
-          extractedName = userMetadata.first_name;
-        } else if (userMetadata?.given_name && isValidName(userMetadata.given_name)) {
-          extractedName = userMetadata.given_name;
-        } else if (userMetadata?.full_name) {
-          // Extract first name from full name
-          const fullName = userMetadata.full_name.trim();
-          const firstName = fullName.split(' ')[0];
-          if (isValidName(firstName)) {
-            extractedName = firstName;
-          }
-        }
-
-        // Don't try to extract from email for OAuth users - force them to enter their real name
-        // This prevents using random strings like "aoerja" from Apple private relay
-
-        if (extractedName) {
-          console.log('[OnboardingPersonalization] Extracted valid first name for OAuth user:', extractedName);
-          setName(extractedName);
-        } else {
-          console.log('[OnboardingPersonalization] No valid name found - user will be prompted to enter name');
-          // Leave name empty to force name collection step
-        }
-      } catch (error) {
-        console.warn('[OnboardingPersonalization] Error extracting name from user metadata:', error);
-      }
-    }
-  }, [registrationMethod, user, name]);
 
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
   const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>('');
