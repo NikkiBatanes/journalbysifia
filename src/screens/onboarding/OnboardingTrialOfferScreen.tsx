@@ -382,11 +382,16 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.timelineContent}>
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
           {item.id === 1 ? (
-            <ThemedText style={styles.timelineDescription}>
-              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
-              No pressure, no catch.{'\n'}
-              Experience personalized guidance and see how it fits your story.
-            </ThemedText>
+            <>
+              <ThemedText style={styles.timelineDescription}>
+                Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
+                No pressure, no catch.{'\n'}
+                Experience personalized guidance and see how it fits your story.
+              </ThemedText>
+              <ThemedText weight="semiBold" style={styles.includedText}>
+                2 Playbooks + 2 Devotionals included
+              </ThemedText>
+            </>
           ) : (
             <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
           )}
@@ -551,13 +556,6 @@ const OnboardingTrialOfferScreen = () => {
           {/* Timeline */}
           <View style={styles.timelineContainer}>
             {timelineItems.map((item, index) => renderTimelineItem(item, index))}
-          </View>
-
-          {/* Simple What's Included */}
-          <View style={styles.simpleWhatsIncluded}>
-            <ThemedText weight="semiBold" style={styles.simpleWhatsIncludedText}>
-              2 Playbooks + 2 Devotionals included
-            </ThemedText>
           </View>
 
           {/* Pricing Summary (dynamic) */}
@@ -842,6 +840,14 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 18,
     opacity: 0.9,
+  },
+  includedText: {
+    fontSize: 12,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    marginTop: 8,
+    opacity: 0.85,
   },
   strong: {
     fontFamily: fonts.bold,
