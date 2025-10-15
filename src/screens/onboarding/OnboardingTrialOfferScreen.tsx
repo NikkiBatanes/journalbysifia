@@ -115,6 +115,18 @@ const OnboardingTrialOfferScreen = () => {
         // Wait a moment for it to complete
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        // Sync subscription status to refresh the app state
+        console.log('[OnboardingTrialOffer] Syncing subscription status...');
+        try {
+          const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
+          const storeKitService = AppleStoreKitService.getInstance();
+          await storeKitService.checkAndSyncSubscriptionStatus(user.id);
+          console.log('[OnboardingTrialOffer] ✅ Subscription synced');
+        } catch (syncError) {
+          console.error('[OnboardingTrialOffer] Subscription sync failed:', syncError);
+          // Continue anyway - the purchase was successful
+        }
+
         // Navigate to notification setup
         const skipNotificationPreference = route?.params?.skipNotificationPreference;
         if (skipNotificationPreference) {

@@ -384,10 +384,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             triggerSuccessHaptic();
 
             // CRITICAL: Wait for subscription to refresh BEFORE navigating
-            console.log('[OnboardingSalesOffer] Refreshing subscription data...');
+            console.log('[OnboardingSalesOffer] Syncing subscription with Apple...');
             try {
+              const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
+              const storeKitService = AppleStoreKitService.getInstance();
+              await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '');
+              console.log('[OnboardingSalesOffer] ✅ Subscription synced with Apple');
+              
+              // Also refresh local state
               await devotionalGating.refreshSubscription();
-              console.log('[OnboardingSalesOffer] ✅ Subscription refreshed successfully');
+              console.log('[OnboardingSalesOffer] ✅ Local subscription state refreshed');
 
               // Verify the subscription was actually updated
               const newTier = devotionalGating.tier;
