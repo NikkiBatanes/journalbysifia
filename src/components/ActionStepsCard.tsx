@@ -439,8 +439,8 @@ export default function ActionStepsCard({
       // Prefetch reflection data and wait for it to complete before opening modal
       const openModal = async () => {
         // Protect against logout during operation
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.startOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.startOperation();
         }
 
         if (user?.id && subTask.id) {
@@ -464,8 +464,8 @@ export default function ActionStepsCard({
 
         // End operation protection after modal opens
         setTimeout(() => {
-          if ((global as any).authMonitor) {
-            (global as any).authMonitor.endOperation();
+          if ((globalThis as any).authMonitor) {
+            (globalThis as any).authMonitor.endOperation();
           }
         }, 1000);
       };
@@ -486,8 +486,8 @@ export default function ActionStepsCard({
       // Prefetch gratitude data and wait for it to complete before opening modal
       const openGratitudeModal = async () => {
         // Protect against logout during operation
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.startOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.startOperation();
         }
 
         if (user?.id && subTask.id) {
@@ -513,8 +513,8 @@ export default function ActionStepsCard({
 
         // End operation protection after modal opens
         setTimeout(() => {
-          if ((global as any).authMonitor) {
-            (global as any).authMonitor.endOperation();
+          if ((globalThis as any).authMonitor) {
+            (globalThis as any).authMonitor.endOperation();
           }
         }, 1000);
       };
@@ -535,8 +535,8 @@ export default function ActionStepsCard({
       // Prefetch prayer data and wait for it to complete before opening modal
       const openPrayerModal = async () => {
         // Protect against logout during operation
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.startOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.startOperation();
         }
 
         if (user?.id && subTask.id) {
@@ -565,8 +565,8 @@ export default function ActionStepsCard({
 
         // End operation protection after modal opens
         setTimeout(() => {
-          if ((global as any).authMonitor) {
-            (global as any).authMonitor.endOperation();
+          if ((globalThis as any).authMonitor) {
+            (globalThis as any).authMonitor.endOperation();
           }
         }, 1000);
       };
@@ -587,8 +587,8 @@ export default function ActionStepsCard({
       // Prefetch timeblock data and wait for it to complete before opening modal
       const openTimeBlockModal = async () => {
         // Protect against logout during operation
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.startOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.startOperation();
         }
 
         if (user?.id && subTask.id) {
@@ -617,8 +617,8 @@ export default function ActionStepsCard({
 
         // End operation protection after modal opens
         setTimeout(() => {
-          if ((global as any).authMonitor) {
-            (global as any).authMonitor.endOperation();
+          if ((globalThis as any).authMonitor) {
+            (globalThis as any).authMonitor.endOperation();
           }
         }, 1000);
       };
@@ -642,8 +642,8 @@ export default function ActionStepsCard({
     console.log('[ActionStepsCard] Reflection saved:', entry);
 
     // Protect against logout during save operation
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.startOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.startOperation();
     }
 
     try {
@@ -657,8 +657,8 @@ export default function ActionStepsCard({
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.endOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.endOperation();
         }
       }, 2000); // Give time for modal animations
     }
@@ -673,8 +673,8 @@ export default function ActionStepsCard({
     });
 
     // End operation protection when modal closes
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.endOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.endOperation();
     }
 
     setActiveModal(null);
@@ -686,8 +686,8 @@ export default function ActionStepsCard({
     console.log('[ActionStepsCard] Gratitude saved:', entry);
 
     // Protect against logout during save operation
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.startOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.startOperation();
     }
 
     try {
@@ -701,8 +701,8 @@ export default function ActionStepsCard({
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.endOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.endOperation();
         }
       }, 2000); // Give time for modal animations
     }
@@ -717,8 +717,8 @@ export default function ActionStepsCard({
     });
 
     // End operation protection when modal closes
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.endOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.endOperation();
     }
 
     setActiveModal(null);
@@ -730,8 +730,8 @@ export default function ActionStepsCard({
     console.log('[ActionStepsCard] Prayer saved:', entry);
 
     // Protect against logout during save operation
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.startOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.startOperation();
     }
 
     try {
@@ -745,8 +745,8 @@ export default function ActionStepsCard({
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.endOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.endOperation();
         }
       }, 2000); // Give time for modal animations
     }
@@ -761,8 +761,8 @@ export default function ActionStepsCard({
     });
 
     // End operation protection when modal closes
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.endOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.endOperation();
     }
 
     setActiveModal(null);
@@ -774,8 +774,8 @@ export default function ActionStepsCard({
     console.log('[ActionStepsCard] TimeBlock saved:', entry);
 
     // Protect against logout during save operation
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.startOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.startOperation();
     }
 
     try {
@@ -801,8 +801,8 @@ export default function ActionStepsCard({
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
-        if ((global as any).authMonitor) {
-          (global as any).authMonitor.endOperation();
+        if ((globalThis as any).authMonitor) {
+          (globalThis as any).authMonitor.endOperation();
         }
       }, 2000); // Give time for modal animations
     }
@@ -817,8 +817,8 @@ export default function ActionStepsCard({
     });
 
     // End operation protection when modal closes
-    if ((global as any).authMonitor) {
-      (global as any).authMonitor.endOperation();
+    if ((globalThis as any).authMonitor) {
+      (globalThis as any).authMonitor.endOperation();
     }
 
     setActiveModal(null);

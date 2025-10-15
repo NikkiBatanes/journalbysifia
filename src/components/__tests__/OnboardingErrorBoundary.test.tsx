@@ -147,7 +147,7 @@ describe('OnboardingErrorBoundary', () => {
   describe('Development Mode', () => {
     it('should show technical details in dev mode', () => {
       // Mock __DEV__ to true
-      (global as any).__DEV__ = true;
+      (globalThis as any).__DEV__ = true;
 
       const { getByText } = render(
         <OnboardingErrorBoundary>

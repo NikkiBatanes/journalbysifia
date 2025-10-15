@@ -343,6 +343,73 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       );
     } catch {}
   }, [isValidBirthYear]);
+
+  /**
+   * ENTERPRISE IMPROVEMENT: Restore Purchases Handler
+   * Explanation: This allows users to recover their subscriptions after:
+   * - Reinstalling the app
+   * - Switching devices
+   * - Losing their subscription status
+   * 
+   * This is REQUIRED by Apple for all subscription apps.
+   * Now includes server-side validation for security.
+   */
+  const handleRestorePurchases = useCallback(async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please sign in to restore purchases');
+      return;
+    }
+
+    try {
+      triggerLightHaptic();
+    } catch {}
+
+    Alert.alert(
+      'Restore Purchases',
+      'This will restore any previous purchases made with this Apple ID.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Restore',
+          onPress: async () => {
+            try {
+              // Show loading state
+              Alert.alert('Restoring...', 'Please wait while we restore your purchases.');
+
+              const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
+              const storeKit = AppleStoreKitService.getInstance();
+              
+              const result = await storeKit.restorePurchases(user.id);
+
+              if (result.success) {
+                // Refresh subscription data
+                await loadProfileData();
+                
+                Alert.alert(
+                  'Success',
+                  result.message + (result.validated ? `\n\n✓ ${result.validated} purchase(s) validated server-side` : ''),
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
+              }
+            } catch (error) {
+              console.error('Restore purchases error:', error);
+              Alert.alert(
+                'Restore Failed',
+                'Unable to restore purchases. Please try again later or contact support.',
+                [{ text: 'OK' }]
+              );
+            }
+          },
+        },
+      ]
+    );
+  }, [user]);
+
   // Personalization toggles
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
@@ -1560,6 +1627,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     <View>
       <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>LEGAL & PRIVACY</Text>
       <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => { try { triggerLightHaptic(); } catch {} handleRestorePurchases(); }}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="refresh" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={[styles.menuText, font]}>Restore Purchases</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}

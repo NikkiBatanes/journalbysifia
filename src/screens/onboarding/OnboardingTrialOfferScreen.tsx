@@ -13,6 +13,9 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { useTheme } from '../../theme/ThemeContext';
+import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
+import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
+import { PurchaseErrorModal } from '../../components/PurchaseErrorModal';
 import { getFontFamily } from '../../theme/fonts';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
 import { logger } from '../../utils/logger';
@@ -43,6 +46,12 @@ const OnboardingTrialOfferScreen = () => {
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [purchaseValidated, setPurchaseValidated] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorType, setErrorType] = useState<'network' | 'validation' | 'cancelled' | 'unknown'>('unknown');
+  const [errorMessage, setErrorMessage] = useState<string>();
   const [isClosing, setIsClosing] = useState(false);
   const navigationInProgressRef = React.useRef(false);
 
@@ -112,7 +121,7 @@ const OnboardingTrialOfferScreen = () => {
 
       logger.debug('========================================');
       logger.debug('TRIAL PRODUCT VERIFICATION');
-      logger.debug('Target product ID:', productId);
+      logger.debug('Target product ID', { productId });
       logger.debug('========================================');
 
       // CRITICAL: Verify the .freetrial product exists in App Store Connect
@@ -120,7 +129,7 @@ const OnboardingTrialOfferScreen = () => {
       try {
         const availableProducts = await paymentService.getAvailableProducts();
 
-        logger.debug('📦 ALL AVAILABLE PRODUCTS FROM APP STORE:');
+        logger.debug('📦 ALL AVAILABLE PRODUCTS FROM APP STORE', {});
         availableProducts.forEach((p, index) => {
           console.log(`[OnboardingTrialOffer] ${index + 1}. ${p.productId}`);
           console.log(`[OnboardingTrialOffer]    Price: ${p.localizedPrice}`);
@@ -132,21 +141,19 @@ const OnboardingTrialOfferScreen = () => {
 
         if (!trialProduct) {
           logger.warn('⚠️ .freetrial product NOT found in App Store!');
-          logger.warn('Expected:', productId);
-          logger.warn('');
+          logger.warn('Expected product', { productId });
           logger.warn('POSSIBLE CAUSES:');
           logger.warn('1. Product ID mismatch - check App Store Connect');
           logger.warn('2. Trial offer not approved yet');
           logger.warn('3. TestFlight build needs to be refreshed');
           logger.warn('4. Cleared for sale = NO in App Store Connect');
-          logger.warn('');
 
           // Fallback to regular product ID
           const fallbackProductId = `app.sifia.com.${selectedTierId}.${billing}`;
           const regularProduct = availableProducts.find(p => p.productId === fallbackProductId);
 
           if (regularProduct) {
-            logger.onboarding.navigation('✅ Using regular product as fallback:', fallbackProductId);
+            logger.info('✅ Using regular product as fallback', { fallbackProductId });
             logger.warn('⚠️ USER WILL NOT GET FREE TRIAL - will be charged immediately');
             productId = fallbackProductId;
           } else {
@@ -155,52 +162,56 @@ const OnboardingTrialOfferScreen = () => {
             throw new Error(`Product not found: ${productId} or ${fallbackProductId}`);
           }
         } else {
-          logger.onboarding.navigation('✅✅✅ TRIAL PRODUCT FOUND!');
-          logger.debug('Product ID:', trialProduct.productId);
-          logger.debug('Price:', trialProduct.localizedPrice);
-          logger.debug('Title:', trialProduct.title);
-          logger.debug('User will see: "Free for 3 days, then ${trialProduct.localizedPrice}"');
+          logger.info('✅✅✅ TRIAL PRODUCT FOUND!');
+          logger.debug('Product ID', { productId: trialProduct.productId });
+          logger.debug('Price', { price: trialProduct.localizedPrice });
+          logger.debug('Title', { title: trialProduct.title });
+          logger.debug('User will see trial message', { price: trialProduct.localizedPrice });
         }
       } catch (productError) {
-        logger.error('❌ Failed to verify products:', productError);
-        logger.error('Continuing with original productId (risky)');
+        logger.error('❌ Failed to verify products', productError as Error);
+        logger.error('Continuing with original productId (risky)', new Error('Product verification failed'));
         // Continue with original productId
       }
 
-      logger.debug('Final product ID:', productId);
-      logger.debug('Showing Apple payment sheet...');
+      logger.debug('Final product ID', { productId });
+      logger.debug('Showing Apple payment sheet', {});
+
+      // ENTERPRISE IMPROVEMENT: Show loading modal
+      setLoadingStep('processing');
 
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
       const result = await paymentService.purchaseSubscription(productId, user.id);
 
+      // Update loading step
+      setLoadingStep('validating');
+
       if (result.success) {
-        logger.onboarding.navigation('✅ Trial subscription authorized by Apple');
+        logger.info('✅ Trial subscription authorized by Apple');
         triggerSuccessHaptic();
 
-        // The purchase listener will update the database to free_trial status
-        // Wait a moment for it to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // ENTERPRISE IMPROVEMENT: Update loading steps
+        setLoadingStep('activating');
 
-        // Sync subscription status to refresh the app state
-        logger.debug('Syncing subscription status...');
+        // Sync subscription
+        logger.debug('Syncing subscription status', {});
         try {
           const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
           const storeKitService = AppleStoreKitService.getInstance();
           await storeKitService.checkAndSyncSubscriptionStatus(user.id);
-          logger.onboarding.navigation('✅ Subscription synced');
+          logger.info('✅ Subscription synced');
         } catch (syncError) {
-          logger.error('Subscription sync failed:', syncError);
-          // Continue anyway - the purchase was successful
+          logger.error('Subscription sync failed', syncError as Error);
         }
 
-        // Navigate to notification setup
-        const skipNotificationPreference = route?.params?.skipNotificationPreference;
-        if (skipNotificationPreference) {
-          navigation.goBack();
-          setTimeout(() => navigation.goBack(), 100);
-        } else {
-          (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'trial' });
-        }
+        // Final step
+        setLoadingStep('completing');
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Show success modal
+        setPurchaseValidated((result as any).validated || false);
+        setIsStartingTrial(false);
+        setShowSuccessModal(true);
       } else {
         throw new Error(result.error || 'Trial subscription failed');
       }
@@ -208,25 +219,41 @@ const OnboardingTrialOfferScreen = () => {
       logger.error('Error starting trial:', error);
       setIsStartingTrial(false);
 
-      // Check if user cancelled
+      // ENTERPRISE IMPROVEMENT: Classify error and show appropriate modal
       const isCancelled =
         error?.message === 'USER_CANCELLED' ||
         error?.code === 'USER_CANCELLED' ||
-        error?.message?.toLowerCase().includes('cancel');
+        error?.message?.toLowerCase().includes('cancel') ||
+        error?.message?.toLowerCase().includes('timeout');
 
       if (isCancelled) {
-        logger.debug('User cancelled trial - silently continuing');
-        // Reset trial state so user can try again
-        setIsStartingTrial(false);
+        logger.debug('User cancelled trial');
+        setErrorType('cancelled');
+        setShowErrorModal(true);
         return;
       }
 
-      // For other errors (network, invalid product, etc), just log silently
-      // Don't show alert to avoid interrupting user experience
-      logger.error('Trial error (silent):', error?.message || 'Unknown error');
+      // Classify error type
+      const isNetworkError =
+        error?.message?.toLowerCase().includes('network') ||
+        error?.message?.toLowerCase().includes('connection') ||
+        error?.message?.toLowerCase().includes('internet');
 
-      // Reset trial state so user can try again
-      setIsStartingTrial(false);
+      const isValidationError =
+        error?.message?.toLowerCase().includes('validation') ||
+        error?.message?.toLowerCase().includes('receipt') ||
+        error?.message?.toLowerCase().includes('verify');
+
+      if (isNetworkError) {
+        setErrorType('network');
+      } else if (isValidationError) {
+        setErrorType('validation');
+      } else {
+        setErrorType('unknown');
+      }
+
+      setErrorMessage(error?.message);
+      setShowErrorModal(true);
     }
   };
 
@@ -251,7 +278,7 @@ const OnboardingTrialOfferScreen = () => {
       // Don't redirect - just wait for auth context to initialize
       return;
     }
-    logger.debug('User loaded:', user.id);
+    logger.debug('User loaded', { userId: user.id });
   }, [user?.id]);
 
   // Load pricing and currency for dynamic copy
@@ -263,19 +290,19 @@ const OnboardingTrialOfferScreen = () => {
           pricingService.getLocationAdjustedPricing(),
           pricingService.getCurrencyInfo(),
         ]);
-        logger.debug('Currency info loaded:', currency);
-        logger.debug('Sample tier prices:', tiers[0] ? {
+        logger.debug('Currency info loaded', { currency });
+        logger.debug('Sample tier prices', tiers[0] ? {
           tier: tiers[0].id,
           monthly: tiers[0].monthlyPrice,
           annual: tiers[0].annualPrice,
           symbol: currency.symbol,
-        } : 'No tiers');
+        } : { status: 'No tiers' });
         if (mounted) {
           setPricingTiers(tiers || []);
           setCurrencyInfo(currency || null);
         }
       } catch (e) {
-        logger.error('Failed to load pricing:', e);
+        logger.error('Failed to load pricing', e as Error);
       }
     })();
     return () => {
@@ -369,8 +396,59 @@ const OnboardingTrialOfferScreen = () => {
     );
   };
 
+  // ENTERPRISE IMPROVEMENT: Handle success modal continue
+  const handleSuccessModalContinue = () => {
+    setShowSuccessModal(false);
+    
+    // Navigate to notification setup
+    const skipNotificationPreference = route?.params?.skipNotificationPreference;
+    if (skipNotificationPreference) {
+      navigation.goBack();
+      setTimeout(() => navigation.goBack(), 100);
+    } else {
+      (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'trial' });
+    }
+  };
+
+  // ENTERPRISE IMPROVEMENT: Handle error modal actions
+  const handleErrorRetry = () => {
+    setShowErrorModal(false);
+    // Retry the purchase after a brief delay
+    setTimeout(() => {
+      handleStartTrial();
+    }, 300);
+  };
+
+  const handleErrorClose = () => {
+    setShowErrorModal(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* ENTERPRISE IMPROVEMENT: Loading Modal */}
+      <PurchaseLoadingModal
+        visible={isStartingTrial && !showSuccessModal}
+        step={loadingStep}
+      />
+
+      {/* ENTERPRISE IMPROVEMENT: Success Modal */}
+      <PurchaseSuccessModal
+        visible={showSuccessModal}
+        tier="free_trial"
+        isTrial={true}
+        isValidated={purchaseValidated}
+        onContinue={handleSuccessModalContinue}
+      />
+
+      {/* ENTERPRISE IMPROVEMENT: Error Modal */}
+      <PurchaseErrorModal
+        visible={showErrorModal}
+        errorType={errorType}
+        errorMessage={errorMessage}
+        onRetry={handleErrorRetry}
+        onClose={handleErrorClose}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
