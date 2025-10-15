@@ -553,26 +553,11 @@ const OnboardingTrialOfferScreen = () => {
             {timelineItems.map((item, index) => renderTimelineItem(item, index))}
           </View>
 
-          {/* What's Included Section - More Visually Appealing */}
-          <View style={styles.whatsIncludedSection}>
-            <ThemedText weight="semiBold" style={styles.whatsIncludedTitle}>What's Included in Your Trial</ThemedText>
-            <View style={styles.benefitsContainer}>
-              <View style={styles.benefitItem}>
-                <View style={[styles.benefitIcon, { backgroundColor: Colors.growthGreen }]}>
-                  <Ionicons name="book" size={24} color={Colors.hopeWhite} />
-                </View>
-                <ThemedText style={styles.benefitText}>2 Playbooks</ThemedText>
-                <ThemedText style={styles.benefitSubtext}>Guided spiritual journeys</ThemedText>
-              </View>
-              <View style={styles.benefitDivider} />
-              <View style={styles.benefitItem}>
-                <View style={[styles.benefitIcon, { backgroundColor: Colors.alertCoral }]}>
-                  <Ionicons name="heart" size={24} color={Colors.hopeWhite} />
-                </View>
-                <ThemedText style={styles.benefitText}>2 Devotionals</ThemedText>
-                <ThemedText style={styles.benefitSubtext}>Daily spiritual practice</ThemedText>
-              </View>
-            </View>
+          {/* Simple What's Included */}
+          <View style={styles.simpleWhatsIncluded}>
+            <ThemedText style={styles.simpleWhatsIncludedText}>
+              📚 2 Playbooks + ❤️ 2 Devotionals included
+            </ThemedText>
           </View>
 
           {/* Pricing Summary (dynamic) */}
@@ -742,6 +727,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   timelineContainer: {
     marginBottom: 20,
+  },
+  simpleWhatsIncluded: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  simpleWhatsIncludedText: {
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.9,
   },
   whatsIncludedSection: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
