@@ -117,7 +117,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           style={[
             styles.modalContainer,
             {
-              backgroundColor: '#2C5F7F', // Anchor blue background - ensure it's applied
+              backgroundColor: '#1a3c6d', // Correct anchor blue from theme
               opacity: fadeAnim,
             },
           ]}
