@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -549,7 +550,7 @@ const OnboardingTrialOfferScreen = () => {
               style={styles.changePlanButton}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                setShowPlanSelector(!showPlanSelector);
+                setShowPlanSelector(true);
               }}
               activeOpacity={0.7}
             >
@@ -557,55 +558,6 @@ const OnboardingTrialOfferScreen = () => {
                 Change Plan
               </ThemedText>
             </TouchableOpacity>
-
-            {/* Plan Options - Show when button tapped */}
-            {showPlanSelector && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.planOptionsScrollContent}
-                style={styles.planOptionsScroll}
-              >
-                {pricingTiers.map((tier) => (
-                  <TouchableOpacity
-                    key={tier.id}
-                    style={[
-                      styles.planOptionExpanded,
-                      selectedTierId === tier.id && styles.selectedPlanOptionExpanded,
-                    ]}
-                    onPress={() => {
-                      try { triggerLightHaptic(); } catch {}
-                      _setSelectedTierId(tier.id);
-                      setShowPlanSelector(false);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.planOptionContent}>
-                      <ThemedText
-                        weight={selectedTierId === tier.id ? 'bold' : 'semiBold'}
-                        style={[
-                          styles.planOptionTextExpanded,
-                          selectedTierId === tier.id && styles.selectedPlanOptionTextExpanded,
-                        ]}
-                      >
-                        {getTierDisplayName(tier.id)}
-                      </ThemedText>
-                      <ThemedText
-                        style={[
-                          styles.planOptionPriceExpanded,
-                          selectedTierId === tier.id && styles.selectedPlanOptionPriceExpanded,
-                        ]}
-                      >
-                        {isAnnual ? `$${(tier.annualPrice || 0).toFixed(2)}/yr` : `$${(tier.monthlyPrice || 0).toFixed(2)}/mo`}
-                      </ThemedText>
-                    </View>
-                    {selectedTierId === tier.id && (
-                      <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
           </View>
         </View>
 
@@ -626,6 +578,79 @@ const OnboardingTrialOfferScreen = () => {
           </ThemedText>
         </View>
       </View>
+
+      {/* Plan Selector Modal */}
+      <Modal
+        visible={showPlanSelector}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPlanSelector(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPlanSelector(false)}
+        >
+          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <ThemedText weight="bold" style={styles.modalTitle}>Choose Your Plan</ThemedText>
+              <TouchableOpacity
+                onPress={() => setShowPlanSelector(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Plan Options - Show when button tapped */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.planOptionsScrollContent}
+              style={styles.planOptionsScroll}
+            >
+              {pricingTiers.map((tier) => (
+                <TouchableOpacity
+                  key={tier.id}
+                  style={[
+                    styles.planOptionExpanded,
+                    selectedTierId === tier.id && styles.selectedPlanOptionExpanded,
+                  ]}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    _setSelectedTierId(tier.id);
+                    setShowPlanSelector(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.planOptionContent}>
+                    <ThemedText
+                      weight={selectedTierId === tier.id ? 'bold' : 'semiBold'}
+                      style={[
+                        styles.planOptionTextExpanded,
+                        selectedTierId === tier.id && styles.selectedPlanOptionTextExpanded,
+                      ]}
+                    >
+                      {getTierDisplayName(tier.id)}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.planOptionPriceExpanded,
+                        selectedTierId === tier.id && styles.selectedPlanOptionPriceExpanded,
+                      ]}
+                    >
+                      {isAnnual ? `$${(tier.annualPrice || 0).toFixed(2)}/yr` : `$${(tier.monthlyPrice || 0).toFixed(2)}/mo`}
+                    </ThemedText>
+                  </View>
+                  {selectedTierId === tier.id && (
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1045,6 +1070,41 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   spacerHeight: {
     height: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: fonts.bold,
+    color: Colors.hopeWhite,
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
