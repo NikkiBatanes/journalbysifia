@@ -494,64 +494,6 @@ const OnboardingTrialOfferScreen = () => {
           {/* How Trial Works */}
           <ThemedText weight="semiBold" style={styles.sectionTitle}>So, how the trial works:</ThemedText>
 
-          {/* Plan Selector - Change Plan Button */}
-          <TouchableOpacity
-            style={styles.changePlanButton}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              setShowPlanSelector(!showPlanSelector);
-            }}
-            activeOpacity={0.7}
-          >
-            <ThemedText weight="medium" style={styles.changePlanButtonText}>
-              Change Plan
-            </ThemedText>
-          </TouchableOpacity>
-
-          {/* Plan Options - Show when button tapped */}
-          {showPlanSelector && (
-            <View style={styles.planOptionsExpanded}>
-              {pricingTiers.map((tier) => (
-                <TouchableOpacity
-                  key={tier.id}
-                  style={[
-                    styles.planOptionExpanded,
-                    selectedTierId === tier.id && styles.selectedPlanOptionExpanded,
-                  ]}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    _setSelectedTierId(tier.id);
-                    setShowPlanSelector(false);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.planOptionContent}>
-                    <ThemedText
-                      weight={selectedTierId === tier.id ? 'bold' : 'semiBold'}
-                      style={[
-                        styles.planOptionTextExpanded,
-                        selectedTierId === tier.id && styles.selectedPlanOptionTextExpanded,
-                      ]}
-                    >
-                      {getTierDisplayName(tier.id)}
-                    </ThemedText>
-                    <ThemedText
-                      style={[
-                        styles.planOptionPriceExpanded,
-                        selectedTierId === tier.id && styles.selectedPlanOptionPriceExpanded,
-                      ]}
-                    >
-                      {isAnnual ? `$${(tier.annualPrice || 0).toFixed(2)}/yr` : `$${(tier.monthlyPrice || 0).toFixed(2)}/mo`}
-                    </ThemedText>
-                  </View>
-                  {selectedTierId === tier.id && (
-                    <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
           {/* Plan Toggle */}
           <View style={styles.toggleContainer}>
             <TouchableOpacity
@@ -600,6 +542,64 @@ const OnboardingTrialOfferScreen = () => {
                 {`Only ${(currencyInfo?.symbol || '$')}${getMonthlyEquivalent().toFixed(2)}/month`}
               </ThemedText>
             ) : null}
+
+            {/* Plan Selector - Change Plan Button */}
+            <TouchableOpacity
+              style={styles.changePlanButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setShowPlanSelector(!showPlanSelector);
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText weight="medium" style={styles.changePlanButtonText}>
+                Change Plan
+              </ThemedText>
+            </TouchableOpacity>
+
+            {/* Plan Options - Show when button tapped */}
+            {showPlanSelector && (
+              <View style={styles.planOptionsExpanded}>
+                {pricingTiers.map((tier) => (
+                  <TouchableOpacity
+                    key={tier.id}
+                    style={[
+                      styles.planOptionExpanded,
+                      selectedTierId === tier.id && styles.selectedPlanOptionExpanded,
+                    ]}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      _setSelectedTierId(tier.id);
+                      setShowPlanSelector(false);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.planOptionContent}>
+                      <ThemedText
+                        weight={selectedTierId === tier.id ? 'bold' : 'semiBold'}
+                        style={[
+                          styles.planOptionTextExpanded,
+                          selectedTierId === tier.id && styles.selectedPlanOptionTextExpanded,
+                        ]}
+                      >
+                        {getTierDisplayName(tier.id)}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.planOptionPriceExpanded,
+                          selectedTierId === tier.id && styles.selectedPlanOptionPriceExpanded,
+                        ]}
+                      >
+                        {isAnnual ? `$${(tier.annualPrice || 0).toFixed(2)}/yr` : `$${(tier.monthlyPrice || 0).toFixed(2)}/mo`}
+                      </ThemedText>
+                    </View>
+                    {selectedTierId === tier.id && (
+                      <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -723,7 +723,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignSelf: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 12,
   },
   changePlanButtonText: {
     fontSize: 14,
