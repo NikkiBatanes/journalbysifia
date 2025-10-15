@@ -131,7 +131,15 @@ const OnboardingTrialOfferScreen = () => {
         error?.message?.toLowerCase().includes('cancel');
 
       if (isCancelled) {
-        console.log('[OnboardingTrialOffer] User cancelled trial - no error shown');
+        console.log('[OnboardingTrialOffer] User cancelled trial - continuing as free user');
+        // Navigate to notification setup (user remains as Seeker/free)
+        const skipNotificationPreference = route?.params?.skipNotificationPreference;
+        if (skipNotificationPreference) {
+          navigation.goBack();
+          setTimeout(() => navigation.goBack(), 100);
+        } else {
+          navigation.navigate('OnboardingNotificationSetup' as never);
+        }
         return;
       }
 
