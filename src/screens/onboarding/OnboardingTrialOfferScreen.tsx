@@ -340,7 +340,7 @@ const OnboardingTrialOfferScreen = () => {
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.',
+      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes 2 playbooks and 2 devotionals.',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
