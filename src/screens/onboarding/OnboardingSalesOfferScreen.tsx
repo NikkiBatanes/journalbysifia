@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -19,7 +19,6 @@ import PlatformPaymentService from '../../services/PlatformPaymentService';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
-import { useTheme } from '../../hooks/useTheme';
 
 // removed Dimensions width as unused
 
@@ -46,8 +45,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
 
-  // Theme font for dynamic font switching
-  const { currentFont } = useTheme();
 
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');

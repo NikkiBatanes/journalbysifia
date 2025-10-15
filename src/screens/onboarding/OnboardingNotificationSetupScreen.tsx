@@ -16,7 +16,6 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { pushNotificationService } from '../../services/pushNotificationService';
-import { notificationManagementService } from '../../services/notificationManagementService';
 import { supabase } from '../../services/supabaseClient';
 import ThemedText from '../../components/common/ThemedText';
 
