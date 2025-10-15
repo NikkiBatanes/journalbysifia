@@ -94,7 +94,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Don't redirect - just wait for auth context to initialize
       return;
     }
-    logger.debug('User loaded:', user.id);
+    logger.debug('User loaded', { userId: user.id });
   }, [user?.id]);
 
   // Load location-adjusted pricing and currency
@@ -106,23 +106,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         if (isUpgradeMode) {
           // In upgrade mode, only show tiers higher than current user tier
-          logger.debug('Loading upgrade tiers for:', currentUserTier);
+          logger.debug('Loading upgrade tiers for', { currentUserTier });
           tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
-          logger.debug('Upgrade tiers loaded:', tiers.length, tiers.map(t => t.id));
+          logger.debug('Upgrade tiers loaded', { count: tiers.length, tiers: tiers.map(t => t.id) });
         } else {
           // In onboarding mode, show all tiers
           tiers = await pricingService.getLocationAdjustedPricing();
-          logger.debug('All tiers loaded:', tiers.length);
+          logger.debug('All tiers loaded', { count: tiers.length });
         }
 
         const currency = await pricingService.getCurrencyInfo();
-        logger.debug('Currency info loaded:', currency);
-        logger.debug('Sample tier prices:', tiers[0] ? {
+        logger.debug('Currency info loaded', { currency });
+        logger.debug('Sample tier prices', tiers[0] ? {
           tier: tiers[0].id,
           monthly: tiers[0].monthlyPrice,
           annual: tiers[0].annualPrice,
           symbol: currency.symbol,
-        } : 'No tiers');
+        } : { status: 'No tiers' });
 
         // If a specific devotional duration was requested, only show tiers that UNLOCK it
         if (requestedDuration && tiers.length > 0) {
@@ -197,7 +197,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         isAnnual ? 'annual' : 'monthly'
       );
 
-      logger.debug('Dynamic discount result:', discount);
+      logger.debug('Dynamic discount result', { discount });
 
       if (discount && !isUpgradeMode) {
         logger.info('Showing dynamic discount modal');
