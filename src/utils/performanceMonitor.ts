@@ -404,10 +404,83 @@ export const PerformanceDebug = {
   },
 };
 
+/**
+ * Onboarding-specific performance tracking
+ */
+export const OnboardingPerformance = {
+  /**
+   * Track onboarding step duration
+   */
+  trackStep: (stepName: string, startTime: number) => {
+    const duration = performance.now() - startTime;
+    performanceMonitor.recordMetric({
+      name: `onboarding:step:${stepName}`,
+      duration,
+      timestamp: Date.now(),
+      type: 'render',
+      metadata: { step: stepName },
+    });
+    return duration;
+  },
+
+  /**
+   * Track navigation timing
+   */
+  trackNavigation: (from: string, to: string, startTime: number) => {
+    const duration = performance.now() - startTime;
+    performanceMonitor.recordMetric({
+      name: `onboarding:navigation:${from}->${to}`,
+      duration,
+      timestamp: Date.now(),
+      type: 'render',
+      metadata: { from, to },
+    });
+    return duration;
+  },
+
+  /**
+   * Track playbook generation
+   */
+  trackGeneration: (generationType: string, startTime: number, success: boolean) => {
+    const duration = performance.now() - startTime;
+    performanceMonitor.recordMetric({
+      name: `onboarding:generation:${generationType}`,
+      duration,
+      timestamp: Date.now(),
+      type: 'mutation',
+      metadata: { generationType, success },
+    });
+    return duration;
+  },
+
+  /**
+   * Get onboarding performance summary
+   */
+  getSummary: () => {
+    const allStats = performanceMonitor.getAllStats();
+    const onboardingStats = Object.entries(allStats)
+      .filter(([name]) => name.startsWith('onboarding:'))
+      .reduce((acc, [name, stats]) => {
+        acc[name] = stats;
+        return acc;
+      }, {} as Record<string, PerformanceStats>);
+
+    return {
+      stats: onboardingStats,
+      totalSteps: Object.keys(onboardingStats).filter(k => k.includes(':step:')).length,
+      averageStepDuration: Object.values(onboardingStats)
+        .filter((_, i) => Object.keys(onboardingStats)[i].includes(':step:'))
+        .reduce((sum, stat) => sum + stat.averageDuration, 0) / 
+        Object.keys(onboardingStats).filter(k => k.includes(':step:')).length || 0,
+    };
+  },
+};
+
 // Export for global access in development
 if (__DEV__) {
   (globalThis as any).PerformanceDebug = PerformanceDebug;
   (globalThis as any).performanceMonitor = performanceMonitor;
+  (globalThis as any).OnboardingPerformance = OnboardingPerformance;
 }
 
 export default performanceMonitor;

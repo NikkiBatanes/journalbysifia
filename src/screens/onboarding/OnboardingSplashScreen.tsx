@@ -4,7 +4,7 @@
  * New Design: Simple, centered logo with loading indicator
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -31,12 +31,17 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const navigation = useNavigation();
   const { user, isLoggingOut } = useAuth();
   const hasNavigatedRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isNavigatingRef = useRef(false);
 
 
   useEffect(() => {
     console.log('[SplashScreen] Component mounted, starting splash screen flow');
     // Reset navigation state in case this is called after login
     hasNavigatedRef.current = false;
+    isMountedRef.current = true;
+    isNavigatingRef.current = false;
 
     // Set status bar for splash
     try {
@@ -54,10 +59,19 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
     // Conditional navigation: decide based on post-auth redirect, auth + subscription status
     const navigateToCorrectScreen = async (): Promise<boolean> => {
-      if (hasNavigatedRef.current) {
-        console.log('[SplashScreen] Navigation already performed, skipping');
+      // Prevent concurrent navigation attempts
+      if (hasNavigatedRef.current || isNavigatingRef.current) {
+        console.log('[SplashScreen] Navigation already in progress or completed, skipping');
         return true;
       }
+      
+      // Check if component is still mounted
+      if (!isMountedRef.current) {
+        console.log('[SplashScreen] Component unmounted, aborting navigation');
+        return false;
+      }
+      
+      isNavigatingRef.current = true;
       console.log('[SplashScreen] 🚀 STARTING CONDITIONAL NAVIGATION LOGIC');
       console.log('[SplashScreen] 👤 AUTH STATE:', {
         user: !!user,
@@ -479,10 +493,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     };
 
     // Always show splash screen for minimum time before making routing decisions
-    let navigationTimeout: ReturnType<typeof setTimeout> | null = null;
-
     // Set a longer minimum splash display time to allow auth state propagation after sign-in
-    navigationTimeout = setTimeout(async () => {
+    navigationTimeoutRef.current = setTimeout(async () => {
+      // Check if component is still mounted before proceeding
+      if (!isMountedRef.current) {
+        console.log('[SplashScreen] Component unmounted during timeout, aborting navigation');
+        return;
+      }
       console.log('[SplashScreen] ⏰ Minimum splash time elapsed, making routing decision...');
       try {
         const redirected = await navigateToCorrectScreen();
@@ -502,10 +519,15 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       }
     }, 2000); // Increased from 500ms to 2000ms to allow auth state to propagate
 
-    // Cleanup function for timeout
+    // Cleanup function for timeout and refs
     return () => {
       console.log('[SplashScreen] Cleaning up animations and navigation timeout');
-      if (navigationTimeout) {clearTimeout(navigationTimeout);}
+      isMountedRef.current = false;
+      isNavigatingRef.current = false;
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+        navigationTimeoutRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation, user]); // isLoggingOut intentionally excluded - checked within effect
