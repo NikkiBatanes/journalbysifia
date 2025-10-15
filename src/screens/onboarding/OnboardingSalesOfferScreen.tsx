@@ -239,7 +239,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       } else if (!routeParams?.skipNotificationPreference) {
         // During onboarding flow, go to notification setup
         console.log('[OnboardingSalesOffer] Onboarding flow - navigating to notification setup');
-        navigation.navigate('OnboardingNotificationSetup' as any);
+        navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' } as any);
       } else {
         navigation.goBack();
       }
@@ -408,7 +408,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // ALWAYS navigate after successful purchase, even if refresh failed
             console.log('[OnboardingSalesOffer] Navigating to OnboardingNotificationSetup');
             setTimeout(() => {
-              navigation.navigate('OnboardingNotificationSetup' as never);
+              navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'paid' } as never);
             }, 100);
           } else {
             console.log('[OnboardingSalesOffer] ❌ Purchase not successful, throwing error');

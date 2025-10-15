@@ -66,9 +66,9 @@ const OnboardingTrialOfferScreen = () => {
         setTimeout(() => navigation.goBack(), 100);
       } else {
         // Navigate to notification setup after declining trial
-        console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup');
+        console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup as freemium');
         setTimeout(() => {
-          navigation.navigate('OnboardingNotificationSetup' as never);
+          navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'freemium' } as never);
         }, 100);
       }
     } catch (error) {
@@ -125,7 +125,7 @@ const OnboardingTrialOfferScreen = () => {
           navigation.goBack();
           setTimeout(() => navigation.goBack(), 100);
         } else {
-          navigation.navigate('OnboardingNotificationSetup' as never);
+          navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'trial' } as never);
         }
       } else {
         throw new Error(result.error || 'Trial subscription failed');
@@ -148,7 +148,7 @@ const OnboardingTrialOfferScreen = () => {
           navigation.goBack();
           setTimeout(() => navigation.goBack(), 100);
         } else {
-          navigation.navigate('OnboardingNotificationSetup' as never);
+          navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'freemium' } as never);
         }
         return;
       }
@@ -168,7 +168,7 @@ const OnboardingTrialOfferScreen = () => {
                 navigation.goBack();
                 setTimeout(() => navigation.goBack(), 100);
               } else {
-                navigation.navigate('OnboardingNotificationSetup' as never);
+                navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'freemium' } as never);
               }
             },
           },
