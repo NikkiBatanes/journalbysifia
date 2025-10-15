@@ -9,10 +9,7 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 const config = {
   server: {
     port: 8081,
-    // Enable Fast Refresh for instant reloads
-    enhanceMiddleware: (middleware) => {
-      return middleware;
-    },
+    // Disable x-forwarded-host middleware as it's not needed for local development
   },
   transformer: {
     getTransformOptions: async () => ({
@@ -21,15 +18,11 @@ const config = {
         inlineRequires: true,
       },
     }),
-    // Enable Fast Refresh
-    babelTransformerPath: require.resolve('react-native/Libraries/JavaScriptCore/Polyfills'),
   },
   // Add asset extensions
   resolver: {
     assetExts: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'],
   },
-  // Enable Fast Refresh
-  resetCache: true,
 };
 
 module.exports = mergeConfig(getDefaultConfig(__dirname), config);
