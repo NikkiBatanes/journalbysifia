@@ -86,14 +86,14 @@ const OnboardingTrialOfferScreen = () => {
         billing: isAnnual ? 'annual' : 'monthly',
       });
 
-      // CRITICAL: Use the regular product IDs which have 3-day free trial configured in App Store Connect
-      // The trial is configured on the product itself in App Store Connect, not via a different product ID
+      // CRITICAL: Trial Offer Screen uses .freetrial product IDs
+      // These are separate products in App Store Connect with 3-day free trial configured
       const { PlatformPaymentService } = await import('../../services/PlatformPaymentService');
       const paymentService = PlatformPaymentService.getInstance();
 
-      // Use the regular product ID - it already has the 3-day free trial configured in App Store Connect
+      // Use the .freetrial product ID - this matches what's in App Store Connect
       const billing = isAnnual ? 'annual' : 'monthly';
-      const productId = `app.sifia.com.${selectedTierId}.${billing}`;
+      const productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
 
       console.log('[OnboardingTrialOffer] Purchasing TRIAL subscription:', productId);
       console.log('[OnboardingTrialOffer] This product has 3-day free trial configured in App Store Connect');
