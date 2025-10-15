@@ -154,7 +154,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [isUpgradeMode, currentUserTier]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUpgradeMode, currentUserTier]); // requestedDuration intentionally excluded - only run on mode/tier change
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {

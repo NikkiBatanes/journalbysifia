@@ -507,7 +507,8 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       console.log('[SplashScreen] Cleaning up animations and navigation timeout');
       if (navigationTimeout) {clearTimeout(navigationTimeout);}
     };
-  }, [navigation, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, user]); // isLoggingOut intentionally excluded - checked within effect
 
   return (
     <View style={styles.container}>

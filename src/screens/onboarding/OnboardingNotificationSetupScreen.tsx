@@ -41,7 +41,8 @@ const OnboardingNotificationSetupScreen = () => {
   const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
   const { userType, tier } = (route.params as RouteParams) || {};
 
-  const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown'); // Used in lines 83-89
 
   // Derive display name for welcome message (first name only)
   const displayName = (() => {

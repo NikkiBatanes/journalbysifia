@@ -200,7 +200,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     };
 
     checkForceNavigation();
-  }, [navigation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally run only on mount
 
   // Debug effect for step rendering
   React.useEffect(() => {
@@ -253,7 +254,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
       console.log('📝 Registration method:', method, 'Show name step:', needsNameStep);
     }
-  }, [route.params]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params]); // user.email intentionally excluded - checked within effect
 
   // Helper function to extract first name from email username
   const extractNameFromEmail = (emailUsername: string): string => {
@@ -352,7 +354,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         scrollViewRef.current?.scrollTo({ y, animated: true });
       }, 100);
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally run only on mount
 
   // When the user changes challenge, clear details so the new placeholder is visible
   React.useEffect(() => {

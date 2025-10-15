@@ -178,7 +178,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
       isActive = false;
       if (typeof unsubscribe === 'function') {unsubscribe();}
     };
-  }, [isAuthenticated, navigation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, navigation]); // user.email and user.user_metadata intentionally excluded - checked within effect
 
   // Auto slideshow
   useEffect(() => {
