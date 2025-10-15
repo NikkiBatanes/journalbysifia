@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -48,15 +48,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  const { upgradeSubscription } = useNewSubscription(user?.id || '');
   const devotionalGating = useDevotionalGating();
-  const guidedPromptGating = useGuidedPromptGating({ context: 'onboarding' });
-  const platformSubscription = usePlatformSubscription();
 
   // Fonts: derive theme font for dynamic font switching (following Dashboard pattern)
   const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fonts = useMemo(() => {
+    const fontKey = currentFont || 'lexend';
+    const fontRegular = getFontFamily(fontKey, 'regular');
+    return { fontRegular };
+  }, [currentFont]);
+
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');
   const [showDynamicModal, setShowDynamicModal] = useState(false);
@@ -434,12 +435,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           if (isCancelled) {
             console.log('[OnboardingSalesOffer] User cancelled purchase - silently continuing');
-            // Don't show error for cancellation
+            // Reset purchasing state so user can try again
+            setIsPurchasing(false);
             return;
           }
 
           // For other errors, log silently instead of showing alert
           console.error('[OnboardingSalesOffer] Purchase error (silent):', purchaseError?.message || 'Unknown error');
+          setIsPurchasing(false);
         }
       }
     } catch (error) {
@@ -454,18 +457,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   };
 
-  const handleUpgradeSuccess = () => {
-    triggerSuccessHaptic();
-
-    // Special handling for guided prompts to prevent black screen
-    const source = routeParams?.source;
-    if (source === 'guided_prompts_lock') {
-      console.log('[OnboardingSalesOffer] Guided prompt context - navigating to Dashboard after upgrade');
-      navigation.navigate('Dashboard' as any);
-    } else {
-      navigation.goBack();
-    }
-  };
 
   const getCurrentPrice = () => {
     const tier = pricingTiers.find(t => t.id === selectedTier);
@@ -865,15 +856,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       {/* Fixed Footer CTA */}
       <View style={styles.footerContainer}>
         <TouchableOpacity
-          style={styles.unlockButton}
+          style={[
+            styles.unlockButton,
+            isPurchasing && { opacity: 0.6 }
+          ]}
           onPress={() => {
+            if (isPurchasing) return;
             try { triggerSuccessHaptic(); } catch {}
             handleUnlockPlan();
           }}
           activeOpacity={0.9}
+          disabled={isPurchasing}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : 'Continue My Journey')}
+            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : 'Continue My Journey'))}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>

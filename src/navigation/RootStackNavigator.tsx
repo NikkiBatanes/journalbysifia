@@ -38,7 +38,6 @@ import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPer
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
 import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
-import OnboardingPaymentConfirmationScreen from '../screens/onboarding/OnboardingPaymentConfirmationScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
@@ -287,11 +286,6 @@ export default function RootStackNavigator({
               animationDuration: 400,
               gestureEnabled: true,
             }}
-          />
-          <Stack.Screen
-            name="OnboardingPaymentConfirmation"
-            component={OnboardingPaymentConfirmationScreen as React.ComponentType}
-            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="OnboardingNotificationSetup"

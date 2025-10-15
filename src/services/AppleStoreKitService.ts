@@ -241,7 +241,7 @@ export class AppleStoreKitService {
             this.pendingPurchaseResolvers.delete(productId);
             reject(new Error('Purchase timeout - no response from App Store'));
           }
-        }, 30000); // 30 second timeout
+        }, 15000); // 15 second timeout (reduced from 30 seconds)
       });
 
       if (Platform.OS === 'ios') {
@@ -506,19 +506,21 @@ export class AppleStoreKitService {
       const cancellationError = new Error('USER_CANCELLED');
       (cancellationError as any).code = 'USER_CANCELLED';
 
+      // Reject ALL pending purchase promises since user cancelled
       this.pendingPurchaseResolvers.forEach((resolver, productId) => {
         console.log('[StoreKit] Resolving cancelled purchase for:', productId);
         resolver.reject(cancellationError);
       });
+      this.pendingPurchaseResolvers.clear();
     } else {
-      // Real error - reject with original error
+      // Real error - reject all pending promises with the original error
+      console.error('[StoreKit] Real purchase error:', error);
       this.pendingPurchaseResolvers.forEach((resolver, productId) => {
         console.log('[StoreKit] Rejecting pending purchase due to error:', productId);
         resolver.reject(error);
       });
+      this.pendingPurchaseResolvers.clear();
     }
-
-    this.pendingPurchaseResolvers.clear();
   }
 
 

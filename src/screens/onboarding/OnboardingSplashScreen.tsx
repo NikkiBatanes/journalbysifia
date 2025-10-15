@@ -272,6 +272,9 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           email: effectiveUser.email,
           created_at: effectiveUser.created_at,
           provider: (effectiveUser as any)?.app_metadata?.provider,
+          identities: (effectiveUser as any)?.identities,
+          app_metadata: (effectiveUser as any)?.app_metadata,
+          user_metadata: (effectiveUser as any)?.user_metadata,
         });
 
         const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
@@ -315,8 +318,25 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         if (isNewUser) {
           // Fresh account creation → go to personalization
           const target = 'OnboardingPersonalization';
-          const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+
+          // More robust provider detection for Apple login users
+          let provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+          if (!provider && (effectiveUser as any)?.identities) {
+            // Check identities array for provider info
+            const identities = (effectiveUser as any).identities;
+            if (Array.isArray(identities) && identities.length > 0) {
+              provider = identities[0]?.provider;
+            }
+          }
+
           const isOAuth = provider === 'apple' || provider === 'google';
+
+          console.log('[SplashScreen] Provider detection:', {
+            app_metadata_provider: (effectiveUser as any)?.app_metadata?.provider,
+            identities_provider: (effectiveUser as any)?.identities?.[0]?.provider,
+            final_provider: provider,
+            isOAuth,
+          });
 
           // For OAuth users, always force name collection to avoid random Apple names
           let displayName = '';
@@ -352,8 +372,25 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
           // Default: route to personalization
           const target = 'OnboardingPersonalization';
-          const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+
+          // More robust provider detection for Apple login users
+          let provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+          if (!provider && (effectiveUser as any)?.identities) {
+            // Check identities array for provider info
+            const identities = (effectiveUser as any).identities;
+            if (Array.isArray(identities) && identities.length > 0) {
+              provider = identities[0]?.provider;
+            }
+          }
+
           const isOAuth = provider === 'apple' || provider === 'google';
+
+          console.log('[SplashScreen] Provider detection (returning user):', {
+            app_metadata_provider: (effectiveUser as any)?.app_metadata?.provider,
+            identities_provider: (effectiveUser as any)?.identities?.[0]?.provider,
+            final_provider: provider,
+            isOAuth,
+          });
 
           // For OAuth users, always force name collection to avoid random Apple names (including on app reload)
           let displayName = '';
@@ -388,8 +425,25 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         // If we have an authenticated user, prefer going straight to Personalization rather than Welcome
         try {
           const target = effectiveUser ? 'OnboardingPersonalization' : 'OnboardingWelcome';
-          const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+
+          // More robust provider detection for Apple login users
+          let provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+          if (!provider && (effectiveUser as any)?.identities) {
+            // Check identities array for provider info
+            const identities = (effectiveUser as any).identities;
+            if (Array.isArray(identities) && identities.length > 0) {
+              provider = identities[0]?.provider;
+            }
+          }
+
           const isOAuth = provider === 'apple' || provider === 'google';
+
+          console.log('[SplashScreen] Provider detection (fallback):', {
+            app_metadata_provider: (effectiveUser as any)?.app_metadata?.provider,
+            identities_provider: (effectiveUser as any)?.identities?.[0]?.provider,
+            final_provider: provider,
+            isOAuth,
+          });
 
           // For OAuth users, always force name collection to avoid random Apple names
           let displayName = '';

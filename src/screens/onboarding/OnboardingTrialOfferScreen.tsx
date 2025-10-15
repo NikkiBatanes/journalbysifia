@@ -1,19 +1,15 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
 } from 'react-native';
-import { InteractionManager } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing } from '../../services/pricingService';
-import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { useTheme } from '../../theme/ThemeContext';
@@ -24,7 +20,6 @@ const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { user } = useAuth();
-  const { startTrial } = useNewSubscription(user?.id || '');
   const { currentFont } = useTheme();
 
   const fonts = useMemo(() => {
@@ -220,16 +215,17 @@ const OnboardingTrialOfferScreen = () => {
 
       if (isCancelled) {
         console.log('[OnboardingTrialOffer] User cancelled trial - silently continuing');
-        // User changed their mind - don't show error, just stay on screen
+        // Reset trial state so user can try again
+        setIsStartingTrial(false);
         return;
       }
 
       // For other errors (network, invalid product, etc), just log silently
       // Don't show alert to avoid interrupting user experience
       console.error('[OnboardingTrialOffer] Trial error (silent):', error?.message || 'Unknown error');
-      
-      // Optionally show a subtle error state in UI instead of alert
-      // For now, just reset the button state so user can try again if they want
+
+      // Reset trial state so user can try again
+      setIsStartingTrial(false);
     }
   };
 

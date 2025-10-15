@@ -1,17 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
   FlatList,
   Dimensions,
-  TouchableOpacity,
+  Platform,
+  Alert,
+  ActivityIndicator,
   Animated,
   StatusBar,
   ScrollView,
   Modal,
   LayoutAnimation,
-  Platform,
   UIManager,
   BackHandler,
 } from 'react-native';
@@ -34,6 +36,9 @@ import { ActionStepsProvider, useActionSteps } from '../../context/ActionStepsCo
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
  import { useAuth } from '../../context/IndustryStandardAuthContext';
  import { getPlaybook } from '../../services/apiIntegration';
+
+// Module-level flag to track if intro modal has been shown
+let hasShownPlaybookIntroModal = false;
 
 // Import individual card components for carousel
 import TruthInLoveCard from '../../components/TruthInLoveCard';
@@ -117,15 +122,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Initialize modal visibility only once on mount
   useEffect(() => {
     console.log('[OnboardingPlaybookReady] Component mounted/re-rendered');
-    console.log('[OnboardingPlaybookReady] Global flag value:', (global as any).hasShownPlaybookIntroModal);
+    console.log('[OnboardingPlaybookReady] Module flag value:', hasShownPlaybookIntroModal);
     console.log('[OnboardingPlaybookReady] Current showIntroModal state:', showIntroModal);
 
     // Check if modal has been shown in this session
-    const hasShown = (global as any).hasShownPlaybookIntroModal;
-    if (!hasShown) {
+    if (!hasShownPlaybookIntroModal) {
       console.log('[OnboardingPlaybookReady] First time showing modal, setting flag');
       setShowIntroModal(true);
-      (global as any).hasShownPlaybookIntroModal = true;
+      hasShownPlaybookIntroModal = true;
     } else {
       console.log('[OnboardingPlaybookReady] Modal already shown, skipping');
     }
@@ -844,9 +848,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
                 console.log('[OnboardingPlaybookReady] Button pressed - closing intro modal');
-                console.log('[OnboardingPlaybookReady] Setting global flag to true');
+                console.log('[OnboardingPlaybookReady] Setting module flag to true');
                 // Mark as permanently shown
-                (global as any).hasShownPlaybookIntroModal = true;
+                hasShownPlaybookIntroModal = true;
                 // Start tutorial first, then close modal (prevents flash)
                 setShowTutorial(true);
                 setTutorialStep(1);

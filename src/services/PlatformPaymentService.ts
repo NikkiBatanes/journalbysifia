@@ -35,6 +35,9 @@ export class PlatformPaymentService {
   private static instance: PlatformPaymentService;
   private appleService: AppleStoreKitService;
   private googleService: GooglePlayBillingService;
+  private cachedProducts: UnifiedProduct[] | null = null;
+  private lastCacheTime: number = 0;
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   private constructor() {
     this.appleService = AppleStoreKitService.getInstance();
@@ -46,6 +49,29 @@ export class PlatformPaymentService {
       PlatformPaymentService.instance = new PlatformPaymentService();
     }
     return PlatformPaymentService.instance;
+  }
+
+  /**
+   * Clear the product cache to force fresh data fetch
+   */
+  clearProductCache(): void {
+    this.cachedProducts = null;
+    this.lastCacheTime = 0;
+    console.log('[PlatformPayment] Product cache cleared');
+  }
+
+  /**
+   * Preload products in background for faster subsequent loads
+   */
+  async preloadProducts(): Promise<void> {
+    try {
+      console.log('[PlatformPayment] Preloading products in background...');
+      await this.getAvailableProducts();
+      console.log('[PlatformPayment] Products preloaded successfully');
+    } catch (error) {
+      console.warn('[PlatformPayment] Failed to preload products:', error);
+      // Don't throw - this is just optimization
+    }
   }
 
   /**
@@ -72,6 +98,18 @@ export class PlatformPaymentService {
    */
   async getAvailableProducts(): Promise<UnifiedProduct[]> {
     try {
+      // Check if we have valid cached products
+      const now = Date.now();
+      if (this.cachedProducts && (now - this.lastCacheTime) < this.CACHE_DURATION) {
+        console.log('[PlatformPayment] Using cached products (', this.cachedProducts.length, 'products)');
+        return this.cachedProducts;
+      }
+
+      console.log('[PlatformPayment] Fetching fresh products from store...');
+
+      // Initialize services first (only if not already initialized)
+      await this.initialize();
+
       let products: (StoreProduct | GooglePlayProduct)[] = [];
 
       if (Platform.OS === 'ios') {
@@ -81,12 +119,26 @@ export class PlatformPaymentService {
       }
 
       // Convert platform-specific products to unified format
-      return products.map(product => ({
+      const unifiedProducts = products.map(product => ({
         ...product,
         tier: this.getTierFromProductId(product.productId),
       })).filter(product => product.tier !== null) as UnifiedProduct[];
+
+      // Cache the results
+      this.cachedProducts = unifiedProducts;
+      this.lastCacheTime = now;
+
+      console.log('[PlatformPayment] Cached', unifiedProducts.length, 'products for 5 minutes');
+      return unifiedProducts;
     } catch (error) {
       console.error('[PlatformPayment] Failed to get products:', error);
+
+      // If we have cached products, return them as fallback
+      if (this.cachedProducts) {
+        console.warn('[PlatformPayment] Using stale cached products due to error');
+        return this.cachedProducts;
+      }
+
       return [];
     }
   }
@@ -146,7 +198,8 @@ export class PlatformPaymentService {
   async restorePurchases(userId: string): Promise<boolean> {
     try {
       if (Platform.OS === 'ios') {
-        return await this.appleService.restorePurchases(userId);
+        const result = await this.appleService.restorePurchases(userId);
+        return result.success;
       } else if (Platform.OS === 'android') {
         return await this.googleService.restorePurchases(userId);
       }
