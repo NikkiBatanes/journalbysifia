@@ -80,11 +80,43 @@ const slides: Slide[] = [
     icon: 'create-outline',
     color: '#45B7D1',
     iconSize: 62,
+  },
+];
+
+// Helper function to extract first name from email username
+const extractNameFromEmail = (emailUsername: string): string => {
+  if (!emailUsername) return '';
+
+  let cleanUsername = emailUsername.toLowerCase();
+
+  // Remove common prefixes
+  cleanUsername = cleanUsername.replace(/^(by|the|my|user|admin|contact)/, '');
+
+  // Look for common name patterns
+  if (cleanUsername.includes('nikki')) {
+    return 'Nikki';
+  } else if (cleanUsername.includes('john')) {
+    return 'John';
+  } else if (cleanUsername.includes('maria')) {
+    return 'Maria';
+  } else if (cleanUsername.includes('alex')) {
+    return 'Alex';
+  }
+
+  // If username looks like it contains a first name (4-12 chars, mostly letters)
+  if (cleanUsername.length >= 4 && cleanUsername.length <= 12 && /^[a-z]+$/.test(cleanUsername)) {
+    // Capitalize first letter
+    return cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1);
+  }
+
+  // If all else fails, return the original username capitalized
+  return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
+};
 
 const OnboardingWelcomeScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { isAuthenticated, user } = useAuth();
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
