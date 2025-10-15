@@ -271,7 +271,7 @@ export default function RootStackNavigator({
             component={OnboardingSalesOfferScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'fullScreenModal',
+              presentation: 'card',
               animation: 'slide_from_bottom',
               animationDuration: 400,
               gestureEnabled: true,
