@@ -555,8 +555,8 @@ const OnboardingTrialOfferScreen = () => {
 
           {/* Simple What's Included */}
           <View style={styles.simpleWhatsIncluded}>
-            <ThemedText style={styles.simpleWhatsIncludedText}>
-              📚 2 Playbooks + ❤️ 2 Devotionals included
+            <ThemedText weight="semiBold" style={styles.simpleWhatsIncludedText}>
+              2 Playbooks + 2 Devotionals included
             </ThemedText>
           </View>
 
@@ -733,11 +733,11 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 16,
   },
   simpleWhatsIncludedText: {
-    fontSize: 14,
-    fontFamily: fonts.medium,
+    fontSize: 15,
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    opacity: 0.9,
+    opacity: 0.95,
   },
   whatsIncludedSection: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
