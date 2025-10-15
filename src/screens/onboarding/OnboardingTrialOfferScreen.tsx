@@ -50,6 +50,7 @@ const OnboardingTrialOfferScreen = () => {
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
   const [isClosing, setIsClosing] = useState(false);
+  const [showPlanSelector, setShowPlanSelector] = useState(false);
   const navigationInProgressRef = React.useRef(false);
 
   const handleClose = async () => {
@@ -374,7 +375,7 @@ const OnboardingTrialOfferScreen = () => {
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
           {item.id === 1 ? (
             <ThemedText style={styles.timelineDescription}>
-              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(getSelectedTier().id)} PLAN`}</ThemedText> free for 3 days{'\n'}
+              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
               No pressure, no catch.{'\n'}
               Experience personalized guidance and see how it fits your story.{'\n\n'}
               <ThemedText weight="semiBold" style={styles.includedText}>
@@ -493,62 +494,61 @@ const OnboardingTrialOfferScreen = () => {
           {/* How Trial Works */}
           <ThemedText weight="semiBold" style={styles.sectionTitle}>So, how the trial works:</ThemedText>
 
-          {/* Plan Selection - Compact Button */}
+          {/* Plan Selector - Change Plan Button */}
           <TouchableOpacity
-            style={styles.planButton}
-            onPress={() => setShowPlanOptions(!showPlanOptions)}
-            activeOpacity={0.8}
+            style={styles.changePlanButton}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              setShowPlanSelector(!showPlanSelector);
+            }}
+            activeOpacity={0.7}
           >
-            <ThemedText weight="semiBold" style={styles.planButtonText}>
-              {`3 days free, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} only ${(currencyInfo?.symbol || '$')}${getMonthlyEquivalent().toFixed(2)}/${isAnnual ? 'year' : 'month'}`}
+            <ThemedText weight="medium" style={styles.changePlanButtonText}>
+              Change Plan
             </ThemedText>
-            <Ionicons
-              name={showPlanOptions ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={Colors.hopeWhite}
-              style={styles.planButtonIcon}
-            />
           </TouchableOpacity>
 
-          {/* Expandable Plan Options */}
-          {showPlanOptions && (
-            <View style={styles.expandedPlanOptions}>
-              <ThemedText weight="semiBold" style={styles.planOptionsTitle}>Choose Your Plan</ThemedText>
-              <View style={styles.planOptionsGrid}>
-                {pricingTiers.map((tier) => (
-                  <TouchableOpacity
-                    key={tier.id}
-                    style={[
-                      styles.planOptionCard,
-                      selectedTierId === tier.id && styles.selectedPlanOptionCard,
-                    ]}
-                    onPress={() => {
-                      try { triggerLightHaptic(); } catch {}
-                      _setSelectedTierId(tier.id);
-                      setShowPlanOptions(false);
-                    }}
-                    activeOpacity={0.8}
-                  >
+          {/* Plan Options - Show when button tapped */}
+          {showPlanSelector && (
+            <View style={styles.planOptionsExpanded}>
+              {pricingTiers.map((tier) => (
+                <TouchableOpacity
+                  key={tier.id}
+                  style={[
+                    styles.planOptionExpanded,
+                    selectedTierId === tier.id && styles.selectedPlanOptionExpanded,
+                  ]}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    _setSelectedTierId(tier.id);
+                    setShowPlanSelector(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.planOptionContent}>
                     <ThemedText
-                      weight={selectedTierId === tier.id ? 'bold' : 'medium'}
+                      weight={selectedTierId === tier.id ? 'bold' : 'semiBold'}
                       style={[
-                        styles.planOptionCardTitle,
-                        selectedTierId === tier.id && styles.selectedPlanOptionCardTitle,
+                        styles.planOptionTextExpanded,
+                        selectedTierId === tier.id && styles.selectedPlanOptionTextExpanded,
                       ]}
                     >
                       {getTierDisplayName(tier.id)}
                     </ThemedText>
                     <ThemedText
                       style={[
-                        styles.planOptionCardPrice,
-                        selectedTierId === tier.id && styles.selectedPlanOptionCardPrice,
+                        styles.planOptionPriceExpanded,
+                        selectedTierId === tier.id && styles.selectedPlanOptionPriceExpanded,
                       ]}
                     >
                       {isAnnual ? `$${(tier.annualPrice || 0).toFixed(2)}/yr` : `$${(tier.monthlyPrice || 0).toFixed(2)}/mo`}
                     </ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                  </View>
+                  {selectedTierId === tier.id && (
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
           )}
 
@@ -690,6 +690,13 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginTop: 20,
     marginBottom: 8,
   },
+  subtitle: {
+    fontSize: 18,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
   introSection: {
     marginBottom: 20,
   },
@@ -712,81 +719,62 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 16,
   },
-  planButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+  changePlanButton: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
-  planButtonText: {
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
-    color: Colors.hopeWhite,
+  changePlanButtonText: {
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: Colors.faithGold,
     textAlign: 'center',
-    marginBottom: 4,
+    textDecorationLine: 'underline',
   },
-  planButtonIcon: {
-    marginLeft: 8,
-  },
-  expandedPlanOptions: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
+  planOptionsExpanded: {
     marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  planOptionsTitle: {
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
-    color: Colors.hopeWhite,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  planOptionsGrid: {
+  planOptionExpanded: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    gap: 12,
-  },
-  planOptionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
     alignItems: 'center',
-    minWidth: 100,
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  selectedPlanOptionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  selectedPlanOptionExpanded: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderColor: Colors.growthGreen,
   },
-  planOptionCardTitle: {
-    fontSize: 14,
-    fontFamily: fonts.medium,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginBottom: 6,
-    opacity: 0.9,
+  planOptionContent: {
+    flex: 1,
   },
-  selectedPlanOptionCardTitle: {
+  planOptionTextExpanded: {
+    fontSize: 15,
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    opacity: 1,
+    marginBottom: 4,
   },
-  planOptionCardPrice: {
-    fontSize: 12,
+  selectedPlanOptionTextExpanded: {
+    color: Colors.hopeWhite,
+  },
+  planOptionPriceExpanded: {
+    fontSize: 13,
     fontFamily: fonts.regular,
     color: Colors.hopeWhite,
-    textAlign: 'center',
-    opacity: 0.7,
+    opacity: 0.8,
   },
-  selectedPlanOptionCardPrice: {
+  selectedPlanOptionPriceExpanded: {
     color: Colors.hopeWhite,
     opacity: 1,
   },
