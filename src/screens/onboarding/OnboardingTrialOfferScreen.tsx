@@ -100,18 +100,26 @@ const OnboardingTrialOfferScreen = () => {
             }, 500);
           }, 100);
         } else {
-          // Use push to force a new screen transition
-          console.log('[OnboardingTrialOffer] PUSHING OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
-          (navigation as any).push(
-            'OnboardingNotificationSetup',
-            { userType: 'freemium', displayName: 'siFia Seeker' }
-          );
-          // Reset after push completes
+          // This screen is a fullScreenModal, so we need to dismiss it first, then navigate
+          console.log('[OnboardingTrialOffer] Dismissing modal and navigating to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
+          
+          // First, go back to dismiss the modal
+          navigation.goBack();
+          
+          // Then navigate to notification setup after modal dismisses
           setTimeout(() => {
-            navigationInProgressRef.current = false;
-            setIsClosing(false);
-            clearTimeout(watchdog);
-          }, 500);
+            navigation.navigate(
+              'OnboardingNotificationSetup' as never,
+              { userType: 'freemium', displayName: 'siFia Seeker' } as never
+            );
+            
+            // Reset after navigation completes
+            setTimeout(() => {
+              navigationInProgressRef.current = false;
+              setIsClosing(false);
+              clearTimeout(watchdog);
+            }, 300);
+          }, 300);
         }
       } catch (error) {
         console.error('[OnboardingTrialOffer] Navigation failed:', error);
