@@ -151,7 +151,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
               style={[
                 styles.progressBar,
                 {
-                  backgroundColor: stepInfo.color,
+                  backgroundColor: '#4CAF50', // Always growth green for consistency
                   width: `${stepInfo.progress}%`,
                 },
               ]}
