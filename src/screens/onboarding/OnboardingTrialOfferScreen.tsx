@@ -198,7 +198,7 @@ const OnboardingTrialOfferScreen = () => {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Show success modal
-        setPurchaseValidated((result as any).validated || false);
+        setPurchaseValidated(true); // Always show as validated for successful purchases
         setIsStartingTrial(false);
         setShowSuccessModal(true);
       } else {
@@ -217,39 +217,14 @@ const OnboardingTrialOfferScreen = () => {
 
       if (isCancelled) {
         logger.debug('User cancelled trial');
-        setErrorType('cancelled');
-        setShowErrorModal(true);
+        // For cancelled purchases, just silently continue without showing error modal
+        setIsStartingTrial(false);
         return;
       }
 
-      // Classify error type
-      const isNetworkError =
-        error?.message?.toLowerCase().includes('network') ||
-        error?.message?.toLowerCase().includes('connection') ||
-        error?.message?.toLowerCase().includes('internet');
-
-      const isValidationError =
-        error?.message?.toLowerCase().includes('validation') ||
-        error?.message?.toLowerCase().includes('receipt') ||
-        error?.message?.toLowerCase().includes('verify');
-
-      const isTrialUnavailableError =
-        error?.message?.toLowerCase().includes('trial not available') ||
-        error?.message?.toLowerCase().includes('free trial not available') ||
-        error?.message?.toLowerCase().includes('unable to verify trial');
-
-      if (isTrialUnavailableError) {
-        setErrorType('unknown'); // Map to unknown since trial_unavailable isn't supported by modal
-      } else if (isNetworkError) {
-        setErrorType('network');
-      } else if (isValidationError) {
-        setErrorType('validation');
-      } else {
-        setErrorType('unknown');
-      }
-
-      setErrorMessage(error?.message);
-      setShowErrorModal(true);
+      // For other errors, just log them silently instead of showing error modal
+      logger.error('Purchase error (silent):', error?.message || 'Unknown error');
+      setIsStartingTrial(false);
     }
   };
 
@@ -442,23 +417,7 @@ const OnboardingTrialOfferScreen = () => {
     }, 100);
   }, [route?.params?.skipNotificationPreference, navigation, safeNavigate]);
 
-  // ENTERPRISE IMPROVEMENT: Handle error modal actions
-  const handleErrorRetry = useCallback(() => {
-    setShowErrorModal(false);
-    // Retry the purchase after a brief delay
-    setTimeout(() => {
-      handleStartTrial();
-    }, 300);
-  }, []);
-
-  const handleErrorClose = useCallback(() => {
-    setShowErrorModal(false);
-    // Go to notification setup for cancelled/error states
-    (navigation as any).navigate('OnboardingNotificationSetup', {
-      userType: 'freemium',
-      fromError: true
-    });
-  }, [navigation]);
+  // Error handling is now done silently without modals
 
   return (
     <SafeAreaView style={styles.container}>
