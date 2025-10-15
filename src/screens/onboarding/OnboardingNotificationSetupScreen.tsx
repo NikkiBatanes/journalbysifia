@@ -48,11 +48,27 @@ const OnboardingNotificationSetupScreen = () => {
   const [setupStep, setSetupStep] = useState<'preferences' | 'permissions' | 'complete'>('preferences');
 
   // Derive display name for welcome message (first name only)
-  const displayName =
-    ((user as any)?.user_metadata?.first_name as string | undefined)?.trim() ||
-    (user?.user_metadata?.full_name ? String(user.user_metadata.full_name).trim().split(/\s+/)[0] : undefined) ||
-    (user?.email ? user.email.split('@')[0] : undefined) ||
-    'Friend';
+  const displayName = (() => {
+    // Try first_name first
+    const firstName = (user as any)?.user_metadata?.first_name?.trim();
+    if (firstName) return firstName;
+
+    // Try to extract first name from full_name
+    const fullName = user?.user_metadata?.full_name;
+    if (fullName) {
+      const firstNameFromFull = String(fullName).trim().split(/\s+/)[0];
+      if (firstNameFromFull) return firstNameFromFull;
+    }
+
+    // Extract from email if needed
+    if (user?.email) {
+      const emailUsername = user.email.split('@')[0];
+      // Simple extraction - capitalize first letter
+      return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
+    }
+
+    return 'Friend';
+  })();
 
   useEffect(() => {
     // Refresh subscription data when screen loads

@@ -80,18 +80,15 @@ const slides: Slide[] = [
     icon: 'create-outline',
     color: '#45B7D1',
     iconSize: 62,
-  },
-];
 
 const OnboardingWelcomeScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { isAuthenticated, user } = useAuth();
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const flatListRef = useRef<FlatList>(null);
-  // Note: translateX was previously defined but unused; removed to satisfy lint.
 
   useEffect(() => {
     // Entrance animation
@@ -134,7 +131,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         }
 
         // No redirect key present; if authenticated, forward to personalization by default
-        const displayName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || '';
+        const displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
         try {
           (navigation as any).reset?.({ index: 0, routes: [{ name: 'OnboardingPersonalization', params: { name: displayName, registrationMethod: 'email' } }] });
         } catch {
@@ -189,7 +186,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
       if (isAuthenticated) {
         // If already authenticated, go to personalization
         navigation.navigate('OnboardingPersonalization' as any, {
-          name: user?.user_metadata?.first_name || user?.email?.split('@')[0] || '',
+          name: user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '',
           registrationMethod: 'email',
         });
       } else {
@@ -209,7 +206,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
       if (isAuthenticated) {
         // If already authenticated, go to personalization
         navigation.navigate('OnboardingPersonalization' as any, {
-          name: user?.user_metadata?.first_name || user?.email?.split('@')[0] || '',
+          name: user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '',
           registrationMethod: 'email',
         });
       } else {

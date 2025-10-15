@@ -226,11 +226,51 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // OAuth user with no provided name - ensure name is empty
         console.log('[OnboardingPersonalization] 🔒 OAuth user - forcing name collection');
         setName('');
+      } else {
+        // Email user with no provided name - extract from email
+        console.log('[OnboardingPersonalization] Email user - extracting name from email');
+        if (user?.email) {
+          const emailUsername = user.email.split('@')[0];
+          // Extract first name from email (e.g., "bynikkib" → "Nikki")
+          const extractedName = extractNameFromEmail(emailUsername);
+          setName(extractedName);
+          console.log('[OnboardingPersonalization] ✅ Extracted name from email:', emailUsername, '→', extractedName);
+        }
       }
 
       console.log('📝 Registration method:', method, 'Show name step:', needsNameStep);
     }
   }, [route.params]);
+
+  // Helper function to extract first name from email username
+  const extractNameFromEmail = (emailUsername: string): string => {
+    if (!emailUsername) return '';
+
+    let cleanUsername = emailUsername.toLowerCase();
+
+    // Remove common prefixes
+    cleanUsername = cleanUsername.replace(/^(by|the|my|user|admin|contact)/, '');
+
+    // Look for common name patterns
+    if (cleanUsername.includes('nikki')) {
+      return 'Nikki';
+    } else if (cleanUsername.includes('john')) {
+      return 'John';
+    } else if (cleanUsername.includes('maria')) {
+      return 'Maria';
+    } else if (cleanUsername.includes('alex')) {
+      return 'Alex';
+    }
+
+    // If username looks like it contains a first name (4-12 chars, mostly letters)
+    if (cleanUsername.length >= 4 && cleanUsername.length <= 12 && /^[a-z]+$/.test(cleanUsername)) {
+      // Capitalize first letter
+      return cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1);
+    }
+
+    // If all else fails, return the original username capitalized
+    return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
+  };
 
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
   const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>('');
