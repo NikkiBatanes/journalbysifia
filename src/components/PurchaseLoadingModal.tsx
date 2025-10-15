@@ -117,7 +117,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           style={[
             styles.modalContainer,
             {
-              backgroundColor: theme.colors.cardBackground,
+              backgroundColor: '#2C5F7F', // Anchor blue background
               opacity: fadeAnim,
             },
           ]}
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: width - 60,
     maxWidth: 360,
-    borderRadius: 20,
+    borderRadius: 30,
     padding: 32,
     alignItems: 'center',
     shadowColor: '#000',

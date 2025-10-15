@@ -49,9 +49,6 @@ const OnboardingTrialOfferScreen = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorType, setErrorType] = useState<'network' | 'validation' | 'cancelled' | 'unknown'>('unknown');
-  const [errorMessage, setErrorMessage] = useState<string>();
   const [isClosing, setIsClosing] = useState(false);
   const navigationInProgressRef = React.useRef(false);
 
@@ -480,15 +477,6 @@ const OnboardingTrialOfferScreen = () => {
         isTrial={true}
         isValidated={purchaseValidated}
         onContinue={handleSuccessModalContinue}
-      />
-
-      {/* ENTERPRISE IMPROVEMENT: Error Modal */}
-      <PurchaseErrorModal
-        visible={showErrorModal}
-        errorType={errorType}
-        errorMessage={errorMessage}
-        onRetry={handleErrorRetry}
-        onClose={handleErrorClose}
       />
 
       {/* Header */}
