@@ -18,6 +18,7 @@ import { usePlatformSubscription } from '../../hooks/usePlatformSubscription';
 import { isDevotionalDurationLocked } from '../../utils/tierLockingRules';
 import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
 import type { SubscriptionTier } from '../../types/subscription';
+import PlatformPaymentService from '../../services/PlatformPaymentService';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
@@ -265,8 +266,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         price: getCurrentPrice(),
       });
 
-      // Initialize payment service (needed for both upgrade and onboarding)
-      const PlatformPaymentService = (await import('../../services/PlatformPaymentService')).default;
+      // Get payment service instance (already imported at top)
       const paymentService = PlatformPaymentService.getInstance();
 
       // Determine product ID based on trial eligibility and billing period

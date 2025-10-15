@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,6 +18,7 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { useTheme } from '../../theme/ThemeContext';
 import { getFontFamily } from '../../theme/fonts';
+import PlatformPaymentService from '../../services/PlatformPaymentService';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
@@ -107,7 +108,6 @@ const OnboardingTrialOfferScreen = () => {
 
       // CRITICAL: Trial Offer Screen uses .freetrial product IDs
       // These are separate products in App Store Connect with 3-day free trial configured
-      const { PlatformPaymentService } = await import('../../services/PlatformPaymentService');
       const paymentService = PlatformPaymentService.getInstance();
 
       // Use the .freetrial product ID - this matches what's in App Store Connect
