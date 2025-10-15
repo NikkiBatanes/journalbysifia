@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
-  Alert,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
+import { InteractionManager } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
@@ -48,34 +49,74 @@ const OnboardingTrialOfferScreen = () => {
   const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = async () => {
-    if (isClosing || isStartingTrial) {return;} // Prevent double-tap
+    if (isClosing || isStartingTrial) {
+      console.log('[OnboardingTrialOffer] handleClose ignored (isClosing/isStartingTrial)', { isClosing, isStartingTrial });
+      return; // Prevent double-tap
+    }
 
     try {
       triggerLightHaptic();
-      setIsClosing(true);
     } catch {}
+    setIsClosing(true);
 
-    console.log('[OnboardingTrialOffer] User declined trial');
-    
-    try {
-      // User declines trial and remains as seeker (freemium)
-      const skipNotificationPreference = route?.params?.skipNotificationPreference;
-      if (skipNotificationPreference) {
-        // Go back twice to skip the sales offer screen and return to original screen
-        navigation.goBack();
-        setTimeout(() => navigation.goBack(), 100);
-      } else {
-        // Navigate to notification setup after declining trial
-        console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup as freemium');
-        setTimeout(() => {
-          navigation.navigate('OnboardingNotificationSetup' as never, { userType: 'freemium' } as never);
-        }, 100);
-      }
-    } catch (error) {
-      console.error('[OnboardingTrialOffer] Navigation failed:', error);
-      // Reset state if navigation fails
+    // Debug context dump
+    const navState = (navigation as any)?.getState?.();
+    console.log('[OnboardingTrialOffer] User declined trial – beginning close sequence', {
+      skipNotificationPreference: route?.params?.skipNotificationPreference,
+      selectedTierId,
+      isAnnual,
+      navRoutes: navState?.routes?.map((r: any) => r.name),
+      navIndex: navState?.index,
+    });
+
+    // Watchdog: if navigation does not complete, release UI lock and notify
+    let watchdogFired = false;
+    const watchdog = setTimeout(() => {
+      watchdogFired = true;
+      console.warn('[OnboardingTrialOffer] Watchdog fired – navigation did not complete in time. Releasing UI lock.');
       setIsClosing(false);
-    }
+      Alert.alert(
+        'Please try again',
+        'We could not proceed to notification setup. Tap close again or try Continue My Journey.',
+        [{ text: 'OK' }]
+      );
+    }, 1500);
+
+    const proceed = () => {
+      try {
+        const skipNotificationPreference = route?.params?.skipNotificationPreference;
+        if (skipNotificationPreference) {
+          console.log('[OnboardingTrialOffer] Skip pref set – performing double goBack()');
+          navigation.goBack();
+          setTimeout(() => navigation.goBack(), 100);
+        } else {
+          // Pass canonical user type plus display label
+          console.log('[OnboardingTrialOffer] Navigating to OnboardingNotificationSetup', { userType: 'freemium', display: 'seeker' });
+          navigation.navigate(
+            'OnboardingNotificationSetup' as never,
+            { userType: 'freemium', displayName: 'siFia Seeker' } as never
+          );
+        }
+      } catch (error) {
+        console.error('[OnboardingTrialOffer] Navigation failed:', error);
+        setIsClosing(false);
+      } finally {
+        // Release lock shortly after initiating navigation unless watchdog already handled
+        setTimeout(() => {
+          if (!watchdogFired) {
+            setIsClosing(false);
+            clearTimeout(watchdog);
+          }
+        }, 200);
+      }
+    };
+
+    // Schedule after current animations/interactions to avoid conflicts
+    InteractionManager.runAfterInteractions(() => {
+      console.log('[OnboardingTrialOffer] runAfterInteractions – proceeding to navigate');
+      // Small delay to allow overlay to animate out (slide down) before new screen
+      setTimeout(proceed, 120);
+    });
   };
 
   const handleStartTrial = async () => {
