@@ -47,10 +47,10 @@ const OnboardingNotificationSetupScreen = () => {
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown');
   const [setupStep, setSetupStep] = useState<'preferences' | 'permissions' | 'complete'>('preferences');
 
-  // Derive display name for welcome message
+  // Derive display name for welcome message (first name only)
   const displayName =
-    ((user as any)?.user_metadata?.full_name as string | undefined)?.trim() ||
     ((user as any)?.user_metadata?.first_name as string | undefined)?.trim() ||
+    (user?.user_metadata?.full_name ? String(user.user_metadata.full_name).trim().split(/\s+/)[0] : undefined) ||
     (user?.email ? user.email.split('@')[0] : undefined) ||
     'Friend';
 
