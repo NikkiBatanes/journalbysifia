@@ -55,7 +55,7 @@ const OnboardingTrialOfferScreen = () => {
       return;
     }
     
-    console.log('[OnboardingTrialOffer] User declined trial - dismissing modal');
+    console.log('[OnboardingTrialOffer] User declined trial - navigating to Notification');
     navigationInProgressRef.current = true;
     setIsClosing(true);
 
@@ -63,15 +63,28 @@ const OnboardingTrialOfferScreen = () => {
       triggerLightHaptic();
     } catch {}
 
-    // Simple approach: Just go back and let Sales Offer handle the rest
-    // Sales Offer will check canOfferTrial and navigate appropriately
-    navigation.goBack();
-    
-    // Reset state after modal dismisses
+    // Navigate directly to Notification to avoid loop back to Sales Offer
+    // Use setTimeout to allow haptic to complete
     setTimeout(() => {
-      navigationInProgressRef.current = false;
-      setIsClosing(false);
-    }, 500);
+      const skipNotificationPreference = route?.params?.skipNotificationPreference;
+      if (skipNotificationPreference) {
+        // If skip pref set, go back twice (dismiss Trial, then Sales)
+        navigation.goBack();
+        setTimeout(() => navigation.goBack(), 100);
+      } else {
+        // Navigate to notification (user remains freemium/seeker)
+        navigation.navigate('OnboardingNotificationSetup' as never, { 
+          userType: 'freemium', 
+          displayName: 'siFia Seeker' 
+        } as never);
+      }
+      
+      // Reset state after navigation
+      setTimeout(() => {
+        navigationInProgressRef.current = false;
+        setIsClosing(false);
+      }, 300);
+    }, 100);
   };
 
   const handleStartTrial = async () => {

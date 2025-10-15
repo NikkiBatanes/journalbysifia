@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,7 +7,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
@@ -64,7 +64,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const trialModalDismissedRef = useRef(false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -93,25 +92,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     skipNotificationPreference: routeParams?.skipNotificationPreference,
   });
 
-  // When screen regains focus after Trial modal dismisses, navigate to Notification
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('[OnboardingSalesOffer] Screen focused - checking trial flag:', {
-        trialModalDismissed: trialModalDismissedRef.current,
-        skipNotificationPreference: routeParams?.skipNotificationPreference
-      });
-      
-      if (trialModalDismissedRef.current && !routeParams?.skipNotificationPreference) {
-        console.log('[OnboardingSalesOffer] ✅ Trial modal dismissed - navigating to Notification');
-        trialModalDismissedRef.current = false;
-        
-        // Small delay to ensure modal is fully dismissed before navigating
-        setTimeout(() => {
-          navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium', displayName: 'siFia Seeker' });
-        }, 300);
-      }
-    }, [navigation, routeParams?.skipNotificationPreference])
-  );
 
   // Safety check: Wait for user to load on hot reload instead of redirecting
   // Redirecting causes black screen during hot reload
@@ -243,7 +223,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     console.log('[OnboardingSalesOffer] handleClose - canOfferTrial:', canOfferTrial);
     if (canOfferTrial) {
       console.log('[OnboardingSalesOffer] Navigating to trial offer');
-      trialModalDismissedRef.current = true; // Set flag so we navigate to Notification when Trial dismisses
       navigation.navigate('OnboardingTrialOffer' as any, {
         selectedTierId: selectedTier,
         billing: isAnnual ? 'annual' : 'monthly',
