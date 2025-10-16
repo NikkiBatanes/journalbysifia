@@ -46,6 +46,7 @@ import DirectChallengeCard from '../../components/DirectChallengeCard';
 import DevotionalModal from '../../components/DevotionalModal';
 import OnboardingTutorial from '../../components/tutorial/OnboardingTutorial';
 import { logger } from '../../utils/logger';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 const { width, height } = Dimensions.get('window');
 
@@ -1710,14 +1711,16 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
   });
 
   return (
-    <ActionStepsProvider initialSteps={playbook?.actionSteps || []}>
-      <PlaybookContent
-        playbook={playbook}
-        challengeCategory={challengeCategory}
-        specificChallenge={specificChallenge}
-        userInput={userInput}
-      />
-    </ActionStepsProvider>
+    <OnboardingErrorBoundary>
+      <ActionStepsProvider initialSteps={playbook?.actionSteps || []}>
+        <PlaybookContent
+          playbook={playbook}
+          challengeCategory={challengeCategory}
+          specificChallenge={specificChallenge}
+          userInput={userInput}
+        />
+      </ActionStepsProvider>
+    </OnboardingErrorBoundary>
   );
 };
 

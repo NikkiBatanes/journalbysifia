@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import {
   View,
   StyleSheet,
@@ -9,15 +10,25 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { Colors } from '../../theme';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { pushNotificationService } from '../../services/pushNotificationService';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { supabase } from '../../services/supabaseClient';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import ThemedText from '../../components/common/ThemedText';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 interface RouteParams {
   userType: 'trial' | 'paid' | 'freemium';
