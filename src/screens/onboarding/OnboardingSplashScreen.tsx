@@ -17,12 +17,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 
-import { OnboardingService } from '../../services/onboardingService';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 import { Colors } from '../../theme/colors';
 import { logger } from '../../utils/logger';
-
-// Dimensions not needed here
+import { onboardingService } from '../../services/onboardingService';
 
 interface OnboardingSplashScreenProps {
   onComplete?: () => void;
@@ -51,7 +50,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         StatusBar.setBackgroundColor(Colors.anchorBlue);
       }
     } catch (error) {
-      logger.error('Error setting status bar:', error);
+      logger.error('Error setting status bar:', error as Error);
     }
 
     // Show logo instantly (removed fade-in)
@@ -62,7 +61,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     const navigateToCorrectScreen = async (): Promise<boolean> => {
       // Prevent concurrent navigation attempts
       if (hasNavigatedRef.current || isNavigatingRef.current) {
-        logger.onboarding.navigation('Navigation already in progress or completed, skipping');
+        logger.onboarding.navigation('Splash', 'NavigationCheck');
         return true;
       }
       
@@ -73,7 +72,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       }
       
       isNavigatingRef.current = true;
-      logger.onboarding.navigation('🚀 STARTING CONDITIONAL NAVIGATION LOGIC');
+        logger.onboarding.navigation('Splash', 'ConditionalNavigationStart');
       logger.debug('👤 AUTH STATE:', {
         user: !!user,
         userId: user?.id,
@@ -98,13 +97,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
           if (user && target && onboardingRoutes.has(target)) {
             try {
-              const onboardingService = new OnboardingService();
               const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
               if (hasCompleted) {
-                logger.onboarding.stepCompleted('Ignoring stale onboarding redirect for completed user. Clearing key.');
+        logger.onboarding.navigation('RedirectCheck', 'EarlyCheck');
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
               } else {
-                logger.debug('Honoring onboarding redirect for user still in onboarding →', target, params);
+                logger.debug(`Honoring onboarding redirect for user still in onboarding → ${target}`, { target, params });
                 try {
                   navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
                 } catch (navErr) {
@@ -116,20 +114,20 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                 return true;
               }
             } catch (chkErr) {
-              logger.warn('Onboarding completion check failed. Proceeding to honor redirect:', chkErr);
+              logger.warn('Onboarding completion check failed. Proceeding to honor redirect:', chkErr as Error);
               try {
                 navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
               } catch (navErr) {
-                logger.warn('reset failed, falling back to navigate:', navErr);
+                logger.warn('reset failed, falling back to navigate:', navErr as Error);
                 navigation.navigate(target as any, params);
               }
             }
           } else if (user && target) {
-            logger.debug('Found post_auth_redirect → navigating immediately to', target, params);
+            logger.debug(`Found post_auth_redirect → navigating immediately to ${target}`);
             try {
               navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
             } catch (navErr) {
-              logger.warn('reset failed, falling back to navigate:', navErr);
+              logger.warn('reset failed, falling back to navigate:', navErr.toString());
               navigation.navigate(target as any, params);
             }
             try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
@@ -141,7 +139,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           }
         }
       } catch (e) {
-        logger.warn('Error reading post_auth_redirect:', e);
+        logger.warn('Error reading post_auth_redirect:', e as Error);
       }
 
       // Not authenticated → re-check session quickly to avoid race after login
@@ -150,7 +148,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         hasUser: !!effectiveUser,
         userId: effectiveUser?.id,
         email: effectiveUser?.email,
-        userObject: effectiveUser ? JSON.stringify(effectiveUser, null, 2) : 'null',
+        userObject: effectiveUser ? 'exists' : 'null',
       });
 
       if (!effectiveUser) {
@@ -172,7 +170,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
             if (session?.user) {
               effectiveUser = session.user;
-              logger.onboarding.navigation('✅ Found session user on recheck, proceeding as authenticated');
+        logger.onboarding.navigation('SessionRecheck', 'NoUserFound');
               break;
             }
 
@@ -203,17 +201,16 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           if (effectiveUser && target) {
             if (onboardingRoutes.has(target)) {
               try {
-                const onboardingService = new OnboardingService();
-                const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
+              const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
                 if (hasCompleted) {
-                  logger.onboarding.stepCompleted('(post-user) Ignoring stale onboarding redirect for completed user. Clearing key.');
+        logger.onboarding.navigation('RedirectCheck', 'PostUserCheck');
                   try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
                 } else {
-                  logger.debug('(post-user) Honoring onboarding redirect →', target, params);
+                  logger.debug(`(post-user) Honoring onboarding redirect → ${target}`, { target, params });
                   try {
                     navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
                   } catch (navErr) {
-                    logger.warn('reset failed, falling back to navigate:', navErr);
+                    logger.warn(`reset failed, falling back to navigate: ${(navErr as any)?.message || 'Unknown error'}`);
                     navigation.navigate(target as any, params);
                   }
                   try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
@@ -221,7 +218,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                   return true;
                 }
               } catch (chkErr) {
-                logger.warn('(post-user) Onboarding check failed. Proceeding to honor redirect:', chkErr);
+                logger.warn('(post-user) Onboarding check failed. Proceeding to honor redirect:', chkErr as Error);
                 try {
                   navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
                 } catch (navErr) {
@@ -233,11 +230,11 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                 return true;
               }
             } else {
-              logger.debug('(post-user) Redirect to non-onboarding route →', target);
+              logger.debug(`(post-user) Redirect to non-onboarding route → ${target}`);
               try {
                 navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
               } catch (navErr) {
-                logger.warn('reset failed, falling back to navigate:', navErr);
+                logger.warn('reset failed, falling back to navigate:', navErr as Error);
                 navigation.navigate(target as any, params);
               }
               try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
@@ -246,14 +243,14 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             }
           }
         }
-      } catch (e) {
-        logger.warn('Error re-reading post_auth_redirect:', e);
+              } catch (e) {
+        logger.warn('Error re-reading post_auth_redirect:', e as Error);
       }
 
       // FLOW 1: No detected user → Splash > TransformJourney > Welcome
       if (!effectiveUser) {
         const target = 'TransformJourney';
-        logger.debug('🚫 NO USER DETECTED → ROUTING TO', target);
+        logger.debug('🚫 NO USER DETECTED → ROUTING TO', { target });
         logger.debug('📋 FLOW: Splash > TransformJourney > Welcome');
         try {
           navigation.reset({ index: 0, routes: [{ name: target as any }] });
@@ -280,7 +277,6 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       }
 
       try {
-        const onboardingService = new OnboardingService();
         logger.debug('📋 Checking onboarding completion for user:', effectiveUser.id);
         logger.debug('👤 User details:', {
           id: effectiveUser.id,
@@ -294,11 +290,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
         const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
 
-        logger.onboarding.navigation('✅ COMPLETION CHECK RESULT:', {
-          userId: effectiveUser.id,
-          hasCompleted,
-          decision: hasCompleted ? 'MainTabs' : 'OnboardingPersonalization',
-        });
+        logger.onboarding.navigation('CompletionCheck', 'Result', { decision: hasCompleted ? 'MainTabs' : 'OnboardingPersonalization' });
 
         // Additional debug: Check both database sources directly
         try {
@@ -307,15 +299,15 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             .select('onboarding_completed')
             .eq('id', effectiveUser.id)
             .single();
-          logger.debug('🔍 Direct user_profiles check:', profile);
+          logger.debug('🔍 Direct user_profiles check:', profile ? { profile } : { status: 'No profile found' });
         } catch (e) {
-          logger.debug('❌ Direct user_profiles check failed:', e);
+          logger.debug('❌ Direct user_profiles check failed:', e as Error);
         }
 
         if (hasCompleted) {
           // FLOW 3: Detected user finished onboarding → Splash > Home/Dashboard
           const target = 'MainTabs';
-          logger.onboarding.stepCompleted('🏠 ROUTING TO MAIN TABS - Onboarding completed');
+        logger.onboarding.navigation('Splash', 'MainTabsRoute');
           logger.debug('📋 FLOW: Splash > Home/Dashboard');
           try {
             navigation.reset({ index: 0, routes: [{ name: target as any }] });
@@ -446,11 +438,11 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const params = effectiveUser
             ? { name: displayName, registrationMethod: isOAuth ? 'oauth' : 'email' }
             : undefined;
-          logger.debug('🛟 Fallback routing to', target, params || {});
+          logger.debug('🛟 Fallback routing to', { target, params: params || {} });
           try {
             navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
           } catch (navErr) {
-            logger.warn('reset failed during fallback, falling back to navigate:', navErr);
+            logger.warn('reset failed during fallback, falling back to navigate:', navErr as Error);
             navigation.navigate(target as any, params as any);
           }
         } catch (finalNavErr) {
@@ -474,7 +466,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       logger.debug('⏰ Minimum splash time elapsed, making routing decision...');
       try {
         const redirected = await navigateToCorrectScreen();
-        logger.onboarding.navigation('📊 Navigation result:', { redirected });
+        logger.onboarding.navigation('NavigationTimeout', 'Result', { redirected });
 
         if (!redirected) {
           logger.warn('⚠️ Navigation failed, falling back to welcome screen');
@@ -483,7 +475,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           hasNavigatedRef.current = true;
         }
       } catch (error) {
-        logger.error('❌ Navigation error:', error);
+        logger.error('❌ Navigation error:', error as Error);
         // Emergency fallback
         navigation.reset({ index: 0, routes: [{ name: 'OnboardingWelcome' as any }] });
         hasNavigatedRef.current = true;
