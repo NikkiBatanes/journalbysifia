@@ -250,8 +250,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     [notificationPrefs, user?.id, formatTo12h]
   );
 
-  // Use the same avatar display logic as other screens
-  const avatarUrl = (user as any)?.user_metadata?.avatar_url;
+  // Don't use Google avatar - force use of custom avatar system
+  const avatarUrl = undefined; // Always use initials instead of Google avatar
   const initialLetter = useMemo(() => {
     const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
     const last = (profileForm as any)?.lastName || (user as any)?.user_metadata?.last_name || '';
