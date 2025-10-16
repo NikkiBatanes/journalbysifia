@@ -5,8 +5,6 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
-
 import {
   View,
   StyleSheet,
@@ -14,19 +12,12 @@ import {
   Animated,
   StatusBar,
   Image,
-
 } from 'react-native';
 import Lottie from 'lottie-react-native';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { useNavigation } from '@react-navigation/native';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
-
 import { Colors } from '../../theme/colors';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { triggerLightHaptic } from '../../utils/haptics';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
