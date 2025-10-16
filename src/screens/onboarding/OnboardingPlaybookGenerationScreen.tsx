@@ -31,6 +31,7 @@ interface RouteParams {
   challengeCategory: string;
   specificChallenge: string;
   userInput: string;
+  userName: string; // Add userName parameter
 }
 
 interface GeneratedPlaybook {
@@ -171,7 +172,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       }
 
       const userId = user?.id || 'demo-user-onboarding';
-      const userName = (user as any)?.user_metadata?.full_name || 'Friend';
+      // Use the userName from onboarding params instead of user metadata
+      const userName = params.userName || 'Friend';
+
+      console.log('🎯 Using userName from onboarding params:', userName);
 
       // Use real generation service
       const response = await enhancedGenerationService.generatePlaybook({
@@ -310,13 +314,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
                 if (playbook && !error) {
                   console.log('✅ Real playbook fetched from database:', playbook.title);
-                  console.log('🔍 Action steps count:', playbook.actionSteps?.length || 0);
+                  logger.debug('OnboardingGeneration: Action steps from getPlaybook', { actionSteps: playbook.actionSteps });
                   console.log('🔍 Affirmations count:', playbook.affirmations?.length || 0);
 
                   // DEBUG: Log what we got from getPlaybook
-                  logger.debug('OnboardingGeneration: Raw playbook from getPlaybook:', JSON.stringify(playbook, null, 2));
-                  logger.debug('OnboardingGeneration: Action steps from getPlaybook:', playbook.actionSteps);
-                  logger.debug('OnboardingGeneration: Affirmations from getPlaybook:', playbook.affirmations);
+                  logger.debug('OnboardingGeneration: Raw playbook from getPlaybook', { playbookData: JSON.stringify(playbook, null, 2) });
+                  logger.debug('OnboardingGeneration: Action steps from getPlaybook', { actionSteps: playbook.actionSteps });
+                  logger.debug('OnboardingGeneration: Affirmations from getPlaybook', { affirmations: playbook.affirmations });
 
                   // Convert database playbook to UI format - use any type to avoid TypeScript issues
                   const realGeneratedPlaybook: any = {
@@ -339,7 +343,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   };
 
                   // DEBUG: Log what we're passing to the ready screen
-                  logger.debug('OnboardingGeneration: Passing to ready screen:', JSON.stringify(realGeneratedPlaybook, null, 2));
+                  logger.debug('OnboardingGeneration: Passing to ready screen', { playbookData: JSON.stringify(realGeneratedPlaybook, null, 2) });
 
                   // First ensure progress bar is complete, then navigate immediately
                   return new Promise<void>((resolve) => {

@@ -225,32 +225,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         if (method === 'oauth') {
           logger.debug('🔒 OAuth user detected - forcing name collection for better UX');
           
+          // Start with empty name for OAuth users to force collection
+          setName('');
+          setShowNameStep(true); // ALWAYS show name step for OAuth
+          
+          // Clear any stale Apple name data from previous sessions
+          // This prevents using cached data that might be from a different user
           try {
-            const appleNameData = await AsyncStorage.getItem('apple_signin_name');
-            console.log('🔍 Checking stored Apple name data:', appleNameData);
-            if (appleNameData) {
-              const appleName = JSON.parse(appleNameData);
-              logger.debug('Found stored Apple name data:', appleName);
-
-              if (appleName.givenName && appleName.givenName.trim().length > 0) {
-                // Even if Apple provided a name, we'll ask the user to confirm it
-                // This ensures we get the name they actually want to use
-                logger.debug('🍎 Apple provided name but asking user to confirm');
-                setName(appleName.givenName); // Pre-fill with Apple's name
-              } else {
-                logger.debug('⚠️ Apple name data exists but givenName is empty');
-                setName(''); // Start with empty name
-              }
-            } else {
-              logger.debug('ℹ️ No stored Apple name data found');
-              setName(''); // Start with empty name
-            }
+            await AsyncStorage.removeItem('apple_signin_name');
+            console.log('🧹 Cleared stale Apple name data for fresh OAuth sign-in');
           } catch (error) {
-            logger.error('Error checking Apple name data:', error as Error);
-            setName(''); // Start with empty name on error
+            logger.error('Error clearing Apple name data:', error as Error);
           }
           
-          setShowNameStep(true); // ALWAYS show name step for OAuth
           return; // Exit early - don't process email extraction
         }
 
