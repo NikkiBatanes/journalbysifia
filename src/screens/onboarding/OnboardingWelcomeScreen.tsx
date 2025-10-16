@@ -165,11 +165,21 @@ const OnboardingWelcomeScreen: React.FC = () => {
         }
 
         // No redirect key present; if authenticated, forward to personalization by default
-        const displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
+        // Detect if this is an OAuth user (Apple/Google)
+        const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
+        const isOAuth = provider === 'apple' || provider === 'google';
+        
+        // For OAuth users, always use empty name to force collection
+        // For email users, extract from email or metadata
+        const displayName = isOAuth ? '' : (user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '');
+        const registrationMethod = isOAuth ? 'oauth' : 'email';
+        
+        console.log('🔍 OnboardingWelcome: Detected user type:', { provider, isOAuth, registrationMethod });
+        
         try {
-          (navigation as any).reset?.({ index: 0, routes: [{ name: 'OnboardingPersonalization', params: { name: displayName, registrationMethod: 'email' } }] });
+          (navigation as any).reset?.({ index: 0, routes: [{ name: 'OnboardingPersonalization', params: { name: displayName, registrationMethod } }] });
         } catch {
-          (navigation as any).navigate('OnboardingPersonalization' as any, { name: displayName, registrationMethod: 'email' });
+          (navigation as any).navigate('OnboardingPersonalization' as any, { name: displayName, registrationMethod });
         }
       } catch (e) {
         // Non-fatal: ignore
@@ -220,9 +230,15 @@ const OnboardingWelcomeScreen: React.FC = () => {
     setTimeout(() => {
       if (isAuthenticated) {
         // If already authenticated, go to personalization
+        // Detect if this is an OAuth user
+        const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
+        const isOAuth = provider === 'apple' || provider === 'google';
+        const displayName = isOAuth ? '' : (user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '');
+        const registrationMethod = isOAuth ? 'oauth' : 'email';
+        
         navigation.navigate('OnboardingPersonalization' as any, {
-          name: user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '',
-          registrationMethod: 'email',
+          name: displayName,
+          registrationMethod,
         });
       } else {
         // If not authenticated, go to registration
@@ -240,9 +256,15 @@ const OnboardingWelcomeScreen: React.FC = () => {
     setTimeout(() => {
       if (isAuthenticated) {
         // If already authenticated, go to personalization
+        // Detect if this is an OAuth user
+        const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
+        const isOAuth = provider === 'apple' || provider === 'google';
+        const displayName = isOAuth ? '' : (user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '');
+        const registrationMethod = isOAuth ? 'oauth' : 'email';
+        
         navigation.navigate('OnboardingPersonalization' as any, {
-          name: user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '',
-          registrationMethod: 'email',
+          name: displayName,
+          registrationMethod,
         });
       } else {
         // If not authenticated, go to login
