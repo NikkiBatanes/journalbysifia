@@ -396,14 +396,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     }));
                   } else {
                     // User needs to complete onboarding - continue with personalization
-                    console.log('📝 New social auth user needs to complete onboarding, setting redirect to personalization');
+                    console.log('📝 User needs to complete onboarding, setting redirect to personalization');
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'OnboardingPersonalization',
-                      params: {
-                        registrationMethod: 'oauth',
-                      },
+                      params: {},
                     }));
                   }
+                }
+              } catch (e) {
+                console.error('❌ CRITICAL: Failed to check onboarding status:', e);
                 // IMPORTANT: On error, check if profile exists at all
                 try {
                   const { data: profileCheck } = await supabase
@@ -417,53 +418,22 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target,
-                      params: target === 'OnboardingPersonalization' ? { registrationMethod: 'oauth' } : {},
+                      params: {},
                     }));
                   } else {
                     console.warn('⚠️ No profile found, defaulting to personalization');
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'OnboardingPersonalization',
-                      params: { registrationMethod: 'oauth' },
+                      params: {},
                     }));
                   }
                 } catch (retryError) {
                   console.error('❌ Retry failed, defaulting to personalization:', retryError);
                   await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                     target: 'OnboardingPersonalization',
-                    params: { registrationMethod: 'oauth' },
+                    params: {},
                   }));
                 }
-              }
-            } catch (error) {
-              console.error('❌ CRITICAL: Failed to check onboarding status:', error);
-              // IMPORTANT: On error, check if profile exists at all
-              try {
-                const { data: profileCheck } = await supabase
-                  .from('user_profiles')
-                  .select('id, onboarding_completed')
-                  .eq('id', session.user.id)
-                  .maybeSingle();
-
-                if (profileCheck) {
-                  console.log('✅ Profile exists, onboarding_completed:', profileCheck.onboarding_completed);
-                  const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
-                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                    target,
-                    params: target === 'OnboardingPersonalization' ? { registrationMethod: 'oauth' } : {},
-                  }));
-                } else {
-                  console.warn('⚠️ No profile found, defaulting to personalization');
-                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                    target: 'OnboardingPersonalization',
-                    params: { registrationMethod: 'oauth' },
-                  }));
-                }
-              } catch (retryError) {
-                console.error('❌ Retry failed, defaulting to personalization:', retryError);
-                await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                  target: 'OnboardingPersonalization',
-                  params: { registrationMethod: 'oauth' },
-                }));
               }
             }
             break;
@@ -1000,6 +970,27 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         return { error: authError };
       }
 
+      // Clear Google avatar URL from user metadata to prevent it from being used
+      // This ensures we only use our custom avatar system
+      try {
+        const currentUser = await supabase.auth.getUser();
+        if (currentUser.data.user?.user_metadata?.avatar_url ||
+            currentUser.data.user?.user_metadata?.picture ||
+            currentUser.data.user?.user_metadata?.photoURL) {
+          console.log('🧹 Clearing Google avatar URLs from user metadata');
+          await supabase.auth.updateUser({
+            data: {
+              ...currentUser.data.user.user_metadata,
+              avatar_url: undefined,
+              picture: undefined,
+              photoURL: undefined,
+            }
+          });
+        }
+      } catch (metadataError) {
+        console.log('⚠️ Could not clear avatar metadata (safe to ignore):', metadataError);
+      }
+
       setAuthState(prev => ({ ...prev, loading: false }));
 
       console.log('✅ Google authentication successful');
@@ -1098,6 +1089,24 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         console.error('❌ Supabase Apple auth error:', error);
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error: error as SupabaseAuthError };
+      }
+
+      // Clear any avatar URLs from user metadata to ensure consistency
+      try {
+        const currentUser = await supabase.auth.getUser();
+        if (currentUser.data.user?.user_metadata?.avatar_url ||
+            currentUser.data.user?.user_metadata?.picture) {
+          console.log('🧹 Clearing avatar URLs from Apple user metadata');
+          await supabase.auth.updateUser({
+            data: {
+              ...currentUser.data.user.user_metadata,
+              avatar_url: undefined,
+              picture: undefined,
+            }
+          });
+        }
+      } catch (metadataError) {
+        console.log('⚠️ Could not clear avatar metadata (safe to ignore):', metadataError);
       }
 
       setAuthState(prev => ({ ...prev, loading: false }));
