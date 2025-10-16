@@ -216,6 +216,27 @@ const OnboardingTrialOfferScreen = () => {
         try {
           const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
           const storeKitService = AppleStoreKitService.getInstance();
+
+          // CRITICAL FIX: Check if this is a cached purchase from previous attempt
+          const RNIap = await import('react-native-iap');
+          const availablePurchases = await RNIap.default.getAvailablePurchases();
+          const currentPurchase = availablePurchases?.find((p: any) =>
+            p.productId.includes(selectedTierId) &&
+            p.productId.includes(isAnnual ? 'annual' : 'monthly')
+          );
+
+          if (currentPurchase && currentPurchase.transactionDate) {
+            // Check if this purchase is recent (within last 2 minutes)
+            const purchaseTime = new Date(currentPurchase.transactionDate).getTime();
+            const now = Date.now();
+            const twoMinutesAgo = now - (2 * 60 * 1000);
+
+            if (purchaseTime < twoMinutesAgo) {
+              logger.warn('⚠️ Found old cached purchase - ignoring and requiring fresh payment');
+              throw new Error('STALE_PURCHASE_CACHE');
+            }
+          }
+
           await storeKitService.checkAndSyncSubscriptionStatus(user.id);
           logger.info('✅ Subscription synced');
         } catch (syncError) {
@@ -242,7 +263,8 @@ const OnboardingTrialOfferScreen = () => {
         error?.message === 'USER_CANCELLED' ||
         error?.code === 'USER_CANCELLED' ||
         error?.message?.toLowerCase().includes('cancel') ||
-        error?.message?.toLowerCase().includes('timeout');
+        error?.message?.toLowerCase().includes('timeout') ||
+        error?.message === 'STALE_PURCHASE_CACHE';
 
       if (isCancelled) {
         logger.debug('User cancelled trial');

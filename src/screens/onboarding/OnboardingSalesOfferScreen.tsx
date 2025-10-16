@@ -417,6 +417,27 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             try {
               const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
               const storeKitService = AppleStoreKitService.getInstance();
+
+              // CRITICAL FIX: Check if this is a cached purchase from previous attempt
+              const RNIap = await import('react-native-iap');
+              const availablePurchases = await RNIap.default.getAvailablePurchases();
+              const currentPurchase = availablePurchases?.find((p: any) =>
+                p.productId.includes(selectedTier) &&
+                p.productId.includes(isAnnual ? 'annual' : 'monthly')
+              );
+
+              if (currentPurchase && currentPurchase.transactionDate) {
+                // Check if this purchase is recent (within last 2 minutes)
+                const purchaseTime = new Date(currentPurchase.transactionDate).getTime();
+                const now = Date.now();
+                const twoMinutesAgo = now - (2 * 60 * 1000);
+
+                if (purchaseTime < twoMinutesAgo) {
+                  logger.warn('⚠️ Found old cached purchase - ignoring and requiring fresh payment');
+                  throw new Error('STALE_PURCHASE_CACHE');
+                }
+              }
+
               await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '');
               logger.info('✅ Subscription synced with Apple');
 
@@ -470,7 +491,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             purchaseError?.message === 'USER_CANCELLED' ||
             purchaseError?.code === 'USER_CANCELLED' ||
             purchaseError?.message?.toLowerCase().includes('cancel') ||
-            purchaseError?.message?.toLowerCase().includes('timeout');
+            purchaseError?.message?.toLowerCase().includes('timeout') ||
+            purchaseError?.message === 'STALE_PURCHASE_CACHE';
 
           if (isCancelled) {
             logger.debug('User cancelled purchase - silently continuing');
