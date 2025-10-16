@@ -41,9 +41,11 @@ const OnboardingTrialOfferScreen = () => {
 
   const styles = useMemo(() => createStyles(fonts), [fonts]);
 
-  // Read selection from params; default to annual
-  const initialTierId: string = route?.params?.selectedTierId || 'growth';
-  const initialBilling: 'annual' | 'monthly' = route?.params?.billing || 'annual';
+  // Read selection from params; default to growth annual for trial offer
+  // NOTE: Trial offer defaults to growth annual regardless of sales offer selection
+  // This ensures consistent trial experience and proper .freetrial product usage
+  const initialTierId: string = 'growth'; // Always default to growth for trial
+  const initialBilling: 'annual' | 'monthly' = 'annual'; // Always default to annual for trial
   const [selectedTierId, _setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
@@ -55,6 +57,7 @@ const OnboardingTrialOfferScreen = () => {
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
   const [isClosing, setIsClosing] = useState(false);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
+  const [trialProductAvailable, setTrialProductAvailable] = useState<boolean | null>(null);
   const navigationInProgressRef = React.useRef(false);
 
   const handleClose = async () => {
@@ -115,15 +118,19 @@ const OnboardingTrialOfferScreen = () => {
 
       // CRITICAL: Trial Offer Screen uses .freetrial product IDs
       // These are separate products in App Store Connect with 3-day free trial configured
+      // NOTE: Always uses growth.annual.freetrial regardless of sales offer selection
+      // This ensures consistent trial experience and proper .freetrial product usage
       const paymentService = PlatformPaymentService.getInstance();
 
       // Use the .freetrial product ID - this matches what's in App Store Connect
+      // Always uses growth.annual for trial offers (decoupled from sales offer selection)
       const billing = isAnnual ? 'annual' : 'monthly';
       let productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
 
       logger.debug('========================================');
       logger.debug('TRIAL PRODUCT VERIFICATION');
       logger.debug('Target product ID', { productId });
+      logger.debug('Selected tier (from trial defaults):', { selectedTierId, billing });
       logger.debug('========================================');
 
       // CRITICAL: Verify the .freetrial product exists in App Store Connect
@@ -151,6 +158,19 @@ const OnboardingTrialOfferScreen = () => {
           logger.warn('4. Cleared for sale = NO in App Store Connect');
           logger.warn('5. Subscription group configuration issues');
 
+          // DEBUG: Check if any .freetrial products exist at all
+          const anyTrialProducts = availableProducts.filter(p => p.productId.includes('freetrial'));
+          if (anyTrialProducts.length > 0) {
+            console.log('[OnboardingTrialOffer] 🔍 Found other .freetrial products:');
+            anyTrialProducts.forEach(p => console.log(`[OnboardingTrialOffer]   - ${p.productId}`));
+          } else {
+            console.log('[OnboardingTrialOffer] ❌ No .freetrial products found at all!');
+            console.log('[OnboardingTrialOffer] This suggests .freetrial products are not configured in App Store Connect');
+          }
+
+          // Set UI state to show trial not available
+          setTrialProductAvailable(false);
+
           // TEMPORARY: For TestFlight testing, use fallback product
           if (__DEV__ || Platform.OS === 'ios') {
             logger.info('🔄 TEMPORARY: Using fallback product for TestFlight testing');
@@ -161,10 +181,26 @@ const OnboardingTrialOfferScreen = () => {
 
             if (fallbackProduct) {
               logger.info('✅ Using fallback product for TestFlight testing', { productId: fallbackProductId });
-              // Continue with fallback product for testing
+              productId = fallbackProductId; // Use fallback for testing
             } else {
               logger.error('❌ No fallback product found either');
-              throw new Error(`Free trial not available. Please contact support or try again later.`);
+              logger.error('🔧 TROUBLESHOOTING STEPS:');
+              logger.error('1. Check App Store Connect - ensure .freetrial products exist');
+              logger.error('2. Verify product IDs match exactly (case-sensitive)');
+              logger.error('3. Check subscription group configuration');
+              logger.error('4. Ensure products are approved and available');
+              logger.error('5. Refresh TestFlight build if testing');
+
+              const errorMessage = `Free trial not available. 
+
+🔍 DEBUGGING INFO:
+• Expected trial product: ${productId}
+• Available products: ${availableProducts.length}
+• Trial products found: ${anyTrialProducts.length}
+
+Please check App Store Connect configuration or contact support.`;
+
+              throw new Error(errorMessage);
             }
           } else {
             // Production: Block trial if product not found
@@ -178,6 +214,9 @@ const OnboardingTrialOfferScreen = () => {
           logger.debug('Price', { price: trialProduct.localizedPrice });
           logger.debug('Title', { title: trialProduct.title });
           logger.debug('User will see trial message', { price: trialProduct.localizedPrice });
+
+          // Set UI state to show trial is available
+          setTrialProductAvailable(true);
         }
       } catch (productError) {
         logger.error('❌ Failed to verify products', productError as Error);
@@ -204,8 +243,33 @@ const OnboardingTrialOfferScreen = () => {
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
       let result;
       try {
+        // Initialize payment service first
+        await paymentService.initialize();
+
+        // Now initiate purchase
+        console.log(`[OnboardingTrialOffer] 🚀 About to call purchaseSubscription`);
+        console.log(`[OnboardingTrialOffer] Product ID: ${productId}`);
+        console.log(`[OnboardingTrialOffer] User ID: ${user.id}`);
+        console.log(`[OnboardingTrialOffer] This should trigger Apple's payment sheet`);
+
         result = await paymentService.purchaseSubscription(productId, user.id);
+
+        console.log(`[OnboardingTrialOffer] ✅ Purchase initiated successfully`);
+        console.log(`[OnboardingTrialOffer] Result:`, result);
       } catch (purchaseError) {
+        console.error(`[OnboardingTrialOffer] ❌ Purchase initiation failed:`, purchaseError);
+
+        // Provide more specific error messages
+        if (purchaseError instanceof Error) {
+          if (purchaseError.message.includes('timeout')) {
+            throw new Error('Purchase timed out. Please check your internet connection and try again.');
+          } else if (purchaseError.message.includes('cancelled') || purchaseError.message.includes('USER_CANCELLED')) {
+            throw new Error('USER_CANCELLED');
+          } else if (purchaseError.message.includes('not available')) {
+            throw new Error('This trial offer is not currently available. Please try again later.');
+          }
+        }
+
         logger.error('Purchase call failed:', purchaseError as Error);
         setIsStartingTrial(false);
         throw new Error('Failed to initiate purchase. Please try again.');
@@ -601,6 +665,16 @@ const OnboardingTrialOfferScreen = () => {
             </ThemedText>
           </View>
 
+          {/* Trial Availability Warning */}
+          {trialProductAvailable === false && (
+            <View style={styles.trialWarningContainer}>
+              <Ionicons name="warning" size={20} color={Colors.alertCoral} />
+              <ThemedText style={styles.trialWarningText}>
+                Trial offer unavailable - using standard pricing
+              </ThemedText>
+            </View>
+          )}
+
           {/* How Trial Works */}
           <ThemedText weight="semiBold" style={styles.sectionTitle}>So, how the trial works:</ThemedText>
 
@@ -870,6 +944,24 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 22,
     opacity: 0.9,
+  },
+  trialWarningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.alertCoral,
+  },
+  trialWarningText: {
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: Colors.alertCoral,
+    marginLeft: 8,
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 17,
