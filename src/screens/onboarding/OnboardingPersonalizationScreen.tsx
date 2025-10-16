@@ -631,9 +631,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const renderNameStep = () => (
     <View style={styles.stepContainer}>
       <ThemedText weight="bold" style={styles.stepTitle}>What's your name?</ThemedText>
-      <ThemedText style={styles.stepSubtitle}>
-        Help us personalize your faith journey experience
-      </ThemedText>
       <View style={styles.nameInputContainer}>
         <ThemedTextInput
           style={styles.nameInput}
