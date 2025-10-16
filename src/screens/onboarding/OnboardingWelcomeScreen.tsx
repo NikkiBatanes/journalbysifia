@@ -28,6 +28,7 @@ import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyle
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 const { width } = Dimensions.get('window');
 
@@ -330,8 +331,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+    <OnboardingErrorBoundary>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <View style={styles.container}>
         {/* Logo Section */}
@@ -408,6 +410,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </ThemedText>
       </View>
     </View>
+    </OnboardingErrorBoundary>
   );
 };
 

@@ -26,6 +26,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { logger } from '../../utils/logger';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 interface RouteParams {
   challengeCategory: string;
@@ -642,8 +643,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top','bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+    <OnboardingErrorBoundary>
+      <SafeAreaView style={styles.container} edges={['top','bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <Animated.View
         style={[styles.content, { opacity: fadeAnim }]}
@@ -754,6 +756,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         {/* Breathing text removed; guidance now part of generationSteps */}
       </Animated.View>
     </SafeAreaView>
+    </OnboardingErrorBoundary>
   );
 };
 

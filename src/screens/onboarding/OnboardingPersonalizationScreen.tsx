@@ -34,6 +34,7 @@ import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import ThemedTextInput from '../../components/common/ThemedTextInput';
+import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 // const { width } = Dimensions.get('window'); // unused
 
@@ -865,12 +866,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={OnboardingStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+    <OnboardingErrorBoundary>
+      <KeyboardAvoidingView
+        style={OnboardingStyles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <View style={[styles.header, scrollY > 50 ? styles.headerTransparent : null]}>
         <View style={styles.logoContainer}>
@@ -996,6 +998,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       </Animated.View>
 
     </KeyboardAvoidingView>
+    </OnboardingErrorBoundary>
   );
 };
 
