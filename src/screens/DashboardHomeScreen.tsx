@@ -1286,9 +1286,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           style={styles.profileButton}
           onPress={() => { triggerLightHaptic(); navigation.navigate('UserProfile'); }}
         >
-          {false ? (
+          {user?.user_metadata?.avatar_url ? (
             <Image
-              source={{ uri: user?.user_metadata?.avatar_url }}
+              source={{ uri: user.user_metadata.avatar_url }}
               style={styles.profileImage}
             />
           ) : (
