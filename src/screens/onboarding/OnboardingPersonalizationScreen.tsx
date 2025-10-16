@@ -211,11 +211,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Handle route params and determine registration method
   React.useEffect(() => {
-    logger.debug('Route params:', route.params);
+    console.log('🔍 OnboardingPersonalizationScreen - Initial render');
+    console.log('🔍 Route params:', route.params);
+    console.log('🔍 User email:', user?.email);
+
     if (route.params && typeof route.params === 'object') {
       // Get registration method
       const method = (route.params as any).registrationMethod || 'email';
-      logger.debug('Registration method:', method);
+      console.log('🔍 Registration method:', method);
       setRegistrationMethod(method);
 
       // Check for stored Apple name data first
@@ -223,79 +226,99 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         try {
           const appleNameData = await AsyncStorage.getItem('apple_signin_name');
           console.log('🔍 Checking stored Apple name data:', appleNameData);
+
           if (appleNameData) {
             const appleName = JSON.parse(appleNameData);
-            logger.debug('Found stored Apple name data:', appleName);
+            console.log('🔍 Found stored Apple name data:', appleName);
 
             if (appleName.givenName && appleName.givenName.trim().length > 0) {
               // Even if Apple provided a name, we'll ask the user to confirm it
               // This ensures we get the name they actually want to use
-              logger.debug('🍎 Apple provided name but asking user to confirm');
+              console.log('🍎 Apple provided name but asking user to confirm');
               setName(appleName.givenName); // Pre-fill with Apple's name
               setShowNameStep(true); // But still show the name step
+              console.log('✅ Set showNameStep to true for Apple name confirmation');
               return;
             } else {
-              logger.debug('⚠️ Apple name data exists but givenName is empty');
+              console.log('⚠️ Apple name data exists but givenName is empty');
             }
           } else {
-            logger.debug('ℹ️ No stored Apple name data found');
+            console.log('ℹ️ No stored Apple name data found');
           }
         } catch (error) {
-          logger.error('Error checking Apple name data:', error as Error);
+          console.error('❌ Error checking Apple name data:', error);
         }
 
         // For OAuth users, ALWAYS show name collection step
         // This ensures we get the name the user actually wants to use
         if (method === 'oauth') {
-          logger.debug('🔒 OAuth user - forcing name collection for better UX');
+          console.log('🔒 OAuth user detected - forcing name collection for better UX');
           setShowNameStep(true);
           setName(''); // Start with empty name to force user input
+          console.log('✅ Set showNameStep to true for OAuth user');
           return;
         }
 
+        console.log('📧 Email user or no OAuth detected');
         // Fall back to existing logic if no Apple name found and not OAuth
         const needsNameStep = method === 'oauth';
-        logger.debug(`Show name step: ${needsNameStep}, Method: ${method}`);
+        console.log(`📧 Show name step: ${needsNameStep}, Method: ${method}`);
         setShowNameStep(needsNameStep);
 
         // Set name if provided, but ONLY for email users
         if (route.params && 'name' in route.params && route.params.name) {
           const providedName = route.params.name as string;
+          console.log('📧 Found provided name in route params:', providedName);
 
           if (method !== 'oauth') {
             // Email users: use the provided name
             setName(providedName);
-            logger.onboarding.navigation('✅ Setting name for email user:', providedName);
+            console.log('✅ Setting name for email user:', providedName);
           } else {
             // OAuth users: Already handled above, ignore any provided name
-            logger.debug(`🔒 OAuth user - ignoring provided name: ${providedName}`);
+            console.log(`🔒 OAuth user - ignoring provided name: ${providedName}`);
           }
         } else if (method === 'oauth') {
           // OAuth user with no provided name - already handled above
-          logger.debug('🔒 OAuth user - name collection already set up');
+          console.log('🔒 OAuth user - name collection already set up');
         } else {
           // Email user with no provided name - extract from email (but not private relay)
-          logger.debug('Email user - extracting name from email');
+          console.log('📧 Email user - extracting name from email');
           if (user?.email) {
             // Check if this is an Apple private relay email (randomized when user hides email)
             const isApplePrivateRelay = user.email.includes('@privaterelay.appleid.com');
+            console.log('📧 Checking for private relay email:', isApplePrivateRelay, user.email);
 
             if (isApplePrivateRelay) {
-              logger.debug('🍎 Apple private relay email detected - forcing name collection', { email: user.email });
+              console.log('🍎 Apple private relay email detected - forcing name collection');
               setName(''); // Force name collection for private relay emails
             } else {
               const emailUsername = user.email.split('@')[0];
               // Extract first name from email (e.g., "bynikkib" → "Nikki")
               const extractedName = extractNameFromEmail(emailUsername);
               setName(extractedName);
-              logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
+              console.log(`✅ Extracted name from email: ${emailUsername} → ${extractedName}`);
             }
           }
         }
       };
 
       checkAppleName();
+    } else {
+      console.log('⚠️ No route params found, defaulting to email flow');
+      setRegistrationMethod('email');
+      setShowNameStep(false);
     }
+
+    // Final state check
+    setTimeout(() => {
+      console.log('🎯 Final state check:');
+      console.log('  - registrationMethod:', registrationMethod);
+      console.log('  - showNameStep:', showNameStep);
+      console.log('  - currentStep:', currentStep);
+      console.log('  - name:', name);
+    }, 100);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params]); // user.email intentionally excluded - checked within effect
 

@@ -396,15 +396,14 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     }));
                   } else {
                     // User needs to complete onboarding - continue with personalization
-                    console.log('📝 User needs to complete onboarding, setting redirect to personalization');
+                    console.log('📝 New social auth user needs to complete onboarding, setting redirect to personalization');
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'OnboardingPersonalization',
-                      params: {},
+                      params: {
+                        registrationMethod: 'oauth',
+                      },
                     }));
                   }
-                }
-              } catch (e) {
-                console.error('❌ CRITICAL: Failed to check onboarding status:', e);
                 // IMPORTANT: On error, check if profile exists at all
                 try {
                   const { data: profileCheck } = await supabase
@@ -418,20 +417,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target,
-                      params: {},
+                      params: target === 'OnboardingPersonalization' ? { registrationMethod: 'oauth' } : {},
                     }));
                   } else {
                     console.warn('⚠️ No profile found, defaulting to personalization');
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'OnboardingPersonalization',
-                      params: {},
+                      params: { registrationMethod: 'oauth' },
                     }));
                   }
                 } catch (retryError) {
                   console.error('❌ Retry failed, defaulting to personalization:', retryError);
                   await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                     target: 'OnboardingPersonalization',
-                    params: {},
+                    params: { registrationMethod: 'oauth' },
                   }));
                 }
               }
