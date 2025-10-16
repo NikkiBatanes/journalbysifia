@@ -358,9 +358,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     } else {
                       // User needs to complete onboarding - continue with personalization
                       console.log('📝 New user needs to complete onboarding, setting redirect to personalization');
+                      // Pass registrationMethod to ensure OAuth users get proper name collection
+                      const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
+                      const isOAuth = provider === 'apple' || provider === 'google';
                       await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                         target: 'OnboardingPersonalization',
-                        params: {},
+                        params: {
+                          name: '', // Always empty for OAuth to force collection
+                          registrationMethod: isOAuth ? 'oauth' : 'email',
+                        },
                       }));
                     }
                   }
@@ -397,9 +403,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   } else {
                     // User needs to complete onboarding - continue with personalization
                     console.log('📝 User needs to complete onboarding, setting redirect to personalization');
+                    // Pass registrationMethod to ensure OAuth users get proper name collection
+                    const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
+                    const isOAuth = provider === 'apple' || provider === 'google';
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'OnboardingPersonalization',
-                      params: {},
+                      params: {
+                        name: '', // Always empty for OAuth to force collection
+                        registrationMethod: isOAuth ? 'oauth' : 'email',
+                      },
                     }));
                   }
                 }
@@ -416,22 +428,40 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   if (profileCheck) {
                     console.log('✅ Profile exists, onboarding_completed:', profileCheck.onboarding_completed);
                     const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
+                    // Pass registrationMethod for OAuth users
+                    const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
+                    const isOAuth = provider === 'apple' || provider === 'google';
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target,
-                      params: {},
+                      params: target === 'OnboardingPersonalization' ? {
+                        name: '',
+                        registrationMethod: isOAuth ? 'oauth' : 'email',
+                      } : {},
                     }));
                   } else {
                     console.warn('⚠️ No profile found, defaulting to personalization');
+                    // Pass registrationMethod to ensure OAuth users get proper name collection
+                    const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
+                    const isOAuth = provider === 'apple' || provider === 'google';
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'OnboardingPersonalization',
-                      params: {},
+                      params: {
+                        name: '',
+                        registrationMethod: isOAuth ? 'oauth' : 'email',
+                      },
                     }));
                   }
                 } catch (retryError) {
                   console.error('❌ Retry failed, defaulting to personalization:', retryError);
+                  // Pass registrationMethod to ensure OAuth users get proper name collection
+                  const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
+                  const isOAuth = provider === 'apple' || provider === 'google';
                   await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                     target: 'OnboardingPersonalization',
-                    params: {},
+                    params: {
+                      name: '',
+                      registrationMethod: isOAuth ? 'oauth' : 'email',
+                    },
                   }));
                 }
               }
