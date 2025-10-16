@@ -1047,16 +1047,21 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
       // Store Apple name data for later use in onboarding
-      if (fullName?.givenName) {
+      if (fullName?.givenName && fullName.givenName.trim().length > 0) {
         console.log('🍎 Apple provided real name:', fullName.givenName);
+        console.log('🍎 Full Apple name data:', JSON.stringify(fullName, null, 2));
         // Store the Apple-provided name for use in onboarding
         await AsyncStorage.setItem('apple_signin_name', JSON.stringify({
           givenName: fullName.givenName,
           familyName: fullName.familyName,
           nickname: fullName.nickname,
         }));
+        console.log('🍎 Apple name data stored in AsyncStorage');
       } else {
-        console.log('🍎 Apple did not provide real name - will need collection');
+        console.log('🍎 Apple did not provide real name - fullName object:', JSON.stringify(fullName, null, 2));
+        console.log('🍎 Apple name is empty or missing - will need collection');
+        // Clear any previously stored Apple name data if it exists
+        await AsyncStorage.removeItem('apple_signin_name');
       }
 
       if (error) {

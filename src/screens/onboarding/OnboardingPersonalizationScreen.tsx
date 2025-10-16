@@ -222,22 +222,38 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       const checkAppleName = async () => {
         try {
           const appleNameData = await AsyncStorage.getItem('apple_signin_name');
+          console.log('🔍 Checking stored Apple name data:', appleNameData);
           if (appleNameData) {
             const appleName = JSON.parse(appleNameData);
             logger.debug('Found stored Apple name data:', appleName);
 
-            if (appleName.givenName) {
-              setName(appleName.givenName);
-              logger.onboarding.navigation('✅ Using Apple-provided name:', appleName.givenName);
-              setShowNameStep(false); // Skip name collection if we have Apple name
+            if (appleName.givenName && appleName.givenName.trim().length > 0) {
+              // Even if Apple provided a name, we'll ask the user to confirm it
+              // This ensures we get the name they actually want to use
+              logger.debug('🍎 Apple provided name but asking user to confirm');
+              setName(appleName.givenName); // Pre-fill with Apple's name
+              setShowNameStep(true); // But still show the name step
               return;
+            } else {
+              logger.debug('⚠️ Apple name data exists but givenName is empty');
             }
+          } else {
+            logger.debug('ℹ️ No stored Apple name data found');
           }
         } catch (error) {
           logger.error('Error checking Apple name data:', error as Error);
         }
 
-        // Fall back to existing logic if no Apple name found
+        // For OAuth users, ALWAYS show name collection step
+        // This ensures we get the name the user actually wants to use
+        if (method === 'oauth') {
+          logger.debug('🔒 OAuth user - forcing name collection for better UX');
+          setShowNameStep(true);
+          setName(''); // Start with empty name to force user input
+          return;
+        }
+
+        // Fall back to existing logic if no Apple name found and not OAuth
         const needsNameStep = method === 'oauth';
         logger.debug(`Show name step: ${needsNameStep}, Method: ${method}`);
         setShowNameStep(needsNameStep);
@@ -251,23 +267,29 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             setName(providedName);
             logger.onboarding.navigation('✅ Setting name for email user:', providedName);
           } else {
-            // OAuth users: ALWAYS force name collection, ignore any provided name
-            logger.debug(`🔒 OAuth user - forcing name collection (ignoring: ${providedName})`);
-            setName(''); // Ensure name is empty to show name step
+            // OAuth users: Already handled above, ignore any provided name
+            logger.debug(`🔒 OAuth user - ignoring provided name: ${providedName}`);
           }
         } else if (method === 'oauth') {
-          // OAuth user with no provided name - ensure name is empty
-          logger.debug('🔒 OAuth user - forcing name collection');
-          setName('');
+          // OAuth user with no provided name - already handled above
+          logger.debug('🔒 OAuth user - name collection already set up');
         } else {
-          // Email user with no provided name - extract from email
+          // Email user with no provided name - extract from email (but not private relay)
           logger.debug('Email user - extracting name from email');
           if (user?.email) {
-            const emailUsername = user.email.split('@')[0];
-            // Extract first name from email (e.g., "bynikkib" → "Nikki")
-            const extractedName = extractNameFromEmail(emailUsername);
-            setName(extractedName);
-            logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
+            // Check if this is an Apple private relay email (randomized when user hides email)
+            const isApplePrivateRelay = user.email.includes('@privaterelay.appleid.com');
+
+            if (isApplePrivateRelay) {
+              logger.debug('🍎 Apple private relay email detected - forcing name collection', { email: user.email });
+              setName(''); // Force name collection for private relay emails
+            } else {
+              const emailUsername = user.email.split('@')[0];
+              // Extract first name from email (e.g., "bynikkib" → "Nikki")
+              const extractedName = extractNameFromEmail(emailUsername);
+              setName(extractedName);
+              logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
+            }
           }
         }
       };
