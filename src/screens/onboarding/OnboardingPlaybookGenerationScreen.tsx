@@ -175,7 +175,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       // Use the userName from onboarding params instead of user metadata
       const userName = params.userName || 'Friend';
 
+      console.log('🎯 Playbook Generation - Full params:', params);
       console.log('🎯 Using userName from onboarding params:', userName);
+      console.log('🎯 userName type:', typeof userName, 'length:', userName?.length);
 
       // Use real generation service
       const response = await enhancedGenerationService.generatePlaybook({

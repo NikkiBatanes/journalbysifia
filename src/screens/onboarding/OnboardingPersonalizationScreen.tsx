@@ -506,6 +506,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
         // Skip redundant screens and go directly to playbook generation
         logger.debug('Proceeding directly to Playbook Generation');
+        console.log('🎯 Navigating with userName:', name || 'Friend');
+        console.log('🎯 Name state value:', name, 'type:', typeof name, 'length:', name?.length);
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
           userInput,
