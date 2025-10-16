@@ -1375,31 +1375,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           showsVerticalScrollIndicator={false}
         >
           {/* Progress Tracking - moved above Today's Scripture */}
-          <StreakTracker />
-          <View style={styles.smallSectionGap} />
-
-          {/* Daily Scripture - now below Streak Tracker */}
-          <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
-          <View style={styles.sectionGap} />
-
-          {/* Row 1: Inspiration Cards (Affirmation only) */}
-          <View style={styles.row}>
-            <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
-          </View>
-          <View style={styles.sectionGap} />
-
-          {/* Prayer Requests Section (hide when empty) */}
-          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
-            <>
-              {renderPrayerRequestsCard()}
-              <View style={styles.sectionGap} />
-            </>
-          )}
-
-
-          {/* Removed Weekly Insights and AI Insights */}
-
-          {/* Collapsing Playbook label */}
           <View style={styles.playbookLabelContainer}>
             <Animated.View
               style={[styles.playbookLabelClip, { width: playbookWidth }]}
@@ -1430,6 +1405,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             }}
           />
           <View style={styles.sectionGap} />
+
+          {/* Streak Tracker - moved after Playbook section */}
+          <StreakTracker />
+          <View style={styles.smallSectionGap} />
           <DevotionalCarousel
             onDevotionalPress={(devotional) => {
               // Navigate to devotional detail screen

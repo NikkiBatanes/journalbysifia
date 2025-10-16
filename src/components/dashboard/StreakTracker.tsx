@@ -59,22 +59,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
   const calculateStreaks = useCallback((activityList: any[]): Streak[] => {
     const streakTypes = [
       {
-        type: 'journal',
-        activityTypes: [
-          'journal_entry',
-          'journal_todo_added',
-          'journal_focus_set',
-          'journal_timeblock_added',
-          'journal_gratitude_added',
-          'journal_win_added',
-          'journal_looking_forward_added',
-          'reflection_saved',
-          'gratitude_saved',
-          'prayer_saved',
-          'timeblock_saved',
-        ],
-      },
-      {
         type: 'playbook',
         activityTypes: [
           'playbook_generated',
@@ -93,6 +77,22 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
           'devotional_day_completed',
           'devotional_completed',
           'daily_streak',
+        ],
+      },
+      {
+        type: 'journal',
+        activityTypes: [
+          'journal_entry',
+          'journal_todo_added',
+          'journal_focus_set',
+          'journal_timeblock_added',
+          'journal_gratitude_added',
+          'journal_win_added',
+          'journal_looking_forward_added',
+          'reflection_saved',
+          'gratitude_saved',
+          'prayer_saved',
+          'timeblock_saved',
         ],
       },
       {
@@ -285,19 +285,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
 
   // Map streak type to activity types used for calculation
   const activityTypesByStreak: Record<Streak['type'], string[]> = {
-    journal: [
-      'journal_entry',
-      'journal_todo_added',
-      'journal_focus_set',
-      'journal_timeblock_added',
-      'journal_gratitude_added',
-      'journal_win_added',
-      'journal_looking_forward_added',
-      'reflection_saved',
-      'gratitude_saved',
-      'prayer_saved',
-      'timeblock_saved',
-    ],
     playbook: [
       'playbook_generated',
       'playbook_created',
@@ -312,6 +299,19 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
       'devotional_day_completed',
       'devotional_completed',
       'daily_streak',
+    ],
+    journal: [
+      'journal_entry',
+      'journal_todo_added',
+      'journal_focus_set',
+      'journal_timeblock_added',
+      'journal_gratitude_added',
+      'journal_win_added',
+      'journal_looking_forward_added',
+      'reflection_saved',
+      'gratitude_saved',
+      'prayer_saved',
+      'timeblock_saved',
     ],
     prayer: [
       'daily_streak',
