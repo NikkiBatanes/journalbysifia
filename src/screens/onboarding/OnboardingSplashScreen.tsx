@@ -51,7 +51,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         StatusBar.setBackgroundColor(Colors.anchorBlue);
       }
     } catch (error) {
-      logger.error('Error setting status bar:', error as Error as Error);
+      logger.error('Error setting status bar:', error);
     }
 
     // Show logo instantly (removed fade-in)
@@ -116,7 +116,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                 return true;
               }
             } catch (chkErr) {
-              logger.warn('Onboarding completion check failed. Proceeding to honor redirect:', chkErr as Error);
+              logger.warn('Onboarding completion check failed. Proceeding to honor redirect:', chkErr);
               try {
                 navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
               } catch (navErr) {
@@ -141,7 +141,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           }
         }
       } catch (e) {
-        logger.warn('Error reading post_auth_redirect:', e as Error);
+        logger.warn('Error reading post_auth_redirect:', e);
       }
 
       // Not authenticated → re-check session quickly to avoid race after login
@@ -221,7 +221,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                   return true;
                 }
               } catch (chkErr) {
-                logger.warn('(post-user) Onboarding check failed. Proceeding to honor redirect:', chkErr as Error);
+                logger.warn('(post-user) Onboarding check failed. Proceeding to honor redirect:', chkErr);
                 try {
                   navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
                 } catch (navErr) {
@@ -247,7 +247,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           }
         }
       } catch (e) {
-        logger.warn('Error re-reading post_auth_redirect:', e as Error);
+        logger.warn('Error re-reading post_auth_redirect:', e);
       }
 
       // FLOW 1: No detected user → Splash > TransformJourney > Welcome
@@ -406,7 +406,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           return true;
         }
       } catch (obErr) {
-        logger.warn('❌ ONBOARDING CHECK FAILED. Applying safer fallback based on auth state:', obErr as Error);
+        logger.warn('❌ ONBOARDING CHECK FAILED. Applying safer fallback based on auth state:', obErr);
         // If we have an authenticated user, prefer going straight to Personalization rather than Welcome
         try {
           const target = effectiveUser ? 'TransformJourney' : 'OnboardingWelcome';
@@ -454,7 +454,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             navigation.navigate(target as any, params as any);
           }
         } catch (finalNavErr) {
-          logger.warn('Final fallback navigation error:', finalNavErr as Error);
+          logger.warn('Final fallback navigation error:', finalNavErr);
         }
         hasNavigatedRef.current = true;
         return true;
@@ -477,13 +477,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         logger.onboarding.navigation('📊 Navigation result:', { redirected });
 
         if (!redirected) {
-          logger.warn('⚠️ Navigation failed, falling back to welcome screen' as Error);
+          logger.warn('⚠️ Navigation failed, falling back to welcome screen');
           // Fallback to welcome screen if all else fails
           navigation.reset({ index: 0, routes: [{ name: 'OnboardingWelcome' as any }] });
           hasNavigatedRef.current = true;
         }
       } catch (error) {
-        logger.error('❌ Navigation error:', error as Error);
+        logger.error('❌ Navigation error:', error);
         // Emergency fallback
         navigation.reset({ index: 0, routes: [{ name: 'OnboardingWelcome' as any }] });
         hasNavigatedRef.current = true;
