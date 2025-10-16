@@ -434,6 +434,37 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   }));
                 }
               }
+            } catch (error) {
+              console.error('❌ CRITICAL: Failed to check onboarding status:', error);
+              // IMPORTANT: On error, check if profile exists at all
+              try {
+                const { data: profileCheck } = await supabase
+                  .from('user_profiles')
+                  .select('id, onboarding_completed')
+                  .eq('id', session.user.id)
+                  .maybeSingle();
+
+                if (profileCheck) {
+                  console.log('✅ Profile exists, onboarding_completed:', profileCheck.onboarding_completed);
+                  const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
+                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                    target,
+                    params: target === 'OnboardingPersonalization' ? { registrationMethod: 'oauth' } : {},
+                  }));
+                } else {
+                  console.warn('⚠️ No profile found, defaulting to personalization');
+                  await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                    target: 'OnboardingPersonalization',
+                    params: { registrationMethod: 'oauth' },
+                  }));
+                }
+              } catch (retryError) {
+                console.error('❌ Retry failed, defaulting to personalization:', retryError);
+                await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+                  target: 'OnboardingPersonalization',
+                  params: { registrationMethod: 'oauth' },
+                }));
+              }
             }
             break;
           case 'SIGNED_OUT':
