@@ -185,7 +185,7 @@ export const createOnboardingStyles = (fonts: {
   },
 
   activeDot: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.growthGreen,
     width: 20,
   },
 
