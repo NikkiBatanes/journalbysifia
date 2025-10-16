@@ -355,15 +355,21 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             isOAuth,
           });
 
-          // For OAuth users, always force name collection to avoid random Apple names
+          // Determine display name based on provider
           let displayName = '';
-          if (isOAuth) {
-            // For Apple/Google users, always start with empty name to force collection
-            // This prevents random Apple-generated names like "pzgttqhzgh"
+          if (provider === 'apple') {
+            // For Apple users, always force name collection to avoid private relay names
             displayName = '';
-            logger.debug('OAuth user - forcing name collection:', {
-              provider,
+            logger.debug('Apple user - forcing name collection:', {
               reason: 'Avoiding random/private relay names from Apple',
+            });
+          } else if (provider === 'google') {
+            // For Google users, use the Google-provided name from user_metadata
+            // This was saved during Google sign-in
+            displayName = effectiveUser.user_metadata?.first_name || effectiveUser.user_metadata?.full_name || '';
+            logger.debug('Google user - using Google-provided name:', {
+              first_name: effectiveUser.user_metadata?.first_name,
+              full_name: effectiveUser.user_metadata?.full_name,
             });
           } else {
             // For email users, use first name or email prefix

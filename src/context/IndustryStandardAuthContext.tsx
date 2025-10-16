@@ -1000,25 +1000,44 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         return { error: authError };
       }
 
-      // Clear Google avatar URL from user metadata to prevent it from being used
-      // This ensures we only use our custom avatar system
+      // Save Google-provided name and clear avatar URLs from user metadata
       try {
         const currentUser = await supabase.auth.getUser();
-        if (currentUser.data.user?.user_metadata?.avatar_url ||
-            currentUser.data.user?.user_metadata?.picture ||
-            currentUser.data.user?.user_metadata?.photoURL) {
-          console.log('🧹 Clearing Google avatar URLs from user metadata');
-          await supabase.auth.updateUser({
-            data: {
-              ...currentUser.data.user.user_metadata,
-              avatar_url: undefined,
-              picture: undefined,
-              photoURL: undefined,
-            }
-          });
+        
+        if (!currentUser.data.user) {
+          console.log('⚠️ No user found after Google sign-in');
+          return { error: null };
         }
+        
+        // Decode the Google ID token to get the user's name
+        const base64Url = idToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const googleUser = JSON.parse(jsonPayload);
+        
+        console.log('💾 Saving Google-provided name to user metadata:', {
+          given_name: googleUser.given_name,
+          full_name: googleUser.name,
+        });
+        
+        // Update user metadata with Google name and clear avatar URLs
+        await supabase.auth.updateUser({
+          data: {
+            ...currentUser.data.user.user_metadata,
+            first_name: googleUser.given_name || googleUser.name?.split(' ')[0] || '',
+            full_name: googleUser.name || '',
+            // Clear avatar URLs to use our custom avatar system
+            avatar_url: undefined,
+            picture: undefined,
+            photoURL: undefined,
+          }
+        });
+        
+        console.log('✅ Google name saved and avatar URLs cleared');
       } catch (metadataError) {
-        console.log('⚠️ Could not clear avatar metadata (safe to ignore):', metadataError);
+        console.log('⚠️ Could not update user metadata (safe to ignore):', metadataError);
       }
 
       setAuthState(prev => ({ ...prev, loading: false }));

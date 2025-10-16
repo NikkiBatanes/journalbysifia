@@ -290,7 +290,7 @@ export default function RootStackNavigator({
             component={OnboardingNotificationSetupScreen as React.ComponentType}
             options={{
               headerShown: false,
-              animation: 'fade',
+              animation: 'slide_from_bottom',
               animationDuration: 300,
             }}
           />

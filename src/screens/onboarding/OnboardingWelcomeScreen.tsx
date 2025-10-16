@@ -169,12 +169,22 @@ const OnboardingWelcomeScreen: React.FC = () => {
         const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
         const isOAuth = provider === 'apple' || provider === 'google';
         
-        // For OAuth users, always use empty name to force collection
-        // For email users, extract from email or metadata
-        const displayName = isOAuth ? '' : (user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '');
+        // Determine display name based on provider
+        let displayName = '';
+        if (provider === 'apple') {
+          // For Apple users, force name collection to avoid private relay names
+          displayName = '';
+        } else if (provider === 'google') {
+          // For Google users, use the Google-provided name from user_metadata
+          displayName = user?.user_metadata?.first_name || user?.user_metadata?.full_name || '';
+        } else {
+          // For email users, extract from email or metadata
+          displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
+        }
+        
         const registrationMethod = isOAuth ? 'oauth' : 'email';
         
-        console.log('🔍 OnboardingWelcome: Detected user type:', { provider, isOAuth, registrationMethod });
+        console.log('🔍 OnboardingWelcome: Detected user type:', { provider, isOAuth, registrationMethod, displayName });
         
         try {
           (navigation as any).reset?.({ index: 0, routes: [{ name: 'OnboardingPersonalization', params: { name: displayName, registrationMethod } }] });
@@ -233,7 +243,17 @@ const OnboardingWelcomeScreen: React.FC = () => {
         // Detect if this is an OAuth user
         const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
         const isOAuth = provider === 'apple' || provider === 'google';
-        const displayName = isOAuth ? '' : (user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '');
+        
+        // Determine display name based on provider
+        let displayName = '';
+        if (provider === 'apple') {
+          displayName = ''; // Force collection for Apple
+        } else if (provider === 'google') {
+          displayName = user?.user_metadata?.first_name || user?.user_metadata?.full_name || '';
+        } else {
+          displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
+        }
+        
         const registrationMethod = isOAuth ? 'oauth' : 'email';
         
         navigation.navigate('OnboardingPersonalization' as any, {
@@ -259,7 +279,17 @@ const OnboardingWelcomeScreen: React.FC = () => {
         // Detect if this is an OAuth user
         const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
         const isOAuth = provider === 'apple' || provider === 'google';
-        const displayName = isOAuth ? '' : (user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '');
+        
+        // Determine display name based on provider
+        let displayName = '';
+        if (provider === 'apple') {
+          displayName = ''; // Force collection for Apple
+        } else if (provider === 'google') {
+          displayName = user?.user_metadata?.first_name || user?.user_metadata?.full_name || '';
+        } else {
+          displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
+        }
+        
         const registrationMethod = isOAuth ? 'oauth' : 'email';
         
         navigation.navigate('OnboardingPersonalization' as any, {
