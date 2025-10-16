@@ -16,6 +16,7 @@ import RNIap, {
   purchaseUpdatedListener,
 } from 'react-native-iap';
 import { NewSubscriptionService } from './NewSubscriptionService';
+import { supabase } from './supabaseClient';
 
 export interface GooglePlayProduct {
   productId: string;
@@ -255,6 +256,21 @@ export class GooglePlayBillingService {
       if (!userId) {
         throw new Error('No authenticated user found');
       }
+
+      // FIRST: Check if user still exists in database
+      const { data: userProfile, error: userCheckError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (userCheckError || !userProfile) {
+        console.log('[GooglePlay] ⚠️ User does not exist in database - cannot update subscription');
+        console.log('[GooglePlay] This prevents creating subscriptions for deleted users');
+        throw new Error('User account not found - subscription update skipped');
+      }
+
+      console.log('[GooglePlay] ✅ User exists in database, proceeding with subscription update');
 
       await NewSubscriptionService.upgradeSubscription(userId, {
         target_tier: tier as any,

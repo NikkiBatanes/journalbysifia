@@ -3,7 +3,7 @@
  * Shows sync status and handles calendar integration with feature gating
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -61,7 +61,16 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   const userPreferences = user?.user_metadata?.preferences || {};
   const autoSyncEnabled = userPreferences.calendar?.autoSync || false;
 
+  // Prevent duplicate sync calls
+  const syncInProgress = useRef(false);
+
   const handleSync = async () => {
+    // Prevent duplicate calls
+    if (syncInProgress.current || isLoading) {
+      console.log('🔵 [CalendarSyncButton] Sync already in progress, ignoring duplicate call');
+      return;
+    }
+
     console.log('🔵 [CalendarSyncButton] handleSync called');
     console.log('🔵 [CalendarSyncButton] canSyncToCalendar:', calendarGating.canSyncToCalendar);
     console.log('🔵 [CalendarSyncButton] calendarEventId:', calendarEventId);
@@ -73,6 +82,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
       return;
     }
 
+    syncInProgress.current = true;
     setSyncStatus('syncing');
     triggerLightHaptic();
 
@@ -152,6 +162,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
       );
     } finally {
       setIsLoading(false);
+      syncInProgress.current = false;
     }
   };
 

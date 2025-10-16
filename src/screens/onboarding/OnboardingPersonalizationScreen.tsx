@@ -206,7 +206,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Debug effect for step rendering
   React.useEffect(() => {
-    logger.onboarding.stepCompleted('Render State - currentStep:', currentStep, 'showNameStep:', showNameStep, 'registrationMethod:', registrationMethod);
+    logger.onboarding.stepCompleted(`Render State - currentStep: ${currentStep}, showNameStep: ${showNameStep}, registrationMethod: ${registrationMethod}`);
   }, [currentStep, showNameStep, registrationMethod]);
 
   // Handle route params and determine registration method
@@ -221,7 +221,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // ALWAYS show name step for OAuth users (Apple/Google) to ensure we get real names
       // For email users, skip it (they already provided name during registration)
       const needsNameStep = method === 'oauth';
-      logger.debug('Show name step:', needsNameStep, 'Method:', method);
+      logger.debug(`Show name step: ${needsNameStep}, Method: ${method}`);
       setShowNameStep(needsNameStep);
 
       // Set name if provided, but ONLY for email users
@@ -234,7 +234,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           logger.onboarding.navigation('✅ Setting name for email user:', providedName);
         } else {
           // OAuth users: ALWAYS force name collection, ignore any provided name
-          logger.debug('🔒 OAuth user - forcing name collection (ignoring:', providedName, ')');
+          logger.debug(`🔒 OAuth user - forcing name collection (ignoring: ${providedName})`);
           setName(''); // Ensure name is empty to show name step
         }
       } else if (method === 'oauth') {
@@ -249,7 +249,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // Extract first name from email (e.g., "bynikkib" → "Nikki")
           const extractedName = extractNameFromEmail(emailUsername);
           setName(extractedName);
-          logger.onboarding.navigation('✅ Extracted name from email:', emailUsername, '→', extractedName);
+          logger.onboarding.navigation(`✅ Extracted name from email: ${emailUsername} → ${extractedName}`);
         }
       }
 
@@ -448,9 +448,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       setCurrentStep(currentStep + 1);
     } else {
       try {
-        // Update onboarding progress
-        updateOnboardingStep('personalization_completed', 2);
-
         // Mark onboarding as completed using proper service method
         if (user) {
           logger.onboarding.stepCompleted('Marking onboarding as completed for user:', user.id);
@@ -458,21 +455,29 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             // Use the onboarding service to properly complete onboarding
             await onboardingService.completeOnboarding(user.id);
 
-            // Also update user_profiles for consistency
-            const { error } = await supabase
-              .from('user_profiles')
-              .update({ onboarding_completed: true })
-              .eq('id', user.id);
+            // Also update user_profiles for consistency - with better error handling
+            try {
+              const { error } = await supabase
+                .from('user_profiles')
+                .update({ onboarding_completed: true })
+                .eq('id', user.id);
 
-            if (error) {
-              logger.error('Error updating user profile onboarding status:', error);
-            } else {
-              logger.onboarding.stepCompleted('Onboarding marked as completed in both tables');
+              if (error) {
+                logger.error('Error updating user profile onboarding status:', error as Error);
+                // Don't throw - continue with the flow even if this fails
+              } else {
+                logger.onboarding.stepCompleted('Onboarding marked as completed in both tables');
+              }
+            } catch (profileError) {
+              logger.error('Error updating user profile (continuing anyway):', profileError as Error);
+              // Continue with the flow even if profile update fails
             }
           } catch (error) {
-            logger.error('Error completing onboarding:', error);
+            logger.error('Error completing onboarding:', error as Error);
+            // Continue with navigation even if onboarding update fails
           }
         }
+        // Continue with navigation regardless of completion update success
 
         // Use main playbook generation UI with onboarding data
         const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();

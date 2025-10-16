@@ -164,7 +164,19 @@ export class AppleStoreKitService {
       await this.initialize();
 
       const productIds = Object.values(AppleStoreKitService.PRODUCT_IDS);
+      console.log('[StoreKit] 📦 Fetching products for IDs:', productIds);
+
       const products = await getSubscriptions({ skus: productIds });
+
+      // Enhanced logging for debugging
+      console.log('[StoreKit] ✅ Retrieved products from App Store:');
+      products.forEach((product: any, index: number) => {
+        console.log(`[StoreKit] ${index + 1}. ${product.productId}`);
+        console.log(`[StoreKit]    Title: ${product.title}`);
+        console.log(`[StoreKit]    Description: ${product.description}`);
+        console.log(`[StoreKit]    Price: ${product.localizedPrice}`);
+        console.log(`[StoreKit]    Is Trial: ${product.productId.includes('freetrial') ? 'YES' : 'NO'}`);
+      });
 
       return products.map((product: Subscription) => ({
         productId: product.productId,
@@ -176,7 +188,15 @@ export class AppleStoreKitService {
         discounts: (product as any).discounts || [],
       }));
     } catch (error) {
-      console.error('[StoreKit] Failed to get products:', error);
+      console.error('[StoreKit] ❌ Failed to get products:', error);
+
+      // Enhanced error logging
+      console.error('[StoreKit] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        productIds: Object.values(AppleStoreKitService.PRODUCT_IDS),
+      });
+
       return [];
     }
   }
@@ -241,11 +261,18 @@ export class AppleStoreKitService {
             console.error('[StoreKit] 1. User cancelled the purchase');
             console.error('[StoreKit] 2. Network issue with App Store');
             console.error('[StoreKit] 3. Purchase listener not set up correctly');
+            console.error('[StoreKit] 4. Apple payment sheet failed to show');
             this.pendingPurchaseResolvers.delete(productId);
             reject(new Error('Purchase timeout - no response from App Store'));
           }
-        }, 15000); // 15 second timeout (reduced from 30 seconds)
+        }, 30000); // Increased timeout to 30 seconds for slower networks
       });
+
+      // Validate that the promise was created and stored
+      if (!this.pendingPurchaseResolvers.has(productId)) {
+        console.error('[StoreKit] ❌ Failed to store purchase resolver for:', productId);
+        throw new Error('Failed to create purchase promise');
+      }
 
       if (Platform.OS === 'ios') {
         const purchaseParams: any = { sku: productId };
@@ -372,6 +399,7 @@ export class AppleStoreKitService {
           this.pendingPurchaseResolvers.clear();
         } else {
           console.error('[StoreKit] ❌ No pending resolvers found at all!');
+          console.error('[StoreKit] This indicates the purchase promise was never created properly');
         }
       }
     } catch (error) {
@@ -462,6 +490,21 @@ export class AppleStoreKitService {
       if (!userId) {
         throw new Error('No authenticated user found');
       }
+
+      // FIRST: Check if user still exists in database
+      const { data: userProfile, error: userCheckError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (userCheckError || !userProfile) {
+        console.log('[StoreKit] ⚠️ User does not exist in database - cannot update subscription');
+        console.log('[StoreKit] This prevents creating subscriptions for deleted users');
+        throw new Error('User account not found - subscription update skipped');
+      }
+
+      console.log('[StoreKit] ✅ User exists in database, proceeding with subscription update');
 
       // Check if user is on trial - if so, convert to paid
       const currentSubscription = await NewSubscriptionService.getUserSubscription(userId);
@@ -775,6 +818,21 @@ export class AppleStoreKitService {
     status: { tier: string; status: string; isTrialProduct: boolean }
   ): Promise<void> {
     try {
+      // FIRST: Check if user still exists in database
+      const { data: userProfile, error: userCheckError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (userCheckError || !userProfile) {
+        console.log('[StoreKit] ⚠️ User does not exist in database - skipping subscription sync');
+        console.log('[StoreKit] This prevents creating subscriptions for deleted users');
+        return;
+      }
+
+      console.log('[StoreKit] ✅ User exists in database, proceeding with subscription sync');
+
       const subscriptionService = new NewSubscriptionService();
 
       // Get current database status

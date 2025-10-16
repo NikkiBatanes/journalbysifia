@@ -201,13 +201,17 @@ class PricingService {
         locale = NativeModules.I18nManager?.localeIdentifier || '';
       }
 
-      console.log('[PricingService] Detected device locale:', locale);
+      console.log('[PricingService] 🔍 LOCATION DEBUG:');
+      console.log('[PricingService] Platform:', Platform.OS);
+      console.log('[PricingService] Raw locale:', locale);
+      console.log('[PricingService] Available location pricing:', Object.keys(this.locationPricing));
 
       // Extract country code from locale (e.g., "en_PH" -> "PH", "en-PH" -> "PH")
       const countryMatch = locale.match(/[-_]([A-Z]{2})$/i);
       const countryCode = countryMatch ? countryMatch[1].toUpperCase() : '';
 
       console.log('[PricingService] Extracted country code:', countryCode);
+      console.log('[PricingService] Has PH pricing configured:', !!this.locationPricing['PH']);
 
       // Return country code if we have pricing for it, otherwise default to US
       if (countryCode && this.locationPricing[countryCode]) {
@@ -229,11 +233,26 @@ class PricingService {
   async getLocationAdjustedPricing(): Promise<PricingTier[]> {
     const location = await this.getUserLocation();
     const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
+
+    console.log('[PricingService] 📍 PRICING DEBUG:');
+    console.log('[PricingService] Detected location:', location);
+    console.log('[PricingService] Location data:', locationData);
+    console.log('[PricingService] Is development mode:', __DEV__);
+    console.log('[PricingService] Is location PH?', location === 'PH');
+
     // Use explicit PH pricing when market is Philippines
     if (location === 'PH') {
+      console.log('[PricingService] ✅ Using Philippine pricing for location:', location);
       return this.phOverridePricing;
     }
 
+    // FORCE Philippine pricing for development/testing
+    if (__DEV__) {
+      console.log('[PricingService] 🔧 DEV MODE: Forcing Philippine pricing for testing');
+      return this.phOverridePricing;
+    }
+
+    console.log('[PricingService] Using location-based pricing for:', location, 'with multiplier:', locationData.multiplier);
     return this.baseUSDPricing.map(tier => ({
       ...tier,
       monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
@@ -508,10 +527,16 @@ class PricingService {
   }
 
   /**
-   * Format price with currency symbol
+   * Format price with currency symbol (removes .00 for whole numbers in PHP)
    */
   async formatPrice(price: number): Promise<string> {
     const currencyInfo = await this.getCurrencyInfo();
+
+    // For PHP, remove .00 for whole numbers
+    if (currencyInfo.currency === 'PHP' && price % 1 === 0) {
+      return `${currencyInfo.symbol}${Math.floor(price)}`;
+    }
+
     return `${currencyInfo.symbol}${price.toFixed(2)}`;
   }
 
