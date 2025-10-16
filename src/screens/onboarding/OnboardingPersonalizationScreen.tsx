@@ -211,114 +211,85 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Handle route params and determine registration method
   React.useEffect(() => {
-    console.log('🔍 OnboardingPersonalizationScreen - Initial render');
-    console.log('🔍 Route params:', route.params);
-    console.log('🔍 User email:', user?.email);
-
+    logger.debug('Route params:', route.params);
     if (route.params && typeof route.params === 'object') {
       // Get registration method
       const method = (route.params as any).registrationMethod || 'email';
-      console.log('🔍 Registration method:', method);
+      logger.debug('Registration method:', method);
       setRegistrationMethod(method);
 
       // Check for stored Apple name data first
       const checkAppleName = async () => {
-        try {
-          const appleNameData = await AsyncStorage.getItem('apple_signin_name');
-          console.log('🔍 Checking stored Apple name data:', appleNameData);
-
-          if (appleNameData) {
-            const appleName = JSON.parse(appleNameData);
-            console.log('🔍 Found stored Apple name data:', appleName);
-
-            if (appleName.givenName && appleName.givenName.trim().length > 0) {
-              // Even if Apple provided a name, we'll ask the user to confirm it
-              // This ensures we get the name they actually want to use
-              console.log('🍎 Apple provided name but asking user to confirm');
-              setName(appleName.givenName); // Pre-fill with Apple's name
-              setShowNameStep(true); // But still show the name step
-              console.log('✅ Set showNameStep to true for Apple name confirmation');
-              return;
-            } else {
-              console.log('⚠️ Apple name data exists but givenName is empty');
-            }
-          } else {
-            console.log('ℹ️ No stored Apple name data found');
-          }
-        } catch (error) {
-          console.error('❌ Error checking Apple name data:', error);
-        }
-
-        // For OAuth users, ALWAYS show name collection step
+        // For OAuth users, ALWAYS show name collection step FIRST
         // This ensures we get the name the user actually wants to use
         if (method === 'oauth') {
-          console.log('🔒 OAuth user detected - forcing name collection for better UX');
-          setShowNameStep(true);
-          setName(''); // Start with empty name to force user input
-          console.log('✅ Set showNameStep to true for OAuth user');
-          return;
+          logger.debug('🔒 OAuth user detected - forcing name collection for better UX');
+          
+          try {
+            const appleNameData = await AsyncStorage.getItem('apple_signin_name');
+            console.log('🔍 Checking stored Apple name data:', appleNameData);
+            if (appleNameData) {
+              const appleName = JSON.parse(appleNameData);
+              logger.debug('Found stored Apple name data:', appleName);
+
+              if (appleName.givenName && appleName.givenName.trim().length > 0) {
+                // Even if Apple provided a name, we'll ask the user to confirm it
+                // This ensures we get the name they actually want to use
+                logger.debug('🍎 Apple provided name but asking user to confirm');
+                setName(appleName.givenName); // Pre-fill with Apple's name
+              } else {
+                logger.debug('⚠️ Apple name data exists but givenName is empty');
+                setName(''); // Start with empty name
+              }
+            } else {
+              logger.debug('ℹ️ No stored Apple name data found');
+              setName(''); // Start with empty name
+            }
+          } catch (error) {
+            logger.error('Error checking Apple name data:', error as Error);
+            setName(''); // Start with empty name on error
+          }
+          
+          setShowNameStep(true); // ALWAYS show name step for OAuth
+          return; // Exit early - don't process email extraction
         }
 
-        console.log('📧 Email user or no OAuth detected');
-        // Fall back to existing logic if no Apple name found and not OAuth
-        const needsNameStep = method === 'oauth';
-        console.log(`📧 Show name step: ${needsNameStep}, Method: ${method}`);
-        setShowNameStep(needsNameStep);
-
+        // For non-OAuth users (email/password), handle name extraction
+        logger.debug('Non-OAuth user - checking email extraction');
+        
         // Set name if provided, but ONLY for email users
         if (route.params && 'name' in route.params && route.params.name) {
           const providedName = route.params.name as string;
-          console.log('📧 Found provided name in route params:', providedName);
-
-          if (method !== 'oauth') {
-            // Email users: use the provided name
-            setName(providedName);
-            console.log('✅ Setting name for email user:', providedName);
-          } else {
-            // OAuth users: Already handled above, ignore any provided name
-            console.log(`🔒 OAuth user - ignoring provided name: ${providedName}`);
-          }
-        } else if (method === 'oauth') {
-          // OAuth user with no provided name - already handled above
-          console.log('🔒 OAuth user - name collection already set up');
+          setName(providedName);
+          logger.onboarding.navigation('email_user', 'name_provided', { name: providedName });
+          setShowNameStep(false);
         } else {
           // Email user with no provided name - extract from email (but not private relay)
-          console.log('📧 Email user - extracting name from email');
+          logger.debug('Email user - extracting name from email');
           if (user?.email) {
             // Check if this is an Apple private relay email (randomized when user hides email)
             const isApplePrivateRelay = user.email.includes('@privaterelay.appleid.com');
-            console.log('📧 Checking for private relay email:', isApplePrivateRelay, user.email);
 
             if (isApplePrivateRelay) {
-              console.log('🍎 Apple private relay email detected - forcing name collection');
+              logger.debug('🍎 Apple private relay email detected - forcing name collection', { email: user.email });
               setName(''); // Force name collection for private relay emails
+              setShowNameStep(true); // Show name step
             } else {
               const emailUsername = user.email.split('@')[0];
               // Extract first name from email (e.g., "bynikkib" → "Nikki")
               const extractedName = extractNameFromEmail(emailUsername);
               setName(extractedName);
-              console.log(`✅ Extracted name from email: ${emailUsername} → ${extractedName}`);
+              logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
+              setShowNameStep(false);
             }
+          } else {
+            setShowNameStep(false);
           }
         }
       };
 
       checkAppleName();
-    } else {
-      console.log('⚠️ No route params found, defaulting to email flow');
-      setRegistrationMethod('email');
-      setShowNameStep(false);
     }
-
-    // Final state check
-    setTimeout(() => {
-      console.log('🎯 Final state check:');
-      console.log('  - registrationMethod:', registrationMethod);
-      console.log('  - showNameStep:', showNameStep);
-      console.log('  - currentStep:', currentStep);
-      console.log('  - name:', name);
-    }, 100);
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params]); // user.email intentionally excluded - checked within effect
 
