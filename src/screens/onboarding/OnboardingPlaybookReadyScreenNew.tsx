@@ -121,8 +121,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Initialize modal visibility only once on mount
   useEffect(() => {
     logger.debug('Component mounted/re-rendered');
-    logger.debug('Module flag value:', hasShownPlaybookIntroModal);
-    logger.debug('Current showIntroModal state:', showIntroModal);
+    logger.debug('Module flag value:', { hasShownPlaybookIntroModal });
+    logger.debug('Current showIntroModal state:', { showIntroModal });
 
     // Check if modal has been shown in this session
     if (!hasShownPlaybookIntroModal) {
@@ -363,13 +363,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       }
     } catch (e) {
       // Non-blocking: if anything fails, proceed silently
-      logger.warn('Failed to award faith points:', e);
+      logger.warn('Failed to award faith points:', e as Error);
       // Show notification anyway
       try {
         const points = faithPointsService.getPointsForActivity('playbook_generated');
         notificationService.showPointsNotification(points, 'playbook_generated', 'center');
       } catch (notificationError) {
-        logger.warn('Failed to show points notification:', notificationError);
+        logger.warn('Failed to show points notification:', notificationError as Error);
       }
     }
   }, [user]);
@@ -420,7 +420,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Initialize action steps from playbook data (similar to PlaybookDetailScreen)
   useEffect(() => {
     if (playbook?.actionSteps) {
-      logger.debug('Syncing action steps from playbook:', playbook.actionSteps.length, 'steps');
+      logger.debug('Syncing action steps from playbook:', { stepsCount: playbook.actionSteps.length });
       setActionSteps(playbook.actionSteps);
     }
   }, [playbook?.actionSteps, setActionSteps]);
@@ -461,7 +461,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     }
 
     // Action Steps card
-    logger.onboarding.stepCompleted('Action Steps Check:', {
+    logger.debug('Action Steps Check:', {
       hasActionSteps: !!(playbook.actionSteps && playbook.actionSteps.length > 0),
       actionStepsLength: playbook?.actionSteps?.length || 0,
       actionStepsData: playbook?.actionSteps || [],
@@ -480,7 +480,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         }));
         logger.debug('Action steps pre-render debug (first 5 steps):', dbg);
       } catch (e) {
-        logger.warn('Debug logging failed:', e);
+        logger.warn('Debug logging failed:', e as Error);
       }
       cards.push({
         id: 'action',
@@ -1657,7 +1657,7 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
       try {
         return await getPlaybook(userId || '', playbookId);
       } catch (err) {
-        logger.error('getPlaybook failed:', err);
+        logger.error('getPlaybook failed:', err as Error);
         throw err;
       }
     },
@@ -1684,10 +1684,10 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
         const isSetOnFinal = getReadAloud(finalId);
         if (wasRead && !isSetOnFinal) {
           setReadAloud(finalId, true);
-          logger.debug('Migrated Read Aloud state from', routeId, 'to', finalId);
+          logger.debug('Migrated Read Aloud state', { from: routeId, to: finalId });
         }
       } catch (e) {
-        logger.warn('Read Aloud migration failed:', e);
+        logger.warn('Read Aloud migration failed:', e as Error);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

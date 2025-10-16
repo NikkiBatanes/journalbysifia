@@ -106,7 +106,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                 try {
                   navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
                 } catch (navErr) {
-                  logger.warn('reset failed, falling back to navigate:', navErr);
+                  logger.warn('reset failed, falling back to navigate:', navErr as Error);
                   navigation.navigate(target as any, params);
                 }
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
@@ -127,7 +127,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             try {
               navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
             } catch (navErr) {
-              logger.warn('reset failed, falling back to navigate:', navErr.toString());
+              logger.warn('reset failed, falling back to navigate:', navErr as Error);
               navigation.navigate(target as any, params);
             }
             try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
@@ -222,7 +222,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                 try {
                   navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
                 } catch (navErr) {
-                  logger.warn('reset failed, falling back to navigate:', navErr);
+                  logger.warn('reset failed, falling back to navigate:', navErr as Error);
                   navigation.navigate(target as any, params);
                 }
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
@@ -398,7 +398,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           return true;
         }
       } catch (obErr) {
-        logger.warn('❌ ONBOARDING CHECK FAILED. Applying safer fallback based on auth state:', obErr);
+        logger.warn('❌ ONBOARDING CHECK FAILED. Applying safer fallback based on auth state:', obErr as Error);
         // If we have an authenticated user, prefer going straight to Personalization rather than Welcome
         try {
           const target = effectiveUser ? 'TransformJourney' : 'OnboardingWelcome';
@@ -446,7 +446,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             navigation.navigate(target as any, params as any);
           }
         } catch (finalNavErr) {
-          logger.warn('Final fallback navigation error:', finalNavErr);
+          logger.warn('Final fallback navigation error:', finalNavErr as Error);
         }
         hasNavigatedRef.current = true;
         return true;
