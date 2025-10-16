@@ -218,42 +218,61 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       logger.debug('Registration method:', method);
       setRegistrationMethod(method);
 
-      // ALWAYS show name step for OAuth users (Apple/Google) to ensure we get real names
-      // For email users, skip it (they already provided name during registration)
-      const needsNameStep = method === 'oauth';
-      logger.debug(`Show name step: ${needsNameStep}, Method: ${method}`);
-      setShowNameStep(needsNameStep);
+      // Check for stored Apple name data first
+      const checkAppleName = async () => {
+        try {
+          const appleNameData = await AsyncStorage.getItem('apple_signin_name');
+          if (appleNameData) {
+            const appleName = JSON.parse(appleNameData);
+            logger.debug('Found stored Apple name data:', appleName);
 
-      // Set name if provided, but ONLY for email users
-      if ('name' in route.params && route.params.name) {
-        const providedName = route.params.name as string;
+            if (appleName.givenName) {
+              setName(appleName.givenName);
+              logger.onboarding.navigation('✅ Using Apple-provided name:', appleName.givenName);
+              setShowNameStep(false); // Skip name collection if we have Apple name
+              return;
+            }
+          }
+        } catch (error) {
+          logger.error('Error checking Apple name data:', error as Error);
+        }
 
-        if (method !== 'oauth') {
-          // Email users: use the provided name
-          setName(providedName);
-          logger.onboarding.navigation('✅ Setting name for email user:', providedName);
+        // Fall back to existing logic if no Apple name found
+        const needsNameStep = method === 'oauth';
+        logger.debug(`Show name step: ${needsNameStep}, Method: ${method}`);
+        setShowNameStep(needsNameStep);
+
+        // Set name if provided, but ONLY for email users
+        if (route.params && 'name' in route.params && route.params.name) {
+          const providedName = route.params.name as string;
+
+          if (method !== 'oauth') {
+            // Email users: use the provided name
+            setName(providedName);
+            logger.onboarding.navigation('✅ Setting name for email user:', providedName);
+          } else {
+            // OAuth users: ALWAYS force name collection, ignore any provided name
+            logger.debug(`🔒 OAuth user - forcing name collection (ignoring: ${providedName})`);
+            setName(''); // Ensure name is empty to show name step
+          }
+        } else if (method === 'oauth') {
+          // OAuth user with no provided name - ensure name is empty
+          logger.debug('🔒 OAuth user - forcing name collection');
+          setName('');
         } else {
-          // OAuth users: ALWAYS force name collection, ignore any provided name
-          logger.debug(`🔒 OAuth user - forcing name collection (ignoring: ${providedName})`);
-          setName(''); // Ensure name is empty to show name step
+          // Email user with no provided name - extract from email
+          logger.debug('Email user - extracting name from email');
+          if (user?.email) {
+            const emailUsername = user.email.split('@')[0];
+            // Extract first name from email (e.g., "bynikkib" → "Nikki")
+            const extractedName = extractNameFromEmail(emailUsername);
+            setName(extractedName);
+            logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
+          }
         }
-      } else if (method === 'oauth') {
-        // OAuth user with no provided name - ensure name is empty
-        logger.debug('🔒 OAuth user - forcing name collection');
-        setName('');
-      } else {
-        // Email user with no provided name - extract from email
-        logger.debug('Email user - extracting name from email');
-        if (user?.email) {
-          const emailUsername = user.email.split('@')[0];
-          // Extract first name from email (e.g., "bynikkib" → "Nikki")
-          const extractedName = extractNameFromEmail(emailUsername);
-          setName(extractedName);
-          logger.onboarding.navigation(`✅ Extracted name from email: ${emailUsername} → ${extractedName}`);
-        }
-      }
+      };
 
-      console.log('📝 Registration method:', method, 'Show name step:', needsNameStep);
+      checkAppleName();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params]); // user.email intentionally excluded - checked within effect
@@ -450,7 +469,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       try {
         // Mark onboarding as completed using proper service method
         if (user) {
-          logger.onboarding.stepCompleted('Marking onboarding as completed for user:', user.id);
+          logger.onboarding.stepCompleted('onboarding_completion', 1, { userId: user.id });
           try {
             // Use the onboarding service to properly complete onboarding
             await onboardingService.completeOnboarding(user.id);
@@ -495,7 +514,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           },
         });
       } catch (error) {
-        logger.error('Error in handleContinue:', error);
+        logger.error('Error in handleContinue:', error as Error);
         // Continue with navigation even if onboarding update fails
         logger.error('Error occurred, but continuing to Playbook Generation');
         const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();

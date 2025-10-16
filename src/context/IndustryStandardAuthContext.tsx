@@ -1049,6 +1049,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Store Apple name data for later use in onboarding
       if (fullName?.givenName) {
         console.log('🍎 Apple provided real name:', fullName.givenName);
+        // Store the Apple-provided name for use in onboarding
+        await AsyncStorage.setItem('apple_signin_name', JSON.stringify({
+          givenName: fullName.givenName,
+          familyName: fullName.familyName,
+          nickname: fullName.nickname,
+        }));
       } else {
         console.log('🍎 Apple did not provide real name - will need collection');
       }
