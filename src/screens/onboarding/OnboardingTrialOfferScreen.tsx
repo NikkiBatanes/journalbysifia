@@ -41,11 +41,12 @@ const OnboardingTrialOfferScreen = () => {
 
   const styles = useMemo(() => createStyles(fonts), [fonts]);
 
-  // Read selection from params; default to growth annual for trial offer
-  // NOTE: Trial offer defaults to growth annual regardless of sales offer selection
-  // This ensures consistent trial experience and proper .freetrial product usage
-  const initialTierId: string = 'growth'; // Always default to growth for trial
-  const initialBilling: 'annual' | 'monthly' = 'annual'; // Always default to annual for trial
+  // Read selection from params passed from sales offer screen
+  // If user selected transformation + annual in sales offer, trial will default to that
+  // But user can change it via "Change Plan" button
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean } | undefined;
+  const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
+  const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'annual'; // Use sales offer billing or default to annual
   const [selectedTierId, _setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
@@ -111,6 +112,28 @@ const OnboardingTrialOfferScreen = () => {
         throw new Error('User not authenticated');
       }
 
+      // CRITICAL: Check if user already has an active trial
+      logger.info('🔍 Checking if user already has an active trial...');
+      try {
+        const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
+        const currentSubscription = await NewSubscriptionService.getUserSubscription(user.id);
+        
+        if (currentSubscription.tier === 'free_trial') {
+          logger.warn('⚠️ User already has an active trial!');
+          logger.warn('Skipping Apple purchase - trial already activated');
+          
+          // Show success modal immediately since trial is already active
+          setIsStartingTrial(false);
+          setShowSuccessModal(true);
+          return;
+        }
+        
+        logger.info('✅ No existing trial found - proceeding with Apple purchase');
+      } catch (checkError) {
+        logger.error('Failed to check existing subscription', checkError as Error);
+        // Continue with purchase attempt
+      }
+
       logger.debug('Starting trial subscription with Apple', {
         tier: selectedTierId,
         billing: isAnnual ? 'annual' : 'monthly',
@@ -118,12 +141,12 @@ const OnboardingTrialOfferScreen = () => {
 
       // CRITICAL: Trial Offer Screen uses .freetrial product IDs
       // These are separate products in App Store Connect with 3-day free trial configured
-      // NOTE: Always uses growth.annual.freetrial regardless of sales offer selection
-      // This ensures consistent trial experience and proper .freetrial product usage
+      // Product ID format: app.sifia.com.{tier}.{billing}.freetrial
+      // Example: app.sifia.com.transformation.annual.freetrial
       const paymentService = PlatformPaymentService.getInstance();
 
-      // Use the .freetrial product ID - this matches what's in App Store Connect
-      // Always uses growth.annual for trial offers (decoupled from sales offer selection)
+      // Use the .freetrial product ID based on selected tier and billing
+      // This matches what's configured in App Store Connect
       const billing = isAnnual ? 'annual' : 'monthly';
       let productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
 
@@ -158,16 +181,6 @@ const OnboardingTrialOfferScreen = () => {
           logger.warn('4. Cleared for sale = NO in App Store Connect');
           logger.warn('5. Subscription group configuration issues');
 
-          // DEBUG: Check if any .freetrial products exist at all
-          const anyTrialProducts = availableProducts.filter(p => p.productId.includes('freetrial'));
-          if (anyTrialProducts.length > 0) {
-            console.log('[OnboardingTrialOffer] 🔍 Found other .freetrial products:');
-            anyTrialProducts.forEach(p => console.log(`[OnboardingTrialOffer]   - ${p.productId}`));
-          } else {
-            console.log('[OnboardingTrialOffer] ❌ No .freetrial products found at all!');
-            console.log('[OnboardingTrialOffer] This suggests .freetrial products are not configured in App Store Connect');
-          }
-
           // Set UI state to show trial not available
           setTrialProductAvailable(false);
 
@@ -196,7 +209,7 @@ const OnboardingTrialOfferScreen = () => {
 🔍 DEBUGGING INFO:
 • Expected trial product: ${productId}
 • Available products: ${availableProducts.length}
-• Trial products found: ${anyTrialProducts.length}
+• Selected tier: ${selectedTierId}
 
 Please check App Store Connect configuration or contact support.`;
 
@@ -297,6 +310,34 @@ Please check App Store Connect configuration or contact support.`;
           hasTransactionId: !!result.transactionId,
           transactionId: result.transactionId?.substring(0, 10) + '...', // Log partial ID for debugging
         });
+
+        // CRITICAL: Now that Apple has authorized, set up the trial in database
+        // This activates the trial with 2 playbooks + 2 devotionals
+        logger.info('🎯 Setting up trial in database after Apple authorization');
+        try {
+          const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
+          
+          // Start the trial in database - this creates the subscription record with:
+          // - tier: 'free_trial'
+          // - trial_start_date: now
+          // - trial_end_date: now + 3 days
+          // - trial_chosen_tier: selectedTierId (e.g., 'transformation', 'growth', etc.)
+          // - playbooks_limit: 2
+          // - devotionals_limit: 2
+          await NewSubscriptionService.startFreeTrial({
+            user_id: user.id,
+            duration_days: 3,
+            trial_chosen_tier: selectedTierId as any, // Remember which tier they want after trial
+            billing_cycle: isAnnual ? 'annual' : 'monthly',
+          });
+
+          logger.info('✅ Trial set up in database successfully');
+          logger.info('User now has access to 2 playbooks + 2 devotionals during trial');
+        } catch (trialSetupError) {
+          logger.error('❌ Failed to set up trial in database', trialSetupError as Error);
+          // Don't throw - Apple purchase already succeeded, just log the error
+          logger.warn('Trial purchase succeeded but database setup failed - user may need manual intervention');
+        }
 
         // ENTERPRISE IMPROVEMENT: Update loading steps
         setLoadingStep('activating');
@@ -441,7 +482,7 @@ Please check App Store Connect configuration or contact support.`;
     };
   }, []);
 
-  const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'growth');
+  const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'family');
 
   const getCurrentPrice = () => {
     // Use tier pricing directly
@@ -506,7 +547,7 @@ Please check App Store Connect configuration or contact support.`;
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia Growth Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.',
+      description: 'Try siFia Family Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,

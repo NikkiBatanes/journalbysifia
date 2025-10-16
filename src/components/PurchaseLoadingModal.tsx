@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme/ThemeContext';
+import { Colors } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -127,21 +128,21 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
             style={[
               styles.iconContainer,
               {
-                backgroundColor: 'rgba(255, 107, 107, 0.15)', // Alert coral with transparency
+                backgroundColor: Colors.alertCoral + '26', // Alert coral with 15% opacity
                 transform: [{ scale: pulseAnim }],
               },
             ]}
           >
-            <Ionicons name={stepInfo.icon} size={48} color="#FF6B6B" />
+            <Ionicons name={stepInfo.icon} size={48} color={Colors.alertCoral} />
           </Animated.View>
 
           {/* Title */}
-          <Text style={[styles.title, { color: '#F8F9FA' }]}>
+          <Text style={[styles.title, { color: Colors.hopeWhite, fontFamily: theme.currentFont === 'lexend' ? 'Lexend-Bold' : 'NunitoSans-Bold' }]}>
             {stepInfo.title}
           </Text>
 
           {/* Description */}
-          <Text style={[styles.description, { color: '#F8F9FA', opacity: 0.9 }]}>
+          <Text style={[styles.description, { color: Colors.hopeWhite, fontFamily: theme.currentFont === 'lexend' ? 'Lexend-Regular' : 'NunitoSans-Regular' }]}>
             {stepInfo.description}
           </Text>
 
@@ -159,7 +160,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           </View>
 
           {/* Progress Percentage */}
-          <Text style={[styles.progressText, { color: '#F8F9FA' }]}>
+          <Text style={[styles.progressText, { color: Colors.hopeWhite, fontFamily: theme.currentFont === 'lexend' ? 'Lexend-SemiBold' : 'NunitoSans-SemiBold' }]}>
             {stepInfo.progress}% Complete
           </Text>
 
@@ -172,8 +173,8 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
 
           {/* Security Notice */}
           <View style={styles.securityNotice}>
-            <Ionicons name="lock-closed" size={14} color="#4CAF50" />
-            <Text style={styles.securityText}>
+            <Ionicons name="lock-closed" size={14} color={Colors.alertCoral} />
+            <Text style={[styles.securityText, { fontFamily: theme.currentFont === 'lexend' ? 'Lexend-Medium' : 'NunitoSans-Medium' }]}>
               Secure transaction protected by Apple
             </Text>
           </View>
@@ -245,14 +246,14 @@ const styles = StyleSheet.create({
   securityNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    backgroundColor: Colors.alertCoral + '1A', // Alert coral background with opacity
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   securityText: {
     fontSize: 12,
-    color: '#F8F9FA', // Hope white as requested
+    color: Colors.hopeWhite, // Hope white as requested
     marginLeft: 6,
     fontWeight: '500',
   },

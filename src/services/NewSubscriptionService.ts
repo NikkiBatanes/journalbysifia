@@ -272,6 +272,43 @@ export class NewSubscriptionService {
       return currentSubscription; // Return existing subscription, no upgrade needed
     }
 
+    // Special case: If updating to same tier but it's a trial tier, we need to update trial fields
+    if (isSameTierUpgrade && to_tier === 'free_trial') {
+      console.log(`[NewSubscriptionService] Updating trial subscription fields: ${from_tier} → ${to_tier}`);
+      // Update trial-specific fields even if tier is the same
+      const limits = this.getTierLimits(to_tier);
+      const displayName = this.getTierDisplayName(to_tier);
+
+      const updateData: any = {
+        subscription_display_name: displayName,
+        playbooks_limit: limits.playbooks_limit,
+        devotionals_limit: limits.devotionals_limit,
+        smart_journaling_enabled: limits.smart_journaling_enabled,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Add platform info if provided
+      if (options.platform_subscription_id) {
+        updateData.platform_subscription_id = options.platform_subscription_id;
+      }
+      if (options.platform_transaction_id) {
+        updateData.platform_transaction_id = options.platform_transaction_id;
+      }
+
+      const { data, error } = await supabase
+        .from('user_subscriptions_new')
+        .update(updateData)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new SubscriptionError(`Failed to update trial subscription: ${error.message}`, 'TRIAL_UPDATE_ERROR', error);
+      }
+
+      return this.enrichSubscriptionData(data);
+    }
+
     if (!isTrialConversion && !this.isValidUpgrade(from_tier, to_tier)) {
       throw new SubscriptionError(`Invalid upgrade from ${from_tier} to ${to_tier}`, 'INVALID_UPGRADE');
     }

@@ -510,8 +510,9 @@ export class AppleStoreKitService {
       const currentSubscription = await NewSubscriptionService.getUserSubscription(userId);
 
       if (currentSubscription.tier === 'free_trial') {
-        console.log('[StoreKit] Converting trial to paid subscription');
-        await NewSubscriptionService.convertTrialToPaid(userId);
+        console.log('[StoreKit] User is already on trial - no conversion needed');
+        // Trial purchases should stay as free_trial during trial period
+        // Only convert when trial expires or user manually upgrades
       } else {
         // Regular upgrade/subscription
         await NewSubscriptionService.upgradeSubscription(userId, {

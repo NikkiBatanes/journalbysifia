@@ -2249,6 +2249,31 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNSentry (7.3.0):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Sentry/HybridSDK (= 8.56.2)
+    - Yoga
   - RNSound (0.12.0):
     - DoubleConversion
     - glog
@@ -2322,6 +2347,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - Sentry/HybridSDK (8.56.2)
   - SocketRocket (0.7.1)
   - Yoga (0.0.0)
 
@@ -2421,6 +2447,7 @@ DEPENDENCIES:
   - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
+  - "RNSentry (from `../node_modules/@sentry/react-native`)"
   - RNSound (from `../node_modules/react-native-sound`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
@@ -2435,6 +2462,7 @@ SPEC REPOS:
     - GTMSessionFetcher
     - lottie-ios
     - PromisesObjC
+    - Sentry
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -2625,6 +2653,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
+  RNSentry:
+    :path: "../node_modules/@sentry/react-native"
   RNSound:
     :path: "../node_modules/react-native-sound"
   RNSVG:
@@ -2718,7 +2748,7 @@ SPEC CHECKSUMS:
   React-timing: a90f4654cbda9c628614f9bee68967f1768bd6a5
   React-utils: a612d50555b6f0f90c74b7d79954019ad47f5de6
   ReactAppDependencyProvider: 04d5eb15eb46be6720e17a4a7fa92940a776e584
-  ReactCodegen: c63eda03ba1d94353fb97b031fc84f75a0d125ba
+  ReactCodegen: 791789361f9b1ca64bc169b55fc68afad3518325
   ReactCommon: 76d2dc87136d0a667678668b86f0fca0c16fdeb0
   RNAppleAuthentication: c3dddf5918126c9aae85dc2e2ce9fb87835e9e04
   RNCalendarEvents: f90f73666b6bcbb3cc8a491ffbb5e48c0db3de37
@@ -2734,8 +2764,10 @@ SPEC CHECKSUMS:
   RNReactNativeHapticFeedback: 851adf794e1fcdc0664d80820fa3272ee8a6a538
   RNReanimated: 1a94be2654cbbe861fba2a872c84a142351e9ec0
   RNScreens: 824a29c178e253fe8b08fb0b2903195d35f724f2
+  RNSentry: 24101364fae12d9db5019ff34e824207cc39b385
   RNSound: 72c4886fb80b8a0e8c40131099223e09422aa8b4
   RNSVG: 681f8ef5ca50e13cb3c6c88a907ea89b68fee74f
+  Sentry: b53951377b78e21a734f5dc8318e333dbfc682d7
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: c758bfb934100bb4bf9cbaccb52557cee35e8bdf
 
