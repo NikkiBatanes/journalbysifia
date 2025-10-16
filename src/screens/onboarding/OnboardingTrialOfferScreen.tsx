@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import {
   View,
   StyleSheet,
@@ -10,31 +9,18 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { Colors } from '../../theme';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import pricingService, { LocationPricing } from '../../services/pricingService';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import ThemedText from '../../components/common/ThemedText';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { useTheme } from '../../theme/ThemeContext';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { PurchaseErrorModal } from '../../components/PurchaseErrorModal';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { getFontFamily } from '../../theme/fonts';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
