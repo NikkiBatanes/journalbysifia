@@ -165,11 +165,54 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             .select('is_completed')
             .eq('user_id', user.id)
             .single();
-          if (!progressErr && progress?.is_completed === true) {
+
+          // Only set completed to true if:
+          // 1. No error occurred
+          // 2. Progress data exists
+          // 3. is_completed is explicitly true (not just truthy)
+          if (!progressErr && progress && progress.is_completed === true) {
             completed = true;
+            console.log('✅ Found completed onboarding for user:', user.id);
+          } else {
+            console.log('❌ No completed onboarding found for user:', user.id, {
+              hasProgress: !!progress,
+              isCompleted: progress?.is_completed,
+              error: progressErr?.message,
+            });
           }
         } catch (e) {
-          // ignore; default remains false
+          console.warn('⚠️ Error checking onboarding progress, defaulting to false:', e);
+          // Explicitly set to false on any error
+          completed = false;
+        }
+
+        console.log('🔍 Final onboarding_completed determination:', {
+          userId: user.id,
+          completed,
+          reason: completed ? 'existing_completed_progress' : 'new_user_or_incomplete',
+        });
+
+        // SAFETY CHECK: For new users, ensure onboarding_completed is false
+        // This prevents any edge cases where completed might be set incorrectly
+        if (completed) {
+          // Double-check that this user actually completed onboarding
+          try {
+            const { data: progressCheck } = await supabase
+              .from('onboarding_progress')
+              .select('is_completed, completed_at')
+              .eq('user_id', user.id)
+              .single();
+
+            if (progressCheck && progressCheck.is_completed === true && progressCheck.completed_at) {
+              console.log('✅ Confirmed: User actually completed onboarding');
+            } else {
+              console.warn('⚠️ Onboarding_completed was true but no completion record found - correcting to false');
+              completed = false;
+            }
+          } catch (e) {
+            console.warn('⚠️ Could not verify onboarding completion - defaulting to false');
+            completed = false;
+          }
         }
 
         // Create user profile matching actual database schema

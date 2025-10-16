@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme/ThemeContext';
+import { Colors } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -82,7 +83,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     const tierMap: Record<string, { name: string; color: string; benefits: string[] }> = {
       spark: {
         name: 'Spark',
-        color: '#FF6B6B',
+        color: Colors.alertCoral,
         benefits: [
           '3 Playbooks per month',
           '3 Devotionals per month',
@@ -92,7 +93,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       },
       growth: {
         name: 'Growth',
-        color: '#4ECDC4',
+        color: Colors.alertCoral,
         benefits: [
           '10 Playbooks per month',
           '10 Devotionals per month',
@@ -102,7 +103,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       },
       transformation: {
         name: 'Transformation',
-        color: '#95E1D3',
+        color: Colors.alertCoral,
         benefits: [
           'Unlimited Playbooks',
           'Unlimited Devotionals',
@@ -112,7 +113,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       },
       free_trial: {
         name: 'Free Trial',
-        color: '#FFD93D',
+        color: Colors.alertCoral,
         benefits: [
           '3 days free access',
           'All Spark features',
@@ -139,7 +140,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           style={[
             styles.modalContainer,
             {
-              backgroundColor: theme.colors.cardBackground,
+              backgroundColor: Colors.anchorBlue,
               transform: [{ scale: scaleAnim }],
               opacity: fadeAnim,
             },
@@ -159,11 +160,11 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           </Animated.View>
 
           {/* Success Message */}
-          <Text style={[styles.title, { color: theme.colors.text }]}>
+          <Text style={[styles.title, { color: Colors.hopeWhite }]}>
             {isTrial ? 'Trial Started!' : 'Purchase Successful!'}
           </Text>
 
-          <Text style={[styles.subtitle, { color: theme.colors.secondaryText }]}>
+          <Text style={[styles.subtitle, { color: Colors.hopeWhite }]}>
             Welcome to {tierInfo.name}
           </Text>
 
@@ -177,13 +178,13 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
           {/* Benefits List */}
           <View style={styles.benefitsContainer}>
-            <Text style={[styles.benefitsTitle, { color: theme.colors.text }]}>
+            <Text style={[styles.benefitsTitle, { color: Colors.hopeWhite }]}>
               What's Included:
             </Text>
             {tierInfo.benefits.map((benefit, index) => (
               <View key={index} style={styles.benefitRow}>
                 <Ionicons name="checkmark-circle" size={20} color={tierInfo.color} />
-                <Text style={[styles.benefitText, { color: theme.colors.secondaryText }]}>
+                <Text style={[styles.benefitText, { color: Colors.hopeWhite }]}>
                   {benefit}
                 </Text>
               </View>
@@ -192,9 +193,9 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
           {/* Trial Notice */}
           {isTrial && (
-            <View style={[styles.trialNotice, { backgroundColor: theme.colors.background }]}>
+            <View style={[styles.trialNotice, { backgroundColor: Colors.anchorBlue }]}>
               <Ionicons name="information-circle" size={20} color="#FFD93D" />
-              <Text style={[styles.trialNoticeText, { color: theme.colors.secondaryText }]}>
+              <Text style={[styles.trialNoticeText, { color: Colors.hopeWhite }]}>
                 Your trial starts now. Cancel anytime before it ends.
               </Text>
             </View>
@@ -218,7 +219,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: Colors.modalOverlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
