@@ -5,3 +5,6 @@ export {
   PageErrorBoundary,
   CriticalErrorBoundary,
 } from './ErrorBoundary';
+
+export { default as ScreenErrorBoundary } from './ScreenErrorBoundary';
+export { withErrorBoundary } from './withErrorBoundary';
