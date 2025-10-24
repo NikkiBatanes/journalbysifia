@@ -101,7 +101,7 @@ export const useReflectionsCount = (userId: string) => {
 export const useSearchReflections = (userId: string, searchTerm: string) => {
   return useQuery({
     queryKey: queryKeys.reflections.search(userId, searchTerm),
-    queryFn: () => ReflectionApi.searchReflections(userId, searchTerm),
+    queryFn: () => ReflectionApi.searchReflections({ userId, searchTerm }),
     ...defaultQueryOptions,
     enabled: !!userId && !!searchTerm && searchTerm.length > 2,
   });
@@ -128,7 +128,8 @@ export const useIsQuestionJournaled = (questionText: string, devotionalId?: stri
       if (!userId) {return false;}
 
       // First try to find by exact question text and devotional context
-      const reflections = await ReflectionApi.searchReflections(userId, {
+      const reflections = await ReflectionApi.searchReflections({
+        userId,
         searchTerm: `"${questionText}"`,
         devotionalId,
         dayNumber,
@@ -138,7 +139,8 @@ export const useIsQuestionJournaled = (questionText: string, devotionalId?: stri
 
       // If no results, try a more general search
       if (reflections.length === 0) {
-        const generalResults = await ReflectionApi.searchReflections(userId, {
+        const generalResults = await ReflectionApi.searchReflections({
+          userId,
           searchTerm: questionText,
           limit: 5,
         });
