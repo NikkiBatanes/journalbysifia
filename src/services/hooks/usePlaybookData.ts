@@ -143,7 +143,8 @@ export const useUpdateActionStep = () => {
   return useMutation<
     { playbookId: string; stepId: string; completed: boolean },
     Error,
-    { playbookId: string; stepId: string; completed: boolean; userId: string }
+    { playbookId: string; stepId: string; completed: boolean; userId: string },
+    { previousPlaybooks?: Playbook[] }
   >({
     mutationFn: withMutationPerformance(
       async ({
@@ -261,7 +262,7 @@ export const useUpdateActionStep = () => {
     },
 
     // On error, rollback optimistic update
-    onError: (error, variables, context: { previousPlaybooks?: any } | undefined) => {
+    onError: (error, variables, context) => {
       console.error('[useUpdateActionStep] Error:', error);
 
       if (context?.previousPlaybooks) {
@@ -291,7 +292,8 @@ export const useUpdateSubTask = () => {
   return useMutation<
     { playbookId: string; stepId: string; subTaskId: string; completed: boolean },
     Error,
-    { playbookId: string; stepId: string; subTaskId: string; completed: boolean; userId: string }
+    { playbookId: string; stepId: string; subTaskId: string; completed: boolean; userId: string },
+    { previousPlaybooks?: Playbook[] }
   >({
     mutationFn: withMutationPerformance(
       async ({
@@ -409,7 +411,12 @@ export const useUpdateSubTask = () => {
 export const useUpdateAffirmation = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<
+    { playbookId: string; affirmationId: string; completed: boolean },
+    Error,
+    { playbookId: string; affirmationId: string; completed: boolean; userId: string },
+    { previousPlaybooks?: Playbook[] }
+  >({
     mutationFn: withMutationPerformance(
       async ({
         playbookId,
@@ -540,7 +547,7 @@ export const usePrefetchPlaybookData = () => {
         queryKey: queryKeys.playbooks.detail(userId, playbookId),
         queryFn: withQueryPerformance(
           async () => {
-            const playbook = await getPlaybookApi(playbookId);
+            const playbook = await getPlaybookApi(userId, playbookId);
             return playbook;
           },
           queryKeys.playbooks.detail(userId, playbookId)
