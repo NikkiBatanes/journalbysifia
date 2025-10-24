@@ -136,3 +136,6 @@ fastlane/test_output
 # Metro
 .metro-health-check*
 build/
+
+# Local bundler cache
+.bundle/
