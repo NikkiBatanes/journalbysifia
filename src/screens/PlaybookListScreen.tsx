@@ -30,6 +30,7 @@ import { useTheme } from '../theme/ThemeContext';
 import type { Playbook } from '../interfaces/playbook';
 import { deletePlaybook, getPlaybooks } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useQuery } from '@tanstack/react-query';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 import { PlaybookSkeleton } from '../components/SkeletonLoader/PlaybookSkeleton';
@@ -860,7 +861,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   );
 };
 
-export default PlaybookListScreen;
+export default withErrorBoundary(PlaybookListScreen, 'PlaybookListScreen');
 
 const createStyles = (_theme: any) => StyleSheet.create({
   centered: {

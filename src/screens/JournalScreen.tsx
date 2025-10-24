@@ -18,6 +18,7 @@ import ThemedText from '../components/common/ThemedText';
 
 // Inline system removed
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 
 export type JournalScreenRef = {
   resetToCurrentDate: () => void;
@@ -1029,4 +1030,4 @@ const createStyles = (fonts: {
   },
 });
 
-export default JournalScreen;
+export default withErrorBoundary(JournalScreen, 'JournalScreen');

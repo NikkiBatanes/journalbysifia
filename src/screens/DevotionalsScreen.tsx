@@ -21,6 +21,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { usePlaybooksData } from '../services/hooks/usePlaybookData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import DevotionalModal from '../components/DevotionalModal';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -1414,4 +1415,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DevotionalsScreen;
+export default withErrorBoundary(DevotionalsScreen, 'DevotionalsScreen');

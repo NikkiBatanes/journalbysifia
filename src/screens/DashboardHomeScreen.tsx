@@ -59,6 +59,7 @@ import { queryKeys } from '../services/queryKeys';
 import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPrayerSkeleton';
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 
 const { width } = Dimensions.get('window');
 
@@ -1660,4 +1661,4 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   );
 };
 
-export default DashboardHomeScreen;
+export default withErrorBoundary(DashboardHomeScreen, 'DashboardHomeScreen');
