@@ -16,6 +16,7 @@ import {
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from '../components/common/ThemedText';
@@ -404,4 +405,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ResetPasswordScreen;
+export default withErrorBoundary(ResetPasswordScreen, 'ResetPasswordScreen');

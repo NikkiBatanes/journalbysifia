@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
@@ -487,4 +488,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RegisterScreen;
+export default withErrorBoundary(RegisterScreen, 'RegisterScreen');

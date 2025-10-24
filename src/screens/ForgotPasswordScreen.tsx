@@ -15,6 +15,7 @@ import {
 
 import { Colors } from '../theme/colors';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
 
@@ -250,4 +251,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ForgotPasswordScreen;
+export default withErrorBoundary(ForgotPasswordScreen, 'ForgotPasswordScreen');

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
@@ -511,4 +512,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EmailRegisterScreen;
+export default withErrorBoundary(EmailRegisterScreen, 'EmailRegisterScreen');
