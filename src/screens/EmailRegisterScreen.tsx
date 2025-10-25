@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
