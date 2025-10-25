@@ -8,7 +8,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  Alert,
   Platform,
   Animated,
   NativeModules,
