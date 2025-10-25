@@ -149,7 +149,7 @@ export class EnhancedGenerationService {
         console.log('[EnhancedGenerationService] Database issue detected (schema/partitioning), attempting direct generation bypass');
         try {
           // Attempt direct generation without queue for schema issues
-          const directResult = await this.generateDirectPlaybook(request);
+          await this.generateDirectPlaybook(request);
           // Return success without queueId to indicate immediate completion
           return {
             success: true,

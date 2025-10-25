@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { supabase } from './supabaseClient';
 import type { User } from '@supabase/supabase-js';
 

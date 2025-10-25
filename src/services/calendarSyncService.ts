@@ -557,8 +557,7 @@ export const searchLocations = async (query: string): Promise<LocationSearchResu
 };
 
 export const deleteRecurringTimeBlock = async (
-  timeBlock: TimeBlockData,
-  options: DeleteOptions
+  timeBlock: TimeBlockData
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     // If it has a calendar event, remove it
