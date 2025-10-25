@@ -17,7 +17,6 @@ import {
   Modal,
   Switch,
   Image,
-  ActionSheetIOS,
 } from 'react-native';
 import { Pencil as LuPencil } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -195,57 +194,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [notificationPrefs, user?.id, timePickerType]);
 
-  const pickQuietHour = useCallback(
-    async (which: 'start' | 'end') => {
-      if (!notificationPrefs || !user?.id) {return;}
-
-      const choices = [
-        '05:00', '06:00', '07:00', '08:00', '09:00',
-        '20:00', '21:00', '22:00', '23:00', '00:00',
-      ];
-
-      const choiceLabels = choices.map((time) => formatTo12h(time));
-
-      if (Platform.OS === 'ios') {
-        ActionSheetIOS.showActionSheetWithOptions(
-          {
-            options: ['Cancel', ...choiceLabels],
-            cancelButtonIndex: 0,
-            title: `Select ${which === 'start' ? 'Start' : 'End'} Time`,
-          },
-          (buttonIndex) => {
-            if (buttonIndex > 0) {
-              const selectedTime = choices[buttonIndex - 1];
-              const field = which === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
-              const updated = { ...notificationPrefs, [field]: selectedTime };
-              notificationManagementService.updateNotificationPreferences(updated);
-              setNotificationPrefs(updated);
-            }
-          }
-        );
-      } else {
-        // Android fallback
-        Alert.alert(
-          `Select ${which === 'start' ? 'Start' : 'End'} Time`,
-          'Choose a time',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            ...choices.map((time) => ({
-              text: formatTo12h(time),
-              onPress: () => {
-                const field = which === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
-                const updated = { ...notificationPrefs, [field]: time };
-                notificationManagementService.updateNotificationPreferences(updated);
-                setNotificationPrefs(updated);
-              },
-            })),
-          ]
-        );
-      }
-    },
-    [notificationPrefs, user?.id, formatTo12h]
-  );
-
   // Don't use Google avatar - force use of custom avatar system
   const avatarUrl = undefined; // Always use initials instead of Google avatar
   const initialLetter = useMemo(() => {
@@ -263,7 +211,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [deleteAccountModal, setDeleteAccountModal] = useState(false);
   const [deleteBirthYear, setDeleteBirthYear] = useState<string>('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [yearPickerModal, setYearPickerModal] = useState(false); // legacy (no longer used for inline)
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
@@ -338,7 +285,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         ]
       );
     } catch {}
-  }, [isValidBirthYear]);
+  }, [isValidBirthYear, deleteBirthYear]);
 
   /**
    * ENTERPRISE IMPROVEMENT: Restore Purchases Handler
@@ -470,95 +417,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const onToggleShowTabLabels = async (value: boolean) => {
     setShowTabLabelsEnabled(value);
     await experiencePreferences.setShowTabLabelsEnabled(value);
-  };
-
-  // Report a bug via email (internal helper, accepts optional message)
-  const handleReportBug = async (messageOverride?: string) => {
-    const to = 'bug@sifia.app';
-    // Avoid requiring JSON via Metro to prevent module resolution errors in production bundles
-    const appVersion: string | undefined = undefined;
-
-    const userId = user?.id ?? 'anonymous';
-    const platform = Platform.OS;
-    const osVersion = String(Platform.Version);
-    const screenName = 'UserProfileScreen';
-    const timestamp = new Date().toISOString();
-
-    const subject = encodeURIComponent('Bug Report – siFia');
-    const body = encodeURIComponent(
-      [
-        messageOverride && messageOverride.trim().length > 0
-          ? messageOverride.trim()
-          : [
-              'Issue summary:',
-              '',
-              'Steps to reproduce:',
-              '',
-              'Expected:',
-              '',
-              'Actual:',
-              '',
-              'Please attach screenshots if possible.\n',
-            ].join('\n'),
-        'Context:',
-        `• User: ${userId}`,
-        `• App: ${appVersion ?? 'unknown'}`,
-        `• Device/OS: ${platform}/${osVersion}`,
-        `• Screen: ${screenName}`,
-        `• Time: ${timestamp}`,
-      ].join('\n')
-    );
-
-    const mailtoFull = `mailto:${to}?subject=${subject}&body=${body}`;
-    const mailtoSubjectOnly = `mailto:${to}?subject=${subject}`;
-    const mailtoAddressOnly = `mailto:${to}`;
-    // Gmail URL scheme (works if Gmail installed)
-    const gmailFull = Platform.select({
-      ios: `googlegmail://co?to=${to}&subject=${subject}&body=${body}`,
-      android: `googlegmail://co?to=${to}&subject=${subject}&body=${body}`,
-      default: undefined,
-    });
-    // Web Gmail compose (works if a browser is available and user is signed in)
-    const webGmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-
-    const tryOpen = async (url: string) => {
-      try {
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-          await Linking.openURL(url);
-          return true;
-        }
-      } catch {}
-      return false;
-    };
-
-    // 1) Try full (subject + body)
-    if (await tryOpen(mailtoFull)) {return;}
-    // 2) Fallback: subject only
-    if (await tryOpen(mailtoSubjectOnly)) {return;}
-    // 3) Fallback: address only
-    if (await tryOpen(mailtoAddressOnly)) {return;}
-    // 4) Try Gmail scheme if available
-    if (gmailFull && (await tryOpen(gmailFull))) {return;}
-    // 5) Try web Gmail compose
-    if (await tryOpen(webGmail)) {return;}
-
-    // Final fallback: show instructions with Copy option
-    Alert.alert(
-      'Email not available',
-      'No email app found. Please email bug@sifia.app. You can copy the address now.',
-      [
-        {
-          text: 'Copy address',
-          onPress: async () => {
-            try {
-              await Share.share({ message: to });
-            } catch {}
-          },
-        },
-        { text: 'OK' },
-      ]
-    );
   };
 
   const handleSubmitBug = async () => {
@@ -1268,23 +1126,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleWeekStartChange = async (weekStart: string) => {
-    try {
-      const updatedPreferences = { ...preferences, weekStart: weekStart as any };
-      setPreferences(updatedPreferences);
-
-      const result = await updatePreferences(updatedPreferences);
-      if (result.success) {
-        setWeekStartModal(false);
-        // Removed success alert per UX request
-      } else {
-        Alert.alert('Error', result.error?.message || 'Failed to update week start');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update week start');
-    }
-  };
-
   // Initialize draft when opening the Week Start modal
   useEffect(() => {
     if (weekStartModal) {
@@ -1306,34 +1147,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setBibleVersionDraft(preferences.content?.bibleVersion || 'NASB');
     }
   }, [bibleVersionModal, preferences.content?.bibleVersion]);
-
-  // Handle immediate theme switching for live preview
-  const handleThemeChange = async (newTheme: string) => {
-    const updatedPreferences = { ...preferences, theme: newTheme as any };
-    setPreferences(updatedPreferences);
-
-    // Update user metadata immediately for live preview
-    try {
-      await updatePreferences(updatedPreferences);
-      console.log('🎨 Theme switched to:', newTheme);
-    } catch (error) {
-      console.error('Failed to update theme preference:', error);
-    }
-  };
-
-  // Handle immediate font switching for live preview
-  const handleFontChange = async (newFont: string) => {
-    const updatedPreferences = { ...preferences, font: newFont as any };
-    setPreferences(updatedPreferences);
-
-    // Update user metadata immediately for live preview
-    try {
-      await updatePreferences(updatedPreferences);
-      console.log('🔤 Font switched to:', newFont);
-    } catch (error) {
-      console.error('Failed to update font preference:', error);
-    }
-  };
 
   const handleLogout = async () => {
     try {
