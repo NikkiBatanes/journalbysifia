@@ -40,8 +40,6 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   const giftScale = useRef(new Animated.Value(1)).current;
   const giftOpacity = useRef(new Animated.Value(1)).current;
 
-  // Theme integration for dynamic font switching
-  const { currentFont } = useTheme();
 
   useEffect(() => {
     if (!visible) {return;}
