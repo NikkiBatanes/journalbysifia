@@ -479,7 +479,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
     if (subtaskId && stepId) {
       // Use subtaskId and stepId for maximum uniqueness
       const key = `@gratitude_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
-      console.log('[GratitudeLogEditor] Unique draft key with IDs:', key);
       return key;
     }
 
@@ -489,13 +488,11 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
       const stepNum = actionStepNumber || 0;
       const taskTitle = subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
       const key = `@gratitude_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
-      console.log('[GratitudeLogEditor] Playbook draft key with date:', key);
       return key;
     }
 
     // Default key with date
     const key = `@gratitude_editor_draft_${currentDate}`;
-    console.log('[GratitudeLogEditor] Default draft key with date:', key);
     return key;
   }, [subtaskId, stepId, subtaskTitle, playbookTitle, actionStepNumber]);
 
@@ -507,7 +504,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
         const hasExistingData = initialItems && initialItems.some((item: string) => item.trim());
 
         if (hasExistingData) {
-          console.log(' GratitudeLogEditor: Skipping draft load - existing data present');
           setIsFirstLoad(false);
           return;
         }
@@ -525,7 +521,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
           }
         }
       } catch (error) {
-        console.error('Error loading gratitude draft:', error);
+        // Error silently handled - draft loading is not critical
       } finally {
         setIsFirstLoad(false);
       }
@@ -539,7 +535,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
     if (initialItems && initialItems.length > 0) {
       const hasExistingData = initialItems.some((item: string) => item.trim());
       if (hasExistingData && !hasUserMadeChanges) {
-        console.log(' GratitudeLogEditor: Updating items with new initialItems:', initialItems);
         const numberedItems = addNumbersToItems(initialItems);
         setGratitudeItems(numberedItems);
       }
@@ -556,7 +551,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
           const draftKey = getDraftKey();
           await AsyncStorage.setItem(draftKey, JSON.stringify({ items: cleanItems }));
         } catch (error) {
-          console.error('Error saving gratitude draft:', error);
+          // Error silently handled - draft saving is not critical
         }
       };
       saveDraft();
@@ -569,7 +564,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
       const draftKey = getDraftKey();
       await AsyncStorage.removeItem(draftKey);
     } catch (error) {
-      console.error('Error clearing gratitude draft:', error);
+      // Error silently handled - draft clearing is not critical
     }
   };
 
@@ -608,8 +603,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
   };
 
   const handleSave = async () => {
-    console.log(' GratitudeLogEditor: handleSave called! Stack trace:', new Error().stack);
-
     const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
     if (filledItems.length === 0) {
@@ -621,26 +614,17 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
       return;
     }
 
-    console.log(' GratitudeLogEditor: About to clear draft and call onSave');
-
     // Clear draft before saving
     await clearDraft();
 
     // Remove numbers from items before saving to database
     const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
 
-    console.log(' GratitudeLogEditor: Calling onSave with data:', {
-      items: cleanItems,
-      date: new Date(),
-    });
-
     // Call onSave synchronously like ReflectionLogEditor
     onSave({
       items: cleanItems,
       date: new Date(),
     });
-
-    console.log(' GratitudeLogEditor: onSave called successfully');
   };
 
   // Check if form is valid (has content) AND user has made changes
@@ -829,7 +813,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
               ]}
               disabled={!isFormValid || isLoading}
               onPress={() => {
-                console.log('🙏 GratitudeLogEditor: SAVE BUTTON PRESSED!');
                 handleSave();
               }}
             >
