@@ -1,24 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { BorderRadii } from '../theme/styles';
 
 import { Colors } from '../theme';
-import { Typography } from '../theme/typography';
-import { useAuth } from '../context/IndustryStandardAuthContext';
-import { triggerLightHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
 
 type DirectChallengeCardProps = {
   challenge: string;
   challengeCTA?: string;
-  playbookTitle?: string;
-  userInput?: string;
 };
 
-export default function DirectChallengeCard({ challenge, challengeCTA, playbookTitle, userInput }: DirectChallengeCardProps) {
-  const { user } = useAuth();
+export default function DirectChallengeCard({ challenge, challengeCTA }: DirectChallengeCardProps) {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>

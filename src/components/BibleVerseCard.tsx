@@ -6,7 +6,6 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { formatBibleVerse } from '../utils/textFormatting';
-import { useAuth } from '../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../utils/haptics';
 import { BibleCopyrightModal } from './BibleCopyrightModal';
 import ThemedText from './common/ThemedText';
@@ -18,14 +17,11 @@ type BibleVerseCardProps = {
   style?: any;
   textColor?: string;
   backgroundColor?: string;
-  playbookTitle?: string;
-  userInput?: string;
   expanded?: boolean;
   collapsedLines?: number;
 };
 
-export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = '#274673', playbookTitle, userInput, expanded = true, collapsedLines = 4 }: BibleVerseCardProps) {
-  const { user } = useAuth();
+export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = '#274673', expanded = true, collapsedLines = 4 }: BibleVerseCardProps) {
   // Default translation/version for onboarding and playbook views
   const [showCopyright, setShowCopyright] = useState(false);
   const bibleVersion = (verse as any)?.version || 'NASB';

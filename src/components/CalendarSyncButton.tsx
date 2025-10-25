@@ -16,7 +16,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { useCalendarGating } from '../hooks/useCalendarGating';
-import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar, updateTimeBlockInCalendar, CalendarEvent } from '../services/calendarSyncService';
+import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar, updateTimeBlockInCalendar } from '../services/calendarSyncService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Linking } from 'react-native';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../utils/haptics';

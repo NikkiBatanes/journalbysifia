@@ -1,8 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TextStyle } from 'react-native';
 import { BorderRadii } from '../theme/styles';
-import { useAuth } from '../context/IndustryStandardAuthContext';
-import { triggerLightHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
 
 interface AffirmationCardProps {
@@ -11,18 +9,13 @@ interface AffirmationCardProps {
   completed: boolean;
   color?: string;
   containerStyle?: any;
-  playbookTitle?: string;
-  userInput?: string;
 }
 
 const AffirmationCard: React.FC<AffirmationCardProps> = ({
   text,
   color = 'white',
   containerStyle = {},
-  playbookTitle,
-  userInput,
 }) => {
-  const { user } = useAuth();
   const textStyle: TextStyle = {
     // Typography handled by ThemedText weight="semiBold"
     fontSize: 16,
