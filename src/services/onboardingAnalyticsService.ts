@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { onboardingService } from './onboardingService';
 
 export interface OnboardingAnalytics {
   overview: OverviewMetrics;
@@ -85,8 +86,8 @@ class OnboardingAnalyticsService {
       timeBasedAnalytics,
     ] = await Promise.all([
       this.getOverviewMetrics(dateRange),
-      this.getStepAnalytics(dateRange),
-      this.getConversionFunnelData(dateRange),
+      this.getStepAnalytics(dateRange ? { start: dateRange.from, end: dateRange.to } : undefined),
+      this.getConversionFunnel(dateRange ? { start: dateRange.from, end: dateRange.to } : undefined),
       this.getFaithJourneyInsights(dateRange),
       this.getUserSegmentation(dateRange),
       this.getTimeBasedAnalytics(dateRange),
@@ -175,7 +176,7 @@ class OnboardingAnalyticsService {
     try {
       const metrics = await onboardingService.getOnboardingMetrics();
 
-      return metrics.map(metric => ({
+      return metrics.map((metric: any) => ({
         stepName: metric.step_name,
         stepNumber: this.getStepNumber(metric.step_name),
         totalUsers: metric.total_users,
@@ -197,7 +198,7 @@ class OnboardingAnalyticsService {
   /**
    * Get conversion funnel data
    */
-  private async getConversionFunnel(_dateRange?: { start: Date; end: Date }): Promise<ConversionFunnelData> {
+  private async getConversionFunnel(_dateRange?: { start: Date; end: Date }): Promise<ConversionFunnelData[]> {
     try {
       const steps = [
         'personal_profile',
@@ -218,10 +219,10 @@ class OnboardingAnalyticsService {
           .select('user_id', { count: 'exact' })
           .eq('step_name', step);
 
-        if (dateRange) {
+        if (_dateRange) {
           query = query
-            .gte('created_at', dateRange.from.toISOString())
-            .lte('created_at', dateRange.to.toISOString());
+            .gte('created_at', _dateRange.start.toISOString())
+            .lte('created_at', _dateRange.end.toISOString());
         }
 
         const { count } = await query;
