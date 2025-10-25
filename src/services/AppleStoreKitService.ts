@@ -12,10 +12,8 @@ import RNIap, {
   requestPurchase,
   requestSubscription,
   finishTransaction,
-  validateReceiptIos,
-  validateReceiptAndroid,
-  purchaseErrorListener,
   purchaseUpdatedListener,
+  purchaseErrorListener,
 } from 'react-native-iap';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
@@ -282,26 +280,14 @@ export class AppleStoreKitService {
       }
 
       // Update user subscription in database
-      console.log('[StoreKit] Step 3: Updating user subscription in database...');
       await this.updateUserSubscription(purchase, tier);
-      console.log('[StoreKit] ✅ User subscription updated in database');
 
       // Finish the transaction
-      console.log('[StoreKit] Step 4: Finishing transaction...');
       await finishTransaction({ purchase, isConsumable: false });
-      console.log('[StoreKit] ✅ Transaction finished');
-
-      console.log('[StoreKit] ========================================');
-      console.log('[StoreKit] 🎉 Purchase completed successfully!');
-      console.log('[StoreKit] ========================================');
 
       // Resolve the pending purchase promise
-      console.log('[StoreKit] Looking for resolver with productId:', purchase.productId);
-      console.log('[StoreKit] Available resolvers:', Array.from(this.pendingPurchaseResolvers.keys()));
-
       const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
       if (resolver) {
-        console.log('[StoreKit] ✅ Found resolver! Resolving purchase promise for:', purchase.productId);
         resolver.resolve({
           success: true,
           transactionId: purchase.transactionId,
@@ -309,37 +295,21 @@ export class AppleStoreKitService {
         });
         this.pendingPurchaseResolvers.delete(purchase.productId);
       } else {
-        console.warn('[StoreKit] ⚠️ No exact match found for:', purchase.productId);
-        console.warn('[StoreKit] Attempting to resolve ANY pending purchase...');
-
         // If no exact match, resolve the first pending purchase (there should only be one)
         const firstResolver = this.pendingPurchaseResolvers.values().next();
         if (!firstResolver.done) {
-          console.log('[StoreKit] ✅ Resolving first pending purchase');
           firstResolver.value.resolve({
             success: true,
             transactionId: purchase.transactionId,
             receipt: purchase.transactionReceipt,
           });
           this.pendingPurchaseResolvers.clear();
-        } else {
-          console.error('[StoreKit] ❌ No pending resolvers found at all!');
-          console.error('[StoreKit] This indicates the purchase promise was never created properly');
         }
       }
     } catch (error) {
-      console.error('[StoreKit] ========================================');
-      console.error('[StoreKit] ❌ Failed to handle purchase update:', error);
-      console.error('[StoreKit] Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      console.error('[StoreKit] ========================================');
-
       // Reject the pending purchase promise
       const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
       if (resolver) {
-        console.log('[StoreKit] Rejecting purchase promise for:', purchase.productId);
         resolver.reject(error);
         this.pendingPurchaseResolvers.delete(purchase.productId);
       }
