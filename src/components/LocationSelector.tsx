@@ -32,19 +32,6 @@ interface LocationResult {
   error?: string;
 }
 
-interface LocationSearchResult {
-  success: boolean;
-  locations?: Array<{
-    name: string;
-    address: string;
-    coordinates: {
-      latitude: number;
-      longitude: number;
-    };
-  }>;
-  error?: string;
-}
-
 interface LocationSelectorProps {
   onLocationSelect: (location: string) => void;
   currentLocation?: string;

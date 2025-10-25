@@ -3,8 +3,6 @@ import { Modal, View, TouchableOpacity, StyleSheet, Animated } from 'react-nativ
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme';
 import ThemedText from './common/ThemedText';
-import { useTheme } from '../theme/ThemeContext';
-import { getFontFamily } from '../theme/fonts';
 
 interface SuccessModalProps {
   visible: boolean;
@@ -27,10 +25,6 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
 }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
-
-  // Theme integration for dynamic font switching
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
 
   React.useEffect(() => {
     if (visible) {
