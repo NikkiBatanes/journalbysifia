@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, Animated, Image, Alert, StatusBar, ScrollView, NativeModules } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
@@ -511,4 +512,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GeneratingPlaybookScreen;
+export default withErrorBoundary(GeneratingPlaybookScreen, 'GeneratingPlaybookScreen');

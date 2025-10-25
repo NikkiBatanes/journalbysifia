@@ -22,6 +22,7 @@ import { RootStackParamList } from '../navigation/types';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic } from '../utils/haptics';
 import { useTheme } from '../theme/ThemeContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
@@ -816,4 +817,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UserInputScreen;
+export default withErrorBoundary(UserInputScreen, 'UserInputScreen');

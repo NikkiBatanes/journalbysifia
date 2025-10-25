@@ -6,6 +6,7 @@ import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { toLocalDateString } from '../utils/date';
 import {
   useCreateReflection,
@@ -416,4 +417,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DevotionalDetailReflectionModal;
+export default withErrorBoundary(DevotionalDetailReflectionModal, 'DevotionalDetailReflectionModal');

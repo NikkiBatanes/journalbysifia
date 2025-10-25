@@ -8,6 +8,7 @@ import ReflectionLogEditor, { ReflectionLogEditorRef } from '../components/journ
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
@@ -544,4 +545,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SmartJournalingReflectionModal;
+export default withErrorBoundary(SmartJournalingReflectionModal, 'SmartJournalingReflectionModal');

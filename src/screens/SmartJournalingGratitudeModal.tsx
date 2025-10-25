@@ -6,6 +6,7 @@ import GratitudeLogEditor, { GratitudeLogEditorRef } from '../components/journal
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
 import {
   useCreateJournalEntry,
@@ -538,4 +539,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SmartJournalingGratitudeModal;
+export default withErrorBoundary(SmartJournalingGratitudeModal, 'SmartJournalingGratitudeModal');

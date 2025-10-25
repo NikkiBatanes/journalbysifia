@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from '../theme/colors';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useFamilySubscription } from '../hooks/useFamilySubscription';
+import { Colors } from '../theme/colors';
 
 const FamilyInvitationScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -251,4 +253,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FamilyInvitationScreen;
+export default withErrorBoundary(FamilyInvitationScreen, 'FamilyInvitationScreen');

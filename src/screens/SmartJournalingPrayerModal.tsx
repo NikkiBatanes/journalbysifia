@@ -6,6 +6,7 @@ import PrayerLogEditor, { PrayerLogEditorRef } from '../components/journal/Praye
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { PrayerApi, PrayerApiEntry } from '../services/api/prayerApi';
@@ -620,4 +621,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SmartJournalingPrayerModal;
+export default withErrorBoundary(SmartJournalingPrayerModal, 'SmartJournalingPrayerModal');

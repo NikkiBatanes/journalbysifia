@@ -5,6 +5,7 @@ import { useSuccessModal } from '../hooks/useSuccessModal';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { TimeBlockApi, TimeBlockApiEntry } from '../services/api/timeBlockApi';
@@ -428,4 +429,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SmartJournalingTimeBlockModal;
+export default withErrorBoundary(SmartJournalingTimeBlockModal, 'SmartJournalingTimeBlockModal');

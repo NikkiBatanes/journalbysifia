@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Colors } from '../theme/colors';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
@@ -127,4 +129,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StreakDetailScreen;
+export default withErrorBoundary(StreakDetailScreen, 'StreakDetailScreen');
