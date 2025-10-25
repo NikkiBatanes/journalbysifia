@@ -26,14 +26,13 @@ import { initSound, releaseSound } from '../utils/soundUtils';
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
-import { supabase } from '../services/supabaseClient';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import { TrialDebugMenu } from '../components/debug/TrialDebugMenu';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
-import { UserProgress, Badge, UserPreferences } from '../types/auth';
+import { UserProgress, UserPreferences } from '../types/auth';
 // Types for subscription - using inline types to avoid import issues
 interface Subscription {
   id: string;
@@ -100,8 +99,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
-  const [recentBadges, setRecentBadges] = useState<Badge[]>([]);
-  const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [usage, setUsage] = useState<UsageTracking | null>(null);
   // Form states
@@ -287,6 +284,110 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     } catch {}
   }, [isValidBirthYear, deleteBirthYear]);
 
+  const loadNotificationPreferences = useCallback(async () => {
+    if (!user?.id) {return;}
+
+    try {
+      console.log('Loading notification preferences for user:', user.id);
+      let prefs = await notificationManagementService.getNotificationPreferences(user.id);
+
+      // If no preferences exist, create defaults
+      if (!prefs) {
+        console.log('No preferences found, creating defaults');
+        const defaultPrefs = {
+          user_id: user.id,
+          playbook_steps: true,
+          devotional_reminders: true,
+          trial_notifications: true,
+          prayer_request_alerts: false,
+          prayer_requests: false,
+          quiet_hours_start: '22:00',
+          quiet_hours_end: '07:00',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const success = await notificationManagementService.updateNotificationPreferences(defaultPrefs);
+        if (success) {
+          prefs = defaultPrefs;
+        }
+      }
+
+      console.log('Loaded notification preferences:', prefs);
+      setNotificationPrefs(prefs);
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+      // Set minimal defaults on error
+      setNotificationPrefs({
+        user_id: user.id,
+        playbook_steps: false,
+        devotional_reminders: false,
+        trial_notifications: false,
+        prayer_request_alerts: false,
+        prayer_requests: false,
+        quiet_hours_start: '22:00',
+        quiet_hours_end: '07:00',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }, [user?.id]);
+
+  const loadProfileData = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Parallel loading for better performance
+      const [progressResponse, statsResponse] = await Promise.allSettled([
+        userApi.getUserProgress(user.id),
+        userApi.getProfileStats(user.id),
+      ]);
+
+      // Process results with proper null checks
+      if (progressResponse.status === 'fulfilled' && progressResponse.value.success && progressResponse.value.data) {
+        setUserProgress(progressResponse.value.data);
+      }
+
+      if (statsResponse.status === 'fulfilled' && statsResponse.value.success && statsResponse.value.data) {
+        setProfileStats(statsResponse.value.data);
+      }
+
+      // Badge data loading removed - badges section not currently displayed
+
+      // Load subscription and usage data separately to avoid blocking UI
+      try {
+        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+        setSubscription(subscriptionData as any);
+
+        const usageData = {
+          playbooks_generated: subscriptionData.playbooks_used || 0,
+          devotionals_generated: subscriptionData.devotionals_used || 0,
+        };
+        setUsage(usageData);
+
+        console.log('📊 Subscription loaded:', subscriptionData.tier, subscriptionData.status);
+      } catch (error) {
+        console.error('Failed to load subscription data:', error);
+      }
+
+      // Load notification preferences separately to avoid blocking
+      loadNotificationPreferences().catch(error => {
+        console.error('Failed to load notification preferences:', error);
+      });
+
+    } catch (error) {
+      console.error('Failed to load profile data:', error);
+      Alert.alert('Error', 'Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, loadNotificationPreferences]);
+
   /**
    * ENTERPRISE IMPROVEMENT: Restore Purchases Handler
    * Explanation: This allows users to recover their subscriptions after:
@@ -351,7 +452,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         },
       ]
     );
-  }, [user]);
+  }, [user, loadProfileData]);
 
   // Personalization toggles
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
@@ -368,7 +469,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [appearanceModal, setAppearanceModal] = useState(false);
   const [themeDraft, setThemeDraft] = useState<'default'>('default');
   const [fontDraft, setFontDraft] = useState<UserPreferences['font']>('lexend');
-  const [_badgesModal, setBadgesModal] = useState(false);
   // Report Issue modal
   const [reportBugModal, setReportBugModal] = useState(false);
   const [bugReportText, setBugReportText] = useState('');
@@ -808,155 +908,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     },
   });
 
-  const loadNotificationPreferences = useCallback(async () => {
-    if (!user?.id) {return;}
-
-    try {
-      console.log('Loading notification preferences for user:', user.id);
-      let prefs = await notificationManagementService.getNotificationPreferences(user.id);
-
-      // If no preferences exist, create defaults
-      if (!prefs) {
-        console.log('No preferences found, creating defaults');
-        const defaultPrefs = {
-          user_id: user.id,
-          playbook_steps: true,
-          devotional_reminders: true,
-          trial_notifications: true,
-          prayer_request_alerts: false,
-          prayer_requests: false,
-          quiet_hours_start: '22:00',
-          quiet_hours_end: '07:00',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        const success = await notificationManagementService.updateNotificationPreferences(defaultPrefs);
-        if (success) {
-          prefs = defaultPrefs;
-        }
-      }
-
-      console.log('Loaded notification preferences:', prefs);
-      setNotificationPrefs(prefs);
-    } catch (error) {
-      console.error('Error loading notification preferences:', error);
-      // Set minimal defaults on error
-      setNotificationPrefs({
-        user_id: user.id,
-        playbook_steps: false,
-        devotional_reminders: false,
-        trial_notifications: false,
-        prayer_request_alerts: false,
-        prayer_requests: false,
-        quiet_hours_start: '22:00',
-        quiet_hours_end: '07:00',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-    }
-  }, [user?.id]);
-
   // Reload preferences whenever the settings modal opens (placed after declaration to satisfy lints)
   useEffect(() => {
     if (settingsModal && user?.id) {
       loadNotificationPreferences();
     }
   }, [settingsModal, user?.id, loadNotificationPreferences]);
-
-  const loadProfileData = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Parallel loading for better performance
-      const [
-        progressResponse,
-        statsResponse,
-        badgesResponse,
-        allBadgesResponse,
-      ] = await Promise.allSettled([
-        userApi.getUserProgress(user.id),
-        userApi.getProfileStats(user.id),
-        userApi.getRecentBadges(user.id, 5),
-        userApi.getAllUserBadges(user.id),
-      ]);
-
-      // Process results with proper null checks
-      if (progressResponse.status === 'fulfilled' && progressResponse.value.success && progressResponse.value.data) {
-        setUserProgress(progressResponse.value.data);
-      }
-
-      if (statsResponse.status === 'fulfilled' && statsResponse.value.success && statsResponse.value.data) {
-        setProfileStats(statsResponse.value.data);
-      }
-
-      if (badgesResponse.status === 'fulfilled' && badgesResponse.value.success && badgesResponse.value.data) {
-        setRecentBadges(badgesResponse.value.data);
-      }
-
-      if (allBadgesResponse.status === 'fulfilled' && allBadgesResponse.value.success && allBadgesResponse.value.data) {
-        setAllBadges(allBadgesResponse.value.data);
-        console.log('✅ Loaded user_badges count:', allBadgesResponse.value.data.length);
-      } else {
-        // Fallback: legacy storage uses user_profiles.badges JSON array
-        try {
-          const { data: profileRow, error: profileErr } = await supabase
-            .from('user_profiles')
-            .select('badges')
-            .eq('id', user.id)
-            .single();
-          if (!profileErr && profileRow?.badges) {
-            const profileBadges = profileRow.badges as any[];
-            const mapped: Badge[] = profileBadges.map((b: any) => ({
-              id: b.id,
-              name: b.name,
-              description: b.description,
-              icon: b.icon,
-              rarity: b.rarity || 'common',
-              category: b.category || 'achievement',
-              unlockedAt: b.unlockedAt,
-            }));
-            setAllBadges(mapped);
-            console.log('✅ Loaded user_profiles.badges count:', mapped.length);
-          }
-        } catch (fallbackError) {
-          console.warn('Failed to load fallback badges:', fallbackError);
-        }
-      }
-
-      // Load subscription and usage data separately to avoid blocking UI
-      try {
-        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
-        setSubscription(subscriptionData as any);
-
-        const usageData = {
-          playbooks_generated: subscriptionData.playbooks_used || 0,
-          devotionals_generated: subscriptionData.devotionals_used || 0,
-        };
-        setUsage(usageData);
-
-        console.log('📊 Subscription loaded:', subscriptionData.tier, subscriptionData.status);
-      } catch (error) {
-        console.error('Failed to load subscription data:', error);
-      }
-
-      // Load notification preferences separately to avoid blocking
-      loadNotificationPreferences().catch(error => {
-        console.error('Failed to load notification preferences:', error);
-      });
-
-    } catch (error) {
-      console.error('Failed to load profile data:', error);
-      Alert.alert('Error', 'Failed to load profile data');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, loadNotificationPreferences]);
 
   useEffect(() => {
     loadProfileData();
@@ -1159,8 +1116,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       // Clear local state before logout to prevent stale data
       setUserProgress(null);
       setProfileStats(null);
-      setRecentBadges([]);
-      setAllBadges([]);
       setSubscription(null);
       setUsage(null);
       setNotificationPrefs(null);
@@ -1245,121 +1200,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       devotionals: { used: usage.devotionals_generated || 0, limit: devotionalLimitNum },
     } as const;
   }, [subscription, usage]);
-
-  const renderUsageCounters = () => {
-    if (!subscription || !usage) {return null;}
-
-    const isTrialing = subscription.status === 'active' && (subscription as any).trial_start_date && (subscription as any).trial_end_date;
-    const isCanceled = subscription.status === 'canceled';
-
-    console.log('🔍 Subscription Debug:', {
-      tier: subscription.tier,
-      status: subscription.status,
-      limits: subscription.limits,
-      usage: {
-        playbooks_generated: usage.playbooks_generated,
-        devotionals_generated: usage.devotionals_generated,
-      },
-    });
-
-    const playbookLimit = subscription.limits?.playbooks === -1 ? 'Unlimited' : (subscription.limits?.playbooks || 0);
-    const devotionalLimit = subscription.limits?.devotionals === -1 ? 'Unlimited' : (subscription.limits?.devotionals || 0);
-
-    const playbookUsed = usage.playbooks_generated || 0;
-    const devotionalUsed = usage.devotionals_generated || 0;
-    const playbookPct = typeof playbookLimit === 'number' && playbookLimit > 0 ? Math.min(1, playbookUsed / playbookLimit) : 0;
-    const devotionalPct = typeof devotionalLimit === 'number' && devotionalLimit > 0 ? Math.min(1, devotionalUsed / devotionalLimit) : 0;
-
-    // Debug logging
-    console.log('🔍 Profile Usage Counter:', {
-      playbookLimit,
-      devotionalLimit,
-      playbookUsed,
-      devotionalUsed,
-      subscription_tier: subscription?.tier,
-      usage_object: usage,
-      subscription_limits: subscription?.limits,
-    });
-
-    return (
-      <View style={styles.countersContainer}>
-        <View style={styles.countersRow}>
-          <View style={styles.counterCard}>
-            <View style={styles.counterHeader}>
-              <Ionicons name="book-outline" size={18} color={Colors.anchorBlue} />
-            </View>
-            <Text style={[styles.counterNumbers, font]}>{playbookUsed} / {playbookLimit}</Text>
-            <View style={styles.progressTrack}><View style={[styles.progressValue, { width: `${playbookPct * 100}%` }]} /></View>
-          </View>
-          <View style={styles.counterCard}>
-            <View style={styles.counterHeader}>
-              <Ionicons name="heart-outline" size={18} color={Colors.devotionalPurple} />
-            </View>
-            <Text style={[styles.counterNumbers, font]}>{devotionalUsed} / {devotionalLimit}</Text>
-            <View style={styles.progressTrack}><View style={[styles.progressValueAlt, { width: `${devotionalPct * 100}%` }]} /></View>
-          </View>
-        </View>
-
-        {isTrialing && !isCanceled && (
-          <TouchableOpacity style={styles.upgradeButton}>
-            <Text style={[styles.upgradeButtonText, font]}>Upgrade Plan</Text>
-            <Ionicons name="arrow-forward" size={16} color="#fff" />
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
-
-  const renderAllBadges = () => (
-    <View style={styles.badgesContainer}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: Colors.hopeWhite }, font]}>Badges</Text>
-        {!!recentBadges.length && (
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModal(true); }}>
-            <Text style={[styles.viewAllText, font]}>Recent</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {!!(allBadges && allBadges.length) && (
-        <Text style={[styles.badgesSubtitle, font]} numberOfLines={2}>
-          You have {allBadges.length} badges: {allBadges.map(b => b.name).join(', ')}
-        </Text>
-      )}
-
-      {/* Full-bleed horizontal scroller */}
-      <View style={styles.fullBleedContainer}>
-        {((allBadges && allBadges.length) || (recentBadges && recentBadges.length)) ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fullBleedContent}>
-            <View style={styles.badgesList}>
-              {(allBadges.length ? allBadges : recentBadges).map((badge, index) => {
-                const iconStr = String((badge as any).icon || '').trim();
-                const isIonicon = /^[a-z0-9-]+$/i.test(iconStr);
-                return (
-                  <View key={`${badge.id}-${index}`} style={styles.badgeItem}>
-                    <View style={styles.badgeIcon}>
-                      {isIonicon && iconStr ? (
-                        <Ionicons name={iconStr as any} size={22} color={Colors.hopeWhite} />
-                      ) : iconStr ? (
-                        <Text style={[styles.badgeEmoji, { color: Colors.hopeWhite }, font]}>{iconStr}</Text>
-                      ) : (
-                        <Ionicons name="medal" size={22} color={Colors.hopeWhite} />
-                      )}
-                    </View>
-                    <Text style={[styles.badgeName, { color: Colors.hopeWhite }, font]}>{badge.name}</Text>
-                    <Text style={[styles.badgePoints, { color: Colors.hopeWhite }, font]}>+{(badge as any).faith_points_reward || 0}</Text>
-                  </View>
-                );
-              })}
-            </View>
-            {/* No extra spacer; rely on safe-area insets for edge-to-edge scroll */}
-        </ScrollView>
-        ) : (
-          <Text style={[styles.badgesSubtitle, styles.textAlignCenter, font]}>No badges yet</Text>
-        )}
-      </View>
-    </View>
-  );
 
   const renderCommunitySection = () => (
     <View>
@@ -1551,9 +1391,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 }
 
                 // Check if user is on Seeker/Free trial plan and trying to enable auto-sync
-                const { NewSubscriptionService } = await import('../services/NewSubscriptionService');
+                const { NewSubscriptionService: SubscriptionService } = await import('../services/NewSubscriptionService');
                 try {
-                  const subscriptionData = await NewSubscriptionService.getUserSubscription(user?.id || '');
+                  const subscriptionData = await SubscriptionService.getUserSubscription(user?.id || '');
                   if (subscriptionData.tier === 'seeker' || subscriptionData.tier === 'free_trial') {
                     // Navigate to sales offer with return navigation context
                     navigation.navigate('OnboardingSalesOffer', {
