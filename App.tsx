@@ -35,7 +35,6 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 // Removed ErrorBoundary unused default import (no default export)
 import { queryClient } from './src/config/queryClientConfig';
-import { trialExpiryService } from './src/services/TrialExpiryService';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 
 // Hide debug notifications
@@ -95,10 +94,6 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   useEffect(() => {
     // Initialize app-level services
     console.log(' siFia App initialized');
-
-    // Start trial expiry monitoring
-    trialExpiryService.checkAndHandleExpiredTrials();
-    trialExpiryService.scheduleTrialExpiryCheck();
     
     // ENTERPRISE: Sync subscription status on app launch
     const syncSubscriptionStatus = async () => {
