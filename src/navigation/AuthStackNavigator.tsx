@@ -28,27 +28,27 @@ export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavig
       {/* Enhanced Authentication Screens */}
       <Stack.Screen
         name="Login"
-        component={LoginScreen}
+        component={LoginScreen as any}
         options={{ title: 'Login' }}
       />
       <Stack.Screen
         name="Register"
-        component={RegisterScreen}
+        component={RegisterScreen as any}
         options={{ title: 'Create an Account' }}
       />
       <Stack.Screen
         name="EmailLogin"
-        component={EmailLoginScreen}
+        component={EmailLoginScreen as any}
         options={{ title: 'Email Login' }}
       />
       <Stack.Screen
         name="EmailRegister"
-        component={EmailRegisterScreen}
+        component={EmailRegisterScreen as any}
         options={{ title: 'Create an Account' }}
       />
       <Stack.Screen
         name="ForgotPassword"
-        component={ForgotPasswordScreen}
+        component={ForgotPasswordScreen as any}
         options={{ title: 'Reset Password' }}
       />
       <Stack.Screen
