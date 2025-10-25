@@ -1547,7 +1547,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             {/* No extra spacer; rely on safe-area insets for edge-to-edge scroll */}
         </ScrollView>
         ) : (
-          <Text style={[styles.badgesSubtitle, { textAlign: 'center' }, font]}>No badges yet</Text>
+          <Text style={[styles.badgesSubtitle, styles.textAlignCenter, font]}>No badges yet</Text>
         )}
       </View>
     </View>
@@ -2076,12 +2076,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons name="chevron-down" size={20} color={Colors.textGray} />
             </TouchableOpacity>
             {showInlineYearPicker && (
-              <View style={{
-                marginTop: 12,
-                paddingVertical: 12,
-                paddingHorizontal: 12,
-                alignItems: 'center',
-              }}>
+              <View style={styles.yearPickerContainer}>
                 <DateTimePicker
                   value={tempBirthDate}
                   mode="date"
@@ -2096,15 +2091,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     }
                   }}
                 />
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                <View style={styles.yearPickerRow}>
                   <TouchableOpacity
                     onPress={() => setShowInlineYearPicker(false)}
-                    style={{
-                      paddingHorizontal: 16,
-                      paddingVertical: 8,
-                      borderRadius: 10,
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                    }}
+                    style={styles.yearPickerCancelButton}
                   >
                     <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Cancel</Text>
                   </TouchableOpacity>
@@ -2113,12 +2103,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       setProfileForm({ ...profileForm, birthDate: tempBirthDate.toISOString().split('T')[0] });
                       setShowInlineYearPicker(false);
                     }}
-                    style={{
-                      paddingHorizontal: 16,
-                      paddingVertical: 8,
-                      borderRadius: 10,
-                      backgroundColor: Colors.alertCoral,
-                    }}
+                    style={styles.yearPickerDoneButton}
                   >
                     <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Done</Text>
                   </TouchableOpacity>
@@ -2128,7 +2113,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           {/* Danger zone */}
-          <View style={{ marginTop: 12 }}>
+          <View style={styles.paddingBottom20}>
             <TouchableOpacity
               onPress={() => {
                 console.log('🗑️ Delete account button pressed!');
@@ -2139,17 +2124,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               }}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={{
-                backgroundColor: 'rgba(255,107,107,0.12)',
-                borderWidth: 1,
-                borderColor: Colors.alertCoral,
-                borderRadius: 20,
-                paddingVertical: 12,
-                paddingHorizontal: 14,
-                flexDirection: 'row',
-                alignItems: 'center',
-                minHeight: 48, // Ensure minimum touch target size
-              }}
+              style={styles.deleteAccountButton}
               accessibilityRole="button"
               accessibilityLabel="Delete account"
             >
@@ -2202,7 +2177,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={{ width: 48 }} />
           </View>
 
-          <View style={{ paddingTop: 20 }}>
+          <View style={styles.paddingBottom20}>
           <Text style={[styles.settingDescription, font]}>For security, please confirm your birth year to proceed with account deletion.</Text>
           <View style={styles.nameContainer}>
             <TextInput
@@ -3391,6 +3366,46 @@ const styles = StyleSheet.create({
   },
   bibleModalScrollInset: {
     bottom: 0,
+  },
+  textAlignCenter: {
+    textAlign: 'center',
+  },
+  paddingBottom20: {
+    paddingBottom: 20,
+  },
+  yearPickerContainer: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  yearPickerRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  yearPickerCancelButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  yearPickerDoneButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 8,
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.3)',
   },
   // Removed test button styles
 });
