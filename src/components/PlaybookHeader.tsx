@@ -1,7 +1,7 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
+import { View, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
 
 import { Colors, Fonts } from '../theme';
 import ThemedText from './common/ThemedText';

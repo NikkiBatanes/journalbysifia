@@ -6,7 +6,6 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
-import { getFontFamily } from '../theme/fonts';
 
 export interface SuccessModalConfig {
   title: string;
@@ -34,7 +33,6 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
   // Theme integration for dynamic font switching
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
   const sparkleAnims = React.useRef(
     Array.from({ length: 5 }).map(() => ({
       opacity: new Animated.Value(0),

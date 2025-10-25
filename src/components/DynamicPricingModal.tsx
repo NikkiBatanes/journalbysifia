@@ -42,7 +42,6 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
 
   // Theme integration for dynamic font switching
   const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
 
   useEffect(() => {
     if (!visible) {return;}

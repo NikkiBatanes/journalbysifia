@@ -20,7 +20,6 @@ import { getFontFamily } from '../theme/fonts';
 import { MapPin, Navigation } from 'lucide-react-native';
 import ThemedText from './common/ThemedText';
 import { getCurrentLocation, searchLocations } from '../services/calendarSyncService';
-import { analytics } from '../utils/analytics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
 interface LocationResult {

@@ -31,7 +31,6 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   // Theme integration for dynamic font switching
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
 
   React.useEffect(() => {
     if (visible) {

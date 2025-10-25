@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
-import { triggerLightHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
 
 type TruthInLoveCardProps = {

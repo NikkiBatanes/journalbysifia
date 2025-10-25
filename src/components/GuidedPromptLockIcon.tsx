@@ -7,7 +7,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import type { SubscriptionTier } from '../types/subscription';
-import { checkGuidedPromptAccess } from '../utils/guidedPromptGating';
+import { type GuidedPromptAccessCheck } from '../utils/guidedPromptGating';
 
 interface GuidedPromptLockIconProps {
   /** Current user subscription tier */
