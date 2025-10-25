@@ -204,29 +204,14 @@ export class AppleStoreKitService {
 
       // Store userId for purchase update handler
       this.currentUserId = userId;
-      console.log('[StoreKit] Stored userId for purchase handler:', userId);
-
-      console.log('[StoreKit] Requesting subscription purchase:', {
-        productId,
-        offerIdentifier,
-      });
 
       // Create a promise that will be resolved by the purchase listener
-      console.log('[StoreKit] Creating purchase promise for productId:', productId);
       const purchasePromise = new Promise<PurchaseResult>((resolve, reject) => {
         this.pendingPurchaseResolvers.set(productId, { resolve, reject });
-        console.log('[StoreKit] Stored resolver for:', productId);
-        console.log('[StoreKit] Total pending resolvers:', this.pendingPurchaseResolvers.size);
 
         // Set a timeout to prevent hanging forever
         setTimeout(() => {
           if (this.pendingPurchaseResolvers.has(productId)) {
-            console.error('[StoreKit] ⏰ Purchase timeout! Listener never fired for:', productId);
-            console.error('[StoreKit] This usually means:');
-            console.error('[StoreKit] 1. User cancelled the purchase');
-            console.error('[StoreKit] 2. Network issue with App Store');
-            console.error('[StoreKit] 3. Purchase listener not set up correctly');
-            console.error('[StoreKit] 4. Apple payment sheet failed to show');
             this.pendingPurchaseResolvers.delete(productId);
             reject(new Error('Purchase timeout - no response from App Store'));
           }
@@ -235,7 +220,6 @@ export class AppleStoreKitService {
 
       // Validate that the promise was created and stored
       if (!this.pendingPurchaseResolvers.has(productId)) {
-        console.error('[StoreKit] ❌ Failed to store purchase resolver for:', productId);
         throw new Error('Failed to create purchase promise');
       }
 
@@ -258,15 +242,10 @@ export class AppleStoreKitService {
       }
 
       // Wait for the purchase listener to complete
-      console.log('[StoreKit] Waiting for purchase to complete...');
-      console.log('[StoreKit] If this times out, the listener is not firing!');
-
       const result = await purchasePromise;
 
-      console.log('[StoreKit] Purchase promise resolved:', result);
       return result;
     } catch (error) {
-      console.error('[StoreKit] Purchase failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -280,16 +259,7 @@ export class AppleStoreKitService {
    */
   private async handlePurchaseUpdate(purchase: ProductPurchase): Promise<void> {
     try {
-      console.log('[StoreKit] ========================================');
-      console.log('[StoreKit] Processing purchase update:', {
-        productId: purchase.productId,
-        transactionId: purchase.transactionId,
-        transactionDate: purchase.transactionDate,
-        purchaseToken: purchase.purchaseToken,
-      });
-
       // ENTERPRISE IMPROVEMENT: Server-side validation FIRST
-      console.log('[StoreKit] Step 1: Validating receipt with server...');
       const serverValidation = await this.validateReceiptServerSide(
         purchase.transactionReceipt,
         this.currentUserId || '',
@@ -297,29 +267,19 @@ export class AppleStoreKitService {
       );
 
       if (!serverValidation.success) {
-        console.error('[StoreKit] ❌ Server validation failed:', serverValidation.error);
         // Still try client-side validation as fallback
-        console.log('[StoreKit] Attempting client-side validation as fallback...');
         const isValid = await this.validateReceipt(purchase);
         if (!isValid) {
-          console.error('[StoreKit] ❌ Client validation also failed');
           return;
         }
-        console.log('[StoreKit] ⚠️ Client validation passed, but server validation failed');
-      } else {
-        console.log('[StoreKit] ✅ Receipt validated by server (enterprise-grade)');
       }
 
       // Map product ID to subscription tier
-      console.log('[StoreKit] Step 2: Mapping product ID to tier...');
       const tier = this.getSubscriptionTierFromProductId(purchase.productId);
 
       if (!tier) {
-        console.error('[StoreKit] ❌ Unknown product ID:', purchase.productId);
-        console.error('[StoreKit] This product ID is not recognized. Check product configuration.');
         return;
       }
-      console.log('[StoreKit] ✅ Mapped to tier:', tier);
 
       // Update user subscription in database
       console.log('[StoreKit] Step 3: Updating user subscription in database...');
