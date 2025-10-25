@@ -791,7 +791,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             })}
           </View>
 
-          <View style={{ height: 12 }} />
+          <View style={styles.spacer} />
           <TextInput
             style={[styles.bugInput, font]}
             placeholder="Describe the feature you'd like to see..."
@@ -1614,7 +1614,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open X (Twitter) @sifiaapp"
         >
           <View style={styles.menuIconBox}>
-            <Text style={{ color: Colors.anchorBlue, fontSize: 16, fontWeight: '800' }}>X</Text>
+            <Text style={styles.twitterIconText}>X</Text>
           </View>
           <Text style={[styles.menuText, font]}>X</Text>
           <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
@@ -2335,13 +2335,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingTop: 20,
-            paddingHorizontal: 20,
-            paddingBottom: 0,
-          }}
-          contentInset={{ bottom: 0 }}
+          style={styles.bibleModalScrollView}
+          contentContainerStyle={styles.bibleModalScrollContent}
+          contentInset={styles.bibleModalScrollInset}
           scrollIndicatorInsets={{ bottom: (insets?.bottom || 0), top: 0, left: 0, right: 0 }}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
@@ -3376,6 +3372,25 @@ const styles = StyleSheet.create({
   yearOptionTextSelected: {
     color: Colors.alertCoral,
     fontWeight: '600',
+  },
+  spacer: {
+    height: 12,
+  },
+  twitterIconText: {
+    color: Colors.anchorBlue,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  bibleModalScrollView: {
+    flex: 1,
+  },
+  bibleModalScrollContent: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 0,
+  },
+  bibleModalScrollInset: {
+    bottom: 0,
   },
   // Removed test button styles
 });
