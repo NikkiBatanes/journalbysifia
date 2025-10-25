@@ -44,9 +44,6 @@ const GuidedPromptLockIcon: React.FC<GuidedPromptLockIconProps> = ({
   prompt,
   forceShow = false,
 }) => {
-  // Check access using guided prompt gating rules
-  const accessCheck = checkGuidedPromptAccess(tier, usedPrompts, context);
-
   // Only show locks when explicitly forced (for specific locked prompts)
   // Don't show locks based on tier alone
   const shouldShowLock = forceShow;

@@ -2,7 +2,6 @@ import React from 'react';
 import { Modal, View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import ThemedText from './common/ThemedText';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useTheme } from '../theme/ThemeContext';
 import { Colors } from '../theme';
 import { triggerLightHaptic } from '../utils/haptics';
 
