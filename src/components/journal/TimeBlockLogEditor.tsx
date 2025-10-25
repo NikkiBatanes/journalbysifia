@@ -786,7 +786,6 @@ function TimeBlockLogEditorInner(
   };
 
   const handleContentChange = (field: string, value: any) => {
-    _setHasUserMadeChanges(true);
     switch (field) {
       case 'title': setTitle(value); break;
       case 'notes': setNotes(value); break;
