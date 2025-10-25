@@ -15,6 +15,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { supabase } from '../../services/supabaseClient';
 
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
@@ -529,4 +530,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingSplashScreen;
+export default withErrorBoundary(OnboardingSplashScreen, 'OnboardingSplashScreen');

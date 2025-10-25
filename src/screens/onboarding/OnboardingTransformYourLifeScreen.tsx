@@ -16,6 +16,7 @@ import {
 import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
@@ -301,4 +302,4 @@ const styles = StyleSheet.create({
 
 });
 
-export default OnboardingTransformYourLifeScreen;
+export default withErrorBoundary(OnboardingTransformYourLifeScreen, 'OnboardingTransformYourLifeScreen');

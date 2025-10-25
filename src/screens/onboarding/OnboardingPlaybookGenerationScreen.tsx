@@ -22,6 +22,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { enhancedGenerationService } from '../../services/enhancedGenerationService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 // import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
@@ -1109,4 +1110,4 @@ const styles = StyleSheet.create({
 
 });
 
-export default OnboardingPlaybookGenerationScreen;
+export default withErrorBoundary(OnboardingPlaybookGenerationScreen, 'OnboardingPlaybookGenerationScreen');

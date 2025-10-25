@@ -11,7 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from '../../theme';
+import { Colors } from '../../theme/colors';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -639,4 +640,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingNotificationSetupScreen;
+export default withErrorBoundary(OnboardingNotificationSetupScreen, 'OnboardingNotificationSetupScreen');

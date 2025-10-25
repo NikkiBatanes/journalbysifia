@@ -32,6 +32,7 @@ import ThemedText from '../../components/common/ThemedText';
 import { ActionStepsProvider, useActionSteps } from '../../context/ActionStepsContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
  import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
  import { getPlaybook } from '../../services/apiIntegration';
 
 // Module-level flag to track if intro modal has been shown
@@ -1724,4 +1725,4 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
   );
 };
 
-export default OnboardingPlaybookReadyScreenNew;
+export default withErrorBoundary(OnboardingPlaybookReadyScreenNew, 'OnboardingPlaybookReadyScreenNew');

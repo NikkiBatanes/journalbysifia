@@ -23,6 +23,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Colors } from '../../theme/colors';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { Fonts } from '../../theme/fonts';
 import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -524,4 +525,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingWelcomeScreen;
+export default withErrorBoundary(OnboardingWelcomeScreen, 'OnboardingWelcomeScreen');

@@ -8,6 +8,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
 import { onboardingService } from '../../services/onboardingService';
@@ -1502,4 +1503,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingPersonalizationScreen;
+export default withErrorBoundary(OnboardingPersonalizationScreen, 'OnboardingPersonalizationScreen');
