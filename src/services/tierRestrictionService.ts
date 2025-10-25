@@ -7,7 +7,6 @@
 
 import { SubscriptionTier, SubscriptionLimits } from '../interfaces/subscription';
 import { subscriptionService } from './subscriptionService';
-import { retentionService } from './retentionService';
 
 export interface FeatureAccessResult {
   hasAccess: boolean;

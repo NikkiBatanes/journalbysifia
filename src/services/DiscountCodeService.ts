@@ -41,9 +41,6 @@ export class DiscountCodeService {
     previousTier: string
   ): Promise<DiscountCode> {
     try {
-      // Get user's subscription history to determine appropriate discount
-      const subscription = await NewSubscriptionService.getUserSubscription(userId);
-
       // Calculate discount based on previous tier
       let discountPercentage = 20; // Default 20% off
       let validDays = 30; // Valid for 30 days

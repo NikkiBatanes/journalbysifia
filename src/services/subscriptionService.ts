@@ -2,7 +2,7 @@
 // Created: 2025-08-20
 
 import { supabase } from './supabaseClient';
-import NewSubscriptionService, { NewSubscriptionService as NSS } from './NewSubscriptionService';
+import { NewSubscriptionService as NSS } from './NewSubscriptionService';
 import type { Subscription, SubscriptionTier, SubscriptionLimits, SubscriptionCheck } from '../types/subscription';
 
 // Augmented limits shape expected by legacy code
