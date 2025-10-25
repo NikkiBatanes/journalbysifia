@@ -224,12 +224,10 @@ export class PlatformPaymentService {
       }
 
       // Check platform-specific status if available
-      let platformStatus = null;
-
       if (subscription.platform === 'apple' && Platform.OS === 'ios') {
-        platformStatus = await this.appleService.getCurrentSubscriptionStatus(userId);
+        await this.appleService.getCurrentSubscriptionStatus(userId);
       } else if (subscription.platform === 'google' && Platform.OS === 'android') {
-        platformStatus = await this.googleService.getCurrentSubscriptionStatus(userId);
+        await this.googleService.getCurrentSubscriptionStatus(userId);
       }
 
       return {

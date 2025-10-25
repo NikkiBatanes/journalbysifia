@@ -297,7 +297,6 @@ class PricingService {
    * TODO: Re-enable after launch when promotional offers are set up in App Store Connect
    */
   async getDynamicDiscount(
-    userId?: string | null,
     tierId?: string | null,
     billing?: 'monthly' | 'annual'
   ): Promise<DynamicDiscount | null> {

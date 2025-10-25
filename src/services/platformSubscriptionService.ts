@@ -130,7 +130,6 @@ class PlatformSubscriptionService {
 
     } catch (error) {
       console.error('[PlatformSubscription] Initialization failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new PlatformSubscriptionError(
         'Failed to initialize subscription service',
         'INIT_FAILED',
