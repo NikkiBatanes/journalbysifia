@@ -721,10 +721,9 @@ class AuthApiService {
       fontSize: 'medium',
       colorScheme: 'default',
       privacy: {
-        profileVisibility: 'friends',
+        profileVisibility: 'public' as 'public' | 'private',
         shareProgress: true,
         shareJournal: false,
-        allowFriendRequests: true,
       },
       content: {
         language: 'en',
