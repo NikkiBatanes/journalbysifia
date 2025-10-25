@@ -137,7 +137,17 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
         upgrade_message: playbookCheck.upgrade_message || devotionalCheck.upgrade_message,
       });
     } catch (error) {
-      console.error('Failed to update usage check:', error);
+      // Usage check failed - set default restrictive values
+      setUsageCheck({
+        can_generate_playbook: false,
+        can_generate_devotional: false,
+        can_use_smart_journaling: false,
+        can_export: false,
+        playbooks_remaining: 0,
+        devotionals_remaining: 0,
+        show_upgrade_prompt: false,
+        upgrade_message: '',
+      });
     }
   }, [userId, subscription]);
 
