@@ -9,7 +9,6 @@ import {
   checkDevotionalAccess,
   getUsageDisplayMessage,
   getUpgradeMessage,
-  getTierAccessRules,
   type DevotionalAccessCheck,
 } from '../utils/tierLockingRules';
 

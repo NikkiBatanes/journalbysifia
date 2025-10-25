@@ -7,7 +7,6 @@ import { useSubscription } from './useSubscription';
 import {
   guidedPromptGatingService,
   type DailyPromptAllocation,
-  type PromptUsageCheck,
 } from '../services/guidedPromptGatingService';
 import {
   checkGuidedPromptAccess,

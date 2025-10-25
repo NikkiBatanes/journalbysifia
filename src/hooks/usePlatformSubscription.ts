@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Platform } from 'react-native';
 import platformSubscriptionService, {
   SubscriptionProduct,
   UpgradeRequest,

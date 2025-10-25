@@ -23,7 +23,7 @@ export interface OnboardingProgress {
 
 export const useUserState = () => {
   const { user } = useAuth();
-  const { subscription, isLoading: subscriptionLoading, startTrial } = useNewSubscription(user?.id || '');
+  const { subscription, startTrial } = useNewSubscription(user?.id || '');
   const [userState, setUserState] = useState<UserState>({
     tier: 'seeker',
     subscription: null,
