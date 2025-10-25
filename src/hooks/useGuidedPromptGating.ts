@@ -71,16 +71,8 @@ export function useGuidedPromptGating({
     try {
       const allocation = guidedPromptGatingService.getDailyPrompts(user.id, currentTier);
       setDailyAllocation(allocation);
-
-      console.log('[useGuidedPromptGating] Loaded allocation:', {
-        tier: currentTier,
-        freePrompts: allocation.freePrompts.length,
-        lockedPrompts: allocation.lockedPrompts.length,
-        totalPrompts: allocation.allPrompts.length,
-      });
     } catch (error) {
-      console.error('[useGuidedPromptGating] Error loading allocation:', error);
-    } finally {
+      // Error silently handled - allocation loading failures are not critical
       setIsLoading(false);
     }
   }, [user?.id, currentTier]);
@@ -93,7 +85,7 @@ export function useGuidedPromptGating({
       const check = await guidedPromptGatingService.canUsePrompt(user.id, currentTier, prompt);
       return check.canUse;
     } catch (error) {
-      console.error('[useGuidedPromptGating] Error checking prompt usage:', error);
+      // Error silently handled - prompt access check failures are not critical
       return false;
     }
   }, [user?.id, currentTier]);
@@ -107,7 +99,7 @@ export function useGuidedPromptGating({
       // Refresh allocation to reflect changes
       await loadDailyAllocation();
     } catch (error) {
-      console.error('[useGuidedPromptGating] Error marking prompt as used:', error);
+      // Error silently handled - prompt marking failures are not critical
     }
   }, [user?.id, loadDailyAllocation]);
 
