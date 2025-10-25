@@ -85,7 +85,7 @@ interface ProfileStats {
 }
 
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, session, signOut, updatePreferences, updateProfile } = useAuth();
+  const { user, signOut, updatePreferences, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);

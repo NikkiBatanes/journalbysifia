@@ -23,7 +23,7 @@ export const MomentsScreen: React.FC = () => {
   const fontRegular = getFontFamily(fontKey, 'regular');
   // Date filtering state - Default to show all dates up to today (exclude future dates)
   const [selectedDate] = useState(new Date());
-  const [selectedRange, setSelectedRange] = useState<DateRange>({
+  const [selectedRange] = useState<DateRange>({
     startDate: new Date(2000, 0, 1), // Start from a very early date to show all entries
     endDate: new Date(), // Cap at current local date to avoid showing future entries by default
     label: 'Until Today',

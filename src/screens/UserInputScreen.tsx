@@ -116,7 +116,7 @@ const UserInputScreen: React.FC = () => {
 
   const { user } = useAuth();
   const subscriptionData = useNewSubscription(user?.id || '');
-  const { hasAccess, isLoading: accessLoading } = useFeatureAccess({
+  const { hasAccess } = useFeatureAccess({
     feature: 'playbook_generation',
   });
 

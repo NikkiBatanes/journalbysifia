@@ -18,8 +18,6 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { supabase } from '../../services/supabaseClient';
 
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
-
 import { Colors } from '../../theme/colors';
 import { logger } from '../../utils/logger';
 import { onboardingService } from '../../services/onboardingService';

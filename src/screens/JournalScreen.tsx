@@ -7,7 +7,7 @@ import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date
 import { adjustDayIndexForWeekStart } from '../utils/weekStartUtils';
 import type { Day } from 'date-fns';
 import { Colors } from '../theme/colors';
-import { Fonts, getFontFamily } from '../theme/fonts';
+import { getFontFamily } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
 import { useScroll } from '../context/ScrollContext';
 

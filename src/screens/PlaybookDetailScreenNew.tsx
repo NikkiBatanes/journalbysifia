@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  Image,
   Dimensions,
   ViewStyle,
   TextStyle,

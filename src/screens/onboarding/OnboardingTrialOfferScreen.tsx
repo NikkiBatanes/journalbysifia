@@ -19,11 +19,9 @@ import ThemedText from '../../components/common/ThemedText';
 import { useTheme } from '../../theme/ThemeContext';
 import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
-import { PurchaseErrorModal } from '../../components/PurchaseErrorModal';
 import { getFontFamily } from '../../theme/fonts';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
 import { logger } from '../../utils/logger';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
