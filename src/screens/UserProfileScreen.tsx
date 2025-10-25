@@ -95,11 +95,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Family subscription hook
   const {
     familyGroup,
-    loading: familyLoading,
     createFamilyGroup,
-    inviteMember,
-    removeMember,
-    cancelInvitation,
     refreshFamilyData,
   } = useFamilySubscription();
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
