@@ -21,7 +21,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const { userInput, userName, isFromOnboarding } = route.params;
   const { user } = useAuth();
-  const theme = useTheme();
   const AnimatedThemedText = Animated.createAnimatedComponent(ThemedText);
   const insets = useSafeAreaInsets();
   const [isGenerating, setIsGenerating] = useState(false);
