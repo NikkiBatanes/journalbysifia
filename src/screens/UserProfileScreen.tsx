@@ -3097,6 +3097,11 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginRight: 8,
   },
+  timeValue: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
   yearPickerModalContainer: {
     zIndex: 9999,
     elevation: 9999,
