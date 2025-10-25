@@ -20,7 +20,6 @@ import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBound
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 // Feature interface removed as it's not currently used in the component
 

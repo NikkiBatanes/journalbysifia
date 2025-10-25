@@ -27,7 +27,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
-import { notificationService } from '../services/notificationService';
 import { subscriptionService } from '../services/subscriptionService';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 

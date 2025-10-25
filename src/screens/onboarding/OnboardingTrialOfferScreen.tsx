@@ -11,7 +11,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
-import pricingService, { LocationPricing } from '../../services/pricingService';
+import pricingService from '../../services/pricingService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';

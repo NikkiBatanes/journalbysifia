@@ -17,7 +17,6 @@ import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
-import ThemedText from '../components/common/ThemedText';
 import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { FamilyMember, FamilyInvitation } from '../services/FamilySubscriptionService';
 

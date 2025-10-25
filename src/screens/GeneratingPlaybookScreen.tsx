@@ -11,7 +11,6 @@ import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
 import { subscriptionService } from '../services/subscriptionService';
-import { useTheme } from '../hooks/useTheme';
 import ThemedText from '../components/common/ThemedText';
 
 
