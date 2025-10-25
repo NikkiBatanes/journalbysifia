@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { ScrollView, View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 
 import { Colors } from '../theme';
 import TruthInLoveCard from './TruthInLoveCard';
