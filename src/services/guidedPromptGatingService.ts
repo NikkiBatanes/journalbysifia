@@ -111,7 +111,8 @@ export class GuidedPromptGatingService {
         date: dateStr,
       });
     } catch (error) {
-      console.error('[GuidedPromptGatingService] Error marking prompt as used:', error);
+      // Error silently handled - AsyncStorage operations are not critical
+      throw error;
     }
   }
 
@@ -125,7 +126,7 @@ export class GuidedPromptGatingService {
       const data = await AsyncStorage.getItem(storageKey);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('[GuidedPromptGatingService] Error loading completed prompts:', error);
+      // Return empty array on error - not critical functionality
       return [];
     }
   }
