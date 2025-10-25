@@ -408,7 +408,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Debug: Track all focus calls
   const logFocus = (source: string, target: 'title' | 'content') => {
-    console.log(`[ReflectionLogEditor] 🎯 FOCUS: ${source} -> ${target} (source: ${source}, lockTitle: ${lockTitle})`);
+    // Debug logging removed for production
   };
 
   // Helper to manage timeouts
@@ -466,38 +466,21 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Debug logging for initialization
   React.useEffect(() => {
-    console.log('[ReflectionLogEditor] INITIALIZATION DEBUG:', {
-      initialMode,
-      initialPrompt,
-      source,
-      initialTitle,
-      viewMode,
-    });
+    // Debug logging removed for production
   }, [initialMode, initialPrompt, source, initialTitle, viewMode]);
 
   // Update view mode when initialMode or source changes
   React.useEffect(() => {
-    console.log('[ReflectionLogEditor] VIEW MODE UPDATE EFFECT:', {
-      source,
-      initialPrompt,
-      initialMode,
-      currentViewMode: viewMode,
-    });
-
     if (source === 'devotional') {
-      console.log('[ReflectionLogEditor] Setting to free-form (devotional)');
       setViewMode('free-form');
     } else if (source === 'guided' && initialPrompt && !initialEntry.content) {
-      console.log('[ReflectionLogEditor] Setting to guided mode (guided prompt - new entry)');
       setViewMode('guided');
     } else if (initialPrompt) {
-      console.log('[ReflectionLogEditor] Setting to free-form (other prompt)');
       setViewMode('free-form');
     } else {
-      console.log('[ReflectionLogEditor] Setting to initialMode or free-form');
       setViewMode(initialMode || 'free-form');
     }
-  }, [initialMode, source, initialPrompt]); // Removed guidedPromptGating.allPrompts to prevent infinite loops
+  }, [source, initialPrompt, initialMode, initialEntry.content]); // Removed guidedPromptGating.allPrompts to prevent infinite loops
 
   // Normalize any stored HTML <br> tags to real newlines for native TextInput
   const normalizeIncoming = (text: string): string => {
@@ -538,14 +521,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     const lockedPrompts = guidedPromptGating.lockedPrompts || [];
     const isLocked = lockedPrompts.includes(promptToCheck);
 
-    console.log('[ReflectionLogEditor] Lock check:', {
-      selectedPrompt: selectedPrompt || 'null',
-      title: newEntry.title,
-      promptToCheck,
-      lockedPrompts: lockedPrompts.length,
-      isLocked,
-    });
-
     return isLocked;
   }, [selectedPrompt, newEntry.title, guidedPromptGating.lockedPrompts]);
   const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
@@ -557,12 +532,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     focusInput: () => {
-      console.log('[ReflectionLogEditor] focusInput called:', {
-        source,
-        lockTitle,
-        hasTitleRef: !!titleInputRef.current,
-        hasContentRef: !!contentInputRef.current,
-      });
 
       // For freeform mode with unlocked title, focus title input first
       if (source === 'freeform' && !lockTitle && titleInputRef.current) {
@@ -613,12 +582,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Helper function to get draft key (unique for each devotional question)
   const getDraftKey = React.useCallback(() => {
-    console.log('[ReflectionLogEditor] getDraftKey:', { source, devotionalTitle, dayNumber, questionNumber });
-
     if (source === 'devotional' && devotionalTitle && dayNumber !== undefined && questionNumber !== undefined) {
       // Create unique key for each devotional question
       const key = `@reflection_editor_draft_${devotionalTitle.replace(/[^a-zA-Z0-9]/g, '_')}_day${dayNumber}_q${questionNumber}`;
-      console.log('[ReflectionLogEditor] Devotional draft key:', key);
       return key;
     }
 
@@ -628,15 +594,13 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       const stepNum = dayNumber !== undefined ? dayNumber : 'unknown';
       const taskId = subtaskId ? subtaskId.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
       const key = `@reflection_editor_draft_playbook_${playbookName}_step${stepNum}_task${taskId}`;
-      console.log('[ReflectionLogEditor] Playbook draft key:', key);
       return key;
     }
 
-    // Default key for other reflections
-    const key = '@reflection_editor_draft';
-    console.log('[ReflectionLogEditor] Default draft key:', key);
-    return key;
-  }, [source, devotionalTitle, playbookTitle, dayNumber, questionNumber, subtaskId]);
+    // Fallback key for other sources
+    const sourceType = source ? source.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+    return `@reflection_editor_draft_${sourceType}_${Date.now()}`;
+  }, [source, devotionalTitle, dayNumber, questionNumber, playbookTitle, subtaskId]);
 
   // Load draft when component mounts (only for new entries, not when editing)
   useEffect(() => {
@@ -699,7 +663,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             }
           }
         } catch (error) {
-          console.error('Error loading draft:', error);
           // Graceful fallback - continue without draft
           setIsFirstLoad(false);
         }
@@ -707,7 +670,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
       // Add error boundary for async operation
       loadDraft().catch((error) => {
-        console.error('Critical error in loadDraft:', error);
         setIsFirstLoad(false); // Ensure component doesn't get stuck
       });
     }
@@ -740,7 +702,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         );
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
+      // Error silently handled - draft saving is not critical
     }
   };
 
@@ -758,10 +720,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Update title when initialTitle changes and focus content if title is locked
   React.useEffect(() => {
-    console.log('initialTitle changed:', initialTitle);
     if (initialTitle && (newEntry.title !== initialTitle || !newEntry.title)) {
-      console.log('Updating title to:', initialTitle);
-
       // Check if component is still mounted before state updates
       if (!isMountedRef.current) {return;}
 
@@ -771,7 +730,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       // Check both source and if the title matches a guided prompt
       const allGuidedPrompts = guidedPromptGating.allPrompts || [];
       if ((source === 'guided' || allGuidedPrompts.includes(initialTitle)) && initialTitle) {
-        console.log('[ReflectionLogEditor] 🎯 Setting selectedPrompt from initialTitle:', initialTitle);
         if (isMountedRef.current) {
           setSelectedPrompt(initialTitle);
         }
@@ -832,16 +790,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Auto-focus title input for free form reflections
   useEffect(() => {
-    console.log('[ReflectionLogEditor] Auto-focus check:', {
-      isEditing,
-      source,
-      lockTitle,
-      hasTitleRef: !!titleInputRef.current,
-    });
-
     // Only auto-focus for free form mode and when not editing existing entry
     if (!isEditing && source === 'freeform' && !lockTitle && titleInputRef.current) {
-      console.log('[ReflectionLogEditor] Setting up title auto-focus for freeform mode');
       // Add a small delay to ensure the component is fully rendered
       createManagedTimeout(() => {
         if (titleInputRef.current) {
@@ -854,17 +804,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Save handler - check for guided prompt restrictions
   const handleSave = async () => {
-    console.log('[ReflectionLogEditor] 🔥 handleSave called!');
-
     // Haptic feedback for save action
     triggerLightHaptic();
-
-    console.log('[ReflectionLogEditor] 🔍 selectedPrompt check:', {
-      selectedPrompt: selectedPrompt || 'null/undefined',
-      hasSelectedPrompt: !!selectedPrompt,
-      newEntryTitle: newEntry.title,
-      source,
-    });
 
     // Check if this is a guided prompt and if user has access
     // Check both selectedPrompt and title to prevent loopholes
@@ -876,17 +817,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       const freePrompts = guidedPromptGating.freePrompts || [];
       const isFree = freePrompts.includes(promptToCheck);
 
-      console.log('[ReflectionLogEditor] ⚠️ CRITICAL SAVE CHECK:', {
-        selectedPrompt: selectedPrompt || 'null',
-        titlePrompt: newEntry.title,
-        promptToCheck: promptToCheck.substring(0, 50) + '...',
-        canUse: canUseResult,
-        isFree,
-        tier: subscription?.tier,
-      });
-
       if (!canUseResult) {
-        console.log('[ReflectionLogEditor] ❌ BLOCKING SAVE - User cannot use this prompt (loophole detected)');
         // Navigate to upgrade screen instead of saving
         (navigation as any).navigate('OnboardingSalesOffer', {
           source: 'guided_prompts_lock',
@@ -899,15 +830,13 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         });
         return; // Block the save
       }
-    } else {
-      console.log('[ReflectionLogEditor] ℹ️ No guided prompt detected - allowing save');
     }
 
     // Clear any existing draft since we're saving the entry
     try {
       await AsyncStorage.removeItem(getDraftKey());
     } catch (error) {
-      console.error('Error clearing draft:', error);
+      // Error silently handled - draft clearing is not critical
     }
 
     // If it's a guided prompt and user has access, mark it as used
@@ -937,7 +866,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       ...(questionNumber !== undefined && { questionNumber }),
     };
 
-    console.log('📝 ReflectionLogEditor: Calling onSave directly');
     // NOTE: Do NOT call Keyboard.dismiss() here - it should remain open for user convenience
     // The keyboard dismissal behavior differs between dashboard and journal contexts
     onSave(entry);
@@ -978,7 +906,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         onCancel();
       }
     } catch (error) {
-      console.error('Error saving draft before cancel:', error);
       // Clear all pending timeouts to prevent delayed focus
       clearAllTimeouts();
 
@@ -1000,7 +927,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Light haptic on opening delete confirmation
     triggerLightHaptic();
     if (!onDelete || !entryId) {
-      console.warn('Delete function or entry ID not available');
       return;
     }
 
