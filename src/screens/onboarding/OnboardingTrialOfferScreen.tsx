@@ -21,7 +21,6 @@ import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { getFontFamily } from '../../theme/fonts';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
-import { logger } from '../../utils/logger';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
@@ -47,7 +46,7 @@ const OnboardingTrialOfferScreen = () => {
   const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'annual'; // Use sales offer billing or default to annual
-  const [selectedTierId, _setSelectedTierId] = useState<string>(initialTierId);
+  const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [dynamicPricing, setDynamicPricing] = useState<any[]>([]);
@@ -63,11 +62,9 @@ const OnboardingTrialOfferScreen = () => {
 
   const handleClose = async () => {
     if (isClosing || isStartingTrial || navigationInProgressRef.current) {
-      logger.debug('handleClose ignored - already processing');
       return;
     }
 
-    logger.info('User cancelled trial offer - navigating to notification setup');
     navigationInProgressRef.current = true;
 
     try {
@@ -78,11 +75,9 @@ const OnboardingTrialOfferScreen = () => {
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
     if (skipNotificationPreference) {
       // If skip pref set, go back to sales offer (they can try again or go back further)
-      logger.info('Skip notifications set - going back to sales offer');
       navigation.goBack();
     } else {
       // Navigate to notification setup for cancelled trial users
-      logger.info('Navigating cancelled trial user to notification setup');
       (navigation as any).navigate('OnboardingNotificationSetup', {
         userType: 'freemium',
         fromCancelledTrial: true,
@@ -113,31 +108,19 @@ const OnboardingTrialOfferScreen = () => {
       }
 
       // CRITICAL: Check if user already has an active trial
-      logger.info('🔍 Checking if user already has an active trial...');
       try {
         const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
         const currentSubscription = await NewSubscriptionService.getUserSubscription(user.id);
 
         if (currentSubscription.tier === 'free_trial') {
-          logger.warn('⚠️ User already has an active trial!');
-          logger.warn('Skipping Apple purchase - trial already activated');
-
           // Show success modal immediately since trial is already active
           setIsStartingTrial(false);
           setShowSuccessModal(true);
           return;
         }
-
-        logger.info('✅ No existing trial found - proceeding with Apple purchase');
       } catch (checkError) {
-        logger.error('Failed to check existing subscription', checkError as Error);
         // Continue with purchase attempt
       }
-
-      logger.debug('Starting trial subscription with Apple', {
-        tier: selectedTierId,
-        billing: isAnnual ? 'annual' : 'monthly',
-      });
 
       // CRITICAL: Trial Offer Screen uses .freetrial product IDs
       // These are separate products in App Store Connect with 3-day free trial configured
@@ -150,61 +133,26 @@ const OnboardingTrialOfferScreen = () => {
       const billing = isAnnual ? 'annual' : 'monthly';
       let productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
 
-      logger.debug('========================================');
-      logger.debug('TRIAL PRODUCT VERIFICATION');
-      logger.debug('Target product ID', { productId });
-      logger.debug('Selected tier (from trial defaults):', { selectedTierId, billing });
-      logger.debug('========================================');
-
       // CRITICAL: Verify the .freetrial product exists in App Store Connect
       // Even if configured, it might not be synced to TestFlight yet
       try {
         const availableProducts = await paymentService.getAvailableProducts();
 
-        logger.debug('📦 ALL AVAILABLE PRODUCTS FROM APP STORE', {});
-        availableProducts.forEach((p, index) => {
-          console.log(`[OnboardingTrialOffer] ${index + 1}. ${p.productId}`);
-          console.log(`[OnboardingTrialOffer]    Price: ${p.localizedPrice}`);
-          console.log(`[OnboardingTrialOffer]    Title: ${p.title}`);
-        });
-        logger.debug('========================================');
-
         const trialProduct = availableProducts.find(p => p.productId === productId);
 
         if (!trialProduct) {
-          logger.warn('⚠️ .freetrial product NOT found in App Store!');
-          logger.warn('Expected product', { productId });
-          logger.warn('POSSIBLE CAUSES:');
-          logger.warn('1. Product ID mismatch - check App Store Connect');
-          logger.warn('2. Trial offer not approved yet');
-          logger.warn('3. TestFlight build needs to be refreshed');
-          logger.warn('4. Cleared for sale = NO in App Store Connect');
-          logger.warn('5. Subscription group configuration issues');
-
           // Set UI state to show trial not available
           setTrialProductAvailable(false);
 
           // TEMPORARY: For TestFlight testing, use fallback product
           if (__DEV__ || Platform.OS === 'ios') {
-            logger.info('🔄 TEMPORARY: Using fallback product for TestFlight testing');
-            logger.info('This allows testing the trial flow until products are approved');
-
             const fallbackProductId = `app.sifia.com.${selectedTierId}.${billing}`;
             const fallbackProduct = availableProducts.find(p => p.productId === fallbackProductId);
 
             if (fallbackProduct) {
-              logger.info('✅ Using fallback product for TestFlight testing', { productId: fallbackProductId });
               productId = fallbackProductId; // Use fallback for testing
             } else {
-              logger.error('❌ No fallback product found either');
-              logger.error('🔧 TROUBLESHOOTING STEPS:');
-              logger.error('1. Check App Store Connect - ensure .freetrial products exist');
-              logger.error('2. Verify product IDs match exactly (case-sensitive)');
-              logger.error('3. Check subscription group configuration');
-              logger.error('4. Ensure products are approved and available');
-              logger.error('5. Refresh TestFlight build if testing');
-
-              const errorMessage = `Free trial not available. 
+              const errorMessage = `Free trial not available.
 
 🔍 DEBUGGING INFO:
 • Expected trial product: ${productId}
@@ -217,41 +165,15 @@ Please check App Store Connect configuration or contact support.`;
             }
           } else {
             // Production: Block trial if product not found
-            logger.error('❌ Trial product not found - cannot offer free trial');
-            logger.error('User should see error message instead of being charged');
             throw new Error('Free trial not available. Please contact support or try again later.');
           }
         } else {
-          logger.info('✅✅✅ TRIAL PRODUCT FOUND!');
-          logger.debug('Product ID', { productId: trialProduct.productId });
-          logger.debug('Price', { price: trialProduct.localizedPrice });
-          logger.debug('Title', { title: trialProduct.title });
-          logger.debug('User will see trial message', { price: trialProduct.localizedPrice });
-
           // Set UI state to show trial is available
           setTrialProductAvailable(true);
         }
       } catch (productError) {
-        logger.error('❌ Failed to verify products', productError as Error);
-        logger.error('Cannot determine if trial product exists - blocking trial to prevent charging');
         throw new Error('Unable to verify trial availability. Please try again later or contact support.');
       }
-
-      logger.debug('Final product ID', { productId });
-      logger.debug('Showing Apple payment sheet', {});
-
-      console.log('[OnboardingTrialOffer] 🛒 INITIATING TRIAL PURCHASE:', {
-        productId,
-        selectedTierId,
-        billing: isAnnual ? 'annual' : 'monthly',
-        userId: user.id,
-      });
-      console.log('[OnboardingTrialOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!');
-      console.log('[OnboardingTrialOffer] Expected: "Free for 3 days, then $X.XX"');
-      console.log('[OnboardingTrialOffer] If payment sheet doesn\'t show, check AppleStoreKitService');
-
-      // ENTERPRISE IMPROVEMENT: Show loading modal
-      setLoadingStep('processing');
 
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
       let result;
@@ -260,18 +182,8 @@ Please check App Store Connect configuration or contact support.`;
         await paymentService.initialize();
 
         // Now initiate purchase
-        console.log('[OnboardingTrialOffer] 🚀 About to call purchaseSubscription');
-        console.log(`[OnboardingTrialOffer] Product ID: ${productId}`);
-        console.log(`[OnboardingTrialOffer] User ID: ${user.id}`);
-        console.log('[OnboardingTrialOffer] This should trigger Apple\'s payment sheet');
-
         result = await paymentService.purchaseSubscription(productId, user.id);
-
-        console.log('[OnboardingTrialOffer] ✅ Purchase initiated successfully');
-        console.log('[OnboardingTrialOffer] Result:', result);
       } catch (purchaseError) {
-        console.error('[OnboardingTrialOffer] ❌ Purchase initiation failed:', purchaseError);
-
         // Provide more specific error messages
         if (purchaseError instanceof Error) {
           if (purchaseError.message.includes('timeout')) {
@@ -283,7 +195,6 @@ Please check App Store Connect configuration or contact support.`;
           }
         }
 
-        logger.error('Purchase call failed:', purchaseError as Error);
         setIsStartingTrial(false);
         throw new Error('Failed to initiate purchase. Please try again.');
       }
@@ -292,12 +203,10 @@ Please check App Store Connect configuration or contact support.`;
       setLoadingStep('validating');
 
       if (result.success) {
-        logger.info('✅ Trial subscription authorized by Apple');
         triggerSuccessHaptic();
 
         // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
         if (!result.transactionId) {
-          logger.error('❌ Purchase missing transaction ID - possible stale state');
           throw new Error('Invalid purchase - no transaction ID');
         }
 
@@ -306,14 +215,8 @@ Please check App Store Connect configuration or contact support.`;
         const transactionTime = Date.now();
         const fiveMinutesAgo = transactionTime - (5 * 60 * 1000);
 
-        logger.debug('Transaction verification:', {
-          hasTransactionId: !!result.transactionId,
-          transactionId: result.transactionId?.substring(0, 10) + '...', // Log partial ID for debugging
-        });
-
         // CRITICAL: Now that Apple has authorized, set up the trial in database
         // This activates the trial with 2 playbooks + 2 devotionals
-        logger.info('🎯 Setting up trial in database after Apple authorization');
         try {
           const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
 
@@ -330,20 +233,14 @@ Please check App Store Connect configuration or contact support.`;
             trial_chosen_tier: selectedTierId as any, // Remember which tier they want after trial
             billing_cycle: isAnnual ? 'annual' : 'monthly',
           });
-
-          logger.info('✅ Trial set up in database successfully');
-          logger.info('User now has access to 2 playbooks + 2 devotionals during trial');
         } catch (trialSetupError) {
-          logger.error('❌ Failed to set up trial in database', trialSetupError as Error);
           // Don't throw - Apple purchase already succeeded, just log the error
-          logger.warn('Trial purchase succeeded but database setup failed - user may need manual intervention');
         }
 
         // ENTERPRISE IMPROVEMENT: Update loading steps
         setLoadingStep('activating');
 
         // Sync subscription
-        logger.debug('Syncing subscription status', {});
         try {
           const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
           const storeKitService = AppleStoreKitService.getInstance();
@@ -363,15 +260,12 @@ Please check App Store Connect configuration or contact support.`;
             const twoMinutesAgo = now - (2 * 60 * 1000);
 
             if (purchaseTime < twoMinutesAgo) {
-              logger.warn('⚠️ Found old cached purchase - ignoring and requiring fresh payment');
               throw new Error('STALE_PURCHASE_CACHE');
             }
           }
 
           await storeKitService.checkAndSyncSubscriptionStatus(user.id);
-          logger.info('✅ Subscription synced');
         } catch (syncError) {
-          logger.error('Subscription sync failed', syncError as Error);
         }
 
         // Final step
@@ -386,7 +280,6 @@ Please check App Store Connect configuration or contact support.`;
         throw new Error(result.error || 'Trial subscription failed');
       }
     } catch (error: any) {
-      logger.error('Error starting trial:', error);
       setIsStartingTrial(false);
 
       // ENTERPRISE IMPROVEMENT: Classify error and show appropriate modal
@@ -399,7 +292,6 @@ Please check App Store Connect configuration or contact support.`;
         error?.message?.includes('Purchase timeout');
 
       if (isCancelled) {
-        logger.debug('User cancelled trial or timeout occurred');
         // CRITICAL: Reset ALL purchase state to prevent stale/cached validation
         setIsStartingTrial(false);
         setPurchaseValidated(false);
@@ -409,7 +301,6 @@ Please check App Store Connect configuration or contact support.`;
       }
 
       // For other errors, just log them silently instead of showing error modal
-      logger.error('Purchase error (silent):', error?.message || 'Unknown error');
       setIsStartingTrial(false);
     } finally {
       // FINAL SAFETY: Ensure loading state is always cleared
@@ -434,7 +325,6 @@ Please check App Store Connect configuration or contact support.`;
   useEffect(() => {
     if (isStartingTrial) {
       const safetyTimeout = setTimeout(() => {
-        logger.error('Safety timeout: Purchase loading exceeded 30 seconds - forcing reset');
         setIsStartingTrial(false);
         setPurchaseValidated(false);
         setShowSuccessModal(false);
@@ -454,14 +344,6 @@ Please check App Store Connect configuration or contact support.`;
         const tiers = await pricingService.getLocationAdjustedPricing();
         const currency = await pricingService.getCurrencyInfo();
 
-        logger.debug('Currency info loaded', { currency });
-        logger.debug('Sample tier prices', tiers[0] ? {
-          tier: tiers[0].id,
-          monthly: tiers[0].monthlyPrice,
-          annual: tiers[0].annualPrice,
-          symbol: currency.symbol,
-        } : { status: 'No tiers' });
-
         if (mounted) {
           setPricingTiers(tiers || []);
           setDynamicPricing([]); // Not using dynamic pricing for now
@@ -469,12 +351,11 @@ Please check App Store Connect configuration or contact support.`;
 
           // FORCE Philippine currency in development for testing
           if (__DEV__) {
-            console.log('[TrialOfferScreen] 🔧 DEV MODE: Forcing Philippine currency symbol');
             setCurrencyInfo({ currency: 'PHP', symbol: '₱', multiplier: 1.0 });
           }
         }
       } catch (e) {
-        logger.error('Failed to load pricing for trial offer', e as Error);
+        // Error silently handled - pricing loading is not critical
       }
     })();
     return () => {
@@ -609,14 +490,12 @@ Please check App Store Connect configuration or contact support.`;
   const safeNavigate = useCallback((action: () => void, actionName: string) => {
     try {
       action();
-      logger.info('Navigation action completed', { actionName });
     } catch (error) {
-      logger.error('Navigation action failed', error as Error, { actionName });
       // Fallback to basic navigation
       try {
         navigation.goBack();
       } catch (fallbackError) {
-        logger.error('Fallback navigation also failed', fallbackError as Error);
+        // Navigation failed - component will handle this gracefully
       }
     }
   }, [navigation]);
@@ -628,18 +507,11 @@ Please check App Store Connect configuration or contact support.`;
     // Use a more reliable navigation approach
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
 
-    logger.info('Success modal continue pressed', {
-      skipNotificationPreference,
-      navigationState: 'success_modal_complete',
-    });
-
     // Small delay to ensure modal is fully hidden
     setTimeout(() => {
       if (skipNotificationPreference) {
-        logger.info('Skipping notifications - going back to sales offer');
         safeNavigate(() => navigation.goBack(), 'go_back_to_sales');
       } else {
-        logger.info('Navigating to notification setup for trial user');
         // Navigate to notification setup - use replace to avoid stack issues
         safeNavigate(() => {
           (navigation as any).replace('OnboardingNotificationSetup', {
@@ -857,7 +729,7 @@ Please check App Store Connect configuration or contact support.`;
                   ]}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    _setSelectedTierId(tier.id);
+                    setSelectedTierId(tier.id);
                     setShowPlanSelector(false);
                   }}
                   activeOpacity={0.8}
