@@ -8,18 +8,12 @@ import {
   SubscriptionTier,
   SubscriptionLimits,
   SubscriptionCheck,
-  FamilySubscriptionGroup,
-  FamilyMember,
   DiscountCode,
-  UsageTracking,
   SubscriptionUpgradeOptions,
   TrialStartOptions,
-  FamilyInviteOptions,
   SubscriptionError,
   UsageLimitError,
   TrialExpiredError,
-  FamilyLimitError,
-  PaymentPlatform,
 } from '../types/subscription';
 
 export class NewSubscriptionService {
@@ -169,8 +163,6 @@ export class NewSubscriptionService {
         updated_at: new Date().toISOString(),
       };
 
-      console.log('[NewSubscriptionService] Creating trial with data:', subscriptionData);
-
       // Upsert with onConflict to handle existing subscription
       const { data, error } = await supabase
         .from('user_subscriptions_new')
@@ -181,14 +173,11 @@ export class NewSubscriptionService {
         .single();
 
       if (error) {
-        console.error('[NewSubscriptionService] Error creating trial subscription:', error);
         throw new SubscriptionError(`Failed to start trial: ${error.message}`, 'TRIAL_START_ERROR', error);
       }
 
-      console.log('[NewSubscriptionService] ✅ Trial subscription created:', data);
       return await this.getUserSubscription(user_id);
     } catch (error) {
-      console.error('[NewSubscriptionService] Error in startFreeTrial:', error);
       throw new SubscriptionError(`Failed to start trial: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TRIAL_START_ERROR', error);
     }
   }
@@ -203,7 +192,6 @@ export class NewSubscriptionService {
 
       // Verify user is on trial
       if (subscription.tier !== 'free_trial') {
-        console.log('[NewSubscriptionService] User is not on trial, skipping conversion');
         return subscription;
       }
 
@@ -211,13 +199,6 @@ export class NewSubscriptionService {
       const chosenTier = (subscription as any).trial_chosen_tier || 'spark';
       const limits = this.getTierLimits(chosenTier);
       const displayName = this.getTierDisplayName(chosenTier); // Remove "Trial" suffix
-
-      console.log('[NewSubscriptionService] Converting trial to paid:', {
-        from: 'free_trial',
-        to: chosenTier,
-        limits,
-        displayName,
-      });
 
       // Upgrade to paid tier with full limits and updated display name
       const { data, error } = await supabase
@@ -238,10 +219,8 @@ export class NewSubscriptionService {
         throw new SubscriptionError(`Failed to convert trial: ${error.message}`, 'TRIAL_CONVERSION_ERROR', error);
       }
 
-      console.log('[NewSubscriptionService] ✅ Trial converted to paid:', data);
       return await this.getUserSubscription(userId);
     } catch (error) {
-      console.error('[NewSubscriptionService] Error converting trial:', error);
       throw new SubscriptionError(`Failed to convert trial: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TRIAL_CONVERSION_ERROR', error);
     }
   }
@@ -267,13 +246,11 @@ export class NewSubscriptionService {
 
     // Allow same-tier "upgrade" if converting from trial, otherwise require actual upgrade
     if (!isTrialConversion && isSameTierUpgrade) {
-      console.log(`[NewSubscriptionService] Skipping same-tier upgrade: ${from_tier} → ${to_tier}`);
       return currentSubscription; // Return existing subscription, no upgrade needed
     }
 
     // Special case: If updating to same tier but it's a trial tier, we need to update trial fields
     if (isSameTierUpgrade && to_tier === 'free_trial') {
-      console.log(`[NewSubscriptionService] Updating trial subscription fields: ${from_tier} → ${to_tier}`);
       // Update trial-specific fields even if tier is the same
       const limits = this.getTierLimits(to_tier);
       const displayName = this.getTierDisplayName(to_tier);
@@ -336,7 +313,6 @@ export class NewSubscriptionService {
     if (from_tier === 'seeker') {
       updateData.playbooks_used = 0;
       updateData.devotionals_used = 0;
-      console.log('🔄 Resetting usage counters for seeker upgrade (onboarding playbook excluded)');
     }
 
     // Handle family upgrade
@@ -469,7 +445,6 @@ export class NewSubscriptionService {
 
     // Skip incrementing usage for onboarding playbooks - they're free for all tiers
     if (isOnboarding && action === 'playbook') {
-      console.log('🎯 Skipping usage increment for onboarding playbook (free for all users)');
       return;
     }
 
@@ -561,8 +536,7 @@ export class NewSubscriptionService {
       .single();
 
     if (error) {
-      console.error('Failed to generate dynamic discount:', error);
-      return null;
+      return null; // Silently fail - discount generation is not critical
     }
 
     return data;
@@ -802,7 +776,6 @@ export class NewSubscriptionService {
   private static async updateUsageTracking(userId: string, action: string): Promise<void> {
     // Skip usage tracking for now to avoid RPC function issues
     // This can be re-enabled once database functions are properly deployed
-    console.log(`[NewSubscriptionService] Skipping usage tracking for ${action} by user ${userId}`);
     return;
   }
 }
