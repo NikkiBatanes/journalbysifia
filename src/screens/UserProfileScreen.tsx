@@ -27,7 +27,6 @@ import { initSound, releaseSound } from '../utils/soundUtils';
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
-import { authApi } from '../services/authApi';
 import { supabase } from '../services/supabaseClient';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
