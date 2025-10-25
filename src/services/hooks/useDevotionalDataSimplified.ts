@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DeviceEventEmitter } from 'react-native';
 import { DevotionalApi } from '../api/devotionalApi';
 import type { DevotionalApiEntry } from '../api/devotionalApi';
-import { queryKeys as globalQueryKeys } from '../queryKeys';
 import { defaultQueryOptions, defaultMutationOptions } from '../config/queryConfig';
 import { Devotional, DevotionalCreationParams, DevotionalCategory } from '../../interfaces/devotional';
 import { useAuth } from '../../context/IndustryStandardAuthContext';

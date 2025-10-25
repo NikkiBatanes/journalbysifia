@@ -74,7 +74,7 @@ export class GuidedPromptGatingService {
     }
 
     // Check if prompt is completed
-    const completedPrompts = await this.getCompletedPrompts(userId);
+    const completedPrompts = await this.getCompletedPrompts();
     const isCompleted = completedPrompts.includes(prompt);
 
     // Get daily allocation to check if prompt is free
@@ -118,7 +118,7 @@ export class GuidedPromptGatingService {
   /**
    * Get list of completed prompts for today
    */
-  public async getCompletedPrompts(userId: string): Promise<string[]> {
+  public async getCompletedPrompts(): Promise<string[]> {
     try {
       const dateStr = new Date().toISOString().slice(0, 10);
       const storageKey = `@guided_completed_${dateStr}`;

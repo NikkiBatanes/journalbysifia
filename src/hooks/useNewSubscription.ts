@@ -6,7 +6,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
 import {
   Subscription,
-  SubscriptionTier,
   SubscriptionCheck,
   SubscriptionUpgradeOptions,
   TrialStartOptions,

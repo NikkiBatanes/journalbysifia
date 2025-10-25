@@ -6,7 +6,6 @@ import { supabase } from './supabaseClient';
 import {
   Subscription,
   SubscriptionTier,
-  SubscriptionStatus,
   SubscriptionLimits,
   SubscriptionCheck,
   FamilySubscriptionGroup,
