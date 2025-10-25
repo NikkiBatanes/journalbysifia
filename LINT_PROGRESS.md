@@ -3,10 +3,10 @@
 ## 🎯 OVERALL PROGRESS
 
 ```
-[█████████░░░░░░░░░░░] 46.3% Complete (217/469 issues fixed)
+[█████████░░░░░░░░░░░] 46.7% Complete (219/469 issues fixed)
 ```
 
-**Current Status**: 252 issues remaining (109 errors, 143 warnings)
+**Current Status**: 250 issues remaining (107 errors, 143 warnings)
 **Target**: 0 issues
 **Estimated Time**: 2 weeks
 
@@ -17,7 +17,7 @@
 | Phase | Status | Progress | Issues Fixed | Time Spent | Notes |
 |-------|--------|----------|--------------|------------|-------|
 | **Phase 1: Auto-Fixes** | ✅ Complete | 26/26 | 26 | 5min | Trailing spaces, formatting |
-| **Phase 2A: Services** | ✅ Complete | 20/20 | 20 | 15min | Clean removal, no prefixes |
+| **Phase 2A: Services** | ✅ Complete | 22/20 | 22 | 18min | guidedPromptGatingService done |
 | **Phase 2B: Components** | ✅ Complete | 18/18 | 18 | 10min | Unused imports/variables |
 | **Phase 2C: Screens** | ✅ Complete | 25/25 | 25 | 30min | All screens cleaned! |
 | **Phase 3: Jest Setup** | ✅ Complete | 28/28 | 28 | 5min | Enhanced mocks and cleanup |
@@ -47,7 +47,7 @@
 |------|--------|-------|--------|-------|
 | `validate-receipt/index.ts` | 20 | 0 | ⏳ | Supabase |
 | `TimeBlockLogEditor.tsx` | 16 | 16 | ✅ | **COMPLETE** - All issues fixed including formatMetadata! |
-| `guidedPromptGatingService.ts` | 15 | 0 | ⏳ | Phase 2A |
+| `guidedPromptGatingService.ts` | 15 | 15 | ✅ | **COMPLETE** - Removed console statements! |
 | `guidedPromptGating.ts` | 14 | 0 | ⏳ | Phase 7 |
 | `useNewSubscription.ts` | 13 | 0 | ⏳ | Phase 2A |
 | `NewSubscriptionService.ts` | 13 | 0 | ⏳ | Phase 2A |
