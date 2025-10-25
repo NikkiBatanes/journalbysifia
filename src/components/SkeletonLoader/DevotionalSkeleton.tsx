@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Colors } from '../../theme';
 
 const DevotionalSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;

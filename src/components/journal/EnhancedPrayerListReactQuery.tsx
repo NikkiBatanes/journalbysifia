@@ -21,7 +21,6 @@ import { toLocalDateString } from '../../utils/date';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
-import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 import { PeoplePrayerModal } from '../modals/PeoplePrayerModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/queryKeys';
