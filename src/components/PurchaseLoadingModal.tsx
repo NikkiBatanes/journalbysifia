@@ -67,7 +67,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
       fadeAnim.setValue(0);
       pulseAnim.setValue(1);
     }
-  }, [visible]);
+  }, [visible, fadeAnim, pulseAnim]);
 
   const getStepInfo = () => {
     const steps = {
