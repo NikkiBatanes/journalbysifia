@@ -14,7 +14,6 @@ import { Colors } from '../theme';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
-import { getFontFamily } from '../theme/fonts';
 
 // const { width } = Dimensions.get('window'); // Unused, commented out
 
@@ -44,7 +43,6 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   // Theme integration for dynamic font switching
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
 
   useEffect(() => {
     if (!visible) {return;}

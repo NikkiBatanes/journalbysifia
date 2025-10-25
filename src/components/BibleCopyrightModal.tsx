@@ -58,7 +58,6 @@ export const BibleCopyrightModal: React.FC<BibleCopyrightModalProps> = ({
   onClose,
   bibleVersion,
 }) => {
-  const theme = useTheme();
   const copyrightInfo = getBibleCopyrightInfo(bibleVersion);
 
   return (
