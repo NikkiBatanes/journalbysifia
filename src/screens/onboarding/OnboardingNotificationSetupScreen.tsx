@@ -19,7 +19,6 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { pushNotificationService } from '../../services/pushNotificationService';
 import { supabase } from '../../services/supabaseClient';
 import ThemedText from '../../components/common/ThemedText';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 interface RouteParams {
   userType: 'trial' | 'paid' | 'freemium';

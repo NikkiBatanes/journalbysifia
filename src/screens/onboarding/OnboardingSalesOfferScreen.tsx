@@ -22,7 +22,6 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { logger } from '../../utils/logger';
-import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 // removed Dimensions width as unused
 

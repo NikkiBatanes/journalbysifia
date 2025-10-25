@@ -4,7 +4,7 @@
  * New Design: Simple, centered logo with loading indicator
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
