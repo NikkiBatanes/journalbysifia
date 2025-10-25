@@ -18,7 +18,7 @@ export function useQueryPerformance() {
     const cache = queryClient.getQueryCache();
 
     // Track query start times
-    const unsubscribeStart = cache.subscribe((event) => {
+    const unsubscribeStart = cache.subscribe((event: any) => {
       if (event.type === 'queryAdded' || event.type === 'queryUpdated') {
         const query = event.query;
         const queryKeyString = JSON.stringify(query.queryKey);
@@ -33,7 +33,7 @@ export function useQueryPerformance() {
     });
 
     // Track query completion
-    const unsubscribeEnd = cache.subscribe((event) => {
+    const unsubscribeEnd = cache.subscribe((event: any) => {
       if (event.type === 'queryUpdated') {
         const query = event.query;
         const queryKeyString = JSON.stringify(query.queryKey);

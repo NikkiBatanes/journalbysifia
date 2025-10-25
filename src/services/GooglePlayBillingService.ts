@@ -118,7 +118,7 @@ export class GooglePlayBillingService {
       const productIds = Object.values(GooglePlayBillingService.PRODUCT_IDS);
       const products = await getSubscriptions({ skus: productIds });
 
-      return products.map((product: Subscription) => ({
+      return products.map((product: any) => ({
         productId: product.productId,
         price: product.price,
         currency: product.currency,
@@ -218,7 +218,7 @@ export class GooglePlayBillingService {
         subscription: true,
       };
 
-      const result = await validateReceiptAndroid(receiptBody);
+      const result = await validateReceiptAndroid(receiptBody as any);
 
       // Google Play validation should return purchase details if valid
       return result && result.purchaseState === 1; // 1 = Purchased
@@ -308,7 +308,7 @@ export class GooglePlayBillingService {
     // Map Google Play error codes to user-friendly messages
     let userMessage = 'Purchase failed. Please try again.';
 
-    switch (error.code) {
+    switch (error.code as string) {
       case 'E_USER_CANCELLED':
         userMessage = 'Purchase was cancelled.';
         break;
