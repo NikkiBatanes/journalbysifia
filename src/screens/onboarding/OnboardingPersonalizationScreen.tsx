@@ -9,7 +9,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
-import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
 import { onboardingService } from '../../services/onboardingService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -174,7 +173,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  const { updateOnboardingStep } = useUserState();
   const insets = useSafeAreaInsets();
   // Determine if we need to show name input step based on registration method
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
