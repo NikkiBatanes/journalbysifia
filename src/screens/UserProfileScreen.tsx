@@ -1647,7 +1647,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.modalContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={styles.modalDescriptionContainer}
         >
           {/* Avatar with edit inside Edit Profile */}
           <View style={styles.modalAvatarSection}>
@@ -1744,7 +1744,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     onPress={() => setShowInlineYearPicker(false)}
                     style={styles.yearPickerCancelButton}
                   >
-                    <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Cancel</Text>
+                    <Text style={[styles.cancelButtonText, font]}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => {
@@ -1753,7 +1753,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     }}
                     style={styles.yearPickerDoneButton}
                   >
-                    <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Done</Text>
+                    <Text style={[styles.doneButtonText, font]}>Done</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1776,10 +1776,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityRole="button"
               accessibilityLabel="Delete account"
             >
-              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} style={{ marginRight: 8 }} />
+              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} style={styles.iconWithMargin} />
               <View style={{ flex: 1 }}>
-                <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>Delete Account</Text>
-                <Text style={[{ color: Colors.textGray, fontSize: 12, marginTop: 4 }, font]}>This will permanently delete your account and data.</Text>
+                <Text style={[styles.deleteButtonText, font]}>Delete Account</Text>
+                <Text style={[styles.descriptionText, font]}>This will permanently delete your account and data.</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -1798,21 +1798,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       transparent={true}
       onRequestClose={() => setDeleteAccountModal(false)}
     >
-      <View style={{
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-      }}>
-        <View style={{
-          backgroundColor: Colors.anchorBlue,
-          borderRadius: 16,
-          width: '100%',
-          maxWidth: 400,
-          paddingVertical: 24,
-          paddingHorizontal: 20,
-        }}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => {
               try { triggerLightHaptic(); } catch {}
@@ -1822,10 +1809,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.cancelText, font]}>Cancel</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, font]}>Delete Account</Text>
-            <View style={{ width: 48 }} />
+            <View style={styles.modalSpacer} />
           </View>
 
-          <View style={styles.paddingBottom20}>
+          <View style={styles.modalDescriptionContainer}>
           <Text style={[styles.settingDescription, font]}>For security, please confirm your birth year to proceed with account deletion.</Text>
           <View style={styles.nameContainer}>
             <TextInput
@@ -1838,7 +1825,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               maxLength={4}
             />
           </View>
-          <Text style={[{ color: Colors.textGray, fontSize: 12, marginTop: 6 }, font]}>Enter a valid 4-digit year to continue.</Text>
+          <Text style={[styles.modalDescription, font]}>Enter a valid 4-digit year to continue.</Text>
           <TouchableOpacity
             onPress={() => {
               console.log('🗑️ Delete my account button pressed in modal');
@@ -1851,15 +1838,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               handleConfirmDeleteAccount();
             }}
             disabled={!isValidBirthYear || isDeletingAccount}
-            style={{
-              marginTop: 16,
-              backgroundColor: !isValidBirthYear || isDeletingAccount ? 'rgba(255,107,107,0.3)' : Colors.alertCoral,
-              borderRadius: 12,
-              paddingVertical: 12,
-              alignItems: 'center',
-            }}
+            style={[
+              styles.deleteButton,
+              !isValidBirthYear || isDeletingAccount ? styles.deleteButtonDisabled : styles.deleteButtonEnabled
+            ]}
           >
-            <Text style={[{ color: Colors.hopeWhite, fontSize: 16 }, font]}>{isDeletingAccount ? 'Deleting...' : 'Delete my account'}</Text>
+            <Text style={[styles.deleteButtonText, font]}>{isDeletingAccount ? 'Deleting...' : 'Delete my account'}</Text>
           </TouchableOpacity>
           </View>
         </View>
@@ -3054,6 +3038,67 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 59, 48, 0.3)',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
+  modalSpacer: {
+    width: 48,
+  },
+  modalDescription: {
+    color: Colors.textGray,
+    fontSize: 12,
+    marginTop: 6,
+  },
+  modalDescriptionContainer: {
+    paddingBottom: 20,
+  },
+  deleteButton: {
+    marginTop: 16,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+  },
+  deleteButtonDisabled: {
+    backgroundColor: 'rgba(255,107,107,0.3)',
+  },
+  deleteButtonEnabled: {
+    backgroundColor: Colors.alertCoral,
+  },
+  // Icon styles
+  iconWithMargin: {
+    marginRight: 8,
+  },
+  // Text styles
+  cancelButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+  },
+  doneButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+  },
+  descriptionText: {
+    color: Colors.textGray,
+    fontSize: 12,
+    marginTop: 4,
   },
   // Removed test button styles
 });
