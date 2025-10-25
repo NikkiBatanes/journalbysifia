@@ -71,7 +71,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       title: 'PDF Export',
       description: 'Perfect for printing and sharing',
       icon: 'document-text-outline',
-      color: Colors.sacrificeRed,
+      color: Colors.alertCoral,
       available: canExportPDF,
       accessResult: pdfAccessResult,
     },

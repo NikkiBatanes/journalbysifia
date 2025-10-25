@@ -758,7 +758,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       title: playbook?.title,
       affirmations: playbook?.affirmations,
       affirmationsCount: playbook?.affirmations?.length,
-      hasAffirmations: Array.isArray(playbook?.affirmations) && playbook?.affirmations?.length > 0,
+      hasAffirmations: Array.isArray(playbook?.affirmations) && (playbook?.affirmations?.length || 0) > 0,
       playbookKeys: playbook ? Object.keys(playbook) : [],
     }, null, 2));
   }, [playbook]);

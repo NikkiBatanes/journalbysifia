@@ -98,7 +98,6 @@ const FamilyInvitationScreen: React.FC = () => {
               autoCorrect={false}
               maxLength={8}
               textAlign="center"
-              letterSpacing={2}
             />
             <Text style={styles.inputHint}>
               The code should be 8 characters long (letters and numbers)
