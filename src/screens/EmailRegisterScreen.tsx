@@ -108,11 +108,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     return;
   };
 
-  const handleBackToSocial = () => {
-    triggerLightHaptic();
-    navigation.goBack();
-  };
-
   const handleLogin = () => {
     triggerLightHaptic();
     navigation.navigate('Login');

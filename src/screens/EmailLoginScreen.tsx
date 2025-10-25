@@ -73,11 +73,6 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
     console.log('✅ Login successful, auth state will trigger navigation');
   };
 
-  const handleBackToSocial = () => {
-    triggerLightHaptic();
-    navigation.goBack();
-  };
-
   const handleSignUp = () => {
     triggerLightHaptic();
     navigation.navigate('Register');
