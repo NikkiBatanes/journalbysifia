@@ -203,10 +203,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
           await supabase.auth.signOut();
           console.log('[OnboardingContext] ✅ Forced logout completed for deleted user');
 
-          // Force a page reload to completely reset the app state
-          if (typeof window !== 'undefined' && window.location) {
-            window.location.reload();
-          }
+          // Note: In React Native, app state will reset on next launch
+          // No need for window.location.reload() as that's web-only
         } catch (logoutError) {
           console.error('[OnboardingContext] Error during forced logout:', logoutError);
           // Even if logout fails, clear the local state

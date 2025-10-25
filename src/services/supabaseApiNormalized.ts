@@ -108,6 +108,8 @@ function transformPlaybookRow(
     status: playbookRow.status,
     createdAt: playbookRow.created_at,
     updatedAt: playbookRow.updated_at,
+    progress: 0,
+    totalTasks: transformedActionSteps.length,
   };
 }
 
@@ -379,7 +381,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
 
             if (typeof subTask === 'string') {
               // Sub-task is a string
-              subTaskText = subTask.trim();
+              subTaskText = (subTask as string).trim();
             } else if (subTask && typeof subTask === 'object') {
               // Sub-task is an object
               subTaskText = ((subTask as any).text || (subTask as any).title || '').trim();
@@ -430,7 +432,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
 
         if (typeof affirmation === 'string') {
           // Affirmation is a string
-          affirmationText = affirmation.trim();
+          affirmationText = (affirmation as string).trim();
         } else if (affirmation && typeof affirmation === 'object') {
           // Affirmation is an object
           affirmationText = ((affirmation as any).text || (affirmation as any).title || '').trim();

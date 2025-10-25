@@ -133,9 +133,9 @@ export class FamilySubscriptionService {
         role: member.family_role as 'admin' | 'member',
         joined_at: member.created_at,
         status: 'active' as const,
-        email: member.user_profiles?.email,
-        full_name: member.user_profiles?.full_name,
-        avatar_url: member.user_profiles?.avatar_url,
+        email: (member.user_profiles as any)?.[0]?.email || (member.user_profiles as any)?.email,
+        full_name: (member.user_profiles as any)?.[0]?.full_name || (member.user_profiles as any)?.full_name,
+        avatar_url: (member.user_profiles as any)?.[0]?.avatar_url || (member.user_profiles as any)?.avatar_url,
       }));
 
       return {
