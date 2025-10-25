@@ -40,7 +40,8 @@ import { Gesture } from 'react-native-gesture-handler';
 // Icons
 
 // Theme & Styling
-import { Colors, Fonts } from '../theme';
+import { Colors } from '../theme/colors';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useTheme } from '../theme/ThemeContext';
 import { Typography } from '../theme/typography';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
@@ -246,7 +247,7 @@ const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: an
   </TouchableOpacity>
 );
 
-export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
+const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation }) => {
   const theme = useTheme();
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
@@ -2178,3 +2179,5 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: '#264674',
   },
 });
+
+export default withErrorBoundary(PlaybookDetailScreen, 'PlaybookDetailScreen');

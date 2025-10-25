@@ -25,6 +25,7 @@ import {
   useDevotionalOperations,
 } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
 import { notificationService } from '../services/notificationService';
@@ -49,7 +50,7 @@ import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
 import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDetailSkeleton';
 
-export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
+const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
   const { devotionalId } = route.params;
   const { user } = useAuth();
@@ -1570,3 +1571,5 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
+export default withErrorBoundary(DevotionalDetailScreen, 'DevotionalDetailScreen');
