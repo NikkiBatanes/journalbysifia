@@ -1,12 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, SectionList, RefreshControlProps, Dimensions, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, SectionList, RefreshControlProps, TouchableOpacity } from 'react-native';
 import { Feather } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
 import { format, startOfMonth, endOfMonth, getWeek } from 'date-fns';
-import { isToday as isTodayFn, isYesterday as isYesterdayFn } from 'date-fns';
 import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStartUtils';
 import ThemedText from '../../../components/common/ThemedText';
 import { useTheme } from '../../../hooks/useTheme';
@@ -416,8 +414,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
   const [_loading, setLoading] = React.useState(true);
   const hasLoadedOnce = useRef(false);
-  // Track reflection counts per day (yyyy-MM-dd)
-  const [reflectionCounts, setReflectionCounts] = React.useState<Record<string, number>>({});
 
   // Derive plugin-level filters to pass into plugin components so they respect Moments filters
   const pluginFilters: PluginFilters | undefined = useMemo(() => {
