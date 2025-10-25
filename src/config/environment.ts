@@ -43,7 +43,7 @@ export const validateEnvironment = () => {
     'SUPABASE_ANON_KEY',
   ];
 
-  const missing = required.filter(key => !ENV[key] || ENV[key].includes('your_'));
+  const missing = required.filter(key => !(ENV as any)[key] || (ENV as any)[key].includes('your_'));
 
   if (missing.length > 0) {
     console.warn('⚠️ Missing environment variables:', missing);

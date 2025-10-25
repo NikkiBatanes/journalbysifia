@@ -89,7 +89,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     } catch (err) {
       const errorMessage = err instanceof PlatformSubscriptionError
         ? err.message
-        : `Upgrade failed: ${err.message}`;
+        : `Upgrade failed: ${(err as any).message || 'Unknown error'}`;
 
       console.error('[usePlatformSubscription] Upgrade failed:', err);
       setError(errorMessage);
@@ -126,7 +126,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     } catch (err) {
       const errorMessage = err instanceof PlatformSubscriptionError
         ? err.message
-        : `Downgrade request failed: ${err.message}`;
+        : `Downgrade request failed: ${(err as any).message || 'Unknown error'}`;
 
       console.error('[usePlatformSubscription] Downgrade request failed:', err);
       setError(errorMessage);

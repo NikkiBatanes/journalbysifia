@@ -399,7 +399,7 @@ class UserApiService {
         };
       }
 
-      const challenges: Challenge[] = data.map((challenge: any) => ({
+      const challenges = data.map((challenge: any) => ({
         id: challenge.id,
         title: challenge.title,
         description: challenge.description,
@@ -415,7 +415,7 @@ class UserApiService {
         createdAt: challenge.created_at,
       }));
 
-      return { success: true, data: challenges };
+      return { success: true, data: challenges as any };
     } catch (error: any) {
       return {
         success: false,
@@ -771,7 +771,7 @@ class UserApiService {
 
       return {
         success: true,
-        data: badges,
+        data: badges as any,
       };
     } catch (error: any) {
       return {

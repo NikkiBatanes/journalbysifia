@@ -110,7 +110,7 @@ export class SmartJournalDetectionV2 {
         userId,
         userName,
         content,
-        'journal_analysis'
+        'journal_analysis' as any
       );
 
       // Perform pattern analysis
@@ -139,7 +139,7 @@ export class SmartJournalDetectionV2 {
       // Award faith points for journaling
       await faithPointsService.awardPoints(
         userId,
-        'journal_entry_analyzed',
+        'journal_entry_analyzed' as any,
         {
           detectedType: enhancedResult.detectedType,
           confidence: enhancedResult.confidence,

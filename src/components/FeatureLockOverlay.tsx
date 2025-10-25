@@ -1,7 +1,7 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import { useUpgradePrompts } from '../hooks/useTrialAccess';
+// import { useUpgradePrompts } from '../hooks/useTrialAccess'; // Module not found
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 
@@ -18,10 +18,10 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
   onClose,
   onUpgrade,
 }) => {
-  const { getUpgradePrompt } = useUpgradePrompts();
+  // const { getUpgradePrompt } = useUpgradePrompts(); // Module not found
   const navigation = useNavigation();
 
-  const prompt = getUpgradePrompt(feature);
+  const prompt = { title: 'Upgrade Required', message: `Unlock ${feature}`, ctaText: 'Upgrade Now' };
 
   const handleUpgrade = () => {
     onClose();
@@ -46,7 +46,7 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
               <Ionicons name="lock-closed" size={32} color={Colors.wisdomIndigo} />
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Ionicons name="close" size={24} color={Colors.journeyGray} />
+              <Ionicons name="close" size={24} color={Colors.textGray} />
             </TouchableOpacity>
           </View>
 
@@ -86,10 +86,10 @@ export const FeatureLockCard: React.FC<FeatureLockCardProps> = ({
   isLocked,
   onUnlockPress,
 }) => {
-  const { getUpgradePrompt } = useUpgradePrompts();
+  // const { getUpgradePrompt } = useUpgradePrompts(); // Module not found
   const navigation = useNavigation();
 
-  const prompt = getUpgradePrompt(feature);
+  const prompt = { title: 'Upgrade Required', message: `Unlock ${feature}`, ctaText: 'Upgrade Now' };
 
   const handleUnlock = () => {
     if (onUnlockPress) {
