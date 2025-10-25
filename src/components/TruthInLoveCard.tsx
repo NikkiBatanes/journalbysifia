@@ -3,7 +3,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
 
 import { Colors } from '../theme';
-import { Typography } from '../theme/typography';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import ThemedText from './common/ThemedText';
@@ -35,8 +34,8 @@ export default function TruthInLoveCard({
   numberOfLines = 5,
   ellipsizeMode = 'tail' as const,
   currentUser,
-  playbookTitle,
-  userInput,
+  playbookTitle: _playbookTitle,
+  userInput: _userInput,
   onToggleExpand,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
@@ -53,35 +52,17 @@ export default function TruthInLoveCard({
     lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
   } : currentUser;
 
-  console.log('[TruthInLoveCard] Debug Info:', {
-    originalTruth: truth,
-    originalSummary: summary,
-    currentUser,
-    freshUserData,
-    usingFreshData: !!user,
-    userMetadata: user?.user_metadata,
-    timestamp: new Date().toISOString(),
-  });
-
   // Force re-computation when user data changes
   // Only replace placeholders, not hardcoded names to prevent duplicate name issues
   const processedTruth = React.useMemo(() => {
     const result = freshUserData ? replaceAllNamePlaceholders(truth, freshUserData, { replaceHardcodedNames: false }) : truth;
-    console.log('[TruthInLoveCard] Processing truth:', { original: truth, processed: result, userData: freshUserData });
     return result;
   }, [truth, freshUserData?.firstName, freshUserData?.displayName]);
 
   const processedSummary = React.useMemo(() => {
     const result = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: false }) : summary;
-    console.log('[TruthInLoveCard] Processing summary:', { original: summary, processed: result, userData: freshUserData });
     return result;
   }, [summary, freshUserData?.firstName, freshUserData?.displayName]);
-
-  console.log('[TruthInLoveCard] Processed:', {
-    processedTruth,
-    processedSummary,
-    changed: processedTruth !== truth || processedSummary !== summary,
-  });
 
   // Debug styles - can be removed after fixing
   const debugStyle = {
