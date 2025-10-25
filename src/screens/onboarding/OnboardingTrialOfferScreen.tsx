@@ -87,7 +87,7 @@ const OnboardingTrialOfferScreen = () => {
       logger.info('Navigating cancelled trial user to notification setup');
       (navigation as any).navigate('OnboardingNotificationSetup', {
         userType: 'freemium',
-        fromCancelledTrial: true
+        fromCancelledTrial: true,
       });
     }
 
@@ -119,17 +119,17 @@ const OnboardingTrialOfferScreen = () => {
       try {
         const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
         const currentSubscription = await NewSubscriptionService.getUserSubscription(user.id);
-        
+
         if (currentSubscription.tier === 'free_trial') {
           logger.warn('⚠️ User already has an active trial!');
           logger.warn('Skipping Apple purchase - trial already activated');
-          
+
           // Show success modal immediately since trial is already active
           setIsStartingTrial(false);
           setShowSuccessModal(true);
           return;
         }
-        
+
         logger.info('✅ No existing trial found - proceeding with Apple purchase');
       } catch (checkError) {
         logger.error('Failed to check existing subscription', checkError as Error);
@@ -221,7 +221,7 @@ Please check App Store Connect configuration or contact support.`;
             // Production: Block trial if product not found
             logger.error('❌ Trial product not found - cannot offer free trial');
             logger.error('User should see error message instead of being charged');
-            throw new Error(`Free trial not available. Please contact support or try again later.`);
+            throw new Error('Free trial not available. Please contact support or try again later.');
           }
         } else {
           logger.info('✅✅✅ TRIAL PRODUCT FOUND!');
@@ -236,21 +236,21 @@ Please check App Store Connect configuration or contact support.`;
       } catch (productError) {
         logger.error('❌ Failed to verify products', productError as Error);
         logger.error('Cannot determine if trial product exists - blocking trial to prevent charging');
-        throw new Error(`Unable to verify trial availability. Please try again later or contact support.`);
+        throw new Error('Unable to verify trial availability. Please try again later or contact support.');
       }
 
       logger.debug('Final product ID', { productId });
       logger.debug('Showing Apple payment sheet', {});
 
-      console.log(`[OnboardingTrialOffer] 🛒 INITIATING TRIAL PURCHASE:`, {
+      console.log('[OnboardingTrialOffer] 🛒 INITIATING TRIAL PURCHASE:', {
         productId,
         selectedTierId,
         billing: isAnnual ? 'annual' : 'monthly',
         userId: user.id,
       });
-      console.log(`[OnboardingTrialOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!`);
-      console.log(`[OnboardingTrialOffer] Expected: "Free for 3 days, then $X.XX"`);
-      console.log(`[OnboardingTrialOffer] If payment sheet doesn't show, check AppleStoreKitService`);
+      console.log('[OnboardingTrialOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!');
+      console.log('[OnboardingTrialOffer] Expected: "Free for 3 days, then $X.XX"');
+      console.log('[OnboardingTrialOffer] If payment sheet doesn\'t show, check AppleStoreKitService');
 
       // ENTERPRISE IMPROVEMENT: Show loading modal
       setLoadingStep('processing');
@@ -262,17 +262,17 @@ Please check App Store Connect configuration or contact support.`;
         await paymentService.initialize();
 
         // Now initiate purchase
-        console.log(`[OnboardingTrialOffer] 🚀 About to call purchaseSubscription`);
+        console.log('[OnboardingTrialOffer] 🚀 About to call purchaseSubscription');
         console.log(`[OnboardingTrialOffer] Product ID: ${productId}`);
         console.log(`[OnboardingTrialOffer] User ID: ${user.id}`);
-        console.log(`[OnboardingTrialOffer] This should trigger Apple's payment sheet`);
+        console.log('[OnboardingTrialOffer] This should trigger Apple\'s payment sheet');
 
         result = await paymentService.purchaseSubscription(productId, user.id);
 
-        console.log(`[OnboardingTrialOffer] ✅ Purchase initiated successfully`);
-        console.log(`[OnboardingTrialOffer] Result:`, result);
+        console.log('[OnboardingTrialOffer] ✅ Purchase initiated successfully');
+        console.log('[OnboardingTrialOffer] Result:', result);
       } catch (purchaseError) {
-        console.error(`[OnboardingTrialOffer] ❌ Purchase initiation failed:`, purchaseError);
+        console.error('[OnboardingTrialOffer] ❌ Purchase initiation failed:', purchaseError);
 
         // Provide more specific error messages
         if (purchaseError instanceof Error) {
@@ -318,7 +318,7 @@ Please check App Store Connect configuration or contact support.`;
         logger.info('🎯 Setting up trial in database after Apple authorization');
         try {
           const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
-          
+
           // Start the trial in database - this creates the subscription record with:
           // - tier: 'free_trial'
           // - trial_start_date: now
@@ -632,7 +632,7 @@ Please check App Store Connect configuration or contact support.`;
 
     logger.info('Success modal continue pressed', {
       skipNotificationPreference,
-      navigationState: 'success_modal_complete'
+      navigationState: 'success_modal_complete',
     });
 
     // Small delay to ensure modal is fully hidden
@@ -647,7 +647,7 @@ Please check App Store Connect configuration or contact support.`;
           (navigation as any).replace('OnboardingNotificationSetup', {
             userType: 'trial',
             fromTrial: true,
-            navigationGuarded: true
+            navigationGuarded: true,
           });
         }, 'navigate_to_notification');
       }

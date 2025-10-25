@@ -98,7 +98,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
     // Force app reload (React Native specific)
     // In production, this would trigger a full app restart
     console.log('[OnboardingErrorBoundary] Reloading app...');
-    
+
     // Reset error state first
     this.handleReset();
   };
@@ -111,7 +111,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
       return (
         <View style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-          
+
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
@@ -129,7 +129,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
 
             {/* Error Message */}
             <ThemedText style={styles.message}>
-              {fallbackMessage || 
+              {fallbackMessage ||
                 "We encountered an unexpected error during your onboarding. Don't worry, your progress is saved."}
             </ThemedText>
 

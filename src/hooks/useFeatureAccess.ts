@@ -233,7 +233,7 @@ export function useRestrictionRetention() {
 
       const offer = await retentionService.getDynamicRetentionOffer(
         user.id,
-        'feature_restriction',
+        'trial_declined',
         originalPrice,
         subscription.tier,
         daysSinceEvent

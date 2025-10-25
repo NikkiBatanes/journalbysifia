@@ -226,7 +226,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
 
   // Computed properties
   const isAdmin = familyGroup?.admin_user_id === user?.id;
-  const canInviteMembers = isAdmin && familyGroup && familyGroup.current_members < familyGroup.max_members;
+  const canInviteMembers = Boolean(isAdmin && familyGroup && (familyGroup.current_members || 0) < (familyGroup.max_members || 0));
 
   // Load data on mount and when user changes
   useEffect(() => {

@@ -944,7 +944,7 @@ export class AppleStoreKitService {
       for (const purchase of availablePurchases) {
         try {
           console.log('[StoreKit] Validating restored purchase:', purchase.productId);
-          
+
           const validationResult = await this.validateReceiptServerSide(
             purchase.transactionReceipt,
             userId,

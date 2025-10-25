@@ -228,11 +228,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // This ensures we get the name the user actually wants to use
         if (method === 'oauth') {
           logger.debug('🔒 OAuth user detected - forcing name collection for better UX');
-          
+
           // Start with empty name for OAuth users to force collection
           setName('');
           setShowNameStep(true); // ALWAYS show name step for OAuth
-          
+
           // Clear any stale Apple name data from previous sessions
           // This prevents using cached data that might be from a different user
           try {
@@ -241,14 +241,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           } catch (error) {
             logger.error('Error clearing Apple name data:', error as Error);
           }
-          
+
           return; // Exit early - don't process email extraction
         }
 
         // For non-OAuth users (email/password), handle name extraction
         logger.debug('Non-OAuth user - checking email extraction');
         console.log('🔍 DEBUG - Running email extraction logic for non-OAuth user');
-        
+
         // Set name if provided, but ONLY for email users
         if (route.params && 'name' in route.params && route.params.name) {
           const providedName = route.params.name as string;
@@ -515,7 +515,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   data: {
                     first_name: name.trim(),
                     full_name: name.trim(), // Also set full_name for consistency
-                  }
+                  },
                 });
 
                 if (updateError) {
@@ -564,7 +564,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               data: {
                 first_name: name.trim(),
                 full_name: name.trim(),
-              }
+              },
             });
 
             if (updateError) {

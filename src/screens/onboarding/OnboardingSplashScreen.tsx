@@ -65,13 +65,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         logger.onboarding.navigation('Splash', 'NavigationCheck');
         return true;
       }
-      
+
       // Check if component is still mounted
       if (!isMountedRef.current) {
         logger.debug('Component unmounted, aborting navigation');
         return false;
       }
-      
+
       isNavigatingRef.current = true;
         logger.onboarding.navigation('Splash', 'ConditionalNavigationStart');
       logger.debug('👤 AUTH STATE:', {

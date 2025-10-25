@@ -170,7 +170,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         // Detect if this is an OAuth user (Apple/Google)
         const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
         const isOAuth = provider === 'apple' || provider === 'google';
-        
+
         // Determine display name based on provider
         let displayName = '';
         if (provider === 'apple') {
@@ -183,11 +183,11 @@ const OnboardingWelcomeScreen: React.FC = () => {
           // For email users, extract from email or metadata
           displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
         }
-        
+
         const registrationMethod = isOAuth ? 'oauth' : 'email';
-        
+
         console.log('🔍 OnboardingWelcome: Detected user type:', { provider, isOAuth, registrationMethod, displayName });
-        
+
         try {
           (navigation as any).reset?.({ index: 0, routes: [{ name: 'OnboardingPersonalization', params: { name: displayName, registrationMethod } }] });
         } catch {
@@ -245,7 +245,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         // Detect if this is an OAuth user
         const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
         const isOAuth = provider === 'apple' || provider === 'google';
-        
+
         // Determine display name based on provider
         let displayName = '';
         if (provider === 'apple') {
@@ -255,9 +255,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
         } else {
           displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
         }
-        
+
         const registrationMethod = isOAuth ? 'oauth' : 'email';
-        
+
         navigation.navigate('OnboardingPersonalization' as any, {
           name: displayName,
           registrationMethod,
@@ -281,7 +281,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         // Detect if this is an OAuth user
         const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
         const isOAuth = provider === 'apple' || provider === 'google';
-        
+
         // Determine display name based on provider
         let displayName = '';
         if (provider === 'apple') {
@@ -291,9 +291,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
         } else {
           displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
         }
-        
+
         const registrationMethod = isOAuth ? 'oauth' : 'email';
-        
+
         navigation.navigate('OnboardingPersonalization' as any, {
           name: displayName,
           registrationMethod,

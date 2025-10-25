@@ -55,7 +55,7 @@ describe('OnboardingErrorBoundary', () => {
 
     it('should display custom fallback message', () => {
       const customMessage = 'Custom error message';
-      
+
       const { getByText } = render(
         <OnboardingErrorBoundary fallbackMessage={customMessage}>
           <ThrowError />

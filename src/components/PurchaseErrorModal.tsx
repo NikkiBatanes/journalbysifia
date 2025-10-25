@@ -1,6 +1,6 @@
 /**
  * ENTERPRISE IMPROVEMENT: Purchase Error Modal
- * 
+ *
  * Explanation: This modal provides clear, actionable error messages.
  * Benefits:
  * - User-friendly error messages (not technical jargon)

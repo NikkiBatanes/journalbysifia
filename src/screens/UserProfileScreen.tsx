@@ -351,7 +351,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
    * - Reinstalling the app
    * - Switching devices
    * - Losing their subscription status
-   * 
+   *
    * This is REQUIRED by Apple for all subscription apps.
    * Now includes server-side validation for security.
    */
@@ -382,13 +382,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
               const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
               const storeKit = AppleStoreKitService.getInstance();
-              
+
               const result = await storeKit.restorePurchases(user.id);
 
               if (result.success) {
                 // Refresh subscription data
                 await loadProfileData();
-                
+
                 Alert.alert(
                   'Success',
                   result.message + (result.validated ? `\n\n✓ ${result.validated} purchase(s) validated server-side` : ''),

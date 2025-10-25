@@ -470,7 +470,7 @@ export const OnboardingPerformance = {
       totalSteps: Object.keys(onboardingStats).filter(k => k.includes(':step:')).length,
       averageStepDuration: Object.values(onboardingStats)
         .filter((_, i) => Object.keys(onboardingStats)[i].includes(':step:'))
-        .reduce((sum, stat) => sum + stat.averageDuration, 0) / 
+        .reduce((sum, stat) => sum + stat.averageDuration, 0) /
         Object.keys(onboardingStats).filter(k => k.includes(':step:')).length || 0,
     };
   },

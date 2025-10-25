@@ -73,14 +73,14 @@ describe('OnboardingSplashScreen', () => {
 
     it('should navigate to MainTabs when user has completed onboarding', async () => {
       const mockUser = { id: 'user-123', email: 'test@example.com' };
-      
+
       mockUseAuth.mockReturnValue({
         user: mockUser,
         isLoggingOut: false,
       } as any);
 
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      
+
       // Mock onboarding service to return completed
       const { OnboardingService } = require('../../../services/onboardingService');
       OnboardingService.prototype.hasCompletedOnboarding = jest.fn().mockResolvedValue(true);
@@ -98,19 +98,19 @@ describe('OnboardingSplashScreen', () => {
     });
 
     it('should navigate to personalization when user has not completed onboarding', async () => {
-      const mockUser = { 
-        id: 'user-123', 
+      const mockUser = {
+        id: 'user-123',
         email: 'test@example.com',
         created_at: new Date().toISOString(),
       };
-      
+
       mockUseAuth.mockReturnValue({
         user: mockUser,
         isLoggingOut: false,
       } as any);
 
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      
+
       const { OnboardingService } = require('../../../services/onboardingService');
       OnboardingService.prototype.hasCompletedOnboarding = jest.fn().mockResolvedValue(false);
 
@@ -123,7 +123,7 @@ describe('OnboardingSplashScreen', () => {
           expect.objectContaining({
             index: 0,
             routes: expect.arrayContaining([
-              expect.objectContaining({ name: 'OnboardingPersonalization' })
+              expect.objectContaining({ name: 'OnboardingPersonalization' }),
             ]),
           })
         );
@@ -132,7 +132,7 @@ describe('OnboardingSplashScreen', () => {
 
     it('should handle post-auth redirect correctly', async () => {
       const mockUser = { id: 'user-123', email: 'test@example.com' };
-      
+
       mockUseAuth.mockReturnValue({
         user: mockUser,
         isLoggingOut: false,
@@ -144,7 +144,7 @@ describe('OnboardingSplashScreen', () => {
       };
 
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(redirectData));
-      
+
       const { OnboardingService } = require('../../../services/onboardingService');
       OnboardingService.prototype.hasCompletedOnboarding = jest.fn().mockResolvedValue(false);
 

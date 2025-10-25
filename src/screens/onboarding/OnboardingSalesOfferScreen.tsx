@@ -239,7 +239,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.debug('Onboarding flow - navigating to notification setup');
           (navigation as any).navigate('OnboardingNotificationSetup', {
             userType: 'freemium',
-            fromCancelledSales: true
+            fromCancelledSales: true,
           });
         } else {
           // If skip pref set, go back
@@ -296,7 +296,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         if (targetProduct) {
           productId = targetProduct.productId;
           console.log(`[OnboardingSalesOffer] ✅ Found matching product: ${productId}`);
-          console.log(`[OnboardingSalesOffer] Product details:`, {
+          console.log('[OnboardingSalesOffer] Product details:', {
             tier: targetProduct.tier,
             price: targetProduct.price,
             title: targetProduct.title,
@@ -312,15 +312,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         console.warn(`[OnboardingSalesOffer] ⚠️ Failed to get products, using constructed ID: ${productId}`);
       }
 
-      console.log(`[OnboardingSalesOffer] 🛒 INITIATING PURCHASE:`, {
+      console.log('[OnboardingSalesOffer] 🛒 INITIATING PURCHASE:', {
         productId,
         selectedTier,
         billing,
         isUpgradeMode,
         userId: user?.id,
       });
-      console.log(`[OnboardingSalesOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!`);
-      console.log(`[OnboardingSalesOffer] If payment sheet doesn't show, check AppleStoreKitService`);
+      console.log('[OnboardingSalesOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!');
+      console.log('[OnboardingSalesOffer] If payment sheet doesn\'t show, check AppleStoreKitService');
 
 
       if (isUpgradeMode) {

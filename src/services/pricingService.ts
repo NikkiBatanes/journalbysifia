@@ -211,7 +211,7 @@ class PricingService {
       const countryCode = countryMatch ? countryMatch[1].toUpperCase() : '';
 
       console.log('[PricingService] Extracted country code:', countryCode);
-      console.log('[PricingService] Has PH pricing configured:', !!this.locationPricing['PH']);
+      console.log('[PricingService] Has PH pricing configured:', !!this.locationPricing.PH);
 
       // Return country code if we have pricing for it, otherwise default to US
       if (countryCode && this.locationPricing[countryCode]) {

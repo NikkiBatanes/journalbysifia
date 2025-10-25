@@ -16,36 +16,36 @@ export const initializeSentry = () => {
     // TODO: Replace with your actual Sentry DSN
     // Get from: https://sentry.io/settings/YOUR_ORG/projects/YOUR_PROJECT/keys/
     dsn: 'https://YOUR_DSN@sentry.io/YOUR_PROJECT_ID',
-    
+
     // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
     // Adjust this value in production (0.1 = 10%)
     tracesSampleRate: __DEV__ ? 1.0 : 0.1,
-    
+
     // Enable automatic session tracking
     enableAutoSessionTracking: true,
-    
+
     // Session timeout in milliseconds
     sessionTrackingIntervalMillis: 30000,
-    
+
     // Enable native crash handling
     enableNative: true,
-    
+
     // Environment
     environment: __DEV__ ? 'development' : 'production',
-    
+
     // Release version - TODO: Update with actual version from package.json
     release: 'siFia@1.0.0',
-    
+
     // Distribution
     dist: '1',
-    
+
     // Integrations - using current Sentry SDK API
     integrations: [
       // React Navigation integration for performance tracking
       // Uncomment and configure when you set up navigation instrumentation:
       // Sentry.reactNavigationIntegration(),
     ],
-    
+
     // Before send hook - filter sensitive data
     beforeSend(event, hint) {
       // Filter out sensitive information
@@ -53,7 +53,7 @@ export const initializeSentry = () => {
         delete event.user.email;
         delete event.user.ip_address;
       }
-      
+
       // Filter sensitive breadcrumbs
       if (event.breadcrumbs) {
         event.breadcrumbs = event.breadcrumbs.filter(breadcrumb => {
@@ -62,19 +62,19 @@ export const initializeSentry = () => {
                  !breadcrumb.message?.includes('token');
         });
       }
-      
+
       return event;
     },
-    
+
     // Ignore certain errors
     ignoreErrors: [
       // Network errors
       'Network request failed',
       'Failed to fetch',
-      
+
       // React Navigation errors
       'The action',
-      
+
       // Common mobile errors
       'Aborted',
       'cancelled',

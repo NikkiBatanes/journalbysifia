@@ -1,6 +1,6 @@
 /**
  * ENTERPRISE IMPROVEMENT: Purchase Success Modal
- * 
+ *
  * Explanation: This modal provides clear visual confirmation after successful payment.
  * Benefits:
  * - Builds user confidence (they know payment worked)

@@ -34,7 +34,7 @@ describe('OnboardingPersonalizationScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockUseAuth.mockReturnValue({
       user: { id: 'user-123', email: 'test@example.com' },
     } as any);
@@ -55,16 +55,16 @@ describe('OnboardingPersonalizationScreen', () => {
   describe('Step Navigation', () => {
     it('should render age group selection as first step for email users', () => {
       const { getByText } = renderScreen();
-      
+
       expect(getByText(/Which stage of life are you in/i)).toBeTruthy();
     });
 
     it('should allow selecting an age group', () => {
       const { getByText } = renderScreen();
-      
+
       const ageButton = getByText('18-25');
       fireEvent.press(ageButton);
-      
+
       // Continue button should be enabled
       const continueButton = getByText('Continue');
       expect(continueButton).toBeTruthy();
@@ -72,19 +72,19 @@ describe('OnboardingPersonalizationScreen', () => {
 
     it('should progress through all steps', async () => {
       const { getByText } = renderScreen();
-      
+
       // Step 1: Age
       fireEvent.press(getByText('18-25'));
       fireEvent.press(getByText('Continue'));
-      
+
       await waitFor(() => {
         expect(getByText(/Where are you in your/i)).toBeTruthy();
       });
-      
+
       // Step 2: Faith Journey
       fireEvent.press(getByText('Growing in Faith'));
       fireEvent.press(getByText('Continue'));
-      
+
       await waitFor(() => {
         expect(getByText(/biggest challenge/i)).toBeTruthy();
       });
@@ -92,7 +92,7 @@ describe('OnboardingPersonalizationScreen', () => {
 
     it('should disable continue button when no selection is made', () => {
       const { getByText } = renderScreen();
-      
+
       const continueButton = getByText('Continue');
       // Button should be disabled (check for disabled styling)
       expect(continueButton.props.accessibilityState?.disabled).toBeTruthy();
@@ -113,7 +113,7 @@ describe('OnboardingPersonalizationScreen', () => {
           <OnboardingPersonalizationScreen />
         </NavigationContainer>
       );
-      
+
       expect(getByText(/What's your name/i)).toBeTruthy();
       expect(getByPlaceholderText(/Enter your first name/i)).toBeTruthy();
     });
@@ -122,26 +122,26 @@ describe('OnboardingPersonalizationScreen', () => {
   describe('Memory Management', () => {
     it('should cleanup timeouts on unmount', () => {
       jest.useFakeTimers();
-      
+
       const { unmount } = renderScreen();
-      
+
       unmount();
-      
+
       // Verify no timers are running
       expect(jest.getTimerCount()).toBe(0);
-      
+
       jest.useRealTimers();
     });
 
     it('should not update state after unmount', async () => {
       const { unmount, getByText } = renderScreen();
-      
+
       // Start an async operation
       fireEvent.press(getByText('18-25'));
-      
+
       // Unmount immediately
       unmount();
-      
+
       // Should not throw errors
       await waitFor(() => {
         expect(true).toBe(true);
@@ -152,21 +152,21 @@ describe('OnboardingPersonalizationScreen', () => {
   describe('Data Validation', () => {
     it('should require challenge details before final submission', async () => {
       const { getByText, getByPlaceholderText } = renderScreen();
-      
+
       // Navigate to final step
       fireEvent.press(getByText('18-25'));
       fireEvent.press(getByText('Continue'));
-      
+
       await waitFor(() => {
         fireEvent.press(getByText('Growing in Faith'));
         fireEvent.press(getByText('Continue'));
       });
-      
+
       await waitFor(() => {
         fireEvent.press(getByText('Anxiety & Stress'));
         fireEvent.press(getByText('Continue'));
       });
-      
+
       // Final step - should require input
       const createButton = getByText('Create My Playbook');
       expect(createButton.props.accessibilityState?.disabled).toBeTruthy();
@@ -181,11 +181,11 @@ describe('OnboardingPersonalizationScreen', () => {
       } as any);
 
       const { getByText } = renderScreen();
-      
+
       // Complete all steps
       fireEvent.press(getByText('18-25'));
       fireEvent.press(getByText('Continue'));
-      
+
       await waitFor(() => {
         expect(updateStepMock).toHaveBeenCalled();
       });
@@ -195,14 +195,14 @@ describe('OnboardingPersonalizationScreen', () => {
   describe('Accessibility', () => {
     it('should have proper accessibility labels', () => {
       const { getByText } = renderScreen();
-      
+
       const continueButton = getByText('Continue');
       expect(continueButton.props.accessible).toBeTruthy();
     });
 
     it('should support keyboard navigation', () => {
       const { getByText } = renderScreen();
-      
+
       // All interactive elements should be focusable
       const ageButton = getByText('18-25');
       expect(ageButton.props.accessible).toBeTruthy();

@@ -1,6 +1,6 @@
 /**
  * ENTERPRISE IMPROVEMENT: Purchase Loading Modal
- * 
+ *
  * Explanation: This modal provides clear feedback during payment processing.
  * Benefits:
  * - Shows user what's happening (not a black screen)

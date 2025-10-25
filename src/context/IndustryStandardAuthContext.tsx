@@ -1003,12 +1003,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Save Google-provided name and clear avatar URLs from user metadata
       try {
         const currentUser = await supabase.auth.getUser();
-        
+
         if (!currentUser.data.user) {
           console.log('⚠️ No user found after Google sign-in');
           return { error: null };
         }
-        
+
         // Decode the Google ID token to get the user's name
         const base64Url = idToken.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -1016,12 +1016,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
         const googleUser = JSON.parse(jsonPayload);
-        
+
         console.log('💾 Saving Google-provided name to user metadata:', {
           given_name: googleUser.given_name,
           full_name: googleUser.name,
         });
-        
+
         // Update user metadata with Google name and clear avatar URLs
         await supabase.auth.updateUser({
           data: {
@@ -1032,9 +1032,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             avatar_url: undefined,
             picture: undefined,
             photoURL: undefined,
-          }
+          },
         });
-        
+
         console.log('✅ Google name saved and avatar URLs cleared');
       } catch (metadataError) {
         console.log('⚠️ Could not update user metadata (safe to ignore):', metadataError);
@@ -1151,7 +1151,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
               ...currentUser.data.user.user_metadata,
               avatar_url: undefined,
               picture: undefined,
-            }
+            },
           });
         }
       } catch (metadataError) {

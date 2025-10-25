@@ -60,7 +60,7 @@ class Logger {
    */
   warn(message: string, meta?: LogMetadata): void {
     console.warn(`[WARN] ${message}`, meta || '');
-    
+
     if (this.isProduction) {
       this.sendToAnalytics('warn', message, meta);
     }
@@ -71,7 +71,7 @@ class Logger {
    */
   error(message: string, error?: Error, meta?: LogMetadata): void {
     console.error(`[ERROR] ${message}`, error || '', meta || '');
-    
+
     if (this.isProduction) {
       this.sendToErrorTracking(message, error, meta);
     }

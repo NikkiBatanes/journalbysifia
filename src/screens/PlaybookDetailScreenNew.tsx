@@ -1592,7 +1592,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       )}
     </View>
   );
-}
+};
 
 // ===== STYLES =====
 

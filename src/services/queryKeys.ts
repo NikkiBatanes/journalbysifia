@@ -44,7 +44,7 @@ export const queryKeys = {
     infinite: (userId: string) => ['reflections', 'infinite', userId] as const,
     count: (userId: string) => ['reflections', 'count', userId] as const,
     byQuestion: (userId: string, questionText: string, devotionalId?: string, dayNumber?: number, questionNumber?: number) =>
-      ['reflections', 'byQuestion', userId, questionText, devotionalId, dayNumber, questionNumber].filter(Boolean) as const,
+      ['reflections', 'byQuestion', userId, questionText, devotionalId, dayNumber, questionNumber] as const,
   },
 
   // Prayer-related queries
