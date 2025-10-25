@@ -428,7 +428,7 @@ class EnterpriseLoggingService {
 
       if (error) {throw error;}
 
-      const deletedCount = Array.isArray(data) ? data.length : 0;
+      const deletedCount = Array.isArray(data) ? (data as any[]).length : 0;
       this.info(`Cleaned ${deletedCount} old log entries`, { retentionDays, cutoffDate });
 
       return deletedCount;

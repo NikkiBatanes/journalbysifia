@@ -175,7 +175,7 @@ export const usePlaybookWithRelationships = (userId: string, playbookId: string)
           relatedDevotionals,
           relatedJournalEntries,
           relatedPrayers,
-        };
+        } as any;
       },
       queryKeys.playbooks.withDevotionals(userId, playbookId)
     ),
