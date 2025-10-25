@@ -688,11 +688,6 @@ function TimeBlockLogEditorInner(
   const [tempStartTime, setTempStartTime] = React.useState(startTime);
   const [tempEndTime, setTempEndTime] = React.useState(endTime);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
-  const [_hasUserMadeChanges, _setHasUserMadeChanges] = React.useState(false);
-  const [_isFirstLoad, _setIsFirstLoad] = React.useState(true);
-
-  // Tab management
-  const [_activeTab, _setActiveTab] = React.useState<'quick' | 'detailed'>('quick');
 
   // Category modal state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
