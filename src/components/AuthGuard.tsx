@@ -14,10 +14,10 @@ interface AuthGuardProps {
  * Industry-standard AuthGuard component
  * Protects routes and ensures only authenticated users can access protected content
  */
-export const AuthGuard: React.FC<AuthGuardProps> = ({
+export const AuthGuard = ({
   children,
   fallback,
-}) => {
+}: AuthGuardProps) => {
   const { isAuthenticated, loading, user } = useAuth();
 
   // Debug auth state changes

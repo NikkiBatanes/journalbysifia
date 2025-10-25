@@ -185,8 +185,9 @@ class PlatformSubscriptionService {
 
     } catch (error) {
       console.error('[PlatformSubscription] Upgrade failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new PlatformSubscriptionError(
-        `Upgrade failed: ${error.message}`,
+        `Upgrade failed: ${errorMessage}`,
         'UPGRADE_FAILED',
         Platform.OS as 'ios' | 'android',
         error
@@ -248,11 +249,10 @@ class PlatformSubscriptionService {
         sku: request.targetProductId,
         subscriptionOffers: [{
           offerToken: '',
-          basePlanId: request.targetProductId,
-        }],
+        }] as any,
         oldPurchaseToken: currentToken,
         replacementMode: replacementMode,
-      });
+      } as any);
 
       if (!purchase) {
         throw new Error('Purchase failed - no transaction returned');
@@ -308,11 +308,10 @@ class PlatformSubscriptionService {
             sku: targetProduct.productId,
             subscriptionOffers: [{
               offerToken: '',
-              basePlanId: targetProduct.productId,
-            }],
+            }] as any,
             oldPurchaseToken: currentToken,
             replacementMode: GOOGLE_REPLACEMENT_MODES.DEFERRED,
-          });
+          } as any);
 
           return {
             requiresPlatformAction: false,
@@ -340,8 +339,9 @@ class PlatformSubscriptionService {
   async getCurrentSubscription(): Promise<any> {
     try {
       const purchases = await RNIap.getAvailablePurchases();
+      const platform = Platform.OS as 'ios' | 'android';
       const subscriptions = purchases.filter(p =>
-        Object.values(SUBSCRIPTION_SKUS[Platform.OS]).includes(p.productId)
+        SUBSCRIPTION_SKUS[platform] && Object.values(SUBSCRIPTION_SKUS[platform]).includes(p.productId)
       );
 
       // Return the most recent subscription

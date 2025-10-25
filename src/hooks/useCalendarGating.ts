@@ -111,7 +111,7 @@ export const useCalendarGating = (): CalendarGatingState => {
   }, [isSeeker, currentTier]);
 
   const handleCalendarLockTap = () => {
-    analytics.trackTimeBlockEvent('calendar_lock_tapped', {
+    analytics.trackTimeBlockEvent('calendar_lock_tapped' as any, {
       current_tier: currentTier,
       feature: 'calendar_sync',
     }, user?.id);
@@ -125,7 +125,7 @@ export const useCalendarGating = (): CalendarGatingState => {
   };
 
   const handleRepeatLockTap = () => {
-    analytics.trackTimeBlockEvent('repeat_lock_tapped', {
+    analytics.trackTimeBlockEvent('repeat_lock_tapped' as any, {
       current_tier: currentTier,
       feature: 'repeat_options',
     }, user?.id);
@@ -140,7 +140,7 @@ export const useCalendarGating = (): CalendarGatingState => {
   };
 
   const showCalendarUpgradePrompt = () => {
-    analytics.trackTimeBlockEvent('calendar_upgrade_prompt_shown', {
+    analytics.trackTimeBlockEvent('calendar_upgrade_prompt_shown' as any, {
       current_tier: currentTier,
     }, user?.id);
 
@@ -154,7 +154,7 @@ export const useCalendarGating = (): CalendarGatingState => {
   };
 
   const showRepeatUpgradePrompt = () => {
-    analytics.trackTimeBlockEvent('repeat_upgrade_prompt_shown', {
+    analytics.trackTimeBlockEvent('repeat_upgrade_prompt_shown' as any, {
       current_tier: currentTier,
     }, user?.id);
 
