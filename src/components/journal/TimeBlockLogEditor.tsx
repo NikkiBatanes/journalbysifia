@@ -724,10 +724,8 @@ function TimeBlockLogEditorInner(
         return;
       }
 
-      const metadata = formatMetadata();
-      const notesWithMetadata = notes.trim() ?
-        (metadata ? `${notes.trim()}\n\n${metadata}` : notes.trim()) :
-        metadata;
+      // Format notes with metadata (TODO: implement formatMetadata function)
+      const notesWithMetadata = notes.trim();
 
       // If editing an existing time block, pass a flag to indicate it should be unmarked/deleted
       onSave({
