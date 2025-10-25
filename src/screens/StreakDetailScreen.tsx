@@ -55,7 +55,7 @@ const StreakDetailScreen: React.FC = () => {
           <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.anchorBlue} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: Colors.anchorBlue }]}>{getLabel(type)}</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.spacer} />
       </View>
 
       <View style={[styles.hero, { backgroundColor: Colors.anchorBlue }]}>
@@ -125,6 +125,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
+  },
+  spacer: {
+    width: 40,
   },
 });
 

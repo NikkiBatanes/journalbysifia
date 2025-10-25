@@ -145,7 +145,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.flexContainer}>
           <ScrollView
             ref={scrollRef}
             contentContainerStyle={[
@@ -503,6 +503,9 @@ const styles = StyleSheet.create({
   },
   errorIconMargin: {
     marginRight: 8,
+  },
+  flexContainer: {
+    flex: 1,
   },
 });
 
