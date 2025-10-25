@@ -1,0 +1,785 @@
+
+> siFia@0.0.1 lint
+> eslint .
+
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/App.tsx
+   97:1  warning  Trailing spaces not allowed  no-trailing-spaces
+  103:1  warning  Trailing spaces not allowed  no-trailing-spaces
+  113:1  warning  Trailing spaces not allowed  no-trailing-spaces
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/jest.setup.js
+   7:1   error  'jest' is not defined  no-undef
+   8:12  error  'jest' is not defined  no-undef
+   9:12  error  'jest' is not defined  no-undef
+  10:15  error  'jest' is not defined  no-undef
+  11:10  error  'jest' is not defined  no-undef
+  12:15  error  'jest' is not defined  no-undef
+  13:13  error  'jest' is not defined  no-undef
+  14:13  error  'jest' is not defined  no-undef
+  15:16  error  'jest' is not defined  no-undef
+  19:1   error  'jest' is not defined  no-undef
+  20:6   error  'jest' is not defined  no-undef
+  22:15  error  'jest' is not defined  no-undef
+  23:12  error  'jest' is not defined  no-undef
+  24:13  error  'jest' is not defined  no-undef
+  25:17  error  'jest' is not defined  no-undef
+  26:18  error  'jest' is not defined  no-undef
+  26:32  error  'jest' is not defined  no-undef
+  35:1   error  'jest' is not defined  no-undef
+  36:9   error  'jest' is not defined  no-undef
+  37:21  error  'jest' is not defined  no-undef
+  38:19  error  'jest' is not defined  no-undef
+  39:12  error  'jest' is not defined  no-undef
+  40:18  error  'jest' is not defined  no-undef
+  44:1   error  'jest' is not defined  no-undef
+  45:1   error  'jest' is not defined  no-undef
+  50:9   error  'jest' is not defined  no-undef
+  51:10  error  'jest' is not defined  no-undef
+  56:8   error  'jest' is not defined  no-undef
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/BibleCopyrightModal.tsx
+  61:9  error  'theme' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/CalendarSyncButton.tsx
+  57:91  warning  Unexpected whitespace between function name and paren  @typescript-eslint/func-call-spacing
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/DevotionalCompletionModal.tsx
+  262:6   error    React Hook useEffect has missing dependencies: 'backdropAnim', 'checkAnim', 'currentDayNumber', 'devotional?.id', 'devotional?.title', 'isLastDay', 'onCheckReveal', 'progress', 'progressAnim', 'slideAnim', and 'startBurst'. Either include them or remove the dependency array. If 'onCheckReveal' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  433:38  warning  Inline style: { alignItems: 'center', justifyContent: 'center' }                                                                                                                                                                                                                                                                                                                                             react-native/no-inline-styles
+  542:38  warning  Inline style: { alignItems: 'center', justifyContent: 'center' }                                                                                                                                                                                                                                                                                                                                             react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/DevotionalModal.tsx
+  120:6  error  React Hook React.useEffect has a missing dependency: 'devotionalGating'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  128:6  error  React Hook React.useEffect has a missing dependency: 'devotionalGating'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/DocumentCardView.tsx
+  3:16  error  'Text' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/DynamicPricingModal.tsx
+  47:9  error  'fontRegular' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/GuidedPromptLockIcon.tsx
+  48:9  error  'accessCheck' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/LocationSelector.tsx
+  23:10  error  'analytics' is defined but never used             @typescript-eslint/no-unused-vars
+  36:11  error  'LocationSearchResult' is defined but never used  @typescript-eslint/no-unused-vars
+  71:11  error  'user' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/NewSuccessModal.tsx
+   37:9  error  'fontRegular' is assigned a value but never used                                                                             @typescript-eslint/no-unused-vars
+  133:6  error  React Hook React.useEffect has a missing dependency: 'triggerLightHaptic'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/OnboardingErrorBoundary.tsx
+  108:22  error  'errorInfo' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PlaybookCard.tsx
+  98:23  error  'theme' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PlaybookHeader.tsx
+  4:16  error  'Text' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PlaybookInfoSection.tsx
+  4:16  error  'Text' is defined but never used   @typescript-eslint/no-unused-vars
+  6:18  error  'Fonts' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseErrorModal.tsx
+  142:19  warning  Inline style: { color: "errorInfo.showRetry ? theme.colors.text : '#FFFFFF'" }  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx
+   70:6   error    React Hook useEffect has missing dependencies: 'fadeAnim' and 'pulseAnim'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  120:13  warning  Inline style: { backgroundColor: '#1A3C6D' }                                                                                   react-native/no-inline-styles
+  140:39  warning  Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-Bold' : 'NunitoSans-Bold'"
+}                           react-native/no-inline-styles
+  145:45  warning  Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-Regular' : 'NunitoSans-Regular'"
+}                     react-native/no-inline-styles
+  150:54  warning  Inline style: { backgroundColor: 'rgba(248, 249, 250, 0.2)' }                                                                  react-native/no-inline-styles
+  154:17  warning  Inline style: { backgroundColor: '#4CAF50' }                                                                                   react-native/no-inline-styles
+  163:46  warning  Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-SemiBold' : 'NunitoSans-SemiBold'"
+}                   react-native/no-inline-styles
+  177:48  warning  Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-Medium' : 'NunitoSans-Medium'"
+}                       react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseSuccessModal.tsx
+  27:16  error  'height' is assigned a value but never used                                                                                                       @typescript-eslint/no-unused-vars
+  44:9   error  'theme' is assigned a value but never used                                                                                                        @typescript-eslint/no-unused-vars
+  80:6   error  React Hook useEffect has missing dependencies: 'checkmarkScale', 'fadeAnim', and 'scaleAnim'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/DevotionalCarouselSkeleton.tsx
+  56:15  warning  Inline style: { marginRight: 'item === 1 ? ITEM_SPACING : 0' }  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/DevotionalDetailSkeleton.tsx
+   78:19  warning  Inline style: { width: "line === 5 ? '60%' : '100%'" }  react-native/no-inline-styles
+  105:19  warning  Inline style: { width: "line === 4 ? '40%' : '100%'" }  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/DevotionalSkeleton.tsx
+  3:10  error  'Colors' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/MomentsSkeleton.tsx
+   3:10  error    'Colors' is defined but never used  @typescript-eslint/no-unused-vars
+  27:45  warning  Inline style: { width: 90 }         react-native/no-inline-styles
+  28:45  warning  Inline style: { width: 110 }        react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/PlaybookSkeleton.tsx
+  3:10  error  'Colors' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SuccessModal.tsx
+  34:9  error  'fontRegular' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/TruthInLoveCard.tsx
+    3:16  error    'Text' is defined but never used                                                                                      @typescript-eslint/no-unused-vars
+    6:10  error    'Typography' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+    9:10  error    'useFeatureAccess' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+   10:10  error    'triggerLightHaptic' is defined but never used                                                                        @typescript-eslint/no-unused-vars
+   40:3   error    'playbookTitle' is defined but never used. Allowed unused args must match /^_/u                                       @typescript-eslint/no-unused-vars
+   41:3   error    'userInput' is defined but never used. Allowed unused args must match /^_/u                                           @typescript-eslint/no-unused-vars
+   74:6   error    React Hook React.useMemo has a missing dependency: 'freshUserData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   80:6   error    React Hook React.useMemo has a missing dependency: 'freshUserData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  104:20  warning  Inline style: { flexDirection: 'row', alignItems: 'center', flex: 1 }                                                 react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/__tests__/OnboardingErrorBoundary.test.tsx
+  81:15  error  'rerender' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/admin/OnboardingAdminPanel.tsx
+   8:27  error  'useEffect' is defined but never used          @typescript-eslint/no-unused-vars
+  16:3   error  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
+  18:8   error  'Ionicons' is defined but never used           @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/ActionStepsCard.tsx
+  155:13  warning  Value of 'error' may be overwritten in IE 8 and earlier              no-catch-shadow
+  155:20  warning  'error' is already declared in the upper scope on line 68 column 10  @typescript-eslint/no-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/DevotionalCarousel.tsx
+  378:9   error    'scheduleRefetch' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  496:26  warning  Inline style: { flexDirection: 'row', alignItems: 'center' }  react-native/no-inline-styles
+  497:99  warning  Inline style: { marginRight: 4 }                              react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/ReflectionQuestionsCard.tsx
+   14:8   error  'AsyncStorage' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+   25:10  error  'GUIDED_PROMPTS' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+  347:6   error  React Hook useCallback has a missing dependency: 'subscription?.tier'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx
+  394:45  warning  Inline style: { marginTop: 8 }     react-native/no-inline-styles
+  446:45  warning  Inline style: { marginTop: 8 }     react-native/no-inline-styles
+  475:38  warning  Inline style: { marginBottom: 8 }  react-native/no-inline-styles
+  482:38  warning  Inline style: { marginBottom: 8 }  react-native/no-inline-styles
+  489:38  warning  Inline style: { marginBottom: 8 }  react-native/no-inline-styles
+  496:38  warning  Inline style: { marginBottom: 8 }  react-native/no-inline-styles
+  503:38  warning  Inline style: { marginBottom: 8 }  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/DevotionalPrayerListReactQuery.tsx
+  171:34  warning  Inline style: { overflow: 'visible' }  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/EnhancedPrayerListReactQuery.tsx
+   24:10  error    'getFontFamily' is defined but never used                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+   24:25  error    'DEFAULT_FONT_FAMILY' is defined but never used                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   54:9   error    'theme' is assigned a value but never used                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  218:20  warning  'error' is already declared in the upper scope on line 59 column 37                                                                                                                                                                                                                                                                                     @typescript-eslint/no-shadow
+  302:8   warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “EnhancedPrayerListReactQuery” and pass data as props  react/no-unstable-nested-components
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/GratitudeListReactQuery.tsx
+   36:7  error  'entryWord' is assigned a value but never used                                                                        @typescript-eslint/no-unused-vars
+  193:6  error  React Hook useCallback has a missing dependency: 'isEditing'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+  206:6  error  React Hook React.useEffect has a missing dependency: 'startAdding'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  314:9  error  'editGratitudeItem' is assigned a value but never used                                                                @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/GratitudeLogEditor.tsx
+   1:57  error  'useState' is defined but never used            @typescript-eslint/no-unused-vars
+   1:67  error  'forwardRef' is defined but never used          @typescript-eslint/no-unused-vars
+   6:3   error  'Text' is defined but never used                @typescript-eslint/no-unused-vars
+  13:3   error  'Animated' is defined but never used            @typescript-eslint/no-unused-vars
+  14:3   error  'Dimensions' is defined but never used          @typescript-eslint/no-unused-vars
+  19:21  error  'Plus' is defined but never used                @typescript-eslint/no-unused-vars
+  21:10  error  'toLocalDateString' is defined but never used   @typescript-eslint/no-unused-vars
+  22:10  error  'triggerLightHaptic' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/LookingForwardReactQuery.tsx
+  151:9  error  'editLookingForwardEntry' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/PrayerJournalReactQuery.tsx
+    7:3   error  'ScrollView' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+    8:3   error  'TextInput' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+   11:10  error  'format' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   14:10  error  'X' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  287:9   error  'regularFont' is assigned a value but never used                                                                  @typescript-eslint/no-unused-vars
+  433:9   error  'handleOpenStyleModal' is assigned a value but never used                                                         @typescript-eslint/no-unused-vars
+  446:9   error  'handleConfirmStyle' is assigned a value but never used                                                           @typescript-eslint/no-unused-vars
+  546:6   error  React Hook useCallback has a missing dependency: 'queryClient'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/ReflectionLogEditor.tsx
+    8:10  error    'GUIDED_PROMPTS' is defined but never used                                                                                                                     @typescript-eslint/no-unused-vars
+  410:21  warning  'source' is already declared in the upper scope on line 397 column 5                                                                                           @typescript-eslint/no-shadow
+  436:9   error    'fontFamilyMedium' is assigned a value but never used                                                                                                          @typescript-eslint/no-unused-vars
+  500:6   error    React Hook React.useEffect has missing dependencies: 'initialEntry.content' and 'viewMode'. Either include them or remove the dependency array                 react-hooks/exhaustive-deps
+  527:31  error    'setShowFormattingModal' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u                          @typescript-eslint/no-unused-vars
+  528:10  error    'keyboardHeight' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u                                  @typescript-eslint/no-unused-vars
+  529:29  error    'setIsKeyboardVisible' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u                            @typescript-eslint/no-unused-vars
+  714:6   error    React Hook useEffect has missing dependencies: 'lockTitle', 'logFocus', and 'source'. Either include them or remove the dependency array                       react-hooks/exhaustive-deps
+  780:6   error    React Hook React.useEffect has missing dependencies: 'guidedPromptGating.allPrompts' and 'newEntry.title'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  853:6   error    React Hook useEffect has a missing dependency: 'logFocus'. Either include it or remove the dependency array                                                    react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/ReflectionLogReactQuery.tsx
+  504:6  error  React Hook React.useMemo has a missing dependency: 'dateStr'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx
+     1:67  error    'forwardRef' is defined but never used                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+    13:3   error    'Switch' is defined but never used                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    20:10  error    'toLocalDateString' is defined but never used                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   622:21  error    '_initialContent' is assigned a value but never used                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   624:5   error    '_subtaskId' is assigned a value but never used                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   625:5   error    '_stepId' is assigned a value but never used                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   631:5   error    'dateString' is assigned a value but never used                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   931:30  warning  Inline style: { marginTop: 8 }                                                                                                                                                                                                                                                                                                                  react-native/no-inline-styles
+   933:32  warning  Inline style: { flexDirection: 'row', gap: 8, marginTop: 8 }                                                                                                                                                                                                                                                                                    react-native/no-inline-styles
+   936:30  warning  Inline style: {
+  flex: 1,
+  paddingVertical: 12,
+  alignItems: 'center',
+  borderRadius: 10,
+  backgroundColor: "endRepeatMode === 'never' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'",
+  borderWidth: 1,
+  borderColor: "endRepeatMode === 'never' ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'"
+}                                  react-native/no-inline-styles
+   946:58  warning  Inline style: { fontSize: 14 }                                                                                                                                                                                                                                                                                                                  react-native/no-inline-styles
+   950:30  warning  Inline style: {
+  flex: 1,
+  paddingVertical: 12,
+  alignItems: 'center',
+  borderRadius: 10,
+  backgroundColor: "endRepeatMode === 'date' && endRepeatDate ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'",
+  borderWidth: 1,
+  borderColor: "endRepeatMode === 'date' && endRepeatDate ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'"
+}  react-native/no-inline-styles
+   960:58  warning  Inline style: { fontSize: 14 }                                                                                                                                                                                                                                                                                                                  react-native/no-inline-styles
+  1091:38  warning  Inline style: { marginTop: 12 }                                                                                                                                                                                                                                                                                                                 react-native/no-inline-styles
+  1093:40  warning  Inline style: { flexDirection: 'row', justifyContent: 'space-between' }                                                                                                                                                                                                                                                                         react-native/no-inline-styles
+  1101:40  warning  Inline style: {
+  width: 32,
+  height: 32,
+  borderRadius: 16,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: "customDays.includes(idx) ? 'rgba(255,255,255,0.3)' : 'transparent'",
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.3)'
+}                                                                          react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockReactQuery.tsx
+   383:17  warning  'selectedDate' is already declared in the upper scope on line 125 column 65  @typescript-eslint/no-shadow
+   503:17  warning  'selectedDate' is already declared in the upper scope on line 125 column 65  @typescript-eslint/no-shadow
+   664:15  error    'updateResult' is assigned a value but never used                            @typescript-eslint/no-unused-vars
+  1063:29  warning  Value of 'error' may be overwritten in IE 8 and earlier                      no-catch-shadow
+  1063:36  warning  'error' is already declared in the upper scope on line 165 column 51         @typescript-eslint/no-shadow
+  1460:51  warning  Inline style: { borderBottomWidth: 0 }                                       react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TodayWinReactQuery.tsx
+    3:16  error  'Text' is defined but never used                     @typescript-eslint/no-unused-vars
+   81:9   error  'pluralizeCount' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  229:9   error  'editWin' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TodaysFocusReactQuery.tsx
+    4:16  error  'Text' is defined but never used                                                                                                       @typescript-eslint/no-unused-vars
+  259:6   error  React Hook useMemo has missing dependencies: 'future' and 'shouldShowEditingMode'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  471:9   error  'editPriority' is assigned a value but never used                                                                                      @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TodosReactQuery.tsx
+   141:6   error    React Hook useMemo has a missing dependency: 'user'. Either include it or remove the dependency array                                   react-hooks/exhaustive-deps
+   141:7   error    React Hook useMemo has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+  1108:70  warning  Inline style: { flex: 1 }                                                                                                               react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/modals/PeoplePrayerModal.tsx
+  3:8  error  'Ionicons' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/modals/PrayerStyleSelectionModal.tsx
+  4:10  error  'X' is defined but never used      @typescript-eslint/no-unused-vars
+  4:13  error  'Check' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/moments/FilterSelect.tsx
+  74:28  warning  Inline style: { flexDirection: 'row', alignItems: 'center', gap: 12 }  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/profile/ProfileHeader.tsx
+   3:8   error  'Ionicons' is defined but never used                                            @typescript-eslint/no-unused-vars
+  47:69  error  'onEditAvatar' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/profile/UsageTooltipModal.tsx
+    4:3   error  'Text' is defined but never used                       @typescript-eslint/no-unused-vars
+   89:11  error  'effectiveTier' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  184:15  error  'currentThreshold' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/tutorial/OnboardingTutorial.tsx
+   4:3   error  'Text' is defined but never used                                              @typescript-eslint/no-unused-vars
+  28:32  error  'onComplete' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  59:36  error  'onComplete' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/ui/AnimatedPointsNotification.tsx
+  188:13  warning  'animationKey' is already declared in the upper scope on line 99 column 11                                                  @typescript-eslint/no-shadow
+  205:6   error    React Hook useEffect has missing dependencies: 'points' and 'position'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/config/sentry.ts
+  50:23  error  'hint' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/IndustryStandardAuthContext.tsx
+  953:13  error  'userData' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/PointsNotificationContext.tsx
+  112:30  error  The ref value 'timeouts.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'timeouts.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useCalendarGating.ts
+  83:6  error  React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useDevotionalGating.ts
+   12:3  error  'getTierAccessRules' is defined but never used                                                                       @typescript-eslint/no-unused-vars
+  117:6  error  React Hook useEffect has a missing dependency: 'loadSubscription'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  150:6  error  React Hook useMemo has a missing dependency: 'state'. Either include it or remove the dependency array               react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useGuidedPromptGating.ts
+  10:8  error  'PromptUsageCheck' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts
+    9:3   error    'SubscriptionTier' is defined but never used                        @typescript-eslint/no-unused-vars
+  140:7   warning  Value of 'error' may be overwritten in IE 8 and earlier             no-catch-shadow
+  140:14  warning  'error' is already declared in the upper scope on line 54 column 5  @typescript-eslint/no-shadow
+  160:7   warning  Value of 'error' may be overwritten in IE 8 and earlier             no-catch-shadow
+  160:14  warning  'error' is already declared in the upper scope on line 54 column 5  @typescript-eslint/no-shadow
+  172:7   warning  Value of 'error' may be overwritten in IE 8 and earlier             no-catch-shadow
+  172:14  warning  'error' is already declared in the upper scope on line 54 column 5  @typescript-eslint/no-shadow
+  184:7   warning  Value of 'error' may be overwritten in IE 8 and earlier             no-catch-shadow
+  184:14  warning  'error' is already declared in the upper scope on line 54 column 5  @typescript-eslint/no-shadow
+  196:7   warning  Value of 'error' may be overwritten in IE 8 and earlier             no-catch-shadow
+  196:14  warning  'error' is already declared in the upper scope on line 54 column 5  @typescript-eslint/no-shadow
+  208:7   warning  Value of 'error' may be overwritten in IE 8 and earlier             no-catch-shadow
+  208:14  warning  'error' is already declared in the upper scope on line 54 column 5  @typescript-eslint/no-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/usePlatformSubscription.ts
+  2:10  error  'Platform' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useUserState.ts
+   26:36  error  'subscriptionLoading' is assigned a value but never used                                                                                                                                                       @typescript-eslint/no-unused-vars
+  131:9   error  The 'updateOnboardingStep' function makes the dependencies of useCallback Hook (at line 188) change on every render. To fix this, wrap the definition of 'updateOnboardingStep' in its own useCallback() Hook  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/navigation/BottomTabNavigator.tsx
+  19:8  error  'JournalScreen' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/navigation/RootStackNavigator.tsx
+  118:7  error  'renderWhiteProfileImage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/DevotionalDetailScreen.tsx
+   11:3   error  'Alert' is defined but never used                                                                                             @typescript-eslint/no-unused-vars
+   31:10  error  'notificationService' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   36:18  error  'Fonts' is defined but never used                                                                                             @typescript-eslint/no-unused-vars
+  122:10  error  'dayHeights' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u     @typescript-eslint/no-unused-vars
+  122:22  error  'setDayHeights' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u  @typescript-eslint/no-unused-vars
+  466:6   error  React Hook useEffect has a missing dependency: 'currentDay'. Either include it or remove the dependency array                 react-hooks/exhaustive-deps
+  649:9   error  'handleModalContinue' is assigned a value but never used                                                                      @typescript-eslint/no-unused-vars
+  696:6   error  React Hook useEffect has a missing dependency: 'devotional'. Either include it or remove the dependency array                 react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/EmailLoginScreen.tsx
+   7:3  error  'TextInput' is defined but never used                    @typescript-eslint/no-unused-vars
+  77:9  error  'handleBackToSocial' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/EmailRegisterScreen.tsx
+    5:3   error    'TextInput' is defined but never used                                                                 @typescript-eslint/no-unused-vars
+  112:9   error    'handleBackToSocial' is assigned a value but never used                                               @typescript-eslint/no-unused-vars
+  154:22  warning  Inline style: { flex: 1 }                                                                             react-native/no-inline-styles
+  161:15  warning  Inline style: {
+  paddingBottom: "Platform.OS === 'ios' ? 8 : 8 + Math.max(0, keyboardHeight - 8)"
+}  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/FamilyAdminDashboardScreen.tsx
+  17:10  error  'useAuth' is defined but never used     @typescript-eslint/no-unused-vars
+  21:8   error  'ThemedText' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/FamilyInvitationScreen.tsx
+  15:10  error  'useAuth' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/ForgotPasswordScreen.tsx
+  6:3  error  'TextInput' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/GeneratingPlaybookScreen.tsx
+   24:9   error    'theme' is assigned a value but never used                                                                               @typescript-eslint/no-unused-vars
+  206:6   error    React Hook useEffect has a missing dependency: 'triggerSuccessHaptic'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  351:85  warning  Inline style: { paddingHorizontal: 0 }                                                                                   react-native/no-inline-styles
+  355:79  warning  Inline style: { paddingHorizontal: 0 }                                                                                   react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/JournalScreen.tsx
+   4:145  error  'DeviceEventEmitter' is defined but never used  @typescript-eslint/no-unused-vars
+  10:10   error  'Fonts' is defined but never used               @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/LoginScreen.tsx
+   7:3  error  'Alert' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+  35:6  error  React Hook React.useEffect has a missing dependency: 'activeProvider'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/MomentsScreen.tsx
+   25:24  error    'setSelectedDate' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u   @typescript-eslint/no-unused-vars
+   26:25  error    'setSelectedRange' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u  @typescript-eslint/no-unused-vars
+  112:67  warning  Inline style: { marginLeft: 8 }                                                                                                  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/PlaybookDetailScreenNew.tsx
+     9:3   error    'Text' is defined but never used                                                                                                                         @typescript-eslint/no-unused-vars
+    10:3   error    'Image' is defined but never used                                                                                                                        @typescript-eslint/no-unused-vars
+   710:6   error    React Hook React.useCallback has a missing dependency: 'styles'. Either include it or remove the dependency array                                        react-hooks/exhaustive-deps
+  1265:13  error    'COLLAPSED_HEIGHT' is assigned a value but never used                                                                                                    @typescript-eslint/no-unused-vars
+  1314:17  warning  Inline style: {
+  alignSelf: 'center',
+  borderRadius: 28,
+  backgroundColor: "cardIndex === cardData.length - 1 ? Colors.alertCoral : 'transparent'"
+}  react-native/no-inline-styles
+  1328:38  warning  Inline style: { flexGrow: 1, borderRadius: 28, overflow: 'hidden', minHeight: 450 }                                                                      react-native/no-inline-styles
+  1358:19  warning  Inline style: {
+  borderRadius: 28,
+  overflow: 'hidden',
+  minHeight: 450,
+  backgroundColor: 'transparent'
+}                                           react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/RegisterScreen.tsx
+  68:9  error  'displayName' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+  82:6  error  React Hook React.useEffect has a missing dependency: 'activeProvider'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/ResetPasswordScreen.tsx
+    7:3   error    'TextInput' is defined but never used                                   @typescript-eslint/no-unused-vars
+   41:9   error    'refreshToken' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   58:29  warning  'password' is already declared in the upper scope on line 31 column 10  @typescript-eslint/no-shadow
+  120:7   warning  Value of 'error' may be overwritten in IE 8 and earlier                 no-catch-shadow
+  120:14  warning  'error' is already declared in the upper scope on line 35 column 10     @typescript-eslint/no-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/SmartJournalingReflectionModal.tsx
+    3:17  error  'KeyboardAvoidingView' is defined but never used                                                                                          @typescript-eslint/no-unused-vars
+    3:39  error  'Platform' is defined but never used                                                                                                      @typescript-eslint/no-unused-vars
+    3:94  error  'Keyboard' is defined but never used                                                                                                      @typescript-eslint/no-unused-vars
+  194:6   error  React Hook useEffect has missing dependencies: 'isGuidedReflection' and 'playbookId'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  239:13  error  'isFreeFormContext' is assigned a value but never used                                                                                    @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/StreakDetailScreen.tsx
+   5:10  error    'Colors' is defined but never used                                   @typescript-eslint/no-unused-vars
+  47:9   warning  'Colors' is already declared in the upper scope on line 5 column 10  @typescript-eslint/no-shadow
+  59:22  warning  Inline style: { width: 40 }                                          react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserInputScreen.tsx
+  119:22  error    'accessResult' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  119:47  error    'accessLoading' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  158:9   error    'getSeekerMessage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  448:58  warning  Inline style: { flexShrink: 1, minWidth: 80 }          react-native/no-inline-styles
+  449:64  warning  Inline style: { flexShrink: 1 }                        react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserProfileScreen.tsx
+    30:10  error    'authApi' is defined but never used                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    89:17  error    'session' is assigned a value but never used                                                                                                                                                                     @typescript-eslint/no-unused-vars
+    99:14  error    'familyLoading' is assigned a value but never used                                                                                                                                                               @typescript-eslint/no-unused-vars
+   101:5   error    'inviteMember' is assigned a value but never used                                                                                                                                                                @typescript-eslint/no-unused-vars
+   102:5   error    'removeMember' is assigned a value but never used                                                                                                                                                                @typescript-eslint/no-unused-vars
+   103:5   error    'cancelInvitation' is assigned a value but never used                                                                                                                                                            @typescript-eslint/no-unused-vars
+   203:9   error    'pickQuietHour' is assigned a value but never used                                                                                                                                                               @typescript-eslint/no-unused-vars
+   271:10  error    'yearPickerModal' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u                                                                                   @typescript-eslint/no-unused-vars
+   271:27  error    'setYearPickerModal' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u                                                                                @typescript-eslint/no-unused-vars
+   346:6   error    React Hook useCallback has a missing dependency: 'deleteBirthYear'. Either include it or remove the dependency array                                                                                             react-hooks/exhaustive-deps
+   412:6   error    React Hook useCallback has a missing dependency: 'loadProfileData'. Either include it or remove the dependency array                                                                                             react-hooks/exhaustive-deps
+   481:9   error    'handleReportBug' is assigned a value but never used                                                                                                                                                             @typescript-eslint/no-unused-vars
+  1276:9   error    'handleWeekStartChange' is assigned a value but never used                                                                                                                                                       @typescript-eslint/no-unused-vars
+  1316:9   error    'handleThemeChange' is assigned a value but never used                                                                                                                                                           @typescript-eslint/no-unused-vars
+  1330:9   error    'handleFontChange' is assigned a value but never used                                                                                                                                                            @typescript-eslint/no-unused-vars
+  1441:9   error    'renderUsageCounters' is assigned a value but never used                                                                                                                                                         @typescript-eslint/no-unused-vars
+  1505:9   error    'renderAllBadges' is assigned a value but never used                                                                                                                                                             @typescript-eslint/no-unused-vars
+  1746:25  warning  'NewSubscriptionService' is already declared in the upper scope on line 36 column 10                                                                                                                             @typescript-eslint/no-shadow
+  2002:34  warning  Inline style: { paddingBottom: 20 }                                                                                                                                                                              react-native/no-inline-styles
+  2099:35  warning  Inline style: { fontSize: 16 }                                                                                                                                                                                   react-native/no-inline-styles
+  2108:35  warning  Inline style: { fontSize: 16 }                                                                                                                                                                                   react-native/no-inline-styles
+  2131:89  warning  Inline style: { marginRight: 8 }                                                                                                                                                                                 react-native/no-inline-styles
+  2132:28  warning  Inline style: { flex: 1 }                                                                                                                                                                                        react-native/no-inline-styles
+  2133:31  warning  Inline style: { fontSize: 16 }                                                                                                                                                                                   react-native/no-inline-styles
+  2134:31  warning  Inline style: { fontSize: 12, marginTop: 4 }                                                                                                                                                                     react-native/no-inline-styles
+  2153:20  warning  Inline style: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingHorizontal: 20
+}                                                                react-native/no-inline-styles
+  2160:22  warning  Inline style: {
+  borderRadius: 16,
+  width: '100%',
+  maxWidth: 400,
+  paddingVertical: 24,
+  paddingHorizontal: 20
+}                                                                                           react-native/no-inline-styles
+  2177:26  warning  Inline style: { width: 48 }                                                                                                                                                                                      react-native/no-inline-styles
+  2193:25  warning  Inline style: { fontSize: 12, marginTop: 6 }                                                                                                                                                                     react-native/no-inline-styles
+  2206:20  warning  Inline style: {
+  marginTop: 16,
+  backgroundColor: "!isValidBirthYear || isDeletingAccount ? 'rgba(255,107,107,0.3)' : Colors.alertCoral",
+  borderRadius: 12,
+  paddingVertical: 12,
+  alignItems: 'center'
+}  react-native/no-inline-styles
+  2214:27  warning  Inline style: { fontSize: 16 }                                                                                                                                                                                   react-native/no-inline-styles
+  2543:11  warning  Inline style: { paddingTop: 22 }                                                                                                                                                                                 react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingNotificationSetupScreen.tsx
+  22:8  error  'OnboardingErrorBoundary' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPersonalizationScreen.tsx
+  177:11  error    'updateOnboardingStep' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  891:71  warning  Inline style: { marginBottom: 0 }                          react-native/no-inline-styles
+  905:71  warning  Inline style: { marginTop: -215 }                          react-native/no-inline-styles
+  942:17  warning  Inline style: { paddingBottom: 10 }                        react-native/no-inline-styles
+  943:17  warning  Inline style: { paddingBottom: 10 }                        react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPlaybookGenerationScreen.tsx
+  706:87  warning  Inline style: { paddingHorizontal: 0 }  react-native/no-inline-styles
+  711:81  warning  Inline style: { paddingHorizontal: 0 }  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSalesOfferScreen.tsx
+   25:8   error    'OnboardingErrorBoundary' is defined but never used                        @typescript-eslint/no-unused-vars
+  726:22  warning  Inline style: { flex: 1, justifyContent: 'center', alignItems: 'center' }  react-native/no-inline-styles
+  727:30  warning  Inline style: { fontSize: 16 }                                             react-native/no-inline-styles
+  730:30  warning  Inline style: { fontSize: 12, marginTop: 8 }                               react-native/no-inline-styles
+  923:28  warning  Inline style: { padding: 20, alignItems: 'center' }                        react-native/no-inline-styles
+  924:36  warning  Inline style: { textAlign: 'center' }                                      react-native/no-inline-styles
+  938:29  warning  Inline style: { opacity: 0.6 }                                             react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSplashScreen.tsx
+   7:36  error  'useCallback' is defined but never used              @typescript-eslint/no-unused-vars
+  21:8   error  'OnboardingErrorBoundary' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingTransformYourLifeScreen.tsx
+  23:8  error  'OnboardingErrorBoundary' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingTrialOfferScreen.tsx
+   14:26  error    'LocationPricing' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+   22:10  error    'PurchaseErrorModal' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+   26:8   error    'OnboardingErrorBoundary' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+   55:10  error    'dynamicPricing' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u  @typescript-eslint/no-unused-vars
+  309:15  error    'fiveMinutesAgo' is assigned a value but never used                                                                            @typescript-eslint/no-unused-vars
+  489:9   error    'getCurrentPrice' is assigned a value but never used                                                                           @typescript-eslint/no-unused-vars
+  528:9   error    'hasTrialAvailable' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+  679:73  warning  Inline style: { opacity: 0.6 }                                                                                                 react-native/no-inline-styles
+  797:80  warning  Inline style: { opacity: 0.6 }                                                                                                 react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/__tests__/OnboardingPersonalizationScreen.test.tsx
+   22:9   error  'mockNavigation' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   28:9   error  'mockRoute' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  104:13  error  'oauthRoute' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  154:26  error  'getByPlaceholderText' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/AppleStoreKitService.ts
+    1:10  error  'NativeModules' is defined but never used                                   @typescript-eslint/no-unused-vars
+    3:3   error  'Product' is defined but never used                                         @typescript-eslint/no-unused-vars
+   10:3   error  'getProducts' is defined but never used                                     @typescript-eslint/no-unused-vars
+   12:3   error  'requestPurchase' is defined but never used                                 @typescript-eslint/no-unused-vars
+   15:3   error  'validateReceiptIos' is defined but never used                              @typescript-eslint/no-unused-vars
+   16:3   error  'validateReceiptAndroid' is defined but never used                          @typescript-eslint/no-unused-vars
+  427:33  error  'purchase' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  837:13  error  'subscriptionService' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+  894:13  error  'subscriptionService' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/DiscountCodeService.ts
+  45:13  error  'subscription' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/GooglePlayBillingService.ts
+    3:3   error  'Product' is defined but never used                                       @typescript-eslint/no-unused-vars
+    6:3   error  'Subscription' is defined but never used                                  @typescript-eslint/no-unused-vars
+    9:3   error  'getProducts' is defined but never used                                   @typescript-eslint/no-unused-vars
+   11:3   error  'requestPurchase' is defined but never used                               @typescript-eslint/no-unused-vars
+  140:5   error  'userId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  336:26  error  'userId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/NewSubscriptionService.ts
+    9:3   error  'SubscriptionStatus' is defined but never used                            @typescript-eslint/no-unused-vars
+   12:3   error  'FamilySubscriptionGroup' is defined but never used                       @typescript-eslint/no-unused-vars
+   13:3   error  'FamilyMember' is defined but never used                                  @typescript-eslint/no-unused-vars
+   15:3   error  'UsageTracking' is defined but never used                                 @typescript-eslint/no-unused-vars
+   18:3   error  'FamilyInviteOptions' is defined but never used                           @typescript-eslint/no-unused-vars
+   22:3   error  'FamilyLimitError' is defined but never used                              @typescript-eslint/no-unused-vars
+   23:3   error  'PaymentPlatform' is defined but never used                               @typescript-eslint/no-unused-vars
+  121:11  error  'limits' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+  123:13  error  'data' is assigned a value but never used                                 @typescript-eslint/no-unused-vars
+  139:60  error  'billing_cycle' is assigned a value but never used                        @typescript-eslint/no-unused-vars
+  254:26  error  'platform' is assigned a value but never used                             @typescript-eslint/no-unused-vars
+  736:70  error  'limits' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  754:72  error  'limits' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/PlatformPaymentService.ts
+  232:9  error  'platformStatus' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/api/devotionalApi.ts
+  248:15  warning  'supabase' is already declared in the upper scope on line 2 column 10  @typescript-eslint/no-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/api/timeBlockApi.ts
+  163:17  warning  'exceptions' is already declared in the upper scope on line 122 column 21  @typescript-eslint/no-shadow
+  198:11  error    'targetDateObj' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/avatarService.ts
+   1:10  error    'Platform' is defined but never used                     @typescript-eslint/no-unused-vars
+  78:5   warning  Value of 'error' may be overwritten in IE 8 and earlier  no-catch-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/calendarSyncService.ts
+  561:3  error  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/enhancedGenerationService.ts
+  152:17  error  'directResult' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  167:19  error  'fallbackResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts
+  121:36  error    'userId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  158:16  warning  Unexpected use of '>>>'                                                   no-bitwise
+  160:7   warning  Unexpected use of '^='                                                    no-bitwise
+  166:7   warning  Unexpected use of '|='                                                    no-bitwise
+  167:11  warning  Unexpected use of '|'                                                     no-bitwise
+  168:25  warning  Unexpected use of '^'                                                     no-bitwise
+  168:30  warning  Unexpected use of '>>>'                                                   no-bitwise
+  168:41  warning  Unexpected use of '|'                                                     no-bitwise
+  169:11  warning  Unexpected use of '^'                                                     no-bitwise
+  169:26  warning  Unexpected use of '^'                                                     no-bitwise
+  169:31  warning  Unexpected use of '>>>'                                                   no-bitwise
+  169:41  warning  Unexpected use of '|'                                                     no-bitwise
+  170:15  warning  Unexpected use of '>>>'                                                   no-bitwise
+  170:16  warning  Unexpected use of '^'                                                     no-bitwise
+  170:21  warning  Unexpected use of '>>>'                                                   no-bitwise
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/useCrossComponentSync.ts
+  149:13  warning  'guardKey' is already declared in the upper scope on line 74 column 11  @typescript-eslint/no-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/useDevotionalDataSimplified.ts
+    5:23  error    'globalQueryKeys' is defined but never used                              @typescript-eslint/no-unused-vars
+    6:10  error    'defaultQueryOptions' is defined but never used                          @typescript-eslint/no-unused-vars
+    6:31  error    'defaultMutationOptions' is defined but never used                       @typescript-eslint/no-unused-vars
+    8:10  error    'useAuth' is defined but never used                                      @typescript-eslint/no-unused-vars
+  279:59  error    'index' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  421:7   warning  Value of 'error' may be overwritten in IE 8 and earlier                  no-catch-shadow
+  421:14  warning  'error' is already declared in the upper scope on line 381 column 46     @typescript-eslint/no-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/usePlaybookData.ts
+  172:15  error  'updatedActionSteps' is assigned a value but never used                   @typescript-eslint/no-unused-vars
+  304:9   error  'userId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  425:9   error  'userId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/platformSubscriptionService.ts
+  133:13  error  'errorMessage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  307:17  error  'purchase' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/pricingService.ts
+  300:5   error    'userId' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  301:5   error    'tierId' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  302:5   error    'billing' is defined but never used. Allowed unused args must match /^_/u       @typescript-eslint/no-unused-vars
+  501:15  warning  'saveDiscountState' is already declared in the upper scope on line 2 column 29  @typescript-eslint/no-shadow
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/pushNotificationService.ts
+  307:19  error  'playbookId' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  307:31  error  'devotionalId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  307:45  error  'actionStepId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/subscriptionService.ts
+   5:8   error  'NewSubscriptionService' is defined but never used                                @typescript-eslint/no-unused-vars
+  24:51  error  'subscriptionId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/tierRestrictionService.ts
+  10:10  error  'retentionService' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/store/appStore.ts
+  121:18  error  'theme' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx
+     2:62  error    'Dimensions' is defined but never used                                                                                                     @typescript-eslint/no-unused-vars
+     4:10  error    'useSafeAreaInsets' is defined but never used                                                                                              @typescript-eslint/no-unused-vars
+     9:21  error    'isTodayFn' is defined but never used                                                                                                      @typescript-eslint/no-unused-vars
+     9:47  error    'isYesterdayFn' is defined but never used                                                                                                  @typescript-eslint/no-unused-vars
+   420:10  error    'reflectionCounts' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u            @typescript-eslint/no-unused-vars
+   420:28  error    'setReflectionCounts' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u         @typescript-eslint/no-unused-vars
+   511:13  error    'dayReflectionCount' is assigned a value but never used                                                                                    @typescript-eslint/no-unused-vars
+   693:25  error    'isSupplicationOrOpenPrayer' is assigned a value but never used                                                                            @typescript-eslint/no-unused-vars
+   712:25  error    'pluginKey' is assigned a value but never used                                                                                             @typescript-eslint/no-unused-vars
+   888:21  error    'isSupplicationOrOpenPrayer' is assigned a value but never used                                                                            @typescript-eslint/no-unused-vars
+   920:23  warning  'prayerType' is already declared in the upper scope on line 884 column 21                                                                  @typescript-eslint/no-shadow
+  1922:89  warning  Inline style: { opacity: 'showChevron ? 1 : 0' }                                                                                           react-native/no-inline-styles
+  1940:88  warning  Inline style: { opacity: 'showChevron ? 1 : 0' }                                                                                           react-native/no-inline-styles
+  2079:49  warning  Inline style: { backgroundColor: 'transparent' }                                                                                           react-native/no-inline-styles
+  2081:50  warning  Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+}  react-native/no-inline-styles
+  2243:49  warning  Inline style: { backgroundColor: 'transparent' }                                                                                           react-native/no-inline-styles
+  2245:50  warning  Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+}  react-native/no-inline-styles
+  2371:51  warning  Inline style: { backgroundColor: 'transparent' }                                                                                           react-native/no-inline-styles
+  2373:52  warning  Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+}  react-native/no-inline-styles
+  2399:51  warning  Inline style: { backgroundColor: 'transparent' }                                                                                           react-native/no-inline-styles
+  2401:52  warning  Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+}  react-native/no-inline-styles
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts
+  195:14  warning  Unexpected use of '>>>'  no-bitwise
+  197:5   warning  Unexpected use of '^='   no-bitwise
+  203:5   warning  Unexpected use of '|='   no-bitwise
+  204:9   warning  Unexpected use of '|'    no-bitwise
+  205:23  warning  Unexpected use of '^'    no-bitwise
+  205:28  warning  Unexpected use of '>>>'  no-bitwise
+  205:39  warning  Unexpected use of '|'    no-bitwise
+  206:9   warning  Unexpected use of '^'    no-bitwise
+  206:24  warning  Unexpected use of '^'    no-bitwise
+  206:29  warning  Unexpected use of '>>>'  no-bitwise
+  206:39  warning  Unexpected use of '|'    no-bitwise
+  207:13  warning  Unexpected use of '>>>'  no-bitwise
+  207:14  warning  Unexpected use of '^'    no-bitwise
+  207:19  warning  Unexpected use of '>>>'  no-bitwise
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/logger.ts
+  83:27  error  'level' is defined but never used. Allowed unused args must match /^_/u    @typescript-eslint/no-unused-vars
+  83:44  error  'message' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  83:61  error  'meta' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/supabase/functions/generate-devotional/index.ts
+  479:1   warning  Trailing spaces not allowed  no-trailing-spaces
+  487:65  warning  Missing trailing comma       comma-dangle
+  490:1   warning  Trailing spaces not allowed  no-trailing-spaces
+  499:1   warning  Trailing spaces not allowed  no-trailing-spaces
+  759:1   warning  Trailing spaces not allowed  no-trailing-spaces
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/supabase/functions/generate-playbook/index.ts
+  127:1  warning  Trailing spaces not allowed  no-trailing-spaces
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/supabase/functions/validate-receipt/index.ts
+   49:25  warning  Trailing spaces not allowed                                                    no-trailing-spaces
+   50:26  warning  Trailing spaces not allowed                                                    no-trailing-spaces
+   51:74  warning  Trailing spaces not allowed                                                    no-trailing-spaces
+   51:74  warning  Missing trailing comma                                                         comma-dangle
+  126:23  warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  127:24  warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  128:40  warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  129:31  warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  129:31  warning  Missing trailing comma                                                         comma-dangle
+  141:1   warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  144:1   warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  162:1   warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  175:63  warning  Missing radix parameter                                                        radix
+  176:59  warning  Missing radix parameter                                                        radix
+  217:38  error    'receiptData' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  221:1   warning  Trailing spaces not allowed                                                    no-trailing-spaces
+  277:36  warning  Expected { after 'if' condition                                                curly
+  278:37  warning  Expected { after 'if' condition                                                curly
+  279:45  warning  Expected { after 'if' condition                                                curly
+  280:37  warning  Expected { after 'if' condition                                                curly
+
+✖ 469 problems (290 errors, 179 warnings)
+  0 errors and 26 warnings potentially fixable with the `--fix` option.
+

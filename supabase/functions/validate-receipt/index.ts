@@ -46,9 +46,9 @@ serve(async (req) => {
     // Validate input
     if (!receiptData || !userId || !platform) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Missing required fields: receiptData, userId, platform' 
+        JSON.stringify({
+          success: false,
+          error: 'Missing required fields: receiptData, userId, platform',
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -123,10 +123,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('[ValidateReceipt] Error:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'Internal server error', 
-        details: error.message 
+      JSON.stringify({
+        success: false,
+        error: 'Internal server error',
+        details: error.message,
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -138,10 +138,10 @@ serve(async (req) => {
  */
 async function validateAppleReceipt(receiptData: string): Promise<any> {
   const sharedSecret = Deno.env.get('APPLE_SHARED_SECRET');
-  
+
   // Try production first
   let response = await callAppleVerifyReceipt(receiptData, sharedSecret, false);
-  
+
   // If production returns sandbox receipt, try sandbox
   if (response.status === 21007) {
     console.log('[ValidateReceipt] Sandbox receipt detected, trying sandbox endpoint');
@@ -159,7 +159,7 @@ async function validateAppleReceipt(receiptData: string): Promise<any> {
 
   // Extract subscription info
   const latestReceipt = response.latest_receipt_info?.[0] || response.receipt?.in_app?.[0];
-  
+
   if (!latestReceipt) {
     return {
       success: false,
@@ -218,7 +218,7 @@ async function validateGoogleReceipt(receiptData: string): Promise<any> {
   // TODO: Implement Google Play validation
   // Requires Google Play Developer API setup
   console.log('[ValidateReceipt] Google Play validation not yet implemented');
-  
+
   return {
     success: false,
     error: 'Google Play validation not yet implemented',
@@ -274,9 +274,9 @@ async function updateUserSubscription(supabase: any, userId: string, validationD
  * Map product ID to subscription tier
  */
 function mapProductIdToTier(productId: string): string {
-  if (productId.includes('spark')) return 'spark';
-  if (productId.includes('growth')) return 'growth';
-  if (productId.includes('transformation')) return 'transformation';
-  if (productId.includes('family')) return 'family';
+  if (productId.includes('spark')) {return 'spark';}
+  if (productId.includes('growth')) {return 'growth';}
+  if (productId.includes('transformation')) {return 'transformation';}
+  if (productId.includes('family')) {return 'family';}
   return 'seeker';
 }

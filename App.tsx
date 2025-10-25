@@ -94,13 +94,13 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   useEffect(() => {
     // Initialize app-level services
     console.log(' siFia App initialized');
-    
+
     // ENTERPRISE: Sync subscription status on app launch
     const syncSubscriptionStatus = async () => {
       if (isAuthenticated && user?.id) {
         try {
           const { AppleStoreKitService } = await import('./src/services/AppleStoreKitService');
-          
+
           console.log('[App] Syncing subscription status on launch...');
           const storeKit = AppleStoreKitService.getInstance();
           await storeKit.checkAndSyncSubscriptionStatus(user.id);
@@ -110,7 +110,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
         }
       }
     };
-    
+
     syncSubscriptionStatus();
   }, [isAuthenticated, user?.id]);
 

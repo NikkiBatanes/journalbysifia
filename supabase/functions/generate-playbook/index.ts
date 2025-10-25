@@ -124,7 +124,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
       // Replace any occurrence of the userName (not just at the beginning)
       const userNameRegex = new RegExp(`\\b${userName}\\b`, 'gi');
       summary = summary.replace(userNameRegex, '[User\'s Name]');
-      
+
       // If still no placeholder found, and the summary doesn't start with the user's name,
       // only add placeholder if the summary seems to be addressing the user directly
       if (!summary.includes('[User\'s Name]') && summary.length > 0) {

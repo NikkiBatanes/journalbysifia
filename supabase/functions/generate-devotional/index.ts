@@ -476,7 +476,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     // BUT skip if they're inside REFLECTION QUESTIONS section
     if (dayMatches.length === 0) {
       console.log('[DEVOTIONAL PARSER] Trying numbered section format...');
-      
+
       // First, find REFLECTION QUESTIONS sections to exclude them
       const reflectionQuestionsRegex = /REFLECTION QUESTIONS:[\s\S]*?(?=\n\n[A-Z]+:|$)/gi;
       const reflectionSections: Array<{start: number, end: number}> = [];
@@ -484,10 +484,10 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       while ((reflectionMatch = reflectionQuestionsRegex.exec(content)) !== null) {
         reflectionSections.push({
           start: reflectionMatch.index,
-          end: reflectionMatch.index + reflectionMatch[0].length
+          end: reflectionMatch.index + reflectionMatch[0].length,
         });
       }
-      
+
       const dayRegex4 = /(?:^|\n)(\d+)[.)]\s*([^]*?)(?=(?:\n|^)\d+[.)]|$)/gi;
       let match4;
       while ((match4 = dayRegex4.exec(content)) !== null && parseInt(match4[1], 10) <= 7) {
@@ -496,7 +496,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         const isInReflectionQuestions = reflectionSections.some(
           section => matchPos >= section.start && matchPos <= section.end
         );
-        
+
         if (!isInReflectionQuestions) {
           console.log(`[DEVOTIONAL PARSER] Found day ${match4[1]} (numbered format) with content length:`, match4[2].length);
           dayMatches.push([null, match4[1], match4[2].trim()]);
@@ -756,7 +756,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
           // Remove any existing 'Heavenly Father' from the prayer body
           prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
-          
+
           // Normalize multiple newlines to single newlines in the prayer body
           // This ensures consistent spacing regardless of AI output format
           prayerBody = prayerBody.replace(/\n{2,}/g, '\n');
