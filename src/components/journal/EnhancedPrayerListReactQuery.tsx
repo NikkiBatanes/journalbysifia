@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
@@ -11,7 +11,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Colors } from '../../theme/colors';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 
-import { Pencil, X, Check } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useDeletePrayer } from '../../services/hooks/usePrayerData';
@@ -52,7 +52,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const dateStr = toLocalDateString(selectedDate);
   const globalEditMode = useEditModeSafe();
   const theme = useTheme();
-  const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
+  // const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular'); // Unused
 
   // React Query hooks for data fetching
   const queryClient = useQueryClient();
