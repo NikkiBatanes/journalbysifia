@@ -105,7 +105,6 @@ export class AppleStoreKitService {
       }
 
       const result = await initConnection();
-      console.log('[StoreKit] Connection initialized:', result);
 
       // Set up purchase listeners
       this.setupPurchaseListeners();
@@ -113,7 +112,6 @@ export class AppleStoreKitService {
       this.isInitialized = true;
       return true;
     } catch (error) {
-      console.error('[StoreKit] Failed to initialize:', error);
       return false;
     }
   }
@@ -122,19 +120,11 @@ export class AppleStoreKitService {
    * Set up purchase event listeners
    */
   private setupPurchaseListeners(): void {
-    console.log('[StoreKit] 🎧 Setting up purchase listeners...');
-
     this.purchaseUpdateSubscription = purchaseUpdatedListener(
       async (purchase: ProductPurchase) => {
-        console.log('[StoreKit] 🔔 PURCHASE LISTENER FIRED!');
-        console.log('[StoreKit] Purchase updated:', purchase);
         try {
           await this.handlePurchaseUpdate(purchase);
         } catch (error) {
-          console.error('[StoreKit] ❌ CRITICAL: Purchase listener crashed!', error);
-          console.error('[StoreKit] This means the purchase succeeded but database update failed');
-          console.error('[StoreKit] User will need to restore purchases');
-
           // Still try to resolve the promise so the UI doesn't hang
           const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
           if (resolver) {
@@ -147,13 +137,9 @@ export class AppleStoreKitService {
 
     this.purchaseErrorSubscription = purchaseErrorListener(
       (error: PurchaseError) => {
-        console.error('[StoreKit] 🔔 PURCHASE ERROR LISTENER FIRED!');
-        console.error('[StoreKit] Purchase error:', error);
         this.handlePurchaseError(error);
       }
     );
-
-    console.log('[StoreKit] ✅ Purchase listeners set up successfully');
   }
 
   /**
@@ -164,19 +150,8 @@ export class AppleStoreKitService {
       await this.initialize();
 
       const productIds = Object.values(AppleStoreKitService.PRODUCT_IDS);
-      console.log('[StoreKit] 📦 Fetching products for IDs:', productIds);
 
       const products = await getSubscriptions({ skus: productIds });
-
-      // Enhanced logging for debugging
-      console.log('[StoreKit] ✅ Retrieved products from App Store:');
-      products.forEach((product: any, index: number) => {
-        console.log(`[StoreKit] ${index + 1}. ${product.productId}`);
-        console.log(`[StoreKit]    Title: ${product.title}`);
-        console.log(`[StoreKit]    Description: ${product.description}`);
-        console.log(`[StoreKit]    Price: ${product.localizedPrice}`);
-        console.log(`[StoreKit]    Is Trial: ${product.productId.includes('freetrial') ? 'YES' : 'NO'}`);
-      });
 
       return products.map((product: Subscription) => ({
         productId: product.productId,
@@ -188,15 +163,6 @@ export class AppleStoreKitService {
         discounts: (product as any).discounts || [],
       }));
     } catch (error) {
-      console.error('[StoreKit] ❌ Failed to get products:', error);
-
-      // Enhanced error logging
-      console.error('[StoreKit] Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        productIds: Object.values(AppleStoreKitService.PRODUCT_IDS),
-      });
-
       return [];
     }
   }
@@ -221,7 +187,6 @@ export class AppleStoreKitService {
         numberOfPeriods: discount.numberOfPeriods || 1,
       }));
     } catch (error) {
-      console.error('[StoreKit] Failed to get promotional offers:', error);
       return [];
     }
   }
