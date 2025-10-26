@@ -78,7 +78,7 @@ describe('OnboardingErrorBoundary', () => {
       expect(queryByText('Something went wrong')).toBeFalsy();
 
       // Force error by re-rendering with throw
-      const { rerender } = render(
+      render(
         <OnboardingErrorBoundary>
           <ThrowError />
         </OnboardingErrorBoundary>

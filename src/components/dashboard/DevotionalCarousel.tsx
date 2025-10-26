@@ -375,14 +375,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   }, [user, fetchDevotionals]);
 
   // Debounced refetch to avoid rapid consecutive updates
-  const scheduleRefetch = useCallback(() => {
-    if (refreshTimeout.current) {
-      clearTimeout(refreshTimeout.current);
-    }
-    refreshTimeout.current = setTimeout(() => {
-      fetchDevotionals();
-    }, 150);
-  }, [fetchDevotionals]);
+  // scheduleRefetch removed - was defined but never called
 
   // Realtime updates: refresh when devotionals or related user_progress change
   useEffect(() => {
