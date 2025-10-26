@@ -53,18 +53,21 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [accessToken, navigation]);
 
-  const validatePassword = (password: string) => {
-    if (password.length < 8) {
+  const validatePassword = (passwordInput: string) => {
+    if (passwordInput.length < 8) {
       return 'Password must be at least 8 characters long';
     }
-    if (!/(?=.*[a-z])/.test(password)) {
+    if (!/(?=.*[a-z])/.test(passwordInput)) {
       return 'Password must contain at least one lowercase letter';
     }
-    if (!/(?=.*[A-Z])/.test(password)) {
+    if (!/(?=.*[A-Z])/.test(passwordInput)) {
       return 'Password must contain at least one uppercase letter';
     }
-    if (!/(?=.*\d)/.test(password)) {
+    if (!/(?=.*\d)/.test(passwordInput)) {
       return 'Password must contain at least one number';
+    }
+    if (!/(?=.*[@$!%*?&#])/.test(passwordInput)) {
+      return 'Password must contain at least one special character';
     }
     return null;
   };
@@ -115,7 +118,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
           },
         ]
       );
-    } catch (error) {
+    } catch (catchError) {
       triggerErrorHaptic();
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);

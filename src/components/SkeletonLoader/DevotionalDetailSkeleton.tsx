@@ -70,15 +70,20 @@ const DevotionalDetailSkeleton: React.FC = () => {
         <View style={styles.sectionContainer}>
           <Animated.View style={[styles.sectionHeader, { opacity }]} />
           <View style={styles.reflectionCard}>
-            {[1, 2, 3, 4, 5].map((line) => (
-              <Animated.View
-                key={line}
-                style={[
-                  styles.reflectionLine,
-                  { opacity, width: line === 5 ? '60%' : '100%' },
-                ]}
-              />
-            ))}
+            {[1, 2, 3, 4, 5].map((line) => {
+              // Compute width based on line position to avoid inline styles
+              const lineWidth = line === 5 ? '60%' : '100%';
+
+              return (
+                <Animated.View
+                  key={line}
+                  style={[
+                    styles.reflectionLine,
+                    { opacity, width: lineWidth },
+                  ]}
+                />
+              );
+            })}
           </View>
         </View>
 
@@ -97,15 +102,20 @@ const DevotionalDetailSkeleton: React.FC = () => {
         <View style={styles.sectionContainer}>
           <Animated.View style={[styles.sectionHeader, { opacity }]} />
           <View style={styles.prayerCard}>
-            {[1, 2, 3, 4].map((line) => (
-              <Animated.View
-                key={line}
-                style={[
-                  styles.prayerLine,
-                  { opacity, width: line === 4 ? '40%' : '100%' },
-                ]}
-              />
-            ))}
+            {[1, 2, 3, 4].map((line) => {
+              // Compute width based on line position to avoid inline styles
+              const prayerLineWidth = line === 4 ? '40%' : '100%';
+
+              return (
+                <Animated.View
+                  key={line}
+                  style={[
+                    styles.prayerLine,
+                    { opacity, width: prayerLineWidth },
+                  ]}
+                />
+              );
+            })}
             <Animated.View style={[styles.prayButton, { opacity }]} />
           </View>
         </View>

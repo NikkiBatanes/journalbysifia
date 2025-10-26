@@ -54,8 +54,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   const { user } = useAuth();
   const calendarGating = useCalendarGating();
   const [isLoading, setIsLoading] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'synced' | 'unsynced' | 'syncing' | 'error'>
-    (calendarEventId ? 'synced' : 'unsynced');
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'unsynced' | 'syncing' | 'error'>(calendarEventId ? 'synced' : 'unsynced');
 
   // Check if auto-sync is enabled
   const userPreferences = user?.user_metadata?.preferences || {};

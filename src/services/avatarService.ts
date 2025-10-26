@@ -74,9 +74,9 @@ export async function uploadAvatar(user: User, file: { uri: string; name: string
       throw new Error('Failed to create blob from file or file is empty');
     }
 
-  } catch (error) {
-    console.error('Error processing file for upload:', error);
-    throw new Error(`Failed to process file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  } catch (catchError) {
+    console.error('Error processing file for upload:', catchError);
+    throw new Error(`Failed to process file: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`);
   }
 
   const path = `${user.id}/${Date.now()}_${file.name}`;

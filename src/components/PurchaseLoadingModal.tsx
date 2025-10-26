@@ -106,6 +106,19 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
 
   const stepInfo = getStepInfo();
 
+  // Compute dynamic styles to avoid inline style warnings
+  const modalBackgroundColor = '#1A3C6D'; // Solid anchor blue
+  const iconContainerBackgroundColor = Colors.alertCoral + '26'; // Alert coral with 15% opacity
+  const progressBarBackgroundColor = '#4CAF50'; // Always growth green for consistency
+  const progressBarContainerBackgroundColor = 'rgba(248, 249, 250, 0.2)'; // Light background for progress bar
+  const spinnerColor = '#FF6B6B';
+
+  // Compute font families based on theme to avoid inline conditionals
+  const titleFontFamily = theme.currentFont === 'lexend' ? 'Lexend-Bold' : 'NunitoSans-Bold';
+  const descriptionFontFamily = theme.currentFont === 'lexend' ? 'Lexend-Regular' : 'NunitoSans-Regular';
+  const progressTextFontFamily = theme.currentFont === 'lexend' ? 'Lexend-SemiBold' : 'NunitoSans-SemiBold';
+  const securityTextFontFamily = theme.currentFont === 'lexend' ? 'Lexend-Medium' : 'NunitoSans-Medium';
+
   return (
     <Modal
       visible={visible}
@@ -118,7 +131,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           style={[
             styles.modalContainer,
             {
-              backgroundColor: '#1A3C6D', // Solid anchor blue
+              backgroundColor: modalBackgroundColor,
               opacity: fadeAnim,
             },
           ]}
@@ -128,7 +141,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
             style={[
               styles.iconContainer,
               {
-                backgroundColor: Colors.alertCoral + '26', // Alert coral with 15% opacity
+                backgroundColor: iconContainerBackgroundColor,
                 transform: [{ scale: pulseAnim }],
               },
             ]}
@@ -137,22 +150,22 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           </Animated.View>
 
           {/* Title */}
-          <Text style={[styles.title, { color: Colors.hopeWhite, fontFamily: theme.currentFont === 'lexend' ? 'Lexend-Bold' : 'NunitoSans-Bold' }]}>
+          <Text style={[styles.title, { color: Colors.hopeWhite, fontFamily: titleFontFamily }]}>
             {stepInfo.title}
           </Text>
 
           {/* Description */}
-          <Text style={[styles.description, { color: Colors.hopeWhite, fontFamily: theme.currentFont === 'lexend' ? 'Lexend-Regular' : 'NunitoSans-Regular' }]}>
+          <Text style={[styles.description, { color: Colors.hopeWhite, fontFamily: descriptionFontFamily }]}>
             {stepInfo.description}
           </Text>
 
           {/* Progress Bar */}
-          <View style={[styles.progressBarContainer, { backgroundColor: 'rgba(248, 249, 250, 0.2)' }]}>
+          <View style={[styles.progressBarContainer, { backgroundColor: progressBarContainerBackgroundColor }]}>
             <Animated.View
               style={[
                 styles.progressBar,
                 {
-                  backgroundColor: '#4CAF50', // Always growth green for consistency
+                  backgroundColor: progressBarBackgroundColor,
                   width: `${stepInfo.progress}%`,
                 },
               ]}
@@ -160,21 +173,21 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           </View>
 
           {/* Progress Percentage */}
-          <Text style={[styles.progressText, { color: Colors.hopeWhite, fontFamily: theme.currentFont === 'lexend' ? 'Lexend-SemiBold' : 'NunitoSans-SemiBold' }]}>
+          <Text style={[styles.progressText, { color: Colors.hopeWhite, fontFamily: progressTextFontFamily }]}>
             {stepInfo.progress}% Complete
           </Text>
 
           {/* Spinner */}
           <ActivityIndicator
             size="large"
-            color="#FF6B6B"
+            color={spinnerColor}
             style={styles.spinner}
           />
 
           {/* Security Notice */}
           <View style={styles.securityNotice}>
             <Ionicons name="lock-closed" size={14} color={Colors.alertCoral} />
-            <Text style={[styles.securityText, { fontFamily: theme.currentFont === 'lexend' ? 'Lexend-Medium' : 'NunitoSans-Medium' }]}>
+            <Text style={[styles.securityText, { fontFamily: securityTextFontFamily }]}>
               Secure transaction protected by Apple
             </Text>
           </View>

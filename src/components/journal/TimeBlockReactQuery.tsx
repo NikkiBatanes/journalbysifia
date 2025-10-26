@@ -380,8 +380,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           console.log('🗓️ Virtual instance future delete - setting end date on original:', originalId);
 
           // Set the end date to the day before the selected date
-          const selectedDate = new Date(timeBlock.startTime);
-          const endDate = new Date(selectedDate);
+          const instanceDate = new Date(timeBlock.startTime);
+          const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           console.log('🗓️ Setting recurrence end date to:', endDate.toISOString().split('T')[0]);
@@ -500,8 +500,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         } else if (options.type === 'future') {
           console.log('🗓️ Original event - future delete - SETTING END DATE');
           // For "This entry & future entries", set the end date to the day before the selected date
-          const selectedDate = new Date(timeBlock.startTime);
-          const endDate = new Date(selectedDate);
+          const instanceDate = new Date(timeBlock.startTime);
+          const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           console.log('🗓️ Setting recurrence end date to:', endDate.toISOString().split('T')[0]);
@@ -1060,8 +1060,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                               },
                             });
                             console.log('🟢 [onSyncComplete] ✅ Updated time block with calendar event ID:', eventId);
-                          } catch (error) {
-                            console.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID:', error);
+                          } catch (catchError) {
+                            console.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID:', catchError);
                           }
                         }}
                         compact
@@ -1451,13 +1451,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <View style={styles.repeatOptions}>
                 {['never', 'daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom'].map((freq, idx, arr) => {
                   const isPremiumFeature = freq !== 'never' && !calendarGating.canUseRepeat;
+                  // Compute conditional border style to avoid inline styles
+                  const borderStyle = idx === arr.length - 1 ? { borderBottomWidth: 0 } : {};
+
                   return (
                     <TouchableOpacity
                       key={freq}
                       style={[
                         styles.repeatOption,
                         newBlock.repeat.frequency === freq && styles.selectedRepeatOption,
-                        idx === arr.length - 1 && { borderBottomWidth: 0 },
+                        borderStyle,
                       ]}
                       onPress={() => {
                         if (isPremiumFeature) {

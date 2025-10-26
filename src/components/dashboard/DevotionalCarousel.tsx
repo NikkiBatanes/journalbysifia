@@ -486,8 +486,8 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         <View style={styles.mb8}>
           <ThemedText weight="bold" style={styles.completedText}>DONE</ThemedText>
           {!!formatFinishedDate(devotional.completedAt) && (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="calendar-clear-outline" size={14} color={Colors.growthGreen} style={{ marginRight: 4 }} />
+            <View style={styles.finishedDateRow}>
+              <Ionicons name="calendar-clear-outline" size={14} color={Colors.growthGreen} style={styles.finishedDateIcon} />
               <ThemedText weight="bold" style={styles.finishedDateText}>
                 {formatFinishedDate(devotional.completedAt)}
               </ThemedText>
@@ -768,6 +768,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.growthGreen,
     marginBottom: 8,
+  },
+  finishedDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  finishedDateIcon: {
+    marginRight: 4,
   },
   finishedDateText: {
     fontSize: 12,

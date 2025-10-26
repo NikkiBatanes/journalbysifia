@@ -214,8 +214,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               is_prayer_request: prayerData.is_prayer_request,
               selected_date: dateStr,
             })
-            .catch(error => {
-              console.warn('[EnhancedPrayerListReactQuery] Failed to award prayer list faith points:', error);
+            .catch(catchError => {
+              console.warn('[EnhancedPrayerListReactQuery] Failed to award prayer list faith points:', catchError);
             });
         }
       }
@@ -293,136 +293,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     }
   }, [globalEditMode?.isGlobalEditMode, viewMode, showModal, handleCloseModal]);
 
-  // Swipeable Prayer Card Component
-  const SwipeablePrayerCard: React.FC<{
-    prayer: PersonPrayer;
-    onEdit: (id: string) => void;
-    onDelete: (id: string) => void;
-  }> = ({ prayer, onEdit, onDelete }) => {
-    const swipeableRef = useRef<Swipeable>(null);
-
-    const renderRightActions = () => (
-      <View style={styles.prayerSwipeActions}>
-        <TouchableOpacity
-          style={styles.editActionBtn}
-          onPress={() => {
-            try { triggerLightHaptic(); } catch {}
-            onEdit(prayer.id);
-            swipeableRef.current?.close();
-          }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="create-outline" size={22} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.deleteActionBtn}
-          onPress={() => {
-            try { triggerLightHaptic(); } catch {}
-            onDelete(prayer.id);
-            swipeableRef.current?.close();
-          }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="trash-outline" size={22} color="white" />
-        </TouchableOpacity>
-      </View>
-    );
-
-    return (
-      <View style={styles.swipeableContainer}>
-        <Swipeable
-          ref={swipeableRef}
-          renderRightActions={renderRightActions}
-          rightThreshold={40}
-          friction={2}
-          overshootRight={false}
-          onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
-          enableTrackpadTwoFingerGesture
-          containerStyle={styles.swipeableRow}
-        >
-          <View style={styles.prayerItem}>
-            <View style={styles.prayerHeader}>
-              <View style={styles.prayerHeaderLeft}>
-                <View style={styles.prayerTypeIndicator}>
-                  <Ionicons
-                    name={prayer.is_prayer_request === true ? 'mail-unread' : 'heart'}
-                    size={14}
-                    color={prayer.is_prayer_request === true ? Colors.alertCoral : Colors.growthGreen}
-                  />
-                  <ThemedText
-                    style={[
-                      styles.prayerTypeLabel,
-                      { color: Colors.hopeWhite },
-                    ]}
-                    weight="semiBold"
-                  >
-                    {prayer.is_prayer_request === true ? 'PRAYER REQUEST' : 'PRAYED FOR'}
-                  </ThemedText>
-                  {prayer.is_prayer_request === true && prayer.prayed === true && (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={12}
-                      color={Colors.growthGreen}
-                      style={styles.prayedStatusIcon}
-                    />
-                  )}
-                </View>
-                <ThemedText style={styles.personName} weight="bold">
-                  {prayer.person_name}
-                </ThemedText>
-              </View>
-            </View>
-            <View style={styles.prayerContentContainer}>
-              {/* Main prayer text: show content if exists, otherwise notes */}
-              <ThemedText style={styles.prayerText}>
-                {prayer.content || prayer.notes}
-              </ThemedText>
-              {/* Show Prayer Request label for prayers that came from a request */}
-              {(prayer.requested_by || prayer.metadata?.requested_by || prayer.metadata?.prayer_request_display) && prayer.content && (
-                <View style={styles.notesBox}>
-                  <Ionicons
-                    name="mail-unread"
-                    size={12}
-                    color={Colors.alertCoral}
-                    style={styles.prayedRequestIcon}
-                  />
-                  <ThemedText style={[styles.notesText, styles.notesTextInside]} numberOfLines={3}>
-                    <ThemedText style={styles.notesLabel} weight="medium">
-                      Prayer Request:
-                    </ThemedText>
-                    {prayer.metadata?.prayer_request_display || prayer.notes || ''}
-                  </ThemedText>
-                </View>
-              )}
-              {/* Show regular notes for personal prayers (not from requests) */}
-              {!(prayer.requested_by || prayer.metadata?.requested_by || prayer.metadata?.prayer_request_display) && prayer.notes && prayer.content && (
-                <ThemedText style={styles.notesText} numberOfLines={3}>
-                  <ThemedText style={styles.notesLabel} weight="medium">Note: </ThemedText>
-                  {prayer.notes}
-                </ThemedText>
-              )}
-            </View>
-            {/* Show Pray for Now button for any prayer request that is not prayed for */}
-            {prayer.is_prayer_request === true && prayer.prayed !== true && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => { triggerLightHaptic(); handleAddToMyList(prayer); }}
-              >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={18}
-                  color={Colors.hopeWhite}
-                  style={styles.iconMargin}
-                />
-                <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${prayer.person_name} now`}</ThemedText>
-              </TouchableOpacity>
-            )}
-          </View>
-        </Swipeable>
-      </View>
-    );
-  };
-
   // Render existing prayers
   const renderExistingPrayers = () => {
     // Split prayers into categories
@@ -434,6 +304,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       <SwipeablePrayerCard
         key={item.id}
         prayer={item}
+        handleAddToMyList={handleAddToMyList}
         onEdit={(prayerId: string) => {
           const prayerToEdit = peoplePrayers.find(p => p.id === prayerId);
           if (prayerToEdit) {
@@ -601,6 +472,137 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         />
       </JournalCard>
     </ErrorBoundary>
+  );
+};
+
+// Swipeable Prayer Card Component (moved outside parent to avoid nested component warning)
+const SwipeablePrayerCard: React.FC<{
+  prayer: PersonPrayer;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  handleAddToMyList: (prayer: PersonPrayer) => void;
+}> = ({ prayer, onEdit, onDelete, handleAddToMyList }) => {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const renderRightActions = () => (
+    <View style={styles.prayerSwipeActions}>
+      <TouchableOpacity
+        style={styles.editActionBtn}
+        onPress={() => {
+          try { triggerLightHaptic(); } catch {}
+          onEdit(prayer.id);
+          swipeableRef.current?.close();
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="create-outline" size={22} color="white" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.deleteActionBtn}
+        onPress={() => {
+          try { triggerLightHaptic(); } catch {}
+          onDelete(prayer.id);
+          swipeableRef.current?.close();
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="trash-outline" size={22} color="white" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <View style={styles.swipeableContainer}>
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        rightThreshold={40}
+        friction={2}
+        overshootRight={false}
+        onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
+        enableTrackpadTwoFingerGesture
+        containerStyle={styles.swipeableRow}
+      >
+        <View style={styles.prayerItem}>
+          <View style={styles.prayerHeader}>
+            <View style={styles.prayerHeaderLeft}>
+              <View style={styles.prayerTypeIndicator}>
+                <Ionicons
+                  name={prayer.is_prayer_request === true ? 'mail-unread' : 'heart'}
+                  size={14}
+                  color={prayer.is_prayer_request === true ? Colors.alertCoral : Colors.growthGreen}
+                />
+                <ThemedText
+                  style={[
+                    styles.prayerTypeLabel,
+                    { color: Colors.hopeWhite },
+                  ]}
+                  weight="semiBold"
+                >
+                  {prayer.is_prayer_request === true ? 'PRAYER REQUEST' : 'PRAYED FOR'}
+                </ThemedText>
+                {prayer.is_prayer_request === true && prayer.prayed === true && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={12}
+                    color={Colors.growthGreen}
+                    style={styles.prayedStatusIcon}
+                  />
+                )}
+              </View>
+              <ThemedText style={styles.personName} weight="bold">
+                {prayer.person_name}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.prayerContentContainer}>
+            {/* Main prayer text: show content if exists, otherwise notes */}
+            <ThemedText style={styles.prayerText}>
+              {prayer.content || prayer.notes}
+            </ThemedText>
+            {/* Show Prayer Request label for prayers that came from a request */}
+            {(prayer.requested_by || prayer.metadata?.requested_by || prayer.metadata?.prayer_request_display) && prayer.content && (
+              <View style={styles.notesBox}>
+                <Ionicons
+                  name="mail-unread"
+                  size={12}
+                  color={Colors.alertCoral}
+                  style={styles.prayedRequestIcon}
+                />
+                <ThemedText style={[styles.notesText, styles.notesTextInside]} numberOfLines={3}>
+                  <ThemedText style={styles.notesLabel} weight="medium">
+                    Prayer Request:
+                  </ThemedText>
+                  {prayer.metadata?.prayer_request_display || prayer.notes || ''}
+                </ThemedText>
+              </View>
+            )}
+            {/* Show regular notes for personal prayers (not from requests) */}
+            {!(prayer.requested_by || prayer.metadata?.requested_by || prayer.metadata?.prayer_request_display) && prayer.notes && prayer.content && (
+              <ThemedText style={styles.notesText} numberOfLines={3}>
+                <ThemedText style={styles.notesLabel} weight="medium">Note: </ThemedText>
+                {prayer.notes}
+              </ThemedText>
+            )}
+          </View>
+          {/* Show Pray for Now button for any prayer request that is not prayed for */}
+          {prayer.is_prayer_request === true && prayer.prayed !== true && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => { triggerLightHaptic(); handleAddToMyList(prayer); }}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={18}
+                color={Colors.hopeWhite}
+                style={styles.iconMargin}
+              />
+              <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${prayer.person_name} now`}</ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
+      </Swipeable>
+    </View>
   );
 };
 

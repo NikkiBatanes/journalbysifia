@@ -152,8 +152,8 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
             setCompletedStepId(stepId);
             setTimeout(() => setCompletedStepId(null), 2000);
-          } catch (error) {
-            console.error('Error completing step:', error);
+          } catch (catchError) {
+            console.error('Error completing step:', catchError);
           } finally {
             setCompletingStepId(null);
           }

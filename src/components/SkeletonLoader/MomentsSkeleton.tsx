@@ -23,8 +23,8 @@ const MomentsSkeleton: React.FC = () => {
     <View style={styles.container}>
       {/* Header skeleton row: grouping + filter chips */}
       <View style={styles.headerRow}>
-        <Animated.View style={[styles.chip, { opacity, width: 90 }]} />
-        <Animated.View style={[styles.chip, { opacity, width: 110 }]} />
+        <Animated.View style={[styles.chip, styles.chipShort, { opacity }]} />
+        <Animated.View style={[styles.chip, styles.chipMedium, { opacity }]} />
       </View>
 
       {/* Section header bar */}
@@ -57,6 +57,12 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  chipShort: {
+    width: 90,
+  },
+  chipMedium: {
+    width: 110,
   },
   sectionHeader: {
     height: 16,

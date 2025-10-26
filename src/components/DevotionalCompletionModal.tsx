@@ -413,6 +413,15 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                           inputRange: [0, 0.6, 1],
                           outputRange: [0, 1, 0],
                         });
+                        // Compute particle container style to avoid inline styles
+                        const particleContainerStyle = {
+                          width: p.size + 10,
+                          height: p.size + 10,
+                          borderRadius: (p.size + 10) / 2,
+                          backgroundColor: Colors.growthGreen,
+                          alignItems: 'center' as const,
+                          justifyContent: 'center' as const,
+                        };
                         return (
                           <Animated.View
                             key={p.id}
@@ -429,16 +438,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                               },
                             ]}
                           >
-                            <View
-                              style={{
-                                width: p.size + 10,
-                                height: p.size + 10,
-                                borderRadius: (p.size + 10) / 2,
-                                backgroundColor: Colors.growthGreen,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
+                            <View style={particleContainerStyle}>
                               <Ionicons name="checkmark" size={p.size} color={Colors.hopeWhite} />
                             </View>
                           </Animated.View>
@@ -522,6 +522,15 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                           inputRange: [0, 0.6, 1],
                           outputRange: [0, 1, 0],
                         });
+                        // Compute particle container style to avoid inline styles
+                        const particleContainerStyle = {
+                          width: p.size + 10,
+                          height: p.size + 10,
+                          borderRadius: (p.size + 10) / 2,
+                          backgroundColor: Colors.growthGreen,
+                          alignItems: 'center' as const,
+                          justifyContent: 'center' as const,
+                        };
                         return (
                           <Animated.View
                             key={p.id}
@@ -538,16 +547,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                               },
                             ]}
                           >
-                            <View
-                              style={{
-                                width: p.size + 10,
-                                height: p.size + 10,
-                                borderRadius: (p.size + 10) / 2,
-                                backgroundColor: Colors.growthGreen,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
+                            <View style={particleContainerStyle}>
                               <Ionicons name="checkmark" size={p.size} color={Colors.hopeWhite} />
                             </View>
                           </Animated.View>

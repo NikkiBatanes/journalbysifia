@@ -48,38 +48,43 @@ const DevotionalCarouselSkeleton: React.FC = () => {
 
       {/* Horizontal Carousel Cards */}
       <View style={[styles.carouselContainer, { paddingHorizontal: SIDE_INSET }]}>
-        {[1, 2].map((item) => (
-          <View
-            key={item}
-            style={[
-              styles.carouselCard,
-              {
-                width: ITEM_WIDTH,
-                marginRight: item === 1 ? ITEM_SPACING : 0,
-              },
-            ]}
-          >
-            {/* Card Header - Category Badge and Status Badge */}
-            <View style={styles.cardHeader}>
-              <Animated.View style={[styles.categoryBadge, { opacity }]} />
-              <Animated.View style={[styles.statusBadge, { opacity }]} />
+        {[1, 2].map((item) => {
+          // Compute margin based on item position to avoid inline styles
+          const cardMarginRight = item === 1 ? ITEM_SPACING : 0;
+
+          return (
+            <View
+              key={item}
+              style={[
+                styles.carouselCard,
+                {
+                  width: ITEM_WIDTH,
+                  marginRight: cardMarginRight,
+                },
+              ]}
+            >
+              {/* Card Header - Category Badge and Status Badge */}
+              <View style={styles.cardHeader}>
+                <Animated.View style={[styles.categoryBadge, { opacity }]} />
+                <Animated.View style={[styles.statusBadge, { opacity }]} />
+              </View>
+
+              {/* Title */}
+              <Animated.View style={[styles.titleSkeleton, { opacity }]} />
+              <Animated.View style={[styles.titleSkeletonShort, { opacity }]} />
+
+              {/* Description */}
+              <Animated.View style={[styles.descriptionLine, { opacity }]} />
+              <Animated.View style={[styles.descriptionLineShort, { opacity }]} />
+
+              {/* Next/Status Section */}
+              <View style={styles.statusSection}>
+                <Animated.View style={[styles.statusLabel, { opacity }]} />
+                <Animated.View style={[styles.statusText, { opacity }]} />
+              </View>
             </View>
-
-            {/* Title */}
-            <Animated.View style={[styles.titleSkeleton, { opacity }]} />
-            <Animated.View style={[styles.titleSkeletonShort, { opacity }]} />
-
-            {/* Description */}
-            <Animated.View style={[styles.descriptionLine, { opacity }]} />
-            <Animated.View style={[styles.descriptionLineShort, { opacity }]} />
-
-            {/* Next/Status Section */}
-            <View style={styles.statusSection}>
-              <Animated.View style={[styles.statusLabel, { opacity }]} />
-              <Animated.View style={[styles.statusText, { opacity }]} />
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );

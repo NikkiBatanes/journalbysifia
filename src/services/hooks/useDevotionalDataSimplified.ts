@@ -417,8 +417,8 @@ export const useDevotionalOperations = (userId: string) => {
 
       console.log('[useDevotionalOperations] Found playbook:', playbook.title);
       return playbook;
-    } catch (error) {
-      console.error('[useDevotionalOperations] Error fetching playbook:', error);
+    } catch (catchError) {
+      console.error('[useDevotionalOperations] Error fetching playbook:', catchError);
       return null;
     }
   };

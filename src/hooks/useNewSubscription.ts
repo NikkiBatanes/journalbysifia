@@ -136,7 +136,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
         show_upgrade_prompt: playbookCheck.show_upgrade_prompt || devotionalCheck.show_upgrade_prompt,
         upgrade_message: playbookCheck.upgrade_message || devotionalCheck.upgrade_message,
       });
-    } catch (error) {
+    } catch (catchError) {
       // Usage check failed - set default restrictive values
       setUsageCheck({
         can_generate_playbook: false,
@@ -166,11 +166,11 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
 
     try {
       await startTrialMutation.mutateAsync(trialOptions);
-    } catch (error) {
+    } catch (catchError) {
       throw new SubscriptionError(
-        `Failed to start trial: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to start trial: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
         'TRIAL_START_FAILED',
-        error
+        catchError
       );
     }
   }, [userId, startTrialMutation]);
@@ -178,11 +178,11 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const upgradeSubscription = useCallback(async (options: SubscriptionUpgradeOptions) => {
     try {
       await upgradeSubscriptionMutation.mutateAsync(options);
-    } catch (error) {
+    } catch (catchError) {
       throw new SubscriptionError(
-        `Failed to upgrade subscription: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to upgrade subscription: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
         'UPGRADE_FAILED',
-        error
+        catchError
       );
     }
   }, [upgradeSubscriptionMutation]);
@@ -190,11 +190,11 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const cancelSubscription = useCallback(async () => {
     try {
       await cancelSubscriptionMutation.mutateAsync();
-    } catch (error) {
+    } catch (catchError) {
       throw new SubscriptionError(
-        `Failed to cancel subscription: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to cancel subscription: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
         'CANCELLATION_FAILED',
-        error
+        catchError
       );
     }
   }, [cancelSubscriptionMutation]);
@@ -202,11 +202,11 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const incrementUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => {
     try {
       await incrementUsageMutation.mutateAsync(action);
-    } catch (error) {
+    } catch (catchError) {
       throw new SubscriptionError(
-        `Failed to increment usage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to increment usage: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
         'USAGE_INCREMENT_FAILED',
-        error
+        catchError
       );
     }
   }, [incrementUsageMutation]);
@@ -214,11 +214,11 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const checkUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => {
     try {
       return await NewSubscriptionService.checkUsageLimit(userId, action);
-    } catch (error) {
+    } catch (catchError) {
       throw new SubscriptionError(
-        `Failed to check usage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to check usage: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
         'USAGE_CHECK_FAILED',
-        error
+        catchError
       );
     }
   }, [userId]);

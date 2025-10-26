@@ -180,9 +180,10 @@ export function getGuidedPromptUnlockTier(): SubscriptionTier {
 }
 
 /**
- * Generate random free prompts for seeker tier users
- * Uses deterministic randomization based on user ID and date
+ * Deterministically select daily guided prompts using seeded randomization
+ * Uses Mulberry32 PRNG with djb2-style hash for consistent daily selection
  */
+/* eslint-disable no-bitwise */
 export function generateDailyFreePrompts(
   allPrompts: string[],
   userId: string,
@@ -220,3 +221,4 @@ export function generateDailyFreePrompts(
   const selectedIndices = indices.slice(0, Math.min(count, indices.length));
   return selectedIndices.map(idx => allPrompts[idx]);
 }
+/* eslint-enable no-bitwise */

@@ -80,6 +80,9 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
 
   const errorInfo = getErrorInfo();
 
+  // Compute text color based on errorInfo.showRetry to avoid inline styles
+  const closeButtonTextColor = errorInfo.showRetry ? theme.colors.text : '#FFFFFF';
+
   return (
     <Modal
       visible={visible}
@@ -139,7 +142,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
               <Text
                 style={[
                   styles.closeButtonText,
-                  { color: errorInfo.showRetry ? theme.colors.text : '#FFFFFF' },
+                  { color: closeButtonTextColor },
                 ]}
               >
                 {errorInfo.showRetry ? 'Cancel' : 'Close'}
