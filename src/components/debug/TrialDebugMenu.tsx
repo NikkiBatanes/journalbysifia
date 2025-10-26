@@ -391,7 +391,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
                 <Text style={styles.buttonText}>2 / 2</Text>
               </TouchableOpacity>
             </View>
-            <View style={[styles.buttonRow, { marginTop: 8 }]}>
+            <View style={[styles.buttonRowWithMargin]}>
               <TouchableOpacity
                 style={[styles.button, styles.buttonSmall]}
                 onPress={() => setUsage(5, 5)}
@@ -443,7 +443,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
                 <Text style={styles.buttonText}>15 Days</Text>
               </TouchableOpacity>
             </View>
-            <View style={[styles.buttonRow, { marginTop: 8 }]}>
+            <View style={[styles.buttonRowWithMargin]}>
               <TouchableOpacity
                 style={[styles.button, styles.buttonSmall]}
                 onPress={() => setSubscriptionStartDate(25)}
@@ -472,35 +472,35 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Change Tier:</Text>
             <TouchableOpacity
-              style={[styles.button, { marginBottom: 8 }]}
+              style={[styles.button, styles.buttonWithMargin]}
               onPress={() => changeTier('seeker', 'siFia Seeker', 0, 0)}
               disabled={loading}
             >
               <Text style={styles.buttonText}>Seeker (0/0)</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, { marginBottom: 8 }]}
+              style={[styles.button, styles.buttonWithMargin]}
               onPress={() => changeTier('spark', 'siFia Spark', 8, 8)}
               disabled={loading}
             >
               <Text style={styles.buttonText}>Spark (8/8)</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, { marginBottom: 8 }]}
+              style={[styles.button, styles.buttonWithMargin]}
               onPress={() => changeTier('growth', 'siFia Growth', 20, 20)}
               disabled={loading}
             >
               <Text style={styles.buttonText}>Growth (20/20)</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, { marginBottom: 8 }]}
+              style={[styles.button, styles.buttonWithMargin]}
               onPress={() => changeTier('transformation', 'siFia Transformation', -1, -1)}
               disabled={loading}
             >
               <Text style={styles.buttonText}>Transformation (Unlimited)</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, { marginBottom: 8 }]}
+              style={[styles.button, styles.buttonWithMargin]}
               onPress={() => changeTier('family', 'siFia Family', -1, -1)}
               disabled={loading}
             >
@@ -550,6 +550,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  buttonRowWithMargin: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
   button: {
     backgroundColor: Colors.anchorBlue,
     padding: 12,
@@ -567,6 +572,9 @@ const styles = StyleSheet.create({
   },
   buttonSecondary: {
     backgroundColor: Colors.alertCoral,
+  },
+  buttonWithMargin: {
+    marginBottom: 8,
   },
   buttonText: {
     color: Colors.hopeWhite,

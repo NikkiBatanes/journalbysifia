@@ -428,8 +428,8 @@ const UserInputScreen: React.FC = () => {
                   {/* Bottom row overlays: status on left, buttons on right */}
                   <View style={styles.bottomRow} pointerEvents="box-none">
                     {!subscriptionData.isUnlimited && (
-                      <View style={[styles.statusInline, { flexShrink: 1, minWidth: 80 }]} pointerEvents="none">
-                        <Text style={[styles.statusText, font, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+                      <View style={styles.statusInlineWithMinWidth} pointerEvents="none">
+                        <Text style={[styles.statusText, font]} numberOfLines={1} ellipsizeMode="tail">
                           {subscriptionData.isLoading
                             ? 'Loading subscription...'
                             : !subscriptionData.subscription || subscriptionData.isSeeker
@@ -526,6 +526,21 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
     flexShrink: 1,
     maxWidth: '75%',
+    overflow: 'hidden',
+  },
+  statusInlineWithMinWidth: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    flexShrink: 1,
+    maxWidth: '75%',
+    minWidth: 80,
     overflow: 'hidden',
   },
   statusText: {
