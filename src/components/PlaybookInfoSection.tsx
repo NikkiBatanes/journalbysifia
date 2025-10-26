@@ -3,7 +3,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
 
-import { Colors, Fonts } from '../theme';
+import { Colors } from '../theme';
 import { Playbook } from '../interfaces/playbook';
 import ThemedText from './common/ThemedText';
 

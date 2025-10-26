@@ -54,7 +54,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Unused
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
 

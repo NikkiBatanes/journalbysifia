@@ -41,7 +41,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   isValidated,
   onContinue,
 }) => {
-  const theme = useTheme();
+  // const theme = useTheme(); // Unused
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;

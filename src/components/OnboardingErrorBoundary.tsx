@@ -105,7 +105,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.hasError) {
-      const { error, errorInfo, errorCount } = this.state;
+      const { error, errorCount } = this.state;
       const { fallbackMessage } = this.props;
 
       return (

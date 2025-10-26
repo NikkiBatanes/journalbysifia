@@ -34,7 +34,7 @@ interface GuidedPromptLockIconProps {
 const GuidedPromptLockIcon: React.FC<GuidedPromptLockIconProps> = ({
   tier,
   usedPrompts = 0,
-  context = 'inApp',
+  context: _context = 'inApp',
   onLockTap,
   size = 20,
   showLabel = false,

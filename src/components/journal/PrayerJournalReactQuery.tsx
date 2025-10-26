@@ -12,7 +12,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Check, Pencil } from 'lucide-react-native';
 
 import { Colors } from '../../theme/colors';
-import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
+// import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts'; // Unused
 import { JournalCard } from './JournalCard';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -281,7 +281,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const globalEditMode = useEditModeSafe();
 
   const { user } = useAuth();
-  const theme = useTheme();
+  // const theme = useTheme(); // Unused
   // const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular'); // Unused
   const dateStr = toLocalDateString(selectedDate);
   const dateCategory = getDateCategory(selectedDate);

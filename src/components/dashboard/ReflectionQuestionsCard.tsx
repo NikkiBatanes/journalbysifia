@@ -11,7 +11,7 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// import AsyncStorage from '@react-native-async-storage/async-storage'; // Unused
 import { DeviceEventEmitter } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
@@ -22,7 +22,7 @@ import { supabase } from '../../services/supabaseClient';
 import { ReflectionApi } from '../../services/api/reflectionApi';
 import { useQueryClient } from '@tanstack/react-query';
 import DashboardReflectionSkeleton from '../SkeletonLoader/DashboardReflectionSkeleton';
-import { GUIDED_PROMPTS } from '../journal/reflectionConstants';
+// import { GUIDED_PROMPTS } from '../journal/reflectionConstants'; // Unused
 import { useSubscription } from '../../hooks/useSubscription';
 import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
 import GuidedPromptLockIcon from '../GuidedPromptLockIcon';

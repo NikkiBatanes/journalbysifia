@@ -16,7 +16,7 @@ import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 
 import DevotionalsScreen from '../screens/DevotionalsScreen';
-import JournalScreen from '../screens/JournalScreen';
+// import JournalScreen from '../screens/JournalScreen'; // Unused - using JournalStackNavigator
 import JournalStackNavigator from './JournalStackNavigator';
 import HomeStackNavigator from './HomeStackNavigator';
 import { useAuth } from '../context/IndustryStandardAuthContext';

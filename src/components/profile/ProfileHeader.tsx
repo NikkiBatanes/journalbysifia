@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil as LuPencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
@@ -44,7 +43,7 @@ interface Props {
   isLoading?: boolean; // Add loading state
 }
 
-const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage, subscription, isLoading = false }) => {
+const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar: _onEditAvatar, plan, usage, subscription, isLoading = false }) => {
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 

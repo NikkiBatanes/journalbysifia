@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { X, Check } from 'lucide-react-native';
+// import { X, Check } from 'lucide-react-native'; // Unused
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerSelectionHaptic } from '../../utils/haptics';

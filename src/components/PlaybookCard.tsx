@@ -95,7 +95,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
   );
 };
 
-const createStyles = (theme: any) => StyleSheet.create({
+const createStyles = (_theme: any) => StyleSheet.create({
   card: {
     // Use a translucent surface that contrasts on anchor blue backgrounds
     backgroundColor: 'rgba(255,255,255,0.08)',

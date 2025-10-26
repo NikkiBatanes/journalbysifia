@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerSelectionHaptic } from '../../utils/haptics';
