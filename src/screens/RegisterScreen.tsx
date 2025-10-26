@@ -65,7 +65,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (!loading && activeProvider) {
       setActiveProvider(null);
     }
-  }, [loading]);
+  }, [loading, activeProvider]);
 
   const handleGoogleSignUp = async () => {
     triggerLightHaptic();

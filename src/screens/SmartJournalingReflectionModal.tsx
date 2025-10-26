@@ -191,7 +191,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       }
     }
     setPrevVisible(visible);
-  }, [visible, prevVisible, existingReflection?.content, successModal]);
+  }, [visible, prevVisible, existingReflection?.content, successModal, isGuidedReflection, playbookId]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

@@ -201,7 +201,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     setIsGenerating(true);
     const timer = setTimeout(generatePlaybookContent, 3000);
     return () => clearTimeout(timer);
-  }, [userInput, userName, isFromOnboarding, isGenerating, navigation, user?.id, progressAnim]);
+  }, [userInput, userName, isFromOnboarding, isGenerating, navigation, user?.id, progressAnim, triggerSuccessHaptic]);
 
 
   // Bottom sun ring animation loop

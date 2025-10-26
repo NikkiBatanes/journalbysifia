@@ -170,11 +170,11 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setVisibleCount(5);
   }, [dateStr]);
 
-  const startAdding = () => {
+  const startAdding = useCallback(() => {
     if (!isAdding) { triggerLightHaptic(); }
     setIsAdding(true);
     setIsEditing(false);
-  };
+  }, [isAdding]);
 
   const startEditing = useCallback(() => {
     if (!isEditing) { triggerLightHaptic(); }

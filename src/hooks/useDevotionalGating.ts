@@ -113,7 +113,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
   // Load subscription on mount and user change
   useEffect(() => {
     loadSubscription();
-  }, [user?.id]);
+  }, [user?.id, loadSubscription]);
 
   // Calculate usage information
   const usageInfo = useMemo((): DevotionalUsageInfo => {
@@ -146,7 +146,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
       remaining,
       displayMessage,
     };
-  }, [state.subscription]);
+  }, [state]);
 
   // Access checking function
   const checkAccess = (duration: number, context: 'onboarding' | 'inApp' = 'inApp'): DevotionalAccessCheck => {

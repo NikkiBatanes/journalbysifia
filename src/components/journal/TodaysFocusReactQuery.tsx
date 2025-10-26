@@ -256,7 +256,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ctaLabel: 'Revisit',
           ctaAction: 'revisit',
         };
-  }, [day, hasEntry, hasPlan, planningEnabled, planningGating.isLocked, planningGating.usageMessage, future, shouldShowEditingMode]);
+  }, [day, hasEntry, hasPlan, planningEnabled, planningGating.isLocked, future, shouldShowEditingMode]);
 
   // Handle global edit mode activation
   React.useEffect(() => {

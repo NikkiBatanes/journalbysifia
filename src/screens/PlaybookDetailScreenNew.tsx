@@ -705,7 +705,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Header right component
   const headerRight = React.useCallback(() => (
     <ProfileButton user={user} navigation={navigation} styles={styles} />
-  ), [user, navigation]);
+  ), [user, navigation, styles]);
 
   // ===== EFFECT HOOKS =====
 

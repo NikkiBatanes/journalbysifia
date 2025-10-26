@@ -46,11 +46,11 @@ export default function TruthInLoveCard({
     setIsExpanded(!!expanded);
   }, [expanded]);
   // Use fresh user data from auth context, fallback to currentUser prop
-  const freshUserData = user ? {
+  const freshUserData = React.useMemo(() => user ? {
     displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
     firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
     lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
-  } : currentUser;
+  } : currentUser, [user, currentUser]);
 
   // Force re-computation when user data changes
   // Only replace placeholders, not hardcoded names to prevent duplicate name issues

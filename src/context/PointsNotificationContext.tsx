@@ -108,8 +108,9 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       console.log('[PointsNotificationContext] Cleaning up notification callback');
       isMounted.current = false;
       notificationService.clearPointsNotificationCallback();
-      // Clear any pending timeouts
-      Object.values(timeouts.current).forEach(clearTimeout);
+      // Clear any pending timeouts - copy ref value to avoid stale closure
+      const currentTimeouts = timeouts.current;
+      Object.values(currentTimeouts).forEach(clearTimeout);
     };
   }, [showPointsNotification]);
 

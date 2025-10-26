@@ -202,7 +202,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
         scale.setValue(0.5);
       }
     };
-  }, [visible, hideNotification, translateY, opacity, scale, sparkleRotation, activityType, componentId]);
+  }, [visible, hideNotification, translateY, opacity, scale, sparkleRotation, activityType, componentId, points, position]);
 
   const getPositionStyle = () => {
     switch (position) {

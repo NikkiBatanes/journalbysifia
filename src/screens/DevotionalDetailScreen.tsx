@@ -461,7 +461,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     if (currentDay) {
       console.log('DevotionalDetailScreen currentDay changed:', currentDay.title, 'completed:', currentDay.completed);
     }
-  }, [currentDay?.id, currentDay?.completed]);
+  }, [currentDay]);
 
   const handleMarkComplete = async () => {
     const now = Date.now();
@@ -684,7 +684,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     if (devotional) {
       console.log('[DevotionalDetailScreen] Devotional loaded:', devotional.title, 'Days:', devotional.days.length);
     }
-  }, [devotional?.id]);
+  }, [devotional]);
 
   // Show loading while user or ID validation is pending, or while fetching data
   if (!userId || loading || (queryEnabled && !devotional && !isError)) {
