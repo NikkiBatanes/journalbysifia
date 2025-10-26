@@ -13,7 +13,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
-import { useTheme } from '../theme/ThemeContext';
 
 // const { width } = Dimensions.get('window'); // Unused, commented out
 

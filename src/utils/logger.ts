@@ -80,7 +80,7 @@ class Logger {
   /**
    * Send logs to analytics service (production)
    */
-  private sendToAnalytics(level: LogLevel, message: string, meta?: LogMetadata): void {
+  private sendToAnalytics(_level: LogLevel, _message: string, _meta?: LogMetadata): void {
     // TODO: Integrate with your analytics service
     // Example: analytics.track('app_log', { level, message, ...meta });
   }

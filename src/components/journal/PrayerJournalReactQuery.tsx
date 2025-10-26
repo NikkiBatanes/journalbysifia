@@ -4,14 +4,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ScrollView,
-  TextInput,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { format } from 'date-fns';
+// import { format } from 'date-fns'; // Unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { X, Check, Pencil } from 'lucide-react-native';
+import { Check, Pencil } from 'lucide-react-native';
 
 import { Colors } from '../../theme/colors';
 import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
@@ -284,7 +282,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   const { user } = useAuth();
   const theme = useTheme();
-  const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
+  // const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular'); // Unused
   const dateStr = toLocalDateString(selectedDate);
   const dateCategory = getDateCategory(selectedDate);
 
@@ -430,10 +428,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   }, []);
 
   // Handle style selection modal
-  const handleOpenStyleModal = useCallback(() => {
-    triggerLightHaptic();
-    setShowStyleModal(true);
-  }, []);
+  // handleOpenStyleModal and handleConfirmStyle removed - were defined but never used
 
   const handleCloseStyleModal = useCallback(() => {
     setShowStyleModal(false);
@@ -441,11 +436,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     // Clear selection when closing so nothing remains selected outside the modal
     setSelectedPrayerType('');
     setEditingPrayerId(null);
-  }, []);
-
-  const handleConfirmStyle = useCallback(() => {
-    setShowStyleModal(false);
-    triggerSelectionHaptic();
   }, []);
 
   // Handle prayer text change

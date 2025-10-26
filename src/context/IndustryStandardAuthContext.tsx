@@ -70,20 +70,25 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     console.log('🌐 Web Client ID (cleaned):', webClientId || 'UNDEFINED');
 
     if (!iosClientId || !webClientId) {
-      console.error('❌ Missing Google OAuth client IDs in environment variables');
-      console.error('Please check your .env file contains:');
-      console.error('GOOGLE_IOS_CLIENT_ID=your-ios-client-id.googleusercontent.com');
-      console.error('GOOGLE_WEB_CLIENT_ID=your-web-client-id.googleusercontent.com');
+      console.warn('⚠️ Missing Google OAuth client IDs in environment variables');
+      console.warn('Google Sign-In will be disabled. To enable it:');
+      console.warn('1. Create a .env file based on .env.example');
+      console.warn('2. Add GOOGLE_IOS_CLIENT_ID=your-ios-client-id.googleusercontent.com');
+      console.warn('3. Add GOOGLE_WEB_CLIENT_ID=your-web-client-id.googleusercontent.com');
       return;
     }
 
-    GoogleSignin.configure({
-      webClientId: webClientId,
-      iosClientId: iosClientId,
-      offlineAccess: false, // Improves speed
-    });
+    try {
+      GoogleSignin.configure({
+        webClientId: webClientId,
+        iosClientId: iosClientId,
+        offlineAccess: false, // Improves speed
+      });
 
-    console.log('✅ Google Sign-In configured successfully');
+      console.log('✅ Google Sign-In configured successfully');
+    } catch (error) {
+      console.warn('⚠️ Failed to configure Google Sign-In:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -875,6 +880,23 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signInWithGoogle = async () => {
     try {
+      // Check if Google Sign-In is configured
+      const rawWebClientId = Config.GOOGLE_WEB_CLIENT_ID;
+      const rawIosClientId = Config.GOOGLE_IOS_CLIENT_ID;
+      const webClientId = rawWebClientId?.replace('GOOGLE_WEB_CLIENT_ID=', '') || rawWebClientId;
+      const iosClientId = rawIosClientId?.replace('GOOGLE_IOS_CLIENT_ID=', '') || rawIosClientId;
+
+      if (!iosClientId || !webClientId) {
+        console.warn('⚠️ Google Sign-In is not configured');
+        return { 
+          error: { 
+            message: 'Google Sign-In is not available. Please use email/password or Apple Sign-In.',
+            status: 400,
+            name: 'ConfigurationError'
+          } as SupabaseAuthError 
+        };
+      }
+
       console.log('🔄 Starting Google Sign-In...');
       setAuthState(prev => ({ ...prev, loading: true }));
 

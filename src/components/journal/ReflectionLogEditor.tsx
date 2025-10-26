@@ -5,7 +5,7 @@ import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Pl
 
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
-import { GUIDED_PROMPTS } from './reflectionConstants';
+// import { GUIDED_PROMPTS } from './reflectionConstants'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
@@ -407,7 +407,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const pendingTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
   // Debug: Track all focus calls
-  const logFocus = (source: string, target: 'title' | 'content') => {
+  const logFocus = (_source: string, _target: 'title' | 'content') => {
     // Debug logging removed for production
   };
 
@@ -428,12 +428,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     pendingTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId as any));
     pendingTimeoutsRef.current.clear();
   }, []);
+
   const { currentFont } = useTheme();
   const { subscription } = useSubscription();
   const navigation = useNavigation();
   const fontKey = currentFont || 'lexend';
   const fontFamilyRegular = getFontFamily(fontKey, 'regular');
-  const fontFamilyMedium = getFontFamily(fontKey, 'medium');
   const fontFamilyBold = getFontFamily(fontKey, 'bold');
 
   // Guided prompt gating
@@ -457,8 +457,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     const lockedPrompts = guidedPromptGating.lockedPrompts || [];
     return [...freePrompts, ...lockedPrompts];
   }, [guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts]);
+
   // Merge styles prop with fallbackStyles
   const s = { ...fallbackStyles, ...styles };
+
   // Internal state - manage view mode
   const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(
     initialMode || 'free-form'
@@ -480,7 +482,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     } else {
       setViewMode(initialMode || 'free-form');
     }
-  }, [source, initialPrompt, initialMode, initialEntry.content]); // Removed guidedPromptGating.allPrompts to prevent infinite loops
+  }, [source, initialPrompt, initialMode, initialEntry.content]);
 
   // Normalize any stored HTML <br> tags to real newlines for native TextInput
   const normalizeIncoming = (text: string): string => {
@@ -507,9 +509,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const isEditing = !!initialEntry.content;
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   const [showAddMenu, setShowAddMenu] = React.useState(false);
-  const [showFormattingModal, setShowFormattingModal] = React.useState(false);
+  const [showFormattingModal] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [isKeyboardVisible] = useState(false);
   const fabAnimatedValue = useRef(new Animated.Value(16)).current; // Start at default position (16px from bottom)
 
   const isSelectedPromptLocked = React.useMemo(() => {
@@ -523,6 +525,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
     return isLocked;
   }, [selectedPrompt, newEntry.title, guidedPromptGating.lockedPrompts]);
+
   const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
 
   // Refs
@@ -669,7 +672,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       };
 
       // Add error boundary for async operation
-      loadDraft().catch((error) => {
+      loadDraft().catch((_error) => {
         setIsFirstLoad(false); // Ensure component doesn't get stuck
       });
     }
@@ -735,9 +738,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         }
       }
     }
-  }, [initialTitle, source]); // Removed newEntry.title and guidedPromptGating.allPrompts to prevent infinite loops
-
-  // Removed automatic focus when in locked title mode to prevent cursor from appearing automatically
+  }, [initialTitle, source]);
 
   // Keep FABs at fixed initial position - no keyboard animation
   React.useEffect(() => {
@@ -814,8 +815,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     if (promptToCheck) {
       // Use async canUsePrompt method
       const canUseResult = await guidedPromptGating.canUsePrompt(promptToCheck);
-      const freePrompts = guidedPromptGating.freePrompts || [];
-      const isFree = freePrompts.includes(promptToCheck);
 
       if (!canUseResult) {
         // Navigate to upgrade screen instead of saving

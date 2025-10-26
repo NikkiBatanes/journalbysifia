@@ -5,7 +5,7 @@
  * Phase 3: Admin Interface
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { onboardingAnalyticsService } from '../../services/onboardingAnalyticsService';

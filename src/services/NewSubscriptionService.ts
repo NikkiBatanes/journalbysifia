@@ -111,9 +111,7 @@ export class NewSubscriptionService {
    * Create default seeker subscription for new users
    */
   static async createDefaultSeekerSubscription(userId: string): Promise<Subscription> {
-    const limits = this.getTierLimits('seeker');
-
-    const { data, error } = await supabase.rpc('create_default_seeker_subscription', {
+    const { error } = await supabase.rpc('create_default_seeker_subscription', {
       target_user_id: userId,
     });
 
@@ -129,7 +127,7 @@ export class NewSubscriptionService {
    * Start free trial for user (during onboarding)
    */
   static async startFreeTrial(options: TrialStartOptions): Promise<Subscription> {
-    const { user_id, duration_days = 3, trial_chosen_tier, billing_cycle = 'annual' } = options;
+    const { user_id, duration_days = 3, trial_chosen_tier } = options;
 
     try {
       // Since the start_free_trial RPC function doesn't exist, implement manually
@@ -164,7 +162,7 @@ export class NewSubscriptionService {
       };
 
       // Upsert with onConflict to handle existing subscription
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_subscriptions_new')
         .upsert(subscriptionData, {
           onConflict: 'user_id', // Update existing record if user_id already exists
@@ -201,7 +199,7 @@ export class NewSubscriptionService {
       const displayName = this.getTierDisplayName(chosenTier); // Remove "Trial" suffix
 
       // Upgrade to paid tier with full limits and updated display name
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
           tier: chosenTier,
@@ -229,7 +227,7 @@ export class NewSubscriptionService {
    * Upgrade subscription to paid tier
    */
   static async upgradeSubscription(userId: string, options: SubscriptionUpgradeOptions): Promise<Subscription> {
-    const { target_tier, platform, discount_code, is_family_upgrade } = options;
+    const { target_tier, discount_code, is_family_upgrade } = options;
 
     if (!target_tier) {
       throw new SubscriptionError('Target tier is required for upgrade', 'MISSING_TARGET_TIER');
@@ -706,7 +704,7 @@ export class NewSubscriptionService {
   /**
    * Get tier-specific playbook limit message
    */
-  private static getPlaybookLimitMessage(subscription: Subscription, limits: SubscriptionLimits): string {
+  private static getPlaybookLimitMessage(subscription: Subscription, _limits: SubscriptionLimits): string {
     switch (subscription.tier) {
       case 'free_trial':
         return 'You\'ve reached your trial limit.';
@@ -724,7 +722,7 @@ export class NewSubscriptionService {
   /**
    * Get tier-specific devotional limit message
    */
-  private static getDevotionalLimitMessage(subscription: Subscription, limits: SubscriptionLimits): string {
+  private static getDevotionalLimitMessage(subscription: Subscription, _limits: SubscriptionLimits): string {
     switch (subscription.tier) {
       case 'free_trial':
         return 'You\'ve reached your trial limit.';
@@ -773,7 +771,7 @@ export class NewSubscriptionService {
   /**
    * Update usage tracking table
    */
-  private static async updateUsageTracking(userId: string, action: string): Promise<void> {
+  private static async updateUsageTracking(_userId: string, _action: string): Promise<void> {
     // Skip usage tracking for now to avoid RPC function issues
     // This can be re-enabled once database functions are properly deployed
     return;

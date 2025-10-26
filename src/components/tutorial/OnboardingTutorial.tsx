@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
@@ -25,7 +24,7 @@ interface TutorialOverlayProps {
   onSkipTutorial: () => void;
 }
 
-const TapToExpandTutorial = ({ onComplete }: { onComplete: () => void }) => {
+const TapToExpandTutorial = ({ onComplete: _onComplete }: { onComplete: () => void }) => {
   const pulseAnim = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -56,7 +55,7 @@ const TapToExpandTutorial = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
-const SwipeToNavigateTutorial = ({ onComplete }: { onComplete: () => void }) => {
+const SwipeToNavigateTutorial = ({ onComplete: _onComplete }: { onComplete: () => void }) => {
   const slideAnim = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => ({

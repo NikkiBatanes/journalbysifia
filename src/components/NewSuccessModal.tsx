@@ -5,7 +5,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
-import { useTheme } from '../theme/ThemeContext';
 
 export interface SuccessModalConfig {
   title: string;

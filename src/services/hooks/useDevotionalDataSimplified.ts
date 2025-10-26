@@ -2,9 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DeviceEventEmitter } from 'react-native';
 import { DevotionalApi } from '../api/devotionalApi';
 import type { DevotionalApiEntry } from '../api/devotionalApi';
-import { defaultQueryOptions, defaultMutationOptions } from '../config/queryConfig';
+// import { defaultQueryOptions, defaultMutationOptions } from '../config/queryConfig'; // Unused
 import { Devotional, DevotionalCreationParams, DevotionalCategory } from '../../interfaces/devotional';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
+// import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
 import { notificationService } from '../notificationService';
 import { faithPointsService } from '../faithPointsService';
 import { useCrossComponentSync } from './useCrossComponentSync';
@@ -275,7 +275,7 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
           if (!oldData) {return oldData;}
 
           // Update the specific day's completed status
-          const updatedDays = oldData.days.map((day: any, index: number) => {
+          const updatedDays = oldData.days.map((day: any, _index: number) => {
             if (day.dayNumber === dayNumber) {
               return { ...day, completed: true };
             }

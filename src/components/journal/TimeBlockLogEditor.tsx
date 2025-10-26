@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -10,14 +10,13 @@ import {
   Platform,
   StatusBar,
   Modal,
-  Switch,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
-import { toLocalDateString } from '../../utils/date';
+// import { toLocalDateString } from '../../utils/date'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -619,17 +618,14 @@ function TimeBlockLogEditorInner(
   const {
     onSave,
     onCancel: _onCancel,
-    initialContent: _initialContent = '',
     subtaskTitle: _subtaskTitle,
-    _subtaskId,
-    _stepId,
     playbookTitle,
     actionStepNumber,
     actionStepTitle,
     isLoading = false,
     styles,
-    dateString,
     existingTimeBlock,
+    // Unused props: initialContent, _subtaskId, _stepId, dateString
   } = props;
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -766,23 +762,6 @@ function TimeBlockLogEditorInner(
 
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatMetadata = (): string => {
-    const metadata = [];
-    if (playbookTitle || actionStepTitle || _subtaskTitle) {
-      metadata.push('From Playbook');
-      if (playbookTitle) {
-        metadata.push(playbookTitle);
-      }
-      if (actionStepNumber && actionStepTitle) {
-        metadata.push(`Step ${actionStepNumber}: ${actionStepTitle}`);
-      }
-      if (_subtaskTitle) {
-        metadata.push(_subtaskTitle);
-      }
-    }
-    return metadata.length > 0 ? metadata.join('\n') : '';
   };
 
   const handleContentChange = (field: string, value: any) => {

@@ -1,25 +1,20 @@
-import React, { useRef, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
+import React, { useRef, useEffect, useImperativeHandle } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  Animated,
-  Dimensions,
   Alert,
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { Pencil, X, Plus } from 'lucide-react-native';
+import { Pencil, X } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
-import { toLocalDateString } from '../../utils/date';
-import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 
 interface GratitudeLogEditorProps {

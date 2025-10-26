@@ -1,15 +1,12 @@
 import { Platform } from 'react-native';
 import RNIap, {
-  Product,
   ProductPurchase,
   PurchaseError,
   Subscription,
   SubscriptionOffer,
   initConnection,
   endConnection,
-  getProducts,
   getSubscriptions,
-  requestPurchase,
   requestSubscription,
   finishTransaction,
   purchaseUpdatedListener,
@@ -102,7 +99,7 @@ export class AppleStoreKitService {
         return true;
       }
 
-      const result = await initConnection();
+      await initConnection();
 
       // Set up purchase listeners
       this.setupPurchaseListeners();
@@ -319,7 +316,7 @@ export class AppleStoreKitService {
   /**
    * Validate purchase receipt
    */
-  private async validateReceipt(purchase: ProductPurchase): Promise<boolean> {
+  private async validateReceipt(_purchase: ProductPurchase): Promise<boolean> {
     try {
       if (Platform.OS === 'ios') {
         // TEMPORARY: Skip receipt validation in TestFlight/Sandbox
@@ -729,8 +726,6 @@ export class AppleStoreKitService {
 
       console.log('[StoreKit] ✅ User exists in database, proceeding with subscription sync');
 
-      const subscriptionService = new NewSubscriptionService();
-
       // Get current database status
       const currentSub = await NewSubscriptionService.getUserSubscription(userId);
 
@@ -786,7 +781,6 @@ export class AppleStoreKitService {
    */
   private async handleNoActiveSubscription(userId: string): Promise<void> {
     try {
-      const subscriptionService = new NewSubscriptionService();
       const currentSub = await NewSubscriptionService.getUserSubscription(userId);
 
       // If user is already seeker, no need to update

@@ -31,7 +31,7 @@ import { subscriptionService } from '../services/subscriptionService';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
-import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
 import { normalizePrayerText } from '../utils/prayerFormatting';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
@@ -117,7 +117,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Flag to prevent feedback loop between programmatic and user scrolls
   const isScrollingProgrammatically = useRef(false);
   // Track content and viewport heights per day to handle short content cases
-  const [dayHeights, setDayHeights] = useState<Record<number, { content: number; viewport: number }>>({});
+  // dayHeights state removed - was defined but never used
 
   // Bible copyright modal state
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
@@ -644,14 +644,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     lastMarkCompleteRef.current = 0;
   };
 
-  const handleModalContinue = () => {
-    console.log('[DevotionalDetailScreen] Modal continue pressed');
-    setShowCompletionModal(false);
-    setCompletedDayIndex(null);
-    setIsMarkingComplete(false);
-    modalOpenedRef.current = false;
-    // Keep timing guard to prevent rapid re-completion
-  };
+  // handleModalContinue removed - was defined but never called
 
   // Handle rating submission
   const handleRatingSubmit = async (rating: number) => {

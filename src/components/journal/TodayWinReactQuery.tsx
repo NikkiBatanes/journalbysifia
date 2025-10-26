@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 // SwipeableTodoItem handles the gesture handler imports
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
@@ -78,8 +78,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     if (isSameLocalDay(d, addDaysLocal(today, -1))) {return 'yesterday';}
     return 'earlier';
   };
-  const pluralizeCount = (count: number, one: string, many: (n: number) => string) =>
-    count === 1 ? one : many(count);
+  // pluralizeCount removed - was defined but never used
   const getCopy = (category: 'today' | 'yesterday' | 'earlier', count: number) => {
     if (category === 'today') {
       return {
@@ -226,14 +225,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   };
 
   // Individual item edit handlers
-  const editWin = (id: string) => {
-    const winItem = displayWin || win;
-    if (!winItem) {return;}
-
-    triggerLightHaptic();
-    setEditingItemId(id);
-    setEditingItemText(winItem.text);
-  };
+  // editWin removed - was defined but never called
 
   const saveEditedWin = async () => {
     if (!editingItemId || !editingItemText.trim()) {return;}

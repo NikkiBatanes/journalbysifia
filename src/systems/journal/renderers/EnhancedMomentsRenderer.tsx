@@ -504,7 +504,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         setLoading(true);
       }
       let entries: MomentEntry[] = [];
-      const dayReflectionCount: Record<string, number> = {};
+      // dayReflectionCount removed - was defined but never used
 
       // Fetch real journal entries from user interactions - NOT generated content
       try {
@@ -686,9 +686,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   const prayerType = ((entry as any).prayer_type || '').toString().toLowerCase();
 
                   // Only include answered prayers from supplication or open prayer categories
-                  const isSupplicationOrOpenPrayer = journalCategory === 'supplication' ||
-                                                     journalCategory === 'personal_prayer' ||
-                                                     (prayerType === 'journal' && !['adoration', 'confession', 'thanksgiving'].includes(journalCategory));
+                  // isSupplicationOrOpenPrayer removed - was calculated but never used
 
                   // Let all prayer journal entries through initially - the secondary filter will handle answered/category filtering
                   shouldIncludeJournalEntry = true;
@@ -705,7 +703,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 if (shouldIncludeJournalEntry) {
                   const entryDate = new Date(entry.selected_date || entry.created_at);
                   const dateKey = entryDate.toDateString();
-                  const pluginKey = `${selectedPlugin.id}-${dateKey}`;
+                  // pluginKey removed - was calculated but never used
 
                   // Check if we already have an entry for this plugin on this date
                   const existingEntry = entries.find(e =>
@@ -881,9 +879,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
               // Only include answered prayers from supplication or open prayer (personal_prayer) categories
               // Exclude adoration, confession, and thanksgiving
-              const isSupplicationOrOpenPrayer = journalCategory === 'supplication' ||
-                                                 journalCategory === 'personal_prayer' ||
-                                                 (prayerType === 'journal' && !['adoration', 'confession', 'thanksgiving'].includes(journalCategory));
+              // isSupplicationOrOpenPrayer removed - was calculated but never used
 
               // Let all prayers through initially - the secondary filter will handle answered/category filtering
               const shouldIncludePrayer = true;

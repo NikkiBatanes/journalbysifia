@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   Modal,
   TouchableOpacity,
   StyleSheet,
@@ -86,7 +85,7 @@ const UsageTooltipModal: React.FC<Props> = ({
       daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     }
 
-    const effectiveTier = isOnTrial && trialChosenTier ? trialChosenTier : tier;
+    // effectiveTier removed - was calculated but never used
 
     switch (type) {
       case 'playbooks':
@@ -181,7 +180,7 @@ const UsageTooltipModal: React.FC<Props> = ({
 
         // Calculate points needed for next level
         const levelThresholds = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
-        const currentThreshold = levelThresholds[level - 1] || 0;
+        // currentThreshold removed - was calculated but never used
         const nextThreshold = levelThresholds[level] || 10000;
         const pointsNeeded = Math.max(0, nextThreshold - points);
 

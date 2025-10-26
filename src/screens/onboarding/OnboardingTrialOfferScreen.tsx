@@ -49,7 +49,7 @@ const OnboardingTrialOfferScreen = () => {
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
-  const [dynamicPricing, setDynamicPricing] = useState<any[]>([]);
+  // dynamicPricing removed - not used, only setDynamicPricing is called
   const [currencyInfo, setCurrencyInfo] = useState<any>(null);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -212,8 +212,8 @@ Please check App Store Connect configuration or contact support.`;
 
         // Additional verification: Check if transaction ID is recent (within last 5 minutes)
         // This prevents old cached transactions from activating subscriptions
-        const transactionTime = Date.now();
-        const fiveMinutesAgo = transactionTime - (5 * 60 * 1000);
+        // const transactionTime = Date.now();
+        // const fiveMinutesAgo = transactionTime - (5 * 60 * 1000); // Unused
 
         // CRITICAL: Now that Apple has authorized, set up the trial in database
         // This activates the trial with 2 playbooks + 2 devotionals
@@ -346,7 +346,7 @@ Please check App Store Connect configuration or contact support.`;
 
         if (mounted) {
           setPricingTiers(tiers || []);
-          setDynamicPricing([]); // Not using dynamic pricing for now
+          // setDynamicPricing([]); // Not using dynamic pricing for now - removed unused state
           setCurrencyInfo(currency || null);
 
           // FORCE Philippine currency in development for testing
@@ -365,12 +365,7 @@ Please check App Store Connect configuration or contact support.`;
 
   const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'family');
 
-  const getCurrentPrice = () => {
-    // Use tier pricing directly
-    const t = getSelectedTier();
-    if (!t) {return 0;}
-    return isAnnual ? t.annualPrice : t.monthlyPrice;
-  };
+  // getCurrentPrice removed - defined but never called
 
   const getLocalizedPrice = () => {
     // Use tier pricing with currency
@@ -404,10 +399,7 @@ Please check App Store Connect configuration or contact support.`;
     return Math.round(percentage);
   };
 
-  const hasTrialAvailable = () => {
-    // Always return false since we're not using dynamic pricing
-    return false;
-  };
+  // hasTrialAvailable removed - defined but never called
 
   // Removed duplicate handleStartTrial function
 
@@ -487,7 +479,7 @@ Please check App Store Connect configuration or contact support.`;
   };
 
   // ENTERPRISE IMPROVEMENT: Simple navigation wrapper without complex guards
-  const safeNavigate = useCallback((action: () => void, actionName: string) => {
+  const safeNavigate = useCallback((action: () => void, _actionName: string) => {
     try {
       action();
     } catch (error) {

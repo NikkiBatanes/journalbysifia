@@ -2,12 +2,9 @@ import { Platform } from 'react-native';
 import RNIap, {
   ProductPurchase,
   PurchaseError,
-  Subscription,
   initConnection,
   endConnection,
-  getProducts,
   getSubscriptions,
-  requestPurchase,
   requestSubscription,
   finishTransaction,
   validateReceiptAndroid,
@@ -136,7 +133,7 @@ export class GooglePlayBillingService {
    */
   async purchaseSubscription(
     productId: string,
-    userId: string
+    _userId: string
   ): Promise<GooglePlayPurchaseResult> {
     try {
       await this.initialize();
@@ -332,7 +329,7 @@ export class GooglePlayBillingService {
   /**
    * Restore previous purchases
    */
-  async restorePurchases(userId: string): Promise<boolean> {
+  async restorePurchases(_userId: string): Promise<boolean> {
     try {
       await this.initialize();
 
