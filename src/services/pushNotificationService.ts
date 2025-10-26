@@ -117,7 +117,7 @@ class PushNotificationService {
             importance: 4, // High importance
             vibrate: true,
           },
-          (created: any) => console.log(`[PushNotification] Channel created: ${created}`)
+          (_created: any) => {} // Channel created callback
         );
 
         // Create high priority channel for critical notifications
@@ -131,7 +131,7 @@ class PushNotificationService {
             importance: 5, // Max importance
             vibrate: true,
           },
-          (created: any) => console.log(`[PushNotification] Critical channel created: ${created}`)
+          (_created: any) => {} // Critical channel created callback
         );
       }
 
