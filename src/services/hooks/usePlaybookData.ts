@@ -151,7 +151,7 @@ export const useUpdateActionStep = () => {
         playbookId,
         stepId,
         completed,
-        userId,
+        userId: _userId,
       }: {
         playbookId: string;
         stepId: string;
@@ -161,7 +161,7 @@ export const useUpdateActionStep = () => {
         console.log('[useUpdateActionStep] Updating step:', { playbookId, stepId, completed });
 
         // Get current playbooks to update the specific step
-        const playbooks = await getPlaybooksApi(userId);
+        const playbooks = await getPlaybooksApi(_userId);
         const playbook = playbooks.find(p => p.id === playbookId);
 
         if (!playbook) {
@@ -301,7 +301,7 @@ export const useUpdateSubTask = () => {
         stepId,
         subTaskId,
         completed,
-        userId,
+        userId: _userId,
       }: {
         playbookId: string;
         stepId: string;

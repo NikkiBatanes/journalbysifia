@@ -972,7 +972,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         // Check if we need to collect additional user info
         const needsNameCollection = !googleUser.name || googleUser.name.trim().length === 0;
 
-        let userData = {
+        let _userData = {
           full_name: googleUser.name || '',
           first_name: googleUser.given_name || '',
           last_name: googleUser.family_name || '',

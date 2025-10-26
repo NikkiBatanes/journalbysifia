@@ -115,10 +115,6 @@ const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?:
 // These are used in navigation options below
 const renderDefaultProfileImage = ({ navigation }: any) => <ProfileImage navigation={navigation} />;
 
-const renderWhiteProfileImage = ({ navigation }: any) => (
-  <ProfileImage containerStyle={styles.whiteProfileImageContainer} navigation={navigation} />
-);
-
 // Header left components for different screens
 const PlaybookHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
   <HeaderLeft

@@ -1260,7 +1260,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       const disableExpansionForType = card.type === 'affirmation' || card.type === 'bible';
       const isExpanded = isTopCard && expandedCardIndex === cardIndex && !disableExpansionForType;
       const measuredHeight = contentHeights[cardIndex] || 0;
-      const COLLAPSED_HEIGHT = 450;
+      // const COLLAPSED_HEIGHT = 450; // Unused
       // For now, allow all cards to expand for testing
       const needsExpansion = !disableExpansionForType && true; // measuredHeight > COLLAPSED_HEIGHT + 50;
 
