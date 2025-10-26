@@ -468,17 +468,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   };
 
   // Individual priority edit handlers
-  const editPriority = (priorityId: string) => {
-    const priority = data.priorities.find(p => p.id === priorityId);
-    if (!priority) {return;}
-
-    setEditingPriorityId(priorityId);
-    setEditingPriorityText(priority.text);
-    // Close all swipeables
-    Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref?.close) {ref.close();}
-    });
-  };
+  // editPriority removed - was defined but never called
 
   const saveEditedPriority = async () => {
     if (!editingPriorityId || !editingPriorityText.trim()) {return;}

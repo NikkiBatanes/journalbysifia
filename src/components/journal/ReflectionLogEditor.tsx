@@ -510,7 +510,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [showFormattingModal] = React.useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [_keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible] = useState(false);
   const fabAnimatedValue = useRef(new Animated.Value(16)).current; // Start at default position (16px from bottom)
 

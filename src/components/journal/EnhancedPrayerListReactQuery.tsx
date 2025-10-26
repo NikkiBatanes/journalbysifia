@@ -50,7 +50,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
   const globalEditMode = useEditModeSafe();
-  const theme = useTheme();
+  // const theme = useTheme(); // Unused
   // const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular'); // Unused
 
   // React Query hooks for data fetching

@@ -33,7 +33,7 @@ import {
 
 // Pluralization helpers
 const pluralS = (count: number) => (count === 1 ? '' : 's');
-const entryWord = (count: number) => (count === 1 ? 'entry' : 'entries');
+// const entryWord = (count: number) => (count === 1 ? 'entry' : 'entries'); // Unused
 
 interface GratitudeItem {
   id: string;
@@ -311,15 +311,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   }, [gratitudeItems, gratitudeEntries, deleteMutation, createMutation, visibleCount, user, selectedDate, dateStr]);
 
   // Individual item edit handlers
-  const editGratitudeItem = useCallback((id: string) => {
-    const item = gratitudeItems.find(gratitudeItem => gratitudeItem.id === id);
-    if (!item) {return;}
-
-    triggerLightHaptic();
-    setEditingItemId(id);
-    setEditingItemText(item.text);
-    closeAllSwipeables();
-  }, [gratitudeItems, closeAllSwipeables]);
+  // editGratitudeItem removed - was defined but never called
 
   const saveEditedGratitudeItem = useCallback(async () => {
     if (!user) {

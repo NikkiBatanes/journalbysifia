@@ -661,7 +661,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         const previousDuration = existingBlock ?
           Math.round((existingBlock.endTime.getTime() - existingBlock.startTime.getTime()) / (1000 * 60)) : 0;
 
-        const updateResult = await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
+        await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
 
         // Sync updated time block to calendar
         if (calendarGating.canSyncToCalendar) {

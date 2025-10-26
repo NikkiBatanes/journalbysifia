@@ -47,7 +47,7 @@ export const initializeSentry = () => {
     ],
 
     // Before send hook - filter sensitive data
-    beforeSend(event, hint) {
+    beforeSend(event, _hint) {
       // Filter out sensitive information
       if (event.user) {
         delete event.user.email;
