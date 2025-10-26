@@ -190,7 +190,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     }
 
     setNewItems(editFields);
-  }, [gratitudeItems, setIsEditing, setIsAdding, setNewItems]);
+  }, [gratitudeItems, setIsEditing, setIsAdding, setNewItems, isEditing]);
 
   // Handle global edit mode activation
   React.useEffect(() => {
@@ -203,7 +203,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         startAdding();
       }
     }
-  }, [globalEditMode?.isGlobalEditMode, gratitudeItems.length, viewMode, isAdding, isEditing, startEditing]);
+  }, [globalEditMode?.isGlobalEditMode, gratitudeItems.length, viewMode, isAdding, isEditing, startEditing, startAdding]);
 
   const cancelAdding = () => {
     triggerSelectionHaptic();

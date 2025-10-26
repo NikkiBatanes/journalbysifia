@@ -138,7 +138,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       saturday: 6,
     };
     return key ? map[key] ?? 0 : 0;
-  }, [(user as any)?.user_metadata?.preferences?.weekStart]);
+  }, [user]);
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
 
   // React Query hooks with enhanced retry logic

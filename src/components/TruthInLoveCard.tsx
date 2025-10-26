@@ -57,12 +57,12 @@ export default function TruthInLoveCard({
   const processedTruth = React.useMemo(() => {
     const result = freshUserData ? replaceAllNamePlaceholders(truth, freshUserData, { replaceHardcodedNames: false }) : truth;
     return result;
-  }, [truth, freshUserData?.firstName, freshUserData?.displayName]);
+  }, [truth, freshUserData]);
 
   const processedSummary = React.useMemo(() => {
     const result = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: false }) : summary;
     return result;
-  }, [summary, freshUserData?.firstName, freshUserData?.displayName]);
+  }, [summary, freshUserData]);
 
   // Debug styles - can be removed after fixing
   const debugStyle = {

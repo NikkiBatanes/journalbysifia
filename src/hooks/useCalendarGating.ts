@@ -80,7 +80,7 @@ export const useCalendarGating = (): CalendarGatingState => {
     };
 
     loadTier();
-  }, [user?.id]);
+  }, [user]);
 
   const isSeeker = currentTier === 'seeker';
 

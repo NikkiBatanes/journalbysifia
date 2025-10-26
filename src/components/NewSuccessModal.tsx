@@ -124,7 +124,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
       timersRef.current.forEach(id => clearTimeout(id));
       timersRef.current = [];
     };
-  }, [visible, config, fadeAnim, iconScale, sparkleAnims]);
+  }, [visible, config, fadeAnim, iconScale, sparkleAnims, triggerLightHaptic]);
 
   if (!visible || !config) {
     return null;

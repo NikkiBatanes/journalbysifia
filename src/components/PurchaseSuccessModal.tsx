@@ -77,7 +77,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       fadeAnim.setValue(0);
       checkmarkScale.setValue(0);
     }
-  }, [visible]);
+  }, [visible, fadeAnim, scaleAnim, checkmarkScale]);
 
   const getTierInfo = () => {
     const tierMap: Record<string, { name: string; color: string; benefits: string[] }> = {

@@ -117,7 +117,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     if (visible) {
       devotionalGating.refreshSubscription();
     }
-  }, [visible]);
+  }, [visible, devotionalGating]);
 
   // Refresh gating data when usage limit modal is shown
   React.useEffect(() => {
@@ -125,7 +125,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       console.log('[DevotionalModal] Usage limit modal shown, refreshing subscription data...');
       devotionalGating.refreshSubscription();
     }
-  }, [showUsageLimitModal]);
+  }, [showUsageLimitModal, devotionalGating]);
 
   // Haptics
   const hapticOptions = React.useMemo(() => ({

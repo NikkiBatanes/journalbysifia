@@ -344,7 +344,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       }
       setLoading(false);
     }
-  }, [user, guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts]);
+  }, [user, guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts, subscription?.tier]);
 
   useEffect(() => {
     fetchReflectionQuestions();

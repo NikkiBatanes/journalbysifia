@@ -533,7 +533,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [prayerText, selectedPrayerType, user?.id, dateStr, createMutation, updateMutation, editingPrayerId, globalEditMode, viewMode]);
+  }, [prayerText, selectedPrayerType, user?.id, dateStr, createMutation, updateMutation, editingPrayerId, globalEditMode, viewMode, queryClient]);
 
   // Handle save from modal
   const handleSaveFromModal = useCallback(async () => {

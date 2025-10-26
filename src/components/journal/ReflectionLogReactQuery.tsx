@@ -501,7 +501,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       updated_at: entry.updated_at,
       selected_date: entry.selected_date,
     }));
-  }, [reflectionEntries, normalizeIncoming]);
+  }, [reflectionEntries, normalizeIncoming, dateStr]);
 
   // Determine if there's content for the selected date
   const hasContentForSelectedDate = React.useMemo(() => {

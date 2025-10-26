@@ -676,7 +676,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         setIsFirstLoad(false); // Ensure component doesn't get stuck
       });
     }
-  }, [getDraftKey, isEditing, isFirstLoad]);
+  }, [getDraftKey, isEditing, isFirstLoad, lockTitle, source]);
 
   // Helper function to save draft
   const saveDraftHelper = async () => {
@@ -738,7 +738,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         }
       }
     }
-  }, [initialTitle, source]);
+  }, [initialTitle, source, guidedPromptGating.allPrompts, newEntry.title]);
 
   // Keep FABs at fixed initial position - no keyboard animation
   React.useEffect(() => {
