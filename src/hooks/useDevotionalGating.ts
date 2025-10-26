@@ -1,7 +1,7 @@
 // useDevotionalGating - Enterprise hook for devotional feature gating logic
 // Provides comprehensive access control and usage tracking for devotionals
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { subscriptionService } from '../services/subscriptionService';
 import type { SubscriptionTier, Subscription } from '../types/subscription';
@@ -59,7 +59,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
   });
 
   // Load subscription data
-  const loadSubscription = async () => {
+  const loadSubscription = useCallback(async () => {
     if (!user?.id) {
       setState(prev => ({
         ...prev,
@@ -108,7 +108,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
         subscription: null,
       }));
     }
-  };
+  }, [user?.id]);
 
   // Load subscription on mount and user change
   useEffect(() => {

@@ -108,7 +108,7 @@ export const useUserState = () => {
     };
   }, [user, loadUserState]);
 
-  const saveOnboardingProgress = async (progress: Partial<OnboardingProgress>) => {
+  const saveOnboardingProgress = useCallback(async (progress: Partial<OnboardingProgress>) => {
     if (!user) {return;}
 
     const updatedProgress = { ...userState.onboardingProgress, ...progress };
@@ -126,9 +126,9 @@ export const useUserState = () => {
     } catch (error) {
       console.error('Error saving onboarding progress:', error);
     }
-  };
+  }, [user, userState.onboardingProgress]);
 
-  const updateOnboardingStep = async (step: string, phase?: number) => {
+  const updateOnboardingStep = useCallback(async (step: string, phase?: number) => {
     const newCompletedSteps = [...userState.onboardingProgress.completedSteps];
     if (!newCompletedSteps.includes(step)) {
       newCompletedSteps.push(step);
@@ -156,7 +156,7 @@ export const useUserState = () => {
     }
 
     await saveOnboardingProgress(updates);
-  };
+  }, [userState.onboardingProgress.completedSteps, saveOnboardingProgress]);
 
   const activateFreeTrial = useCallback(async () => {
     if (!user?.id) {

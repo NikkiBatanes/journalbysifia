@@ -259,7 +259,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       animationKeyRef.current = null;
       setShowLocalPoints(false);
     }
-  }, [visible]); // CRITICAL: Only depend on visible to prevent re-renders
+  }, [visible, backdropAnim, slideAnim, checkAnim, progressAnim, startBurst, onCheckReveal, devotional, currentDayNumber, isLastDay, progress]); // All animation dependencies
   //   Animated.timing(progressAnim, {
   //     toValue: progress,
   //     duration: 500,
