@@ -79,12 +79,11 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   // =============================================
 
   const initializeOnboarding = useCallback(async () => {
-    console.log('🔄 Initializing onboarding...', { userId: user?.id, isAuthenticated });
 
     if (!user?.id || !isAuthenticated) {
       // In development, allow onboarding for unauthenticated users for testing
       if (__DEV__ && !isAuthenticated) {
-        console.log('🧪 DEV MODE: Setting up onboarding for unauthenticated user');
+
         setIsOnboardingRequired(true);
         setIsOnboardingCompleted(false);
         setCurrentStep(1);
@@ -167,28 +166,19 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         errorMessage = String(err);
       }
 
-      console.log('[OnboardingContext] Full error analysis:', {
-        errorType: typeof err,
-        errorMessage,
-        errorObject: err,
-      });
-
       const isDeletedUserError = errorMessage.includes('foreign key constraint') ||
                                 errorMessage.includes('not present in table "users"') ||
                                 errorMessage.includes('23503') ||
                                 errorMessage.includes('user_subscriptions') ||
                                 errorMessage.includes('onboarding_progress');
 
-      console.log('[OnboardingContext] Deleted user check result:', isDeletedUserError);
-
       if (isDeletedUserError) {
-        console.log('[OnboardingContext] ✅ DETECTED DELETED USER - FORCING LOGOUT');
+
         // Force logout to clear cached authentication data
         try {
           // Import supabase client directly to force sign out
           const { supabase } = await import('../services/supabaseClient');
 
-          console.log('[OnboardingContext] 🔄 Clearing all cached data...');
           // Clear all cached data and force re-authentication
           setIsOnboardingRequired(false); // Set to false initially
           setIsOnboardingCompleted(false);
@@ -198,10 +188,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
           setPersonalization(null);
           setError(null);
 
-          console.log('[OnboardingContext] 🚪 Forcing sign out...');
           // Force sign out to clear cached user data
           await supabase.auth.signOut();
-          console.log('[OnboardingContext] ✅ Forced logout completed for deleted user');
 
           // Note: In React Native, app state will reset on next launch
           // No need for window.location.reload() as that's web-only

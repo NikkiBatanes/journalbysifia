@@ -20,7 +20,7 @@ export async function debugPrintSupabaseStorage() {
     for (const key of supabaseKeys) {
       keyValues[key] = await AsyncStorage.getItem(key);
     }
-    console.log('Supabase-related AsyncStorage:', keyValues);
+
   } catch (e) {
     console.error('Error printing Supabase AsyncStorage:', e);
   }
@@ -28,7 +28,7 @@ export async function debugPrintSupabaseStorage() {
 
 export async function debugPrintJournalEntries() {
   try {
-    console.log('\n=== DEBUG: Checking journal_entries table ===');
+
     const { data, error } = await supabase
       .from('journal_entries')
       .select('*')
@@ -40,14 +40,9 @@ export async function debugPrintJournalEntries() {
       return;
     }
 
-    console.log('Recent journal entries:', data);
-
     // Check specifically for today_win and looking_forward entries
     const todayWinEntries = data?.filter(entry => entry.content_type === 'today_win');
     const lookingForwardEntries = data?.filter(entry => entry.content_type === 'looking_forward');
-
-    console.log('Today Win entries:', todayWinEntries);
-    console.log('Looking Forward entries:', lookingForwardEntries);
 
   } catch (error) {
     console.error('Error in debugPrintJournalEntries:', error);
@@ -56,28 +51,26 @@ export async function debugPrintJournalEntries() {
 
 export async function debugPrintSession(label: string) {
   const { data: { session }, error } = await supabase.auth.getSession();
-  console.log(`[${label}] Supabase session:`, session, error);
+
 }
 
-
 // Debug: Log when storage module loads
-console.log('=== journalStorage.ts LOADED ===');
 
 // Removed unused debug cache
 
 // Debug: Log all AsyncStorage operations
 const debugStorage = {
   setItem: async (key: string, value: string): Promise<void> => {
-    console.log(`[AsyncStorage] SET ${key}`, value);
+
     return AsyncStorage.setItem(key, value);
   },
   getItem: async (key: string): Promise<string | null> => {
     const value = await AsyncStorage.getItem(key);
-    console.log(`[AsyncStorage] GET ${key}`, value);
+
     return value;
   },
   removeItem: async (key: string): Promise<void> => {
-    console.log(`[AsyncStorage] REMOVE ${key}`);
+
     return AsyncStorage.removeItem(key);
   },
 };
@@ -91,7 +84,7 @@ const initStorage = async (): Promise<void> => {
     const testKey = '@siFia_storage_test';
     await storage.setItem(testKey, 'test');
     await storage.removeItem(testKey);
-    console.log('AsyncStorage initialized successfully');
+
   } catch (e) {
     console.error('Failed to initialize AsyncStorage', e);
   }
@@ -101,13 +94,13 @@ initStorage();
 
 // Add debug logging for Supabase auth state
 supabase.auth.onAuthStateChange((event: string, session: any): void => {
-  console.log('Auth state changed:', event, session?.user?.id);
+
 });
 
 // Add a function to check the current session
 export const checkSession = async (): Promise<{ session: any; error: any }> => {
   const { data: { session }, error } = await supabase.auth.getSession();
-  console.log('Current session:', { session: session?.user?.id, error });
+
   return { session, error };
 };
 
@@ -188,7 +181,7 @@ export const getJournalKey = (userId: string, contentType: string, date: string 
   }
 
   const key = `journal_${contentType}_${formattedDate}_${userId}`;
-  console.log('Generated key:', { userId, contentType, date, formattedDate, key });
+
   return key;
 };
 
@@ -255,8 +248,6 @@ export const getLocalTimeBlock = async (key: string): Promise<TimeBlockEntry | n
 };
 
 export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, 'id'|'created_at'|'updated_at'>, userId: string): Promise<JournalEntryBase> => {
-  console.log('!!! saveLocalEntry called !!!', { key, userId, data });
-  console.log(`saveLocalEntry - key: ${key}`);
 
   if (!userId) {
     throw new Error('User ID is required to save entry');
@@ -278,21 +269,10 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
     content: data.content || {},
   };
 
-  console.log('[JOURNAL STORAGE] Saving local entry:', {
-    key,
-    id: newEntry.id,
-    type: newEntry.content_type,
-    date: newEntry.selected_date,
-    userId: newEntry.user_id,
-    hasContent: !!newEntry.content,
-    newEntry,
-  });
-
   try {
     await AsyncStorage.setItem(key, JSON.stringify(newEntry));
     const verify = await AsyncStorage.getItem(key);
-    console.log('[JOURNAL STORAGE] After save, value in storage:', verify);
-    console.log('Successfully saved local entry');
+
     return newEntry;
   } catch (error) {
     console.error('Error saving to AsyncStorage:', error);
@@ -301,8 +281,6 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
 };
 
 export const updateLocalEntry = async (key: string, updatedData: Partial<JournalEntryBase>): Promise<JournalEntryBase> => {
-  console.log('!!! updateLocalEntry called !!!', { key, updatedData });
-  console.log(`updateLocalEntry - key: ${key}`);
 
   const existingEntry = await getLocalEntry(key);
   if (!existingEntry) {
@@ -324,17 +302,9 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
     content: updatedData.content !== undefined ? updatedData.content : existingEntry.content || {},
   };
 
-  console.log('Updating local entry:', {
-    id: updatedEntry.id,
-    type: updatedEntry.content_type,
-    date: updatedEntry.selected_date,
-    userId: updatedEntry.user_id,
-    updatedAt: updatedEntry.updated_at,
-  });
-
   try {
     await AsyncStorage.setItem(key, JSON.stringify(updatedEntry));
-    console.log('Successfully updated local entry');
+
     return updatedEntry;
   } catch (error) {
     console.error('Error updating AsyncStorage:', error);
@@ -343,14 +313,13 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
 };
 
 export const getLocalEntry = async (key: string): Promise<JournalEntryBase | null> => {
-  console.log('[JOURNAL STORAGE] getLocalEntry called', { key });
+
   const value = await AsyncStorage.getItem(key);
-  console.log('[JOURNAL STORAGE] getLocalEntry result', { key, value });
+
   return value ? JSON.parse(value) : null;
 };
 
 export const getLocalEntriesForDate = async (date: string, contentType: string, userId: string) => {
-  console.log('!!! getLocalEntriesForDate called !!!', { date, contentType, userId });
 
   // Generate the key using the same format as getJournalKey
   const formatDateForKey = (dateStr: string) => {
@@ -371,11 +340,10 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
   const formattedDate = formatDateForKey(date);
   const key = getJournalKey(userId, contentType, formattedDate);
 
-  console.log('Looking up entry with key:', key);
   const entry = await getLocalEntry(key);
 
   if (!entry) {
-    console.log('No entry found for key:', key);
+
     return null;
   }
 
@@ -406,24 +374,15 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
 
   // Verify the entry's selected_date matches the requested date
   if (formattedEntryDate !== formattedRequestDate) {
-    console.log(`Entry date (${formattedEntryDate}) does not match requested date (${formattedRequestDate}), returning null`);
+
     return null;
   }
-
-  console.log('getLocalEntriesForDate - returning entry:', {
-    id: completeEntry.id,
-    type: completeEntry.content_type,
-    hasUserId: !!completeEntry.user_id,
-    updatedAt: completeEntry.updated_at,
-    selectedDate: completeEntry.selected_date,
-    content: completeEntry.content ? 'has content' : 'no content',
-  });
 
   return completeEntry;
 };
 
 export const deleteLocalEntry = async (key: string) => {
-  console.log('!!! deleteLocalEntry called !!!', { key });
+
   await AsyncStorage.removeItem(key);
 };
 
@@ -558,7 +517,6 @@ export const getCloudTimeBlock = async (
   return data || null;
 };
 
-
 interface SupabaseSession {
   user: {
     id: string;
@@ -571,7 +529,7 @@ interface SupabaseSession {
 
 // Helper function to get and validate session
 export const getValidSession = async (): Promise<SupabaseSession | null> => {
-  console.log('\n=== Checking for valid session ===');
+
   try {
     // 1. First check if we have tokens in AsyncStorage
     const [accessToken, refreshToken, userStr] = await Promise.all([
@@ -580,14 +538,8 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
       AsyncStorage.getItem('USER'),
     ]);
 
-    console.log('Auth state from storage:', {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-      hasUser: !!userStr,
-    });
-
     if (!accessToken || !refreshToken) {
-      console.log('No auth tokens found in storage');
+
       return null;
     }
 
@@ -611,25 +563,20 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
     }
 
     if (!currentSession?.user?.id) {
-      console.log('No valid session found after setting tokens');
+
       return null;
     }
-
-    console.log('✅ Valid session found');
-    console.log('User ID:', currentSession.user.id);
-    if (currentSession.user.email) {console.log('Email:', currentSession.user.email);}
 
     // 4. Check if session needs refresh
     const expiresAt = currentSession.expires_at || 0;
     const expiresIn = expiresAt - Math.floor(Date.now() / 1000);
-    console.log('Session expires in:', expiresIn, 'seconds');
 
     if (expiresIn > 300) { // More than 5 minutes left
       return currentSession;
     }
 
     // 5. Try to refresh the session if it's about to expire
-    console.log('⚠️ Session expiring soon, refreshing...');
+
     try {
       const { data: { session: refreshedSession }, error: refreshError } =
         await supabase.auth.refreshSession();
@@ -640,7 +587,7 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
       }
 
       if (refreshedSession) {
-        console.log('✅ Session refreshed successfully');
+
         // Update storage with new tokens
         await Promise.all([
           AsyncStorage.setItem('ACCESS_TOKEN', refreshedSession.access_token),
@@ -660,22 +607,20 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
     }
 
     // 2. No valid session, try to restore from storage
-    console.log('No active session, attempting to restore from storage...');
 
     // List all storage keys for debugging
     const allKeys = await AsyncStorage.getAllKeys();
-    console.log('All storage keys:', allKeys);
 
     // Look for the Supabase auth token in storage
     const storageKey = allKeys.find(key => key.includes('sb-') && key.includes('auth-token'));
 
     if (storageKey) {
-      console.log('Found auth storage key:', storageKey);
+
       const storedSession = await AsyncStorage.getItem(storageKey);
 
       if (storedSession) {
         try {
-          console.log('Attempting to restore session from storage...');
+
           const parsedSession = JSON.parse(storedSession);
 
           if (!parsedSession.access_token) {
@@ -694,10 +639,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
           }
 
           if (restoredSession?.user?.id) {
-            console.log('✅ Session restored successfully');
+
             return restoredSession;
           } else {
-            console.log('No user in restored session');
+
           }
         } catch (e) {
           console.error('Error restoring session:', e);
@@ -706,10 +651,9 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
         }
       }
     } else {
-      console.log('No auth storage key found');
+
     }
 
-    console.log('No valid session found');
     return null;
 
   } catch (error) {
@@ -729,7 +673,6 @@ const isValidUUID = (uuid: string): boolean => {
 // Helper function to clean up duplicate entries
 const cleanupDuplicateEntries = async (userId: string, contentType: string, selectedDate: string): Promise<void> => {
   try {
-    console.log(`🧹 Checking for duplicates: ${contentType} on ${selectedDate}`);
 
     const { data: duplicates, error } = await supabase
       .from('journal_entries')
@@ -745,7 +688,6 @@ const cleanupDuplicateEntries = async (userId: string, contentType: string, sele
     }
 
     if (duplicates && duplicates.length > 1) {
-      console.log(`Found ${duplicates.length} duplicate entries, keeping the most recent one`);
 
       // Keep the first (most recent) and delete the rest
       const toDelete = duplicates.slice(1).map(d => d.id);
@@ -758,7 +700,7 @@ const cleanupDuplicateEntries = async (userId: string, contentType: string, sele
       if (deleteError) {
         console.warn('Error deleting duplicates:', deleteError);
       } else {
-        console.log(`✅ Cleaned up ${toDelete.length} duplicate entries`);
+
       }
     }
   } catch (error) {
@@ -767,7 +709,6 @@ const cleanupDuplicateEntries = async (userId: string, contentType: string, sele
 };
 
 export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): Promise<any> => {
-  console.log('\n=== saveCloudEntry START ===');
 
   try {
     // 1. Get and validate session
@@ -807,13 +748,6 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       updated_at: now,
     };
 
-    console.log('Saving entry:', {
-      id: entryToSave.id,
-      user_id: entryToSave.user_id,
-      content_type: entryToSave.content_type,
-      selected_date: entryToSave.selected_date,
-    });
-
     try {
       // 5. Clean up any duplicate entries first
       await cleanupDuplicateEntries(userId, entryToSave.content_type, entryToSave.selected_date);
@@ -833,7 +767,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       if (fetchError) {throw fetchError;}
 
       if (existingEntries) {
-        console.log('Found existing entry, updating instead of creating new one');
+
         const { data: updatedEntry, error: updateError } = await supabase
           .from('journal_entries')
           .update({
@@ -845,7 +779,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
           .single();
 
         if (updateError) {throw updateError;}
-        console.log('✅ Existing entry updated successfully');
+
         return updatedEntry;
       }
 
@@ -857,7 +791,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
         .single();
 
       if (insertError) {throw insertError;}
-      console.log('✅ New entry created successfully');
+
       return newEntry;
 
     } catch (error: any) {
@@ -907,14 +841,12 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
 
     throw error;
   } finally {
-    console.log('=== saveCloudEntry COMPLETE ===\n');
+
   }
 };
 
 // ... (rest of the code remains the same)
 export const updateCloudEntry = async (userId: string, entryId: string, updatedData: Partial<JournalEntryBase>): Promise<JournalEntryBase> => {
-  console.log('\n=== updateCloudEntry START ===');
-  console.log('Current time:', new Date().toISOString());
 
   try {
     // 1. Validate input parameters
@@ -958,19 +890,12 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
       updated_at: now,
     };
 
-    console.log('Updating entry:', {
-      entryId: cleanEntryId,
-      userId,
-      updateFields: Object.keys(updateData),
-    });
-
     // 6. Make the API call with retry logic
     const maxRetries = 2;
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`\n--- Attempt ${attempt} of ${maxRetries} ---`);
 
         // Get fresh session for each attempt
         const { data: { session: currentSession }, error: sessionError } =
@@ -979,8 +904,6 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
         if (sessionError || !currentSession) {
           throw new Error('Failed to validate session: ' + (sessionError?.message || 'No session'));
         }
-
-        console.log('Current session user ID:', currentSession.user?.id);
 
         // First, fetch the existing entry for version check
         const { data: existing, error: fetchError } = await supabase
@@ -1016,7 +939,6 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
 
         if (error) {throw error;}
 
-        console.log('\n✅ Entry updated successfully ===');
         return data;
 
       } catch (error: any) {
@@ -1027,11 +949,11 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
         if (error.message?.toLowerCase().includes('jwt') ||
             error.message?.toLowerCase().includes('auth') ||
             error.code === 'PGRST301') {
-          console.log('Auth error detected, attempting to refresh session...');
+
           try {
             const { error: refreshError } = await supabase.auth.refreshSession();
             if (refreshError) {throw refreshError;}
-            console.log('Session refreshed, retrying...');
+
             continue;
           } catch (refreshError) {
             console.error('Failed to refresh session:', refreshError);
@@ -1042,7 +964,7 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
         // Add a small delay before retry
         if (attempt < maxRetries) {
           const delayMs = 1000 * attempt;
-          console.log(`Retrying in ${delayMs}ms...`);
+
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
       }
@@ -1071,14 +993,11 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
 
     throw error;
   } finally {
-    console.log('=== updateCloudEntry End ===');
+
   }
 };
 
 export const getCloudEntry = async (userId: string, entryId: string, date: string): Promise<JournalEntryBase | null> => {
-  console.log('\n=== getCloudEntry START ===');
-  console.log('User ID:', userId);
-  console.log('Entry ID:', entryId);
 
   try {
     // 1. Validate input parameters
@@ -1113,9 +1032,6 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
       userId = cleanUserId;
     }
 
-    console.log('Fetching cloud entry...');
-    console.log('Fetching entry with:', { cleanEntryId, userId, date });
-
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new Error('A valid date in YYYY-MM-DD format is required');
     }
@@ -1131,7 +1047,7 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
     if (error) {
       if (error.code === 'PGRST116') {
         // No rows returned - entry doesn't exist
-        console.log(`No cloud entry found for id: ${entryId}`);
+
         return null;
       }
 
@@ -1147,13 +1063,13 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
       if (error.message?.toLowerCase().includes('jwt') ||
           error.message?.toLowerCase().includes('auth') ||
           error.code === 'PGRST301') {
-        console.log('Auth error detected, attempting to refresh session...');
+
         try {
           const { error: refreshError } = await supabase.auth.refreshSession();
           if (refreshError) {throw refreshError;}
 
           // Retry the operation with the new session
-          console.log('Session refreshed, retrying...');
+
           return getCloudEntry(userId, entryId, date);
         } catch (refreshError) {
           console.error('Failed to refresh session:', refreshError);
@@ -1163,13 +1079,6 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
 
       throw error;
     }
-
-    console.log('Successfully retrieved cloud entry:', {
-      id: data.id,
-      userId: data.user_id,
-      updatedAt: data.updated_at,
-      type: data.content_type,
-    });
 
     return data as JournalEntryBase;
   } catch (error: any) {
@@ -1189,7 +1098,7 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
     // Re-throw the error to be handled by the caller
     throw error;
   } finally {
-    console.log('=== getCloudEntry END ===');
+
   }
 };
 
@@ -1204,27 +1113,17 @@ export const deleteCloudEntry = async (userId: string, entryId: string) => {
 
 // --- Sync Logic ---
 export const syncToCloud = async (userId: string, date: string, contentType: string) => {
-  console.log('!!! syncToCloud called !!!', { userId, date, contentType });
-  console.log(`=== syncToCloud: ${contentType} for ${date} ===`);
 
   // Get the local entry
   const localEntry = await getLocalEntriesForDate(date, contentType, userId);
   if (!localEntry) {
-    console.log('No local entry found, nothing to sync');
+
     return;
   }
 
-  console.log('Local entry found:', {
-    id: localEntry.id,
-    updatedAt: localEntry.updated_at,
-    hasUserId: !!localEntry.user_id,
-    userId: localEntry.user_id,
-    currentUserId: userId,
-  });
-
   try {
     // First, clean up any duplicates and check if an entry exists
-    console.log('Checking for existing cloud entry with same user, type and date...');
+
     await cleanupDuplicateEntries(userId, contentType, date);
 
     const { data: existingEntries, error: fetchError } = await supabase
@@ -1243,12 +1142,6 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
     }
 
     if (existingEntries) {
-      console.log('Found existing entry for this date and type, updating...', {
-        existingId: existingEntries.id,
-        localId: localEntry.id,
-        updatedAt: existingEntries.updated_at,
-        localUpdatedAt: localEntry.updated_at,
-      });
 
       // Always use the existing ID to update, even if local has a different ID
       // This handles the case where we might have duplicate entries with different IDs
@@ -1258,14 +1151,12 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
         updated_at: new Date().toISOString(),
       });
 
-      console.log('Successfully updated existing entry');
     } else {
       // No existing entry found, create a new one
-      console.log('No existing entry found, creating new...');
+
       await saveCloudEntry(userId, localEntry);
     }
 
-    console.log('Sync completed successfully');
   } catch (error) {
     console.error('Error during syncToCloud:', error);
     throw error;
@@ -1273,9 +1164,6 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
 };
 
 export const syncFromCloud = async (userId: string, date: string, contentType: string) => {
-  console.log(`\n=== syncFromCloud START (${contentType}) ===`);
-  console.log('User ID:', userId);
-  console.log('Date:', date);
 
   try {
     // 1. Validate input parameters
@@ -1284,7 +1172,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
     }
 
     // 2. Get and validate session first
-    console.log('Validating session...');
+
     const session = await getValidSession();
 
     if (!session?.user?.id) {
@@ -1297,16 +1185,8 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
         AsyncStorage.getItem('USER'),
       ]);
 
-      console.log('Auth state in storage:', {
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken,
-        hasUser: !!user,
-      });
-
       throw new Error('You must be logged in to sync from cloud');
     }
-
-    console.log('✅ Valid session found for user:', session.user.id);
 
     // 3. Use the session's user ID to ensure consistency
     const sessionUserId = session.user.id;
@@ -1327,11 +1207,9 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
     }
 
     const key = getJournalKey(userId, contentType, date);
-    console.log('Storage key:', key);
 
     // Get the local entry first
     const localEntry = await getLocalEntry(key);
-    console.log('Local entry:', localEntry ? 'exists' : 'not found');
 
     try {
       // If we have a local entry, try to get the specific cloud entry
@@ -1339,7 +1217,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
       let cloudEntry;
 
       if (localEntry?.id) {
-        console.log('Fetching specific cloud entry by ID:', localEntry.id);
+
         try {
           cloudEntry = await getCloudEntry(userId, localEntry.id, date);
         } catch (error) {
@@ -1349,7 +1227,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
 
       // If we don't have a cloud entry by ID, try to find one by date and content type
       if (!cloudEntry) {
-        console.log('No cloud entry found by ID, searching by date and content type...');
+
         const { data: entries, error } = await supabase
           .from('journal_entries')
           .select('*')
@@ -1366,12 +1244,12 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
 
         // Only use the cloud entry if it matches the exact date
         cloudEntry = entries?.find(entry => entry.selected_date === date);
-        console.log('Found cloud entries by date/type:', cloudEntry ? 1 : 0);
+
       }
 
       // If we have a local entry but no cloud entry, delete the local entry
       if (localEntry && !cloudEntry) {
-        console.log('Local entry exists but no matching cloud entry, deleting local entry');
+
         await AsyncStorage.removeItem(key);
         return null;
       }
@@ -1380,22 +1258,13 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
       if (cloudEntry) {
         // Ensure the cloud entry has the correct selected_date
         if (cloudEntry.selected_date !== date) {
-          console.log('Cloud entry date does not match requested date, deleting local entry:', {
-            entryDate: cloudEntry.selected_date,
-            requestedDate: date,
-          });
+
           await AsyncStorage.removeItem(key);
           return null;
         }
 
-        console.log('Cloud entry found, comparing with local...', {
-          cloudUpdated: cloudEntry.updated_at,
-          localUpdated: localEntry?.updated_at,
-          isNewer: !localEntry || new Date(cloudEntry.updated_at) > new Date(localEntry.updated_at || 0),
-        });
-
         if (!localEntry || new Date(cloudEntry.updated_at) > new Date(localEntry.updated_at || 0)) {
-          console.log('Cloud entry is newer or no local entry, saving to local storage...');
+
           // Ensure the entry has all required fields and the correct date
           const completeEntry: JournalEntryBase = {
             id: cloudEntry.id || generateUUID(),
@@ -1408,13 +1277,13 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
           };
 
           await AsyncStorage.setItem(key, JSON.stringify(completeEntry));
-          console.log('Successfully synced cloud entry to local storage');
+
           return completeEntry;
         } else {
-          console.log('Local entry is up to date or newer than cloud');
+
         }
       } else {
-        console.log('No cloud entry found to sync');
+
       }
 
       return localEntry;
@@ -1426,7 +1295,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
     console.error('Error in syncFromCloud:', error);
     throw error;
   } finally {
-    console.log('=== syncFromCloud END ===');
+
   }
 };
 
@@ -1585,7 +1454,6 @@ export const getCloudLookingForward = async (
 
 // --- Cache Management Functions ---
 export const clearJournalCache = async (userId: string, contentType?: string, date?: string): Promise<void> => {
-  console.log('=== clearJournalCache START ===', { userId, contentType, date });
 
   try {
     const allKeys = await AsyncStorage.getAllKeys();
@@ -1619,8 +1487,6 @@ export const clearJournalCache = async (userId: string, contentType?: string, da
       await AsyncStorage.removeItem(key);
     }
 
-    console.log('Cleared journal cache keys:', keysToDelete);
-    console.log('=== clearJournalCache COMPLETE ===');
   } catch (error) {
     console.error('Error in clearJournalCache:', error);
     throw error;
@@ -1632,7 +1498,6 @@ export const forceRefreshJournalData = async (
   date: string | Date,
   contentType: string
 ): Promise<void> => {
-  console.log('=== forceRefreshJournalData START ===', { userId, date, contentType });
 
   try {
     const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
@@ -1643,7 +1508,6 @@ export const forceRefreshJournalData = async (
     // Force sync from cloud
     await syncFromCloud(userId, dateStr, contentType);
 
-    console.log('=== forceRefreshJournalData COMPLETE ===');
   } catch (error) {
     console.error('Error in forceRefreshJournalData:', error);
     throw error;
@@ -1654,7 +1518,6 @@ export const forceRefreshAllJournalData = async (
   userId: string,
   date: string | Date
 ): Promise<void> => {
-  console.log('=== forceRefreshAllJournalData START ===', { userId, date });
 
   try {
     const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
@@ -1682,7 +1545,6 @@ export const forceRefreshAllJournalData = async (
       console.error('Error syncing time blocks:', error);
     }
 
-    console.log('=== forceRefreshAllJournalData COMPLETE ===');
   } catch (error) {
     console.error('Error in forceRefreshAllJournalData:', error);
     throw error;

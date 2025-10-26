@@ -29,9 +29,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         if (key.includes('refresh-token')) {storageKey = 'REFRESH_TOKEN';}
         if (key.includes('user')) {storageKey = 'USER';}
 
-        console.log('Storage getItem:', { originalKey: key, mappedKey: storageKey });
         const value = await AsyncStorage.getItem(storageKey);
-        console.log('Retrieved from storage:', { key: storageKey, hasValue: !!value });
+
         return value;
       },
       setItem: async (key: string, value: string) => {
@@ -41,7 +40,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         if (key.includes('refresh-token')) {storageKey = 'REFRESH_TOKEN';}
         if (key.includes('user')) {storageKey = 'USER';}
 
-        console.log('Storage setItem:', { originalKey: key, mappedKey: storageKey });
         await AsyncStorage.setItem(storageKey, value);
       },
       removeItem: async (key: string) => {
@@ -51,7 +49,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         if (key.includes('refresh-token')) {storageKey = 'REFRESH_TOKEN';}
         if (key.includes('user')) {storageKey = 'USER';}
 
-        console.log('Storage removeItem:', { originalKey: key, mappedKey: storageKey });
         await AsyncStorage.removeItem(storageKey);
       },
     },
@@ -77,10 +74,6 @@ const config = {
 };
 
 // Log configuration (remove in production)
-console.log('Supabase Config:', {
-  usingEnv: !!(SUPABASE_URL && SUPABASE_ANON_KEY),
-  url: config.url === DEFAULT_SUPABASE_URL ? 'Using default URL' : 'Using custom URL',
-});
 
 // Legacy session management functions - DEPRECATED
 // These functions are no longer used and will be removed in future versions
@@ -116,19 +109,11 @@ export const clearSession = async () => {
 
 export async function signIn(email: string, password: string) {
   try {
-    console.log('Attempting to sign in with:', { email });
 
     // Use Supabase's built-in authentication method
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    });
-
-    console.log('Auth response:', {
-      hasData: !!data,
-      hasSession: !!data?.session,
-      hasUser: !!data?.user,
-      error,
     });
 
     if (error) {
@@ -152,15 +137,7 @@ export async function signIn(email: string, password: string) {
       user: data.user,
     };
 
-    console.log('Storing session:', {
-      hasToken: !!session.access_token,
-      tokenLength: session.access_token?.length,
-      expiresIn: session.expires_in,
-      userId: data.user?.id,
-    });
-
     await storeSession(session);
-    console.log('Session stored successfully');
 
     return { data: session, error: null };
   } catch (error) {
@@ -231,7 +208,7 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
     const isExpired = !expiresAt || now >= (expiresAt - 60000); // 1 minute before actual expiration
 
     if (isExpired && session.refresh_token) {
-      console.log('[Auth] Token expired, attempting to refresh...');
+
       try {
         const response = await fetch(`${config.url}/auth/v1/token?grant_type=refresh_token`, {
           method: 'POST',
@@ -290,7 +267,7 @@ export async function fetchTable(table: string) {
     method: 'GET',
     headers: await getHeadersWithAuth(),
   });
-  console.log('Supabase fetch response:', res);
+
   if (!res.ok) {
     throw new Error(await res.text());
   }
@@ -330,7 +307,7 @@ export async function updateRow(table: string, id: string | number, data: Record
 export async function deleteRow(table: string, id: string | number) {
   // Convert ID to string for the URL to ensure consistent comparison
   const idStr = String(id);
-  console.log('[deleteRow] Deleting row:', { table, id: idStr });
+
   const url = getApiUrl(`/${table}?id=eq.${idStr}`);
   const response = await fetch(url, {
     method: 'DELETE',
@@ -404,7 +381,7 @@ interface SupabasePlaybookUpdate {
 
 export async function savePlaybook(playbook: Playbook, userId: string) {
   try {
-    console.log('[savePlaybook] Saving playbook:', playbook.id);
+
     if (!playbook.id) {
       console.error('[savePlaybook] Cannot save playbook without ID');
       return null;
@@ -447,9 +424,9 @@ export async function savePlaybook(playbook: Playbook, userId: string) {
 }
 
 export async function updatePlaybookActionSteps(playbookId: string | undefined, actionSteps: any[], completedAt?: string | null) {
-  console.log('[updatePlaybookActionSteps] Saving for playbook:', playbookId, actionSteps, completedAt);
+
   if (!playbookId) {
-    console.debug('[updatePlaybookActionSteps] No playbookId provided, skipping update');
+
     return { success: false, error: 'No playbook ID provided' };
   }
 
@@ -485,9 +462,9 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
     if (isUuid) {
       try {
         // updateData already has the correct snake_case fields for Supabase
-        console.log(`[updatePlaybookActionSteps] Updating Supabase for playbook ${playbookId}`, updateData);
+
         await updateRow('playbooks', playbookId, updateData);
-        console.log('[updatePlaybookActionSteps] Supabase update successful');
+
       } catch (error) {
         console.error('[updatePlaybookActionSteps] Supabase update failed:', error);
         // Continue to update local storage even if Supabase fails
@@ -510,7 +487,7 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
         };
       });
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
-      console.log('[updatePlaybookActionSteps] AsyncStorage updated:', updatedPlaybooks);
+
       return { success: true };
     } catch (storageError) {
       console.error('[updatePlaybookActionSteps] Error updating local storage:', storageError);
@@ -530,7 +507,7 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
  * @returns Playbook array
  */
 export async function getPlaybooks(userId: string) {
-  console.log('[getPlaybooks] Fetching for user:', userId);
+
   let remotePlaybooks: any[] = [];
   let localPlaybooks: any[] = [];
   // mergedPlaybooks is intentionally left for future use
@@ -591,10 +568,7 @@ export async function getPlaybooks(userId: string) {
     if (response.ok) {
       const remoteData = await response.json();
       remotePlaybooks = remoteData.map(normalizePlaybook);
-      console.log('[getPlaybooks] Remote playbooks:', remotePlaybooks);
-      console.log('[getPlaybooks] Remote playbooks progress:', remotePlaybooks.map(pb => pb.progress));
-      console.log('[getPlaybooks] Remote playbooks status:', remotePlaybooks.map(pb => pb.status));
-      console.log('[getPlaybooks] Remote playbooks updatedAt:', remotePlaybooks.map(pb => pb.updatedAt));
+
     } else {
       throw new Error(await response.text());
     }
@@ -602,7 +576,7 @@ export async function getPlaybooks(userId: string) {
     console.error('[getPlaybooks] Error fetching from Supabase:', error);
     // If there's an auth error, clear the session
     if (error instanceof Error && error.message && error.message.includes('JWT')) {
-      console.log('[getPlaybooks] Auth error, clearing session');
+
       await clearSession();
       // You might want to trigger a re-login flow here
     }
@@ -612,10 +586,7 @@ export async function getPlaybooks(userId: string) {
   try {
     const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
     localPlaybooks = stored ? JSON.parse(stored).map(normalizePlaybook) : [];
-    console.log('[getPlaybooks] Local playbooks:', localPlaybooks);
-    console.log('[getPlaybooks] Local playbooks progress:', localPlaybooks.map(pb => pb.progress));
-    console.log('[getPlaybooks] Local playbooks status:', localPlaybooks.map(pb => pb.status));
-    console.log('[getPlaybooks] Local playbooks updatedAt:', localPlaybooks.map(pb => pb.updatedAt));
+
   } catch (error) {
     console.error('[getPlaybooks] AsyncStorage get error:', error);
     // If local storage fails but we have remote, return remote
@@ -637,10 +608,8 @@ export async function getPlaybooks(userId: string) {
     }
   });
 
-  console.log('[getPlaybooks] Merged playbooks:', mergedPlaybooks);
   return mergedPlaybooks;
 }
-
 
 /**
  * Delete a playbook from both Supabase and AsyncStorage.
@@ -654,7 +623,6 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
     return { success: false, error: 'No playbook ID provided' };
   }
 
-  console.log(`[deletePlaybook] Deleting playbook ${id}`);
   let supabaseSuccess = false;
   let localSuccess = false;
 
@@ -664,23 +632,23 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
   // 1. Delete from Supabase if we have a valid UUID
   if (isValidUUID(idStr)) {
     try {
-      console.log(`[deletePlaybook] Deleting from Supabase: ${id}`);
+
       await deleteRow('playbooks', idStr);
       supabaseSuccess = true;
-      console.log(`[deletePlaybook] Successfully deleted from Supabase: ${idStr}`);
+
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[deletePlaybook] Error deleting from Supabase (${idStr}):`, errorMessage);
       // Continue with local deletion even if Supabase fails
-      console.log(`[deletePlaybook] Continuing with local deletion for ${idStr}`);
+
     }
   } else {
-    console.log(`[deletePlaybook] Skipping Supabase delete for non-UUID ID: ${id}`);
+
   }
 
   // 2. Delete from AsyncStorage
   try {
-    console.log(`[deletePlaybook] Deleting from local storage: ${idStr}`);
+
     const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
     let playbooks = stored ? JSON.parse(stored) : [];
     const initialLength = playbooks.length;
@@ -688,10 +656,10 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
 
     if (playbooks.length < initialLength) {
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
-      console.log(`[deletePlaybook] Successfully deleted from AsyncStorage: ${idStr}`);
+
       localSuccess = true;
     } else {
-      console.log(`[deletePlaybook] Playbook not found in AsyncStorage: ${idStr}`);
+
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -712,8 +680,6 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
 // Generate Playbook via Supabase Edge Function
 export async function generatePlaybook(userInput: string, userName: string) {
   const functionUrl = `${config.url}/functions/v1/generate-playbook`;
-  console.log('[generatePlaybook] Function URL:', functionUrl);
-  console.log('[generatePlaybook] Config URL:', config.url);
 
   try {
     // Get fresh session from Supabase (handles token refresh automatically)
@@ -723,9 +689,6 @@ export async function generatePlaybook(userInput: string, userName: string) {
       console.error('[generatePlaybook] Session error:', sessionError);
       throw new Error('Authentication required. Please log in again.');
     }
-
-    console.log('[generatePlaybook] Session:', session?.user?.id);
-    console.log('[generatePlaybook] Making request to:', functionUrl);
 
     const response = await fetch(functionUrl, {
       method: 'POST',
@@ -771,12 +734,6 @@ export async function generateDevotional(duration: number, playbookId?: string, 
         throw new Error('No active session. Please sign in.');
       }
 
-      console.log(`Generating devotional (attempt ${attempt + 1}/${maxRetries + 1})`, {
-        hasToken: !!session.access_token,
-        tokenLength: session.access_token?.length,
-        url: functionUrl,
-      });
-
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -791,8 +748,6 @@ export async function generateDevotional(duration: number, playbookId?: string, 
         }),
       });
 
-      console.log('Devotional response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || `HTTP error! status: ${response.status}`);
@@ -802,7 +757,6 @@ export async function generateDevotional(duration: number, playbookId?: string, 
 
       // Validate the response structure
       if (result && Array.isArray(result.days) && result.days.length > 0) {
-        console.log('Devotional generated successfully, now saving to database...');
 
         // Save the generated devotional to the database
         const { data: savedDevotional, error: saveError } = await supabase
@@ -832,8 +786,6 @@ export async function generateDevotional(duration: number, playbookId?: string, 
           throw new Error(`Failed to save devotional: ${saveError.message}`);
         }
 
-        console.log('Devotional saved to database:', savedDevotional.id);
-
         // Return the saved devotional with the database ID
         return {
           ...result,
@@ -852,7 +804,7 @@ export async function generateDevotional(duration: number, playbookId?: string, 
       if (attempt < maxRetries) {
         // Wait before retrying (exponential backoff)
         const delay = 1000 * Math.pow(2, attempt);
-        console.log(`Retrying in ${delay}ms...`);
+
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

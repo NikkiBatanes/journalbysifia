@@ -206,7 +206,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
         <TouchableOpacity
           style={styles.avatarContainer}
           onPress={() => {
-            console.log('[ProfileHeader] Avatar pressed');
+
             if (onEditPress) { onEditPress(); }
           }}
           accessibilityRole="button"
@@ -223,7 +223,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
           <TouchableOpacity
             style={styles.editAvatarButton}
             onPress={() => {
-              console.log('[ProfileHeader] Pencil overlay pressed');
+
               if (onEditPress) { onEditPress(); }
             }}
             accessibilityRole="button"

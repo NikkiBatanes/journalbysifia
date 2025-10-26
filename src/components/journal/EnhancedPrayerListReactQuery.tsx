@@ -45,7 +45,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   expanded,
   onExpand,
 }) => {
-  console.log('🙏 EnhancedPrayerList: Component is rendering!', { selectedDate });
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
@@ -60,7 +59,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     dateStr
   );
   // Debug log: print peoplePrayers every render
-  console.log('[EnhancedPrayerListReactQuery] peoplePrayers:', peoplePrayers);
+
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const deleteMutation = useDeletePrayer();

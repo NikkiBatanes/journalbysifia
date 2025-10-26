@@ -93,14 +93,6 @@ const DevotionalsScreen = () => {
     createTitleExtractionMemory(devotional);
 
     // Debug logging for simulator issue
-    console.log('[DevotionalsScreen] Navigating to devotional:', {
-      devotionalId: devotional.id,
-      devotionalIdType: typeof devotional.id,
-      devotionalIdLength: devotional.id?.length,
-      title: devotional.title,
-      createdAt: devotional.createdAt,
-      platform: require('react-native').Platform.OS,
-    });
 
     triggerLightHaptic();
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
@@ -184,7 +176,6 @@ const DevotionalsScreen = () => {
     const formattedDate = formatDate(item.createdAt);
 
     // Log the entire item for debugging
-    console.log('Devotional item:', JSON.stringify(item, null, 2));
 
     // Format category - handle different possible formats
     const formatCategory = (category: string) => {
@@ -431,7 +422,6 @@ const DevotionalsScreen = () => {
               </TouchableOpacity>
             )}
 
-
             {/* Guided steps */}
             <View style={styles.stepsContainer}>
               {hasPlaybooks ? (
@@ -504,7 +494,7 @@ const DevotionalsScreen = () => {
                         style={styles.cardCTA}
                         activeOpacity={0.9}
                         onPress={() => {
-                          console.log('[DevotionalsScreen] Selected playbook for devotional modal:', { id: item.id, title: item.title, userInput: item.userInput?.slice?.(0, 80) });
+
                           try { triggerLightHaptic(); } catch {}
                           setSelectedPlaybookId(item.id);
                           // Use the actual user input captured when creating the playbook
@@ -775,11 +765,6 @@ const DevotionalsScreen = () => {
 const createTitleExtractionMemory = (devotional: Devotional) => {
   if (!devotional) {return;}
 
-  console.log('Title extraction debug:', {
-    originalTitle: devotional.title,
-    extractedTitle: extractCleanTitle(devotional.title),
-    devotionalId: devotional.id,
-  });
 };
 
 const styles = StyleSheet.create({

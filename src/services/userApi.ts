@@ -98,9 +98,6 @@ class UserApiService {
         };
       }
 
-      console.log('[UserApi] Updating preferences for user:', user.user.id);
-      console.log('[UserApi] Preferences being saved:', JSON.stringify(preferences, null, 2));
-
       const { error } = await supabase
         .from('user_profiles')
         .update({
@@ -117,7 +114,6 @@ class UserApiService {
         };
       }
 
-      console.log('[UserApi] Preferences updated successfully');
       return { success: true };
     } catch (error: any) {
       return {
@@ -709,17 +705,6 @@ class UserApiService {
         prayerSessions,
         journalEntries,
       };
-
-      console.log('📊 Profile Stats Calculated:', {
-        userId,
-        profile: {
-          totalPoints: profile.totalPoints,
-          currentLevel: profile.currentLevel,
-          currentStreak: profile.currentStreak,
-        },
-        transactionCount: recentTransactions.length,
-        calculatedStats: profileStats,
-      });
 
       return {
         success: true,

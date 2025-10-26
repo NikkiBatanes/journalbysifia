@@ -237,12 +237,11 @@ const UsageTooltipModal: React.FC<Props> = ({
   const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
 
   const handleUpgrade = () => {
-    console.log('[UsageTooltipModal] Upgrade Now tapped');
-    console.log('[UsageTooltipModal] Subscription tier:', subscription?.tier);
+
     onClose();
     // Navigate to OnboardingSalesOffer screen
     setTimeout(() => {
-      console.log('[UsageTooltipModal] Navigating to OnboardingSalesOffer');
+
       (navigation as any).navigate('OnboardingSalesOffer', {
         upgradeMode: true,
         currentTier: subscription?.tier || 'seeker',

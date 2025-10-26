@@ -404,7 +404,7 @@ export class RetentionService {
       if (error) {
         console.error('Error logging retention event:', error);
       } else {
-        console.log(`Logged retention event: ${eventType} - ${action}`);
+
       }
     } catch (error) {
       console.error('Error logging retention event:', error);

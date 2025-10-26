@@ -154,7 +154,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // Handle navigation after animation completes
   useEffect(() => {
     if (shouldNavigate && navigationData) {
-      console.log('🚀 Navigating to OnboardingPlaybookReady screen...');
+
       (navigation as any).replace('OnboardingPlaybookReady', {
         playbook: navigationData,
         challengeCategory: params.challengeCategory,
@@ -166,20 +166,15 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
   const generatePlaybook = useCallback(async () => {
     try {
-      console.log('🎯 Starting real playbook generation with params:', params);
 
       if (!user?.id) {
         // For demo purposes, create a mock user ID
-        console.log('🧪 No user ID, using demo mode');
+
       }
 
       const userId = user?.id || 'demo-user-onboarding';
       // Use the userName from onboarding params instead of user metadata
       const userName = params.userName || 'Friend';
-
-      console.log('🎯 Playbook Generation - Full params:', params);
-      console.log('🎯 Using userName from onboarding params:', userName);
-      console.log('🎯 userName type:', typeof userName, 'length:', userName?.length);
 
       // Use real generation service
       const response = await enhancedGenerationService.generatePlaybook({
@@ -191,7 +186,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
       if (response.success) {
         if (response.queueId) {
-          console.log('✅ Playbook generation queued successfully, queueId:', response.queueId);
 
           // Poll for completion
           const pollForCompletion = async () => {
@@ -203,7 +197,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
             try {
               const status = await enhancedGenerationService.checkGenerationStatus(response.queueId!);
-              console.log(`[Polling ${attempts}/${maxAttempts}] Status:`, status.status);
 
               // ENTERPRISE FIX: Database security issues are blocking queue status updates
               // Check for direct playbook creation much earlier to bypass broken queue system
@@ -227,33 +220,32 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
                     // If playbook was created in the last 60 seconds, it's likely our generated one
                     if (playbookAge < 60000) {
-                      console.log('🎯 Found recently created playbook, using as completion fallback');
+
                       playbookExists = true;
                       directPlaybook = recentPlaybook;
                     }
                   }
                 } catch (error) {
-                  console.log('Could not check for direct playbook:', error);
+
                 }
               }
 
               if ((status.status === 'completed' && status.resultId) || playbookExists) {
                 // Get the actual playbook from database
-                console.log('🎯 Playbook completed, fetching from database...');
 
                 let playbook = null;
                 let error = null;
 
                 // Always use getPlaybook function to ensure we get complete data with action steps and affirmations
                 if (playbookExists && directPlaybook) {
-                  console.log('✅ Found direct playbook from fallback, fetching complete data with getPlaybook...');
+
                   // Use getPlaybook to get complete data including action steps and affirmations
                   if (user?.id) {
                     const { getPlaybook } = await import('../../services/modernPlaybookApi');
                     const completePlaybook = await getPlaybook(user.id, directPlaybook.id);
                     if (completePlaybook) {
                       playbook = completePlaybook;
-                      console.log('✅ Complete playbook data fetched via fallback');
+
                     } else {
                       error = new Error('Failed to fetch complete playbook data via fallback');
                     }
@@ -263,8 +255,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 } else {
                   // Use the proper getPlaybook function to fetch all related data
                   const { getPlaybook } = await import('../../services/modernPlaybookApi');
-
-                  console.log(`🔍 Attempting to fetch playbook with result_id: ${status.resultId}`);
 
                   // Try fetching by result_id first using the proper function
                   try {
@@ -277,12 +267,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     const result = await getPlaybook(user.id, status.resultId);
                     if (result) {
                       playbook = result;
-                      console.log('✅ Playbook fetched with getPlaybook function');
+
                     } else {
                       throw new Error('Failed to fetch playbook');
                     }
                   } catch (fetchError) {
-                    console.log('🔄 Result ID not found, trying to fetch most recent playbook...');
 
                     // Fallback: get the most recent playbook for this user
                     const { supabase } = await import('../../services/supabaseClient');
@@ -298,7 +287,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       const playbookAge = Date.now() - new Date(fallbackResult.data.created_at).getTime();
                       // If playbook was created in the last 2 minutes, it's likely our generated one
                       if (playbookAge < 120000) {
-                        console.log('✅ Found recent playbook via fallback, fetching with getPlaybook...');
+
                         if (user?.id) {
                           const fallbackPlaybookResult = await getPlaybook(user.id, fallbackResult.data.id);
                           if (fallbackPlaybookResult) {
@@ -317,9 +306,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 }
 
                 if (playbook && !error) {
-                  console.log('✅ Real playbook fetched from database:', playbook.title);
+
                   logger.debug('OnboardingGeneration: Action steps from getPlaybook', { actionSteps: playbook.actionSteps });
-                  console.log('🔍 Affirmations count:', playbook.affirmations?.length || 0);
 
                   // DEBUG: Log what we got from getPlaybook
                   logger.debug('OnboardingGeneration: Raw playbook from getPlaybook', { playbookData: JSON.stringify(playbook, null, 2) });
@@ -362,7 +350,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       setGeneratedPlaybook(realGeneratedPlaybook);
                       setNavigationData(realGeneratedPlaybook);
                       setShouldNavigate(true);
-                      console.log('✅ Real playbook generation completed. Setting navigation flag...');
+
                       resolve();
                     });
                   });
@@ -397,7 +385,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
         } else {
           // Direct generation completed immediately (no queue)
-          console.log('✅ Direct playbook generation completed immediately');
 
           // Wait a moment for database to be ready, then check for the playbook
           setTimeout(async () => {
@@ -417,7 +404,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
                   // If playbook was created in the last 30 seconds, it's likely our generated one
                   if (playbookAge < 30000) {
-                    console.log('✅ Found direct generation result, navigating...');
 
                     // Get complete playbook data
                     const { getPlaybook } = await import('../../services/modernPlaybookApi');

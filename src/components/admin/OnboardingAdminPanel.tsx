@@ -19,14 +19,12 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import { onboardingAnalyticsService } from '../../services/onboardingAnalyticsService';
 import { useNavigation } from '@react-navigation/native';
 
-
 interface OnboardingAdminPanelProps {
   onClose?: () => void;
   isVisible?: boolean;
 }
 
 export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onClose, isVisible = true }) => {
-  console.log('🔍 OnboardingAdminPanel render:', { isVisible, hasOnClose: !!onClose });
 
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<string>('');
@@ -56,7 +54,7 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
   };
 
   const directNavigateToOnboarding = () => {
-    console.log('🚀 Direct navigation to onboarding...');
+
     setResults('🚀 Navigating directly to onboarding screen...');
     navigation.navigate('OnboardingSplash' as any);
   };
@@ -107,7 +105,7 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
   };
 
   if (!isVisible) {
-    console.log('❌ OnboardingAdminPanel not visible, returning null');
+
     return null;
   }
 
@@ -188,8 +186,6 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
             </TouchableOpacity>
           </View>
         )}
-
-
 
         {/* Results Display */}
         {adminError && (

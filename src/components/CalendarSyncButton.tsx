@@ -66,17 +66,12 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   const handleSync = async () => {
     // Prevent duplicate calls
     if (syncInProgress.current || isLoading) {
-      console.log('🔵 [CalendarSyncButton] Sync already in progress, ignoring duplicate call');
+
       return;
     }
 
-    console.log('🔵 [CalendarSyncButton] handleSync called');
-    console.log('🔵 [CalendarSyncButton] canSyncToCalendar:', calendarGating.canSyncToCalendar);
-    console.log('🔵 [CalendarSyncButton] calendarEventId:', calendarEventId);
-    console.log('🔵 [CalendarSyncButton] timeBlock:', timeBlock);
-
     if (!calendarGating.canSyncToCalendar) {
-      console.log('🔵 [CalendarSyncButton] ❌ Cannot sync - showing lock tap');
+
       calendarGating.handleCalendarLockTap();
       return;
     }
@@ -90,7 +85,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
 
       // If already synced, update the existing event instead of creating a new one
       if (calendarEventId) {
-        console.log('🔵 [CalendarSyncButton] Updating existing event:', calendarEventId);
+
         const updateResult = await updateTimeBlockInCalendar(calendarEventId, {
           ...timeBlock,
           repeat: {
@@ -99,9 +94,9 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
           },
         });
         result = { ...updateResult, eventId: calendarEventId };
-        console.log('🔵 [CalendarSyncButton] Update result:', result);
+
       } else {
-        console.log('🔵 [CalendarSyncButton] Creating new event');
+
         // First time sync - create new event
         result = await syncTimeBlockToCalendar({
           ...timeBlock,
@@ -110,7 +105,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
             frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly',
           },
         });
-        console.log('🔵 [CalendarSyncButton] Create result:', result);
+
       }
 
       if (result.success && result.eventId) {

@@ -63,23 +63,22 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   }, [currentLocation]);
 
   const handleGetCurrentLocation = async () => {
-    console.log('🗺️ [LocationSelector] Get current location button tapped');
+
     setIsLoadingLocation(true);
 
     try {
       // Check if native module is available before calling
-      console.log('🗺️ [LocationSelector] Calling getCurrentLocation...');
+
       const result: LocationResult = await getCurrentLocation();
-      console.log('🗺️ [LocationSelector] Result:', result);
 
       if (result.success && result.location) {
-        console.log('🗺️ [LocationSelector] ✅ Setting location:', result.location);
+
         setInputValue(result.location);
         onLocationSelect(result.location);
         setShowSuggestions(false);
-        console.log('🗺️ [LocationSelector] Current location used:', result.location);
+
       } else {
-        console.log('🗺️ [LocationSelector] ❌ Failed, error:', result.error);
+
         // Fallback to manual entry prompt
         setInputValue('');
         setShowSuggestions(true);
@@ -91,7 +90,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
       setShowSuggestions(true);
     } finally {
       setIsLoadingLocation(false);
-      console.log('🗺️ [LocationSelector] Loading finished');
+
     }
   };
 
@@ -108,7 +107,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
 
       if (results && results.length > 0) {
         setSearchResults(results);
-        console.log('Location search performed:', query, results.length);
+
       } else {
         setSearchResults([]);
       }
@@ -144,7 +143,6 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
     setShowSuggestions(false);
     Keyboard.dismiss();
 
-    console.log('Search location selected:', fullLocation);
   };
 
   const handleInputFocus = () => {

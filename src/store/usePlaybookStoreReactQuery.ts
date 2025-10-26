@@ -232,7 +232,6 @@ export const usePlaybookStoreReactQuery = create<PlaybookStoreReactQuery>()(
 
       // Optimistic updates (for immediate UI feedback)
       updateActionStepOptimistic: (playbookId: string, stepId: string, completed: boolean) => {
-        console.log('[PlaybookStoreReactQuery] Optimistic action step update:', { playbookId, stepId, completed });
 
         set(state => {
           const updatedPlaybooks = state.localPlaybooks.map(playbook => {
@@ -261,7 +260,6 @@ export const usePlaybookStoreReactQuery = create<PlaybookStoreReactQuery>()(
       },
 
       updateSubTaskOptimistic: (playbookId: string, stepId: string, subTaskId: string, completed: boolean) => {
-        console.log('[PlaybookStoreReactQuery] Optimistic sub-task update:', { playbookId, stepId, subTaskId, completed });
 
         set(state => {
           const updatedPlaybooks = state.localPlaybooks.map(playbook => {
@@ -289,7 +287,6 @@ export const usePlaybookStoreReactQuery = create<PlaybookStoreReactQuery>()(
       },
 
       updateAffirmationOptimistic: (playbookId: string, affirmationId: string, completed: boolean) => {
-        console.log('[PlaybookStoreReactQuery] Optimistic affirmation update:', { playbookId, affirmationId, completed });
 
         set(state => {
           const updatedPlaybooks = state.localPlaybooks.map(playbook => {
@@ -464,7 +461,6 @@ export const usePlaybookDataWithStore = (userId: string) => {
         await prefetchRelatedData(playbookId);
       }
 
-      console.log('[usePlaybookDataWithStore] Action step synced successfully with cross-component sync');
     } catch (error) {
       console.error('[usePlaybookDataWithStore] Action step sync failed:', error);
       // React Query will handle rollback automatically
@@ -490,7 +486,6 @@ export const usePlaybookDataWithStore = (userId: string) => {
         userId,
       });
 
-      console.log('[usePlaybookDataWithStore] Sub-task synced successfully');
     } catch (error) {
       console.error('[usePlaybookDataWithStore] Sub-task sync failed:', error);
     }
@@ -513,7 +508,6 @@ export const usePlaybookDataWithStore = (userId: string) => {
         userId,
       });
 
-      console.log('[usePlaybookDataWithStore] Affirmation synced successfully');
     } catch (error) {
       console.error('[usePlaybookDataWithStore] Affirmation sync failed:', error);
     }

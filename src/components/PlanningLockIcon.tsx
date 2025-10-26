@@ -55,7 +55,7 @@ export const PlanningLockIcon: React.FC<PlanningLockIconProps> = ({
   }
 
   const handleLockPress = () => {
-    console.log(`[PlanningLockIcon] Lock tapped for future planning, tier: ${tier}`);
+
     if (onLockTap) {
       onLockTap();
     }

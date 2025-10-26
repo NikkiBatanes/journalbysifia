@@ -75,7 +75,6 @@ export class EnhancedQueueService {
   ): Promise<string> {
 
     try {
-      console.log(`[EnhancedQueueService] Adding ${type} to queue for user ${userId}`);
 
       // Get user context for enhanced generation
       const context = await userContextEngine.buildUserContext(userId, userName, userInput, type);
@@ -108,8 +107,6 @@ export class EnhancedQueueService {
         console.error('[EnhancedQueueService] Error adding to queue:', error);
         throw error;
       }
-
-      console.log(`[EnhancedQueueService] Added to queue with priority ${priority}, ID: ${queueItem.id}`);
 
       // Start processing if not already running
       if (!this.isProcessing) {
@@ -211,7 +208,6 @@ export class EnhancedQueueService {
     if (this.isProcessing) {return;}
 
     this.isProcessing = true;
-    console.log('[EnhancedQueueService] Starting queue processing');
 
     while (this.isProcessing) {
       try {
@@ -286,8 +282,6 @@ export class EnhancedQueueService {
         })
         .eq('id', item.id);
 
-      console.log(`[EnhancedQueueService] Processing ${item.type} for user ${item.userId} with worker ${workerId}`);
-
       const startTime = Date.now();
 
       // Generate content based on type
@@ -318,8 +312,6 @@ export class EnhancedQueueService {
           item.type === 'playbook' ? 'playbook_generated' : 'devotional_generated',
           { queueId: item.id, processingTime }
         );
-
-        console.log(`[EnhancedQueueService] Completed ${item.type} for user ${item.userId} in ${processingTime}ms`);
 
       } else {
         // Mark as failed

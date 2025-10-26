@@ -387,13 +387,7 @@ interface ReflectionLogProps {
 export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onPencilTap }) => {
   // Debug: Track component instances
   const instanceId = React.useRef(Math.random().toString(36).substr(2, 9));
-  console.log('🎯 ReflectionLogReactQuery INSTANCE:', {
-    instanceId: instanceId.current,
-    selectedDate: selectedDate.toISOString(),
-    viewMode,
-    expanded,
-    timestamp: new Date().toISOString(),
-  });
+
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -402,13 +396,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const dateStr = toLocalDateString(selectedDate);
 
   // Debug logging for date handling
-  console.log('🎯 REFLECTION LOG DATE DEBUG:', {
-    selectedDate: selectedDate.toISOString(),
-    dateStr,
-    selectedDateFormatted: selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
-    currentDate: new Date().toISOString(),
-    timestamp: new Date().toISOString(),
-  });
+
   const isSelectedToday = isTodayFn(selectedDate);
   const isSelectedYesterday = isYesterdayFn(selectedDate);
   const future = isAfter(startOfDay(selectedDate), startOfToday());
@@ -471,12 +459,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Transform API data to local format with memoization
   const entries: ReflectionLogEntry[] = React.useMemo(() => {
-    console.log('🎯 REFLECTION ENTRIES DEBUG:', {
-      rawEntriesCount: reflectionEntries.length,
-      rawEntries: reflectionEntries.map(e => ({ id: e.id, title: e.title, created_at: e.created_at })),
-      dateStr,
-      timestamp: new Date().toISOString(),
-    });
 
     return reflectionEntries.map(entry => ({
       id: entry.id,
@@ -509,10 +491,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       const entryDate = e.selected_date?.split('T')[0] || e.selected_date;
       const compareDate = dateStr?.split('T')[0] || dateStr;
       const matches = entryDate === compareDate;
-      console.log('🔍 hasContentForSelectedDate check:', { entryDate, compareDate, matches, entry: e });
+
       return matches;
     });
-    console.log('🔍 hasContentForSelectedDate result:', filteredEntries.length > 0, 'entries:', filteredEntries.length);
+
     return filteredEntries.length > 0;
   }, [entries, dateStr]);
 
@@ -574,13 +556,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           style: 'destructive',
           onPress: async () => {
             triggerLightHaptic();
-            console.log('🔍 ReflectionLog: Deleting entry', entryId);
+
             const startTime = Date.now();
 
             try {
               await deleteMutation.mutateAsync(entryId);
-
-              console.log('🔍 ReflectionLog: Entry deleted successfully in', Date.now() - startTime, 'ms');
 
               // Track deletion analytics
               if (entryToDelete && user) {
@@ -723,14 +703,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
-    console.log('🎯 ENTRY PRESS HANDLER CALLED!', {
-      entryId: entry.id,
-      title: entry.title,
-      type: entry.type,
-      source: entry.source,
-      hasContent: !!entry.content,
-      timestamp: new Date().toISOString(),
-    });
 
     // Set editing state
     setEditingId(entry.id);
@@ -776,7 +748,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             style={styles.retryButton}
             onPress={() => {
               triggerLightHaptic();
-              console.log('🔄 User retrying reflection fetch');
+
               analytics.trackReflectionEvent('reflection_error', {
                 error_type: error.message || 'Unknown error',
                 operation: 'fetch',
@@ -793,15 +765,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     }
 
     // Debug logging
-    console.log('🔍 ReflectionLog Debug:', {
-      totalEntries: entries.length,
-      currentDate: dateStr,
-      rawReflectionEntries: reflectionEntries,
-      transformedEntries: entries,
-      isLoading,
-      error: error?.message,
-      userId: user?.id,
-    });
 
     // Filter entries to only show those from the current date
     const filteredEntries = entries.filter(entry => {
@@ -809,15 +772,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       const entryDate = entry.selected_date?.split('T')[0] || entry.selected_date;
       const compareDate = dateStr?.split('T')[0] || dateStr;
       const matches = entryDate === compareDate;
-      console.log('🔍 Comparing dates:', { entryDate, compareDate, matches, originalEntry: entry.selected_date, originalDateStr: dateStr });
+
       return matches;
     });
 
-    console.log('🔍 Filtered entries for date:', dateStr, 'count:', filteredEntries.length);
-
     // Show only entries for the selected date
     const entriesToShow = filteredEntries;
-    console.log('🔍 Entries to show:', entriesToShow.length);
 
     // Return empty state when there are no entries to show
     if (entriesToShow.length === 0) {
@@ -1073,7 +1033,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             style={styles.retryButton}
             onPress={() => {
               triggerLightHaptic();
-              console.log('🔄 User retrying reflection fetch');
+
               analytics.trackReflectionEvent('reflection_error', {
                 error_type: error.message || 'Unknown error',
                 operation: 'retry',
@@ -1174,14 +1134,7 @@ return (
         <Modal
           visible={(() => {
             const shouldShow = isAdding || !!selectedEntry;
-            console.log('🎯 REFLECTION LOG MODAL visibility:', {
-              shouldShow,
-              isAdding,
-              hasSelectedEntry: !!selectedEntry,
-              selectedEntryId: selectedEntry?.id,
-              selectedEntryTitle: selectedEntry?.title,
-              timestamp: new Date().toISOString(),
-            });
+
             return shouldShow;
           })()}
           animationType="slide"
@@ -1214,21 +1167,10 @@ return (
                   ...(entryData.source && { source: entryData.source }),
                 };
 
-                console.log('🔍 Saving reflection with data:', saveData);
-                console.log('🔍 Entry context:', {
-                  editingId,
-                  selectedEntryType: selectedEntry?.type,
-                  newEntryType: newEntry.type,
-                  entryDataType: entryData.type,
-                  finalType: saveData.type,
-                  dateStr,
-                });
-
                 let result;
                 if (editingId) {
                   // Update existing entry
                   result = await updateMutation.mutateAsync({ id: editingId, updates: saveData });
-                  console.log('🔍 Updated reflection result:', result);
 
                   // Track update analytics
                   const existingEntry = entries.find(e => e.id === editingId);
@@ -1244,7 +1186,6 @@ return (
                 } else {
                   // Create new entry
                   result = await createMutation.mutateAsync(saveData);
-                  console.log('🔍 Created reflection result:', result);
 
                   // Track creation analytics
                   analytics.trackReflectionEvent('reflection_created', {
@@ -1256,12 +1197,10 @@ return (
                   }, user.id);
                 }
 
-                console.log('🔍 ReflectionLog: Entry saved successfully');
-
                 // Wait a moment for the mutation to complete before refetching
                 setTimeout(async () => {
                   await refetch();
-                  console.log('🔍 ReflectionLog: Data refetched after save');
+
                 }, 100);
 
                 // Close editor modal first, then show success modal to avoid layering conflicts
@@ -1302,7 +1241,7 @@ return (
               try {
                 await deleteMutation.mutateAsync(id);
                 await refetch();
-                console.log('Reflection deleted successfully');
+
               } catch (deleteError) {
                 console.error('Failed to delete reflection:', deleteError);
                 Alert.alert('Error', 'Failed to delete reflection. Please try again.');

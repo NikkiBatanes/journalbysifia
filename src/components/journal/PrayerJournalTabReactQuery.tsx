@@ -18,7 +18,7 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
   // Reset any local state when refresh key changes
   React.useEffect(() => {
     if (refreshKey && refreshKey > 0) {
-      console.log('🙏 PrayerJournalTab: Refresh triggered with key:', refreshKey);
+
       // React Query will automatically refetch data
     }
   }, [refreshKey]);

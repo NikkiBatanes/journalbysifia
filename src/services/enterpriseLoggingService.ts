@@ -455,10 +455,10 @@ class EnterpriseLoggingService {
 
     switch (logEntry.level) {
       case 'debug':
-        console.debug(message, logEntry.metadata);
+
         break;
       case 'info':
-        console.info(message, logEntry.metadata);
+
         break;
       case 'warn':
         console.warn(message, logEntry.metadata);

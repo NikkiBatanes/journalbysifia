@@ -56,13 +56,10 @@ interface Devotional {
 
 // Fallback data for when database is empty
 
-
 interface DevotionalCarouselProps {
   onDevotionalPress?: (devotional: Devotional) => void;
   onViewAll?: () => void;
 }
-
-
 
 const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   onDevotionalPress,
@@ -389,7 +386,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'devotionals' },
       () => {
-        console.log('[DevotionalCarousel] Devotionals table changed, refetching...');
+
         fetchDevotionals();
       }
     );
@@ -400,7 +397,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       (payload: any) => {
         const contentType = payload.new?.content_type ?? payload.old?.content_type;
         if (contentType === 'devotional') {
-          console.log('[DevotionalCarousel] User progress changed for devotional, refetching...');
+
           fetchDevotionals();
         }
       }
@@ -464,7 +461,6 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={2}>
         {devotional.title}
       </ThemedText>
-
 
       {devotional.verse && (
         <View style={styles.versePreview}>

@@ -743,7 +743,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const completedCount = todos.filter(t => t.completed).length;
   const uncompletedCount = todos.length - completedCount;
   const getSubtitle = () => {
-    console.log('getSubtitle called', { variant, showHeader, todosLength: todos.length });
+
     if (!showHeader) {return undefined;}
     if (variant === 'carousel' || variant === 'inline') {
       const category = getDateCategory(selectedDate);

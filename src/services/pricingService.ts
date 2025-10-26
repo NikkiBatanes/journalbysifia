@@ -201,25 +201,16 @@ class PricingService {
         locale = NativeModules.I18nManager?.localeIdentifier || '';
       }
 
-      console.log('[PricingService] 🔍 LOCATION DEBUG:');
-      console.log('[PricingService] Platform:', Platform.OS);
-      console.log('[PricingService] Raw locale:', locale);
-      console.log('[PricingService] Available location pricing:', Object.keys(this.locationPricing));
-
       // Extract country code from locale (e.g., "en_PH" -> "PH", "en-PH" -> "PH")
       const countryMatch = locale.match(/[-_]([A-Z]{2})$/i);
       const countryCode = countryMatch ? countryMatch[1].toUpperCase() : '';
 
-      console.log('[PricingService] Extracted country code:', countryCode);
-      console.log('[PricingService] Has PH pricing configured:', !!this.locationPricing.PH);
-
       // Return country code if we have pricing for it, otherwise default to US
       if (countryCode && this.locationPricing[countryCode]) {
-        console.log('[PricingService] Using country-specific pricing:', countryCode);
+
         return countryCode;
       }
 
-      console.log('[PricingService] Using default US pricing');
       return 'US';
     } catch (error) {
       console.error('[PricingService] Error getting user location:', error);
@@ -234,25 +225,18 @@ class PricingService {
     const location = await this.getUserLocation();
     const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
 
-    console.log('[PricingService] 📍 PRICING DEBUG:');
-    console.log('[PricingService] Detected location:', location);
-    console.log('[PricingService] Location data:', locationData);
-    console.log('[PricingService] Is development mode:', __DEV__);
-    console.log('[PricingService] Is location PH?', location === 'PH');
-
     // Use explicit PH pricing when market is Philippines
     if (location === 'PH') {
-      console.log('[PricingService] ✅ Using Philippine pricing for location:', location);
+
       return this.phOverridePricing;
     }
 
     // FORCE Philippine pricing for development/testing
     if (__DEV__) {
-      console.log('[PricingService] 🔧 DEV MODE: Forcing Philippine pricing for testing');
+
       return this.phOverridePricing;
     }
 
-    console.log('[PricingService] Using location-based pricing for:', location, 'with multiplier:', locationData.multiplier);
     return this.baseUSDPricing.map(tier => ({
       ...tier,
       monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
@@ -298,45 +282,27 @@ class PricingService {
    */
   async getDynamicDiscount(): Promise<DynamicDiscount | null> {
     // DISABLED FOR LAUNCH - Return null to skip dynamic discount flow
-    console.log('[PricingService] ⚠️ Dynamic discount disabled for launch');
+
     return null;
 
     /* COMMENTED OUT FOR LAUNCH - Uncomment when ready to enable promotional offers
-    console.log('[PricingService] getDynamicDiscount called:', { userId, tierId, billing });
 
     const current = (await loadDiscountState(userId)) || null;
     const optOuts = current?.optOutCount ?? this.userOptOutCount;
     const redeemed = current?.redeemed ?? false;
 
-    console.log('[PricingService] Discount state loaded:', {
-      current,
-      optOuts,
-      redeemed,
-      userOptOutCount: this.userOptOutCount,
-    });
-
     // Enable discount starting on the first opt-out
     if (optOuts < 1 || redeemed) {
-      console.log('[PricingService] ❌ Discount not eligible:', {
-        optOuts,
-        redeemed,
-        reason: optOuts < 1 ? 'Not enough opt-outs (need >= 1)' : 'Already redeemed',
-      });
+
       return null;
     }
 
     const period = billing || 'any';
     const key = tierId ? `${tierId}-${period}` : `default-${period}`;
 
-    console.log('[PricingService] Checking tier/billing combination:', {
-      key,
-      shownByTier: current?.shownByTier,
-      alreadyShown: !!(current?.shownByTier && current.shownByTier[key]),
-    });
-
     // If this exact combo was already shown, do not show again
     if (current?.shownByTier && current.shownByTier[key]) {
-      console.log('[PricingService] ❌ Discount already shown for this tier/billing:', key);
+
       return null;
     }
 
@@ -482,17 +448,17 @@ class PricingService {
    * Force increment opt-out count for testing dynamic discounts
    */
   async forceIncrementOptOut(userId?: string | null): Promise<void> {
-    console.log('[PricingService] 🧪 Force incrementing opt-out count for testing');
+
     await this.trackOptOut(userId);
     const current = await loadDiscountState(userId);
-    console.log('[PricingService] 🧪 New opt-out count:', current?.optOutCount);
+
   }
 
   /**
    * Clear discount state for testing
    */
   async clearDiscountState(userId?: string | null): Promise<void> {
-    console.log('[PricingService] 🧪 Clearing discount state for testing');
+
     try {
       const { saveDiscountState: saveDiscountStateFn } = await import('./discountStorage');
       // Reset to initial state
@@ -505,7 +471,7 @@ class PricingService {
         redeemedAt: null,
       };
       await saveDiscountStateFn(initialState, userId);
-      console.log('[PricingService] 🧪 Discount state cleared and reset');
+
     } catch (error) {
       console.error('[PricingService] 🧪 Failed to clear discount state:', error);
     }

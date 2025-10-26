@@ -90,14 +90,6 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
         error: null,
       });
 
-      console.log(`[useDevotionalGating] Loaded subscription for user ${user.id}:`, {
-        tier: subscription.tier,
-        effectiveTier: effectiveTier,
-        trial_chosen_tier: (subscription as any).trial_chosen_tier,
-        devotionals_used: subscription.devotionals_used,
-        devotionals_limit: subscription.devotionals_limit,
-      });
-
     } catch (error) {
       console.error('[useDevotionalGating] Failed to load subscription:', error);
       setState(prev => ({

@@ -194,7 +194,6 @@ export class ExportService {
     const mockPdfUrl = `https://api.sifia.app/exports/pdf/${playbook.id}?format=pdf&timestamp=${Date.now()}`;
 
     // TODO: Implement actual PDF generation
-    console.log('[ExportService] Generated PDF for playbook:', playbook.id);
 
     return mockPdfUrl;
   }
@@ -210,7 +209,6 @@ export class ExportService {
     const mockDocxUrl = `https://api.sifia.app/exports/docx/${playbook.id}?format=docx&timestamp=${Date.now()}`;
 
     // TODO: Implement actual DOCX generation
-    console.log('[ExportService] Generated DOCX for playbook:', playbook.id);
 
     return mockDocxUrl;
   }

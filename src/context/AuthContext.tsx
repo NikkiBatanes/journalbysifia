@@ -103,9 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
 
     try {
-      console.log('Starting login for:', email);
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      console.log('Sign in result:', JSON.stringify({ data, error: authError }, null, 2));
 
       const result = { data, error: authError };
 
@@ -136,8 +135,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Authentication failed: No user information received');
       }
 
-      console.log('Storing session data for user:', authUser.id);
-
       // Store all session data atomically
       await Promise.all([
         AsyncStorage.setItem(ACCESS_TOKEN_KEY, access_token),
@@ -154,7 +151,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       setIsAuthenticated(true);
 
-      console.log('Login successful for user:', authUser.id);
       return true;
     } catch (e: any) {
       console.error('Login error:', e);

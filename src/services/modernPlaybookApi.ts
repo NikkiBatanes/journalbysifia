@@ -32,7 +32,7 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
           try {
             const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
             if (refreshedSession) {
-              console.log('✅ Session recovered via refresh');
+
               return refreshedSession;
             }
           } catch (refreshError) {
@@ -83,7 +83,6 @@ export async function generatePlaybook(
   // Retry logic with exponential backoff
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Generating playbook (attempt ${attempt + 1}/${maxRetries + 1})`);
 
       // Resolve user's preferred Bible version (default NASB)
       let bibleVersion = 'NASB';
@@ -135,10 +134,7 @@ export async function generatePlaybook(
 
       // Usage tracking is handled by GeneratingPlaybookScreen.tsx to avoid double counting
       // and to properly handle onboarding flag
-      console.log('[ModernPlaybookApi] Usage tracking skipped - handled by calling screen');
 
-      console.log('✅ Playbook generated successfully with ID:', result.id);
-      console.log('✅ Journal types detected and added to subtasks');
       return playbookWithJournalTypes;
 
     } catch (err: unknown) {
@@ -155,7 +151,7 @@ export async function generatePlaybook(
       if (attempt < maxRetries) {
         // Exponential backoff delay
         const delay = API_RETRY_DELAY * Math.pow(2, attempt);
-        console.log(`Retrying in ${delay}ms...`);
+
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -183,8 +179,6 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
     // Ensure playbook has a proper UUID
     playbook.id = ensureValidUUID(playbook.id, 'savePlaybook');
 
-    console.log('💾 Saving playbook with UUID:', playbook.id);
-
     // Save to Supabase using the actual database schema
     const { data, error } = await supabase
       .from('playbooks')
@@ -209,11 +203,8 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
       return { success: false, error: error.message };
     }
 
-    console.log('✅ Playbook saved successfully:', data.id);
-
     // Save action steps to separate table
     if (playbook.actionSteps && playbook.actionSteps.length > 0) {
-      console.log('💾 Saving action steps to separate table...');
 
       // Delete existing action steps
       await supabase
@@ -251,12 +242,9 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         return { success: false, error: `Playbook saved but action steps failed: ${actionStepsError.message}` };
       }
 
-      console.log('✅ Action steps saved successfully');
-
       // Save sub-tasks for each action step
       for (const [stepIndex, step] of playbook.actionSteps.entries()) {
         if (step.subTasks && step.subTasks.length > 0) {
-          console.log(`💾 Saving ${step.subTasks.length} sub-tasks for step ${stepIndex + 1}...`);
 
           // Delete existing sub-tasks for this action step
           await supabase
@@ -294,14 +282,12 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
             return { success: false, error: `Sub-tasks failed for step ${stepIndex + 1}: ${subTasksError.message}` };
           }
 
-          console.log(`✅ Sub-tasks saved for step ${stepIndex + 1}`);
         }
       }
     }
 
     // Save affirmations to separate table
     if (playbook.affirmations && playbook.affirmations.length > 0) {
-      console.log('💾 Saving affirmations to separate table...');
 
       // Delete existing affirmations
       await supabase
@@ -327,7 +313,6 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         return { success: false, error: `Playbook saved but affirmations failed: ${affirmationsError.message}` };
       }
 
-      console.log('✅ Affirmations saved successfully');
     }
 
     return { success: true };
@@ -360,7 +345,6 @@ export async function updatePlaybookActionSteps(
     }
 
     const userId = session.user.id;
-    console.log('💾 Updating action steps for playbook:', playbookId, 'for user:', userId);
 
     // Verify playbook ownership for RLS
     const { data: playbookData, error: ownershipError } = await supabase
@@ -409,7 +393,6 @@ export async function updatePlaybookActionSteps(
 
         // Update subtasks if they exist and have completion status
         if (step.subTasks && Array.isArray(step.subTasks) && step.subTasks.length > 0) {
-          console.log(`📝 Updating ${step.subTasks.length} subtasks for step ${step.id}`);
 
           for (const subTask of step.subTasks) {
             // Only update if subTask has an id (exists in database)
@@ -427,14 +410,13 @@ export async function updatePlaybookActionSteps(
                 console.error(`❌ Error updating subtask ${subTask.id}:`, subTaskError);
                 // Continue with other subtasks even if one fails
               } else {
-                console.log(`✅ Updated subtask ${subTask.id} completed: ${subTask.completed}`);
+
               }
             }
           }
         }
       }
 
-      console.log('✅ Action steps and subtasks updated successfully');
     }
 
     // Update playbook status and timestamp
@@ -451,7 +433,6 @@ export async function updatePlaybookActionSteps(
       return { success: false, error: `Failed to update playbook status: ${updateError.message}` };
     }
 
-    console.log('✅ Playbook action steps updated successfully');
     return { success: true };
 
   } catch (error: any) {
@@ -496,7 +477,6 @@ export async function deletePlaybook(
       return { success: false, error: error.message };
     }
 
-    console.log('✅ Playbook deleted successfully:', playbookId);
     return { success: true };
 
   } catch (error: any) {
@@ -527,7 +507,6 @@ export function calculateTaskStats(actionSteps: any[]) {
  * Reverted to working approach that counts both action steps AND subtasks
  */
 export async function getPlaybooks(userId: string): Promise<Playbook[]> {
-  console.log('[modernGetPlaybooks] Fetching playbooks for user:', userId);
 
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -548,7 +527,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
   }
 
   if (!data || data.length === 0) {
-    console.log('[modernGetPlaybooks] No playbooks found');
+
     return [];
   }
 
@@ -579,7 +558,6 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     };
   });
 
-  console.log('[modernGetPlaybooks] Returning', playbooks.length, 'playbooks with accurate progress');
   return playbooks;
 }
 
@@ -599,8 +577,6 @@ export async function getPlaybook(
       throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
     }
 
-    console.log('📖 Fetching single playbook:', { userId, playbookId });
-
     // Validate and ensure proper UUID format
     const validatedId = ensureValidUUID(playbookId, 'getPlaybook');
     if (validatedId !== playbookId) {
@@ -618,7 +594,7 @@ export async function getPlaybook(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        console.log('📖 Playbook not found');
+
         return null;
       }
       console.error('❌ Failed to fetch playbook:', error);
@@ -630,36 +606,24 @@ export async function getPlaybook(
     }
 
     // Fetch action steps from separate table
-    console.log('[DEBUG] getPlaybook: Fetching action steps for playbook:', playbookId);
+
     const { data: actionStepsData, error: actionStepsError } = await supabase
       .from('playbook_action_steps')
       .select('*')
       .eq('playbook_id', playbookId)
       .order('order_index');
 
-    console.log('[DEBUG] getPlaybook: Action steps result:', {
-      actionStepsData: actionStepsData || [],
-      actionStepsCount: actionStepsData?.length || 0,
-      actionStepsError,
-    });
-
     if (actionStepsError) {
       console.warn('⚠️ Warning: Could not fetch action steps:', actionStepsError);
     }
 
     // Fetch affirmations from separate table
-    console.log('[DEBUG] getPlaybook: Fetching affirmations for playbook:', playbookId);
+
     const { data: affirmationsData, error: affirmationsError } = await supabase
       .from('playbook_affirmations')
       .select('*')
       .eq('playbook_id', playbookId)
       .order('order_index');
-
-    console.log('[DEBUG] getPlaybook: Affirmations result:', {
-      affirmationsData: affirmationsData || [],
-      affirmationsCount: affirmationsData?.length || 0,
-      affirmationsError,
-    });
 
     if (affirmationsError) {
       console.warn('⚠️ Warning: Could not fetch affirmations:', affirmationsError);
@@ -734,8 +698,6 @@ export async function getPlaybook(
 
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    console.log('[DEBUG] Progress calculation:', { totalTasks, completedTasks, progress });
-
     // Normalize potentially stringified JSON fields
     const safeParse = (val: any) => {
       if (typeof val === 'string') {
@@ -780,7 +742,6 @@ export async function getPlaybook(
       status: data.status,
     };
 
-    console.log('✅ Playbook fetched successfully:', playbook.id);
     return playbook;
 
   } catch (error: any) {

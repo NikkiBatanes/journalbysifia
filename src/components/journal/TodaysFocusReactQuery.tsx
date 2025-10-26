@@ -575,7 +575,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 triggerLightHaptic();
                 // Trigger a refetch by calling the query again
                 // In React Native, we don't have window.location.reload
-                console.log('Retry loading focus data');
+
               }}
               style={styles.retryButton}
               accessibilityRole="button"

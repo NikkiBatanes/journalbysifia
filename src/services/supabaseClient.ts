@@ -132,7 +132,7 @@ export const signOut = async () => {
 
     // Clear all auth-related storage
     await AsyncStorage.multiRemove(['ACCESS_TOKEN', 'REFRESH_TOKEN', 'USER']);
-    console.log('[SupabaseClient] Successfully signed out');
+
   } catch (error) {
     console.error('[SupabaseClient] Unexpected error signing out:', error);
     throw error;

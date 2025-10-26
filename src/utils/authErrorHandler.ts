@@ -33,8 +33,6 @@ export class AuthErrorHandler {
       operationName = 'operation',
     } = options;
 
-    console.log('🔍 Handling API error:', { error, operationName });
-
     // Check if it's an authentication error
     if (this.isAuthError(error)) {
       console.warn('🔐 Authentication error detected:', error);
@@ -43,7 +41,7 @@ export class AuthErrorHandler {
       const refreshResult = await this.attemptSessionRefresh();
 
       if (refreshResult.success) {
-        console.log('✅ Session refreshed successfully');
+
         return { shouldRetry: true, handled: true };
       }
 
@@ -105,7 +103,7 @@ export class AuthErrorHandler {
     const isAuthMessage = authErrorMessages.some(msg => errorMessage.includes(msg));
 
     if (isAuthMessage) {
-      console.log('🔍 Detected authentication error:', errorMessage);
+
       return true;
     }
 
@@ -144,7 +142,6 @@ export class AuthErrorHandler {
    */
   private async attemptSessionRefresh(): Promise<{ success: boolean; error?: any }> {
     try {
-      console.log('🔄 Attempting session refresh...');
 
       // First try to get the current session to see if it exists
       const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -166,10 +163,6 @@ export class AuthErrorHandler {
         return { success: false, error: 'No valid session returned' };
       }
 
-      console.log('✅ Session refreshed successfully', {
-        hasToken: !!session.access_token,
-        expiresAt: session.expires_at,
-      });
       return { success: true };
     } catch (error) {
       console.error('💥 Session refresh exception:', error);
@@ -278,7 +271,6 @@ export class AuthErrorHandler {
    * Execute retry queue after successful authentication
    */
   async executeRetryQueue(): Promise<void> {
-    console.log(`🔄 Executing ${this.retryQueue.size} queued operations...`);
 
     for (const [operationId, operation] of this.retryQueue.entries()) {
       try {

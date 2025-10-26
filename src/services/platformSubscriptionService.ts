@@ -99,7 +99,6 @@ class PlatformSubscriptionService {
    */
   async initialize(): Promise<void> {
     try {
-      console.log('[PlatformSubscription] Initializing...');
 
       // Initialize RNIap
       await RNIap.initConnection();
@@ -126,7 +125,6 @@ class PlatformSubscriptionService {
       }));
 
       this.isInitialized = true;
-      console.log(`[PlatformSubscription] Initialized with ${this.products.length} products`);
 
     } catch (error) {
       console.error('[PlatformSubscription] Initialization failed:', error);
@@ -165,7 +163,6 @@ class PlatformSubscriptionService {
    */
   async upgradeSubscription(request: UpgradeRequest): Promise<UpgradeResult> {
     try {
-      console.log('[PlatformSubscription] Starting upgrade:', request);
 
       if (!this.isInitialized) {
         await this.initialize();
@@ -179,7 +176,6 @@ class PlatformSubscriptionService {
         result = await this.upgradeAndroid(request);
       }
 
-      console.log('[PlatformSubscription] Upgrade completed:', result);
       return result;
 
     } catch (error) {
@@ -360,7 +356,7 @@ class PlatformSubscriptionService {
   async restorePurchases(): Promise<any[]> {
     try {
       const purchases = await RNIap.getAvailablePurchases();
-      console.log('[PlatformSubscription] Restored purchases:', purchases.length);
+
       return purchases;
     } catch (error) {
       console.error('[PlatformSubscription] Restore failed:', error);
@@ -380,7 +376,7 @@ class PlatformSubscriptionService {
     try {
       await RNIap.endConnection();
       this.isInitialized = false;
-      console.log('[PlatformSubscription] Cleaned up');
+
     } catch (error) {
       console.error('[PlatformSubscription] Cleanup failed:', error);
     }

@@ -188,7 +188,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       try {
         const forceNavigate = await AsyncStorage.getItem('force_navigate_to_main');
         if (forceNavigate === 'true') {
-          console.log('🚀 Force navigation flag detected - navigating to MainTabs');
+
           await AsyncStorage.removeItem('force_navigate_to_main');
           (navigation as any).reset({
             index: 0,
@@ -212,11 +212,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Handle route params and determine registration method
   React.useEffect(() => {
     logger.debug('Route params:', route.params);
-    console.log('🔍 DEBUG - Full route params received:', JSON.stringify(route.params, null, 2));
+
     if (route.params && typeof route.params === 'object') {
       // Get registration method
       const method = (route.params as any).registrationMethod || 'email';
-      console.log('🔍 DEBUG - registrationMethod from params:', method);
+
       logger.debug('Registration method:', method);
       setRegistrationMethod(method);
 
@@ -235,7 +235,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // This prevents using cached data that might be from a different user
           try {
             await AsyncStorage.removeItem('apple_signin_name');
-            console.log('🧹 Cleared stale Apple name data for fresh OAuth sign-in');
+
           } catch (error) {
             logger.error('Error clearing Apple name data:', error as Error);
           }
@@ -245,41 +245,39 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
         // For non-OAuth users (email/password), handle name extraction
         logger.debug('Non-OAuth user - checking email extraction');
-        console.log('🔍 DEBUG - Running email extraction logic for non-OAuth user');
 
         // Set name if provided, but ONLY for email users
         if (route.params && 'name' in route.params && route.params.name) {
           const providedName = route.params.name as string;
-          console.log('🔍 DEBUG - Found name in route params:', providedName);
+
           setName(providedName);
           logger.onboarding.navigation('email_user', 'name_provided', { name: providedName });
           setShowNameStep(false);
         } else {
           // Email user with no provided name - extract from email (but not private relay)
           logger.debug('Email user - extracting name from email');
-          console.log('🔍 DEBUG - No name in route params, extracting from email');
+
           if (user?.email) {
             // Check if this is an Apple private relay email (randomized when user hides email)
             const isApplePrivateRelay = user.email.includes('@privaterelay.appleid.com');
-            console.log('🔍 DEBUG - Checking for private relay email:', isApplePrivateRelay, user.email);
 
             if (isApplePrivateRelay) {
               logger.debug('🍎 Apple private relay email detected - forcing name collection', { email: user.email });
-              console.log('🔍 DEBUG - Private relay email detected, forcing name collection');
+
               setName(''); // Force name collection for private relay emails
               setShowNameStep(true); // Show name step
             } else {
               const emailUsername = user.email.split('@')[0];
-              console.log('🔍 DEBUG - Extracting name from email username:', emailUsername);
+
               // Extract first name from email (e.g., "bynikkib" → "Nikki")
               const extractedName = extractNameFromEmail(emailUsername);
-              console.log('🔍 DEBUG - Extracted name:', extractedName);
+
               setName(extractedName);
               logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
               setShowNameStep(false);
             }
           } else {
-            console.log('🔍 DEBUG - No user email found');
+
             setShowNameStep(false);
           }
         }
@@ -507,7 +505,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
             // IMPORTANT: Save the collected name to user metadata so backend can access it
             if (name && name.trim().length > 0) {
-              console.log('💾 Saving collected name to user profile:', name);
+
               try {
                 const { error: updateError } = await supabase.auth.updateUser({
                   data: {
@@ -519,7 +517,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 if (updateError) {
                   console.error('❌ Error saving name to user metadata:', updateError);
                 } else {
-                  console.log('✅ Name saved to user metadata successfully');
+
                 }
               } catch (nameError) {
                 console.error('❌ Error updating user metadata with name:', nameError);
@@ -537,8 +535,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
         // Skip redundant screens and go directly to playbook generation
         logger.debug('Proceeding directly to Playbook Generation');
-        console.log('🎯 Navigating with userName:', name || 'Friend');
-        console.log('🎯 Name state value:', name, 'type:', typeof name, 'length:', name?.length);
+
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
           userInput,
@@ -556,7 +553,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
         // IMPORTANT: Still save the collected name to user metadata even if onboarding update fails
         if (name && name.trim().length > 0 && user) {
-          console.log('💾 Saving collected name to user profile (error case):', name);
+
           try {
             const { error: updateError } = await supabase.auth.updateUser({
               data: {
@@ -568,7 +565,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             if (updateError) {
               console.error('❌ Error saving name to user metadata (error case):', updateError);
             } else {
-              console.log('✅ Name saved to user metadata successfully (error case)');
+
             }
           } catch (nameError) {
             console.error('❌ Error updating user metadata with name (error case):', nameError);

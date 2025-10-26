@@ -48,7 +48,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
 
-
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');
   const [showDynamicModal, setShowDynamicModal] = useState(false);
@@ -85,7 +84,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     isUpgradeMode,
     skipNotificationPreference: routeParams?.skipNotificationPreference,
   });
-
 
   // Safety check: Wait for user to load on hot reload instead of redirecting
   // Redirecting causes black screen during hot reload
@@ -143,7 +141,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           // FORCE Philippine currency in development for testing
           if (__DEV__) {
-            console.log('[SalesOfferScreen] 🔧 DEV MODE: Forcing Philippine currency symbol');
+
             setCurrencyInfo({ currency: 'PHP', symbol: '₱', multiplier: 1.0 });
           }
 
@@ -290,12 +288,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         if (targetProduct) {
           productId = targetProduct.productId;
-          console.log(`[OnboardingSalesOffer] ✅ Found matching product: ${productId}`);
-          console.log('[OnboardingSalesOffer] Product details:', {
-            tier: targetProduct.tier,
-            price: targetProduct.price,
-            title: targetProduct.title,
-          });
+
         } else {
           // Construct product ID - NO trial suffix for sales offer (always paid)
           productId = `app.sifia.com.${selectedTier}.${billing}`;
@@ -306,17 +299,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         productId = `app.sifia.com.${selectedTier}.${billing}`;
         console.warn(`[OnboardingSalesOffer] ⚠️ Failed to get products, using constructed ID: ${productId}`);
       }
-
-      console.log('[OnboardingSalesOffer] 🛒 INITIATING PURCHASE:', {
-        productId,
-        selectedTier,
-        billing,
-        isUpgradeMode,
-        userId: user?.id,
-      });
-      console.log('[OnboardingSalesOffer] ⚠️ IMPORTANT: Apple payment sheet MUST show now!');
-      console.log('[OnboardingSalesOffer] If payment sheet doesn\'t show, check AppleStoreKitService');
-
 
       if (isUpgradeMode) {
         // In upgrade mode, purchase and go back to previous screen
@@ -521,7 +503,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       setIsPurchasing(false);
     }
   };
-
 
   const getCurrentPrice = () => {
     const tier = pricingTiers.find(t => t.id === selectedTier);
@@ -988,7 +969,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           isAnnual={isAnnual}
         />
       )}
-
 
     </SafeAreaView>
   );

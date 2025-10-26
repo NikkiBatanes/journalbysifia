@@ -75,7 +75,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log('🎯 Feature showcase completed, proceeding to welcome screen');
 
       // Navigate to welcome screen
       navigation.navigate('OnboardingWelcome' as any);
@@ -165,7 +164,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             </View>
           </View>
         </View>
-
 
       </Animated.View>
     </View>

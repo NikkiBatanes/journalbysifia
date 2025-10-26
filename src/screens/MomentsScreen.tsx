@@ -65,7 +65,7 @@ export const MomentsScreen: React.FC = () => {
   // Listen for reflection save events to refresh the moments view
   useEffect(() => {
     const handleReflectionSaved = () => {
-      console.log('📝 [MomentsScreen] Reflection saved, refreshing moments...');
+
       setRefreshKey(prev => prev + 1);
     };
 

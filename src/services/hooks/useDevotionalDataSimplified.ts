@@ -84,18 +84,11 @@ export const useDevotionalDataReactQuery = (userId: string) => {
   return useQuery({
     queryKey: queryKeys.devotionals.list(userId),
     queryFn: async () => {
-      console.log('[useDevotionalDataReactQuery] Fetching devotionals for user:', userId);
+
       const apiEntries = await DevotionalApi.getDevotionals(userId);
       const transformed = apiEntries.map(transformApiEntryToDevotional);
 
       // Debug logging for simulator issue
-      console.log('[useDevotionalDataReactQuery] Transformed devotionals:', transformed.map(d => ({
-        id: d.id,
-        idType: typeof d.id,
-        idLength: d.id?.length,
-        title: d.title?.substring(0, 50),
-        platform: require('react-native').Platform.OS,
-      })));
 
       return transformed;
     },
@@ -112,23 +105,21 @@ export const useDevotionalDataReactQuery = (userId: string) => {
 export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
   const queryEnabled = !!id && !!userId && isValidUUID(id);
 
-  console.log('[useDevotionalByIdReactQuery] Hook called:', { userId, id, queryEnabled });
-
   const result = useQuery({
     queryKey: queryKeys.devotionals.detail(userId, id),
     queryFn: async () => {
-      console.log('[useDevotionalByIdReactQuery] Query function executing');
+
       if (!isValidUUID(id)) {
-        console.log('[useDevotionalByIdReactQuery] Invalid UUID, returning null');
+
         return null;
       }
 
       try {
-        console.log('[useDevotionalByIdReactQuery] Calling API...');
+
         const apiEntry = await DevotionalApi.getDevotionalById(id);
-        console.log('[useDevotionalByIdReactQuery] API result:', apiEntry ? 'found' : 'null');
+
         const transformed = apiEntry ? transformApiEntryToDevotional(apiEntry) : null;
-        console.log('[useDevotionalByIdReactQuery] Transformed result:', transformed ? 'success' : 'null');
+
         return transformed;
       } catch (error) {
         console.error('[useDevotionalByIdReactQuery] API error:', error);
@@ -143,15 +134,6 @@ export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
     refetchOnWindowFocus: false,
   });
 
-  console.log('[useDevotionalByIdReactQuery] Query state:', {
-    data: result.data,
-    isLoading: result.isLoading,
-    isFetching: result.isFetching,
-    error: result.error,
-    status: result.status,
-    fetchStatus: result.fetchStatus,
-  });
-
   return result;
 };
 
@@ -163,12 +145,11 @@ export const useCreateDevotionalReactQuery = () => {
 
   return useMutation({
     mutationFn: async ({ params, userId: _userId }: { params: DevotionalCreationParams; userId: string }) => {
-      console.log('[useCreateDevotionalReactQuery] Creating devotional:', params.duration, 'days');
+
       const devotional = await DevotionalApi.generateDevotional(params);
       return devotional;
     },
     onSuccess: (data, { userId: _userId }) => {
-      console.log('[useCreateDevotionalReactQuery] Success:', data.id);
 
       // Invalidate and refetch devotionals list
       queryClient.invalidateQueries({
@@ -205,7 +186,7 @@ export const useCreateDevotionalReactQuery = () => {
         const pts = faithPointsService.getPointsForActivity('devotional_generated');
         notificationService.showPointsNotification(pts, 'devotional_generated', 'center');
       } catch (e) {
-        console.log('[useCreateDevotionalReactQuery] Failed to show FP notification:', e);
+
       }
     },
     onError: (err: Error) => {
@@ -228,26 +209,17 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       dayNumber: number;
       userId: string;
     }) => {
-      console.log('[useMarkDayCompleteReactQuery] Marking day complete:', { devotionalId, dayNumber });
+
       const apiEntry = await DevotionalApi.markDayComplete(devotionalId, dayNumber);
       return transformApiEntryToDevotional(apiEntry);
     },
     onSuccess: async (data, { devotionalId, dayNumber, userId: _completionUserId }) => {
-      console.log('[useMarkDayCompleteReactQuery] Success:', { devotionalId, dayNumber, timestamp: new Date().toISOString() });
 
       // Trigger cross-component sync to award faith points and update dashboard
       try {
         // Check if this completion makes the entire devotional complete
         const completedDaysCount = data.days.filter(day => day.completed).length;
         const isFullDevotionalComplete = completedDaysCount === data.totalDays;
-
-        console.log('[useMarkDayCompleteReactQuery] Calling syncDevotionalCompletion with:', {
-          devotionalId,
-          isFullDevotionalComplete,
-          completedDaysCount,
-          totalDays: data.totalDays,
-          currentDay: dayNumber,
-        });
 
         const syncResult = await syncDevotionalCompletion(devotionalId, undefined, {
           isFullDevotionalComplete,
@@ -256,7 +228,6 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
           currentDay: dayNumber,
         });
 
-        console.log('[useMarkDayCompleteReactQuery] Cross-component sync completed:', syncResult);
       } catch (syncError) {
         console.error('[useMarkDayCompleteReactQuery] Sync error:', syncError);
       }
@@ -307,12 +278,11 @@ export const useSubmitDevotionalRatingReactQuery = () => {
       rating: number;
       userId: string;
     }) => {
-      console.log('[useSubmitDevotionalRatingReactQuery] Submitting rating:', { devotionalId, rating });
+
       const apiEntry = await DevotionalApi.submitRating(devotionalId, rating);
       return transformApiEntryToDevotional(apiEntry);
     },
     onSuccess: (data, { devotionalId, rating, userId }) => {
-      console.log('[useSubmitDevotionalRatingReactQuery] Success:', { devotionalId, rating });
 
       // Update list query cache (invalidate to refresh)
       queryClient.invalidateQueries({
@@ -350,11 +320,10 @@ export const useDeleteDevotionalReactQuery = () => {
       devotionalId: string;
       userId: string;
     }) => {
-      console.log('[useDeleteDevotionalReactQuery] Deleting devotional:', devotionalId);
+
       await DevotionalApi.deleteDevotional(devotionalId);
     },
     onSuccess: (_, { devotionalId, userId }) => {
-      console.log('[useDeleteDevotionalReactQuery] Success:', devotionalId);
 
       // Invalidate related queries
       queryClient.invalidateQueries({
@@ -401,7 +370,6 @@ export const useDevotionalOperations = (userId: string) => {
 
   const fetchPlaybookById = async (playbookId: string) => {
     try {
-      console.log('[useDevotionalOperations] Fetching playbook by ID:', playbookId);
 
       // Import the playbook API function
       const { getPlaybooks } = await import('../apiIntegration');
@@ -415,7 +383,6 @@ export const useDevotionalOperations = (userId: string) => {
         return null;
       }
 
-      console.log('[useDevotionalOperations] Found playbook:', playbook.title);
       return playbook;
     } catch (catchError) {
       console.error('[useDevotionalOperations] Error fetching playbook:', catchError);

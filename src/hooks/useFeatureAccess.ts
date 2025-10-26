@@ -83,7 +83,7 @@ export function useFeatureAccess({
 
     // This would typically navigate to subscription screen or show modal
     // Implementation depends on navigation setup
-    console.log('Show upgrade prompt:', accessResult.upgradePrompt);
+
   }, [accessResult]);
 
   // Check access when dependencies change
@@ -209,7 +209,6 @@ export function useExportAccess() {
     },
   };
 }
-
 
 /**
  * Hook for handling retention offers when users hit restrictions

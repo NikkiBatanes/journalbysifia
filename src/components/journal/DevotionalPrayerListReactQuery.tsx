@@ -58,8 +58,6 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
 
   // ---- LOGIC AND FUNCTIONS BELOW ----
 
-  console.log('📿 DevotionalPrayerList: Rendering with prayers:', devotionalPrayers.length);
-
   if (isLoading) {
     return null; // Don't show loading state for devotional prayers
   }

@@ -43,8 +43,6 @@ export const useApi = () => {
         return new Response(null, { status: 401 });
       }
 
-      console.log(`🌐 Making API request: ${operationId}`);
-
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -79,7 +77,7 @@ export const useApi = () => {
       });
 
       if (result.shouldRetry && currentRetries < maxRetries) {
-        console.log(`🔄 Retrying API request: ${operationId} (attempt ${currentRetries + 1}/${maxRetries})`);
+
         retryCountRef.current.set(operationId, currentRetries + 1);
 
         // Wait before retry (exponential backoff)
@@ -108,7 +106,7 @@ export const useApi = () => {
       });
 
       if (result.shouldRetry && currentRetries < maxRetries) {
-        console.log(`🔄 Retrying after network error: ${operationId} (attempt ${currentRetries + 1}/${maxRetries})`);
+
         retryCountRef.current.set(operationId, currentRetries + 1);
 
         // Wait before retry

@@ -62,7 +62,7 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
         } else {
           processedText = processedText.replace(pattern, `${currentFirstName}, `);
         }
-        console.log(`[nameReplacement] Replaced "${detectedName}" with "${currentFirstName}"`);
+
         break; // Only replace the first occurrence
       }
     }
@@ -119,7 +119,6 @@ export function replaceAllNamePlaceholders(
   user: { displayName?: string; firstName?: string; lastName?: string },
   options?: { oldDisplayName?: string; replaceHardcodedNames?: boolean }
 ): string {
-  console.log('[nameReplacement] Input:', { text, user, options });
 
   if (!text) {
     return text;
@@ -130,17 +129,15 @@ export function replaceAllNamePlaceholders(
 
   // Use first name only for more natural text flow
   const firstName = user.firstName || (user.displayName ? user.displayName.split(' ')[0] : '');
-  console.log('[nameReplacement] Using first name:', firstName);
 
   if (firstName) {
     // First, replace [User's Name] placeholder with first name only
     processedText = processedText.replace(/\[User's Name\]/g, firstName);
-    console.log('[nameReplacement] After placeholder replacement:', { before: text, after: processedText });
 
     // Then, try to replace hardcoded names from old playbooks (disabled by default to prevent text cutting)
     if (options?.replaceHardcodedNames === true) {
       const afterHardcoded = replaceHardcodedNames(processedText, firstName, options?.oldDisplayName);
-      console.log('[nameReplacement] After hardcoded replacement:', { before: processedText, after: afterHardcoded });
+
       processedText = afterHardcoded;
     }
   }
@@ -155,7 +152,6 @@ export function replaceAllNamePlaceholders(
     processedText = processedText.replace(/\[Last Name\]/g, user.lastName);
   }
 
-  console.log('[nameReplacement] Final result:', { originalText, processedText, changed: originalText !== processedText });
   return processedText;
 }
 

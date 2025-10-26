@@ -43,7 +43,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate }) => {
     try {
       playSound();
     } catch (error) {
-      console.log('Error with sound feedback:', error);
+
     }
   }, []);
 

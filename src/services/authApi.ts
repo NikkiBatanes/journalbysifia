@@ -653,7 +653,7 @@ class AuthApiService {
 
         // If profile doesn't exist, create a default one
         if (error.code === 'PGRST116') {
-          console.log('Creating default profile for user:', userId);
+
           return await this.createDefaultProfile(userId);
         }
 
@@ -695,7 +695,6 @@ class AuthApiService {
         return null;
       }
 
-      console.log('Default profile created successfully:', data);
       return data;
     } catch (error) {
       console.error('Create default profile error:', error);

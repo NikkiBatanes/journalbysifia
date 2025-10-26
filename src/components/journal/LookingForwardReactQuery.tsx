@@ -217,7 +217,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         // Compare by ID and text to avoid unnecessary updates
         if (!lookingForward && !prevDisplayEntry) {return prevDisplayEntry;}
         if (!lookingForward || !prevDisplayEntry) {
-          console.log('🌅 LookingForward: Updated displayEntry from server:', lookingForward);
+
           return lookingForward;
         }
 
@@ -230,11 +230,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         // (optimistic updates have temp IDs or are newer)
         if (prevDisplayEntry.id.startsWith('temp-') && lookingForward.text === prevDisplayEntry.text) {
           // Replace temp ID with real ID but keep the optimistic content
-          console.log('🌅 LookingForward: Replacing optimistic ID with real ID:', { from: prevDisplayEntry.id, to: lookingForward.id });
+
           return { ...prevDisplayEntry, id: lookingForward.id };
         }
 
-        console.log('🌅 LookingForward: Updated displayEntry from server:', lookingForward);
         return lookingForward;
       });
     }
@@ -246,7 +245,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     setIsAdding(false);
     setIsEditing(false);
     setIsSaving(false);
-    console.log('🌅 LookingForward: Resetting state for date:', dateStr);
+
   }, [dateStr]);
 
   // Handle global edit mode activation
@@ -404,7 +403,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           },
         });
 
-        console.log('🌅 LookingForward: Entry updated successfully');
         triggerSuccessHaptic();
       } else {
         // Create new entry with optimistic update
@@ -443,7 +441,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           }),
         });
 
-        console.log('🌅 LookingForward: Entry created successfully');
         triggerSuccessHaptic();
       }
     } catch (saveError) {

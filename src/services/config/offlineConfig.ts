@@ -72,7 +72,7 @@ export const offlineMutationOptions = {
 export async function clearPersistedCache() {
   try {
     await asyncStoragePersister.removeClient();
-    console.log('Persisted cache cleared successfully');
+
   } catch (error) {
     console.error('Failed to clear persisted cache:', error);
   }

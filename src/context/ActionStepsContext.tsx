@@ -73,7 +73,6 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       completed = total;
     }
 
-    console.log('[DEBUG] Task count:', { completed, total });
     return { completed, total };
   }, [actionSteps]);
 
@@ -101,7 +100,6 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
   }, []);
 
   const handleToggleStep = useCallback((stepId: string, subTaskId?: string) => {
-    console.log('[DEBUG] handleToggleStep called with:', { stepId, subTaskId });
 
     setActionSteps(prev => {
       const prevCopy = [...prev];
@@ -125,7 +123,6 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       }
 
       if (subTaskId && step.subTasks.length > 0) {
-        console.log('[DEBUG] Toggling subtask for step:', step.title);
 
         // Toggle the subtask
         const subTaskIndex = step.subTasks.findIndex(st => st.id === subTaskId);
@@ -180,16 +177,12 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
         return;
       }
 
-      console.log(`[ActionStepsContext] Saving action steps for playbook ${pbId}`);
       const stats = calculateTaskStats(actionSteps);
       const allCompleted = areAllStepsCompleted(actionSteps);
-
-      console.log(`[ActionStepsContext] Stats: ${stats.completed}/${stats.total}, allCompleted: ${allCompleted}`);
 
       // Save action steps directly to database without relying on Zustand store
       await updatePlaybookActionSteps(pbId, actionSteps);
 
-      console.log(`[ActionStepsContext] Successfully saved action steps for playbook ${pbId}`);
     } catch (error) {
       console.error('[ActionStepsContext] Error saving action steps:', error);
       throw error;

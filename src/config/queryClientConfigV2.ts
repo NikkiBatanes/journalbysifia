@@ -307,7 +307,7 @@ export const backgroundSyncUtils = {
   setupNetworkRefetch: (queryClient: QueryClient) => {
     // This will be called by the network manager when connection is restored
     return () => {
-      console.log('🔄 Network reconnected, refetching stale queries...');
+
       queryClient.refetchQueries({
         type: 'active',
         stale: true,
@@ -322,12 +322,12 @@ export const backgroundSyncUtils = {
     // This integrates with the network manager for offline actions
     return {
       onOnline: () => {
-        console.log('🌐 Coming online, triggering background sync...');
+
         // The network manager will handle offline action sync
         queryClient.resumePausedMutations();
       },
       onOffline: () => {
-        console.log('📱 Going offline, pausing mutations...');
+
         // Mutations will be queued automatically
       },
     };

@@ -45,30 +45,16 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  console.log('🔍 DevotionalDetailReflectionModal - Props received:', {
-    visible,
-    devotionalId,
-    dayNumber,
-    questionNumber,
-    existingEntry: existingEntry ? {
-      id: existingEntry.id,
-      title: existingEntry.title,
-      content: existingEntry.content?.substring(0, 50) + '...',
-      devotional_id: existingEntry.devotional_id,
-      day_number: existingEntry.day_number,
-      question_number: existingEntry.question_number,
-    } : null,
-  });
   // New success modal system
   const successModal = useSuccessModal(
     () => {
       // Done callback - close the main modal
-      console.log('✅ DevotionalDetailReflectionModal: Success modal Done pressed - closing main modal');
+
       onCancel(); // This closes the main modal
     },
     () => {
       // Edit callback - keep modal open for editing
-      console.log('✏️ DevotionalDetailReflectionModal: Success modal Edit pressed - keeping modal open');
+
     }
   );
   const [_pendingReflectionData, _setPendingReflectionData] = useState<{ content: string; date: Date } | null>(null);
@@ -92,22 +78,10 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     questionNumber?: number;
   }) => {
     try {
-      console.log('🔍 DevotionalDetailReflectionModal: saveReflection started with:', entry);
-      console.log('🔍 DevotionalDetailReflectionModal: User:', user?.id);
-      console.log('🔍 DevotionalDetailReflectionModal: Date string:', dateStr);
 
       if (!user) {
         throw new Error('User not authenticated');
       }
-
-      console.log('🔍 Saving devotional reflection with data:', {
-        title: entry.title,
-        content: entry.content,
-        source: 'devotional',
-        devotionalTitle,
-        dayNumber,
-        questionNumber,
-      });
 
       // Create save data matching the database schema
       const saveData = {
@@ -137,24 +111,18 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       };
 
       // Save to database using React Query (update existing entry if it exists)
-      console.log('🔍 DevotionalDetailReflectionModal: Saving with data:', saveData);
-      console.log('🔍 DevotionalDetailReflectionModal: Date string:', dateStr);
-      console.log('🔍 DevotionalDetailReflectionModal: User ID:', user.id);
-      console.log('🔍 DevotionalDetailReflectionModal: Existing entry:', existingEntry);
 
       let result;
       if (existingEntry) {
         // Update existing entry
         const { ReflectionApi } = await import('../services/api/reflectionApi');
         result = await ReflectionApi.updateReflectionEntry(existingEntry.id, saveData);
-        console.log('🔍 DevotionalDetailReflectionModal: Updated existing entry:', result);
+
       } else {
         // Create new entry
-        console.log('🔍 DevotionalDetailReflectionModal: About to call createMutation.mutateAsync with:', saveData);
-        console.log('🔍 DevotionalDetailReflectionModal: Mutation status:', { isLoading: createMutation.isPending, isError: createMutation.isError });
+
         result = await createMutation.mutateAsync(saveData);
       }
-      console.log('🔍 DevotionalDetailReflectionModal: Mutation completed successfully:', result);
 
       // Track analytics
       analytics.trackReflectionEvent('reflection_created', {
@@ -166,12 +134,8 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       }, user.id);
 
       // Force refetch to ensure UI updates
-      console.log('🔍 DevotionalDetailReflectionModal: About to refetch reflection data...');
+
       const refetchResult = await refetch();
-      console.log('🔍 DevotionalDetailReflectionModal: Refetch completed. Data:', refetchResult.data?.length, 'entries');
-      console.log('🔍 DevotionalDetailReflectionModal: Refetch result:', refetchResult);
-      console.log('🔍 DevotionalDetailReflectionModal: Refetch data:', refetchResult.data);
-      console.log('🔍 DevotionalDetailReflectionModal: Refetch error:', refetchResult.error);
 
       // Invalidate cache to update journal screen
       if (user?.id) {
@@ -219,10 +183,6 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     [key: string]: any;
   }) => {
     try {
-      console.log('📝 DevotionalDetailReflectionModal: Saving reflection data to database immediately', {
-        title: entry.title,
-        contentLength: entry.content.length,
-      });
 
       const reflectionData = {
         title: entry.title,
@@ -240,7 +200,6 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
       // Save to database immediately
       const savedEntry = await saveReflection(reflectionData);
-      console.log('✅ DevotionalDetailReflectionModal: Database save completed:', savedEntry);
 
       // Call the original onSave with the saved entry data
       if (onSave) {
@@ -269,7 +228,6 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         });
       }
 
-      console.log('✅ DevotionalDetailReflectionModal: Reflection saved successfully');
     } catch (error: any) {
       console.error('❌ DevotionalDetailReflectionModal: SAVE FAILED:', error);
       Alert.alert(
@@ -280,21 +238,17 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     }
   };
 
-
-
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSuccessClose = () => {
-    console.log('📝 DEVOTIONAL: Done button pressed, closing modal (data already saved)');
-    console.log('🔍 DEVOTIONAL: About to hide success modal and close main modal');
+
     // Handled by success modal hook
     onCancel(); // Close the modal
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEdit = () => {
-    console.log('📝 DEVOTIONAL: Edit button pressed, closing success modal');
-    console.log('🔍 DEVOTIONAL: About to hide success modal for editing');
+
     // Handled by success modal hook
     // Keep modal open for continued editing
   };

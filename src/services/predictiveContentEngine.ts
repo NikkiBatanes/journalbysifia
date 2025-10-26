@@ -106,7 +106,6 @@ export class PredictiveContentEngine {
    */
   async predictOptimalContent(userId: string, currentContext?: any): Promise<ContentPrediction> {
     try {
-      console.log(`[PredictiveContent] Generating prediction for user ${userId}`);
 
       // Get or build user content profile
       const profile = await this.getUserContentProfile(userId);

@@ -635,7 +635,7 @@ class AnalyticsService {
     // Placeholder for external analytics integration
     // Could integrate with Mixpanel, Amplitude, Google Analytics, etc.
     if (process.env.NODE_ENV === 'development') {
-      console.log('Analytics Event:', event);
+
     }
   }
 }

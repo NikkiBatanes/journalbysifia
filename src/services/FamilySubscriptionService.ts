@@ -82,7 +82,6 @@ export class FamilySubscriptionService {
         })
         .eq('user_id', options.admin_user_id);
 
-      console.log('[FamilyService] Family group created successfully:', data.id);
       return data;
     } catch (error) {
       console.error('[FamilyService] Failed to create family group:', error);
@@ -224,7 +223,6 @@ export class FamilySubscriptionService {
         throw new Error(`Failed to create invitation: ${error.message}`);
       }
 
-      console.log('[FamilyService] Invitation created:', data.id);
       return data;
     } catch (error) {
       console.error('[FamilyService] Failed to invite member:', error);
@@ -303,7 +301,6 @@ export class FamilySubscriptionService {
         console.error('[FamilyService] Failed to update invitation status:', updateError);
       }
 
-      console.log('[FamilyService] Invitation accepted successfully');
       return true;
     } catch (error) {
       console.error('[FamilyService] Failed to accept invitation:', error);
@@ -355,7 +352,6 @@ export class FamilySubscriptionService {
         console.error('[FamilyService] Failed to update member count:', groupError);
       }
 
-      console.log('[FamilyService] Member removed successfully');
       return true;
     } catch (error) {
       console.error('[FamilyService] Failed to remove member:', error);
@@ -417,7 +413,6 @@ export class FamilySubscriptionService {
         throw new Error(`Failed to cancel invitation: ${error.message}`);
       }
 
-      console.log('[FamilyService] Invitation cancelled successfully');
       return true;
     } catch (error) {
       console.error('[FamilyService] Failed to cancel invitation:', error);

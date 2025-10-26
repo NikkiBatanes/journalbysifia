@@ -10,11 +10,11 @@ const loadSound = (): Sound | null => {
     // First try loading from raw resources
     soundInstance = new Sound('bell', Sound.MAIN_BUNDLE, (error) => {
       if (error) {
-        console.log('Failed to load sound from raw resources, trying assets...', error);
+
         // If raw resource fails, try loading from assets
         soundInstance = new Sound('sounds/bell.mp3', Sound.MAIN_BUNDLE, (loadError) => {
           if (loadError) {
-            console.log('Failed to load sound from assets', error);
+
             soundInstance = null;
           }
         });
@@ -24,7 +24,7 @@ const loadSound = (): Sound | null => {
     // iOS - load from main bundle
     soundInstance = new Sound('bell.mp3', Sound.MAIN_BUNDLE, (error) => {
       if (error) {
-        console.log('Failed to load sound', error);
+
         soundInstance = null;
       }
     });
@@ -61,7 +61,7 @@ export const playSound = () => {
     // Try to initialize sound if not already done
     sound = loadSound();
     if (!sound) {
-      console.log('Sound not available');
+
       return;
     }
   }
@@ -70,11 +70,11 @@ export const playSound = () => {
     sound.setCurrentTime(0);
     sound.play((success) => {
       if (!success) {
-        console.log('Sound playback failed');
+
       }
     });
   } catch (error) {
-    console.log('Error playing sound:', error);
+
   }
 };
 

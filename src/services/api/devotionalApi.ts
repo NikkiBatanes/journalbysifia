@@ -62,7 +62,6 @@ export class DevotionalApi {
    * Get a specific devotional by ID
    */
   static async getDevotionalById(id: string): Promise<DevotionalApiEntry | null> {
-    console.log('[DevotionalApi] getDevotionalById called with ID:', id);
 
     // Check if ID looks like a valid UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -247,18 +246,15 @@ export class DevotionalApi {
     try {
       const { supabase: supabaseClient } = await import('../supabaseClient');
       const { data: { user } } = await supabaseClient.auth.getUser();
-      console.log('[DevotionalApi] User ID:', user?.id);
 
       if (user) {
         // Check user_metadata first (where IndustryStandardAuthContext stores it)
         const userMetadata = user.user_metadata;
-        console.log('[DevotionalApi] User metadata:', JSON.stringify(userMetadata, null, 2));
 
         if (userMetadata?.preferences?.content?.bibleVersion) {
           bibleVersion = userMetadata.preferences.content.bibleVersion;
-          console.log('[DevotionalApi] Found Bible version in user_metadata:', bibleVersion);
+
         } else {
-          console.log('[DevotionalApi] No Bible version in user_metadata, checking user_profiles table...');
 
           // Fallback to user_profiles table
           const { data: profile } = await supabase
@@ -267,18 +263,16 @@ export class DevotionalApi {
             .eq('id', user.id)
             .single();
 
-          console.log('[DevotionalApi] Profile data:', JSON.stringify(profile, null, 2));
-
           if (profile?.preferences?.content?.bibleVersion) {
             bibleVersion = profile.preferences.content.bibleVersion;
-            console.log('[DevotionalApi] Found Bible version in user_profiles:', bibleVersion);
+
           } else {
-            console.log('[DevotionalApi] No Bible version found in either location');
+
           }
         }
       }
     } catch (error) {
-      console.log('[DevotionalApi] Could not fetch Bible version preference, error:', error);
+
     }
 
     // Use the modern devotional API directly

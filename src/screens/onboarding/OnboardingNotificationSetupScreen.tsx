@@ -172,7 +172,6 @@ const OnboardingNotificationSetupScreen = () => {
       const permissionsGranted = await pushNotificationService.requestPermissions();
 
       if (permissionsGranted) {
-        console.log('✅ Push notifications enabled successfully');
 
         // Save notification preferences to Supabase
         const enabledSettings = notificationSettings
@@ -201,7 +200,7 @@ const OnboardingNotificationSetupScreen = () => {
           if (prefsError) {
             console.error('Error saving notification preferences:', prefsError);
           } else {
-            console.log('✅ Notification preferences saved successfully');
+
           }
         } catch (prefsError) {
           console.error('Error saving notification preferences:', prefsError);

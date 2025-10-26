@@ -58,8 +58,6 @@ export class UserContextEngine {
     requestType: 'playbook' | 'devotional' | 'journal_expansion'
   ): Promise<UserContext> {
 
-    console.log(`[UserContextEngine] Building context for user ${userId}, request: ${requestType}`);
-
     try {
       // 1. Get user's historical data
       const historicalData = await this.getUserHistoricalData(userId);
@@ -103,7 +101,6 @@ export class UserContextEngine {
       // 5. Store updated context for future use
       await this.storeUserContext(context);
 
-      console.log(`[UserContextEngine] Context built with confidence: ${context.confidenceScore}%`);
       return context;
 
     } catch (error) {

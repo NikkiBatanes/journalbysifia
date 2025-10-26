@@ -86,7 +86,6 @@ export class TimeBlockApi {
   // Get all time blocks for a user and date
   static async getTimeBlocks(userId: string, date: string): Promise<TimeBlockApiEntry[]> {
     try {
-      console.log('🔍 Fetching time blocks for user:', userId, 'date:', date);
 
       // Get both regular blocks for this date and repeating blocks that might appear on this date
       const { data: regularBlocks, error: regularError } = await supabase
@@ -101,8 +100,6 @@ export class TimeBlockApi {
         throw regularError;
       }
 
-      console.log('📅 Regular blocks found:', regularBlocks?.length || 0);
-
       // Filter out regular blocks that have the target date in their exceptions
       const filteredBlocks = regularBlocks?.filter(block => {
         const metadata = block.metadata || {};
@@ -110,13 +107,11 @@ export class TimeBlockApi {
         const isExcepted = exceptions.includes(date);
 
         if (isExcepted) {
-          console.log('🚫 Filtering out block due to exception:', block.id, 'for date:', date);
+
         }
 
         return !isExcepted;
       }) || [];
-
-      console.log('📅 Filtered regular blocks:', filteredBlocks.length);
 
       // Get exception records (hidden instances) for this date
       const { data: exceptions, error: exceptionsError } = await supabase
@@ -131,8 +126,6 @@ export class TimeBlockApi {
         throw exceptionsError;
       }
 
-      console.log('🚫 Exception records found:', exceptions?.length || 0);
-
       // Get repeating blocks that might appear on this date
       const { data: repeatingBlocks, error: repeatingError } = await supabase
         .from('time_blocks')
@@ -146,8 +139,6 @@ export class TimeBlockApi {
         console.error('❌ Error fetching repeating blocks:', repeatingError);
         throw repeatingError;
       }
-
-      console.log('🔄 Repeating blocks found:', repeatingBlocks?.length || 0);
 
       // Expand repeating blocks for this specific date
       const expandedRepeatingBlocks = this.expandRepeatingBlocks(repeatingBlocks || [], date);
@@ -164,7 +155,7 @@ export class TimeBlockApi {
           const isHidden = exceptionsForDate.includes(block.selected_date);
 
           if (isHidden) {
-            console.log('🚫 Filtering out hidden instance on', block.selected_date, 'due to exception in original block', originalBlockId);
+
           }
           return !isHidden;
         }
@@ -175,7 +166,7 @@ export class TimeBlockApi {
         const isHidden = blockExceptions.includes(block.selected_date);
 
         if (isHidden) {
-          console.log('🚫 Filtering out hidden instance on', block.selected_date);
+
         }
         return !isHidden;
       });
@@ -184,7 +175,6 @@ export class TimeBlockApi {
       const finalFilteredBlocks = filteredBlocks.filter(block => block.category !== 'exception');
       const allBlocks = [...finalFilteredBlocks, ...filteredExpandedBlocks];
 
-      console.log('📊 Total blocks for', date, ':', allBlocks.length);
       return allBlocks;
     } catch (error) {
       console.error('❌ Error in getTimeBlocks:', error);
@@ -196,13 +186,9 @@ export class TimeBlockApi {
   private static expandRepeatingBlocks(repeatingBlocks: TimeBlockApiEntry[], targetDate: string): TimeBlockApiEntry[] {
     const expandedBlocks: TimeBlockApiEntry[] = [];
 
-    console.log('🔍 Expanding blocks for target date:', targetDate);
-
     for (const block of repeatingBlocks) {
-      console.log('🔍 Checking block:', block.id, 'repeat_rule:', block.repeat_rule);
 
       if (this.shouldBlockAppearOnDate(block, targetDate)) {
-        console.log('✅ Block should appear on', targetDate);
 
         // Create a virtual instance for this date
         const virtualBlock: TimeBlockApiEntry = {
@@ -217,11 +203,10 @@ export class TimeBlockApi {
         };
         expandedBlocks.push(virtualBlock);
       } else {
-        console.log('❌ Block should NOT appear on', targetDate);
+
       }
     }
 
-    console.log('🔍 Total expanded blocks:', expandedBlocks.length);
     return expandedBlocks;
   }
 
@@ -254,7 +239,7 @@ export class TimeBlockApi {
     if (endDateStr) {
       const endDate = new Date(endDateStr);
       if (targetDateObj > endDate) {
-        console.log('🚫 Filtering out recurring block due to end date:', block.id, 'target:', targetDate, 'end:', endDateStr);
+
         return false;
       }
     }

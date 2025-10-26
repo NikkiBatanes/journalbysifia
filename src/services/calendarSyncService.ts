@@ -92,14 +92,12 @@ export interface LocationSuggestion {
 
 export const requestCalendarPermissions = async (): Promise<boolean> => {
   try {
-    console.log('🔍 Requesting calendar permissions...');
 
     if (Platform.OS === 'ios') {
       const status = await RNCalendarEvents.requestPermissions();
-      console.log('🔍 iOS calendar permission status:', status);
 
       if (status === 'denied' || status === 'restricted') {
-        console.log('🔍 Calendar permission denied/restricted. User needs to enable in Settings.');
+
         return false;
       }
 
@@ -196,30 +194,23 @@ export const requestLocationPermissions = async (): Promise<boolean> => {
 
 const getSiFiaCalendar = async (): Promise<string | null> => {
   try {
-    console.log('📆 [getSiFiaCalendar] Finding calendars...');
+
     const calendars = await RNCalendarEvents.findCalendars();
-    console.log('📆 [getSiFiaCalendar] Found', calendars.length, 'calendars');
-    console.log('📆 [getSiFiaCalendar] Calendar list:', calendars.map(c => ({ id: c.id, title: c.title, source: (c as any).source })));
 
     // 1) Prefer an existing 'siFia' calendar
     const existingSiFia = calendars.find(cal => cal.title === 'siFia');
     if (existingSiFia) {
-      console.log('📆 [getSiFiaCalendar] ✅ Found existing siFia calendar:', existingSiFia.id);
+
       return existingSiFia.id;
     }
 
-    console.log('📆 [getSiFiaCalendar] No existing siFia calendar found, attempting to create...');
-
     // 2) Fallback to default calendar if we cannot create (as last resort)
     const defaultCalendar = calendars.find(cal => (cal as any).isPrimary) || calendars[0];
-    console.log('📆 [getSiFiaCalendar] Default calendar:', defaultCalendar?.title, defaultCalendar?.id);
 
     // 3) Try to create a dedicated 'siFia' calendar using the default calendar's source
     // Note: RNCalendarEvents.saveCalendar requires platform-specific fields.
     try {
       const baseSource: any = (defaultCalendar as any)?.source || {};
-      console.log('📆 [getSiFiaCalendar] Base source:', baseSource);
-      console.log('📆 [getSiFiaCalendar] Platform:', Platform.OS);
 
       const config: any = {
         title: 'siFia',
@@ -232,9 +223,9 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
         // iOS requires a valid source. Reuse default calendar's source when possible.
         if (baseSource && baseSource.id) {
           config.source = baseSource;
-          console.log('📆 [getSiFiaCalendar] iOS: Using source:', baseSource);
+
         } else {
-          console.log('📆 [getSiFiaCalendar] iOS: ⚠️ No valid source found');
+
         }
       } else {
         // Android requires ownerAccount and accessLevel for local calendars
@@ -245,25 +236,22 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
         if (baseSource?.type) {
           config.accountType = baseSource.type;
         }
-        console.log('📆 [getSiFiaCalendar] Android: Config:', config);
+
       }
 
-      console.log('📆 [getSiFiaCalendar] Attempting to create calendar with config:', config);
       const createdId = await (RNCalendarEvents as any).saveCalendar(config);
-      console.log('📆 [getSiFiaCalendar] saveCalendar returned:', createdId);
 
       if (createdId) {
-        console.log('📆 [getSiFiaCalendar] ✅ Successfully created siFia calendar:', createdId);
+
         return createdId as string;
       } else {
-        console.log('📆 [getSiFiaCalendar] ⚠️ saveCalendar returned falsy value');
+
       }
     } catch (createErr) {
       console.error('📆 [getSiFiaCalendar] ❌ Could not create siFia calendar:', createErr);
       console.error('📆 [getSiFiaCalendar] Error details:', JSON.stringify(createErr));
     }
 
-    console.log('📆 [getSiFiaCalendar] Falling back to default calendar:', defaultCalendar?.id);
     return defaultCalendar?.id || null;
   } catch (error) {
     console.error('📆 [getSiFiaCalendar] ❌ Error getting calendar:', error);
@@ -290,13 +278,11 @@ export const syncTimeBlockToCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; eventId?: string; error?: string }> => {
   try {
-    console.log('📅 [syncTimeBlockToCalendar] Starting sync for:', timeBlock.title);
 
     const hasPermission = await requestCalendarPermissions();
-    console.log('📅 [syncTimeBlockToCalendar] Permission status:', hasPermission);
 
     if (!hasPermission) {
-      console.log('📅 [syncTimeBlockToCalendar] ❌ Permission denied');
+
       return {
         success: false,
         error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia',
@@ -304,10 +290,9 @@ export const syncTimeBlockToCalendar = async (
     }
 
     const calendarId = await getSiFiaCalendar();
-    console.log('📅 [syncTimeBlockToCalendar] Calendar ID:', calendarId);
 
     if (!calendarId) {
-      console.log('📅 [syncTimeBlockToCalendar] ❌ No calendar ID');
+
       return { success: false, error: 'Could not access calendar' };
     }
 
@@ -331,12 +316,7 @@ export const syncTimeBlockToCalendar = async (
       eventDetails.recurrence = recurrence;
     }
 
-    console.log('📅 [syncTimeBlockToCalendar] Event details:', eventDetails);
-    console.log('📅 [syncTimeBlockToCalendar] Calling RNCalendarEvents.saveEvent...');
-
     const eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
-
-    console.log('📅 [syncTimeBlockToCalendar] ✅ Event created with ID:', eventId);
 
     // Track success analytics
     try {
@@ -399,8 +379,6 @@ export const removeTimeBlockFromCalendar = async (
       }
     }
 
-    console.log('🗓️ Calendar removal - eventId:', eventId, 'realEventId:', realEventId, 'instanceDate:', instanceDate?.toISOString(), 'type:', options?.type);
-
     // Check if we actually have a real event ID to work with
     if (!realEventId || realEventId === 'undefined' || realEventId === 'null') {
       console.warn('🗓️ No valid calendar event ID found - cannot remove from calendar');
@@ -414,7 +392,7 @@ export const removeTimeBlockFromCalendar = async (
           futureEvents: true,
           instanceStartDate: instanceDate.toISOString(),
         });
-        console.log('🗓️ Successfully removed future events from', instanceDate.toISOString());
+
       } catch (e) {
         console.warn('🗓️ Future events removal failed, falling back to series removal:', e);
         // Fallback: remove base event if granular removal fails
@@ -426,7 +404,7 @@ export const removeTimeBlockFromCalendar = async (
           futureEvents: false,
           instanceStartDate: instanceDate.toISOString(),
         });
-        console.log('🗓️ Successfully removed single instance on', instanceDate.toISOString());
+
       } catch (e) {
         console.warn('🗓️ Single instance removal not supported by provider:', e);
         // Do NOT delete the entire series when single-instance deletion isn't supported.
@@ -434,7 +412,7 @@ export const removeTimeBlockFromCalendar = async (
       }
     } else {
       // Default: remove this single event/series
-      console.log('🗓️ Removing entire event/series:', realEventId);
+
       await RNCalendarEvents.removeEvent(realEventId);
     }
 
@@ -451,32 +429,27 @@ export const removeTimeBlockFromCalendar = async (
 
 export const getCurrentLocation = async (): Promise<LocationResult> => {
   try {
-    console.log('📍 [getCurrentLocation] Starting location request...');
 
     const hasPermission = await requestLocationPermissions();
-    console.log('📍 [getCurrentLocation] Permission status:', hasPermission);
 
     if (!hasPermission) {
-      console.log('📍 [getCurrentLocation] ❌ Permission denied');
+
       return { success: false, error: 'Location permission denied' };
     }
 
     return new Promise((resolve) => {
-      console.log('📍 [getCurrentLocation] Calling Geolocation.getCurrentPosition...');
 
       Geolocation.getCurrentPosition(
         async (position: any) => {
           const { latitude, longitude } = position.coords;
-          console.log('📍 [getCurrentLocation] Got coordinates:', latitude, longitude);
 
           try {
             // Use reverse geocoding to get actual address
-            console.log('📍 [getCurrentLocation] Fetching reverse geocode...');
+
             const response = await fetch(
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
             );
             const data = await response.json();
-            console.log('📍 [getCurrentLocation] Reverse geocode response:', data);
 
             let locationString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
             if (data && (data.locality || data.city)) {
@@ -484,12 +457,11 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
               const region = data.principalSubdivision || '';
               const country = data.countryName || '';
               locationString = [city, region, country].filter(Boolean).join(', ');
-              console.log('📍 [getCurrentLocation] Formatted location:', locationString);
+
             } else {
-              console.log('📍 [getCurrentLocation] No city data, using coordinates:', locationString);
+
             }
 
-            console.log('📍 [getCurrentLocation] ✅ Success:', locationString);
             resolve({
               success: true,
               location: locationString,
@@ -499,7 +471,7 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
             console.error('📍 [getCurrentLocation] Reverse geocoding failed:', error);
             // Fallback to coordinates if reverse geocoding fails
             const locationString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-            console.log('📍 [getCurrentLocation] ✅ Fallback to coordinates:', locationString);
+
             resolve({
               success: true,
               location: locationString,

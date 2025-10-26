@@ -152,13 +152,13 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
           try {
             if (isFromOnboarding && onboardingNextStep) {
               // Continue onboarding flow to next step
-              console.log('🎯 Continuing onboarding flow to:', onboardingNextStep);
+
               navigation.navigate(onboardingNextStep);
             } else {
               navigation.goBack();
             }
           } catch (err) {
-            console.log('Navigation error:', err);
+
           }
         }}
         style={styles.backButtonContainer}
@@ -217,13 +217,13 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
 const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: any; styles: any }) => (
   <TouchableOpacity
     onPress={() => {
-      console.log('Profile image pressed from PlaybookDetail');
+
       // Light haptic on avatar tap
       triggerLightHaptic();
       try {
         navigation.navigate('UserProfileModal');
       } catch (navigationError) {
-        console.log('Navigation error:', navigationError);
+
       }
     }}
     style={styles.profileButton}
@@ -269,13 +269,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const onboardingNextStep = (route.params as any)?.onboardingNextStep;
 
   // Debug logging for playbookId
-  console.log('📖 PlaybookDetailScreen - Route params debug:', {
-    'route.params?.playbook?.id': route.params?.playbook?.id,
-    'route.params?.playbookId': (route.params as any)?.playbookId,
-    'final playbookId': playbookId,
-    'playbookId type': typeof playbookId,
-    'full route.params': route.params,
-  });
+
   const { user } = useAuth();
   const userId = user?.id;
   const rootNavigation = useNavigation<any>();
@@ -286,20 +280,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const isFullPlaybook = routePlaybook && typeof routePlaybook === 'object' && 'title' in routePlaybook && 'actionSteps' in routePlaybook;
   const shouldFetchFromDB = !isFullPlaybook && !!playbookId && !!userId;
 
-  console.log('📖 PlaybookDetailScreen - Data source decision:', {
-    hasRoutePlaybook: !!routePlaybook,
-    shouldFetchFromDB,
-    routePlaybookId: routePlaybook?.id,
-    playbookId,
-  });
-
   const { data: fetchedPlaybook, isLoading, error } = useQuery<Playbook | null>({
     queryKey: ['playbook', playbookId],
     queryFn: async () => {
-      console.log('🔍 Fetching playbook from database with:', { userId, playbookId });
+
       try {
         const result = await getPlaybook(userId || '', playbookId);
-        console.log('✅ Database fetch result:', result ? 'Found playbook' : 'Playbook is null');
+
         return result;
       } catch (err) {
         console.error('❌ Database fetch error:', err);
@@ -313,15 +300,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Use route params playbook if it's a full playbook, otherwise use fetched playbook
   const playbook = isFullPlaybook ? (routePlaybook as Playbook) : fetchedPlaybook;
-
-  console.log('📖 PlaybookDetailScreen - Final playbook source:', {
-    hasRoutePlaybook: !!routePlaybook,
-    isFullPlaybook,
-    usingRouteParams: isFullPlaybook,
-    usingDatabase: !!fetchedPlaybook && !isFullPlaybook,
-    hasPlaybook: !!playbook,
-    playbookTitle: playbook?.title,
-  });
 
   // 2b. Advanced playbook hooks for prefetching and navigation
   const { prefetchForCurrentPlaybook } = useIntelligentPrefetching(userId || '');
@@ -444,20 +422,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const cardData: CardData[] = useMemo(() => {
     if (!playbook) {return [];}
 
-    console.log('[DEBUG] cardData: Creating card data from playbook:', {
-      playbookId: playbook.id,
-      actionStepsFromContext: actionSteps?.length || 0,
-      actionStepsFromPlaybook: playbook?.actionSteps?.length || 0,
-      affirmationsFromPlaybook: playbook?.affirmations?.length || 0,
-      actionStepsType: typeof actionSteps,
-      playbookActionStepsType: typeof playbook?.actionSteps,
-      affirmationsType: typeof playbook?.affirmations,
-    });
-
     // Debug action steps data
     const finalActionSteps = Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
           (Array.isArray(playbook?.actionSteps) ? playbook.actionSteps : []);
-    console.log('[DEBUG] cardData: Final action steps:', finalActionSteps);
 
     // Debug affirmations data
     const finalAffirmations = Array.isArray(playbook?.affirmations)
@@ -467,7 +434,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           a?.completed !== undefined
         )
       : [];
-    console.log('[DEBUG] cardData: Final affirmations:', finalAffirmations);
 
     return [
     {
@@ -711,36 +677,21 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Debug logging effect
   useEffect(() => {
-    console.log('[PlaybookDetailScreen] DETAILED DEBUG:', {
-      playbookId,
-      userId,
-      hasPlaybook: !!playbook,
-      title: playbook?.title,
-      userInput: playbook?.userInput,
-      hasUserInput: !!(playbook?.userInput),
-      actionStepsCount: playbook?.actionSteps?.length || 0,
-      firstActionStep: playbook?.actionSteps?.[0],
-      isLoading,
-      error: error?.message || error,
-      queryEnabled: !!playbookId && !!userId,
-      routeParams: route.params,
-    });
 
     if (!playbookId) {
-      console.log('[PlaybookDetailScreen] ❌ NO PLAYBOOK ID - showing error');
+
     } else if (isLoading) {
-      console.log('[PlaybookDetailScreen] ⏳ LOADING - showing loading screen');
+
     } else if (error || !playbook) {
-      console.log('[PlaybookDetailScreen] ❌ ERROR OR NO PLAYBOOK - showing error screen', { error: error?.message, hasPlaybook: !!playbook });
+
     } else {
-      console.log('[PlaybookDetailScreen] ✅ SUCCESS - showing playbook content');
+
     }
   }, [playbookId, userId, playbook, isLoading, error, route.params]);
 
   // Intelligent prefetching effect for adjacent playbooks and cross-component relationships
   useEffect(() => {
     if (playbookId && userId && playbook) {
-      console.log('[PlaybookDetailScreen] Starting intelligent prefetching for:', playbook.title);
 
       // Prefetch adjacent playbooks and related data
       prefetchForCurrentPlaybook(playbookId).catch(prefetchError => {
@@ -751,14 +702,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Playbook data debug effect
   useEffect(() => {
-    console.log('[DEBUG] Playbook data received in PlaybookDetailScreen:', JSON.stringify({
-      id: playbook?.id,
-      title: playbook?.title,
-      affirmations: playbook?.affirmations,
-      affirmationsCount: playbook?.affirmations?.length,
-      hasAffirmations: Array.isArray(playbook?.affirmations) && (playbook?.affirmations?.length || 0) > 0,
-      playbookKeys: playbook ? Object.keys(playbook) : [],
-    }, null, 2));
+
   }, [playbook]);
 
   // View mode change effect
@@ -815,7 +759,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Action steps initialization effect
   useEffect(() => {
     if (playbook?.actionSteps) {
-      console.log('[DEBUG] Syncing action steps from database:', playbook.actionSteps.length, 'steps');
+
       setActionSteps(playbook.actionSteps);
       if (!isInitialized) {
         setIsInitialized(true);
@@ -861,19 +805,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   useEffect(() => {
     if (viewMode === 'stack') {
       const isLastCard = cardData.length > 0 && currentCard === cardData.length - 1;
-      console.log('[DEBUG] Stack view card tracking:', {
-        currentCard,
-        cardDataLength: cardData.length,
-        isLastCard,
-        hasEverReachedLastCard: hasEverReachedLastCard.current,
-      });
+
       if (isLastCard) {
         hasEverReachedLastCard.current = true;
-        console.log('[DEBUG] Set hasEverReachedLastCard to true');
+
       }
       // Only update hasReachedLastCard if we're on the last card or if we've never reached it
       if (isLastCard || !hasEverReachedLastCard.current) {
-        console.log('[DEBUG] Setting hasReachedLastCard to:', isLastCard);
+
         setHasReachedLastCard(isLastCard);
       }
     }
@@ -891,21 +830,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
-    console.log('[DEBUG] Devotional button useEffect:', {
-      hasReachedLastCard,
-      hasCreatedDevotional,
-      viewMode,
-      shouldShow: hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack',
-    });
-
     if (hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack') {
-      console.log('[DEBUG] Setting devotional button timeout');
+
       timeoutId = setTimeout(() => {
-        console.log('[DEBUG] Showing devotional button');
+
         setShowDevotionalButton(true);
       }, 300); // 300ms delay
     } else {
-      console.log('[DEBUG] Hiding devotional button');
+
       setShowDevotionalButton(false);
     }
 
@@ -918,7 +850,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
-    console.log('[DEBUG] Setting navigation options with headerLeft');
+
     navigation.setOptions({
       headerTitle: '',
       // Hide navigation elements during onboarding
@@ -952,15 +884,15 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     // Set new timeout
     saveTimeoutRef.current = setTimeout(async () => {
       if (isSaving) {
-        console.log('[DEBUG] Save already in progress, skipping');
+
         return;
       }
 
       try {
         setIsSaving(true);
-        console.log('[DEBUG] Debounced save triggered for playbook ID:', playbook.id);
+
         await saveActionSteps(playbook.id);
-        console.log('[DEBUG] Debounced save completed successfully');
+
       } catch (err) {
         console.error('Error in debounced save:', err);
       } finally {
@@ -971,27 +903,21 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Call debounced save when actionSteps change
   useEffect(() => {
-    console.log('[DEBUG] ActionSteps effect triggered:', {
-      isInitialized,
-      actionStepsLength: actionSteps.length,
-      actionSteps: actionSteps.map(step => ({ id: step.id, completed: step.completed, subTasksCount: step.subTasks?.length || 0 })),
-    });
 
     if (isInitialized && actionSteps.length > 0) {
-      console.log('[DEBUG] ActionSteps changed, triggering debounced save');
+
       debouncedSaveProgress();
     } else {
-      console.log('[DEBUG] Skipping save - not initialized or no actionSteps');
+
     }
   }, [actionSteps, isInitialized, debouncedSaveProgress]);
 
   // DISABLED - Old automatic save logic
   /*
   useEffect(() => {
-    console.log('[DEBUG] Save effect triggered - isSaving:', isSaving, 'isInitialized:', isInitialized, 'playbookId:', playbook?.id);
 
     if (!isInitialized || isSaving || !playbook?.id) {
-      console.log('[DEBUG] Skipping save - conditions not met');
+
       return;
     }
 
@@ -1000,23 +926,19 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
     // Skip if actionSteps haven't actually changed
     if (currentActionStepsStr === lastSavedActionSteps.current) {
-      console.log('[DEBUG] ActionSteps unchanged, skipping save');
+
       return;
     }
-
-    console.log('[DEBUG] ActionSteps changed, saving progress');
-    console.log('[DEBUG] Previous actionSteps length:', lastSavedActionSteps.current.length);
-    console.log('[DEBUG] Current actionSteps length:', currentActionStepsStr.length);
 
     const saveProgress = async () => {
       try {
         setIsSaving(true);
-        console.log('[DEBUG] Saving progress for playbook ID:', playbook.id);
+
         await saveActionSteps(playbook.id);
 
         // Update the last saved state to prevent loops
         lastSavedActionSteps.current = currentActionStepsStr;
-        console.log('[DEBUG] Progress saved successfully');
+
       } catch (error) {
         console.error('Error saving progress:', error);
       } finally {
@@ -1042,7 +964,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         clearTimeout(saveTimeoutRef.current);
       }
       if (playbook?.id && actionSteps.length > 0) {
-        console.log('[DEBUG] Component unmounting, saving progress immediately');
+
         saveActionSteps(playbook.id).catch(console.error);
       }
     };
@@ -1069,13 +991,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // ===== HANDLER FUNCTIONS =====
 
   const handleCardPress = (index: number) => {
-    console.log('[PlaybookDetail] handleCardPress toggle expand for index:', index, 'viewMode:', viewMode, 'isScrolling:', isScrolling);
-    console.log('[PlaybookDetail] Current expandedCardIndex:', expandedCardIndex);
-    console.log('[PlaybookDetail] Content heights:', contentHeights);
+
     // Block expansion for Affirmations and Bible Verse cards
     const tappedType = cardData[index]?.type as CardType | undefined;
     if (tappedType === 'affirmation' || tappedType === 'bible') {
-      console.log('[PlaybookDetail] Expansion disabled for card type:', tappedType);
+
       return;
     }
 
@@ -1083,7 +1003,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     if (viewMode === 'stack' && !isScrolling) {
       // Light haptic on expand/collapse
       triggerLightHaptic();
-      console.log('[PlaybookDetail] Conditions met, toggling expansion');
+
       // Smooth expand/collapse animation
       LayoutAnimation.configureNext({
         duration: 400,
@@ -1093,12 +1013,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       });
       setExpandedCardIndex(prev => {
         const newValue = prev === index ? null : index;
-        console.log('[PlaybookDetail] Setting expandedCardIndex from', prev, 'to', newValue);
+
         return newValue;
       });
       return;
     }
-    console.log('[PlaybookDetail] Conditions not met for expansion');
+
     // In document view, do nothing on tap (no navigation to CardDetail)
   };
 
@@ -1227,12 +1147,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   };
 
   const renderStackCards = () => {
-    console.log(`[DEBUG] renderStackCards: Called with ${cardData.length} cards`);
-    console.log(`[DEBUG] renderStackCards: Current card index: ${currentCard}`);
-    console.log('[DEBUG] renderStackCards: Card data:', cardData.map(c => ({ type: c.type, hasContent: !!c.truth || !!c.steps || !!c.affirmations })));
 
     if (cardData.length === 0) {
-      console.log('[DEBUG] renderStackCards: No cards to render');
+
       return null;
     }
 
@@ -1241,12 +1158,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     const renderCard = (cardIndex: number, stackIndex: number, _onToggleView: (mode: 'stack' | 'document') => void) => {
       const card = cardData[cardIndex];
       if (!card) {
-        console.log(`[DEBUG] renderCard: No card at index ${cardIndex}`);
+
         return null;
       }
-
-      console.log(`[DEBUG] renderCard: Rendering card ${cardIndex}, stackIndex ${stackIndex}, type: ${card.type}`);
-      console.log('[DEBUG] renderCard: Card data:', { type: card.type, hasContent: !!card.truth || !!card.steps || !!card.affirmations });
 
       const scaleY = 1 - stackIndex * 0.01;
       const scaleX = 1 - stackIndex * 0.05;
@@ -1263,8 +1177,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       // const COLLAPSED_HEIGHT = 450; // Unused
       // For now, allow all cards to expand for testing
       const needsExpansion = !disableExpansionForType && true; // measuredHeight > COLLAPSED_HEIGHT + 50;
-
-      console.log(`[DEBUG] Card ${cardIndex} - measuredHeight: ${measuredHeight}, needsExpansion: ${needsExpansion}, isExpanded: ${isExpanded}, isTopCard: ${isTopCard}`);
 
       const cardContent = (
         <DocumentCardView
@@ -1291,11 +1203,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               style={styles.hiddenMeasurement}
               onLayout={({ nativeEvent }) => {
                 const h = nativeEvent.layout.height;
-                console.log(`[DEBUG] Measuring card ${cardIndex} height: ${h}`);
+
                 if (h > 0 && h !== measuredHeight) {
                   setContentHeights(prev => {
                     const newHeights = { ...prev, [cardIndex]: h };
-                    console.log('[DEBUG] Updated content heights:', newHeights);
+
                     return newHeights;
                   });
                 }
@@ -1329,12 +1241,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               <TouchableOpacity
                 activeOpacity={1}
                 onPress={() => {
-                  console.log(`[DEBUG] Card ${cardIndex} tapped - isTopCard: ${isTopCard}, needsExpansion: ${needsExpansion}`);
+
                   if (isTopCard) {
-                    console.log('[DEBUG] Top card tapped, calling handleCardPress');
+
                     handleCardPress(cardIndex);
                   } else {
-                    console.log('[DEBUG] Non-top card tapped, ignoring');
+
                   }
                 }}
                 onPressIn={() => {
@@ -1356,12 +1268,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             <TouchableOpacity
               activeOpacity={1}
               onPress={() => {
-                console.log(`[DEBUG] Card ${cardIndex} tapped - isTopCard: ${isTopCard}, needsExpansion: ${needsExpansion}`);
+
                 if (isTopCard) {
-                  console.log('[DEBUG] Top card tapped, calling handleCardPress');
+
                   handleCardPress(cardIndex);
                 } else {
-                  console.log('[DEBUG] Non-top card tapped, ignoring');
+
                 }
               }}
               onPressIn={() => {
@@ -1519,7 +1431,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               try {
                 navigation.goBack();
               } catch (err) {
-                console.log('Navigation error:', err);
+
               }
             }}
           >

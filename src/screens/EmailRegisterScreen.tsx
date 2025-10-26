@@ -80,7 +80,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    console.log('🔄 Starting email registration...');
     const { error: signUpError } = await signUp(emailTrim, password, {
       firstName: first,
       lastName: last,
@@ -94,7 +93,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    console.log('✅ Email registration successful!');
     // Set a post-auth redirect so Root/Splash can route instantly without flicker
     const displayName = first || emailTrim.split('@')[0] || '';
     try {
@@ -105,7 +103,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           params: { name: displayName, registrationMethod: 'email' },
         })
       );
-      console.log('🧭 Post-auth redirect set to OnboardingPersonalization');
+
     } catch (e) {
       console.warn('Could not set post-auth redirect flag:', e);
     }

@@ -122,7 +122,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   // Refresh gating data when usage limit modal is shown
   React.useEffect(() => {
     if (showUsageLimitModal) {
-      console.log('[DevotionalModal] Usage limit modal shown, refreshing subscription data...');
+
       devotionalGating.refreshSubscription();
     }
   }, [showUsageLimitModal, devotionalGating]);
@@ -170,7 +170,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   }, [visible, rotateAnim]);
 
   React.useEffect(() => {
-    console.log('[DevotionalModal] State changed:', { isCreating, error: !!error, isSuccess, selectedDuration });
+
   }, [isCreating, error, isSuccess, selectedDuration]);
   // Animation for the overlay (fade in/out)
   // Fade animation for backdrop dim
@@ -330,9 +330,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleSelectDuration = async (days: number) => {
-    console.log('[DevotionalModal] Button pressed for duration:', days);
-    console.log('[DevotionalModal] Current props:', { playbookId, userInput, onSelectDuration });
-    console.log('[DevotionalModal] User ID:', user?.id);
 
     // Check if user has no remaining devotionals - check directly from subscription
     const devotionalsUsed = devotionalGating.subscription?.devotionals_used || 0;
@@ -340,18 +337,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     const hasNoRemaining = devotionalsLimit !== -1 && devotionalsUsed >= devotionalsLimit;
     const isSeeker = devotionalGating.tier === 'seeker';
 
-    console.log('[DevotionalModal] Usage check:', {
-      used: devotionalsUsed,
-      limit: devotionalsLimit,
-      hasNoRemaining,
-      isSeeker,
-      usageInfo: devotionalGating.usageInfo,
-      tier: devotionalGating.tier,
-    });
-
     // For Seeker users, skip popup and go directly to sales offer
     if (isSeeker && hasNoRemaining) {
-      console.log('[DevotionalModal] Seeker user with no access - navigating directly to sales offer');
+
       onClose(); // Close the devotional modal
       navigation.navigate('OnboardingSalesOffer' as any, {
         upgradeMode: true,
@@ -362,29 +350,17 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }
 
     if (hasNoRemaining) {
-      console.log('[DevotionalModal] No devotionals remaining, showing usage limit modal');
-      console.log('[DevotionalModal] Current tier BEFORE refresh:', devotionalGating.tier);
-      console.log('[DevotionalModal] Current subscription BEFORE refresh:', devotionalGating.subscription);
+
       // Force refresh before showing modal
       await devotionalGating.refreshSubscription();
       // Small delay to ensure state updates
       await new Promise(resolve => setTimeout(resolve, 300));
-      console.log('[DevotionalModal] Current tier AFTER refresh:', devotionalGating.tier);
-      console.log('[DevotionalModal] Current subscription AFTER refresh:', devotionalGating.subscription);
 
       // Capture the current state to use in modal (prevents reactivity issues)
       // IMPORTANT: Check the ACTUAL tier from subscription, not the effectiveTier
       // because useDevotionalGating returns trial_chosen_tier as the tier for feature gating
       const actualTier = devotionalGating.subscription?.tier || devotionalGating.tier;
       const isOnTrial = actualTier === 'free_trial';
-
-      console.log('[DevotionalModal] ===== CAPTURING DATA FOR MODAL =====');
-      console.log('[DevotionalModal] devotionalGating.tier (effectiveTier):', devotionalGating.tier);
-      console.log('[DevotionalModal] subscription.tier (actualTier):', actualTier);
-      console.log('[DevotionalModal] isOnTrial:', isOnTrial);
-      console.log('[DevotionalModal] subscription:', devotionalGating.subscription);
-      console.log('[DevotionalModal] trial_chosen_tier:', devotionalGating.subscription?.trial_chosen_tier);
-      console.log('[DevotionalModal] =====================================');
 
       setUsageLimitModalData({
         isOnTrial,
@@ -402,7 +378,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     const accessCheck = devotionalGating.checkAccess(days, playbookId ? 'onboarding' : 'inApp');
 
     if (accessCheck.isLocked) {
-      console.log(`[DevotionalModal] Duration ${days} is locked for tier ${devotionalGating.tier}`);
+
       onClose(); // Close the devotional modal first
       navigation.navigate('OnboardingSalesOffer' as any, {
         upgradeMode: true,
@@ -423,14 +399,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
       // If no onSelectDuration provided, handle devotional creation here
       if (playbookId && userInput) {
-        console.log('[DevotionalModal] Creating devotional with params:', { duration: days, playbookId, userInput });
+
         // Haptic feedback when generation starts (parity with playbook generation)
         try { triggerLightHaptic(); } catch {}
         // Show progress message for longer generations
         let progressTimeout: ReturnType<typeof setTimeout> | null = null;
         if (days >= 5) {
           progressTimeout = setTimeout(() => {
-            console.log('[DevotionalModal] Long generation detected, this may take up to 60 seconds...');
+
           }, 10000);
         }
 
@@ -443,7 +419,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         if (progressTimeout) {
           clearTimeout(progressTimeout);
         }
-        console.log('[DevotionalModal] Devotional created:', devotional);
 
         if (devotional && onDevotionalCreated) {
           setIsSuccess(true);
@@ -823,8 +798,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     const { isOnTrial, trialChosenTier, devotionalsLimit, trialEndDate } = usageLimitModalData;
                     const limit = devotionalsLimit;
                     const limitText = limit === 1 ? '1 devotional' : `${limit} devotionals`;
-
-                    console.log('[DevotionalModal] Usage Limit Modal - Rendering with data:', usageLimitModalData);
 
                     const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation' || trialChosenTier === 'family');
                     const showUpgradeCta = !isUnlimitedTrial; // hide CTA for transformation/family trial

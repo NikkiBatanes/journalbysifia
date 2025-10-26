@@ -43,7 +43,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
           const remotePlaybooks = await getPlaybooks(userId);
           set((state) => {
             const merged = mergePlaybooks(state.playbooks, remotePlaybooks);
-            console.log('[loadPlaybooks] Merged playbooks:', merged);
+
             return { playbooks: merged, isLoading: false };
           });
         } catch (error) {
@@ -85,17 +85,17 @@ export const usePlaybookStore = create<PlaybookStore>()(
               completedAt: status === 'completed' ? new Date().toISOString() : playbook.completedAt,
               updatedAt: new Date().toISOString(),
             };
-            console.log('[updateActionStep] Optimistically updated playbook:', updatedPlaybook);
+
             return updatedPlaybook;
           });
-          console.log('[updateActionStep] State after update:', playbooks);
+
           return { playbooks };
         });
         // Persist in background
         setTimeout(async () => {
           if (updatedPlaybook) {
             try {
-              console.log('[updateActionStep] Persisting to Supabase/AsyncStorage:', updatedPlaybook);
+
               await updatePlaybookActionSteps(
                 playbookId,
                 updatedPlaybook.actionSteps,

@@ -6,7 +6,6 @@
 import { supabase } from '../services/supabaseClient';
 
 async function updateOnboardingSchema() {
-  console.log('🔄 Updating onboarding schema...');
 
   try {
     // Update the calculate_onboarding_metrics function with correct return types
@@ -47,25 +46,20 @@ async function updateOnboardingSchema() {
         .select('*')
         .limit(0); // This will fail but we can catch it
 
-      console.log('⚠️  Direct SQL execution not available. Please run the SQL manually in Supabase dashboard.');
-      console.log('📋 SQL to execute:');
-      console.log(functionSQL);
     } else {
-      console.log('✅ Function updated successfully');
+
     }
 
     // Test the function
-    console.log('🧪 Testing updated function...');
+
     const { data: testData, error: testError } = await supabase
       .rpc('calculate_onboarding_metrics');
 
     if (testError) {
       console.error('❌ Function test failed:', testError);
     } else {
-      console.log('✅ Function test passed:', testData?.length || 0, 'metrics returned');
-    }
 
-    console.log('✨ Schema update completed');
+    }
 
   } catch (error) {
     console.error('❌ Schema update failed:', error);

@@ -303,14 +303,6 @@ export const saveTimeBlockEntry = async (
       const startTimestamp = `${selectedDateStr}T${newTimeBlock.start_time}:00.000Z`;
       const endTimestamp = `${selectedDateStr}T${newTimeBlock.end_time}:00.000Z`;
 
-      console.log('🔄 TimeBlock: Converting times for database:', {
-        start_time: newTimeBlock.start_time,
-        end_time: newTimeBlock.end_time,
-        startTimestamp,
-        endTimestamp,
-        selected_date: selectedDateStr,
-      });
-
       const { error } = await supabase
         .from('time_blocks')
         .insert({
@@ -354,7 +346,6 @@ export const saveTimeBlockEntry = async (
         throw error;
       }
 
-      console.log('Successfully inserted time block to cloud:', newTimeBlock.id);
     } catch (cloudError) {
       console.error('Failed to save to cloud, but local save succeeded:', cloudError);
       // Don't throw here - local save succeeded
@@ -413,13 +404,6 @@ export const updateTimeBlockEntry = async (
       const startTimestamp = `${selectedDateStr}T${updatedTimeBlock.start_time}:00.000Z`;
       const endTimestamp = `${selectedDateStr}T${updatedTimeBlock.end_time}:00.000Z`;
 
-      console.log('🔄 TimeBlock: Converting times for update:', {
-        start_time: updatedTimeBlock.start_time,
-        end_time: updatedTimeBlock.end_time,
-        startTimestamp,
-        endTimestamp,
-      });
-
       const { error } = await supabase
         .from('time_blocks')
         .update({
@@ -443,7 +427,6 @@ export const updateTimeBlockEntry = async (
         throw error;
       }
 
-      console.log('Successfully updated time block in cloud:', timeBlockId);
     } catch (cloudError) {
       console.error('Failed to update in cloud, but local save succeeded:', cloudError);
       // Don't throw here - local update succeeded
@@ -484,7 +467,6 @@ export const deleteTimeBlockEntry = async (
         throw error;
       }
 
-      console.log('Successfully deleted time block from cloud:', timeBlockId);
     } catch (cloudError) {
       console.error('Failed to delete from cloud, but local delete succeeded:', cloudError);
       // Don't throw here - local delete succeeded

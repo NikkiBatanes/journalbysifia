@@ -8,7 +8,6 @@ import {
 import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 // Removed CommonActions import as we navigate directly to UserProfile
 
-
 import { Colors } from '../theme';
 import { useTheme } from '../theme/ThemeContext';
 import { triggerLightHaptic } from '../utils/haptics';
@@ -21,18 +20,13 @@ import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import UserProfileScreen from '../screens/UserProfileScreen';
 
-
-
 // New Onboarding screens
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
 
-
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
-
-
 
 // New Simplified Onboarding Flow Screens
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
@@ -41,7 +35,6 @@ import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOff
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
-
 
 // Header Components
 interface BackButtonProps {
@@ -84,7 +77,7 @@ const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation
           try {
             navigation.navigate('UserProfileModal');
           } catch (error) {
-            console.log('Navigation to nested UserProfile failed:', error);
+
           }
         }
       }}
@@ -123,12 +116,11 @@ const PlaybookHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
       try {
         navigation.goBack();
       } catch (error) {
-        console.log('Navigation error in PlaybookHeaderLeft:', error);
+
       }
     }}
   />
 ));
-
 
 // Unused component - commenting out to fix linting
 // const DevotionalHeaderLeft = ({ navigation }: { navigation: any }) => (
@@ -164,7 +156,6 @@ const getPlaybookDetailOptions = (theme: any): NativeStackNavigationOptions => (
   headerTitleStyle: { color: theme.colors.anchorBlue },
   headerShadowVisible: false,
 });
-
 
 // Unused function - commenting out to fix linting
 // const _getDevotionalDetailOptions = ({ navigation }: any): NativeStackNavigationOptions => ({
@@ -248,7 +239,6 @@ export default function RootStackNavigator({
         <>
           {/* PHASE 3: Challenge Selection & Playbook Generation (35%) */}
 
-
           <Stack.Screen
             name="OnboardingPlaybookGeneration"
             component={OnboardingPlaybookGenerationScreen as React.ComponentType}
@@ -292,8 +282,6 @@ export default function RootStackNavigator({
           />
 
           {/* OLD SCREENS - KEEPING FOR NOW, WILL REMOVE LATER */}
-
-
 
           {/* Main App */}
           <Stack.Screen

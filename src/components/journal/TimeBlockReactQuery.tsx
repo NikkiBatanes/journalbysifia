@@ -156,8 +156,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   }, [user]);
   const dateStr = toLocalDateString(selectedDate);
 
-  console.log('🔍 TimeBlockReactQuery: Fetching for date:', dateStr, 'user:', user?.id);
-
   // Performance monitoring
   const loadStartTime = useRef<number>(Date.now());
 
@@ -165,7 +163,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const { data: timeBlockEntries = [], isLoading, error } = useTimeBlockData(user?.id || '', dateStr);
   const queryClient = useQueryClient();
 
-  console.log('📊 TimeBlockReactQuery: Received data:', timeBlockEntries.length, 'entries');
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();
   const deleteMutation = useDeleteTimeBlock();
@@ -309,7 +306,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   };
 
   const handleDeleteBlock = (timeBlock: TimeBlockItem) => {
-    console.log('🗑️ handleDeleteBlock called for:', timeBlock.id, timeBlock.title, 'repeat:', timeBlock.repeat.frequency);
+
     try { triggerSelectionHaptic(); } catch {}
     setShowDeleteModal({ visible: true, timeBlock });
   };
@@ -321,20 +318,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setShowDeleteModal({ visible: false });
 
     try {
-      console.log('🗓️ Delete handler - timeBlock:', {
-        id: timeBlock.id,
-        title: timeBlock.title,
-        isRecurring: timeBlock.repeat.frequency !== 'never',
-        deleteType: options.type,
-      });
 
       // Check if this is a virtual TimeBlock (repeated instance)
       // Virtual instances have format: uuid-YYYY-MM-DD (date at the end)
       const datePattern = /\d{4}-\d{2}-\d{2}$/;
       const isVirtualInstance = datePattern.test(timeBlock.id);
-
-      console.log('🔍 Checking timeBlock ID format:', timeBlock.id);
-      console.log('🔍 Is virtual instance (ends with date):', isVirtualInstance);
 
       if (isVirtualInstance) {
         // This is a virtual TimeBlock - handle differently based on delete option
@@ -344,23 +332,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalId = parts.slice(0, 5).join('-'); // Reconstruct UUID
           const instanceDate = timeBlock.startTime.toISOString().split('T')[0]; // Use startTime date
 
-          console.log('🗓️ Virtual instance single delete - timeBlock:', {
-            id: timeBlock.id,
-            originalId,
-            instanceDate,
-            calendarEventId: timeBlock.calendarEventId,
-            startTime: timeBlock.startTime.toISOString(),
-            title: timeBlock.title,
-          });
-
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
-            console.log('🗓️ Removing calendar event for virtual instance:', timeBlock.calendarEventId);
+
             await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
           }
 
           // Add exception to original recurring event
-          console.log('🗓️ Adding exception to original event:', originalId, 'for date:', instanceDate);
 
           // Update the original event to add this date as an exception
           await updateMutation.mutateAsync({
@@ -372,19 +350,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             },
           });
 
-          console.log('🗓️ Exception added successfully');
         } else if (options.type === 'future') {
           // For 'future' deletion on virtual instances, set end date on original event
           const parts = timeBlock.id.split('-');
           const originalId = parts.slice(0, 5).join('-');
-          console.log('🗓️ Virtual instance future delete - setting end date on original:', originalId);
 
           // Set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
-
-          console.log('🗓️ Setting recurrence end date to:', endDate.toISOString().split('T')[0]);
 
           // Get current metadata from original event and add end date
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
@@ -400,10 +374,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             },
           });
 
-          console.log('🗓️ End date set successfully on original event, result:', updateResult);
-
           // Force cache invalidation for the current date to update UI immediately
-          console.log('🗓️ Invalidating cache for current date:', dateStr);
+
           if (user?.id) {
             await queryClient.invalidateQueries({
               queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
@@ -418,40 +390,24 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           // For 'all' deletions on virtual instances, delete the original event
           const parts = timeBlock.id.split('-');
           const originalId = parts.slice(0, 5).join('-');
-          console.log('🗓️ Virtual instance all delete - deleting original:', originalId);
+
           await deleteMutation.mutateAsync(originalId);
         }
       } else {
-        console.log('🗓️ Processing original/regular TimeBlock');
-        console.log('🗓️ TimeBlock ID:', timeBlock.id);
-        console.log('🗓️ Repeat frequency:', timeBlock.repeat.frequency);
-        console.log('🗓️ Delete type:', options.type);
-        console.log('🗓️ Is recurring?', timeBlock.repeat.frequency !== 'never');
-        console.log('🗓️ Is single delete?', options.type === 'single');
-        console.log('🗓️ Should use exception system?', timeBlock.repeat.frequency !== 'never' && options.type === 'single');
 
         // Check if this is a recurring event
         if (timeBlock.repeat.frequency !== 'never' && options.type === 'single') {
-          console.log('🗓️ Original recurring event - single delete - USING EXCEPTION SYSTEM');
+
           // For original recurring event, "single" means add exception for this date
           const instanceDate = timeBlock.startTime.toISOString().split('T')[0];
 
-          console.log('🗓️ Original recurring event single delete - timeBlock:', {
-            id: timeBlock.id,
-            instanceDate,
-            calendarEventId: timeBlock.calendarEventId,
-            startTime: timeBlock.startTime.toISOString(),
-            title: timeBlock.title,
-          });
-
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
-            console.log('🗓️ Removing calendar event for original recurring instance:', timeBlock.calendarEventId);
+
             await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
           }
 
           // Add exception to this recurring event
-          console.log('🗓️ Adding exception to recurring event:', timeBlock.id, 'for date:', instanceDate);
 
           // Update the event to add this date as an exception
           try {
@@ -464,8 +420,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               ? existingExceptions
               : [...existingExceptions, instanceDate];
 
-            console.log('🗓️ Original API entry:', originalApiEntry);
-            console.log('🗓️ Existing metadata:', existingMetadata);
             const updateResult = await updateMutation.mutateAsync({
               id: timeBlock.id,
               updates: {
@@ -476,11 +430,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               },
             });
 
-            console.log('🗓️ Exception added to original recurring event successfully, result:', updateResult);
-            console.log('🗓️ Updated metadata:', updateResult.metadata);
-
             // Force cache invalidation for the current date to update UI immediately
-            console.log('🗓️ Invalidating cache for current date:', dateStr);
+
             if (user?.id) {
               await queryClient.invalidateQueries({
                 queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
@@ -498,13 +449,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             throw updateError;
           }
         } else if (options.type === 'future') {
-          console.log('🗓️ Original event - future delete - SETTING END DATE');
+
           // For "This entry & future entries", set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
-
-          console.log('🗓️ Setting recurrence end date to:', endDate.toISOString().split('T')[0]);
 
           // Get current metadata and add end date
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
@@ -520,10 +469,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             },
           });
 
-          console.log('🗓️ End date set successfully, result:', updateResult);
-
           // Force cache invalidation for the current date to update UI immediately
-          console.log('🗓️ Invalidating cache for current date:', dateStr);
+
           if (user?.id) {
             await queryClient.invalidateQueries({
               queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
@@ -535,10 +482,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             });
           }
         } else {
-          console.log('🗓️ Original event - all delete - DELETING ENTIRE EVENT');
+
           // Delete from calendar first if synced
           if (timeBlock.calendarEventId) {
-            console.log('🗓️ Removing calendar event:', timeBlock.calendarEventId);
+
             await removeTimeBlockFromCalendar(timeBlock.calendarEventId, options);
           }
 
@@ -548,7 +495,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       }
 
       // Invalidate queries to refresh UI
-      console.log('🗓️ Invalidating queries to refresh UI');
+
       // Query invalidation will happen automatically via React Query mutation
 
       try { triggerLightHaptic(); } catch {}
@@ -969,7 +916,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <TouchableOpacity
                 style={styles.deleteActionBtn}
                 onPress={() => {
-                  console.log('🗑️ Delete button pressed for block:', block.id, block.title);
+
                   try { triggerSelectionHaptic(); } catch {}
                   handleDeleteBlock(block);
                 }}
@@ -1049,17 +996,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         calendarEventId={block.calendarEventId}
                         onSyncComplete={async (eventId) => {
                           // Update the timeblock with calendar event ID
-                          console.log('🟢 [onSyncComplete] Called with eventId:', eventId);
-                          console.log('🟢 [onSyncComplete] block.id:', block.id);
+
                           try {
-                            console.log('🟢 [onSyncComplete] Calling updateMutation...');
+
                             await updateMutation.mutateAsync({
                               id: block.id,
                               updates: {
                                 calendar_event_id: eventId || undefined,
                               },
                             });
-                            console.log('🟢 [onSyncComplete] ✅ Updated time block with calendar event ID:', eventId);
+
                           } catch (catchError) {
                             console.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID:', catchError);
                           }
@@ -1780,7 +1726,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             numberOfLines={2}
             textAlignVertical="top"
           />
-
 
           {/* Delete Modal */}
           <DeleteTimeBlockModal

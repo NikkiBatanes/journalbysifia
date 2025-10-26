@@ -18,19 +18,13 @@ export const AuthGuard = ({
   children,
   fallback,
 }: AuthGuardProps) => {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   // Debug auth state changes
-  console.log('🛡️ AuthGuard render:', {
-    isAuthenticated,
-    loading,
-    hasUser: !!user,
-    userId: user?.id,
-  });
 
   // Show loading spinner while checking auth state
   if (loading) {
-    console.log('⏳ AuthGuard: Showing loading state');
+
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator
@@ -44,12 +38,12 @@ export const AuthGuard = ({
 
   // Show auth screens if not authenticated
   if (!isAuthenticated) {
-    console.log('🔒 AuthGuard: User not authenticated, showing auth screens');
+
     return fallback || <AuthStackNavigator onLogin={async () => {}} />;
   }
 
   // Render protected content if authenticated
-  console.log('✅ AuthGuard: User authenticated, showing main app');
+
   return <>{children}</>;
 };
 

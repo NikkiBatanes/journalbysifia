@@ -197,7 +197,6 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       const prayerContent = prayerText.trim();
 
       // Debug: Check user authentication
-      console.log('User context:', { user, userId: user?.id, isAuthenticated: !!user });
 
       if (!user || !user.id) {
         console.error('User not authenticated or missing ID');

@@ -75,7 +75,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   const logEvent = useCallback(async (event_type: string, payload: { playbook_id?: string; step_id?: string; [k: string]: any } = {}) => {
     try {
       // Simple console log for now - can be enhanced later
-      console.log(`[Analytics] ${event_type}:`, payload);
+
     } catch (analyticsError) {
       console.error('Analytics error:', analyticsError);
     }
@@ -112,7 +112,6 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
       const allSubTasksCompleted = step.subTasks.every(subTask => subTask.completed);
       if (allSubTasksCompleted && !step.isCompleted) {
-        console.log(`[DEBUG] Completing step ${stepId} - all ${step.subTasks.length} subtasks done`);
 
         // Perform async operations
         (async () => {
@@ -224,8 +223,6 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         const allSubTasksCompleted = totalSubTasks > 0 && completedSubTasks === totalSubTasks;
         const shouldAutoComplete = allSubTasksCompleted && !step.completed;
 
-        console.log(`[DEBUG] Step ${step.id}: ${completedSubTasks}/${totalSubTasks} subtasks, main completed: ${step.completed}, should auto-complete: ${shouldAutoComplete}`);
-
         return {
           id: step.id,
           title: step.text || 'Untitled Step',
@@ -256,11 +253,11 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       // Store steps that need auto-completion for later processing
       const stepsToAutoComplete = ranked.filter(step => step.shouldAutoComplete);
       if (stepsToAutoComplete.length > 0) {
-        console.log(`[DEBUG] Found ${stepsToAutoComplete.length} steps to auto-complete`);
+
         // Process auto-completion after state is set
         setTimeout(() => {
           stepsToAutoComplete.forEach(step => {
-            console.log(`[DEBUG] Auto-completing step ${step.id}`);
+
             checkAndCompleteStep(step.id);
           });
         }, 200);
@@ -289,7 +286,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         'postgres_changes',
         { event: '*', schema: 'public', table: 'playbook_action_steps' },
         (payload) => {
-          console.log('[ActionStepsCard] Realtime update:', payload);
+
           fetchActionSteps();
         }
       )
@@ -329,7 +326,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   // no due-date formatting needed (due chip removed)
 
   const handleStepPress = useCallback(async (step: ActionStep) => {
-    console.log('[ActionStepsCard] Step pressed:', step.id);
+
     onStepPress?.(step);
   }, [onStepPress]);
 

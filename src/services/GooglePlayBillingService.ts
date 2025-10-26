@@ -63,12 +63,11 @@ export class GooglePlayBillingService {
       }
 
       if (Platform.OS !== 'android') {
-        console.log('[GooglePlay] Skipping initialization on non-Android platform');
+
         return false;
       }
 
       const result = await initConnection();
-      console.log('[GooglePlay] Billing connection initialized:', result);
 
       // Set up purchase listeners
       this.setupPurchaseListeners();
@@ -87,7 +86,7 @@ export class GooglePlayBillingService {
   private setupPurchaseListeners(): void {
     this.purchaseUpdateSubscription = purchaseUpdatedListener(
       async (purchase: ProductPurchase) => {
-        console.log('[GooglePlay] Purchase updated:', purchase);
+
         await this.handlePurchaseUpdate(purchase);
       }
     );
@@ -142,8 +141,6 @@ export class GooglePlayBillingService {
         throw new Error('Google Play Billing is only available on Android');
       }
 
-      console.log('[GooglePlay] Requesting subscription purchase:', productId);
-
       await requestSubscription({ sku: productId });
 
       // The actual purchase handling will be done in the listener
@@ -162,12 +159,6 @@ export class GooglePlayBillingService {
    */
   private async handlePurchaseUpdate(purchase: ProductPurchase): Promise<void> {
     try {
-      console.log('[GooglePlay] Processing purchase:', {
-        productId: purchase.productId,
-        transactionId: purchase.transactionId,
-        transactionDate: purchase.transactionDate,
-        purchaseToken: purchase.purchaseToken,
-      });
 
       // Validate the purchase with Google Play
       const isValid = await this.validatePurchase(purchase);
@@ -191,7 +182,6 @@ export class GooglePlayBillingService {
       // Acknowledge the purchase (required for subscriptions)
       await finishTransaction({ purchase, isConsumable: false });
 
-      console.log('[GooglePlay] Purchase completed successfully');
     } catch (error) {
       console.error('[GooglePlay] Failed to handle purchase update:', error);
     }
@@ -261,12 +251,9 @@ export class GooglePlayBillingService {
         .single();
 
       if (userCheckError || !userProfile) {
-        console.log('[GooglePlay] ⚠️ User does not exist in database - cannot update subscription');
-        console.log('[GooglePlay] This prevents creating subscriptions for deleted users');
+
         throw new Error('User account not found - subscription update skipped');
       }
-
-      console.log('[GooglePlay] ✅ User exists in database, proceeding with subscription update');
 
       await NewSubscriptionService.upgradeSubscription(userId, {
         target_tier: tier as any,
@@ -275,7 +262,6 @@ export class GooglePlayBillingService {
         platform_transaction_id: purchase.transactionId,
       });
 
-      console.log('[GooglePlay] User subscription updated successfully');
     } catch (error) {
       console.error('[GooglePlay] Failed to update user subscription:', error);
       throw error;
@@ -323,7 +309,7 @@ export class GooglePlayBillingService {
     }
 
     // You can emit events or show toast messages here
-    console.log('[GooglePlay] User-friendly error:', userMessage);
+
   }
 
   /**
@@ -339,8 +325,6 @@ export class GooglePlayBillingService {
 
       // Get available purchases (active subscriptions)
       const purchases = await RNIap.getAvailablePurchases();
-
-      console.log('[GooglePlay] Found purchases to restore:', purchases.length);
 
       for (const purchase of purchases) {
         await this.handlePurchaseUpdate(purchase);
@@ -385,7 +369,6 @@ export class GooglePlayBillingService {
     try {
       // Google Play doesn't allow programmatic cancellation
       // Users must cancel through the Google Play Store
-      console.log('[GooglePlay] Redirecting user to Google Play for cancellation');
 
       // You could open the Google Play Store subscription management page
       // This would require additional implementation with Linking API
@@ -410,7 +393,6 @@ export class GooglePlayBillingService {
       await endConnection();
       this.isInitialized = false;
 
-      console.log('[GooglePlay] Cleanup completed');
     } catch (error) {
       console.error('[GooglePlay] Cleanup error:', error);
     }

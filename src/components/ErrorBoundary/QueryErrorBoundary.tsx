@@ -61,7 +61,7 @@ export function QueryErrorBoundary({ children, fallback }: QueryErrorBoundaryPro
       }}
       onReset={() => {
         // Optional: Clear any cached data or reset state
-        console.log('Error boundary reset');
+
       }}
     >
       {children}

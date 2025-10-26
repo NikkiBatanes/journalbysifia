@@ -203,7 +203,6 @@ export const useCreateReflection = () => {
       });
     },
     onSuccess: (data, variables) => {
-      console.log('🔍 useCreateReflection: Success callback triggered', { data, variables });
 
       // Update the cache directly with the new data
       const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
@@ -242,7 +241,7 @@ export const useUpdateReflection = () => {
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<ReflectionApiEntry, 'id' | 'user_id' | 'created_at'>> }) => {
-      console.log('🔍 useUpdateReflection: Starting API call', { id, updates });
+
       return ReflectionApi.updateReflectionEntry(id, updates);
     },
     onMutate: async ({ id, updates }) => {
@@ -289,7 +288,6 @@ export const useUpdateReflection = () => {
       }
     },
     onSuccess: (data) => {
-      console.log('🔍 useUpdateReflection: API call successful', data);
 
       // Update the specific reflection in the main query
       const queryKey = queryKeys.reflections.byDate(data.user_id, data.selected_date);
@@ -320,23 +318,19 @@ export const useDeleteReflection = () => {
 
   return useMutation({
     mutationFn: async (reflectionId: string) => {
-      console.log('🗑️ useDeleteReflection: Starting delete for:', reflectionId);
 
       // Direct database call without complex logic
       const result = await ReflectionApi.deleteReflectionEntry(reflectionId);
 
-      console.log('✅ useDeleteReflection: Delete completed successfully');
       return result;
     },
     onSuccess: () => {
-      console.log('🔄 useDeleteReflection: Invalidating cache...');
 
       // Simple cache invalidation - no complex optimistic updates
       queryClient.invalidateQueries({
         queryKey: ['reflections'],
       });
 
-      console.log('✅ useDeleteReflection: Cache invalidated successfully');
     },
     onError: (error) => {
       console.error('❌ useDeleteReflection: Delete failed:', error);

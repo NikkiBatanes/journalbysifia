@@ -535,7 +535,7 @@ export const useCreateTodayWinEntry = () => {
 
       // Clear local cache
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'today_win');
-      console.log('🏆 useCreateTodayWinEntry: Added new entry to cache', data);
+
     },
   });
 };
@@ -545,29 +545,26 @@ export const useUpdateTodayWinEntry = () => {
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) => {
-      console.log('🏆 useUpdateTodayWinEntry: Starting API call', { id, updates });
+
       return JournalApi.updateJournalEntry(id, updates);
     },
     onSuccess: (data) => {
-      console.log('🏆 useUpdateTodayWinEntry: API call successful', data);
 
       const queryKey = queryKeys.journal.todayWin(data.user_id, data.selected_date);
-      console.log('🏆 useUpdateTodayWinEntry: Updating query cache', { queryKey });
 
       // Update the specific entry in the today win query
       queryClient.setQueryData(
         queryKey,
         (old: JournalApiEntry[] = []) => {
-          console.log('🏆 useUpdateTodayWinEntry: Old cache data', old);
+
           const updated = old.map(entry => entry.id === data.id ? data : entry);
-          console.log('🏆 useUpdateTodayWinEntry: New cache data', updated);
+
           return updated;
         }
       );
 
       // Clear local cache to ensure consistency
       JournalCache.clearCache(data.user_id, data.selected_date, 'today_win');
-      console.log('🏆 useUpdateTodayWinEntry: Cache cleared');
 
       // Don't invalidate immediately to avoid overriding optimistic updates
       // The cache is already updated above with the correct data

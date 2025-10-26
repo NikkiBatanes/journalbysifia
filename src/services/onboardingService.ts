@@ -199,7 +199,6 @@ export class OnboardingService {
         throw error;
       }
 
-      console.log(`[OnboardingService] Initialized onboarding for user ${userId}`);
       return data;
     } catch (error) {
       console.error('[OnboardingService] Error in initializeOnboarding:', error);
@@ -255,7 +254,6 @@ export class OnboardingService {
       // Record analytics
       await this.recordStepAnalytics(userId, stepData);
 
-      console.log(`[OnboardingService] Updated step ${stepData.step_name} for user ${userId}`);
     } catch (error) {
       console.error('[OnboardingService] Error in updateStepProgress:', error);
       throw error;
@@ -317,7 +315,6 @@ export class OnboardingService {
         throw error;
       }
 
-      console.log(`[OnboardingService] Updated faith journey for user ${userId}`);
     } catch (error) {
       console.error('[OnboardingService] Error in updateFaithJourneyProfile:', error);
       throw error;
@@ -368,7 +365,6 @@ export class OnboardingService {
         throw error;
       }
 
-      console.log(`[OnboardingService] Recorded Christ acceptance for user ${userId}`);
       return data;
     } catch (error) {
       console.error('[OnboardingService] Error in recordChristAcceptance:', error);
@@ -397,7 +393,6 @@ export class OnboardingService {
         throw error;
       }
 
-      console.log(`[OnboardingService] Updated personalization for user ${userId}`);
     } catch (error) {
       console.error('[OnboardingService] Error in updatePersonalizationProfile:', error);
       throw error;
@@ -447,7 +442,6 @@ export class OnboardingService {
         throw error;
       }
 
-      console.log(`[OnboardingService] Completed onboarding for user ${userId}`);
     } catch (error) {
       console.error('[OnboardingService] Error in completeOnboarding:', error);
       throw error;
@@ -459,7 +453,6 @@ export class OnboardingService {
    */
   async hasCompletedOnboarding(userId: string): Promise<boolean> {
     try {
-      console.log('[OnboardingService] Checking completion for user:', userId);
 
       // 1) Primary source of truth: user_profiles.onboarding_completed
       try {
@@ -469,16 +462,10 @@ export class OnboardingService {
           .eq('id', userId)
           .single();
 
-        console.log('[OnboardingService] Profile check result:', {
-          hasProfile: !!profile,
-          onboardingCompleted: profile?.onboarding_completed,
-          error: profErr?.message,
-        });
-
         if (!profErr && profile) {
           // Explicitly check for true value, not just truthy
           const isCompleted = profile.onboarding_completed === true;
-          console.log('[OnboardingService] Primary check result:', isCompleted);
+
           if (isCompleted) {
             return true;
           }
@@ -488,15 +475,9 @@ export class OnboardingService {
       }
 
       // 2) Fallback: onboarding_progress.is_completed
-      console.log('[OnboardingService] Checking fallback onboarding_progress...');
+
       const progress = await this.getOnboardingProgress(userId);
       const fallbackResult = progress?.is_completed === true;
-
-      console.log('[OnboardingService] Fallback check result:', {
-        hasProgress: !!progress,
-        isCompleted: progress?.is_completed,
-        finalResult: fallbackResult,
-      });
 
       return fallbackResult;
     } catch (error) {
@@ -551,7 +532,6 @@ export class OnboardingService {
         completion_method: 'abandoned',
       });
 
-      console.log(`[OnboardingService] Marked onboarding as abandoned for user ${userId}`);
     } catch (error) {
       console.error('[OnboardingService] Error in abandonOnboarding:', error);
       throw error;

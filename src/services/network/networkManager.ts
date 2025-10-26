@@ -141,12 +141,6 @@ class NetworkManager {
 
       // Debounce network state changes to prevent flickering during auth flows
       debounceTimer = setTimeout(() => {
-        console.log('🌐 Network state changed (debounced):', {
-          isConnected: state.isConnected,
-          isInternetReachable: state.isInternetReachable,
-          type: state.type,
-          isOnline,
-        });
 
         // Update network store
         useNetworkStore.getState().setNetworkState({
@@ -208,7 +202,7 @@ class NetworkManager {
    */
   addOfflineAction(action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>) {
     if (!this.isOnline()) {
-      console.log('📱 Adding offline action:', action);
+
       useNetworkStore.getState().addOfflineAction({
         ...action,
         maxRetries: action.maxRetries || 3,
@@ -227,13 +221,11 @@ class NetworkManager {
     this.syncInProgress = true;
     const { offlineActions, removeOfflineAction, incrementRetryCount } = useNetworkStore.getState();
 
-    console.log(`🔄 Syncing ${offlineActions.length} offline actions...`);
-
     for (const action of offlineActions) {
       try {
         await this.executeOfflineAction(action);
         removeOfflineAction(action.id);
-        console.log('✅ Offline action synced:', action.type, action.entity);
+
       } catch (error) {
         console.error('❌ Failed to sync offline action:', error);
         incrementRetryCount(action.id);
@@ -247,7 +239,7 @@ class NetworkManager {
     }
 
     this.syncInProgress = false;
-    console.log('✅ Offline sync completed');
+
   }
 
   /**

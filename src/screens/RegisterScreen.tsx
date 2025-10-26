@@ -52,10 +52,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   // Set post-auth redirect for splash screen to handle navigation
   React.useEffect(() => {
     if (user) {
-      console.log('✅ User authenticated via OAuth, setting post-auth redirect');
 
       // Let splash screen handle navigation to avoid conflicts
-      console.log('🧭 OAuth user detected, splash screen will route to personalization');
+
       // No direct navigation - let the auth state change trigger splash screen routing
     }
   }, [user, navigation]);
@@ -70,7 +69,6 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const handleGoogleSignUp = async () => {
     triggerLightHaptic();
     setError('');
-    console.log('🔄 Starting Google sign up...');
 
     setActiveProvider('google');
     const { error: googleError } = await signInWithGoogle();
@@ -87,14 +85,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       setActiveProvider(null);
       return;
     }
-    console.log('✅ Google sign up successful, waiting for auth state change...');
+
     // Navigation will be handled by useEffect when user state changes
   };
 
   const handleAppleSignUp = async () => {
     triggerLightHaptic();
     setError('');
-    console.log('🔄 Starting Apple sign up...');
 
     setActiveProvider('apple');
     const { error: appleError } = await signInWithApple();
@@ -111,7 +108,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       setActiveProvider(null);
       return;
     }
-    console.log('✅ Apple sign up successful, waiting for auth state change...');
+
     // Navigation will be handled by useEffect when user state changes
   };
 

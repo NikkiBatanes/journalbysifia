@@ -13,8 +13,6 @@ import { faithPointsService } from '../services/faithPointsService';
 import { subscriptionService } from '../services/subscriptionService';
 import ThemedText from '../components/common/ThemedText';
 
-
-
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 
 const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -85,26 +83,19 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Generate playbook when component mounts
   useEffect(() => {
-    console.log('[GeneratingPlaybook] Effect triggered with params:', {
-      userInput: userInput?.substring(0, 50) + '...',
-      userName,
-      isFromOnboarding,
-      hasGenerated: hasGenerated.current,
-      isGenerating,
-    });
+
     const generatePlaybookContent = async () => {
       if (hasGenerated.current) {return;}
 
       hasGenerated.current = true;
       setIsGenerating(true);
       try {
-        console.log('[GeneratingPlaybook] Starting playbook generation...');
 
         // Generate playbook content via AI
         const aiResponse = await generatePlaybook(userInput, userName, {
           showUserFeedback: true,
           onAuthRequired: () => {
-            console.log('🔐 Authentication required for playbook generation');
+
           },
         });
 
@@ -112,17 +103,14 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           throw new Error('Playbook generation failed. Please try again.');
         }
 
-        console.log('[GeneratingPlaybook] AI Response received:', aiResponse);
-
         // Save to database if user is authenticated
         let savedPlaybook = aiResponse;
         if (user?.id) {
-          console.log('[GeneratingPlaybook] Saving playbook to database...');
+
           const saveResult = await savePlaybook(savedPlaybook, user.id);
           if (!saveResult.success) {
             throw new Error(saveResult.error || 'Failed to save playbook to database');
           }
-          console.log('[GeneratingPlaybook] Playbook saved successfully:', savedPlaybook.id);
 
           // Award faith points for playbook generation
           try {
@@ -134,7 +122,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
                 isOnboarding: !!isFromOnboarding,
               }
             );
-            console.log('[GeneratingPlaybook] Faith points awarded:', pointsResult);
+
           } catch (pointsError) {
             console.error('[GeneratingPlaybook] Failed to award faith points:', pointsError);
             // Don't fail the whole generation if points awarding fails
@@ -148,7 +136,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               0, // tokens used - will be updated by generation service
               !!isFromOnboarding
             );
-            console.log('[GeneratingPlaybook] Usage tracked for user:', user.id, 'isOnboarding:', !!isFromOnboarding);
+
           } catch (usageError) {
             console.error('[GeneratingPlaybook] Failed to track usage:', usageError);
             // Don't fail the whole generation if usage tracking fails
@@ -202,7 +190,6 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     const timer = setTimeout(generatePlaybookContent, 3000);
     return () => clearTimeout(timer);
   }, [userInput, userName, isFromOnboarding, isGenerating, navigation, user?.id, progressAnim, triggerSuccessHaptic]);
-
 
   // Bottom sun ring animation loop
   useEffect(() => {

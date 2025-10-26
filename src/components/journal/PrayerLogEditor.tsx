@@ -391,9 +391,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   const personInputRef = useRef<TextInput>(null);
   const requestInputRef = useRef<TextInput>(null);
   // Debug logging
-  console.log('🙏 PrayerLogEditor: _subtaskTitle value:', _subtaskTitle);
-  console.log('🙏 PrayerLogEditor: playbookTitle:', playbookTitle);
-  console.log('🙏 PrayerLogEditor: actionStepTitle:', actionStepTitle);
 
   // State management
   const [prayerContent, setPrayerContent] = React.useState(initialContent);
@@ -465,7 +462,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     if (subtaskId && stepId) {
       // Use subtaskId and stepId for maximum uniqueness
       const key = `@prayer_editor_draft_${stepId}_${subtaskId}_${currentDate}${tabSuffix}`;
-      console.log('[PrayerLogEditor] Unique draft key with IDs:', key);
+
       return key;
     }
 
@@ -475,13 +472,13 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       const stepNum = actionStepNumber || 0;
       const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
       const key = `@prayer_editor_draft_${playbookName}_${stepNum}_${taskTitle}_${currentDate}${tabSuffix}`;
-      console.log('[PrayerLogEditor] Title-based draft key:', key);
+
       return key;
     }
 
     // Default key with date and tab
     const key = `@prayer_editor_draft_${currentDate}${tabSuffix}`;
-    console.log('[PrayerLogEditor] Default draft key with date and tab:', key);
+
     return key;
   }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber, activeTab]);
 
@@ -499,7 +496,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
             // Only load draft if there's actual meaningful content
             if (content && content.trim()) {
-              console.log('[PrayerLogEditor] Loading draft for tab:', savedTab, 'content:', content.substring(0, 50) + '...');
 
               // Set the active tab first
               if (savedTab && (savedTab === 'freeform' || savedTab === 'people')) {
@@ -530,7 +526,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 }, 3000);
               }, 100);
 
-              console.log('[PrayerLogEditor] Draft loaded and notification shown');
             }
           }
         } catch (error) {
@@ -592,7 +587,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
           actionStepNumber: actionStepNumber,
         };
 
-        console.log('[PrayerLogEditor] Saving draft for tab:', activeTab);
         await AsyncStorage.setItem(
           getDraftKey(),
           JSON.stringify(draftData)
@@ -680,7 +674,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
         await saveDraftHelper();
       }
 
-      console.log('🙏 PrayerLogEditor: onCancel called');
       Keyboard.dismiss();
       // Small delay to ensure keyboard is fully dismissed before closing
       setTimeout(() => {

@@ -367,12 +367,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   // Debug: log how many prayers will be displayed under current filters
   React.useEffect(() => {
-    console.log('🙏 [PrayerJournal] Filters applied:', {
-      hasFilters: !!filters,
-      filters,
-      existingCount: existingPrayers.length,
-      displayCount: displayPrayers.length,
-    });
+
   }, [filters, existingPrayers.length, displayPrayers.length]);
 
   // Check if we have content to display
@@ -591,8 +586,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       setSelectedPrayerType('');
     }
   }, [globalEditMode?.isGlobalEditMode, viewMode, isEditing]);
-
-
 
   // Render existing prayers
   const renderExistingPrayers = () => (

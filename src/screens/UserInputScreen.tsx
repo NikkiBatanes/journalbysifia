@@ -158,7 +158,7 @@ const UserInputScreen: React.FC = () => {
   const getTierDisplayName = (subscription: any) => {
     // Use subscription_display_name if available (e.g., "siFia Spark Trial")
     if (subscription?.subscription_display_name) {
-      console.log('✅ [UserInputScreen] Using subscription_display_name:', subscription.subscription_display_name);
+
       return subscription.subscription_display_name;
     }
 
@@ -166,16 +166,10 @@ const UserInputScreen: React.FC = () => {
     const tier = subscription?.tier;
     const chosenTier = subscription?.trial_chosen_tier;
 
-    console.log('🔍 [UserInputScreen] getTierDisplayName fallback:', {
-      tier,
-      chosenTier,
-      fullSubscription: subscription,
-    });
-
     // Handle trial display logic with chosen tier
     if (tier === 'free_trial' && chosenTier) {
       const tierName = chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1);
-      console.log('✅ [UserInputScreen] Showing Trial label with tier:', tierName);
+
       return `siFia ${tierName} Trial`;
     } else if (tier === 'free_trial') {
       return 'siFia Trial';
@@ -191,10 +185,9 @@ const UserInputScreen: React.FC = () => {
     };
 
     const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ') || 'siFia Seeker';
-    console.log('📝 [UserInputScreen] Standard tier display:', displayName);
+
     return displayName;
   };
-
 
   // const userId = user?.id; // Unused, commented out
   const userName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
@@ -316,7 +309,7 @@ const UserInputScreen: React.FC = () => {
         }),
       ]).start();
       // Input validation - could show inline error instead of alert
-      console.log('Input validation: Please share what you\'re struggling with.');
+
       return;
     }
 

@@ -27,7 +27,6 @@ export const useCrossComponentSync = (userId: string) => {
 
   // Sync playbook progress changes with related components
   const syncPlaybookProgress = useCallback(async (playbookId: string, progress: number) => {
-    console.log('[CrossComponentSync] Syncing playbook progress:', { playbookId, progress });
 
     const syncEvent: SyncEvent = {
       type: 'playbook_progress',
@@ -57,7 +56,6 @@ export const useCrossComponentSync = (userId: string) => {
       queryKey: queryKeys.prayers.entries(userId, today),
     });
 
-    console.log('[CrossComponentSync] Playbook progress sync completed');
     return syncEvent;
   }, [queryClient, userId]);
 
@@ -68,7 +66,6 @@ export const useCrossComponentSync = (userId: string) => {
     totalDays?: number;
     currentDay?: number;
   }) => {
-    console.log('[CrossComponentSync] Syncing devotional completion:', { devotionalId, playbookId });
 
     // Guard against multiple calls within 2 seconds for the same devotional
     const guardKey = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
@@ -76,7 +73,7 @@ export const useCrossComponentSync = (userId: string) => {
     const lastCall = completionGuardRef.current[guardKey];
 
     if (lastCall && (now - lastCall) < 2000) {
-      console.log('[CrossComponentSync] Skipping duplicate completion call for:', guardKey);
+
       return { pointsAwarded: 0 };
     }
 
@@ -93,8 +90,6 @@ export const useCrossComponentSync = (userId: string) => {
         suppressNotification: true,
         completionContext,
       });
-
-      console.log('[CrossComponentSync] Faith points awarded:', pointsResult);
 
       const syncEvent: SyncEvent = {
         type: 'devotional_completion',
@@ -141,7 +136,6 @@ export const useCrossComponentSync = (userId: string) => {
         );
       }
 
-      console.log('[CrossComponentSync] Devotional completion sync completed');
       return syncEvent;
     } catch (error) {
       console.error('[CrossComponentSync] Error syncing devotional completion:', error);
@@ -154,7 +148,6 @@ export const useCrossComponentSync = (userId: string) => {
 
   // Sync journal entry creation with related playbooks
   const syncJournalEntry = useCallback(async (date: string, entryType: string, _content: any) => {
-    console.log('[CrossComponentSync] Syncing journal entry:', { date, entryType });
 
     const syncEvent: SyncEvent = {
       type: 'journal_entry',
@@ -185,13 +178,11 @@ export const useCrossComponentSync = (userId: string) => {
       });
     }
 
-    console.log('[CrossComponentSync] Journal entry sync completed');
     return syncEvent;
   }, [queryClient, userId]);
 
   // Sync prayer addition with related components
   const syncPrayerAddition = useCallback(async (date: string, prayerType: string, content: string) => {
-    console.log('[CrossComponentSync] Syncing prayer addition:', { date, prayerType });
 
     const syncEvent: SyncEvent = {
       type: 'prayer_added',
@@ -230,13 +221,11 @@ export const useCrossComponentSync = (userId: string) => {
       });
     }
 
-    console.log('[CrossComponentSync] Prayer addition sync completed');
     return syncEvent;
   }, [queryClient, userId]);
 
   // Batch sync multiple events for performance
   const batchSync = useCallback(async (events: SyncEvent[]) => {
-    console.log('[CrossComponentSync] Starting batch sync:', events.length, 'events');
 
     const syncPromises = events.map(event => {
       switch (event.type) {
@@ -254,7 +243,7 @@ export const useCrossComponentSync = (userId: string) => {
     });
 
     await Promise.allSettled(syncPromises);
-    console.log('[CrossComponentSync] Batch sync completed');
+
   }, [syncPlaybookProgress, syncDevotionalCompletion, syncJournalEntry, syncPrayerAddition]);
 
   // Get relationship data between components
@@ -271,8 +260,6 @@ export const useCrossComponentSync = (userId: string) => {
   // Prefetch related data for better performance
   const prefetchRelatedData = useCallback(async (playbookId: string, date?: string) => {
     const currentDate = date || new Date().toISOString().split('T')[0];
-
-    console.log('[CrossComponentSync] Prefetching related data for:', playbookId);
 
     const prefetchPromises = [
       queryClient.prefetchQuery({
@@ -293,7 +280,7 @@ export const useCrossComponentSync = (userId: string) => {
     ];
 
     await Promise.allSettled(prefetchPromises);
-    console.log('[CrossComponentSync] Related data prefetching completed');
+
   }, [queryClient, userId]);
 
   return {

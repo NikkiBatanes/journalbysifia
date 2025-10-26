@@ -49,7 +49,7 @@ export function EnhancedQueryProvider({ children }: EnhancedQueryProviderProps) 
         setIsInitialized(true);
 
         if (__DEV__) {
-          console.log('Enhanced Query Client initialized with offline support');
+
         }
       } catch (error) {
         console.error('Failed to initialize Enhanced Query Client:', error);

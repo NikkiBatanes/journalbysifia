@@ -103,7 +103,6 @@ export class SmartJournalDetectionV2 {
     userName: string = 'User'
   ): Promise<JournalDetectionResult> {
     try {
-      console.log(`[SmartJournalDetectionV2] Analyzing journal content for user ${userId}`);
 
       // Get user context for personalized detection
       const userContext = await userContextEngine.buildUserContext(
@@ -145,8 +144,6 @@ export class SmartJournalDetectionV2 {
           confidence: enhancedResult.confidence,
         }
       );
-
-      console.log(`[SmartJournalDetectionV2] Detected type: ${enhancedResult.detectedType} (${enhancedResult.confidence}% confidence)`);
 
       return enhancedResult;
 
@@ -584,7 +581,7 @@ export class SmartJournalDetectionV2 {
     try {
       // This would integrate with your user_behavior_events table
       // For now, just log the event
-      console.log(`[SmartJournalDetectionV2] Recorded detection event: ${result.detectedType} (${result.confidence}% confidence)`);
+
     } catch (error) {
       console.error('[SmartJournalDetectionV2] Error recording detection event:', error);
     }

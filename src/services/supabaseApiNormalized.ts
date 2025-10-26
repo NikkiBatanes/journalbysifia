@@ -117,7 +117,6 @@ function transformPlaybookRow(
  * Get all playbooks for a user with their related data
  */
 export async function getPlaybooks(userId: string): Promise<Playbook[]> {
-  console.log('[getPlaybooks] Fetching playbooks for user:', userId);
 
   try {
     // Fetch playbooks
@@ -133,7 +132,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     }
 
     if (!playbooks || playbooks.length === 0) {
-      console.log('[getPlaybooks] No playbooks found');
+
       return [];
     }
 
@@ -152,10 +151,9 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     }
 
     // Debug: Log fetched action steps
-    console.log('[getPlaybooks] Fetched action steps:', actionSteps?.slice(0, 2));
+
     if (actionSteps && actionSteps.length > 0) {
-      console.log('[getPlaybooks] First action step examples:', actionSteps[0].examples);
-      console.log('[getPlaybooks] First action step full data:', actionSteps[0]);
+
     }
 
     // Fetch all sub-tasks for these action steps
@@ -197,7 +195,6 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       return transformPlaybookRow(playbook, playbookActionSteps, subTasks, playbookAffirmations);
     });
 
-    console.log('[getPlaybooks] Successfully fetched', result.length, 'playbooks');
     return result;
 
   } catch (error) {
@@ -210,7 +207,6 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
  * Get a single playbook by ID with all related data
  */
 export async function getPlaybook(userId: string, playbookId: string): Promise<Playbook | null> {
-  console.log('[getPlaybook] Fetching playbook:', { userId, playbookId });
 
   try {
     // Fetch the playbook
@@ -223,7 +219,7 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
 
     if (playbookError) {
       if (playbookError.code === 'PGRST116') {
-        console.log('[getPlaybook] Playbook not found');
+
         return null;
       }
       console.error('[getPlaybook] Error fetching playbook:', playbookError);
@@ -274,7 +270,7 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
     }
 
     const result = transformPlaybookRow(playbook, actionSteps || [], subTasks, affirmations || []);
-    console.log('[getPlaybook] Successfully fetched playbook');
+
     return result;
 
   } catch (error) {
@@ -287,13 +283,9 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
  * Create a new playbook with all related data
  */
 export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt' | 'updatedAt'>): Promise<Playbook> {
-  console.log('[createPlaybook] Creating playbook:', playbook.title);
-  console.log('[createPlaybook] User ID:', playbook.user_id);
 
   // Check current session
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  console.log('[createPlaybook] Current session:', session?.user?.id);
-  console.log('[createPlaybook] Session error:', sessionError);
 
   try {
     // Start a transaction by creating the main playbook first
@@ -335,8 +327,6 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
             }
           }
 
-          console.log(`[createPlaybook] Action step ${index}: text="${(step.title || step.description || 'Untitled step').trim()}", examples="${examples}"`);
-
           return {
             playbook_id: playbookId,
             text: (step.title || step.description || 'Untitled step').trim(),
@@ -345,8 +335,6 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
             order_index: index,
           };
         });
-
-      console.log('[createPlaybook] Filtered action steps count:', actionStepsToInsert.length);
 
       const { data: createdActionSteps, error: actionStepsError } = await supabase
         .from('playbook_action_steps')
@@ -360,19 +348,11 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
 
       // Create sub-tasks for action steps that have them
       const subTasksToInsert: any[] = [];
-      console.log('[createPlaybook] Processing action steps for sub-tasks:', playbook.actionSteps.length);
 
       playbook.actionSteps.forEach((step, stepIndex) => {
-        console.log(`[createPlaybook] Step ${stepIndex}:`, {
-          title: step.title,
-          hasSubTasks: !!step.subTasks,
-          subTasksLength: step.subTasks?.length || 0,
-          subTasks: step.subTasks,
-        });
 
         if (step.subTasks && step.subTasks.length > 0) {
           const actionStepId = createdActionSteps[stepIndex].id;
-          console.log(`[createPlaybook] Processing ${step.subTasks.length} sub-tasks for step ${stepIndex}`);
 
           step.subTasks.forEach((subTask, subTaskIndex) => {
             // Handle both string and object formats
@@ -396,16 +376,13 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
                 completed: subTaskCompleted,
                 order_index: subTaskIndex,
               });
-              console.log(`[createPlaybook] Added sub-task: "${subTaskText}"`);
+
             } else {
               console.warn('[createPlaybook] Skipping sub-task with invalid text:', subTask);
             }
           });
         }
       });
-
-      console.log('[createPlaybook] Total sub-tasks to insert:', subTasksToInsert.length);
-      console.log('[createPlaybook] Sub-tasks data:', subTasksToInsert);
 
       if (subTasksToInsert.length > 0) {
         const { error: subTasksError } = await supabase
@@ -421,7 +398,6 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
 
     // Create affirmations
     if (playbook.affirmations && playbook.affirmations.length > 0) {
-      console.log('[createPlaybook] Processing affirmations:', playbook.affirmations.length);
 
       const affirmationsToInsert: any[] = [];
 
@@ -447,13 +423,11 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
             completed: affirmationCompleted,
             order_index: index,
           });
-          console.log(`[createPlaybook] Added affirmation: "${affirmationText}"`);
+
         } else {
           console.warn('[createPlaybook] Skipping affirmation with invalid text:', affirmation);
         }
       });
-
-      console.log('[createPlaybook] Total affirmations to insert:', affirmationsToInsert.length);
 
       const { error: affirmationsError } = await supabase
         .from('playbook_affirmations')
@@ -471,7 +445,6 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
       throw new Error('Failed to fetch created playbook');
     }
 
-    console.log('[createPlaybook] Successfully created playbook');
     return completePlaybook;
 
   } catch (error) {
@@ -489,7 +462,6 @@ export async function updatePlaybookActionStep(
   stepId: string,
   completed: boolean
 ): Promise<Playbook> {
-  console.log('[updatePlaybookActionStep] Updating:', { playbookId, stepId, completed });
 
   try {
     // Update the action step
@@ -510,7 +482,6 @@ export async function updatePlaybookActionStep(
       throw new Error('Failed to fetch updated playbook');
     }
 
-    console.log('[updatePlaybookActionStep] Successfully updated action step');
     return updatedPlaybook;
 
   } catch (error) {
@@ -529,7 +500,6 @@ export async function updatePlaybookSubTask(
   subTaskId: string,
   completed: boolean
 ): Promise<Playbook> {
-  console.log('[updatePlaybookSubTask] Updating:', { playbookId, stepId, subTaskId, completed });
 
   try {
     // Update the sub-task
@@ -550,7 +520,6 @@ export async function updatePlaybookSubTask(
       throw new Error('Failed to fetch updated playbook');
     }
 
-    console.log('[updatePlaybookSubTask] Successfully updated sub-task');
     return updatedPlaybook;
 
   } catch (error) {
@@ -568,7 +537,6 @@ export async function updatePlaybookAffirmation(
   affirmationId: string,
   completed: boolean
 ): Promise<Playbook> {
-  console.log('[updatePlaybookAffirmation] Updating:', { playbookId, affirmationId, completed });
 
   try {
     // Update the affirmation
@@ -589,7 +557,6 @@ export async function updatePlaybookAffirmation(
       throw new Error('Failed to fetch updated playbook');
     }
 
-    console.log('[updatePlaybookAffirmation] Successfully updated affirmation');
     return updatedPlaybook;
 
   } catch (error) {
@@ -602,7 +569,6 @@ export async function updatePlaybookAffirmation(
  * Delete a playbook and all related data
  */
 export async function deletePlaybook(playbookId: string): Promise<void> {
-  console.log('[deletePlaybook] Deleting playbook:', playbookId);
 
   try {
     // Delete the playbook (CASCADE will handle related data)
@@ -615,8 +581,6 @@ export async function deletePlaybook(playbookId: string): Promise<void> {
       console.error('[deletePlaybook] Error deleting playbook:', deleteError);
       throw deleteError;
     }
-
-    console.log('[deletePlaybook] Successfully deleted playbook');
 
   } catch (error) {
     console.error('[deletePlaybook] Unexpected error:', error);
@@ -632,7 +596,6 @@ export async function getPlaybookProgress(playbookId: string): Promise<{
   total: number;
   percentage: number;
 }> {
-  console.log('[getPlaybookProgress] Calculating progress for:', playbookId);
 
   try {
     const { data, error } = await supabase
@@ -667,7 +630,6 @@ export async function updatePlaybookStatus(
   playbookId: string,
   status: 'ongoing' | 'completed' | 'paused'
 ): Promise<void> {
-  console.log('[updatePlaybookStatus] Updating status:', { playbookId, status });
 
   try {
     const { error } = await supabase
@@ -679,8 +641,6 @@ export async function updatePlaybookStatus(
       console.error('[updatePlaybookStatus] Error updating status:', error);
       throw error;
     }
-
-    console.log('[updatePlaybookStatus] Successfully updated status');
 
   } catch (error) {
     console.error('[updatePlaybookStatus] Unexpected error:', error);
@@ -720,11 +680,9 @@ export async function updatePlaybookActionSteps(
   actionSteps: ActionStep[]
 ): Promise<void> {
   try {
-    console.log(`[updatePlaybookActionSteps] Updating ${actionSteps.length} action steps for playbook ${playbookId}`);
 
     // Update each action step in the database
     for (const step of actionSteps) {
-      console.log(`[updatePlaybookActionSteps] Updating step ${step.id}, completed: ${step.completed}`);
 
       // Update the main action step
       const { error: stepError } = await supabase
@@ -744,7 +702,6 @@ export async function updatePlaybookActionSteps(
       // Update sub-tasks if they exist
       if (step.subTasks && step.subTasks.length > 0) {
         for (const subTask of step.subTasks) {
-          console.log(`[updatePlaybookActionSteps] Updating subtask ${subTask.id}, completed: ${subTask.completed}`);
 
           const { error: subTaskError } = await supabase
             .from('playbook_sub_tasks')
@@ -772,7 +729,6 @@ export async function updatePlaybookActionSteps(
       allCompleted ? 'completed' : 'ongoing'
     );
 
-    console.log(`[updatePlaybookActionSteps] Successfully updated all action steps and status for ${playbookId}`);
   } catch (error) {
     console.error('[updatePlaybookActionSteps] Error updating action steps:', error);
     throw error;

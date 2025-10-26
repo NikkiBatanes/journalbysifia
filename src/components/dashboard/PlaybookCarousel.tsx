@@ -55,8 +55,6 @@ interface PlaybookCarouselProps {
   onViewAll?: () => void;
 }
 
-
-
 const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   onPlaybookPress,
   onViewAll,
@@ -250,7 +248,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             queryKey.includes('playbookProgress') ||
             queryKey.includes('playbooks') ||
             queryKey.includes('actionSteps')) {
-          console.log('[PlaybookCarousel] Query invalidated, scheduled refetch:', queryKey);
+
           scheduleRefetch(); // Use debounced refetch to avoid rapid flashing
         }
       }
@@ -262,7 +260,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   // Listen for custom events from ActionStepsCard for immediate updates
   useEffect(() => {
     const handleProgressUpdate = (eventData: any) => {
-      console.log('[PlaybookCarousel] DeviceEvent received, scheduled refetch:', eventData);
+
       scheduleRefetch();
     };
 
@@ -292,10 +290,10 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'playbook_action_steps' },
       (payload: any) => {
-        console.log('[PlaybookCarousel] playbook_action_steps change detected:', payload);
+
         const affectedId = (payload.new?.playbook_id ?? payload.old?.playbook_id) as string | undefined;
         if (affectedId && playbookIdsRef.current.has(affectedId)) {
-          console.log('[PlaybookCarousel] Immediate refetch due to step change in playbook:', affectedId);
+
           fetchPlaybooks(); // Direct call for immediate update
         }
       }
@@ -306,7 +304,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'playbook_sub_tasks' },
       (payload: any) => {
-        console.log('[PlaybookCarousel] playbook_sub_tasks change detected:', payload);
+
         // For subtasks, we need to find which playbook they belong to
         fetchPlaybooks(); // Direct call for immediate update
       }

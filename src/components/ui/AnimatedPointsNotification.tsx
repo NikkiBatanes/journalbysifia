@@ -37,13 +37,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   activityType = 'activity',
 }) => {
   const componentId = useRef(Math.random().toString(36).substr(2, 9)).current;
-  console.log(`[AnimatedPointsNotification-${componentId}] Component created:`, {
-    points,
-    visible,
-    activityType,
-    position,
-    timestamp: new Date().toISOString(),
-  });
+
   const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.5)).current;
@@ -51,7 +45,6 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
 
   const hideNotification = useCallback(() => {
     const animationKey = `${activityType}-${points}`;
-    console.log(`[AnimatedPointsNotification-${componentId}] Hiding notification for:`, animationKey);
 
     Animated.parallel([
       Animated.timing(translateY, {

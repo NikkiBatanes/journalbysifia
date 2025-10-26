@@ -20,14 +20,11 @@ interface PlanCarouselProps {
   refreshKey?: number;
 }
 
-
 const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
-
-
 
   const carouselItems = [
     {
@@ -59,7 +56,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey })
       // Play sound effect
       playSound();
     } catch (error) {
-      console.log('Error with sound feedback:', error);
+
     }
   }, []);
 

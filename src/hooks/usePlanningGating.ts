@@ -110,7 +110,7 @@ export const usePlanningGating = (
       onUpgradeRequired();
     } else {
       // Navigate to onboarding sales offer like devotional modal
-      console.log('🔒 Planning feature locked for tier:', currentTier, '- navigating to sales offer');
+
       (navigation as any).navigate('OnboardingSalesOffer', {
         source: 'planning_lock',
         feature: 'future_planning',

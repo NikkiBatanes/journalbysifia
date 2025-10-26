@@ -83,7 +83,6 @@ export class DiscountCodeService {
         throw new Error(`Failed to create discount code: ${error.message}`);
       }
 
-      console.log('[DiscountService] Post-cancellation discount created:', code);
       return { ...data, is_active: true };
     } catch (error) {
       console.error('[DiscountService] Failed to generate post-cancellation discount:', error);
@@ -155,7 +154,6 @@ export class DiscountCodeService {
         throw new Error(`Failed to create personalized discount: ${error.message}`);
       }
 
-      console.log('[DiscountService] Personalized discount created:', code);
       return { ...data, is_active: true };
     } catch (error) {
       console.error('[DiscountService] Failed to generate personalized discount:', error);
@@ -303,7 +301,6 @@ export class DiscountCodeService {
         console.error('[DiscountService] Failed to update usage count:', usageError);
       }
 
-      console.log('[DiscountService] Discount code applied successfully:', code);
       return true;
     } catch (error) {
       console.error('[DiscountService] Failed to apply discount code:', error);
@@ -361,7 +358,6 @@ export class DiscountCodeService {
         throw new Error(`Failed to create custom discount code: ${error.message}`);
       }
 
-      console.log('[DiscountService] Custom discount code created:', code);
       return { ...data, is_active: true };
     } catch (error) {
       console.error('[DiscountService] Failed to create custom discount code:', error);
@@ -410,7 +406,7 @@ export class DiscountCodeService {
       }
 
       const cleanedCount = data?.length || 0;
-      console.log('[DiscountService] Cleaned up expired discount codes:', cleanedCount);
+
       return cleanedCount;
     } catch (error) {
       console.error('[DiscountService] Failed to cleanup expired codes:', error);

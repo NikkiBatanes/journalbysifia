@@ -186,8 +186,6 @@ const OnboardingWelcomeScreen: React.FC = () => {
 
         const registrationMethod = isOAuth ? 'oauth' : 'email';
 
-        console.log('🔍 OnboardingWelcome: Detected user type:', { provider, isOAuth, registrationMethod, displayName });
-
         try {
           (navigation as any).reset?.({ index: 0, routes: [{ name: 'OnboardingPersonalization', params: { name: displayName, registrationMethod } }] });
         } catch {

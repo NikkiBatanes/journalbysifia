@@ -32,28 +32,20 @@ interface GuidedPromptLockIconProps {
 }
 
 const GuidedPromptLockIcon: React.FC<GuidedPromptLockIconProps> = ({
-  tier,
-  usedPrompts = 0,
+  tier: _tier,
+  usedPrompts: _usedPrompts = 0,
   context: _context = 'inApp',
   onLockTap,
   size = 20,
   showLabel = false,
   style,
   position = 'right',
-  prompt,
+  prompt: _prompt,
   forceShow = false,
 }) => {
   // Only show locks when explicitly forced (for specific locked prompts)
   // Don't show locks based on tier alone
   const shouldShowLock = forceShow;
-
-  console.log('[GuidedPromptLockIcon] Lock check:', {
-    tier,
-    usedPrompts,
-    forceShow,
-    shouldShowLock,
-    prompt: prompt || 'no prompt specified',
-  });
 
   // Don't render if not locked
   if (!shouldShowLock) {
@@ -61,7 +53,7 @@ const GuidedPromptLockIcon: React.FC<GuidedPromptLockIconProps> = ({
   }
 
   const handleLockPress = () => {
-    console.log(`[GuidedPromptLockIcon] Lock tapped for guided prompts, tier: ${tier}, used: ${usedPrompts}`);
+
     if (onLockTap) {
       onLockTap();
     }

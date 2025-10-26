@@ -96,7 +96,7 @@ export class IntelligenceService {
         .single();
 
       if (error || !data) {
-        console.log('[IntelligenceService] Creating new intelligence profile for user:', userId);
+
         return await this.createIntelligenceProfile(userId);
       }
 
@@ -115,7 +115,7 @@ export class IntelligenceService {
       // Check if user has intelligence access
       const hasAccess = await subscriptionService.hasIntelligenceAccess(userId);
       if (!hasAccess) {
-        console.log('[IntelligenceService] User does not have intelligence access, skipping behavior tracking');
+
         return;
       }
 
@@ -141,7 +141,6 @@ export class IntelligenceService {
       // Update intelligence profile based on new behavior
       await this.updateIntelligenceProfileFromBehavior(userId);
 
-      console.log(`[IntelligenceService] Tracked behavior: ${event.event_type} for user ${userId}`);
     } catch (error) {
       console.error('[IntelligenceService] Error tracking behavior:', error);
       // Don't throw - behavior tracking should not break the main flow
@@ -229,7 +228,6 @@ export class IntelligenceService {
       // Update profile with new insights
       await this.updateIntelligenceProfile(userId, patterns);
 
-      console.log(`[IntelligenceService] Analyzed patterns for user ${userId}`);
     } catch (error) {
       console.error('[IntelligenceService] Error analyzing user patterns:', error);
     }

@@ -53,7 +53,7 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
           try {
             const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
             if (refreshedSession) {
-              console.log('✅ Prayer API session recovered via refresh');
+
               return refreshedSession;
             }
           } catch (refreshError) {
@@ -85,7 +85,6 @@ const ensureAuthenticated = async () => {
       throw new Error('Invalid authentication token. Please login again.');
     }
 
-    console.log('✅ Prayer API authenticated for user:', session.user.id);
     return session;
   } catch (error) {
     console.error('Error setting Supabase session:', error);
@@ -381,14 +380,12 @@ export class PrayerApi {
       }
     }
 
-    console.log('[PrayerApi.createPrayer] Inserting dbPrayer:', JSON.stringify(dbPrayer));
     // Use INSERT to avoid dependency on unique index being applied. Pre-lookup above provides idempotency.
     const { data, error } = await supabase
       .from('prayers')
       .insert(dbPrayer)
       .select()
       .single();
-    console.log('[PrayerApi.createPrayer] Insert result data:', JSON.stringify(data));
 
     if (error) {
       // If conflict arises (e.g., partial unique index), fetch the existing row and return it
@@ -440,7 +437,6 @@ export class PrayerApi {
     const session = await ensureAuthenticated();
 
     // RLS will automatically ensure user can only update their own prayers
-    console.log('✅ Prayer API update authenticated for user:', session.user.id);
 
     // Transform API format to database format
     const dbUpdates: any = {

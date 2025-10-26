@@ -47,18 +47,11 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
 
   // Define showPointsNotification first to avoid reference issues
   const showPointsNotification = useCallback((points: number, activityType: string, position: 'top' | 'center' | 'bottom' = 'center') => {
-    console.log('[PointsNotificationContext] showPointsNotification called:', {
-      points,
-      activityType,
-      position,
-      timestamp: new Date().toISOString(),
-      currentNotifications: notifications.length,
-    });
 
     // CRITICAL: Prevent duplicate notifications for the same activity type
     const existingNotification = notifications.find(n => n.activityType === activityType && n.points === points);
     if (existingNotification) {
-      console.log('[PointsNotificationContext] Duplicate notification prevented:', { activityType, points });
+
       return;
     }
 
@@ -71,11 +64,10 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       position,
     };
 
-    console.log('[PointsNotificationContext] Adding notification:', newNotification);
     setNotifications(prev => {
-      console.log('[PointsNotificationContext] Previous notifications:', prev.length, prev.map(n => n.activityType));
+
       const updated = [...prev, newNotification];
-      console.log('[PointsNotificationContext] Updated notifications:', updated.length, updated.map(n => n.activityType));
+
       return updated;
     });
 
@@ -101,10 +93,10 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
 
   // Wire up the global notification service so calls from services trigger this UI
   useEffect(() => {
-    console.log('[PointsNotificationContext] Setting up notification callback');
+
     isMounted.current = true;
     notificationService.setPointsNotificationCallback((points, activityType, position) => {
-      console.log('[PointsNotificationContext] Callback triggered:', { points, activityType, position });
+
       showPointsNotification(points, activityType, position);
     });
 
@@ -112,7 +104,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
     const currentTimeouts = timeouts.current;
 
     return () => {
-      console.log('[PointsNotificationContext] Cleaning up notification callback');
+
       isMounted.current = false;
       notificationService.clearPointsNotificationCallback();
       // Clear any pending timeouts using captured ref value
@@ -123,8 +115,6 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
   const handleAnimationComplete = useCallback((id: string) => {
     if (!isMounted.current) {return;}
 
-    console.log('[PointsNotificationContext] Animation complete for ID:', id, 'at', new Date().toISOString());
-
     // Capture current timeout value to avoid stale closure
     const currentTimeout = timeouts.current[id];
 
@@ -132,9 +122,9 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
     requestAnimationFrame(() => {
       if (isMounted.current) {
         setNotifications(prev => {
-          console.log('[PointsNotificationContext] Removing notification. Previous count:', prev.length);
+
           const filtered = prev.filter(n => n.id !== id);
-          console.log('[PointsNotificationContext] New count after removal:', filtered.length);
+
           return filtered;
         });
 
@@ -159,14 +149,10 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
           statusBarTranslucent
           animationType="none"
           presentationStyle="overFullScreen"
-          onShow={() => console.log('[PointsNotificationContext] Overlay Modal shown')}
         >
           <View style={styles.notificationOverlay}>
             {notifications.map((notification) => {
-              console.log('[PointsNotificationContext] Rendering notification:', {
-                ...notification,
-                timestamp: new Date().toISOString(),
-              });
+
               return (
                 <AnimatedPointsNotification
                   key={notification.id}

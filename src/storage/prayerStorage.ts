@@ -54,7 +54,6 @@ export const generateUUID = (): string => {
 // Test database connection and table existence
 export const testDatabaseConnection = async (): Promise<boolean> => {
   try {
-    console.log('🔍 Testing database connection...');
 
     // Test basic connection
     const { error } = await supabase
@@ -72,7 +71,6 @@ export const testDatabaseConnection = async (): Promise<boolean> => {
       return false;
     }
 
-    console.log('✅ Database connection successful!');
     return true;
   } catch (error) {
     console.error('❌ Database connection test error:', error);
@@ -191,13 +189,6 @@ export const savePrayerEntry = async (
 
     // Insert to cloud storage
     try {
-      console.log('Attempting to insert prayer to cloud:', {
-        id: newPrayer.id,
-        user_id: newPrayer.user_id,
-        prayer_type: newPrayer.prayer_type,
-        content: newPrayer.content?.substring(0, 50) + '...',
-        selected_date: newPrayer.selected_date,
-      });
 
       const { data, error } = await supabase
         .from('prayers')
@@ -237,10 +228,6 @@ export const savePrayerEntry = async (
         throw error;
       }
 
-      console.log('✅ Successfully inserted prayer to cloud:', {
-        id: newPrayer.id,
-        data: data,
-      });
     } catch (cloudError: any) {
       console.error('❌ Failed to save to cloud, but local save succeeded:', {
         error: cloudError,
@@ -321,7 +308,6 @@ export const updatePrayerEntry = async (
         throw error;
       }
 
-      console.log('Successfully updated prayer in cloud:', prayerId);
     } catch (cloudError) {
       console.error('Failed to update in cloud, but local save succeeded:', cloudError);
       // Don't throw here - local update succeeded
@@ -360,7 +346,6 @@ export const deletePrayerEntry = async (
         throw error;
       }
 
-      console.log('Successfully deleted prayer from cloud:', prayerId);
     } catch (cloudError) {
       console.error('Failed to delete from cloud, but local delete succeeded:', cloudError);
       // Don't throw here - local delete succeeded
@@ -439,7 +424,6 @@ export const getAllDevotionalPrayersFromCloud = async (
   userId: string
 ): Promise<PrayerEntry[]> => {
   try {
-    console.log('🔍 Fetching ALL devotional prayers from cloud for user:', userId);
 
     const { data, error } = await supabase
       .from('prayers')
@@ -453,7 +437,6 @@ export const getAllDevotionalPrayersFromCloud = async (
       throw error;
     }
 
-    console.log('✅ Fetched devotional prayers from cloud:', data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('❌ Error in getAllDevotionalPrayersFromCloud:', error);
@@ -464,7 +447,6 @@ export const getAllDevotionalPrayersFromCloud = async (
 // Get devotional prayers for a specific date (similar to getCloudPrayers)
 export const getDevotionalPrayersByDate = async (userId: string, date: string): Promise<PrayerEntry[]> => {
   try {
-    console.log(`🔍 Fetching devotional prayers for date ${date} from cloud for user:`, userId);
 
     const { data, error } = await supabase
       .from('prayers')
@@ -479,7 +461,6 @@ export const getDevotionalPrayersByDate = async (userId: string, date: string): 
       throw error;
     }
 
-    console.log(`✅ Fetched ${data?.length || 0} devotional prayers for date ${date}`);
     return data || [];
   } catch (error) {
     console.error('❌ Error in getDevotionalPrayersByDate:', error);

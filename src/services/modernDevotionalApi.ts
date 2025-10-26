@@ -47,8 +47,6 @@ export async function generateDevotional(
   // Retry logic with exponential backoff
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Generating devotional (attempt ${attempt + 1}/${maxRetries + 1})`);
-      console.log('[ModernDevotionalApi] Bible version being sent to API:', bibleVersion || 'NASB');
 
       // Create AbortController for timeout
       const controller = new AbortController();
@@ -94,8 +92,6 @@ export async function generateDevotional(
         throw new Error('Invalid devotional format received from server');
       }
 
-      console.log('Devotional generated successfully, saving to database...');
-
       // Choose a category: prefer result.category/categories if present, else derive from title/description
       // Database constraint only allows: Prayer, Growth, Healing, Wisdom, Relationships, Purpose, Career, Finances, Mental Health, Parenting, Health
       const deriveCategory = (payload: any): DevotionalCategory => {
@@ -127,9 +123,6 @@ export async function generateDevotional(
       };
 
       const computedCategory = deriveCategory(result);
-      console.log('[ModernDevotionalApi] Computed category for devotional:', computedCategory);
-      console.log('[ModernDevotionalApi] Devotional title:', result.title);
-      console.log('[ModernDevotionalApi] Devotional description:', result.description);
 
       // Save the generated devotional to the database
       const { data: savedDevotional, error: saveError } = await supabase
@@ -159,14 +152,12 @@ export async function generateDevotional(
         throw new Error(`Failed to save devotional: ${saveError.message}`);
       }
 
-      console.log('✅ Devotional saved to database:', savedDevotional.id);
-
       // Track usage for subscription after successful generation
       try {
         const { subscriptionService } = await import('./subscriptionService');
         if (session.user?.id) {
           await subscriptionService.trackUsage(session.user.id, 'devotional', 0, isOnboarding || false);
-          console.log('[ModernDevotionalApi] Usage tracked for devotional generation');
+
         }
       } catch (trackingError) {
         console.warn('[ModernDevotionalApi] Failed to track usage:', trackingError);
@@ -208,7 +199,7 @@ export async function generateDevotional(
       // Wait before retrying (exponential backoff)
       if (attempt < maxRetries) {
         const delay = API_RETRY_DELAY * Math.pow(2, attempt);
-        console.log(`Waiting ${delay}ms before retry...`);
+
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

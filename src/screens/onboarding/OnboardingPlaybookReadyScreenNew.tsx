@@ -405,7 +405,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     try {
       triggerSuccessHaptic();
     } catch (error) {
-      console.log('Haptic feedback error:', error);
+
     }
     // Navigate directly to sales offer (notification setup comes after purchase)
     navigation.navigate('OnboardingSalesOffer' as any);
@@ -1110,7 +1110,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     </>
   );
 };
-
 
 const styles = StyleSheet.create({
   modalOverlay: {

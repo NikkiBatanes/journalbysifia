@@ -52,8 +52,6 @@ interface ReflectionQuestionsCardProps {
   onViewAll?: () => void;
 }
 
-
-
 const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   onQuestionPress,
   onViewAll: _onViewAll,
@@ -84,12 +82,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   });
 
   // Debug guided prompt gating
-  console.log('[ReflectionQuestionsCard] Guided prompt gating:', {
-    tier: subscription?.tier,
-    usedPrompts: guidedPromptGating.usedPrompts,
-    availablePrompts: guidedPromptGating.availablePrompts.length,
-    accessCheck: guidedPromptGating.accessCheck,
-  });
+
   // No need to fetch today's reflections for this version
   const [_diag, setDiag] = useState<{
     devotionalCount: number;
@@ -320,14 +313,6 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           questionKey: 'guidedPrompt',
           groupLabel: isFree ? 'Free Guided Prompt' : 'Guided Prompt',
         });
-      });
-
-      console.log('[ReflectionQuestionsCard] Adding guided questions:', {
-        currentTier: subscription?.tier,
-        freePrompts: freePrompts.length,
-        lockedPrompts: lockedPrompts.length,
-        totalGuidedQuestions: guidedQuestions.length,
-        totalQuestions: allQuestions.length + guidedQuestions.length,
       });
 
       setQuestions([...allQuestions, ...guidedQuestions]);

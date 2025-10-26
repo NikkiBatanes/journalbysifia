@@ -574,8 +574,6 @@ export class PerformanceMonitoringService {
           }))
         );
 
-      console.log(`[PerformanceMonitoring] Flushed ${metricsToFlush.length} metrics to database`);
-
     } catch (error) {
       console.error('[PerformanceMonitoring] Error flushing metrics:', error);
       // Keep metrics in buffer for retry

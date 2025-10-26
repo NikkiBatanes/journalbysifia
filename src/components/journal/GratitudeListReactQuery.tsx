@@ -104,10 +104,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   // Debug: Check for multiple entries
   if (gratitudeEntries.length > 1) {
-    console.log('🔍 Multiple gratitude entries detected:', {
-      count: gratitudeEntries.length,
-      entries: gratitudeEntries.map(e => ({ id: e.id, content: e.content })),
-    });
+
   }
 
   // Transform API data to local GratitudeItem format

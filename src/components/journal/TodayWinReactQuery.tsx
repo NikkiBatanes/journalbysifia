@@ -120,7 +120,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     setDisplayWin(null);
     setEditingEntryId(null);
     setIsSaving(false);
-    console.log('🏆 TodayWin: Resetting state for date:', dateStr);
+
   }, [dateStr]);
 
   const userId = user?.id || '';
@@ -278,14 +278,14 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         id: entry.id,
         text: content.win || '',
       };
-      console.log('🏆 TodayWin: Win object created:', result);
+
       return result;
     } catch {
       const result = {
         id: entry.id,
         text: '',
       };
-      console.log('🏆 TodayWin: Win object created (error case):', result);
+
       return result;
     }
   }, [entry]);
@@ -298,7 +298,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         // Compare by ID and text to avoid unnecessary updates
         if (!win && !prevDisplayWin) {return prevDisplayWin;}
         if (!win || !prevDisplayWin) {
-          console.log('🏆 TodayWin: Updated displayWin from server:', win);
+
           return win;
         }
 
@@ -311,11 +311,10 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         // (optimistic updates have temp IDs or are newer)
         if (prevDisplayWin.id.startsWith('temp-') && win.text === prevDisplayWin.text) {
           // Replace temp ID with real ID but keep the optimistic content
-          console.log('🏆 TodayWin: Replacing optimistic ID with real ID:', { from: prevDisplayWin.id, to: win.id });
+
           return { ...prevDisplayWin, id: win.id };
         }
 
-        console.log('🏆 TodayWin: Updated displayWin from server:', win);
         return win;
       });
     }
@@ -359,7 +358,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   const cancelAdding = () => {
     triggerSelectionHaptic();
-    console.log('🏆 TodayWin: Cancelling', { previousWin, isEditing, editingEntryId });
+
     if (previousWin) {
       // Restore the previous win if we were editing
       setDisplayWin(previousWin);
@@ -372,18 +371,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     setIsEditing(false);
     setEditingEntryId(null);
     setIsSaving(false);
-    console.log('🏆 TodayWin: Cancel complete');
+
   };
 
   const saveWin = () => {
     if (!winText.trim()) {return;}
-
-    console.log('🏆 TodayWin: Starting save process', {
-      winText: winText.trim(),
-      isEditing,
-      editingEntryId,
-      entriesCount: entries.length,
-    });
 
     if (isEditing && editingEntryId) {
       // Update existing entry
@@ -393,12 +385,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         console.error('🏆 TodayWin: Available entries:', entries.map(e => ({ id: e.id, content: e.content })));
         return;
       }
-
-      console.log('🏆 TodayWin: Found entry to update:', {
-        id: currentEntry.id,
-        currentContent: currentEntry.content,
-        newText: winText.trim(),
-      });
 
       let updatedContent: any;
       try {
@@ -412,12 +398,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       const oldWin = updatedContent.win;
       updatedContent.win = winText.trim();
 
-      console.log('🏆 TodayWin: Content update:', {
-        oldWin,
-        newWin: updatedContent.win,
-        fullContent: updatedContent,
-      });
-
       // Set saving state to prevent useEffect from overriding
       setIsSaving(true);
 
@@ -429,7 +409,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
       // Apply optimistic update immediately
       setDisplayWin(optimisticWin);
-      console.log('🏆 TodayWin: Optimistic update applied:', optimisticWin);
 
       // Close global edit mode if active
       if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
@@ -443,7 +422,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         },
       }, {
         onSuccess: (data) => {
-          console.log('🏆 TodayWin: Update mutation successful', data);
+
           setIsSaving(false);
 
           // Exit edit mode and clear input like LookingForward
@@ -480,7 +459,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
             })(),
           };
           setDisplayWin(originalWin);
-          console.log('🏆 TodayWin: Reverted optimistic update due to error', originalWin);
+
         },
       });
     } else {
@@ -496,7 +475,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
       // Apply optimistic update immediately
       setDisplayWin(optimisticWin);
-      console.log('🏆 TodayWin: Optimistic create applied:', optimisticWin);
 
       // Close global edit mode if active
       if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
@@ -509,7 +487,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         content: JSON.stringify({ win: winText.trim() }),
       }, {
         onSuccess: (data) => {
-          console.log('🏆 TodayWin: Create mutation successful', data);
+
           setIsSaving(false);
 
           // Exit add mode and clear input like LookingForward
@@ -532,7 +510,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           triggerErrorHaptic();
           // Revert optimistic update on error
           setDisplayWin(null);
-          console.log('🏆 TodayWin: Reverted optimistic create due to error');
+
         },
       });
     }

@@ -4,7 +4,6 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { immer } from 'zustand/middleware/immer';
 
-
 // Legacy interface for backward compatibility with devotional system
 export interface PrayedItem {
   id: string;
@@ -109,9 +108,9 @@ export const usePrayerStore = create<PrayerStore>()(
 
           if (!isDuplicate) {
             state.prayedItems.unshift(newItem);
-            console.log('✅ Added prayed item to store:', newItem);
+
           } else {
-            console.log('⚠️ Duplicate prayed item detected, skipping:', text);
+
           }
         });
       },
@@ -119,14 +118,14 @@ export const usePrayerStore = create<PrayerStore>()(
       clearPrayedItems: () => {
         set((state) => {
           state.prayedItems = [];
-          console.log('🗑️ Cleared all prayed items from store');
+
         });
       },
 
       setPrayedItems: (items: PrayedItem[]) => {
         set((state) => {
           state.prayedItems = items;
-          console.log(`📚 Set ${items.length} prayed items in store`);
+
         });
       },
 
@@ -253,5 +252,4 @@ export const usePrayerSelectors = () => {
       store.notificationsEnabled,
   };
 };
-
 

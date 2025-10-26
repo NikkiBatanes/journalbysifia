@@ -972,18 +972,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             // Haptic for switching to free-form mode
             triggerLightHaptic();
 
-            console.log('[ReflectionLogEditor] Pencil icon tapped:', {
-              currentViewMode: viewMode,
-              selectedPrompt: selectedPrompt || 'null',
-              hasContent: !!newEntry.content.trim(),
-              switchingFromGuided: viewMode === 'guided',
-            });
-
             // If already in free-form mode, check if this is actually a guided prompt
             if (viewMode === 'free-form') {
               // If this is a guided prompt that was opened in free-form mode, convert to true free-form
               if (selectedPrompt || (guidedPromptGating.allPrompts || []).includes(newEntry.title)) {
-                console.log('[ReflectionLogEditor] Converting guided prompt to true free-form');
+
                 // Clear everything to create true free-form mode
                 setNewEntry(prev => ({
                   ...prev,
@@ -998,7 +991,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 }, 100);
                 return;
               } else {
-                console.log('[ReflectionLogEditor] Already in true free-form mode, ignoring tap');
+
                 return;
               }
             }
@@ -1144,14 +1137,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                                        (source && source !== 'freeform' && (newEntry.title || newEntry.content)) ||
                                        selectedPrompt ||
                                        (guidedPromptGating.allPrompts || []).includes(newEntry.title);
-                console.log('[ReflectionLogEditor] Title lock check:', {
-                  lockTitle,
-                  source,
-                  selectedPrompt: selectedPrompt || 'null',
-                  title: newEntry.title,
-                  titleMatchesGuided: (guidedPromptGating.allPrompts || []).includes(newEntry.title),
-                  shouldLockTitle,
-                });
+
                 return shouldLockTitle;
               })() ? (
                 <View style={s.lockedTitleContainer}>
@@ -1339,7 +1325,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           usedPrompts={guidedPromptGating.usedPrompts}
                           context="inApp"
                           onLockTap={() => {
-                            console.log('[ReflectionLogEditor] Grid lock tapped - navigating to sales offer (keeping modal open)');
+
                             (navigation as any).navigate('OnboardingSalesOffer', {
                               source: 'guided_prompts_lock',
                               feature: 'guided_prompts',
@@ -1367,7 +1353,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           triggerLightHaptic();
 
                           // Always allow selecting any prompt - gating happens on save
-                          console.log('[ReflectionLogEditor] Setting selectedPrompt:', { prompt });
+
                           setSelectedPrompt(prompt);
                           setViewMode('free-form');
 

@@ -322,8 +322,7 @@ export class AppleStoreKitService {
         // TEMPORARY: Skip receipt validation in TestFlight/Sandbox
         // Receipt validation is flaky in sandbox and often fails even for valid purchases
         // In production, you should enable this with proper shared secret
-        console.log('[StoreKit] ⚠️ Skipping receipt validation (TestFlight/Sandbox mode)');
-        console.log('[StoreKit] In production, enable receipt validation with APPLE_SHARED_SECRET');
+
         return true;
 
         /* TODO: Enable for production
@@ -391,18 +390,15 @@ export class AppleStoreKitService {
         .single();
 
       if (userCheckError || !userProfile) {
-        console.log('[StoreKit] ⚠️ User does not exist in database - cannot update subscription');
-        console.log('[StoreKit] This prevents creating subscriptions for deleted users');
+
         throw new Error('User account not found - subscription update skipped');
       }
-
-      console.log('[StoreKit] ✅ User exists in database, proceeding with subscription update');
 
       // Check if user is on trial - if so, convert to paid
       const currentSubscription = await NewSubscriptionService.getUserSubscription(userId);
 
       if (currentSubscription.tier === 'free_trial') {
-        console.log('[StoreKit] User is already on trial - no conversion needed');
+
         // Trial purchases should stay as free_trial during trial period
         // Only convert when trial expires or user manually upgrades
       } else {
@@ -415,7 +411,6 @@ export class AppleStoreKitService {
         });
       }
 
-      console.log('[StoreKit] User subscription updated successfully');
     } catch (error) {
       console.error('[StoreKit] Failed to update user subscription:', error);
       throw error;
@@ -427,7 +422,7 @@ export class AppleStoreKitService {
    */
   private async getCurrentUserId(): Promise<string | null> {
     if (this.currentUserId) {
-      console.log('[StoreKit] Using stored userId:', this.currentUserId);
+
       return this.currentUserId;
     }
 
@@ -453,14 +448,14 @@ export class AppleStoreKitService {
                        error.message?.toLowerCase().includes('user cancel');
 
     if (isCancelled) {
-      console.log('[StoreKit] User cancelled purchase - not treating as error');
+
       // Reject with a special cancellation error
       const cancellationError = new Error('USER_CANCELLED');
       (cancellationError as any).code = 'USER_CANCELLED';
 
       // Reject ALL pending purchase promises since user cancelled
       this.pendingPurchaseResolvers.forEach((resolver, productId) => {
-        console.log('[StoreKit] Resolving cancelled purchase for:', productId);
+
         resolver.reject(cancellationError);
       });
       this.pendingPurchaseResolvers.clear();
@@ -468,13 +463,12 @@ export class AppleStoreKitService {
       // Real error - reject all pending promises with the original error
       console.error('[StoreKit] Real purchase error:', error);
       this.pendingPurchaseResolvers.forEach((resolver, productId) => {
-        console.log('[StoreKit] Rejecting pending purchase due to error:', productId);
+
         resolver.reject(error);
       });
       this.pendingPurchaseResolvers.clear();
     }
   }
-
 
   /**
    * Check current subscription status
@@ -508,18 +502,14 @@ export class AppleStoreKitService {
    */
   async checkAndSyncSubscriptionStatus(userId: string): Promise<void> {
     try {
-      console.log('[StoreKit] ========================================');
-      console.log('[StoreKit] 🔄 Starting subscription status sync for user:', userId);
 
       await this.initialize();
 
       // Get all available purchases from Apple
       const availablePurchases = await RNIap.getAvailablePurchases();
 
-      console.log('[StoreKit] Found', availablePurchases.length, 'purchase(s) from Apple');
-
       if (availablePurchases.length === 0) {
-        console.log('[StoreKit] No active subscriptions found in Apple');
+
         await this.handleNoActiveSubscription(userId);
         return;
       }
@@ -527,22 +517,11 @@ export class AppleStoreKitService {
       // Get the most recent subscription purchase
       const latestPurchase = this.getMostRecentPurchase(availablePurchases);
 
-      console.log('[StoreKit] Latest purchase:', {
-        productId: latestPurchase.productId,
-        transactionId: latestPurchase.transactionId,
-        transactionDate: latestPurchase.transactionDate,
-      });
-
       // Determine subscription status
       const status = await this.determineSubscriptionStatus(latestPurchase);
 
-      console.log('[StoreKit] Determined status:', status);
-
       // Sync with database
       await this.syncStatusWithDatabase(userId, latestPurchase, status);
-
-      console.log('[StoreKit] ✅ Subscription status sync complete');
-      console.log('[StoreKit] ========================================');
 
     } catch (error) {
       console.error('[StoreKit] ========================================');
@@ -630,14 +609,6 @@ export class AppleStoreKitService {
 
       const isInTrial = diffMs < trialDurationMs;
 
-      console.log('[StoreKit] Trial check:', {
-        transactionDate: transactionDate.toISOString(),
-        now: now.toISOString(),
-        diffMs,
-        trialDurationMs,
-        isInTrial,
-      });
-
       return isInTrial;
     } catch (error) {
       console.error('[StoreKit] Error checking trial period:', error);
@@ -661,7 +632,6 @@ export class AppleStoreKitService {
     productId?: string
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      console.log('[StoreKit] 🔐 Validating receipt server-side...');
 
       const { data, error } = await supabase.functions.invoke('validate-receipt', {
         body: {
@@ -688,7 +658,6 @@ export class AppleStoreKitService {
         };
       }
 
-      console.log('[StoreKit] ✅ Receipt validated successfully');
       return {
         success: true,
         data: data.data,
@@ -719,25 +688,12 @@ export class AppleStoreKitService {
         .single();
 
       if (userCheckError || !userProfile) {
-        console.log('[StoreKit] ⚠️ User does not exist in database - skipping subscription sync');
-        console.log('[StoreKit] This prevents creating subscriptions for deleted users');
+
         return;
       }
 
-      console.log('[StoreKit] ✅ User exists in database, proceeding with subscription sync');
-
       // Get current database status
       const currentSub = await NewSubscriptionService.getUserSubscription(userId);
-
-      console.log('[StoreKit] Current database status:', {
-        tier: currentSub?.tier,
-        status: currentSub?.status,
-      });
-
-      console.log('[StoreKit] New status from Apple:', {
-        tier: status.tier,
-        status: status.status,
-      });
 
       // Check if update is needed
       const needsUpdate =
@@ -745,11 +701,9 @@ export class AppleStoreKitService {
         currentSub?.status !== status.status;
 
       if (!needsUpdate) {
-        console.log('[StoreKit] ✅ Database already up to date');
+
         return;
       }
-
-      console.log('[StoreKit] 🔄 Updating database...');
 
       // Update database
       if (status.status === 'free_trial') {
@@ -768,8 +722,6 @@ export class AppleStoreKitService {
         });
       }
 
-      console.log('[StoreKit] ✅ Database updated successfully');
-
     } catch (error) {
       console.error('[StoreKit] Failed to sync with database:', error);
       throw error;
@@ -785,11 +737,9 @@ export class AppleStoreKitService {
 
       // If user is already seeker, no need to update
       if (currentSub?.tier === 'seeker') {
-        console.log('[StoreKit] User already set to seeker tier');
+
         return;
       }
-
-      console.log('[StoreKit] No active subscription - downgrading to seeker');
 
       // Downgrade to seeker (free tier)
       await NewSubscriptionService.upgradeSubscription(userId, {
@@ -797,8 +747,6 @@ export class AppleStoreKitService {
         platform: 'apple' as any,
         platform_subscription_id: undefined,
       });
-
-      console.log('[StoreKit] ✅ User downgraded to seeker');
 
     } catch (error) {
       console.error('[StoreKit] Failed to handle no subscription:', error);
@@ -812,7 +760,6 @@ export class AppleStoreKitService {
    */
   async restorePurchases(userId: string): Promise<{ success: boolean; message: string; validated?: number }> {
     try {
-      console.log('[StoreKit] 🔄 Restoring purchases for user:', userId);
 
       await this.initialize();
 
@@ -826,13 +773,10 @@ export class AppleStoreKitService {
         };
       }
 
-      console.log('[StoreKit] Found', availablePurchases.length, 'purchase(s) to restore');
-
       // ENTERPRISE IMPROVEMENT: Validate each purchase server-side
       let validatedCount = 0;
       for (const purchase of availablePurchases) {
         try {
-          console.log('[StoreKit] Validating restored purchase:', purchase.productId);
 
           const validationResult = await this.validateReceiptServerSide(
             purchase.transactionReceipt,
@@ -842,7 +786,7 @@ export class AppleStoreKitService {
 
           if (validationResult.success) {
             validatedCount++;
-            console.log('[StoreKit] ✅ Restored purchase validated:', purchase.productId);
+
           } else {
             console.warn('[StoreKit] ⚠️ Restored purchase validation failed:', purchase.productId);
           }
@@ -885,7 +829,6 @@ export class AppleStoreKitService {
       await endConnection();
       this.isInitialized = false;
 
-      console.log('[StoreKit] Cleanup completed');
     } catch (error) {
       console.error('[StoreKit] Cleanup error:', error);
     }

@@ -76,24 +76,23 @@ class SessionManager {
   }
 
   async handleSessionError(error: any): Promise<boolean> {
-    console.log('[SessionManager] Handling session error:', error.message);
 
     // Don't logout for network errors
     if (this.isNetworkError(error)) {
-      console.log('[SessionManager] Network error detected, maintaining session');
+
       return false; // Don't logout
     }
 
     // Don't logout if we can still refresh
     if (this.shouldAttemptRefresh()) {
-      console.log('[SessionManager] Session error, but will attempt refresh');
+
       await this.incrementRefreshAttempts();
       return false; // Don't logout
     }
 
     // Only logout if session is truly expired or max attempts reached
     if (this.isSessionExpired() || this.sessionInfo.refreshAttempts >= this.MAX_REFRESH_ATTEMPTS) {
-      console.log('[SessionManager] Session expired or max refresh attempts reached');
+
       await this.clearSessionInfo();
       return true; // Logout
     }
@@ -143,7 +142,7 @@ class SessionManager {
     const fiveMinutes = 5 * 60 * 1000;
 
     if (expiresAt - now < fiveMinutes) {
-      console.log('[SessionManager] Token close to expiry, should refresh');
+
       return { isValid: true, shouldRefresh: true };
     }
 

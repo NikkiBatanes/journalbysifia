@@ -386,7 +386,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
 });
 
-
 export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = ({
   plugins,
   dateRange,
@@ -460,9 +459,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   const weekStartsOn: WeekStartDay = React.useMemo(() => {
     try {
       const raw = weekStartsOnPref;
-      console.log('🗓️ [MomentsRenderer] Raw weekStartsOn preference:', raw);
+
       if (typeof raw === 'number' && raw >= 0 && raw <= 6) {
-        console.log('🗓️ [MomentsRenderer] Using numeric weekStartsOn:', raw);
+
         return raw as WeekStartDay;
       }
       if (typeof raw === 'string') {
@@ -477,14 +476,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           '6': 6, 'sat': 6, 'saturday': 6,
         };
         if (val in map) {
-          console.log('🗓️ [MomentsRenderer] Mapped string weekStartsOn:', val, '->', map[val]);
+
           return map[val];
         }
       }
     } catch (_) {
       // ignore and use default
     }
-    console.log('🗓️ [MomentsRenderer] Falling back to default weekStartsOn: 0 (Sunday)');
+
     return 0;
   }, [weekStartsOnPref]);
 
@@ -495,14 +494,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       setLoading(false);
       return;
     }
-
-    console.log('🔍 [MomentsRenderer] Starting data fetch for user:', user.id);
-    console.log('🔍 [MomentsRenderer] Date range filter:', {
-      startDate: dateRange.startDate,
-      endDate: dateRange.endDate,
-      label: dateRange.label,
-    });
-    console.log('🔍 [MomentsRenderer] Available plugins:', plugins.map(p => ({ id: p.id, title: p.title, category: p.category })));
 
     try {
       // Only show skeleton on first load, not on subsequent refetches
@@ -521,16 +512,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        console.log('📊 [MomentsRenderer] Journal entries query result:', {
-          error: journalEntriesError,
-          count: journalEntries?.length || 0,
-          sample: journalEntries?.slice(0, 3).map(e => ({
-            content_type: e.content_type,
-            created_at: e.created_at,
-            hasContent: !!e.content,
-          })),
-        });
-
         // Check specifically for July 31 entries in raw data
         if (journalEntries) {
           const july31RawEntries = journalEntries.filter(entry => {
@@ -544,20 +525,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           });
 
           if (july31RawEntries.length > 0) {
-            console.log('🗓️ [MomentsRenderer] Found July 31 raw entries in database:', july31RawEntries.map(e => ({
-              content_type: e.content_type,
-              selected_date: e.selected_date,
-              created_at: e.created_at,
-              hasContent: !!e.content,
-              content: typeof e.content === 'string' ? e.content.substring(0, 50) + '...' : 'object',
-            })));
+
           } else {
-            console.log('🗓️ [MomentsRenderer] No July 31 entries found in raw database results (checked both selected_date and created_at)');
+
           }
         }
 
         if (!journalEntriesError && journalEntries && journalEntries.length > 0) {
-          console.log('🔍 [MomentsRenderer] Processing', journalEntries.length, 'journal entries...');
+
           let processedCount = 0;
           let skippedCount = 0;
 
@@ -589,21 +564,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
             const hasContent = hasTextContent || isDevotionalJE;
 
-            console.log('🔍 [MomentsRenderer] Content check for entry:', {
-              content_type: entry.content_type,
-              hasContent,
-              hasTextContent,
-              isDevotionalJE,
-              contentType: typeof entry.content,
-              contentPreview: typeof entry.content === 'string' ? entry.content.substring(0, 30) + '...' : 'object',
-            });
-
             if (hasContent) {
-              console.log('🔍 [MomentsRenderer] Processing journal entry:', {
-                content_type: entry.content_type,
-                created_at: entry.created_at,
-                content: typeof entry.content === 'string' ? entry.content.substring(0, 50) + '...' : 'object',
-              });
 
               // Find appropriate plugin based on content_type
               let plugin = null;
@@ -627,14 +588,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
               const searchTerms = contentTypeMap[entry.content_type] || (isDevotionalJE ? ['devotional', 'devo'] : ['journal']);
 
-              console.log('🔍 [MomentsRenderer] Searching for plugin with terms:', searchTerms);
-
               for (const term of searchTerms) {
                 plugin = plugins.find((p: JournalPlugin) =>
                   p.title.toLowerCase().includes(term.toLowerCase())
                 );
                 if (plugin) {
-                  console.log('✅ [MomentsRenderer] Found plugin:', plugin.title, 'for term:', term);
+
                   break;
                 }
               }
@@ -642,7 +601,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               // Final fallback - use any available plugin
               if (!plugin && plugins.length > 0) {
                 plugin = plugins[0];
-                console.log('⚠️ [MomentsRenderer] Using fallback plugin:', plugin.title);
+
               }
 
               if (plugin) {
@@ -697,13 +656,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   // Let all prayer journal entries through initially - the secondary filter will handle answered/category filtering
                   shouldIncludeJournalEntry = true;
 
-                  console.log('🔍 [MomentsRenderer] Prayer journal entry filtering:', {
-                    content_type: entry.content_type,
-                    isAnswered,
-                    journalCategory,
-                    prayerType,
-                    shouldIncludeJournalEntry,
-                  });
                 }
 
                 if (shouldIncludeJournalEntry) {
@@ -726,42 +678,27 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
                     };
 
-                    console.log('✅ [MomentsRenderer] Adding journal entry (deduplicated):', momentEntry);
                     entries.push(momentEntry);
                     processedCount++;
                   } else {
-                    console.log('🔄 [MomentsRenderer] Skipping duplicate plugin entry for same date:', {
-                      plugin: selectedPlugin.id,
-                      date: dateKey,
-                      existing: existingEntry.type,
-                    });
+
                   }
                 } else {
-                  console.log('⚠️ [MomentsRenderer] Skipping prayer journal entry due to filtering:', entry.content_type);
+
                   skippedCount++;
                 }
               } else {
-                console.log('❌ [MomentsRenderer] No plugin found for entry:', entry.content_type);
+
                 skippedCount++;
               }
             } else {
-              console.log('⚠️ [MomentsRenderer] Skipping entry with no content:', entry.content_type);
+
               skippedCount++;
             }
           });
 
-          console.log('📊 [MomentsRenderer] Journal entries processing summary:', {
-            total: journalEntries.length,
-            processed: processedCount,
-            skipped: skippedCount,
-            successRate: `${Math.round((processedCount / journalEntries.length) * 100)}%`,
-          });
         } else {
-          console.log('⚠️ [MomentsRenderer] No journal entries found or error occurred:', {
-            error: journalEntriesError,
-            hasData: !!journalEntries,
-            count: journalEntries?.length || 0,
-          });
+
         }
 
         // Note: Reflections are processed later in the existing reflections query section
@@ -774,15 +711,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .order('created_at', { ascending: false });
 
         if (!prayersError && prayers && prayers.length > 0) {
-          console.log('📊 [MomentsRenderer] Prayers query result:', {
-            error: prayersError,
-            count: prayers?.length || 0,
-            sample: prayers?.slice(0, 3).map(p => ({
-              created_at: p.created_at,
-              selected_date: p.selected_date,
-              hasContent: !!(p.content || p.prayer_text),
-            })),
-          });
 
           // Check specifically for August 1-2 prayer entries
           const august12Prayers = prayers.filter(prayer => {
@@ -796,15 +724,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           });
 
           if (august12Prayers.length > 0) {
-            console.log('🗓️ [MomentsRenderer] Found August 1-2 prayer entries:', august12Prayers.map(p => ({
-              selected_date: p.selected_date,
-              created_at: p.created_at,
-              hasContent: !!(p.content || p.prayer_text),
-              content: p.content || p.prayer_text,
-              journal_category: p.journal_category,
-            })));
+
           } else {
-            console.log('🗓️ [MomentsRenderer] No August 1-2 prayer entries found in raw database results');
+
           }
 
           // Try to find the best prayer plugin - prefer Prayer Journal, then Prayer List, then any prayer plugin
@@ -831,12 +753,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                              null as any;
           // Identify People/Prayer List plugin for people prayers
           const peoplePlugin = plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('prayer list')) || null as any;
-          console.log('🔍 [MomentsRenderer] Prayer plugin search result:', {
-            found: !!prayerPlugin,
-            pluginTitle: prayerPlugin?.title,
-            devoPlugin: devoPlugin?.title,
-            availablePlugins: plugins.map(p => p.title),
-          });
 
           if (prayerPlugin) {
             let devoCount = 0;
@@ -890,21 +806,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
               const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isDevotional;
 
-              console.log('🔍 [MomentsRenderer] Processing prayer entry:', {
-                created_at: prayer.created_at,
-                selected_date: prayer.selected_date,
-                hasUserContent,
-                hasText,
-                isDevotional,
-                isAnswered,
-                shouldIncludePrayer,
-                journal_category: prayer.journal_category,
-                prayer_type: prayerType,
-                source: (prayer as any).source,
-                type: (prayer as any).type,
-                action: (prayer as any).action,
-              });
-
               if (hasUserContent && shouldIncludePrayer) {
                 // Parse date-only strings as local midnight to avoid off-by-one issues
                 const selected = (prayer as any).selected_date as string | null;
@@ -940,29 +841,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   isAnswered: ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date,
                 };
 
-                console.log('🔍 [MomentsRenderer] Prayer entry answered status:', {
-                  type: typeLabel,
-                  is_answered: (prayer as any).is_answered,
-                  status: (prayer as any).status,
-                  answered_date: (prayer as any).answered_date,
-                  finalIsAnswered: prayerEntry.isAnswered,
-                });
-
-                console.log('✅ [MomentsRenderer] Adding prayer entry:', {
-                  ...prayerEntry,
-                  pluginTitle: targetPlugin?.title,
-                });
                 entries.push(prayerEntry);
               } else {
-                console.log('⚠️ [MomentsRenderer] Skipping prayer entry with no content and no category');
+
               }
             });
-            console.log('📊 [MomentsRenderer] Prayer processing summary:', {
-              total: prayers.length,
-              devotionalTagged: devoCount,
-            });
+
           } else {
-            console.log('❌ [MomentsRenderer] No prayer plugin found!');
+
           }
         }
 
@@ -974,22 +860,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .order('created_at', { ascending: false });
 
         if (!reflectionsError && reflections && reflections.length > 0) {
-          console.log('📊 [MomentsRenderer] Reflections query result:', {
-            error: reflectionsError,
-            count: reflections?.length || 0,
-            sample: reflections?.slice(0, 3).map(r => ({
-              created_at: r.created_at,
-              selected_date: r.selected_date,
-              hasContent: !!(r.content && r.content.trim().length > 0),
-            })),
-          });
 
           const reflectionPlugin = plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('reflection'));
-          console.log('🔍 [MomentsRenderer] Reflection plugin search result:', {
-            found: !!reflectionPlugin,
-            pluginTitle: reflectionPlugin?.title,
-            availablePlugins: plugins.map(p => p.title),
-          });
 
           if (reflectionPlugin) {
             reflections.forEach(reflection => {
@@ -1023,17 +895,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 (typeof reflection.content === 'string' ? reflection.content.trim().length > 0 :
                  typeof reflection.content === 'object' ? Object.keys(reflection.content).length > 0 : true);
 
-              console.log('🔍 [MomentsRenderer] Processing reflection entry:', {
-                created_at: reflection.created_at,
-                selected_date: reflection.selected_date,
-                hasUserContent,
-                allowedType,
-                allowedSource,
-                type: reflection.type,
-                source: reflection.source,
-                contentPreview: reflection.content ? (typeof reflection.content === 'string' ? reflection.content.substring(0, 50) + '...' : 'object') : 'null',
-              });
-
               if (hasUserContent && allowedType && allowedSource) {
                 const entryDate = new Date(reflection.selected_date || reflection.created_at);
                 const dateKey = entryDate.toDateString();
@@ -1052,25 +913,16 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                     type: reflection.type || 'Reflection',
                   };
 
-                  console.log('✅ [MomentsRenderer] Adding reflection entry (deduplicated):', reflectionEntry);
                   entries.push(reflectionEntry);
                 } else {
-                  console.log('🔄 [MomentsRenderer] Skipping duplicate reflection entry for same date:', {
-                    plugin: reflectionPlugin.id,
-                    date: dateKey,
-                    existing: existingEntry.type,
-                  });
+
                 }
               } else {
-                console.log('⚠️ [MomentsRenderer] Skipping reflection entry:', {
-                  reason: !hasUserContent ? 'no content' : 'type/source not allowed',
-                  type: reflection.type,
-                  source: reflection.source,
-                });
+
               }
             });
           } else {
-            console.log('❌ [MomentsRenderer] No reflection plugin found!');
+
           }
         }
 
@@ -1082,15 +934,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .order('created_at', { ascending: false });
 
         if (!timeBlocksError && timeBlocks && timeBlocks.length > 0) {
-          console.log('📊 [MomentsRenderer] Time blocks query result:', {
-            error: timeBlocksError,
-            count: timeBlocks?.length || 0,
-            sample: timeBlocks?.slice(0, 3).map(tb => ({
-              created_at: tb.created_at,
-              selected_date: tb.selected_date,
-              hasContent: !!(tb.title || tb.description),
-            })),
-          });
 
           timeBlocks.forEach(timeBlock => {
             // Check if time block has meaningful user content
@@ -1120,7 +963,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         }
 
       } catch (dbError) {
-        console.log('Database query error:', dbError);
+
         // If database queries fail, don't show any entries
       }
 
@@ -1141,14 +984,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const duplicates = Object.entries(duplicateCheck).filter(([_, list]) => list.length > 1);
 
       if (duplicates.length > 0) {
-        console.log('⚠️ [MomentsRenderer] Found duplicates (by day + plugin + type):', duplicates.map(([key, dupEntries]) => ({
-          key,
-          count: dupEntries.length,
-          dates: dupEntries.map(e => e.date.toISOString()),
-          plugins: dupEntries.map(e => e.plugin),
-          types: dupEntries.map(e => e.type),
-          categories: dupEntries.map(e => e.category),
-        })));
 
         // For each day+plugin+type, keep the most recent entry only
         const groupedByKey: Record<string, MomentEntry[]> = {};
@@ -1170,29 +1005,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         });
 
         if (removed.length > 0) {
-          console.log('🗑️ [MomentsRenderer] Removing duplicate entries (kept latest per day+plugin+type):', removed);
+
         }
 
         entries = kept;
-        console.log('✅ [MomentsRenderer] After deduplication (day+plugin+type):', entries.length, 'entries');
-      }
 
-      console.log('📋 [MomentsRenderer] Final entries summary:', {
-        totalEntries: entries.length,
-        duplicatesFound: duplicates.length,
-        byType: entries.reduce((acc, entry) => {
-          acc[entry.type] = (acc[entry.type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        byCategory: entries.reduce((acc, entry) => {
-          acc[entry.category] = (acc[entry.category] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        byPlugin: entries.reduce((acc, entry) => {
-          acc[entry.plugin.title] = (acc[entry.plugin.title] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-      });
+      }
 
       // Check specifically for July 31 entries
       const july31Entries = entries.filter(entry => {
@@ -1201,13 +1019,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       });
 
       if (july31Entries.length > 0) {
-        console.log('🗓️ [MomentsRenderer] Found July 31 entries:', july31Entries.map(e => ({
-          type: e.type,
-          date: e.date.toISOString(),
-          plugin: e.plugin.title,
-        })));
+
       } else {
-        console.log('🗓️ [MomentsRenderer] No July 31 entries found in final results');
+
       }
 
       // Check specifically for August 1-2 entries
@@ -1217,14 +1031,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       });
 
       if (august12Entries.length > 0) {
-        console.log('🗓️ [MomentsRenderer] Found August 1-2 entries:', august12Entries.map(e => ({
-          type: e.type,
-          date: e.date.toISOString(),
-          plugin: e.plugin.title,
-          category: e.category,
-        })));
+
       } else {
-        console.log('🗓️ [MomentsRenderer] No August 1-2 entries found in final results');
+
       }
 
       setRealEntries(entries);
@@ -1244,8 +1053,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
   // Generate moment entries from real data
   const generateMomentEntries = React.useMemo(() => {
-    console.log('🔍 [MomentsRenderer] Filtering entries with dateRange:', dateRange);
-    console.log('🔍 [MomentsRenderer] Raw entries count:', realEntries.length);
 
     // First filter by date range
     let filteredEntries = realEntries.filter(entry => {
@@ -1270,32 +1077,19 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const isInRange = entryDate >= startDate && entryDate <= endDate;
 
       if (!isInRange) {
-        console.log('🔍 [MomentsRenderer] Entry filtered out by date:', {
-          entryDate: entryDate.toISOString(),
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          type: entry.type,
-          category: entry.category,
-        });
+
       } else {
         // Log entries that pass date filtering, especially for July 31 and August 1-2
         const isJuly31 = entryDate.getMonth() === 6 && entryDate.getDate() === 31;
         const isAugust12 = entryDate.getMonth() === 7 && (entryDate.getDate() === 1 || entryDate.getDate() === 2);
 
         if (isJuly31 || isAugust12) {
-          console.log('✅ [MomentsRenderer] Special date entry passed filtering:', {
-            entryDate: entryDate.toISOString(),
-            type: entry.type,
-            category: entry.category,
-            plugin: entry.plugin.title,
-          });
+
         }
       }
 
       return isInRange;
     });
-
-    console.log('🔍 [MomentsRenderer] After date filtering:', filteredEntries.length);
 
     // Then filter by search query if provided
     if (searchQuery.trim()) {
@@ -1303,7 +1097,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         entry.plugin.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         entry.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      console.log('🔍 [MomentsRenderer] After search filtering:', filteredEntries.length);
+
     }
 
     // Derive category flags per entry for filtering
@@ -1322,14 +1116,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     const hasAnsweredOnly = filterKeys.includes('answeredPrayers') && !filterKeys.includes('unansweredPrayers');
     const hasUnansweredOnly = filterKeys.includes('unansweredPrayers') && !filterKeys.includes('answeredPrayers');
 
-    console.log('🔍 [MomentsRenderer] Filter keys debug:', {
-      filterKeys,
-      hasAnsweredOnly,
-      hasUnansweredOnly,
-      willApplyAnsweredFilter: hasAnsweredOnly || hasUnansweredOnly,
-      entriesBeforeFilter: filteredEntries.length,
-    });
-
     if (hasAnsweredOnly || hasUnansweredOnly) {
       const wantAnswered = hasAnsweredOnly;
       filteredEntries = filteredEntries.filter(e => {
@@ -1337,13 +1123,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
         // Check if prayer is answered/unanswered as requested
         const matchesAnsweredStatus = !!e.isAnswered === wantAnswered;
-
-        console.log('🔍 [MomentsRenderer] Prayer answered status check:', {
-          type: e.type,
-          isAnswered: e.isAnswered,
-          wantAnswered,
-          matchesAnsweredStatus,
-        });
 
         if (!matchesAnsweredStatus) {return false;}
 
@@ -1354,7 +1133,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           const etype = (e.type || '').toLowerCase();
           const isPeoplePrayerList = pid === 'peopleprayers' || ptitle.includes('prayer list') || etype.includes('prayer list') || etype.includes('people');
           if (isPeoplePrayerList) {
-            console.log('🚫 [MomentsRenderer] Excluding people prayer list from unanswered view:', { pid, ptitle, etype });
+
             return false;
           }
         }
@@ -1369,20 +1148,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                                    entryType.includes('thanksgiving') ||
                                    entryType.includes('adoration');
 
-          console.log('🔍 [MomentsRenderer] Checking answered prayer category:', {
-            type: e.type,
-            entryType,
-            isExcludedCategory,
-            willShow: !isExcludedCategory,
-          });
-
           // Only show if it's NOT an excluded category
           return !isExcludedCategory;
         }
 
         return true;
       });
-      console.log('🔍 [MomentsRenderer] Exclusive answered filter applied:', wantAnswered ? 'answered' : 'unanswered', filteredEntries.length);
+
       return filteredEntries;
     }
 
@@ -1398,18 +1170,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           (categoryFilters.includes('planCarousel') && e._isPlan)
         );
       });
-      console.log('🔍 [MomentsRenderer] After category filters:', filteredEntries.length);
+
     }
 
     // Skip legacy prayer answer filter if the new filterKeys system is handling it
     const isUsingNewFilterSystem = filterKeys.includes('answeredPrayers') || filterKeys.includes('unansweredPrayers');
-
-    console.log('🔍 [MomentsRenderer] Legacy filter check:', {
-      prayerAnswerFilter,
-      isUsingNewFilterSystem,
-      willSkipLegacyFilter: isUsingNewFilterSystem,
-      entriesBeforeLegacyFilter: filteredEntries.length,
-    });
 
     if (prayerAnswerFilter !== 'all' && !isUsingNewFilterSystem) {
       const wantAnswered = prayerAnswerFilter === 'answered';
@@ -1417,24 +1182,15 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         if ((entry.category || '').toLowerCase() !== 'prayer') {return true;}
         return !!entry.isAnswered === wantAnswered;
       });
-      console.log('🔍 [MomentsRenderer] After prayer answered filter (', prayerAnswerFilter, '):', filteredEntries.length);
-    }
 
-    console.log('🔍 [MomentsRenderer] FINAL FILTERED ENTRIES COUNT:', filteredEntries.length);
-    console.log('🔍 [MomentsRenderer] FINAL ENTRIES BREAKDOWN:', {
-      total: filteredEntries.length,
-      prayers: filteredEntries.filter(e => e._isPrayer).length,
-      answeredPrayers: filteredEntries.filter(e => e._isPrayer && e.isAnswered).length,
-      unansweredPrayers: filteredEntries.filter(e => e._isPrayer && !e.isAnswered).length,
-      nonPrayers: filteredEntries.filter(e => !e._isPrayer).length,
-    });
+    }
 
     return filteredEntries;
   }, [realEntries, searchQuery, dateRange, prayerAnswerFilter, filterKeys]);
 
   // Sort entries (used in grouping logic)
   const sortedEntries = React.useMemo(() => {
-    console.log('🔍 [MomentsRenderer] SORTING ENTRIES - Input count:', generateMomentEntries.length);
+
     const sorted = [...generateMomentEntries];
 
     switch (sortBy) {

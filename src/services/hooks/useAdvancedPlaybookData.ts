@@ -33,7 +33,6 @@ export const useAdjacentPlaybooks = (userId: string, currentPlaybookId: string) 
     queryKey: queryKeys.playbooks.adjacent(userId, currentPlaybookId),
     queryFn: withQueryPerformance(
       async (): Promise<AdjacentPlaybooks> => {
-        console.log('[useAdjacentPlaybooks] Finding adjacent playbooks for:', currentPlaybookId);
 
         // Get all playbooks to determine order
         const allPlaybooks = await getPlaybooksApi(userId);
@@ -55,12 +54,6 @@ export const useAdjacentPlaybooks = (userId: string, currentPlaybookId: string) 
         const previous = currentIndex > 0 ? sortedPlaybooks[currentIndex - 1] : null;
         const next = currentIndex < sortedPlaybooks.length - 1 ? sortedPlaybooks[currentIndex + 1] : null;
 
-        console.log('[useAdjacentPlaybooks] Found adjacent:', {
-          previous: previous?.title,
-          current: current.title,
-          next: next?.title,
-        });
-
         return { previous, current, next };
       },
       queryKeys.playbooks.adjacent(userId, currentPlaybookId)
@@ -79,7 +72,6 @@ export const usePrefetchPlaybooks = (userId: string) => {
   const queryClient = useQueryClient();
 
   const prefetchPlaybooks = useCallback(async (playbookIds: string[]) => {
-    console.log('[usePrefetchPlaybooks] Prefetching playbooks:', playbookIds);
 
     // Prefetch each playbook individually for better cache granularity
     const prefetchPromises = playbookIds.map(playbookId =>
@@ -91,11 +83,10 @@ export const usePrefetchPlaybooks = (userId: string) => {
     );
 
     await Promise.allSettled(prefetchPromises);
-    console.log('[usePrefetchPlaybooks] Prefetching completed');
+
   }, [queryClient, userId]);
 
   const prefetchAdjacentPlaybooks = useCallback(async (currentPlaybookId: string) => {
-    console.log('[usePrefetchPlaybooks] Prefetching adjacent for:', currentPlaybookId);
 
     // First get the adjacent playbooks
     const adjacentData = await queryClient.fetchQuery({
@@ -145,7 +136,6 @@ export const usePlaybookWithRelationships = (userId: string, playbookId: string)
     queryKey: queryKeys.playbooks.withDevotionals(userId, playbookId),
     queryFn: withQueryPerformance(
       async (): Promise<PlaybookWithRelationships> => {
-        console.log('[usePlaybookWithRelationships] Fetching relationships for:', playbookId);
 
         // Get the main playbook
         const playbook = await getPlaybookApi(userId, playbookId);
@@ -163,12 +153,6 @@ export const usePlaybookWithRelationships = (userId: string, playbookId: string)
         const relatedPrayers = (queryClient.getQueryData(
           queryKeys.playbooks.withPrayers(userId, playbookId)
         ) as any[]) || [];
-
-        console.log('[usePlaybookWithRelationships] Found relationships:', {
-          devotionals: relatedDevotionals.length,
-          journalEntries: relatedJournalEntries.length,
-          prayers: relatedPrayers.length,
-        });
 
         return {
           ...playbook,
@@ -238,7 +222,6 @@ export const useCrossComponentSync = (userId: string) => {
 
   // Sync playbook progress with journal entries
   const syncWithJournal = useCallback(async (playbookId: string, date: string) => {
-    console.log('[useCrossComponentSync] Syncing playbook with journal:', { playbookId, date });
 
     // Invalidate related journal queries when playbook progress changes
     await queryClient.invalidateQueries({
@@ -257,7 +240,6 @@ export const useCrossComponentSync = (userId: string) => {
 
   // Sync playbook completion with devotionals
   const syncWithDevotionals = useCallback(async (playbookId: string) => {
-    console.log('[useCrossComponentSync] Syncing playbook with devotionals:', playbookId);
 
     // Invalidate devotional queries related to this playbook
     await queryClient.invalidateQueries({
@@ -267,7 +249,6 @@ export const useCrossComponentSync = (userId: string) => {
 
   // Sync playbook themes with prayers
   const syncWithPrayers = useCallback(async (playbookId: string) => {
-    console.log('[useCrossComponentSync] Syncing playbook with prayers:', playbookId);
 
     // Invalidate prayer queries that might be related to playbook themes
     await queryClient.invalidateQueries({

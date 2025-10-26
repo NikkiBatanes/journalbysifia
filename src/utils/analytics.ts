@@ -444,7 +444,7 @@ class Analytics {
 
     // In development, log to console
     if (__DEV__) {
-      console.log('📊 Analytics:', analyticsEvent);
+
     }
 
     // Keep only last 100 events to prevent memory issues
@@ -482,7 +482,7 @@ class Analytics {
 
     // TODO: Implement actual analytics service integration
     // For now, just clear the events
-    console.log('📊 Flushing analytics events:', this.events.length);
+
     this.clear();
   }
 }

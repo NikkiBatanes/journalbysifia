@@ -128,18 +128,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // Debug: Track when data becomes available
   useEffect(() => {
     if (currentGratitudeEntry) {
-      console.log('🙏 SmartJournalingGratitudeModal: Current gratitude entry available:', {
-        id: currentGratitudeEntry.id,
-        hasContent: !!currentGratitudeEntry.content,
-        contentPreview: currentGratitudeEntry.content
-          ? (typeof currentGratitudeEntry.content === 'string'
-              ? currentGratitudeEntry.content.substring(0, 50)
-              : JSON.stringify(currentGratitudeEntry.content).substring(0, 50)
-            ) + '...'
-          : null,
-      });
+
     } else {
-      console.log('🙏 SmartJournalingGratitudeModal: No current gratitude entry available');
+
     }
   }, [currentGratitudeEntry]);
 
@@ -166,20 +157,12 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   useEffect(() => {
     if (visible && !prevVisible) {
       // Modal is opening (transition from false to true)
-      console.log('🙏 SmartJournalingGratitudeModal: Modal opening');
 
       // Debug: Check completion state when modal opens
       if (stepId && subtaskId) {
         const step = actionSteps.find(s => s.id === stepId);
         const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-        console.log('🙏 SmartJournalingGratitudeModal: Modal opening - Current completion state:', {
-          stepId,
-          subtaskId,
-          stepCompleted: step?.completed,
-          subtaskCompleted: subtask?.completed,
-          stepFound: !!step,
-          subtaskFound: !!subtask,
-        });
+
       }
 
       // Determine if this is an edit session (has existing data)
@@ -194,8 +177,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         }
       })();
 
-      console.log('🙏 SmartJournalingGratitudeModal: Edit session:', !!hasExistingData);
-
       // Auto-focus the first input when modal opens for new entries
       if (!hasExistingData) {
         setTimeout(() => {
@@ -208,22 +189,13 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     setPrevVisible(visible);
   }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
 
-
-
   // React Query mutations
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 
   // Debug: Track mutation states
   useEffect(() => {
-    console.log('🙏 SmartJournalingGratitudeModal: Mutation states changed:', {
-      createPending: createMutation.isPending,
-      createSuccess: createMutation.isSuccess,
-      createError: createMutation.isError,
-      updatePending: updateMutation.isPending,
-      updateSuccess: updateMutation.isSuccess,
-      updateError: updateMutation.isError,
-    });
+
   }, [
     createMutation.isPending,
     createMutation.isSuccess,
@@ -238,16 +210,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     if (stepId && subtaskId && actionSteps?.length > 0) {
       const step = actionSteps.find(s => s.id === stepId);
       const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-      console.log('🙏 SmartJournalingGratitudeModal: ActionSteps changed - Current completion state:', {
-        stepId,
-        subtaskId,
-        stepCompleted: step?.completed,
-        subtaskCompleted: subtask?.completed,
-        stepFound: !!step,
-        subtaskFound: !!subtask,
-        totalSteps: actionSteps.length,
-        timestamp: new Date().toISOString(),
-      });
+
     }
   }, [actionSteps, stepId, subtaskId]);
 
@@ -261,14 +224,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         Alert.alert('Error', 'User not authenticated');
         return;
       }
-
-      console.log('🙏 SmartJournalingGratitudeModal: Saving gratitude data to database immediately', {
-        items: gratitudeData.items,
-        subtaskId,
-        stepId,
-        playbookId,
-        isEditMode: !!currentGratitudeEntry,
-      });
 
       // Filter out blank items and remove number prefixes
       const cleanedItems = gratitudeData.items
@@ -301,14 +256,14 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       let result;
       if (currentGratitudeEntry?.id) {
         // Update existing gratitude entry
-        console.log('🙏 SmartJournalingGratitudeModal: Updating existing gratitude entry');
+
         result = await updateMutation.mutateAsync({
           id: currentGratitudeEntry.id,
           updates: gratitudeEntry,
         });
       } else {
         // Create new gratitude entry
-        console.log('🙏 SmartJournalingGratitudeModal: Creating new gratitude entry');
+
         result = await createMutation.mutateAsync(gratitudeEntry);
       }
 
@@ -322,55 +277,35 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         });
       }
 
-      console.log('✅ SmartJournalingGratitudeModal: Cache invalidation completed');
-
-      console.log('✅ SmartJournalingGratitudeModal: Database save completed');
-
       // Call parent onSave callback
       onSave(result);
 
       // Mark subtask as completed immediately since data is saved
       if (stepId && subtaskId && handleToggleStep) {
-        console.log('🙏 SmartJournalingGratitudeModal: Marking subtask as completed (data saved)', {
-          stepId,
-          subtaskId,
-          actionStepsCount: actionSteps?.length || 0,
-        });
 
         // Check if the step/subtask is already completed before toggling
         const step = actionSteps.find(s => s.id === stepId);
-        console.log('🙏 SmartJournalingGratitudeModal: Found step:', {
-          stepFound: !!step,
-          stepId: step?.id,
-          stepCompleted: step?.completed,
-          subTasksCount: step?.subTasks?.length || 0,
-        });
 
         if (step) {
           if (subtaskId) {
             // Check subtask completion
             const subtask = step.subTasks?.find(st => st.id === subtaskId);
-            console.log('🙏 SmartJournalingGratitudeModal: Found subtask:', {
-              subtaskFound: !!subtask,
-              subtaskId: subtask?.id,
-              subtaskCompleted: subtask?.completed,
-            });
 
             if (subtask && !subtask.completed) {
-              console.log('🙏 SmartJournalingGratitudeModal: Calling handleToggleStep to mark subtask as completed');
+
               handleToggleStep(stepId, subtaskId);
-              console.log('🙏 SmartJournalingGratitudeModal: handleToggleStep called successfully');
+
             } else {
-              console.log('🙏 SmartJournalingGratitudeModal: Subtask already completed or not found, skipping toggle');
+
             }
           } else {
             // Check step completion
             if (!step.completed) {
-              console.log('🙏 SmartJournalingGratitudeModal: Calling handleToggleStep to mark step as completed');
+
               handleToggleStep(stepId, subtaskId);
-              console.log('🙏 SmartJournalingGratitudeModal: handleToggleStep called successfully');
+
             } else {
-              console.log('🙏 SmartJournalingGratitudeModal: Step already completed, skipping toggle');
+
             }
           }
         } else {
@@ -397,7 +332,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         });
       }, 500);
 
-      console.log('✅ SmartJournalingGratitudeModal: Gratitude saved and subtask marked complete');
     } catch (error: any) {
       console.error('❌ SmartJournalingGratitudeModal: SAVE FAILED:', error);
       Alert.alert(
@@ -408,23 +342,13 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     }
   };
 
-
-
   const handleCancel = () => {
-    console.log('🙏 SmartJournalingGratitudeModal: Cancel pressed');
 
     // Debug: Check completion state when cancelling
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
       const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-      console.log('🙏 SmartJournalingGratitudeModal: Cancel - Current completion state:', {
-        stepId,
-        subtaskId,
-        stepCompleted: step?.completed,
-        subtaskCompleted: subtask?.completed,
-        stepFound: !!step,
-        subtaskFound: !!subtask,
-      });
+
     }
 
     onCancel();
@@ -432,29 +356,19 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleSuccessModalClose = () => {
-    console.log('🙏 GRATITUDE: User clicked Done - closing modal (already saved and completed)');
-    console.log('🔍 GRATITUDE: About to hide success modal and close main modal');
+
     // Handled by success modal hook
     onCancel(); // Close the main modal
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleEdit = () => {
-    console.log('🙏 GRATITUDE: Edit button pressed, closing success modal');
-    console.log('🔍 GRATITUDE: About to hide success modal for editing');
 
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
       const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-      console.log('🙏 SmartJournalingGratitudeModal: Edit - Current completion state:', {
-        stepId,
-        subtaskId,
-        stepCompleted: step?.completed,
-        subtaskCompleted: subtask?.completed,
-        stepFound: !!step,
-        subtaskFound: !!subtask,
-      });
+
     }
 
     // Handled by success modal hook
@@ -466,8 +380,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     }, 300); // Small delay to allow modal to close
     // Keep modal open for continued editing
   };
-
-
 
   return (
     <>
@@ -489,7 +401,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           {/* TEST BUTTON - Remove after debugging */}
-
 
           <GratitudeLogEditor
             ref={gratitudeEditorRef}

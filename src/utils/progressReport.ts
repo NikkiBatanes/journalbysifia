@@ -39,7 +39,6 @@ interface ProgressReport {
 }
 
 export const generateProgressReport = async (userId: string): Promise<ProgressReport> => {
-  console.log('📊 Generating Progress Report for user:', userId);
 
   try {
     // Get user profile
@@ -101,7 +100,6 @@ export const generateProgressReport = async (userId: string): Promise<ProgressRe
       recommendations,
     };
 
-    console.log('✅ Progress Report Generated Successfully');
     return report;
 
   } catch (error) {
@@ -231,44 +229,21 @@ const generateRecommendations = (metrics: ProgressMetrics, percentages: any): st
 };
 
 export const printProgressReport = (report: ProgressReport) => {
-  console.log('\n📊 FAITH POINTS PROGRESS REPORT');
-  console.log('=====================================');
-  console.log(`👤 User ID: ${report.userId}`);
-  console.log(`📅 Report Date: ${new Date(report.reportDate).toLocaleDateString()}`);
-  console.log('\n🏆 METRICS:');
-  console.log(`   Total Points: ${report.metrics.totalPoints}`);
-  console.log(`   Current Level: ${report.metrics.currentLevel}`);
-  console.log(`   Current Streak: ${report.metrics.currentStreak} days`);
-  console.log(`   Weekly Progress: ${report.metrics.weeklyProgress}/${report.metrics.weeklyGoal}`);
-  console.log(`   Activities Completed: ${report.metrics.activitiesCompleted}`);
-  console.log(`   Devotionals: ${report.metrics.devotionalsCompleted}`);
-  console.log(`   Playbooks: ${report.metrics.playbooksCompleted}`);
 
-  console.log('\n📈 PERCENTAGES:');
-  console.log(`   Weekly Goal: ${report.percentages.weeklyGoalCompletion}%`);
-  console.log(`   Level Progress: ${report.percentages.levelProgress}%`);
-  console.log(`   Streak Maintenance: ${report.percentages.streakMaintenance}%`);
-  console.log(`   Overall Engagement: ${report.percentages.overallEngagement}%`);
-
-  console.log('\n📋 POINTS BY ACTIVITY:');
   report.tabulation.pointsByActivity.forEach((item, i) => {
-    console.log(`   ${i + 1}. ${item.activity}: ${item.points} pts (${item.count}x)`);
+
   });
 
-  console.log('\n🕐 RECENT ACHIEVEMENTS:');
   report.tabulation.recentAchievements.slice(0, 5).forEach((item, i) => {
-    console.log(`   ${i + 1}. ${item.date}: ${item.activity} (+${item.points} pts)`);
+
   });
 
-  console.log('\n📅 WEEKLY BREAKDOWN:');
   report.tabulation.weeklyBreakdown.forEach(day => {
-    console.log(`   ${day.day}: ${day.points} pts (${day.activities} activities)`);
+
   });
 
-  console.log('\n💡 RECOMMENDATIONS:');
   report.recommendations.forEach((rec, i) => {
-    console.log(`   ${i + 1}. ${rec}`);
+
   });
 
-  console.log('=====================================\n');
 };

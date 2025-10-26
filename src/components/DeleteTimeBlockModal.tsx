@@ -40,7 +40,7 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
   onCancel,
   canDeleteSeries,
 }) => {
-  console.log('🗑️ DeleteTimeBlockModal render - visible:', visible, 'eventTitle:', eventTitle);
+
   const handleDeleteOption = (type: DeleteOptions['type']) => {
     triggerSelectionHaptic();
     onDelete({

@@ -31,7 +31,6 @@ export class SmartJournalingNavigation {
    * Navigate to appropriate journaling component based on journal type
    */
   navigateToJournaling(journalType: JournalType, subTask: SubTask, context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to:', { journalType, subTask });
 
     switch (journalType) {
       case 'prayer':
@@ -52,7 +51,7 @@ export class SmartJournalingNavigation {
 
       case 'none':
         // No navigation needed for 'none' type
-        console.log('[SmartJournalingNavigation] No journaling needed for this task');
+
         break;
 
       default:
@@ -66,7 +65,7 @@ export class SmartJournalingNavigation {
    * Navigate to Prayer tab with context
    */
   private navigateToPrayer(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Prayer for:', subTask.text);
+
     this.navigation.navigate('Journal' as never);
   }
 
@@ -74,7 +73,7 @@ export class SmartJournalingNavigation {
    * Navigate to Reflection component with context
    */
   private navigateToReflection(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Reflection for:', subTask.text);
+
     this.navigation.navigate('Journal' as never);
   }
 
@@ -82,7 +81,7 @@ export class SmartJournalingNavigation {
    * Navigate to Gratitude component with context
    */
   private navigateToGratitude(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Gratitude for:', subTask.text);
+
     this.navigation.navigate('Journal' as never);
   }
 
@@ -90,7 +89,7 @@ export class SmartJournalingNavigation {
    * Navigate to TimeBlock component with context
    */
   private navigateToTimeBlock(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to TimeBlock for:', subTask.text);
+
     // TimeBlock smart journaling is handled via modal in ActionStepsCard
     // This navigation method is for fallback cases where modal isn't available
     this.navigation.navigate('Journal' as never);
@@ -100,7 +99,7 @@ export class SmartJournalingNavigation {
    * Default navigation to journal screen
    */
   private navigateToJournalDefault(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Journal (default) for:', subTask.text);
+
     this.navigation.navigate('Journal' as never);
   }
 

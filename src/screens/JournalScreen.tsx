@@ -280,7 +280,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       // Small delay to ensure the layout is updated
       setTimeout(() => {
         if (scrollViewRef.current) {
-          console.log('📅 Initializing scroll position to week', currentWeekIndex.current, 'at position', scrollTo);
+
           scrollViewRef.current.scrollTo({ x: scrollTo, animated: false });
           scrollX.current = scrollTo;
         }
@@ -325,7 +325,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
         if (targetDay) {
           // Only update if the day is different to prevent unnecessary re-renders
           if (!isSameDay(targetDay, currentDate)) {
-            console.log('📅 Date swipe: updating to', format(targetDay, 'yyyy-MM-dd'));
+
             // Subtle feedback when swiping header left/right changes the date
             triggerLightHaptic();
             // Update the date immediately for better UX
@@ -340,7 +340,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
             // Only regenerate if we've moved to a different month
             if (targetMonth !== currentMonth) {
-              console.log('📅 Regenerating weeks for month transition:', format(targetDay, 'yyyy-MM'));
+
               // The useEffect will trigger regeneration when currentDate changes
             }
           }
@@ -432,7 +432,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { setShowTabBar } = useScroll();
 
   // Inline view removed: no pages pagination
-
 
   const handleContentScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     const y = event.nativeEvent.contentOffset.y;

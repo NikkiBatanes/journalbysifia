@@ -120,13 +120,6 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
   }
 
   // Debug: Log input subtasks before normalization
-  console.log('[normalizeSubTasks] Input subtasks:', subTasks.map((task, index) => ({
-    index,
-    taskType: typeof task,
-    taskId: typeof task === 'object' ? task.id : 'N/A',
-    taskText: (typeof task === 'string' ? task : task.text || task.toString())?.substring(0, 20) + '...',
-    taskCompleted: typeof task === 'object' ? task.completed : 'N/A',
-  })));
 
   const normalized = subTasks.map((task, index) => ({
     id: typeof task === 'string'
@@ -140,11 +133,6 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
   }));
 
   // Debug: Log normalized subtasks after normalization
-  console.log('[normalizeSubTasks] Normalized subtasks:', normalized.map(task => ({
-    taskId: task.id,
-    taskText: task.text?.substring(0, 20) + '...',
-    taskCompleted: task.completed,
-  })));
 
   return normalized;
 };
@@ -179,8 +167,6 @@ export default function ActionStepsCard({
   const [_isGuidedPromptActive, _setIsGuidedPromptActive] = useState(false);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
-
-
   const completionAnim = React.useRef<Record<string, Animated.Value>>({});
 
   // Query for existing reflection when a subtask is selected
@@ -194,13 +180,7 @@ export default function ActionStepsCard({
   // Debug: Log reflection query results
   React.useEffect(() => {
     if (selectedSubtask) {
-      console.log('[ActionStepsCard] Reflection query debug:', {
-        userId: user?.id,
-        subtaskId: selectedSubtask?.subTask?.id,
-        existingReflection,
-        isLoading: isReflectionLoading,
-        error: reflectionError,
-      });
+
     }
   }, [selectedSubtask, existingReflection, isReflectionLoading, reflectionError, user?.id]);
 
@@ -210,25 +190,9 @@ export default function ActionStepsCard({
       ? (propSteps ?? [])
       : ((contextSteps && contextSteps.length > 0) ? contextSteps : (propSteps ?? []));
 
-    console.log('[ActionStepsCard] Steps source debug:', {
-      usingContextSteps: !!(contextSteps && contextSteps.length > 0),
-      contextStepsLength: contextSteps?.length || 0,
-      propStepsLength: propSteps?.length || 0,
-      rawStepsLength: rawSteps?.length || 0,
-    });
-
     // Debug: Log raw steps completion state before processing
     if (rawSteps && rawSteps.length > 0) {
-      console.log('[ActionStepsCard] Raw steps completion state:', rawSteps.map(step => ({
-        stepId: step.id,
-        stepTitle: step.title?.substring(0, 30) + '...',
-        stepCompleted: step.completed,
-        subtasks: step.subTasks?.map(st => ({
-          subtaskId: st.id,
-          subtaskText: st.text?.substring(0, 20) + '...',
-          subtaskCompleted: st.completed,
-        })) || [],
-      })));
+
     }
 
     if (!rawSteps || rawSteps.length === 0) {
@@ -246,16 +210,6 @@ export default function ActionStepsCard({
     }));
 
     // Debug: Log processed steps completion state after processing
-    console.log('[ActionStepsCard] Processed steps completion state:', processedSteps.map(step => ({
-      stepId: step.id,
-      stepTitle: step.title?.substring(0, 30) + '...',
-      stepCompleted: step.completed,
-      subtasks: step.subTasks?.map(st => ({
-        subtaskId: st.id,
-        subtaskText: st.text?.substring(0, 20) + '...',
-        subtaskCompleted: st.completed,
-      })) || [],
-    })));
 
     return processedSteps;
   }, [propSteps, contextSteps, preferPropSteps]);
@@ -282,16 +236,11 @@ export default function ActionStepsCard({
           subtaskCompleted: st.completed,
         })) || [],
       }));
-      console.log('[ActionStepsCard] Render - Current completion states:', {
-        timestamp: new Date().toISOString(),
-        stepsCount: steps.length,
-        completionStates,
-      });
+
     }
   }, [steps]);
 
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
-    console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
 
     // Light haptic for any toggle action
     triggerLightHaptic();
@@ -339,7 +288,7 @@ export default function ActionStepsCard({
               const awardKey = `fp_awarded_action_step:${user.id}:${playbookId || 'unknown_playbook'}:${stepId}`;
               const alreadyAwarded = await AsyncStorage.getItem(awardKey);
               if (alreadyAwarded) {
-                console.log('[ActionStepsCard] Faith points already awarded for step, skipping:', { stepId, userId: user.id });
+
                 return;
               }
 
@@ -351,7 +300,6 @@ export default function ActionStepsCard({
               });
 
               await AsyncStorage.setItem(awardKey, '1');
-              console.log('[ActionStepsCard] Faith points awarded and recorded for step:', { stepId, userId: user.id });
 
               // If that was the final incomplete step for this playbook, award a one-time playbook completion bonus
               try {
@@ -375,9 +323,9 @@ export default function ActionStepsCard({
                         source: 'ActionStepsCard.onToggleSubTask',
                       });
                       await AsyncStorage.setItem(playbookAwardKey, '1');
-                      console.log('[ActionStepsCard] Playbook completion bonus awarded:', { playbookId, userId: user.id });
+
                     } else {
-                      console.log('[ActionStepsCard] Playbook completion bonus already awarded, skipping:', { playbookId, userId: user.id });
+
                     }
                   }
                 }
@@ -411,16 +359,9 @@ export default function ActionStepsCard({
   }, [handleToggleStep, steps, user?.id, playbookId, queryClient]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
-    console.log('[ActionStepsCard] Journal type pressed:', {
-      journalType,
-      subTask,
-      subtaskId: subTask.id,
-      subtaskIdType: typeof subTask.id,
-      subtaskIdLength: subTask.id?.length,
-    });
 
     if (journalType === 'none') {
-      console.log('[ActionStepsCard] No journaling needed for this task');
+
       return;
     }
 
@@ -429,12 +370,6 @@ export default function ActionStepsCard({
 
     // Handle reflection type with modal
     if (journalType === 'reflection') {
-      console.log('[ActionStepsCard] Opening reflection modal for:', {
-        subtaskText: subTask.text,
-        subtaskId: subTask.id,
-        subtaskCompleted: subTask.completed,
-        userId: user?.id,
-      });
 
       // Prefetch reflection data and wait for it to complete before opening modal
       const openModal = async () => {
@@ -444,13 +379,13 @@ export default function ActionStepsCard({
         }
 
         if (user?.id && subTask.id) {
-          console.log('[ActionStepsCard] Prefetching reflection data before opening modal');
+
           try {
             await queryClient.prefetchQuery({
               queryKey: ['reflections', 'subtask', user.id, subTask.id],
               queryFn: () => ReflectionApi.getReflectionBySubtask(user.id, subTask.id),
             });
-            console.log('[ActionStepsCard] Prefetch completed, opening modal with data ready');
+
           } catch (error) {
             console.warn('[ActionStepsCard] Prefetch failed, opening modal anyway:', error);
           }
@@ -476,12 +411,6 @@ export default function ActionStepsCard({
 
     // Handle gratitude type with modal
     if (journalType === 'gratitude') {
-      console.log('[ActionStepsCard] Opening gratitude modal for:', {
-        subtaskText: subTask.text,
-        subtaskId: subTask.id,
-        subtaskCompleted: subTask.completed,
-        userId: user?.id,
-      });
 
       // Prefetch gratitude data and wait for it to complete before opening modal
       const openGratitudeModal = async () => {
@@ -491,7 +420,7 @@ export default function ActionStepsCard({
         }
 
         if (user?.id && subTask.id) {
-          console.log('[ActionStepsCard] Prefetching gratitude data before opening modal');
+
           try {
             await queryClient.prefetchQuery({
               queryKey: ['gratitude', user.id, toLocalDateString(new Date())],
@@ -501,7 +430,7 @@ export default function ActionStepsCard({
                 return Promise.resolve([]);
               },
             });
-            console.log('[ActionStepsCard] Gratitude prefetch completed, opening modal with data ready');
+
           } catch (error) {
             console.warn('[ActionStepsCard] Gratitude prefetch failed, opening modal anyway:', error);
           }
@@ -525,12 +454,6 @@ export default function ActionStepsCard({
 
     // Handle prayer type with modal
     if (journalType === 'prayer') {
-      console.log('[ActionStepsCard] Opening prayer modal for:', {
-        subtaskText: subTask.text,
-        subtaskId: subTask.id,
-        subtaskCompleted: subTask.completed,
-        userId: user?.id,
-      });
 
       // Prefetch prayer data and wait for it to complete before opening modal
       const openPrayerModal = async () => {
@@ -540,7 +463,7 @@ export default function ActionStepsCard({
         }
 
         if (user?.id && subTask.id) {
-          console.log('[ActionStepsCard] Prefetching prayer data before opening modal');
+
           try {
             await queryClient.prefetchQuery({
               queryKey: ['personal_prayers', user.id, toLocalDateString(new Date()), subTask.id],
@@ -550,15 +473,12 @@ export default function ActionStepsCard({
                 return Promise.resolve([]);
               },
             });
-            console.log('[ActionStepsCard] Prayer prefetch completed, opening modal with data ready');
+
           } catch (error) {
             console.warn('[ActionStepsCard] Prayer prefetch failed, opening modal anyway:', error);
           }
         }
 
-        console.log('🔍 ActionStepsCard: Opening prayer modal with subTask:', subTask);
-        console.log('🔍 ActionStepsCard: subTask.text:', subTask?.text);
-        console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
         setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('prayer');
@@ -577,12 +497,6 @@ export default function ActionStepsCard({
 
     // Handle timeblock type with modal
     if (journalType === 'timeblock') {
-      console.log('[ActionStepsCard] Opening timeblock modal for:', {
-        subtaskText: subTask.text,
-        subtaskId: subTask.id,
-        subtaskCompleted: subTask.completed,
-        userId: user?.id,
-      });
 
       // Prefetch timeblock data and wait for it to complete before opening modal
       const openTimeBlockModal = async () => {
@@ -592,7 +506,7 @@ export default function ActionStepsCard({
         }
 
         if (user?.id && subTask.id) {
-          console.log('[ActionStepsCard] Prefetching timeblock data before opening modal');
+
           try {
             await queryClient.prefetchQuery({
               queryKey: ['timeBlocks', user.id, toLocalDateString(new Date())],
@@ -602,15 +516,12 @@ export default function ActionStepsCard({
                 return Promise.resolve([]);
               },
             });
-            console.log('[ActionStepsCard] TimeBlock prefetch completed, opening modal with data ready');
+
           } catch (error) {
             console.warn('[ActionStepsCard] TimeBlock prefetch failed, opening modal anyway:', error);
           }
         }
 
-        console.log('🔍 ActionStepsCard: Opening timeblock modal with subTask:', subTask);
-        console.log('🔍 ActionStepsCard: subTask.text:', subTask?.text);
-        console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
         setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('timeblock');
@@ -639,7 +550,6 @@ export default function ActionStepsCard({
 
   // Modal handlers
   const handleReflectionSave = React.useCallback(async (entry: any) => {
-    console.log('[ActionStepsCard] Reflection saved:', entry);
 
     // Protect against logout during save operation
     if ((globalThis as any).authMonitor) {
@@ -652,7 +562,7 @@ export default function ActionStepsCard({
         await queryClient.invalidateQueries({
           queryKey: ['reflections', 'subtask', user.id, selectedSubtask.subTask.id],
         });
-        console.log('[ActionStepsCard] Reflection query invalidated for immediate refresh');
+
       }
     } finally {
       // End operation protection after save completes
@@ -667,10 +577,6 @@ export default function ActionStepsCard({
   }, [queryClient, user?.id, selectedSubtask?.subTask?.id]);
 
   const handleReflectionCancel = React.useCallback(() => {
-    console.log('[ActionStepsCard] Reflection modal cancelled - clearing step info:', {
-      selectedActionStep,
-      selectedSubtask: selectedSubtask?.subTask?.text,
-    });
 
     // End operation protection when modal closes
     if ((globalThis as any).authMonitor) {
@@ -683,7 +589,6 @@ export default function ActionStepsCard({
   }, [selectedActionStep, selectedSubtask]);
 
   const handleGratitudeSave = React.useCallback(async (entry: any) => {
-    console.log('[ActionStepsCard] Gratitude saved:', entry);
 
     // Protect against logout during save operation
     if ((globalThis as any).authMonitor) {
@@ -696,7 +601,7 @@ export default function ActionStepsCard({
         await queryClient.invalidateQueries({
           queryKey: ['gratitude', user.id, toLocalDateString(new Date())],
         });
-        console.log('[ActionStepsCard] Gratitude query invalidated for immediate refresh');
+
       }
     } finally {
       // End operation protection after save completes
@@ -711,10 +616,6 @@ export default function ActionStepsCard({
   }, [queryClient, user?.id]);
 
   const handleGratitudeCancel = React.useCallback(() => {
-    console.log('[ActionStepsCard] Gratitude modal cancelled - clearing step info:', {
-      selectedActionStep,
-      selectedSubtask: selectedSubtask?.subTask?.text,
-    });
 
     // End operation protection when modal closes
     if ((globalThis as any).authMonitor) {
@@ -727,7 +628,6 @@ export default function ActionStepsCard({
   }, [selectedActionStep, selectedSubtask]);
 
   const handlePrayerSave = React.useCallback(async (entry: any) => {
-    console.log('[ActionStepsCard] Prayer saved:', entry);
 
     // Protect against logout during save operation
     if ((globalThis as any).authMonitor) {
@@ -740,7 +640,7 @@ export default function ActionStepsCard({
         await queryClient.invalidateQueries({
           queryKey: ['personal_prayers', user.id, toLocalDateString(new Date())],
         });
-        console.log('[ActionStepsCard] Prayer query invalidated for immediate refresh');
+
       }
     } finally {
       // End operation protection after save completes
@@ -755,10 +655,6 @@ export default function ActionStepsCard({
   }, [queryClient, user?.id]);
 
   const handlePrayerCancel = React.useCallback(() => {
-    console.log('[ActionStepsCard] Prayer modal cancelled - clearing step info:', {
-      selectedActionStep,
-      selectedSubtask: selectedSubtask?.subTask?.text,
-    });
 
     // End operation protection when modal closes
     if ((globalThis as any).authMonitor) {
@@ -771,7 +667,6 @@ export default function ActionStepsCard({
   }, [selectedActionStep, selectedSubtask]);
 
   const handleTimeBlockSave = React.useCallback(async (entry: any) => {
-    console.log('[ActionStepsCard] TimeBlock saved:', entry);
 
     // Protect against logout during save operation
     if ((globalThis as any).authMonitor) {
@@ -796,7 +691,7 @@ export default function ActionStepsCard({
         await queryClient.invalidateQueries({
           queryKey: ['timeBlocks'],
         });
-        console.log('[ActionStepsCard] TimeBlock query invalidated for date:', savedDateStr);
+
       }
     } finally {
       // End operation protection after save completes
@@ -811,10 +706,6 @@ export default function ActionStepsCard({
   }, [queryClient, user?.id]);
 
   const handleTimeBlockCancel = React.useCallback(() => {
-    console.log('[ActionStepsCard] TimeBlock modal cancelled - clearing step info:', {
-      selectedActionStep,
-      selectedSubtask: selectedSubtask?.subTask?.text,
-    });
 
     // End operation protection when modal closes
     if ((globalThis as any).authMonitor) {
@@ -893,13 +784,6 @@ export default function ActionStepsCard({
               let examples: { id: string; text: string }[] = [];
 
               // Debug: Log step data
-              console.log(`[ActionStepsCard] Step ${index}:`, {
-                id: step.id,
-                title: step.title,
-                examples: (step as any).examples,
-                examplesType: typeof (step as any).examples,
-                hasExamples: !!(step as any).examples,
-              });
 
               // First, check if step has examples field from database
               if ((step as any).examples && typeof (step as any).examples === 'string') {
@@ -979,13 +863,6 @@ export default function ActionStepsCard({
                     <View style={styles.subTasksList}>
                       {subtasks.map((subTask) => {
                         // Debug: Log subtask data for smart journaling
-                        console.log('[ActionStepsCard] Subtask debug:', {
-                          text: subTask.text?.substring(0, 30) + '...',
-                          detected_journal_type: subTask.detected_journal_type,
-                          completed: subTask.completed,
-                          shouldShow: shouldShowJournalIcon(subTask.detected_journal_type),
-                          parsedTypes: parseJournalTypes(subTask.detected_journal_type),
-                        });
 
                         return (
                           <View

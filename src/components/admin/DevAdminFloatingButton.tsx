@@ -11,7 +11,7 @@ const DevAdminFloatingButton: React.FC<DevAdminFloatingButtonProps> = ({ onPress
   if (!visible) {return null;}
 
   const handlePress = () => {
-    console.log('🔴 DevAdminFloatingButton pressed!');
+
     onPress();
   };
 

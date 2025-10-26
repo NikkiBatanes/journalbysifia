@@ -148,19 +148,16 @@ export class QueueService {
             }
             // Return a mock queue ID to prevent app crashes for other errors
             const mockId = 'mock-' + Date.now();
-            console.log(`[QueueService] Using mock queue ID: ${mockId}`);
+
             this.startProcessing();
             return mockId;
           }
 
-          console.log(`[QueueService] Added ${request.type} generation to queue with basic schema`);
           this.startProcessing();
           return basicData.id;
         }
         throw error;
       }
-
-      console.log(`[QueueService] Added ${request.type} generation to queue for user ${request.userId} with priority ${priority}`);
 
       // Start processing if not already running
       this.startProcessing();
@@ -269,7 +266,6 @@ export class QueueService {
     if (this.isProcessing) {return;}
 
     this.isProcessing = true;
-    console.log('[QueueService] Starting queue processing');
 
     // Process immediately
     this.processQueue();
@@ -289,7 +285,7 @@ export class QueueService {
       clearInterval(this.processingInterval);
       this.processingInterval = null;
     }
-    console.log('[QueueService] Stopped queue processing');
+
   }
 
   /**
@@ -309,8 +305,6 @@ export class QueueService {
       if (!pendingItems || pendingItems.length === 0) {
         return;
       }
-
-      console.log(`[QueueService] Processing ${pendingItems.length} queue items`);
 
       // Process items concurrently (respecting OpenAI rate limits)
       const processingPromises = pendingItems.map(item =>
@@ -337,8 +331,6 @@ export class QueueService {
         started_at: new Date().toISOString(),
       });
 
-      console.log(`[QueueService] Processing ${item.type} generation for user ${item.user_id}`);
-
       let result;
       if (item.type === 'playbook') {
         result = await this.generatePlaybookDirect(item);
@@ -357,8 +349,6 @@ export class QueueService {
         tokens_used: result.tokensUsed || 0,
         cost_cents: result.costCents || 0,
       });
-
-      console.log(`[QueueService] ✅ Successfully marked ${item.type} generation as completed for user ${item.user_id}`);
 
       // Track usage in subscription service
       await subscriptionService.trackUsage(
@@ -381,8 +371,6 @@ export class QueueService {
           duration_seconds: processingTime,
         });
       }
-
-      console.log(`[QueueService] Completed ${item.type} generation for user ${item.user_id} in ${processingTime}s`);
 
     } catch (error: unknown) {
       console.error(`[QueueService] Error processing queue item ${item.id}:`, error);
@@ -434,9 +422,6 @@ export class QueueService {
       requestBody.intelligenceLevel = item.intelligence_level;
     }
 
-    console.log(`[QueueService] Calling playbook generation function: ${functionUrl}`);
-    console.log('[QueueService] Request body:', JSON.stringify(requestBody, null, 2));
-
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
@@ -446,8 +431,6 @@ export class QueueService {
       body: JSON.stringify(requestBody),
     });
 
-    console.log(`[QueueService] Response status: ${response.status} ${response.statusText}`);
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[QueueService] Response error:', errorText);
@@ -455,10 +438,8 @@ export class QueueService {
     }
 
     const result = await response.json();
-    console.log('[QueueService] Generation result:', result);
 
     // Save the generated playbook to the database using proper savePlaybook function
-    console.log(`[QueueService] Saving playbook to database for user ${item.user_id}`);
 
     try {
       // Import and use the proper savePlaybook function that handles separate tables
@@ -484,13 +465,10 @@ export class QueueService {
         totalTasks: (result.actionSteps || []).length,
       };
 
-      console.log('[QueueService] Using proper savePlaybook function with action steps:', playbookToSave.actionSteps?.length || 0);
-      console.log('[QueueService] Using proper savePlaybook function with affirmations:', playbookToSave.affirmations?.length || 0);
-
       const saveResult = await savePlaybook(playbookToSave, item.user_id);
 
       if (saveResult.success) {
-        console.log('[QueueService] Successfully saved playbook with proper function:', playbookToSave.title);
+
       } else {
         console.error('[QueueService] Failed to save playbook with proper function:', saveResult.error);
         // Don't throw error - the generation succeeded, just log the save issue
@@ -576,8 +554,6 @@ export class QueueService {
         });
       }
 
-      console.log(`[QueueService] Updating queue status for ${itemId} to ${status}:`, basicUpdateData);
-
       const { error } = await this.supabase
         .from('generation_queue')
         .update(basicUpdateData)
@@ -588,7 +564,7 @@ export class QueueService {
 
         // If schema error, try with minimal fields only
         if (error.code === 'PGRST204') {
-          console.log(`[QueueService] Schema error, trying minimal update for ${itemId}`);
+
           const minimalUpdate = {
             status,
             updated_at: new Date().toISOString(),
@@ -605,18 +581,16 @@ export class QueueService {
             return;
           }
 
-          console.log(`[QueueService] Minimal update succeeded for ${itemId}`);
           return;
         }
 
         throw error;
       }
 
-      console.log(`[QueueService] Successfully updated queue status for ${itemId} to ${status}`);
     } catch (error) {
       console.error(`[QueueService] Error updating queue status for ${itemId}:`, error);
       // Don't throw to prevent cascading failures - log and continue
-      console.log('[QueueService] Continuing despite update error to prevent app crashes');
+
     }
   }
 
@@ -645,7 +619,6 @@ export class QueueService {
       })
       .eq('id', itemId);
 
-    console.log(`[QueueService] Retrying queue item ${itemId}`);
   }
 
   /**
@@ -707,7 +680,6 @@ export class QueueService {
         return false;
       }
 
-      console.log(`[QueueService] Cancelled queue item ${queueId} for user ${userId}`);
       return true;
     } catch (error) {
       console.error('[QueueService] Error in cancelQueueItem:', error);

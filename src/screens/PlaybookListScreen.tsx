@@ -114,19 +114,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [user]);
 
   // Debug logging for user state
-  console.log('[PlaybookListScreen] User state:', {
-    hasUser: !!user,
-    hasSession: !!session,
-    isAuthenticated,
-    userId,
-    userKeys: user ? Object.keys(user) : [],
-  });
 
   // Fetch playbooks from database using React Query with proper caching
   const { data: playbooks = [], isLoading, refetch, isFetching } = useQuery<Playbook[]>({
     queryKey: ['playbooks', userId],
     queryFn: () => {
-      console.log('[PlaybookListScreen] Fetching playbooks for userId:', userId);
+
       return getPlaybooks(userId || '');
     },
     enabled: !!userId && isAuthenticated, // Only run when we have a valid userId and are authenticated
@@ -135,7 +128,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: false, // Disable automatic refetch on focus (we handle manually)
     retry: (failureCount, error) => {
-      console.log('[PlaybookListScreen] Query retry attempt:', failureCount, error);
+
       return failureCount < 3;
     },
   });
@@ -284,10 +277,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Reset animations when screen comes into focus and set to In Progress tab
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      console.log('[PlaybookListScreen] Screen focused, userId:', userId, 'playbooks count:', playbooks.length);
 
       // Always reset to 'ongoing' (In Progress) tab when navigating to this screen
-      console.log('[PlaybookListScreen] Resetting filter to ongoing (In Progress) tab');
+
       setFilter('ongoing');
 
       // Safely reset animation values if they exist
@@ -308,7 +300,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         // Force refetch on focus to ensure fresh data
         // This bypasses React Query's stale time and ensures we always get fresh data
         if (userId) {
-          console.log('[PlaybookListScreen] Force refetching playbooks on focus');
+
           refetch();
         }
         // Reset and run floating button expand animation
@@ -327,17 +319,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Additional effect to handle userId changes and ensure data loading
   useEffect(() => {
-    console.log('[PlaybookListScreen] Auth state changed:', {
-      userId,
-      isAuthenticated,
-      isLoading,
-      isFetching,
-      playbooksCount: playbooks.length,
-    });
 
     // If we have a userId and are authenticated but no playbooks and we're not currently loading, force a refetch
     if (userId && isAuthenticated && playbooks.length === 0 && !isLoading && !isFetching) {
-      console.log('[PlaybookListScreen] No playbooks found, forcing refetch');
+
       const timer = setTimeout(() => {
         refetch();
       }, 100);
@@ -347,7 +332,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
     // If we lost authentication, clear any cached data
     if (!isAuthenticated && playbooks.length > 0) {
-      console.log('[PlaybookListScreen] User not authenticated, should clear data');
+
     }
   }, [userId, isAuthenticated, playbooks.length, isLoading, isFetching, refetch]);
 
@@ -581,20 +566,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
   };
 
   // Debug logging for render states
-  console.log('[PlaybookListScreen] Render state:', {
-    userId,
-    isLoading,
-    isFetching,
-    playbooksCount: playbooks.length,
-    hasUserId: !!userId,
-  });
 
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {
-    console.log('[PlaybookListScreen] No userId or not authenticated, showing loading state:', {
-      userId: !!userId,
-      isAuthenticated,
-    });
+
     return (
       <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
         <View style={styles.container}>
@@ -609,7 +584,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Show empty state when we have no playbooks and we're not in initial loading state
   // Allow isFetching to be true (for pull-to-refresh) as long as we're not in initial loading
   if (playbooks.length === 0 && !isLoading && userId) {
-    console.log('[PlaybookListScreen] Showing empty state');
+
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors.anchorBlue }]} edges={['left','right','bottom']}>
         <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>

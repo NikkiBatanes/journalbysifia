@@ -169,7 +169,6 @@ export class FaithPointsService {
    */
   async getUserProfile(userId: string): Promise<FaithPointsProfile> {
     try {
-      console.log(`[FaithPointsService] Fetching profile for user: ${userId}`);
 
       const { data: profile, error } = await supabase
         .from('faith_points_profiles')
@@ -183,14 +182,9 @@ export class FaithPointsService {
       }
 
       if (!profile) {
-        console.log('[FaithPointsService] No profile found, creating new one');
+
         return await this.createUserProfile(userId);
       }
-
-      console.log('[FaithPointsService] Profile found:', {
-        totalPoints: profile.total_points,
-        currentLevel: profile.current_level,
-      });
 
       // Update streak and level if needed
       const updatedProfile = await this.updateProfileMetrics(profile);
@@ -215,25 +209,16 @@ export class FaithPointsService {
       const pointsAwarded = this.POINTS_SYSTEM[activity];
       const isOnboarding = _metadata?.isOnboarding || false;
 
-      console.log(`[FaithPointsService] Awarding ${pointsAwarded} points for ${activity} to user ${userId}${isOnboarding ? ' (onboarding)' : ''}`);
-
       // Ensure profile exists before awarding points
       let profile = await this.getUserProfile(userId);
 
       // If profile creation failed, try again with more robust error handling
       if (!profile || profile.totalPoints === undefined) {
-        console.log('[FaithPointsService] Profile missing or invalid, creating new profile...');
+
         profile = await this.createUserProfile(userId);
       }
 
       const newTotalPoints = profile.totalPoints + pointsAwarded;
-
-      console.log('[FaithPointsService] Current profile:', {
-        totalPoints: profile.totalPoints,
-        newTotalPoints,
-        pointsAwarded,
-        isOnboarding,
-      });
 
       // Check for level up
       const currentLevel = this.calculateLevel(profile.totalPoints);
@@ -247,12 +232,6 @@ export class FaithPointsService {
       const updatedStreak = await this.updateStreak(userId, activity);
 
       // Update profile in database with retry logic for onboarding
-      console.log('[FaithPointsService] Updating profile with:', {
-        total_points: newTotalPoints,
-        current_level: newLevel,
-        userId,
-        isOnboarding,
-      });
 
       let updateResult;
       let updateError;
@@ -284,7 +263,7 @@ export class FaithPointsService {
         if (upsertError) {
           console.error('[FaithPointsService] Upsert failed, trying regular update:', upsertError);
         } else {
-          console.log('[FaithPointsService] Upsert successful for onboarding:', upsertResult);
+
         }
       }
 
@@ -317,8 +296,6 @@ export class FaithPointsService {
         }
       }
 
-      console.log('[FaithPointsService] Profile updated successfully:', updateResult);
-
       // Verify the update worked
       if (!updateResult || updateResult.length === 0) {
         console.error('[FaithPointsService] Update returned no data - profile may not exist or RLS issue');
@@ -328,11 +305,10 @@ export class FaithPointsService {
           .select('*')
           .eq('user_id', userId)
           .maybeSingle();
-        console.log('[FaithPointsService] Profile state after update attempt:', afterUpdate);
 
         // For onboarding, try to create profile if it doesn't exist
         if (isOnboarding && !afterUpdate) {
-          console.log('[FaithPointsService] Creating profile for onboarding user...');
+
           await this.createUserProfile(userId);
           // Retry the points award
           return this.awardPoints(userId, activity, { ..._metadata, isOnboarding: false });
@@ -340,10 +316,10 @@ export class FaithPointsService {
       }
 
       // Record transaction AFTER profile update (non-blocking)
-      console.log('[FaithPointsService] Recording transaction...');
+
       try {
         await this.recordTransaction(userId, pointsAwarded, activity, _metadata);
-        console.log('[FaithPointsService] Transaction recorded successfully');
+
       } catch (transactionError) {
         console.warn('[FaithPointsService] Transaction logging failed, but faith points were awarded:', transactionError);
         // Continue execution - don't let transaction logging failure block faith points
@@ -360,17 +336,17 @@ export class FaithPointsService {
 
       // Show points notification unless suppressed
       if (!_metadata?.suppressNotification) {
-        console.log('[FaithPointsService] Showing global notification for:', activity, pointsAwarded);
+
         notificationService.showPointsNotification(pointsAwarded, activity, 'center');
       } else {
-        console.log('[FaithPointsService] Global notification suppressed for:', activity, pointsAwarded);
+
       }
 
       // Emit events for UI updates with delay to ensure database is updated
       // Only emit events if not suppressed to prevent duplicate UI updates
       if (!_metadata?.suppressNotification) {
         setTimeout(() => {
-          console.log('[FaithPointsService] Emitting POINTS_UPDATED event for:', activity);
+
           faithPointsEvents.emit(FAITH_POINTS_EVENTS.POINTS_UPDATED, {
             userId,
             pointsAwarded,
@@ -379,7 +355,7 @@ export class FaithPointsService {
           });
 
           if (leveledUp) {
-            console.log('[FaithPointsService] Emitting LEVEL_UP event');
+
             faithPointsEvents.emit(FAITH_POINTS_EVENTS.LEVEL_UP, {
               userId,
               newLevel,
@@ -388,7 +364,7 @@ export class FaithPointsService {
           }
         }, 100); // Small delay to ensure database transaction is complete
       } else {
-        console.log('[FaithPointsService] Events suppressed for:', activity);
+
       }
 
       return {
@@ -537,7 +513,6 @@ export class FaithPointsService {
           last_activity_date: new Date().toISOString(),
         });
 
-      console.log(`[FaithPointsService] Created new profile for user ${userId}`);
       return newProfile;
 
     } catch (error) {
@@ -565,10 +540,7 @@ export class FaithPointsService {
         created_at: new Date().toISOString(),
       };
 
-      console.log('[FaithPointsService] Inserting transaction:', transactionData);
-
       // Try manual SQL query to bypass schema cache
-      console.log('[FaithPointsService] Attempting manual SQL insert...');
 
       const manualQuery = `
         INSERT INTO faith_points_log (user_id, points, activity_type, reason, metadata, created_at)
@@ -580,7 +552,6 @@ export class FaithPointsService {
         .rpc('execute_sql', { query: manualQuery });
 
       if (manualError || !manualData) {
-        console.log('[FaithPointsService] Manual SQL failed, trying simple insert...');
 
         // Try the simplest possible insert
         const { data, error } = await supabase
@@ -597,15 +568,13 @@ export class FaithPointsService {
         if (error) {
           console.error('[FaithPointsService] All insert methods failed:', error);
           // Don't throw error, just log it so faith points awarding continues
-          console.log('[FaithPointsService] Continuing without transaction logging...');
+
           return;
         }
 
-        console.log('[FaithPointsService] Simple insert succeeded:', data);
         return;
       }
 
-      console.log('[FaithPointsService] Manual SQL succeeded:', manualData);
       return;
     } catch (error) {
       console.error('[FaithPointsService] Error recording transaction:', error);

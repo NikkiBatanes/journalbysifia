@@ -134,7 +134,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     async (key: keyof NotificationPreferences, value: boolean) => {
       try { triggerLightHaptic(); } catch {}
       if (!notificationPrefs || !user?.id) {
-        console.log('[Notifications] Missing prefs or user id, cannot update');
+
         return;
       }
       const updated = { ...notificationPrefs, [key]: value } as NotificationPreferences;
@@ -149,8 +149,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     },
     [notificationPrefs, user?.id]
   );
-
-
 
   // Native time picker handler
   const showNativeTimePicker = useCallback((type: 'start' | 'end') => {
@@ -182,7 +180,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       const field = timePickerType === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
       const updated = { ...notificationPrefs, [field]: timeString };
 
-      console.log(`Updating ${field} to ${timeString}`);
       const success = await notificationManagementService.updateNotificationPreferences(updated);
       if (success) {
         setNotificationPrefs(updated);
@@ -231,13 +228,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [deleteBirthYear]);
 
   const handleConfirmDeleteAccount = useCallback(async () => {
-    console.log('🗑️ handleConfirmDeleteAccount called');
-    console.log('🗑️ isValidBirthYear:', isValidBirthYear);
-    console.log('🗑️ deleteBirthYear:', deleteBirthYear);
+
     try {
       try { triggerLightHaptic(); } catch {}
       if (!isValidBirthYear) {
-        console.log('🗑️ Birth year invalid, showing alert');
+
         Alert.alert('Enter valid year', 'Please enter your birth year (YYYY) to continue.');
         return;
       }
@@ -288,12 +283,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (!user?.id) {return;}
 
     try {
-      console.log('Loading notification preferences for user:', user.id);
+
       let prefs = await notificationManagementService.getNotificationPreferences(user.id);
 
       // If no preferences exist, create defaults
       if (!prefs) {
-        console.log('No preferences found, creating defaults');
+
         const defaultPrefs = {
           user_id: user.id,
           playbook_steps: true,
@@ -313,7 +308,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      console.log('Loaded notification preferences:', prefs);
       setNotificationPrefs(prefs);
     } catch (error) {
       console.error('Error loading notification preferences:', error);
@@ -370,7 +364,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         };
         setUsage(usageData);
 
-        console.log('📊 Subscription loaded:', subscriptionData.tier, subscriptionData.status);
       } catch (error) {
         console.error('Failed to load subscription data:', error);
       }
@@ -632,18 +625,18 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleEditAvatar = async () => {
     try {
       try { triggerLightHaptic(); } catch {}
-      console.log('[Avatar] Edit tapped');
+
       if (!user) {
         Alert.alert('Not signed in', 'Please sign in to update your profile photo.');
         return;
       }
 
       const picked = await pickImageLocal();
-      console.log('[Avatar] Picker result:', picked ? 'asset selected' : 'cancelled');
+
       if (!picked) {return;} // user cancelled
 
       const url = await uploadAvatar(user, picked);
-      console.log('[Avatar] Uploaded URL:', url);
+
       // const result = await updateProfile({ avatar_url: url }); // TODO: Implement updateProfile
       // if (result?.success === false) {
       //   throw new Error(result?.error?.message || 'Failed to update profile');
@@ -924,7 +917,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     let refreshTimeout: NodeJS.Timeout;
 
     const handlePointsUpdate = (data?: any) => {
-      console.log('🔄 Faith points updated, refreshing profile data...', data);
 
       // Clear any existing timeout to prevent multiple calls
       if (refreshTimeout) {
@@ -933,7 +925,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // Single delayed refresh instead of multiple calls
       refreshTimeout = setTimeout(() => {
-        console.log('🔄 Refreshing profile data after faith points update...');
+
         loadProfileData();
       }, 500);
     };
@@ -980,8 +972,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (preferences.theme || preferences.font) {
       // The ThemeContext automatically picks up changes from user metadata
       // So we just need to update the user metadata when preferences change
-      console.log('🎨 Theme preference changed to:', preferences.theme);
-      console.log('🔤 Font preference changed to:', preferences.font);
+
     }
   }, [preferences.theme, preferences.font]);
 
@@ -990,7 +981,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     await loadProfileData();
     setRefreshing(false);
   };
-
 
   const handleUpdateProfile = async () => {
     try {
@@ -1062,17 +1052,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Save handler for Bible Version (no success alert)
   const handleSaveBibleVersion = async () => {
     try {
-      console.log('[UserProfile] Saving Bible version:', bibleVersionDraft);
+
       const updatedPreferences = {
         ...preferences,
         content: { ...preferences.content, bibleVersion: bibleVersionDraft },
       };
-      console.log('[UserProfile] Updated preferences:', JSON.stringify(updatedPreferences, null, 2));
+
       const result = await updatePreferences(updatedPreferences);
       if (result.success) {
         setPreferences(updatedPreferences);
         setBibleVersionModal(false);
-        console.log('[UserProfile] Bible version saved successfully:', bibleVersionDraft);
+
       } else {
         console.error('[UserProfile] Failed to save Bible version:', result.error);
         Alert.alert('Error', result.error?.message || 'Failed to update Bible version');
@@ -1108,7 +1098,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       try { triggerLightHaptic(); } catch {}
-      console.log('🚪 Starting logout from profile screen...');
 
       // Set loading state to prevent UI interactions during logout
       setLoading(true);
@@ -1121,7 +1110,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setNotificationPrefs(null);
 
       await signOut();
-      console.log('✅ Logout completed, navigation should handle redirect');
+
     } catch (error) {
       console.error('❌ Logout failed:', error);
       setLoading(false); // Reset loading state on error
@@ -1764,11 +1753,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.paddingBottom20}>
             <TouchableOpacity
               onPress={() => {
-                console.log('🗑️ Delete account button pressed!');
+
                 try { triggerLightHaptic(); } catch {}
-                console.log('🗑️ Setting deleteAccountModal to true');
+
                 setDeleteAccountModal(true);
-                console.log('🗑️ Modal state should be true now');
+
               }}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -1790,7 +1779,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   // Delete Account Confirmation Modal
   const renderDeleteAccountModal = () => {
-    console.log('🗑️ renderDeleteAccountModal called, visible:', deleteAccountModal);
+
     return (
     <Modal
       visible={deleteAccountModal}
@@ -1828,11 +1817,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.modalDescription, font]}>Enter a valid 4-digit year to continue.</Text>
           <TouchableOpacity
             onPress={() => {
-              console.log('🗑️ Delete my account button pressed in modal');
-              console.log('🗑️ isValidBirthYear:', isValidBirthYear);
-              console.log('🗑️ isDeletingAccount:', isDeletingAccount);
+
               if (!isValidBirthYear || isDeletingAccount) {
-                console.log('🗑️ Button is disabled, not calling handler');
+
                 return;
               }
               handleConfirmDeleteAccount();
@@ -2119,7 +2106,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.timePickerRow}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    console.log('Quiet Hours Start pressed, prefs:', notificationPrefs);
+
                     showNativeTimePicker('start');
                   }}
                 >
@@ -2132,7 +2119,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.timePickerRow}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    console.log('Quiet Hours End pressed, prefs:', notificationPrefs);
+
                     showNativeTimePicker('end');
                   }}
                 >

@@ -47,25 +47,12 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   initialPrayerRequest,
 }) => {
   // Debug: Log all props received by SmartJournalingPrayerModal
-  console.log('🔍 SmartJournalingPrayerModal: Props received:', {
-    visible,
-    subtaskTitle,
-    subtaskId,
-    stepId,
-    playbookId,
-    playbookTitle,
-    actionStepNumber,
-    actionStepTitle,
-    existingPrayer,
-  });
+
   const { user } = useAuth();
   const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
 
   // Debug logging
-  console.log('🙏 SmartJournalingPrayerModal: subtaskTitle received:', subtaskTitle);
-  console.log('🙏 SmartJournalingPrayerModal: playbookTitle:', playbookTitle);
-  console.log('🙏 SmartJournalingPrayerModal: actionStepTitle:', actionStepTitle);
 
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = useState(subtaskTitle);
@@ -75,31 +62,31 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
   // Track when metadata props change and preserve non-empty values
   React.useEffect(() => {
-    console.log('🔄 SmartJournalingPrayerModal: subtaskTitle changed to:', subtaskTitle);
+
     if (subtaskTitle && subtaskTitle.trim() !== '') {
       setPreservedSubtaskTitle(subtaskTitle);
-      console.log('💾 SmartJournalingPrayerModal: Preserved subtaskTitle:', subtaskTitle);
+
     }
   }, [subtaskTitle]);
 
   React.useEffect(() => {
     if (actionStepNumber !== undefined && actionStepNumber !== null) {
       setPreservedActionStepNumber(actionStepNumber);
-      console.log('💾 SmartJournalingPrayerModal: Preserved actionStepNumber:', actionStepNumber);
+
     }
   }, [actionStepNumber]);
 
   React.useEffect(() => {
     if (actionStepTitle && actionStepTitle.trim() !== '') {
       setPreservedActionStepTitle(actionStepTitle);
-      console.log('💾 SmartJournalingPrayerModal: Preserved actionStepTitle:', actionStepTitle);
+
     }
   }, [actionStepTitle]);
 
   React.useEffect(() => {
     if (playbookTitle && playbookTitle.trim() !== '') {
       setPreservedPlaybookTitle(playbookTitle);
-      console.log('💾 SmartJournalingPrayerModal: Preserved playbookTitle:', playbookTitle);
+
     }
   }, [playbookTitle]);
 
@@ -121,23 +108,20 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     queryKey: ['personal_prayers', user?.id, dateStr, subtaskId],
     queryFn: async () => {
       if (!user?.id || !subtaskId) {
-        console.log('🔍 Prayer Query: Missing user or subtaskId:', { userId: user?.id, subtaskId });
+
         return [];
       }
 
-      console.log('🔍 Prayer Query: Fetching prayers for:', { userId: user.id, dateStr, subtaskId });
       // Fetch personal prayer entries for today that match this subtask
       const prayers = await PrayerApi.getACTSPrayers(user.id, dateStr);
       const personalPrayers = prayers.freeform || [];
-      console.log('🔍 Prayer Query: All personal prayers found:', personalPrayers.length);
 
       const filteredPrayers = personalPrayers.filter((prayer: PrayerApiEntry) => {
-        console.log('🔍 Prayer Query: Checking prayer:', { id: prayer.id, hasMetadata: !!prayer.metadata, content: typeof prayer.content });
 
         // Check metadata first (new format)
         if (prayer.metadata && typeof prayer.metadata === 'object') {
           const match = prayer.metadata.subtask_id === subtaskId;
-          console.log('🔍 Prayer Query: Metadata check:', { subtask_id: prayer.metadata.subtask_id, expected: subtaskId, match });
+
           if (match) {return true;}
         }
 
@@ -145,16 +129,15 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         try {
           const content = typeof prayer.content === 'string' ? JSON.parse(prayer.content) : prayer.content;
           const match = content.metadata?.subtask_id === subtaskId || content.subtask_id === subtaskId;
-          console.log('🔍 Prayer Query: Content check:', { contentMetadata: content.metadata?.subtask_id, contentSubtaskId: content.subtask_id, expected: subtaskId, match });
+
           return match;
         } catch (error) {
           // If content is not JSON, check if it's a simple string prayer for this subtask
-          console.log('🔍 Prayer Query: Content parsing failed, skipping prayer');
+
           return false;
         }
       });
 
-      console.log('🔍 Prayer Query: Filtered prayers:', filteredPrayers.length);
       return filteredPrayers;
     },
     enabled: !!user?.id && !!subtaskId,
@@ -163,13 +146,6 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
   // Get the most recent prayer entry for this subtask
   const currentPrayerEntry = existingPrayerEntries[0] || existingPrayer;
-  console.log('🔍 Prayer Query: Current prayer entry:', {
-    hasCurrentEntry: !!currentPrayerEntry,
-    entryId: currentPrayerEntry?.id,
-    hasContent: !!currentPrayerEntry?.content,
-    contentType: typeof currentPrayerEntry?.content,
-    existingEntriesCount: existingPrayerEntries.length,
-  });
 
   // Determine if this is an edit session when modal opens
   useEffect(() => {
@@ -216,7 +192,6 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       // Always use current date for prayers, not the selected journal date
       const currentDate = new Date();
       const prayerDateStr = toLocalDateString(currentDate);
-      console.log('🙏 Creating prayer with current date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
 
       if (prayerData.activeTab === 'people') {
         // Save as "people" prayer type (like in journal screen)
@@ -261,11 +236,11 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       return await PrayerApi.createPrayer(prayerEntry);
     },
     onSuccess: (data) => {
-      console.log('🙏 Prayer created successfully:', data);
+
       // Proper cache invalidation using correct query keys
       if (user?.id && data?.selected_date) {
         const savedDateStr = data.selected_date; // Use the actual date from the saved data
-        console.log('🙏 Invalidating cache for date:', savedDateStr);
+
         queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });
@@ -291,7 +266,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       if (!currentPrayerEntry?.id) {throw new Error('No prayer entry to update');}
 
       const prayerDateStr = toLocalDateString(prayerData.date);
-      console.log('🙏 Updating prayer with date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
+
       let updates: any;
 
       if (prayerData.activeTab === 'people') {
@@ -331,11 +306,11 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       return await PrayerApi.updatePrayer(currentPrayerEntry.id, updates);
     },
     onSuccess: (data) => {
-      console.log('🙏 Prayer updated successfully:', data);
+
       // Proper cache invalidation using correct query keys
       if (user?.id && data?.selected_date) {
         const savedDateStr = data.selected_date; // Use the actual date from the saved data
-        console.log('🙏 Invalidating cache for date:', savedDateStr);
+
         queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });
@@ -358,74 +333,47 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     prayerRequest?: string;
   }) => {
     try {
-      console.log('🙏 SmartJournalingPrayerModal: Saving prayer data to database immediately', {
-        hasExistingEntry: !!currentPrayerEntry,
-        contentLength: prayerData.content.length,
-        activeTab: prayerData.activeTab,
-        prayerForPerson: prayerData.prayerForPerson,
-        stepId,
-        subtaskId,
-        actionStepsCount: actionSteps?.length || 0,
-      });
 
       let result;
       if (currentPrayerEntry?.id) {
         // Update existing prayer
-        console.log('🙏 SmartJournalingPrayerModal: Updating existing prayer');
+
         result = await updatePrayerMutation.mutateAsync(prayerData);
       } else {
         // Create new prayer
-        console.log('🙏 SmartJournalingPrayerModal: Creating new prayer');
+
         result = await createPrayerMutation.mutateAsync(prayerData);
       }
-
-      console.log('✅ SmartJournalingPrayerModal: Database save completed');
 
       // Call parent onSave callback
       onSave(result);
 
       // Mark subtask as completed immediately since data is saved (only for new prayers)
       if (stepId && subtaskId && handleToggleStep && !currentPrayerEntry?.id) {
-        console.log('🙏 SmartJournalingPrayerModal: Marking subtask as completed (data saved)', {
-          stepId,
-          subtaskId,
-          actionStepsCount: actionSteps?.length || 0,
-        });
 
         // Check if the step/subtask is already completed before toggling
         const step = actionSteps.find(s => s.id === stepId);
-        console.log('🙏 SmartJournalingPrayerModal: Found step:', {
-          stepFound: !!step,
-          stepId: step?.id,
-          stepCompleted: step?.completed,
-          subTasksCount: step?.subTasks?.length || 0,
-        });
 
         if (step) {
           if (subtaskId) {
             // Check subtask completion
             const subtask = step.subTasks?.find(st => st.id === subtaskId);
-            console.log('🙏 SmartJournalingPrayerModal: Found subtask:', {
-              subtaskFound: !!subtask,
-              subtaskId: subtask?.id,
-              subtaskCompleted: subtask?.completed,
-            });
 
             if (subtask && !subtask.completed) {
-              console.log('🙏 SmartJournalingPrayerModal: Calling handleToggleStep to mark subtask as completed');
+
               handleToggleStep(stepId, subtaskId);
-              console.log('🙏 SmartJournalingPrayerModal: handleToggleStep called successfully');
+
             } else {
-              console.log('🙏 SmartJournalingPrayerModal: Subtask already completed or not found, skipping toggle');
+
             }
           } else {
             // Check step completion
             if (!step.completed) {
-              console.log('🙏 SmartJournalingPrayerModal: Calling handleToggleStep to mark step as completed');
+
               handleToggleStep(stepId, subtaskId);
-              console.log('🙏 SmartJournalingPrayerModal: handleToggleStep called successfully');
+
             } else {
-              console.log('🙏 SmartJournalingPrayerModal: Step already completed, skipping toggle');
+
             }
           }
         } else {
@@ -435,12 +383,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
           });
         }
       } else {
-        console.log('🙏 SmartJournalingPrayerModal: Skipping completion - editing existing prayer or missing data:', {
-          hasStepId: !!stepId,
-          hasSubtaskId: !!subtaskId,
-          hasHandleToggleStep: !!handleToggleStep,
-          isExistingPrayer: !!currentPrayerEntry?.id,
-        });
+
       }
 
       // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
@@ -453,7 +396,6 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         });
       }, 500);
 
-      console.log('✅ SmartJournalingPrayerModal: Prayer saved and subtask marked complete');
     } catch (error: any) {
       console.error('❌ SmartJournalingPrayerModal: SAVE FAILED:', error);
       Alert.alert(
@@ -464,13 +406,10 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     }
   };
 
-
-
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleSuccessModalClose = () => {
-    console.log('🙏 PRAYER: Done button pressed, closing modal (data already saved)');
-    console.log('🔍 PRAYER: About to hide success modal and close main modal');
+
     // Handled by success modal hook
     onCancel(); // Close the modal
   };
@@ -478,21 +417,12 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   // Called when "Edit" is pressed in SuccessModal
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleEdit = () => {
-    console.log('🙏 PRAYER: Edit button pressed, closing success modal');
-    console.log('🔍 PRAYER: About to hide success modal for editing');
 
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
       const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-      console.log('🙏 SmartJournalingPrayerModal: Edit - Current completion state:', {
-        stepId,
-        subtaskId,
-        stepCompleted: step?.completed,
-        subtaskCompleted: subtask?.completed,
-        stepFound: !!step,
-        subtaskFound: !!subtask,
-      });
+
     }
 
     // Handled by success modal hook
@@ -506,20 +436,12 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   };
 
   const handleCancel = () => {
-    console.log('🙏 SmartJournalingPrayerModal: Cancel pressed');
 
     // Debug: Check completion state when cancelling
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
       const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-      console.log('🙏 SmartJournalingPrayerModal: Cancel - Current completion state:', {
-        stepId,
-        subtaskId,
-        stepCompleted: step?.completed,
-        subtaskCompleted: subtask?.completed,
-        stepFound: !!step,
-        subtaskFound: !!subtask,
-      });
+
     }
 
     onCancel();
@@ -527,15 +449,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
   // Get initial content for the editor
   const getInitialContent = () => {
-    console.log('🔍 getInitialContent: Starting with currentPrayerEntry:', {
-      hasEntry: !!currentPrayerEntry,
-      hasContent: !!currentPrayerEntry?.content,
-      contentType: typeof currentPrayerEntry?.content,
-      contentPreview: currentPrayerEntry?.content ? String(currentPrayerEntry.content).substring(0, 50) + '...' : 'none',
-    });
 
     if (!currentPrayerEntry?.content) {
-      console.log('🔍 getInitialContent: No content found, returning empty string');
+
       return '';
     }
 
@@ -545,24 +461,23 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         // Try to parse as JSON (old format)
         const parsedContent = JSON.parse(currentPrayerEntry.content);
         const result = parsedContent.text || currentPrayerEntry.content;
-        console.log('🔍 getInitialContent: Parsed JSON format, returning:', result.substring(0, 50) + '...');
+
         return result;
       } catch (error) {
         // If parsing fails, it's plain text (new format)
-        console.log('🔍 getInitialContent: Plain text format, returning:', currentPrayerEntry.content.substring(0, 50) + '...');
+
         return currentPrayerEntry.content;
       }
     }
 
     const result = currentPrayerEntry.content || '';
-    console.log('🔍 getInitialContent: Non-string content, returning:', String(result).substring(0, 50) + '...');
+
     return result;
   };
 
   const isLoading = createPrayerMutation.isPending || updatePrayerMutation.isPending;
 
   // Debug logging
-  console.log('🙏 SmartJournalingPrayerModal: Render - successModal visible:', successModal.isVisible, 'isEditSession:', isEditSession);
 
   return (
     <>

@@ -97,7 +97,6 @@ class OnboardingErrorBoundary extends Component<Props, State> {
   handleReload = (): void => {
     // Force app reload (React Native specific)
     // In production, this would trigger a full app restart
-    console.log('[OnboardingErrorBoundary] Reloading app...');
 
     // Reset error state first
     this.handleReset();

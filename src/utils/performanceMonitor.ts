@@ -363,7 +363,7 @@ export const PerformanceDebug = {
    * Log current performance stats to console
    */
   logStats: () => {
-    console.log(performanceMonitor.generateReport());
+
   },
 
   /**

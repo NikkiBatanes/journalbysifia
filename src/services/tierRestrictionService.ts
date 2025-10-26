@@ -45,7 +45,6 @@ class TierRestrictionService {
       featureFlag: 'intelligenceEnabled',
     },
 
-
     // Smart journaling
     {
       feature: 'smart_journaling',
@@ -244,7 +243,7 @@ class TierRestrictionService {
   ): Promise<void> {
     try {
       // Log feature restriction event for analytics
-      console.log(`[TierRestrictionService] Feature restriction triggered: ${feature} for tier: ${currentTier}`);
+
       // Note: retentionService.logRetentionEvent expects specific event types
       // For now, we'll just log the restriction event
     } catch (error) {

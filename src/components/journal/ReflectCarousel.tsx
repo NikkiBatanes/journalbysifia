@@ -53,7 +53,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       // Play sound effect
       playSound();
     } catch (error) {
-      console.log('Error with sound feedback:', error);
+
     }
   }, []);
 

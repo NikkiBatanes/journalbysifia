@@ -8,7 +8,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  Platform,
   Animated,
   NativeModules,
   StatusBar,
@@ -63,11 +62,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   };
 
   useEffect(() => {
-    console.log('[DevotionalDetailScreen] Params devotionalId:', devotionalId);
-    console.log('[DevotionalDetailScreen] Clean devotionalId:', cleanDevotionalId);
-    console.log('[DevotionalDetailScreen] userId:', userId);
-    console.log('[DevotionalDetailScreen] isValidUUID(cleanDevotionalId):', isValidUUID(cleanDevotionalId));
-    console.log('[DevotionalDetailScreen] Platform:', Platform.OS);
+
   }, [devotionalId, cleanDevotionalId, userId]);
 
   const { data: devotional, isLoading: devotionalLoading, isFetching: devotionalFetching, error: devotionalError, isError } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
@@ -76,7 +71,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Debug logging for React Query state - only on mount and error changes
   useEffect(() => {
     if (isError) {
-      console.log('[DevotionalDetailScreen] Query Error:', devotionalError);
+
     }
   }, [isError, devotionalError]);
 
@@ -273,7 +268,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   useEffect(() => {
     // Log for debugging
-    console.log('Current day index:', currentDayIndex);
 
     // Reset FAB visibility when changing days (will be set by scroll handler)
     setShowFAB(false);
@@ -293,15 +287,10 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   useEffect(() => {
     // Log for debugging
-    console.log('Devotional:', devotional);
 
     // Debug title extraction
     if (devotional?.title) {
-      console.log('Title extraction debug:', {
-        originalTitle: devotional.title,
-        extractedTitle: extractCleanTitle(devotional.title),
-        devotionalId: devotional.id,
-      });
+
     }
   }, [devotional]);
 
@@ -312,8 +301,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     if (!devotional || !allDevotionalPrayers) {return;}
 
     const devotionalTitle = extractCleanTitle(devotional.title) || 'Devotional';
-    console.log('🔍 Syncing prayed status for:', devotionalTitle);
-    console.log('📊 Available devotional prayers:', allDevotionalPrayers.length);
 
     const newPrayedDays: Record<string, boolean> = {};
 
@@ -328,14 +315,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                        prayer.day_title === day.title;
 
         if (matches) {
-          console.log(`✅ Found match for Day ${day.dayNumber}:`, {
-            dbTitle: prayer.devotional_title,
-            expectedTitle: devotionalTitle,
-            dbDayNumber: prayer.day_number,
-            expectedDayNumber: day.dayNumber,
-            dbDayTitle: prayer.day_title,
-            expectedDayTitle: day.title,
-          });
+
         }
 
         return matches;
@@ -348,10 +328,10 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     // Only update if we found any prayed days, preserve existing state otherwise
     if (Object.keys(newPrayedDays).length > 0) {
-      console.log('📝 Updating prayed status:', newPrayedDays);
+
       setPrayedDays(prev => ({ ...prev, ...newPrayedDays }));
     } else {
-      console.log('ℹ️ No devotional prayers found in database, preserving current state');
+
     }
   }, [devotional, allDevotionalPrayers]);
 
@@ -412,8 +392,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         devotional.days.length - 1
       );
 
-      console.log('Scrolling to day:', safeIndex + 1); // Debug log
-
       // Set flag to indicate programmatic scroll
       isScrollingProgrammatically.current = true;
 
@@ -451,15 +429,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   useEffect(() => {
     if (rawPrayer) {
       const show = (s: string) => s.replace(/\n/g, '\\n');
-      console.log('[DevotionalDetail] Prayer raw    :', show(rawPrayer));
-      console.log('[DevotionalDetail] Prayer formatted:', show(formattedPrayer));
+
     }
   }, [rawPrayer, formattedPrayer]);
 
   // Debug log for prayer data only when currentDay actually changes
   useEffect(() => {
     if (currentDay) {
-      console.log('DevotionalDetailScreen currentDay changed:', currentDay.title, 'completed:', currentDay.completed);
+
     }
   }, [currentDay]);
 
@@ -468,14 +445,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     const timeSinceLastMark = now - lastMarkCompleteRef.current;
 
     if (!devotional || isMarkingComplete || showCompletionModal || modalOpenedRef.current || timeSinceLastMark < 3000) {
-      console.log('🚫 Mark complete blocked by guards:', {
-        hasDevotional: !!devotional,
-        isMarkingComplete,
-        showCompletionModal,
-        modalOpened: modalOpenedRef.current,
-        timeSinceLastMark,
-        minInterval: 3000,
-      });
+
       return;
     }
 
@@ -484,11 +454,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // Get the current day
     const dayToMark = devotional.days[currentDayIndex];
     if (!dayToMark || dayToMark.completed) {
-      console.log('🚫 Day already completed or not found');
+
       return;
     }
-
-    console.log('✅ Starting mark complete process for day:', currentDayIndex + 1);
 
     // Set guards to prevent multiple executions
     setIsMarkingComplete(true);
@@ -504,7 +472,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // Perform DB update in background WITHOUT awaiting to prevent blocking
     markDayComplete(devotional.id, dayToMark.dayNumber)
       .then(() => {
-        console.log('✅ Day marked complete successfully');
+
       })
       .catch((error) => {
         console.error('❌ Error marking day as complete:', error);
@@ -528,21 +496,13 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     const isPrayed = !prayedDays[prayerKey];
     const devotionalTitle = extractCleanTitle(devotional.title) || 'Devotional';
 
-    console.log('🔄 Toggling prayer status:', {
-      prayerKey,
-      isPrayed,
-      devotionalTitle,
-      dayNumber: currentDay.dayNumber,
-      dayTitle: currentDay.title,
-    });
-
     // Update local prayed state
     setPrayedDays(prev => {
       const newState = {
         ...prev,
         [prayerKey]: isPrayed,
       };
-      console.log('📝 Updated prayedDays state:', newState);
+
       return newState;
     });
 
@@ -550,14 +510,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     if (isPrayed && currentDay.prayer?.trim() && user) {
       const cleanPrayer = currentDay.prayer.replace(/\*\*/g, '').trim();
       const currentDate = toLocalDateString(new Date());
-
-      console.log('💾 Saving prayer to database:', {
-        devotionalTitle,
-        dayNumber: currentDay.dayNumber,
-        dayTitle: currentDay.title,
-        contentLength: cleanPrayer.length,
-        date: currentDate,
-      });
 
       // Save using React Query mutation with optimistic updates
       createDevotionalPrayerMutation.mutate({
@@ -570,7 +522,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         totalDays: devotional.totalDays,
       }, {
         onSuccess: () => {
-          console.log('✅ Devotional prayer saved successfully');
+
         },
         onError: (error) => {
           console.error('❌ Error saving devotional prayer:', error);
@@ -603,7 +555,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       return;
     }
 
-    console.log('[DevotionalDetailScreen] Completion continue pressed');
     // Close modal first
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
@@ -635,7 +586,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // Handle closing the modal by pressing the X button or backdrop
   const handleModalClose = () => {
-    console.log('[DevotionalDetailScreen] Modal closed by user');
+
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
     setIsMarkingComplete(false);
@@ -661,7 +612,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         setTimeout(async () => {
           try {
             await subscriptionService.trackUsage(user.id, 'devotional');
-            console.log('[DevotionalDetail] Usage tracked for devotional completion');
+
           } catch (error) {
             console.error('[DevotionalDetail] Failed to track usage:', error);
           }
@@ -682,7 +633,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Debug logging only for critical state changes
   useEffect(() => {
     if (devotional) {
-      console.log('[DevotionalDetailScreen] Devotional loaded:', devotional.title, 'Days:', devotional.days.length);
+
     }
   }, [devotional]);
 
@@ -706,7 +657,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Only show "not found" if query is enabled, completed (not loading/fetching), returned no data, AND has actually attempted to fetch
   // Check isError to ensure we've actually tried to fetch and failed, not just returning cached null
   if (queryEnabled && !loading && !devotional && !devotionalFetching && isError) {
-    console.log('[DevotionalDetailScreen] Showing "not found" error - queryEnabled:', queryEnabled, 'loading:', loading, 'devotional:', devotional, 'fetching:', devotionalFetching, 'isError:', isError);
+
     return (
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Devotional not found</ThemedText>
@@ -802,7 +753,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         </TouchableOpacity>
       )}
 
-
       {/* Devotional Completion Modal */}
       {devotional && (
         <DevotionalCompletionModal
@@ -820,7 +770,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           onRatingSubmit={handleRatingSubmit}
           onCheckReveal={() => {
             // Local notification is now shown inside DevotionalCompletionModal for guaranteed layering
-            console.log('[DevotionalDetail] onCheckReveal fired');
+
           }}
         />
       )}
@@ -869,7 +819,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           onMomentumScrollEnd={event => {
             // Skip if this is a programmatic scroll to prevent feedback loop
             if (isScrollingProgrammatically.current) {
-              console.log('Skipping momentum scroll - programmatic scroll in progress');
+
               return;
             }
 
@@ -879,7 +829,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             );
             // Only update if the index actually changed and is within bounds
             if (newIndex !== currentDayIndex && newIndex >= 0 && newIndex < devotional.days.length) {
-              console.log('User scroll ended at day:', newIndex + 1); // Debug log
               setCurrentDayIndex(newIndex);
               // Reset FAB visibility when changing pages
               setShowFAB(false);
@@ -1006,20 +955,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                       // Check if this question has already been journaled
                       const existingEntry = getJournaledEntry(dayNumber, questionNumber);
 
-                      console.log('🔍 Question tapped - Debug info:', {
-                        dayNumber,
-                        questionNumber,
-                        devotionalId,
-                        existingEntry: existingEntry ? {
-                          id: existingEntry.id,
-                          title: existingEntry.title,
-                          content: existingEntry.content?.substring(0, 50) + '...',
-                          devotional_id: existingEntry.devotional_id,
-                          day_number: existingEntry.day_number,
-                          question_number: existingEntry.question_number,
-                        } : null,
-                      });
-
                       setSelectedReflectionQuestion(question.text);
                       setSelectedQuestionMeta({
                         dayNumber,
@@ -1044,7 +979,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 <ThemedText style={styles.questionCardText}>No questions for today.</ThemedText>
               )}
             </DevotionalSectionCard>
-
 
             {/* Prayer Card */}
             <DevotionalSectionCard
@@ -1149,7 +1083,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           existingEntry={selectedQuestionMeta?.existingEntry}
           onSave={(entry) => {
             try {
-              console.log('Reflection saved:', entry);
+
               // Update the journaled questions tracking
               if (selectedQuestionMeta?.existingEntry) {
                 updateJournaledQuestion(entry);

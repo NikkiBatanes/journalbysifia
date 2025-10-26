@@ -36,7 +36,6 @@ export async function generateDevotional(
   const { showUserFeedback = true, onAuthRequired } = options;
 
   try {
-    console.log('🙏 Starting devotional generation with auth integration...');
 
     // Validate parameters
     validateDevotionalParams({ duration, playbookId, userInput });
@@ -49,11 +48,11 @@ export async function generateDevotional(
 
       // Try to refresh session once before giving up
       if (diagnostics.hasSession && diagnostics.hasToken && diagnostics.isExpired) {
-        console.log('🔄 Attempting session refresh for expired session...');
+
         const refreshResult = await forceSessionRefresh();
 
         if (refreshResult.success) {
-          console.log('✅ Session refreshed, retrying devotional generation...');
+
           // Retry with refreshed session
           return generateDevotional(duration, playbookId, userInput, options);
         }
@@ -75,12 +74,10 @@ export async function generateDevotional(
       return null;
     }
 
-    console.log('✅ Valid session found, proceeding with devotional generation');
-
     // Use modern devotional generation (no AsyncStorage bridge needed)
     try {
       const result = await modernGenerateDevotional({ duration, playbookId, userInput });
-      console.log('✅ Devotional generated successfully using modern API');
+
       return result;
     } catch (error: any) {
       // Handle specific authentication errors
@@ -113,7 +110,7 @@ export async function generateDevotional(
     });
 
     if (result.shouldRetry) {
-      console.log('🔄 Retrying devotional generation...');
+
       return generateDevotional(duration, playbookId, userInput, options);
     }
 
@@ -140,15 +137,12 @@ export async function generatePlaybook(
   const { showUserFeedback = true, onAuthRequired, _retryCount = 0 } = options;
   const MAX_RETRIES = 2;
 
-  console.log(`[generatePlaybook] Starting generation (retry ${_retryCount}/${MAX_RETRIES})`);
-
   if (_retryCount > MAX_RETRIES) {
     console.error('[generatePlaybook] Max retries exceeded, aborting');
     throw new Error('Maximum retry attempts exceeded for playbook generation');
   }
 
   try {
-    console.log('📚 Starting playbook generation with auth integration...');
 
     // Validate session using comprehensive validation
     const { isValid, diagnostics } = await validateSession();
@@ -158,11 +152,11 @@ export async function generatePlaybook(
 
       // Try to refresh session once before giving up
       if (diagnostics.hasSession && diagnostics.hasToken && diagnostics.isExpired) {
-        console.log('🔄 Attempting session refresh for expired session...');
+
         const refreshResult = await forceSessionRefresh();
 
         if (refreshResult.success) {
-          console.log('✅ Session refreshed, retrying playbook generation...');
+
           // Retry with refreshed session
           return generatePlaybook(userInput, userName, { ...options, _retryCount: _retryCount + 1 });
         }
@@ -187,12 +181,10 @@ export async function generatePlaybook(
     // Validate parameters
     validatePlaybookParams(userInput, userName);
 
-    console.log('✅ Valid session found, proceeding with playbook generation');
-
     // Use modern playbook generation (no AsyncStorage bridge needed)
     try {
       const result = await modernGeneratePlaybook(userInput, userName);
-      console.log('✅ Playbook generated successfully using modern API');
+
       return result;
     } catch (error: any) {
       // Handle specific authentication errors
@@ -225,7 +217,7 @@ export async function generatePlaybook(
     });
 
     if (result.shouldRetry) {
-      console.log('🔄 Retrying playbook generation...');
+
       return generatePlaybook(userInput, userName, { ...options, _retryCount: _retryCount + 1 });
     }
 
@@ -250,7 +242,6 @@ export async function getPlaybooks(
   const { showUserFeedback = false, onAuthRequired } = options;
 
   try {
-    console.log('📖 Getting playbooks with auth integration...');
 
     // Get current session from the new auth system
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -274,12 +265,10 @@ export async function getPlaybooks(
       return [];
     }
 
-    console.log('✅ Valid session found, proceeding with playbook loading');
-
     // Use normalized playbook API for accurate progress calculation
     try {
       const result = await normalizedGetPlaybooks(userId);
-      console.log('✅ Playbooks loaded successfully using normalized API');
+
       return result;
     } catch (error: any) {
       // Handle specific authentication errors
@@ -312,7 +301,7 @@ export async function getPlaybooks(
     });
 
     if (result.shouldRetry) {
-      console.log('🔄 Retrying playbook loading...');
+
       return getPlaybooks(userId, options);
     }
 

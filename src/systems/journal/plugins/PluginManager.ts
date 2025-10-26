@@ -19,11 +19,11 @@ export class PluginManager {
     if (existingIndex >= 0) {
       // Update existing plugin
       this.plugins[existingIndex] = plugin;
-      console.log(`📝 Updated plugin: ${plugin.id}`);
+
     } else {
       // Add new plugin
       this.plugins.push(plugin);
-      console.log(`✅ Registered new plugin: ${plugin.id}`);
+
     }
   }
 
@@ -37,7 +37,7 @@ export class PluginManager {
     const removed = this.plugins.length < initialLength;
 
     if (removed) {
-      console.log(`🗑️ Unregistered plugin: ${pluginId}`);
+
     }
 
     return removed;

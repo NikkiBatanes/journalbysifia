@@ -14,11 +14,11 @@ if (Platform.OS === 'ios') {
     PushNotificationIOS = require('@react-native-community/push-notification-ios');
     // Verify the module has the required methods
     if (!PushNotificationIOS || typeof PushNotificationIOS.checkPermissions !== 'function') {
-      console.log('[PushNotification] PushNotificationIOS methods not available - using fallback');
+
       PushNotificationIOS = null;
     }
   } catch (error) {
-    console.log('[PushNotification] PushNotificationIOS not available - using fallback:', (error as Error).message);
+
     PushNotificationIOS = null;
   }
 }
@@ -62,14 +62,13 @@ class PushNotificationService {
       PushNotification.configure({
         // Called when token is generated (iOS and Android)
         onRegister: async (token: any) => {
-          console.log('[PushNotification] Token received:', token);
+
           this.deviceToken = token.token;
           await this.saveDeviceToken(userId, token.token);
         },
 
         // Called when a remote notification is received while app is in foreground
         onNotification: (notification: any) => {
-          console.log('[PushNotification] Notification received:', notification);
 
           // Handle notification tap
           if (notification.userInteraction) {
@@ -84,7 +83,7 @@ class PushNotificationService {
 
         // Called when user taps notification
         onAction: (notification: any) => {
-          console.log('[PushNotification] Action received:', notification);
+
         },
 
         // Called when registration fails (Android)
@@ -137,7 +136,7 @@ class PushNotificationService {
       }
 
       this.isInitialized = true;
-      console.log('[PushNotification] Service initialized successfully');
+
     } catch (error) {
       console.error('[PushNotification] Initialization error:', error);
       throw error;
@@ -151,7 +150,6 @@ class PushNotificationService {
         const current: any = await new Promise((resolve) =>
           PushNotificationIOS.checkPermissions((p: any) => resolve(p))
         );
-        console.log('[PushNotification] Current iOS permissions:', current);
 
         const alreadyGranted = !!(current?.alert || current?.badge || current?.sound);
         if (alreadyGranted) {return true;}
@@ -163,12 +161,12 @@ class PushNotificationService {
             badge: true,
             sound: true,
           });
-          console.log('[PushNotification] Requested iOS permissions result:', requested);
+
           return !!(requested?.alert || requested?.badge || requested?.sound);
         }
       }
       // Android or fallback
-      console.log('[PushNotification] Using fallback permissions (iOS module not available)');
+
       return true;
     } catch (error) {
       console.error('[PushNotification] Permission request error:', error);
@@ -186,7 +184,7 @@ class PushNotificationService {
         });
       } else {
         // Android or iOS without PushNotificationIOS: Return default permissions
-        console.log('[PushNotification] Using default permissions (PushNotificationIOS not available)');
+
         return { alert: true, badge: true, sound: true };
       }
     } catch (error) {
@@ -219,7 +217,7 @@ class PushNotificationService {
       if (error) {
         console.error('[PushNotification] Error saving token to Supabase:', error);
       } else {
-        console.log('[PushNotification] Device token saved successfully');
+
       }
     } catch (error) {
       console.error('[PushNotification] Error saving device token:', error);
@@ -301,7 +299,6 @@ class PushNotificationService {
   }
 
   private handleNotificationTap(notification: any): void {
-    console.log('[PushNotification] Notification tapped:', notification);
 
     // Handle different notification types
     const { type } = notification.data || {};

@@ -45,14 +45,13 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     setError(null);
 
     try {
-      console.log('[usePlatformSubscription] Initializing...');
+
       await platformSubscriptionService.initialize();
 
       const availableProducts = platformSubscriptionService.getProducts();
       setProducts(availableProducts);
       setIsInitialized(true);
 
-      console.log(`[usePlatformSubscription] Initialized with ${availableProducts.length} products`);
     } catch (err) {
       const errorMessage = err instanceof PlatformSubscriptionError
         ? err.message
@@ -73,7 +72,6 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     setError(null);
 
     try {
-      console.log('[usePlatformSubscription] Starting upgrade:', request);
 
       // Validate upgrade
       if (!platformSubscriptionService.isValidUpgrade(request.currentTier, request.targetTier)) {
@@ -82,7 +80,6 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
 
       const result = await platformSubscriptionService.upgradeSubscription(request);
 
-      console.log('[usePlatformSubscription] Upgrade completed:', result);
       return result;
 
     } catch (err) {
@@ -110,7 +107,6 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     setError(null);
 
     try {
-      console.log('[usePlatformSubscription] Requesting downgrade:', { currentTier, targetTier, billing });
 
       // Validate downgrade
       if (!platformSubscriptionService.isValidDowngrade(currentTier, targetTier)) {
@@ -119,7 +115,6 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
 
       const result = await platformSubscriptionService.requestDowngrade(currentTier, targetTier, billing);
 
-      console.log('[usePlatformSubscription] Downgrade request completed:', result);
       return result;
 
     } catch (err) {
@@ -143,10 +138,9 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
     setError(null);
 
     try {
-      console.log('[usePlatformSubscription] Restoring purchases...');
+
       const purchases = await platformSubscriptionService.restorePurchases();
 
-      console.log(`[usePlatformSubscription] Restored ${purchases.length} purchases`);
       return purchases;
 
     } catch (err) {
@@ -167,10 +161,9 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
    */
   const getCurrentSubscription = useCallback(async () => {
     try {
-      console.log('[usePlatformSubscription] Getting current subscription...');
+
       const subscription = await platformSubscriptionService.getCurrentSubscription();
 
-      console.log('[usePlatformSubscription] Current subscription:', subscription);
       return subscription;
 
     } catch (err) {
@@ -205,7 +198,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
    */
   useEffect(() => {
     if (user && !isInitialized && !isLoading) {
-      console.log('[usePlatformSubscription] Auto-initializing for user:', user.id);
+
       initialize();
     }
   }, [user, isInitialized, isLoading, initialize]);
@@ -216,7 +209,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
   useEffect(() => {
     return () => {
       if (isInitialized) {
-        console.log('[usePlatformSubscription] Cleaning up...');
+
         platformSubscriptionService.cleanup();
       }
     };

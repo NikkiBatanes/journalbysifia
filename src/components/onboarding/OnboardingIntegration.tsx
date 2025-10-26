@@ -43,10 +43,10 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
     if (prevAuthState.current === true && isAuthenticated === false) {
       // User just logged out - prepare to show onboarding on next login
       hasJustLoggedOut.current = true;
-      console.log('🔄 User logged out - onboarding will be triggered on next login');
+
     } else if (prevAuthState.current === false && isAuthenticated === true && hasJustLoggedOut.current) {
       // User just logged back in after logout - trigger onboarding
-      console.log('🚀 User logged in after logout - triggering onboarding');
+
       setTimeout(() => {
         navigation.navigate('ModernOnboarding' as any);
         hasJustLoggedOut.current = false;
@@ -61,33 +61,17 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
    * Handles onboarding navigation with improved testing support
    */
   useEffect(() => {
-    console.log('🔍 OnboardingIntegration Effect Check:', {
-      isIntegrationReady,
-      onboardingLoading,
-      shouldShowOnboarding,
-      isAuthenticated,
-      hasJustLoggedOut: hasJustLoggedOut.current,
-      isOnboardingRequired,
-      isOnboardingCompleted,
-    });
 
     if (!isIntegrationReady || onboardingLoading) {
-      console.log('⏳ Integration not ready or loading...');
+
       return;
     }
 
     if (shouldShowOnboarding && !hasJustLoggedOut.current) {
-      console.log('🎯 Triggering onboarding flow:', {
-        isOnboardingRequired,
-        isOnboardingCompleted,
-        currentStep,
-        userHasAccount: !!user,
-        isAuthenticated,
-      });
 
       // Always start from splash screen for consistent user experience
       setTimeout(() => {
-        console.log('🚀 Navigating to splash screen...');
+
         navigation.navigate('OnboardingSplash' as any);
       }, 100);
     }
@@ -109,15 +93,7 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
    */
   useEffect(() => {
     if (__DEV__ && isIntegrationReady) {
-      console.log('📊 Onboarding Integration State:', {
-        isAuthenticated,
-        isOnboardingRequired,
-        isOnboardingCompleted,
-        currentStep,
-        shouldShowOnboarding,
-        hasJustLoggedOut: hasJustLoggedOut.current,
-        userId: user?.id,
-      });
+
     }
   }, [isAuthenticated, isOnboardingRequired, isOnboardingCompleted, currentStep, shouldShowOnboarding, user, isIntegrationReady]);
 
@@ -148,8 +124,6 @@ export const OnboardingTestingUtils = {
       return;
     }
 
-    console.log('🧪 Triggering onboarding test flow...');
-
     // Refresh onboarding data to reset state
     await refreshOnboardingData();
 
@@ -165,13 +139,6 @@ export const OnboardingTestingUtils = {
   logOnboardingState: (context: any) => {
     if (!__DEV__) {return;}
 
-    console.log('🔍 Current Onboarding State:', {
-      isOnboardingRequired: context.isOnboardingRequired,
-      isOnboardingCompleted: context.isOnboardingCompleted,
-      currentStep: context.currentStep,
-      loading: context.loading,
-      error: context.error,
-    });
   },
 };
 

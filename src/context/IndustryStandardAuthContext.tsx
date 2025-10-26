@@ -51,7 +51,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     isAuthenticated: false,
   });
 
-
   // Logout state tracking
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -63,11 +62,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     // Clean up any duplicate prefixes from environment variables
     const webClientId = rawWebClientId?.replace('GOOGLE_WEB_CLIENT_ID=', '') || rawWebClientId;
     const iosClientId = rawIosClientId?.replace('GOOGLE_IOS_CLIENT_ID=', '') || rawIosClientId;
-
-    console.log('🔧 Configuring Google Sign-In with:');
-    console.log('📱 iOS Client ID (raw):', rawIosClientId || 'UNDEFINED');
-    console.log('📱 iOS Client ID (cleaned):', iosClientId || 'UNDEFINED');
-    console.log('🌐 Web Client ID (cleaned):', webClientId || 'UNDEFINED');
 
     if (!iosClientId || !webClientId) {
       console.warn('⚠️ Missing Google OAuth client IDs in environment variables');
@@ -85,7 +79,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         offlineAccess: false, // Improves speed
       });
 
-      console.log('✅ Google Sign-In configured successfully');
     } catch (error) {
       console.warn('⚠️ Failed to configure Google Sign-In:', error);
     }
@@ -95,7 +88,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     // Get initial session with better error handling
     const getInitialSession = async () => {
       try {
-        console.log('🔍 Getting initial session...');
+
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -106,13 +99,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           return;
         }
 
-        console.log('📋 Initial session result:', {
-          hasSession: !!session,
-          hasUser: !!session?.user,
-          userId: session?.user?.id,
-          email: session?.user?.email,
-        });
-
         setAuthState({
           user: session?.user ?? null,
           session,
@@ -121,10 +107,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           isAuthenticated: !!session?.user,
         });
 
-        console.log('✅ Initial auth state set:', {
-          isAuthenticated: !!session?.user,
-          loading: false,
-        });
       } catch (error) {
         console.error('💥 Failed to get initial session:', error);
         // Only set to unauthenticated if there's a real error
@@ -141,7 +123,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     // Helper function to create user profile for OAuth users
     const createUserProfileIfNeeded = async (user: any) => {
       try {
-        console.log('🔍 Checking if user profile exists for:', user.id);
 
         // Check if user profile already exists
         const { data: existingProfile, error: fetchError } = await supabase
@@ -151,7 +132,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           .single();
 
         if (existingProfile) {
-          console.log('✅ User profile already exists');
+
           return;
         }
 
@@ -159,8 +140,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           console.error('❌ Error checking user profile:', fetchError);
           return;
         }
-
-        console.log('📝 Creating new user profile for OAuth user');
 
         // Determine onboarding_completed from onboarding_progress if available
         let completed = false;
@@ -177,25 +156,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           // 3. is_completed is explicitly true (not just truthy)
           if (!progressErr && progress && progress.is_completed === true) {
             completed = true;
-            console.log('✅ Found completed onboarding for user:', user.id);
+
           } else {
-            console.log('❌ No completed onboarding found for user:', user.id, {
-              hasProgress: !!progress,
-              isCompleted: progress?.is_completed,
-              error: progressErr?.message,
-            });
+
           }
         } catch (e) {
           console.warn('⚠️ Error checking onboarding progress, defaulting to false:', e);
           // Explicitly set to false on any error
           completed = false;
         }
-
-        console.log('🔍 Final onboarding_completed determination:', {
-          userId: user.id,
-          completed,
-          reason: completed ? 'existing_completed_progress' : 'new_user_or_incomplete',
-        });
 
         // SAFETY CHECK: For new users, ensure onboarding_completed is false
         // This prevents any edge cases where completed might be set incorrectly
@@ -209,7 +178,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
               .single();
 
             if (progressCheck && progressCheck.is_completed === true && progressCheck.completed_at) {
-              console.log('✅ Confirmed: User actually completed onboarding');
+
             } else {
               console.warn('⚠️ Onboarding_completed was true but no completion record found - correcting to false');
               completed = false;
@@ -234,7 +203,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         if (insertError) {
           console.error('❌ Error creating user profile:', insertError);
         } else {
-          console.log('✅ User profile created successfully');
 
           // Create default Seeker subscription for new user
           try {
@@ -246,7 +214,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             if (subscriptionError) {
               console.error('❌ Error creating default subscription:', subscriptionError);
             } else {
-              console.log('✅ Default Seeker subscription created');
+
             }
           } catch (e) {
             console.error('💥 Failed to create default subscription:', e);
@@ -262,17 +230,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     // Listen for auth state changes (industry standard)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state changed:', event, {
-          hasUser: !!session?.user,
-          userId: session?.user?.id,
-          email: session?.user?.email,
-          hasSession: !!session,
-          expiresAt: session?.expires_at,
-        });
 
         // Handle logout state tracking
         if (event === 'SIGNED_OUT' && session === null) {
-          console.log('⚠️ SIGNED_OUT event detected');
+
           // Clear logout flag after processing
           setIsLoggingOut(false);
         }
@@ -285,16 +246,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           isAuthenticated: !!session?.user,
         });
 
-        console.log('✅ Auth state updated:', {
-          isAuthenticated: !!session?.user,
-          hasUser: !!session?.user,
-          loading: false,
-        });
-
         // Handle specific auth events with persistent session strategy
         switch (event) {
           case 'SIGNED_IN':
-            console.log('User signed in:', session?.user?.email);
+
             // Create user profile for new OAuth users
             if (session?.user) {
               await createUserProfileIfNeeded(session.user);
@@ -302,7 +257,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             // Check onboarding completion and navigate accordingly
             if (session?.user) {
               try {
-                console.log('🔍 Checking onboarding status for user:', session.user.id);
 
                 // Check if this is a social auth sign-in (Google/Apple)
                 const isSocialAuth = session.user.app_metadata?.provider === 'google' ||
@@ -311,7 +265,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                                      identity.provider === 'google' || identity.provider === 'apple');
 
                 if (isSocialAuth) {
-                  console.log('🔍 Social auth detected, checking if account exists');
 
                   // For social auth, check if this user already had an account before this sign-in
                   // We can detect this by checking if user profile existed before this session
@@ -328,11 +281,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
                   if (existingProfile) {
                     // User profile already exists - this means they had an account before
-                    console.log('🔍 Existing account detected for social auth user');
 
                     if (existingProfile.onboarding_completed) {
                       // User completed onboarding - go to main app
-                      console.log('🚀 Existing user with completed onboarding - navigating to MainTabs');
+
                       await AsyncStorage.setItem('force_navigate_to_main', 'true');
                       await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                         target: 'MainTabs',
@@ -340,7 +292,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                       }));
                     } else {
                       // User exists but didn't complete onboarding - they should sign in instead of going through onboarding again
-                      console.log('🔑 Existing user with incomplete onboarding - redirecting to sign-in');
+
                       await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                         target: 'OnboardingWelcome', // This will allow them to sign in properly
                         params: { showSignInPrompt: true },
@@ -348,13 +300,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     }
                   } else {
                     // No existing profile - this is a new social auth user
-                    console.log('🆕 New social auth user - proceeding with onboarding');
 
                     const hasCompletedOnboarding = false; // New user by definition
 
                     if (hasCompletedOnboarding) {
                       // User completed onboarding - force navigation to main app
-                      console.log('🚀 New user completed onboarding - forcing navigation to MainTabs');
+
                       await AsyncStorage.setItem('force_navigate_to_main', 'true');
                       await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                         target: 'MainTabs',
@@ -362,7 +313,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                       }));
                     } else {
                       // User needs to complete onboarding - continue with personalization
-                      console.log('📝 New user needs to complete onboarding, setting redirect to personalization');
+
                       // Pass registrationMethod to ensure OAuth users get proper name collection
                       const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
                       const isOAuth = provider === 'apple' || provider === 'google';
@@ -377,7 +328,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   }
                 } else {
                   // Regular email/password auth - use existing logic
-                  console.log('🔍 Email auth detected, using existing onboarding check logic');
 
                   const { data: profile, error: profileError } = await supabase
                     .from('user_profiles')
@@ -391,15 +341,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   }
 
                   const hasCompletedOnboarding = profile?.onboarding_completed === true;
-                  console.log('🔍 Post-signin onboarding check:', {
-                    userId: session.user.id,
-                    hasCompleted: hasCompletedOnboarding,
-                    profileData: profile,
-                  });
 
                   if (hasCompletedOnboarding) {
                     // User completed onboarding - force navigation to main app
-                    console.log('🚀 User completed onboarding - forcing navigation to MainTabs');
+
                     await AsyncStorage.setItem('force_navigate_to_main', 'true');
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'MainTabs',
@@ -407,7 +352,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     }));
                   } else {
                     // User needs to complete onboarding - continue with personalization
-                    console.log('📝 User needs to complete onboarding, setting redirect to personalization');
+
                     // Pass registrationMethod to ensure OAuth users get proper name collection
                     const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
                     const isOAuth = provider === 'apple' || provider === 'google';
@@ -431,7 +376,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     .maybeSingle();
 
                   if (profileCheck) {
-                    console.log('✅ Profile exists, onboarding_completed:', profileCheck.onboarding_completed);
+
                     const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
                     // Pass registrationMethod for OAuth users
                     const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
@@ -473,19 +418,19 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             }
             break;
           case 'SIGNED_OUT':
-            console.log('User signed out');
+
             // Only clear state on explicit logout, not on errors
             break;
           case 'TOKEN_REFRESHED':
-            console.log('Token refreshed for user:', session?.user?.email);
+
             // Successful refresh - maintain session
             break;
           case 'USER_UPDATED':
-            console.log('User updated:', session?.user?.email);
+
             break;
           default:
             // For any other events, maintain current session if possible
-            console.log('Auth event:', event);
+
             break;
         }
       }
@@ -511,21 +456,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
     refreshPromise = (async () => {
       try {
-        console.log(`[Auth] Attempting session refresh (attempt ${retryCount + 1}/${maxRetries + 1})`);
+
         const result = await supabase.auth.refreshSession();
 
         if (result.error && retryCount < maxRetries) {
-          console.log(`[Auth] Refresh failed, retrying in ${retryDelay}ms...`);
+
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           refreshPromise = null;
           return refreshSession(retryCount + 1);
         }
 
-        console.log('[Auth] Session refresh successful');
         return result;
       } catch (error) {
         if (retryCount < maxRetries) {
-          console.log(`[Auth] Refresh error, retrying in ${retryDelay}ms...`, error);
+
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           refreshPromise = null;
           return refreshSession(retryCount + 1);
@@ -548,7 +492,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   // Industry-standard auth methods
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔑 Starting sign in process...');
+
       setAuthState(prev => ({ ...prev, loading: true }));
 
       const { error } = await supabase.auth.signInWithPassword({
@@ -557,12 +501,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
       if (error) {
-        console.log('❌ Sign in failed:', error.message);
+
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error };
       }
 
-      console.log('✅ Sign in successful, waiting for auth state change...');
       // Don't immediately set loading to false - let the auth state change handler do it
       // This prevents a race condition where loading becomes false before isAuthenticated becomes true
 
@@ -581,7 +524,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signUp = async (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => {
     try {
-      console.log('🔑 Starting real Supabase sign up process...', { email, hasUserData: !!userData });
+
       setAuthState(prev => ({ ...prev, loading: true }));
 
       // Prepare user metadata for Supabase
@@ -618,12 +561,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         };
       }
 
-      console.log('✅ Supabase sign up successful!', {
-        userId: data.user.id,
-        email: data.user.email,
-        confirmed: !!data.user.email_confirmed_at,
-      });
-
       // Auth state will be updated by the onAuthStateChange listener
       // Profile creation will be handled by the auth state change handler
       // Don't set loading to false here - let the listener handle it
@@ -644,20 +581,19 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const signOut = async () => {
     try {
       setIsLoggingOut(true);
-      console.log('🚪 Starting logout process...');
 
       // Helpful debug: log provider info from identities if present
       try {
         const identities = (authState.user as any)?.identities as Array<any> | undefined;
         const providers = identities?.map((i) => i?.provider) || [];
-        console.log('👤 Current auth providers:', providers.length ? providers : 'unknown');
+
       } catch {}
 
       // Attempt to clear Google session (safe on non-Google sessions)
       try {
         await GoogleSignin.revokeAccess();
         await GoogleSignin.signOut();
-        console.log('✅ Google access revoked and signed out');
+
       } catch (googleError) {
         console.warn('⚠️ Google revoke/sign-out warning (continuing):', googleError);
       }
@@ -676,7 +612,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       if (sbError) {
         console.error('❌ Supabase sign-out error:', sbError);
       } else {
-        console.log('✅ Supabase sign-out successful');
+
       }
 
       // Clear auth state regardless to avoid stale UI; onAuthStateChange will confirm
@@ -696,7 +632,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const resetPassword = async (email: string) => {
     try {
-      console.log('🔑 Starting password reset for:', email);
 
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.toLowerCase().trim(),
@@ -712,7 +647,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         return { error };
       }
 
-      console.log('✅ Password reset email sent successfully');
       return { error: null };
     } catch (error) {
       console.error('💥 Password reset error:', error);
@@ -727,7 +661,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const updatePassword = async (newPassword: string, accessToken?: string) => {
     try {
-      console.log('🔑 Starting password update process...');
 
       // If we have an access token (from reset link), use it
       if (accessToken) {
@@ -760,7 +693,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         }
       }
 
-      console.log('✅ Password updated successfully');
       return { error: null };
     } catch (error) {
       console.error('💥 Password update error:', error);
@@ -807,7 +739,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             ...profileData,
           };
           const updatedUser = { ...(prev.user as any), user_metadata: mergedMeta } as User;
-          console.log('✅ Auth state user_metadata updated:', Object.keys(profileData));
+
           return { ...prev, user: updatedUser };
         });
       } catch (e) {
@@ -897,7 +829,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         };
       }
 
-      console.log('🔄 Starting Google Sign-In...');
       setAuthState(prev => ({ ...prev, loading: true }));
 
       // Clear any existing sessions to prevent nonce conflicts
@@ -906,9 +837,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         await supabase.auth.signOut();
         // Wait a moment for session cleanup to complete
         await new Promise(resolve => setTimeout(resolve, 100));
-        console.log('🧹 Cleared existing sessions');
+
       } catch (clearError) {
-        console.log('⚠️ Session clear warning (safe to ignore):', clearError);
+
       }
 
       // Check if device supports Google Play services (Android only)
@@ -918,30 +849,26 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // Sign in with Google
       const userInfo = await GoogleSignin.signIn();
-      console.log('✅ Google sign-in successful:', userInfo.data?.user.email);
 
       // Get the ID token
       const idToken = userInfo.data?.idToken;
 
       if (!idToken) {
         // User likely cancelled - don't show error, just return silently
-        console.log('ℹ️ Google Sign-In cancelled by user');
+
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error: null }; // Return success to avoid showing error UI
       }
 
-      console.log('🔍 Signing in to Supabase with Google token (no nonce)');
-
       // Ensure we're starting with a completely clean session
       const { data: currentSession } = await supabase.auth.getSession();
       if (currentSession?.session) {
-        console.log('🧹 Found existing session, clearing it first');
+
         await supabase.auth.signOut();
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       // Try alternative approach: exchange Google token for Supabase session
-      console.log('🔄 Attempting direct Google token exchange...');
 
       // First try the standard approach
       let authError = null;
@@ -957,7 +884,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // If standard approach fails with nonce error, try manual user creation
       if (authError && authError.message?.includes('nonce')) {
-        console.log('🔄 Nonce error detected, trying manual approach...');
 
         // Decode the Google ID token to get user info
         const base64Url = idToken.split('.')[1];
@@ -967,7 +893,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         }).join(''));
 
         const googleUser = JSON.parse(jsonPayload);
-        console.log('📋 Google user info:', { email: googleUser.email, name: googleUser.name });
 
         // Check if we need to collect additional user info
         const needsNameCollection = !googleUser.name || googleUser.name.trim().length === 0;
@@ -975,12 +900,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         // userData object removed - was defined but never used
         // If name is missing or incomplete, we'll handle it after auth
         if (needsNameCollection) {
-          console.log('⚠️ Google user has incomplete name info - will be handled in personalization screen');
+
         }
 
         // For nonce errors, try to proceed with Google auth anyway
         // The original nonce error might be temporary or configuration-related
-        console.log('🔄 Nonce error detected, but proceeding with Google authentication...');
 
         // Try the standard Google auth flow one more time with a fresh session
         try {
@@ -998,7 +922,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             console.error('❌ Retry Google auth failed:', retryError);
             authError = retryError;
           } else {
-            console.log('✅ Retry Google auth succeeded');
+
             authError = null;
           }
         } catch (retryErr) {
@@ -1018,7 +942,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         const currentUser = await supabase.auth.getUser();
 
         if (!currentUser.data.user) {
-          console.log('⚠️ No user found after Google sign-in');
+
           return { error: null };
         }
 
@@ -1029,11 +953,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
         const googleUser = JSON.parse(jsonPayload);
-
-        console.log('💾 Saving Google-provided name to user metadata:', {
-          given_name: googleUser.given_name,
-          full_name: googleUser.name,
-        });
 
         // Update user metadata with Google name and clear avatar URLs
         await supabase.auth.updateUser({
@@ -1048,14 +967,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           },
         });
 
-        console.log('✅ Google name saved and avatar URLs cleared');
       } catch (metadataError) {
-        console.log('⚠️ Could not update user metadata (safe to ignore):', metadataError);
+
       }
 
       setAuthState(prev => ({ ...prev, loading: false }));
 
-      console.log('✅ Google authentication successful');
       return { error: null };
     } catch (error: any) {
       setAuthState(prev => ({ ...prev, loading: false }));
@@ -1066,7 +983,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           error.message?.includes('cancelled') ||
           error.message?.includes('canceled') ||
           error.message?.includes('SIGN_IN_CANCELLED')) {
-        console.log('ℹ️ Google Sign-In cancelled by user');
+
         return { error: null }; // Return success to avoid showing error UI
       }
 
@@ -1082,7 +999,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signInWithApple = async () => {
     try {
-      console.log('🔄 Starting Apple Sign-In...');
+
       setAuthState(prev => ({ ...prev, loading: true }));
 
       if (Platform.OS !== 'ios') {
@@ -1103,24 +1020,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       const { identityToken, nonce, fullName } = appleAuthRequestResponse;
 
       // Log Apple-provided data for debugging
-      console.log('🍎 Apple Sign-In Response:', {
-        hasIdentityToken: !!identityToken,
-        hasFullName: !!fullName,
-        fullName: fullName ? {
-          givenName: fullName.givenName,
-          familyName: fullName.familyName,
-          nickname: fullName.nickname,
-        } : null,
-      });
 
       if (!identityToken) {
         // Treat as user cancellation or benign failure: do not surface an error
-        console.log('ℹ️ Apple Sign-In cancelled or no identity token');
+
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error: null };
       }
-
-      console.log('✅ Apple sign-in successful');
 
       // Sign in to Supabase with the Apple identity token
       const { error } = await supabase.auth.signInWithIdToken({
@@ -1131,18 +1037,16 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // Store Apple name data for later use in onboarding
       if (fullName?.givenName && fullName.givenName.trim().length > 0) {
-        console.log('🍎 Apple provided real name:', fullName.givenName);
-        console.log('🍎 Full Apple name data:', JSON.stringify(fullName, null, 2));
+
         // Store the Apple-provided name for use in onboarding
         await AsyncStorage.setItem('apple_signin_name', JSON.stringify({
           givenName: fullName.givenName,
           familyName: fullName.familyName,
           nickname: fullName.nickname,
         }));
-        console.log('🍎 Apple name data stored in AsyncStorage');
+
       } else {
-        console.log('🍎 Apple did not provide real name - fullName object:', JSON.stringify(fullName, null, 2));
-        console.log('🍎 Apple name is empty or missing - will need collection');
+
         // Clear any previously stored Apple name data if it exists
         await AsyncStorage.removeItem('apple_signin_name');
       }
@@ -1158,7 +1062,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         const currentUser = await supabase.auth.getUser();
         if (currentUser.data.user?.user_metadata?.avatar_url ||
             currentUser.data.user?.user_metadata?.picture) {
-          console.log('🧹 Clearing avatar URLs from Apple user metadata');
+
           await supabase.auth.updateUser({
             data: {
               ...currentUser.data.user.user_metadata,
@@ -1168,11 +1072,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           });
         }
       } catch (metadataError) {
-        console.log('⚠️ Could not clear avatar metadata (safe to ignore):', metadataError);
+
       }
 
       setAuthState(prev => ({ ...prev, loading: false }));
-      console.log('✅ Apple authentication successful');
+
       return { error: null };
     } catch (error: any) {
       console.error('❌ Apple sign-in error:', error);
@@ -1186,7 +1090,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         error?.message?.toLowerCase?.().includes('cancelled') ||
         error?.message?.toLowerCase?.().includes('canceled')
       ) {
-        console.log('ℹ️ Apple Sign-In cancelled by user');
+
         return { error: null };
       }
 

@@ -70,7 +70,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     // Successful login - let the app's natural navigation flow handle routing
-    console.log('✅ Login successful, auth state will trigger navigation');
+
   };
 
   const handleSignUp = () => {

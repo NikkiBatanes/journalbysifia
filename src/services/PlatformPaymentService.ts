@@ -57,7 +57,7 @@ export class PlatformPaymentService {
   clearProductCache(): void {
     this.cachedProducts = null;
     this.lastCacheTime = 0;
-    console.log('[PlatformPayment] Product cache cleared');
+
   }
 
   /**
@@ -65,9 +65,9 @@ export class PlatformPaymentService {
    */
   async preloadProducts(): Promise<void> {
     try {
-      console.log('[PlatformPayment] Preloading products in background...');
+
       await this.getAvailableProducts();
-      console.log('[PlatformPayment] Products preloaded successfully');
+
     } catch (error) {
       console.warn('[PlatformPayment] Failed to preload products:', error);
       // Don't throw - this is just optimization
@@ -101,11 +101,9 @@ export class PlatformPaymentService {
       // Check if we have valid cached products
       const now = Date.now();
       if (this.cachedProducts && (now - this.lastCacheTime) < this.CACHE_DURATION) {
-        console.log('[PlatformPayment] Using cached products (', this.cachedProducts.length, 'products)');
+
         return this.cachedProducts;
       }
-
-      console.log('[PlatformPayment] Fetching fresh products from store...');
 
       // Initialize services first (only if not already initialized)
       await this.initialize();
@@ -128,7 +126,6 @@ export class PlatformPaymentService {
       this.cachedProducts = unifiedProducts;
       this.lastCacheTime = now;
 
-      console.log('[PlatformPayment] Cached', unifiedProducts.length, 'products for 5 minutes');
       return unifiedProducts;
     } catch (error) {
       console.error('[PlatformPayment] Failed to get products:', error);
@@ -259,7 +256,7 @@ export class PlatformPaymentService {
       // Platform-specific cancellation handling
       if (Platform.OS === 'ios') {
         // iOS users need to cancel through Settings app
-        console.log('[PlatformPayment] iOS users must cancel through Settings > Apple ID > Subscriptions');
+
       } else if (Platform.OS === 'android') {
         // Android users cancel through Google Play Store
         await this.googleService.cancelSubscription();
@@ -324,7 +321,6 @@ export class PlatformPaymentService {
         this.googleService.cleanup(),
       ]);
 
-      console.log('[PlatformPayment] Cleanup completed');
     } catch (error) {
       console.error('[PlatformPayment] Cleanup error:', error);
     }

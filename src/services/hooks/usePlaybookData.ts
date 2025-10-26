@@ -39,9 +39,9 @@ export const usePlaybooksData = (userId: string, config?: Partial<QueryConfig>) 
     queryFn: withQueryPerformance(
       async () => {
         try {
-          console.log('[usePlaybooksData] Fetching playbooks for user:', userId);
+
           const playbooks = await getPlaybooksApi(userId);
-          console.log('[usePlaybooksData] Fetched playbooks:', playbooks.length);
+
           return playbooks;
         } catch (error) {
           console.error('[usePlaybooksData] Error fetching playbooks:', error);
@@ -75,7 +75,7 @@ export const usePlaybookData = (userId: string, playbookId: string, config?: Par
     queryFn: withQueryPerformance(
       async () => {
         try {
-          console.log('[usePlaybookData] Fetching playbook detail directly:', playbookId);
+
           // Fetch a single playbook directly to avoid loading all playbooks
           const playbook = await getPlaybookApi(userId, playbookId);
           if (!playbook) {
@@ -158,7 +158,6 @@ export const useUpdateActionStep = () => {
         completed: boolean;
         userId: string;
       }) => {
-        console.log('[useUpdateActionStep] Updating step:', { playbookId, stepId, completed });
 
         // Get current playbooks to update the specific step
         const playbooks = await getPlaybooksApi(_userId);
@@ -242,7 +241,6 @@ export const useUpdateActionStep = () => {
 
     // On success, invalidate and refetch
     onSuccess: (data, variables) => {
-      console.log('[useUpdateActionStep] Success:', data);
 
       // Invalidate related queries to ensure fresh data
       queryClient.invalidateQueries({
@@ -301,9 +299,6 @@ export const useUpdateSubTask = () => {
         completed: boolean;
         userId: string;
       }) => {
-        console.log('[useUpdateSubTask] Updating sub-task:', {
-          playbookId, stepId, subTaskId, completed,
-        });
 
         // TODO: Implement sub-task specific API call
         // For now, we'll use the existing action step API
@@ -379,7 +374,7 @@ export const useUpdateSubTask = () => {
     },
 
     onSuccess: (data, variables) => {
-      console.log('[useUpdateSubTask] Success:', data);
+
       queryClient.invalidateQueries({
         queryKey: queryKeys.playbooks.all(variables.userId),
       });
@@ -419,9 +414,6 @@ export const useUpdateAffirmation = () => {
         affirmationId: string;
         completed: boolean;
       }) => {
-        console.log('[useUpdateAffirmation] Updating affirmation:', {
-          playbookId, affirmationId, completed,
-        });
 
         // TODO: Implement affirmation specific API call
         return { playbookId, affirmationId, completed };
@@ -469,7 +461,7 @@ export const useUpdateAffirmation = () => {
     },
 
     onSuccess: (data, variables) => {
-      console.log('[useUpdateAffirmation] Success:', data);
+
       queryClient.invalidateQueries({
         queryKey: queryKeys.playbooks.all(variables.userId),
       });
@@ -499,7 +491,6 @@ export const useInvalidatePlaybookData = () => {
   const queryClient = useQueryClient();
 
   return (userId: string) => {
-    console.log('[useInvalidatePlaybookData] Invalidating all playbook data for user:', userId);
 
     queryClient.invalidateQueries({
       queryKey: queryKeys.playbooks.all(userId),

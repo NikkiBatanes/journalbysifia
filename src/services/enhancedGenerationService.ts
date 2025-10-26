@@ -53,13 +53,12 @@ export class EnhancedGenerationService {
    */
   async generatePlaybook(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
-      console.log(`[EnhancedGenerationService] Playbook generation requested for user ${request.userId}`);
 
       // 1. Check subscription limits (SIMPLE FOR USERS)
       const canGenerate = await subscriptionService.canGenerate(request.userId, 'playbook', request.isOnboarding || false);
 
       if (!canGenerate.allowed) {
-        console.log('[EnhancedGenerationService] Playbook generation blocked - limit reached');
+
         return {
           success: false,
           message: canGenerate.message || `You've used all ${canGenerate.limit} playbooks this month. Upgrade for more!`,
@@ -118,8 +117,6 @@ export class EnhancedGenerationService {
           : 'Generating your playbook...';
       }
 
-      console.log(`[EnhancedGenerationService] Playbook queued successfully for user ${request.userId}`);
-
       return {
         success: true,
         queueId,
@@ -134,7 +131,7 @@ export class EnhancedGenerationService {
     } catch (error) {
       // Only log partitioning errors as info since they trigger expected fallback
       if ((error as any)?.message?.includes('Database partitioning error')) {
-        console.log('[EnhancedGenerationService] Expected partitioning error, switching to direct generation');
+
       } else {
         console.error('[EnhancedGenerationService] Error in generatePlaybook:', error);
       }
@@ -146,7 +143,7 @@ export class EnhancedGenerationService {
           (error as any)?.message?.includes('column') ||
           (error as any)?.message?.includes('partition') ||
           (error as any)?.message?.includes('no partition of relation')) {
-        console.log('[EnhancedGenerationService] Database issue detected (schema/partitioning), attempting direct generation bypass');
+
         try {
           // Attempt direct generation without queue for schema issues
           await this.generateDirectPlaybook(request);
@@ -194,7 +191,6 @@ export class EnhancedGenerationService {
    */
   private async generateDirectPlaybook(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
-      console.log('[EnhancedGenerationService] Attempting direct playbook generation via Supabase function');
 
       // Use the simple fallback method which properly saves to database
       return await this.generateSimpleFallback(request);
@@ -209,7 +205,6 @@ export class EnhancedGenerationService {
    */
   private async generateSimpleFallback(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
-      console.log('[EnhancedGenerationService] Attempting simple fallback generation');
 
       // Use environment config to get Supabase URL
       const { getEnvironmentConfig } = await import('../config/environment');
@@ -220,8 +215,6 @@ export class EnhancedGenerationService {
       }
 
       const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-playbook`;
-
-      console.log('[EnhancedGenerationService] Calling Supabase function directly:', functionUrl);
 
       // Resolve bible version preference (default NASB)
       const bibleVersion = await this.getPreferredBibleVersion();
@@ -246,7 +239,6 @@ export class EnhancedGenerationService {
       }
 
       const result = await response.json();
-      console.log('[EnhancedGenerationService] Supabase function succeeded');
 
       // Save the result directly to database
       try {
@@ -273,7 +265,7 @@ export class EnhancedGenerationService {
         const saveResult = await savePlaybook(playbookToSave, request.userId);
 
         if (saveResult.success) {
-          console.log('[EnhancedGenerationService] ✅ Fallback generation and save successful');
+
         } else {
           console.error('[EnhancedGenerationService] Save failed but generation succeeded:', saveResult.error);
         }
@@ -308,13 +300,12 @@ export class EnhancedGenerationService {
    */
   async generateDevotional(request: DevotionalGenerationRequest): Promise<GenerationResponse> {
     try {
-      console.log(`[EnhancedGenerationService] Devotional generation requested for user ${request.userId}`);
 
       // 1. Check subscription limits
       const canGenerate = await subscriptionService.canGenerate(request.userId, 'devotional');
 
       if (!canGenerate.allowed) {
-        console.log('[EnhancedGenerationService] Devotional generation blocked - limit reached');
+
         return {
           success: false,
           message: canGenerate.message || `You've used all ${canGenerate.limit} devotionals this month. Upgrade for more!`,
@@ -373,8 +364,6 @@ export class EnhancedGenerationService {
           ? 'Generating your personalized devotional...'
           : 'Generating your devotional...';
       }
-
-      console.log(`[EnhancedGenerationService] Devotional queued successfully for user ${request.userId}`);
 
       return {
         success: true,
@@ -454,7 +443,6 @@ export class EnhancedGenerationService {
       const cancelled = await queueService.cancelQueueItem(queueId, userId);
 
       if (cancelled) {
-        console.log(`[EnhancedGenerationService] Cancelled generation ${queueId} for user ${userId}`);
 
         // Track cancellation for intelligence system
         const hasIntelligence = await subscriptionService.hasIntelligenceAccess(userId);
@@ -543,7 +531,6 @@ export class EnhancedGenerationService {
       // Update content effectiveness tracking
       await this.updateContentEffectiveness(userId, contentType, contentId, completionData);
 
-      console.log(`[EnhancedGenerationService] Tracked ${contentType} completion for user ${userId}`);
     } catch (error) {
       console.error('[EnhancedGenerationService] Error tracking content completion:', error);
       // Don't throw - tracking should not break the main flow

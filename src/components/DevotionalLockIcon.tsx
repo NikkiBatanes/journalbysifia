@@ -47,7 +47,7 @@ const DevotionalLockIcon: React.FC<DevotionalLockIconProps> = ({
   }
 
   const handleLockPress = () => {
-    console.log(`[DevotionalLockIcon] Lock tapped for ${duration}-day devotional, tier: ${tier}`);
+
     if (onLockTap) {
       onLockTap();
     }

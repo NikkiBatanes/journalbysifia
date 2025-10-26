@@ -11,7 +11,6 @@ import { detectJournalType } from './journalTypeDetection';
  */
 export async function updateExistingPlaybooksWithJournalTypes(userId: string): Promise<void> {
   try {
-    console.log('🔍 Starting journal type detection for existing playbooks...');
 
     // Get all subtasks that don't have journal types or have 'none'
     const { data: subtasks, error } = await supabase
@@ -36,11 +35,9 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
     }
 
     if (!subtasks || subtasks.length === 0) {
-      console.log('✅ No subtasks need journal type detection');
+
       return;
     }
-
-    console.log(`📝 Processing ${subtasks.length} subtasks for journal type detection...`);
 
     // Process subtasks in batches
     const batchSize = 50;
@@ -72,12 +69,10 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
           console.error('❌ Error updating batch:', updateError);
         } else {
           updatedCount += updates.length;
-          console.log(`✅ Updated ${updates.length} subtasks in batch ${Math.floor(i / batchSize) + 1}`);
+
         }
       }
     }
-
-    console.log(`🎉 Journal type detection complete! Updated ${updatedCount} subtasks.`);
 
   } catch (error) {
     console.error('❌ Error in updateExistingPlaybooksWithJournalTypes:', error);
@@ -89,7 +84,6 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
  */
 export async function updatePlaybookWithJournalTypes(playbookId: string): Promise<void> {
   try {
-    console.log(`🔍 Adding journal types to playbook ${playbookId}...`);
 
     // Get all subtasks for this playbook
     const { data: subtasks, error } = await supabase
@@ -111,7 +105,7 @@ export async function updatePlaybookWithJournalTypes(playbookId: string): Promis
     }
 
     if (!subtasks || subtasks.length === 0) {
-      console.log('✅ No subtasks need journal type detection');
+
       return;
     }
 
@@ -138,7 +132,7 @@ export async function updatePlaybookWithJournalTypes(playbookId: string): Promis
       if (updateError) {
         console.error('❌ Error updating subtasks:', updateError);
       } else {
-        console.log(`✅ Updated ${updates.length} subtasks with journal types`);
+
       }
     }
 

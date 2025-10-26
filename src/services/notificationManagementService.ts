@@ -143,7 +143,6 @@ class NotificationManagementService {
         return false;
       }
 
-      console.log('✅ Notification preferences updated successfully');
       return true;
     } catch (error) {
       console.error('Error in updateNotificationPreferences:', error);
@@ -169,7 +168,6 @@ class NotificationManagementService {
         return false;
       }
 
-      console.log('✅ Notification scheduled successfully');
       return true;
     } catch (error) {
       console.error('Error in scheduleNotification:', error);
@@ -207,7 +205,6 @@ class NotificationManagementService {
         return await this.scheduleNotification(notification);
       }
 
-      console.log('User has notifications disabled, skipping immediate notification');
       return false;
     } catch (error) {
       console.error('Error in sendImmediateNotification:', error);
@@ -253,7 +250,6 @@ class NotificationManagementService {
         return false;
       }
 
-      console.log(`✅ User activity updated: ${activityType}`);
       return true;
     } catch (error) {
       console.error('Error in updateUserActivity:', error);
@@ -306,7 +302,6 @@ class NotificationManagementService {
         return false;
       }
 
-      console.log('✅ Notifications cancelled successfully');
       return true;
     } catch (error) {
       console.error('Error in cancelNotifications:', error);
@@ -387,7 +382,6 @@ class NotificationManagementService {
         }
       }
 
-      console.log('✅ Notification system initialized for user');
       return true;
     } catch (error) {
       console.error('Error in initializeForUser:', error);

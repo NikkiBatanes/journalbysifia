@@ -42,8 +42,6 @@ export class Phase2Validator {
   async validateAll(): Promise<ValidationReport> {
     this.results = [];
 
-    console.log('🔍 Starting Phase 2 Validation...');
-
     // Core Infrastructure Tests
     await this.validateQueryClient();
     await this.validateNetworkManager();
@@ -119,7 +117,7 @@ export class Phase2Validator {
 
       // Test network state subscription
       const unsubscribe = networkManager.subscribe((state) => {
-        console.log('Network state changed:', state.isOnline);
+
       });
 
       this.addResult('Network Manager - Subscription', 'pass',
@@ -348,7 +346,7 @@ export class Phase2Validator {
     this.results.push({ feature, status, message, details });
 
     const emoji = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️';
-    console.log(`${emoji} ${feature}: ${message}`);
+
   }
 
   /**

@@ -61,15 +61,9 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
   // synced with the sparkles start. FP toast haptics remain enabled.
 
   React.useEffect(() => {
-    console.log('🎉 NewSuccessModal: Effect triggered:', {
-      visible,
-      hasConfig: !!config,
-      configTitle: config?.title,
-      timestamp: new Date().toISOString(),
-    });
 
     if (visible && config) {
-      console.log('🎉 NewSuccessModal: Showing modal with config:', config);
+
       // Visual fade-in
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -108,7 +102,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
       const t = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 140) as unknown as number;
       timersRef.current.push(t);
     } else {
-      console.log('🎉 NewSuccessModal: Hiding modal');
+
       // Visual fade-out
       Animated.timing(fadeAnim, {
         toValue: 0,
