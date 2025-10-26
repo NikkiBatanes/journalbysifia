@@ -1,0 +1,18 @@
+# Supabase Edge Functions (Deno runtime, not Node.js)
+supabase/functions/**
+
+# Build outputs
+dist/
+build/
+.expo/
+.expo-shared/
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# Generated files
+*.log
+.DS_Store

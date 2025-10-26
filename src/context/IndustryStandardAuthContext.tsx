@@ -888,12 +888,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       if (!iosClientId || !webClientId) {
         console.warn('⚠️ Google Sign-In is not configured');
-        return { 
-          error: { 
+        return {
+          error: {
             message: 'Google Sign-In is not available. Please use email/password or Apple Sign-In.',
             status: 400,
-            name: 'ConfigurationError'
-          } as SupabaseAuthError 
+            name: 'ConfigurationError',
+          } as SupabaseAuthError,
         };
       }
 

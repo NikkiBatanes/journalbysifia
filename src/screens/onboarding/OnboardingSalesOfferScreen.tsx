@@ -198,11 +198,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       await pricingService.trackOptOut(user?.id);
       logger.debug('Tracked opt-out, checking discount...');
 
-      const discount = await pricingService.getDynamicDiscount(
-        user?.id,
-        selectedTier,
-        isAnnual ? 'annual' : 'monthly'
-      );
+      const discount = await pricingService.getDynamicDiscount();
 
       logger.debug('Dynamic discount result', { discount });
 

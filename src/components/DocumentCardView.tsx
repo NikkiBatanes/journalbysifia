@@ -165,8 +165,6 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
                   id={affirmation.id}
                   text={affirmation.text}
                   completed={affirmation.completed}
-                  playbookTitle={playbookTitle}
-                  userInput={userInput}
                 />
               ))
           ) : (
@@ -245,8 +243,6 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
           reference: card.verse?.reference ?? 'Unknown',
         }}
         expanded={expanded}
-        playbookTitle={playbookTitle}
-        userInput={userInput}
       />
     );
   }
@@ -256,8 +252,6 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
         <DirectChallengeCard
           challenge={typeof card.challenge === 'string' ? card.challenge : card.challenge?.text ?? ''}
           challengeCTA={card.challengeCTA ?? ''}
-          playbookTitle={playbookTitle}
-          userInput={userInput}
         />
       </View>
     );

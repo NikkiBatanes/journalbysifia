@@ -1,0 +1,212 @@
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/CalendarSyncButton.tsx: line 57, col 91, Warning - Unexpected whitespace between function name and paren. (@typescript-eslint/func-call-spacing)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/DevotionalCompletionModal.tsx: line 433, col 38, Warning - Inline style: { alignItems: 'center', justifyContent: 'center' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/DevotionalCompletionModal.tsx: line 542, col 38, Warning - Inline style: { alignItems: 'center', justifyContent: 'center' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseErrorModal.tsx: line 142, col 19, Warning - Inline style: { color: "errorInfo.showRetry ? theme.colors.text : '#FFFFFF'" } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx: line 120, col 13, Warning - Inline style: { backgroundColor: '#1A3C6D' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx: line 140, col 39, Warning - Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-Bold' : 'NunitoSans-Bold'"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx: line 145, col 45, Warning - Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-Regular' : 'NunitoSans-Regular'"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx: line 150, col 54, Warning - Inline style: { backgroundColor: 'rgba(248, 249, 250, 0.2)' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx: line 154, col 17, Warning - Inline style: { backgroundColor: '#4CAF50' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx: line 163, col 46, Warning - Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-SemiBold' : 'NunitoSans-SemiBold'"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/PurchaseLoadingModal.tsx: line 177, col 48, Warning - Inline style: {
+  fontFamily: "theme.currentFont === 'lexend' ? 'Lexend-Medium' : 'NunitoSans-Medium'"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/DevotionalCarouselSkeleton.tsx: line 56, col 15, Warning - Inline style: { marginRight: 'item === 1 ? ITEM_SPACING : 0' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/DevotionalDetailSkeleton.tsx: line 78, col 19, Warning - Inline style: { width: "line === 5 ? '60%' : '100%'" } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/DevotionalDetailSkeleton.tsx: line 105, col 19, Warning - Inline style: { width: "line === 4 ? '40%' : '100%'" } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/MomentsSkeleton.tsx: line 26, col 45, Warning - Inline style: { width: 90 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/SkeletonLoader/MomentsSkeleton.tsx: line 27, col 45, Warning - Inline style: { width: 110 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/TruthInLoveCard.tsx: line 83, col 20, Warning - Inline style: { flexDirection: 'row', alignItems: 'center', flex: 1 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/ActionStepsCard.tsx: line 155, col 13, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/ActionStepsCard.tsx: line 155, col 20, Warning - 'error' is already declared in the upper scope on line 68 column 10. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/DevotionalCarousel.tsx: line 489, col 26, Warning - Inline style: { flexDirection: 'row', alignItems: 'center' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/DevotionalCarousel.tsx: line 490, col 99, Warning - Inline style: { marginRight: 4 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx: line 394, col 45, Warning - Inline style: { marginTop: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx: line 446, col 45, Warning - Inline style: { marginTop: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx: line 475, col 38, Warning - Inline style: { marginBottom: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx: line 482, col 38, Warning - Inline style: { marginBottom: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx: line 489, col 38, Warning - Inline style: { marginBottom: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx: line 496, col 38, Warning - Inline style: { marginBottom: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/debug/TrialDebugMenu.tsx: line 503, col 38, Warning - Inline style: { marginBottom: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/DevotionalPrayerListReactQuery.tsx: line 171, col 34, Warning - Inline style: { overflow: 'visible' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/EnhancedPrayerListReactQuery.tsx: line 217, col 20, Warning - 'error' is already declared in the upper scope on line 58 column 37. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/EnhancedPrayerListReactQuery.tsx: line 301, col 8, Warning - Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “EnhancedPrayerListReactQuery” and pass data as props. (react/no-unstable-nested-components)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 902, col 30, Warning - Inline style: { marginTop: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 904, col 32, Warning - Inline style: { flexDirection: 'row', gap: 8, marginTop: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 907, col 30, Warning - Inline style: {
+  flex: 1,
+  paddingVertical: 12,
+  alignItems: 'center',
+  borderRadius: 10,
+  backgroundColor: "endRepeatMode === 'never' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'",
+  borderWidth: 1,
+  borderColor: "endRepeatMode === 'never' ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 917, col 58, Warning - Inline style: { fontSize: 14 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 921, col 30, Warning - Inline style: {
+  flex: 1,
+  paddingVertical: 12,
+  alignItems: 'center',
+  borderRadius: 10,
+  backgroundColor: "endRepeatMode === 'date' && endRepeatDate ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'",
+  borderWidth: 1,
+  borderColor: "endRepeatMode === 'date' && endRepeatDate ? Colors.anchorBlue : 'rgba(255,255,255,0.2)'"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 931, col 58, Warning - Inline style: { fontSize: 14 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 1062, col 38, Warning - Inline style: { marginTop: 12 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 1064, col 40, Warning - Inline style: { flexDirection: 'row', justifyContent: 'space-between' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockLogEditor.tsx: line 1072, col 40, Warning - Inline style: {
+  width: 32,
+  height: 32,
+  borderRadius: 16,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: "customDays.includes(idx) ? 'rgba(255,255,255,0.3)' : 'transparent'",
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.3)'
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockReactQuery.tsx: line 383, col 17, Warning - 'selectedDate' is already declared in the upper scope on line 125 column 65. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockReactQuery.tsx: line 503, col 17, Warning - 'selectedDate' is already declared in the upper scope on line 125 column 65. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockReactQuery.tsx: line 1063, col 29, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockReactQuery.tsx: line 1063, col 36, Warning - 'error' is already declared in the upper scope on line 165 column 51. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockReactQuery.tsx: line 1460, col 51, Warning - Inline style: { borderBottomWidth: 0 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TodosReactQuery.tsx: line 1108, col 70, Warning - Inline style: { flex: 1 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/moments/FilterSelect.tsx: line 74, col 28, Warning - Inline style: { flexDirection: 'row', alignItems: 'center', gap: 12 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/ui/AnimatedPointsNotification.tsx: line 188, col 13, Warning - 'animationKey' is already declared in the upper scope on line 99 column 11. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/IndustryStandardAuthContext.tsx: line 891, col 17, Warning - Trailing spaces not allowed. (no-trailing-spaces)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/IndustryStandardAuthContext.tsx: line 892, col 19, Warning - Trailing spaces not allowed. (no-trailing-spaces)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/IndustryStandardAuthContext.tsx: line 895, col 39, Warning - Missing trailing comma. (comma-dangle)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/IndustryStandardAuthContext.tsx: line 896, col 33, Warning - Trailing spaces not allowed. (no-trailing-spaces)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/IndustryStandardAuthContext.tsx: line 896, col 33, Warning - Missing trailing comma. (comma-dangle)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/PointsNotificationContext.tsx: line 112, col 40, Error - The ref value 'timeouts.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'timeouts.current' to a variable inside the effect, and use that variable in the cleanup function. (react-hooks/exhaustive-deps)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 139, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 139, col 14, Warning - 'error' is already declared in the upper scope on line 53 column 5. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 169, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 169, col 14, Warning - 'error' is already declared in the upper scope on line 53 column 5. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 181, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 181, col 14, Warning - 'error' is already declared in the upper scope on line 53 column 5. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 193, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 193, col 14, Warning - 'error' is already declared in the upper scope on line 53 column 5. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 205, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 205, col 14, Warning - 'error' is already declared in the upper scope on line 53 column 5. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 217, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useNewSubscription.ts: line 217, col 14, Warning - 'error' is already declared in the upper scope on line 53 column 5. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/EmailRegisterScreen.tsx: line 155, col 15, Warning - Inline style: {
+  paddingBottom: "Platform.OS === 'ios' ? 8 : 8 + Math.max(0, keyboardHeight - 8)"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/GeneratingPlaybookScreen.tsx: line 349, col 85, Warning - Inline style: { paddingHorizontal: 0 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/GeneratingPlaybookScreen.tsx: line 353, col 79, Warning - Inline style: { paddingHorizontal: 0 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/MomentsScreen.tsx: line 112, col 67, Warning - Inline style: { marginLeft: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/PlaybookDetailScreenNew.tsx: line 1312, col 17, Warning - Inline style: {
+  alignSelf: 'center',
+  borderRadius: 28,
+  backgroundColor: "cardIndex === cardData.length - 1 ? Colors.alertCoral : 'transparent'"
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/PlaybookDetailScreenNew.tsx: line 1326, col 38, Warning - Inline style: { flexGrow: 1, borderRadius: 28, overflow: 'hidden', minHeight: 450 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/PlaybookDetailScreenNew.tsx: line 1356, col 19, Warning - Inline style: {
+  borderRadius: 28,
+  overflow: 'hidden',
+  minHeight: 450,
+  backgroundColor: 'transparent'
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/RegisterScreen.tsx: line 56, col 1, Warning - Trailing spaces not allowed. (no-trailing-spaces)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/ResetPasswordScreen.tsx: line 56, col 29, Warning - 'password' is already declared in the upper scope on line 30 column 10. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/ResetPasswordScreen.tsx: line 118, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/ResetPasswordScreen.tsx: line 118, col 14, Warning - 'error' is already declared in the upper scope on line 34 column 10. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserInputScreen.tsx: line 431, col 58, Warning - Inline style: { flexShrink: 1, minWidth: 80 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserInputScreen.tsx: line 432, col 64, Warning - Inline style: { flexShrink: 1 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserProfileScreen.tsx: line 1780, col 28, Warning - Inline style: { flex: 1 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserProfileScreen.tsx: line 1843, col 112, Warning - Missing trailing comma. (comma-dangle)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserProfileScreen.tsx: line 2175, col 11, Warning - Inline style: { paddingTop: 22 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPersonalizationScreen.tsx: line 889, col 71, Warning - Inline style: { marginBottom: 0 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPersonalizationScreen.tsx: line 903, col 71, Warning - Inline style: { marginTop: -215 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPersonalizationScreen.tsx: line 940, col 17, Warning - Inline style: { paddingBottom: 10 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPersonalizationScreen.tsx: line 941, col 17, Warning - Inline style: { paddingBottom: 10 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPlaybookGenerationScreen.tsx: line 706, col 87, Warning - Inline style: { paddingHorizontal: 0 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingPlaybookGenerationScreen.tsx: line 711, col 81, Warning - Inline style: { paddingHorizontal: 0 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSalesOfferScreen.tsx: line 721, col 22, Warning - Inline style: { flex: 1, justifyContent: 'center', alignItems: 'center' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSalesOfferScreen.tsx: line 722, col 30, Warning - Inline style: { fontSize: 16 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSalesOfferScreen.tsx: line 725, col 30, Warning - Inline style: { fontSize: 12, marginTop: 8 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSalesOfferScreen.tsx: line 918, col 28, Warning - Inline style: { padding: 20, alignItems: 'center' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSalesOfferScreen.tsx: line 919, col 36, Warning - Inline style: { textAlign: 'center' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingSalesOfferScreen.tsx: line 933, col 29, Warning - Inline style: { opacity: 0.6 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingTrialOfferScreen.tsx: line 541, col 73, Warning - Inline style: { opacity: 0.6 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/OnboardingTrialOfferScreen.tsx: line 659, col 80, Warning - Inline style: { opacity: 0.6 } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/onboarding/__tests__/OnboardingPersonalizationScreen.test.tsx: line 32, col 1, Warning - Trailing spaces not allowed. (no-trailing-spaces)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/api/devotionalApi.ts: line 248, col 15, Warning - 'supabase' is already declared in the upper scope on line 2 column 10. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/api/timeBlockApi.ts: line 163, col 17, Warning - 'exceptions' is already declared in the upper scope on line 122 column 21. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/avatarService.ts: line 77, col 5, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 159, col 16, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 161, col 7, Warning - Unexpected use of '^='. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 167, col 7, Warning - Unexpected use of '|='. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 168, col 11, Warning - Unexpected use of '|'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 169, col 25, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 169, col 30, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 169, col 41, Warning - Unexpected use of '|'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 170, col 11, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 170, col 26, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 170, col 31, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 170, col 41, Warning - Unexpected use of '|'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 171, col 15, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 171, col 16, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/guidedPromptGatingService.ts: line 171, col 21, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/useCrossComponentSync.ts: line 149, col 13, Warning - 'guardKey' is already declared in the upper scope on line 74 column 11. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/useDevotionalDataSimplified.ts: line 420, col 7, Warning - Value of 'error' may be overwritten in IE 8 and earlier. (no-catch-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/useDevotionalDataSimplified.ts: line 420, col 14, Warning - 'error' is already declared in the upper scope on line 380 column 46. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/pricingService.ts: line 497, col 15, Warning - 'saveDiscountState' is already declared in the upper scope on line 2 column 29. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 910, col 23, Warning - 'prayerType' is already declared in the upper scope on line 877 column 21. (@typescript-eslint/no-shadow)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 1912, col 89, Warning - Inline style: { opacity: 'showChevron ? 1 : 0' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 1930, col 88, Warning - Inline style: { opacity: 'showChevron ? 1 : 0' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2069, col 49, Warning - Inline style: { backgroundColor: 'transparent' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2071, col 50, Warning - Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2233, col 49, Warning - Inline style: { backgroundColor: 'transparent' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2235, col 50, Warning - Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2361, col 51, Warning - Inline style: { backgroundColor: 'transparent' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2363, col 52, Warning - Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2389, col 51, Warning - Inline style: { backgroundColor: 'transparent' } (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx: line 2391, col 52, Warning - Inline style: {
+  backgroundColor: 'transparent',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start'
+} (react-native/no-inline-styles)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 195, col 14, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 197, col 5, Warning - Unexpected use of '^='. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 203, col 5, Warning - Unexpected use of '|='. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 204, col 9, Warning - Unexpected use of '|'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 205, col 23, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 205, col 28, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 205, col 39, Warning - Unexpected use of '|'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 206, col 9, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 206, col 24, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 206, col 29, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 206, col 39, Warning - Unexpected use of '|'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 207, col 13, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 207, col 14, Warning - Unexpected use of '^'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/guidedPromptGating.ts: line 207, col 19, Warning - Unexpected use of '>>>'. (no-bitwise)
+/Users/nikkimaebatanes/CascadeProjects/siFia/supabase/functions/validate-receipt/index.ts: line 175, col 63, Warning - Missing radix parameter. (radix)
+/Users/nikkimaebatanes/CascadeProjects/siFia/supabase/functions/validate-receipt/index.ts: line 176, col 59, Warning - Missing radix parameter. (radix)
+/Users/nikkimaebatanes/CascadeProjects/siFia/supabase/functions/validate-receipt/index.ts: line 217, col 38, Error - 'receiptData' is defined but never used. Allowed unused args must match /^_/u. (@typescript-eslint/no-unused-vars)
+
+146 problems

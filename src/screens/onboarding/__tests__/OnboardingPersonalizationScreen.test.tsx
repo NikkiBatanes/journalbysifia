@@ -29,7 +29,7 @@ describe('OnboardingPersonalizationScreen', () => {
     mockUseUserState.mockReturnValue({
       updateOnboardingStep: jest.fn(),
     } as any);
-    
+
     return render(
       <NavigationContainer>
         <OnboardingPersonalizationScreen />

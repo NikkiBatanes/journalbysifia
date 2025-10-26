@@ -1,8 +1,12 @@
 /**
  * Supabase Edge Function: Validate Apple/Google Receipt
  * Enterprise-grade server-side receipt validation
+ * 
+ * NOTE: This file runs in Deno runtime on Supabase Edge Functions.
+ * TypeScript errors about Deno and HTTP imports are expected in IDE but are valid in Deno.
  */
 
+// @ts-nocheck - This is a Deno edge function, not Node.js TypeScript
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -214,7 +218,7 @@ async function callAppleVerifyReceipt(
 /**
  * Validate Google Play receipt
  */
-async function validateGoogleReceipt(receiptData: string): Promise<any> {
+async function validateGoogleReceipt(_receiptData: string): Promise<any> {
   // TODO: Implement Google Play validation
   // Requires Google Play Developer API setup
   console.log('[ValidateReceipt] Google Play validation not yet implemented');

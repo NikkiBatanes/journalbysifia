@@ -1840,7 +1840,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             disabled={!isValidBirthYear || isDeletingAccount}
             style={[
               styles.deleteButton,
-              !isValidBirthYear || isDeletingAccount ? styles.deleteButtonDisabled : styles.deleteButtonEnabled
+              !isValidBirthYear || isDeletingAccount ? styles.deleteButtonDisabled : styles.deleteButtonEnabled,
             ]}
           >
             <Text style={[styles.deleteButtonText, font]}>{isDeletingAccount ? 'Deleting...' : 'Delete my account'}</Text>

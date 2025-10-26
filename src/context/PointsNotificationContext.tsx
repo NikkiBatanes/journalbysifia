@@ -87,10 +87,14 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       }
     }, 3000);
 
+    // Capture current timeout and ID for cleanup function
+    const currentTimeout = timeouts.current[id];
+    const timeoutId = id;
+
     return () => {
-      if (timeouts.current[id]) {
-        clearTimeout(timeouts.current[id]);
-        delete timeouts.current[id];
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+        delete timeouts.current[timeoutId];
       }
     };
   }, [notifications]); // Add notifications dependency for duplicate detection
@@ -104,12 +108,14 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       showPointsNotification(points, activityType, position);
     });
 
+    // Capture current timeouts before cleanup function is created
+    const currentTimeouts = timeouts.current;
+
     return () => {
       console.log('[PointsNotificationContext] Cleaning up notification callback');
       isMounted.current = false;
       notificationService.clearPointsNotificationCallback();
-      // Clear any pending timeouts - copy ref value to avoid stale closure
-      const currentTimeouts = timeouts.current;
+      // Clear any pending timeouts using captured ref value
       Object.values(currentTimeouts).forEach(clearTimeout);
     };
   }, [showPointsNotification]);
@@ -118,6 +124,9 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
     if (!isMounted.current) {return;}
 
     console.log('[PointsNotificationContext] Animation complete for ID:', id, 'at', new Date().toISOString());
+
+    // Capture current timeout value to avoid stale closure
+    const currentTimeout = timeouts.current[id];
 
     // Use requestAnimationFrame to defer the state update
     requestAnimationFrame(() => {
@@ -130,8 +139,8 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
         });
 
         // Clear any pending timeout for this notification
-        if (timeouts.current[id]) {
-          clearTimeout(timeouts.current[id]);
+        if (currentTimeout) {
+          clearTimeout(currentTimeout);
           delete timeouts.current[id];
         }
       }
