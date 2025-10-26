@@ -155,23 +155,6 @@ const UserInputScreen: React.FC = () => {
     }
   };
 
-  const getSeekerMessage = () => {
-    const seekerType = getSeekerType();
-
-    switch (seekerType) {
-      case 'fresh':
-        return 'Start your free trial to generate playbooks!';
-      case 'expired_trial':
-        return 'Upgrade to continue generating playbooks!';
-      case 'cancelled_subscription':
-        return 'Reactivate your subscription to continue!';
-      default:
-        return 'Start your free trial to generate playbooks!';
-    }
-  };
-
-
-
   const getTierDisplayName = (subscription: any) => {
     // Use subscription_display_name if available (e.g., "siFia Spark Trial")
     if (subscription?.subscription_display_name) {

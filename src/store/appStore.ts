@@ -118,7 +118,7 @@ export const useAppStore = create<AppStore>()(
       }),
 
       // User preferences
-      setTheme: (theme) => set((state) => {
+      setTheme: () => set((state) => {
         // Only default theme supported
         state.theme = 'default';
       }),

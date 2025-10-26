@@ -972,16 +972,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         // Check if we need to collect additional user info
         const needsNameCollection = !googleUser.name || googleUser.name.trim().length === 0;
 
-        let _userData = {
-          full_name: googleUser.name || '',
-          first_name: googleUser.given_name || '',
-          last_name: googleUser.family_name || '',
-          // Don't use Google avatar - let app use default avatar
-          provider: 'google',
-          google_id: googleUser.sub,
-          needs_name_completion: needsNameCollection,
-        };
-
+        // userData object removed - was defined but never used
         // If name is missing or incomplete, we'll handle it after auth
         if (needsNameCollection) {
           console.log('⚠️ Google user has incomplete name info - will be handled in personalization screen');

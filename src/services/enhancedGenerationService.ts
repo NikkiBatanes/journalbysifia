@@ -164,7 +164,7 @@ export class EnhancedGenerationService {
           console.error('[EnhancedGenerationService] Direct generation also failed:', directError);
           // Try one more fallback - simple API call
           try {
-            const fallbackResult = await this.generateSimpleFallback(request);
+            await this.generateSimpleFallback(request);
             // Return success without queueId for fallback too
             return {
               success: true,

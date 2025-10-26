@@ -195,7 +195,6 @@ export class TimeBlockApi {
   // Helper method to expand repeating blocks for a specific date
   private static expandRepeatingBlocks(repeatingBlocks: TimeBlockApiEntry[], targetDate: string): TimeBlockApiEntry[] {
     const expandedBlocks: TimeBlockApiEntry[] = [];
-    const targetDateObj = new Date(targetDate);
 
     console.log('🔍 Expanding blocks for target date:', targetDate);
 

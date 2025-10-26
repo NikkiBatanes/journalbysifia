@@ -37,7 +37,6 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 
   // Get access token from route params (from deep link)
   const accessToken = route?.params?.access_token;
-  const refreshToken = route?.params?.refresh_token;
 
   useEffect(() => {
     if (!accessToken) {

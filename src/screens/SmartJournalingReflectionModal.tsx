@@ -234,9 +234,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         entryType: entry.type,
       });
 
-      // Determine context: guided, playbook, or freeform (carousel free-form launch)
+      // Determine context: guided or playbook
       const isPlaybookContext = !isGuidedReflection && !!playbookId;
-      const isFreeFormContext = !isGuidedReflection && !isPlaybookContext; // opened from carousel or plain free-form
 
       const reflectionData = {
         user_id: user.id,

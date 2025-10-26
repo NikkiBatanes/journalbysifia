@@ -19,20 +19,7 @@ const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseUserState = useUserState as jest.MockedFunction<typeof useUserState>;
 
 describe('OnboardingPersonalizationScreen', () => {
-  const mockNavigation = {
-    navigate: jest.fn(),
-    reset: jest.fn(),
-    setOptions: jest.fn(),
-  };
-
-  const mockRoute = {
-    params: {
-      name: 'John',
-      registrationMethod: 'email',
-    },
-  };
-
-  beforeEach(() => {
+  const renderScreen = () => {
     jest.clearAllMocks();
 
     mockUseAuth.mockReturnValue({
@@ -42,9 +29,7 @@ describe('OnboardingPersonalizationScreen', () => {
     mockUseUserState.mockReturnValue({
       updateOnboardingStep: jest.fn(),
     } as any);
-  });
-
-  const renderScreen = () => {
+    
     return render(
       <NavigationContainer>
         <OnboardingPersonalizationScreen />
@@ -101,13 +86,6 @@ describe('OnboardingPersonalizationScreen', () => {
 
   describe('OAuth User Flow', () => {
     it('should show name step for OAuth users', () => {
-      const oauthRoute = {
-        params: {
-          name: '',
-          registrationMethod: 'oauth',
-        },
-      };
-
       const { getByText, getByPlaceholderText } = render(
         <NavigationContainer>
           <OnboardingPersonalizationScreen />
@@ -151,7 +129,7 @@ describe('OnboardingPersonalizationScreen', () => {
 
   describe('Data Validation', () => {
     it('should require challenge details before final submission', async () => {
-      const { getByText, getByPlaceholderText } = renderScreen();
+      const { getByText } = renderScreen();
 
       // Navigate to final step
       fireEvent.press(getByText('18-25'));

@@ -303,7 +303,7 @@ class PlatformSubscriptionService {
           }
 
           const currentToken = await this.getCurrentSubscriptionToken();
-          const purchase = await RNIap.requestSubscription({
+          await RNIap.requestSubscription({
             sku: targetProduct.productId,
             subscriptionOffers: [{
               offerToken: '',

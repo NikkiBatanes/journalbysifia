@@ -1,6 +1,6 @@
 // src/services/hooks/usePlaybookData.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Playbook, ActionStep } from '../../interfaces/playbook';
+import { Playbook } from '../../interfaces/playbook';
 import { queryKeys } from '../queryKeys';
 import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
 import { QueryConfig } from '../../types/api';
@@ -168,17 +168,9 @@ export const useUpdateActionStep = () => {
           throw new Error(`Playbook with ID ${playbookId} not found`);
         }
 
-        // Update the specific action step
-        const updatedActionSteps = playbook.actionSteps.map((step: ActionStep) => {
-          if (step.id === stepId) {
-            return { ...step, completed };
-          }
-          return step;
-        });
-
-        // TODO: Call existing API function with updated action steps
-        // await updatePlaybookActionStep(playbookId, updatedActionSteps);
+        // TODO: Update the specific action step via API
         // For now, we'll just return the result without API call
+        // When API is implemented, update the action step here
 
         return { playbookId, stepId, completed };
       },
@@ -422,12 +414,10 @@ export const useUpdateAffirmation = () => {
         playbookId,
         affirmationId,
         completed,
-        userId,
       }: {
         playbookId: string;
         affirmationId: string;
         completed: boolean;
-        userId: string;
       }) => {
         console.log('[useUpdateAffirmation] Updating affirmation:', {
           playbookId, affirmationId, completed,

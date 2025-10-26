@@ -873,13 +873,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               // Check if prayer is answered
               const isAnswered = ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date;
 
-              // Get prayer category
-              const journalCategory = ((prayer as any).journal_category || '').toString().toLowerCase();
+              // Get prayer type for filtering
               const prayerType = ((prayer as any).prayer_type || '').toString().toLowerCase();
 
               // Only include answered prayers from supplication or open prayer (personal_prayer) categories
               // Exclude adoration, confession, and thanksgiving
-              // isSupplicationOrOpenPrayer removed - was calculated but never used
 
               // Let all prayers through initially - the secondary filter will handle answered/category filtering
               const shouldIncludePrayer = true;

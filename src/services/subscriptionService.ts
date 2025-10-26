@@ -21,7 +21,7 @@ export interface LegacyCanGenerateResult {
   limit: number | 'Unlimited';
 }
 
-async function fetchUsageTracking(userId: string, subscriptionId?: string): Promise<{ export_count?: number } | null> {
+async function fetchUsageTracking(userId: string): Promise<{ export_count?: number } | null> {
   try {
     const query = supabase
       .from('subscription_usage_tracking')
@@ -90,7 +90,7 @@ export const subscriptionService = {
     exports_generated: number;
   }> {
     const sub = await NSS.getUserSubscription(userId);
-    const tracking = await fetchUsageTracking(userId, (sub as any).id);
+    const tracking = await fetchUsageTracking(userId);
     const playbooksUsed = (sub as any).playbooks_used || 0;
     const devotionalsUsed = (sub as any).devotionals_used || 0;
     const exportsUsed = (tracking?.export_count as number) || 0;

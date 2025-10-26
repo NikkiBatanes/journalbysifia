@@ -296,10 +296,7 @@ class PricingService {
    * DISABLED FOR LAUNCH: Focus on free trial only, no promotional discounts
    * TODO: Re-enable after launch when promotional offers are set up in App Store Connect
    */
-  async getDynamicDiscount(
-    tierId?: string | null,
-    billing?: 'monthly' | 'annual'
-  ): Promise<DynamicDiscount | null> {
+  async getDynamicDiscount(): Promise<DynamicDiscount | null> {
     // DISABLED FOR LAUNCH - Return null to skip dynamic discount flow
     console.log('[PricingService] ⚠️ Dynamic discount disabled for launch');
     return null;

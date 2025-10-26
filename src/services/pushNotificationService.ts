@@ -304,7 +304,7 @@ class PushNotificationService {
     console.log('[PushNotification] Notification tapped:', notification);
 
     // Handle different notification types
-    const { type, devotionalId, actionStepId } = notification.data || {};
+    const { type } = notification.data || {};
 
     switch (type) {
       case 'playbook_step':
