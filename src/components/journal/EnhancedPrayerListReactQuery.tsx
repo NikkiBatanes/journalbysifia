@@ -20,7 +20,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import ThemedText from '../common/ThemedText';
-import { useTheme } from '../../hooks/useTheme';
+// import { useTheme } from '../../hooks/useTheme'; // Unused
 import { PeoplePrayerModal } from '../modals/PeoplePrayerModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/queryKeys';

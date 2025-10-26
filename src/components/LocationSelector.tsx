@@ -20,7 +20,7 @@ import { getFontFamily } from '../theme/fonts';
 import { MapPin, Navigation } from 'lucide-react-native';
 import ThemedText from './common/ThemedText';
 import { getCurrentLocation, searchLocations } from '../services/calendarSyncService';
-import { useAuth } from '../context/IndustryStandardAuthContext';
+// import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused
 
 interface LocationResult {
   success: boolean;

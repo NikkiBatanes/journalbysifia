@@ -29,7 +29,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import ThemedText from '../common/ThemedText';
-import { useTheme } from '../../hooks/useTheme';
+// import { useTheme } from '../../hooks/useTheme'; // Unused
 import {
   triggerLightHaptic,
   triggerSuccessHaptic,

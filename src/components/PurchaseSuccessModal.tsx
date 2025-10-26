@@ -21,7 +21,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useTheme } from '../theme/ThemeContext';
+// import { useTheme } from '../theme/ThemeContext'; // Unused
 import { Colors } from '../theme';
 
 const { width } = Dimensions.get('window');

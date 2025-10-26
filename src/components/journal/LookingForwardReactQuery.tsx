@@ -148,14 +148,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   };
 
   // Individual item edit handlers
-  const editLookingForwardEntry = (id: string) => {
-    const entryItem = displayEntry || lookingForward;
-    if (!entryItem) {return;}
-
-    triggerLightHaptic();
-    setEditingItemId(id);
-    setEditingItemText(entryItem.text);
-  };
+  // editLookingForwardEntry removed - was defined but never called
 
   const saveEditedEntry = async () => {
     if (!editingItemId || !editingItemText.trim()) {return;}

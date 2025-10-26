@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toLocalDateString } from '../utils/date';
-import { Modal, StyleSheet, Alert, View, DeviceEventEmitter, Keyboard } from 'react-native';
+import { Modal, StyleSheet, Alert, View, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
