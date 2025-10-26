@@ -538,7 +538,7 @@ Please check App Store Connect configuration or contact support.`;
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={[styles.closeButton, (isClosing || isStartingTrial) && { opacity: 0.6 }]}
+          style={[styles.closeButton, (isClosing || isStartingTrial) && styles.disabledButton]}
           onPress={handleClose}
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -656,7 +656,7 @@ Please check App Store Connect configuration or contact support.`;
         {/* CTA and Footer */}
         <View style={styles.footerBlock}>
           <TouchableOpacity
-            style={[styles.startTrialButton, (isStartingTrial || isClosing) && { opacity: 0.6 }]}
+            style={[styles.startTrialButton, (isStartingTrial || isClosing) && styles.disabledButton]}
             onPress={handleStartTrial}
             activeOpacity={0.9}
             disabled={isStartingTrial || isClosing}
@@ -812,6 +812,9 @@ const createStyles = (fonts: any) => StyleSheet.create({
     right: 16,
     top: 0,
     zIndex: 2,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   scrollContainer: {
     flex: 1,

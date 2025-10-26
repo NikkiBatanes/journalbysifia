@@ -109,7 +109,7 @@ export const MomentsScreen: React.FC = () => {
         <View style={[styles.headerTopRow, isSmallScreen && styles.headerTopRowWrap]}>
           <View style={[styles.headerLeftRow, isSmallScreen && styles.headerLeftRowCompact]}>
             <Feather size={20} color={Colors.hopeWhite} />
-            <ThemedText weight="bold" style={[styles.headerTitle, { fontFamily: fontBold, marginLeft: 8 }]}>Moments</ThemedText>
+            <ThemedText weight="bold" style={[styles.headerTitle, styles.marginLeft8, { fontFamily: fontBold }]}>Moments</ThemedText>
           </View>
           <View style={[
             styles.headerControls,
@@ -217,6 +217,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
     color: Colors.hopeWhite,
+  },
+  marginLeft8: {
+    marginLeft: 8,
   },
   headerSubtitle: {
     fontSize: 16,

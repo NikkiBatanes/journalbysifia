@@ -372,6 +372,12 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
   },
+  chevronVisible: {
+    opacity: 1,
+  },
+  chevronHidden: {
+    opacity: 0,
+  },
   weekTitleSpacing: {
     marginTop: 2,
   },
@@ -907,10 +913,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   : new Date((prayer as any).selected_date || (prayer as any).created_at);
 
                 // Compute type label with explicit mapping for people prayers
-                const prayerType = ((prayer as any).prayer_type || '').toString().toLowerCase();
+                const prayerTypeForLabel = ((prayer as any).prayer_type || '').toString().toLowerCase();
                 const typeLabel = isDevotional
                   ? 'Prayed Devotional'
-                  : prayerType === 'people'
+                  : prayerTypeForLabel === 'people'
                     ? 'Prayer List'
                     : ((prayer as any).journal_category
                         ? ((prayer as any).journal_category as string).charAt(0).toUpperCase() + ((prayer as any).journal_category as string).slice(1) + ' Prayer'
@@ -922,7 +928,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 // - Others -> Prayer Journal/general Prayer plugin
                 const targetPlugin = isDevotional
                   ? (devoPlugin || prayerPlugin)
-                  : (prayerType === 'people'
+                  : (prayerTypeForLabel === 'people'
                       ? (peoplePlugin || prayerPlugin)
                       : prayerPlugin);
 
@@ -1909,7 +1915,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
-            <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
+            <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
             <ThemedText weight="semiBold" style={styles.sectionTitle}>
               {section.title}
             </ThemedText>
@@ -1927,7 +1933,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
-            <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
+            <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
             <ThemedText weight="semiBold" style={styles.sectionTitle}>
               {section.title}
             </ThemedText>
@@ -2066,9 +2072,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         : `${format(week.start, 'MMMM d')} – ${format(week.end, 'MMMM d')}${isCurrentYear ? '' : `, ${format(week.start, 'yyyy')}`}`;
 
       return (
-        <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
+        <View style={[styles.weekCardContainer, styles.transparentBackground]} >
           <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-            <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
+            <View style={[styles.weekCardHeader, styles.transparentBackground, styles.columnLayout]} >
               <ThemedText style={styles.weekRangeTitle}>
                 {`Week ${weekNumber}`}
               </ThemedText>
@@ -2230,9 +2236,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const dayKeys = Object.keys(byDay).sort((a, b) => (sortBy === 'oldest' ? a.localeCompare(b) : b.localeCompare(a)));
 
       return (
-        <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }]}>
+        <View style={[styles.weekCardContainer, styles.transparentBackground]}>
           <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-            <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }]}>
+            <View style={[styles.weekCardHeader, styles.transparentBackground, styles.columnLayout]}>
               <ThemedText weight="semiBold" style={styles.sectionTitle}>
                 {month.title}
               </ThemedText>
@@ -2358,9 +2364,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         }, {} as Record<string, number>);
 
         return (
-          <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
+          <View style={[styles.weekCardContainer, styles.transparentBackground]} >
             <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-              <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
+              <View style={[styles.weekCardHeader, styles.transparentBackground, styles.columnLayout]} >
                 <ThemedText weight="semiBold" style={styles.sectionTitle}>
                   {month.title}
                 </ThemedText>
@@ -2386,9 +2392,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           setExpandedYears({ [year]: true });
         };
         return (
-          <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
+          <View style={[styles.weekCardContainer, styles.transparentBackground]} >
             <TouchableOpacity onPress={toggleYear} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-              <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
+              <View style={[styles.weekCardHeader, styles.transparentBackground, styles.columnLayout]} >
                 <ThemedText weight="semiBold" style={styles.sectionTitle}>
                   {year}
                 </ThemedText>

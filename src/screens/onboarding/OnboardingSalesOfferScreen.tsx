@@ -718,11 +718,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             <Ionicons name="close" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
         </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ThemedText style={{ color: Colors.hopeWhite, fontSize: 16 }}>
+        <View style={styles.centeredContainer}>
+          <ThemedText style={styles.loadingText}>
             Loading pricing options...
           </ThemedText>
-          <ThemedText style={{ color: Colors.hopeWhite, fontSize: 12, marginTop: 8 }}>
+          <ThemedText style={styles.loadingSubtext}>
             Tiers: {pricingTiers.length}, Currency: {currencyInfo ? 'loaded' : 'loading...'}
           </ThemedText>
         </View>
@@ -915,8 +915,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             {pricingTiers.length > 0 ? (
               pricingTiers.map(renderPricingCard)
             ) : (
-              <View style={{ padding: 20, alignItems: 'center' }}>
-                <ThemedText style={{ color: Colors.hopeWhite, textAlign: 'center' }}>
+              <View style={styles.errorContainer}>
+                <ThemedText style={styles.errorText}>
                   Loading pricing options...
                 </ThemedText>
               </View>
@@ -930,7 +930,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.unlockButton,
-            isPurchasing && { opacity: 0.6 },
+            isPurchasing && styles.dimmedOpacity,
           ]}
           onPress={() => {
             if (isPurchasing) {
@@ -1162,6 +1162,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
+  },
+  loadingText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+  },
+  loadingSubtext: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    marginTop: 8,
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  dimmedOpacity: {
+    opacity: 0.6,
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardHeader: {
     marginBottom: 8,

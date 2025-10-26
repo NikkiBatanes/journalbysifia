@@ -146,8 +146,8 @@ export const useCrossComponentSync = (userId: string) => {
     } catch (error) {
       console.error('[CrossComponentSync] Error syncing devotional completion:', error);
       // Clear guard on error to allow retry
-      const guardKey = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
-      delete completionGuardRef.current[guardKey];
+      const guardKeyForCleanup = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
+      delete completionGuardRef.current[guardKeyForCleanup];
       throw error;
     }
   }, [queryClient, userId]);

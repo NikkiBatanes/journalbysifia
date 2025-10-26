@@ -45,6 +45,11 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   // Maximum scroll based on content size (prevents blank space past the end)
   const maxScrollableY = useMemo(() => Math.max(0, contentH - svH), [contentH, svH]);
 
+  // Dynamic bottom padding for Android when keyboard is visible
+  const keyboardPaddingStyle = useMemo(() => ({
+    paddingBottom: 8 + Math.max(0, keyboardHeight - 8),
+  }), [keyboardHeight]);
+
   const handleRegister = async () => {
     triggerLightHaptic();
     // Clear any previous error
@@ -150,9 +155,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             ref={scrollRef}
             contentContainerStyle={[
               styles.scrollContent,
-              // Add bottom padding equal to keyboard height so content stays above keyboard
-              // On iOS, automaticallyAdjustKeyboardInsets already handles insets, so avoid stacking padding
-              { paddingBottom: Platform.OS === 'ios' ? 8 : 8 + Math.max(0, keyboardHeight - 8) },
+              Platform.OS === 'ios' ? styles.pb8 : keyboardPaddingStyle,
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -376,6 +379,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 40,
     paddingBottom: 0,
+  },
+  pb8: {
+    paddingBottom: 8,
   },
   header: {
     marginBottom: 20,

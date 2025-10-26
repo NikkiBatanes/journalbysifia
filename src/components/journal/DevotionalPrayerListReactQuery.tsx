@@ -168,10 +168,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
             left: SIDE_PADDING,
             right: SIDE_PADDING,
           }}
-          contentContainerStyle={{
-            paddingHorizontal: SIDE_PADDING,
-            overflow: 'visible',
-          }}
+          contentContainerStyle={styles.contentContainerWithPadding}
           style={styles.horizontalContainer}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -441,6 +438,10 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  contentContainerWithPadding: {
+    paddingHorizontal: SIDE_PADDING,
+    overflow: 'visible',
   },
 });
 

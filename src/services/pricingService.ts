@@ -494,7 +494,7 @@ class PricingService {
   async clearDiscountState(userId?: string | null): Promise<void> {
     console.log('[PricingService] 🧪 Clearing discount state for testing');
     try {
-      const { saveDiscountState } = await import('./discountStorage');
+      const { saveDiscountState: saveDiscountStateFn } = await import('./discountStorage');
       // Reset to initial state
       const initialState = {
         discountPolicyVersion: 1,
@@ -502,9 +502,9 @@ class PricingService {
         lastShownAt: null,
         lastDiscountPct: null,
         redeemed: false,
-        blockedUntil: null,
+        redeemedAt: null,
       };
-      await saveDiscountState(initialState, userId);
+      await saveDiscountStateFn(initialState, userId);
       console.log('[PricingService] 🧪 Discount state cleared and reset');
     } catch (error) {
       console.error('[PricingService] 🧪 Failed to clear discount state:', error);

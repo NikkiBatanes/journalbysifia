@@ -886,7 +886,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <View style={[
         styles.titleContainer,
         // Condense header further when keyboard is visible on details step to free vertical space
-        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) ? { marginBottom: 0 } : null,
+        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) && styles.noMarginBottom,
       ]}>
         {name ? (
           <ThemedText weight="bold" style={styles.userGreeting}>Hi, {name}.</ThemedText>
@@ -900,7 +900,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <Animated.View style={[
         styles.contentContainer,
         // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
-        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) ? { marginTop: -215 } : null,
+        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) && styles.nudgeUpward,
       ]}>
         <View style={styles.modalHeader} pointerEvents="box-none">
           <TouchableOpacity
@@ -935,11 +935,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         <ScrollView
           ref={scrollViewRef}
           style={styles.scrollContainer}
-          contentContainerStyle={
-            (currentStep === (showNameStep ? 5 : 4) && keyboardVisible)
-              ? { paddingBottom: 10 }
-              : { paddingBottom: 10 }
-          }
+          contentContainerStyle={styles.reducedPaddingBottom}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -1479,6 +1475,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 10,
     paddingTop: 10,
+  },
+  noMarginBottom: {
+    marginBottom: 0,
+  },
+  nudgeUpward: {
+    marginTop: -215,
+  },
+  reducedPaddingBottom: {
+    paddingBottom: 10,
   },
   continueButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.3)',

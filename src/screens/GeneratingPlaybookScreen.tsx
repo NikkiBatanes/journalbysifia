@@ -346,11 +346,11 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               contentContainerStyle={styles.stepTextContainer}
             >
               <View style={styles.stepTextRow}>
-                <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]} >
+                <AnimatedThemedText weight="medium" style={[styles.currentStepText, styles.noPaddingHorizontal, { opacity: shimmerOpacity }]} >
                   {baseTitle}
                 </AnimatedThemedText>
                 <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-                  <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0 }]} >
+                  <ThemedText weight="medium" style={[styles.currentStepText, styles.noPaddingHorizontal]} >
                     {'.'.repeat(dotCount)}
                   </ThemedText>
                 </View>
@@ -459,6 +459,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 8,
     includeFontPadding: false,
+  },
+  noPaddingHorizontal: {
+    paddingHorizontal: 0,
   },
   dotsContainer: {
     marginLeft: 0,

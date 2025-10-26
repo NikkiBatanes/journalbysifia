@@ -1777,7 +1777,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityLabel="Delete account"
             >
               <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} style={styles.iconWithMargin} />
-              <View style={{ flex: 1 }}>
+              <View style={styles.flex1}>
                 <Text style={[styles.deleteButtonText, font]}>Delete Account</Text>
                 <Text style={[styles.descriptionText, font]}>This will permanently delete your account and data.</Text>
               </View>
@@ -2172,7 +2172,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View
         style={[
           styles.headerWrapper,
-          { paddingTop: 22, backgroundColor: theme.colors.hopeWhite },
+          styles.paddingTop22,
+          { backgroundColor: theme.colors.hopeWhite },
         ]}
       >
         {renderProfileHeader()}
@@ -2422,19 +2423,6 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
-  },
-  badgesSubtitle: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
-    opacity: 0.9,
-    marginBottom: 8,
-    paddingHorizontal: 20,
-  },
-  badgesList: {
-    flexDirection: 'row',
-  },
-  badgeItem: {
     alignItems: 'center',
     marginRight: 16,
     width: 72,
@@ -3099,6 +3087,12 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
     fontSize: 12,
     marginTop: 4,
+  },
+  flex1: {
+    flex: 1,
+  },
+  paddingTop22: {
+    paddingTop: 22,
   },
   // Removed test button styles
 });

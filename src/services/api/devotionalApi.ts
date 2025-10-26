@@ -245,8 +245,8 @@ export class DevotionalApi {
     // Get user's Bible version preference from auth context
     let bibleVersion = 'NASB'; // default
     try {
-      const { supabase } = await import('../supabaseClient');
-      const { data: { user } } = await supabase.auth.getUser();
+      const { supabase: supabaseClient } = await import('../supabaseClient');
+      const { data: { user } } = await supabaseClient.auth.getUser();
       console.log('[DevotionalApi] User ID:', user?.id);
 
       if (user) {

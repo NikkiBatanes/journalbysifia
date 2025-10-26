@@ -72,7 +72,6 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     ]).start(({ finished }) => {
       // Remove from active animations when hide completes
       activeAnimations.delete(animationKey);
-      console.log(`[AnimatedPointsNotification-${componentId}] Animation completed, removed key:`, animationKey);
 
       // Only call onAnimationComplete if the animation actually finished
       if (finished) {
@@ -82,37 +81,24 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   }, [translateY, opacity, scale, onAnimationComplete, activityType, points, componentId]);
 
   useEffect(() => {
-    console.log(`[AnimatedPointsNotification-${componentId}] useEffect triggered:`, {
-      visible,
-      activityType,
-      points,
-      position,
-      timestamp: new Date().toISOString(),
-    });
-
     if (!visible) {
-      console.log(`[AnimatedPointsNotification-${componentId}] Not visible, returning early`);
       return;
     }
 
     // Check if animation for this activity type is already running
     const animationKey = `${activityType}-${points}`;
     if (activeAnimations.has(animationKey)) {
-      console.log(`[AnimatedPointsNotification-${componentId}] Animation already active for:`, animationKey);
       return;
     }
 
     // Mark this animation as active
     activeAnimations.add(animationKey);
-    console.log(`[AnimatedPointsNotification-${componentId}] Starting animation for:`, animationKey);
 
     // Reset animation values to ensure proper starting state
     translateY.setValue(50);
     opacity.setValue(0);
     scale.setValue(0.5);
     sparkleRotation.setValue(0);
-
-    console.log(`[AnimatedPointsNotification-${componentId}] Starting entrance animation for:`, activityType);
 
     // Start entrance animation - FASTER for immediate feedback
     const entranceAnimation = Animated.parallel([
@@ -144,12 +130,8 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     );
 
     // Start animations
-    entranceAnimation.start(() => {
-      console.log(`[AnimatedPointsNotification-${componentId}] Entrance animation completed for:`, activityType);
-    });
+    entranceAnimation.start();
     sparkleAnimation.start();
-
-    console.log(`[AnimatedPointsNotification-${componentId}] Animations started for:`, activityType);
 
     // Haptic feedback synchronized with animation
     // Distinct FAITH POINTS award feel:
@@ -178,16 +160,13 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
 
     // Auto-hide after 2.5 seconds
     const hideTimer = setTimeout(() => {
-      console.log(`[AnimatedPointsNotification-${componentId}] Auto-hide timeout triggered for:`, activityType);
       hideNotification();
     }, 2500);
 
     // Cleanup function
     return () => {
-      console.log(`[AnimatedPointsNotification-${componentId}] Cleanup for:`, activityType);
-      const animationKey = `${activityType}-${points}`;
-      activeAnimations.delete(animationKey);
-      console.log(`[AnimatedPointsNotification-${componentId}] Removed animation key:`, animationKey);
+      const cleanupAnimationKey = `${activityType}-${points}`;
+      activeAnimations.delete(cleanupAnimationKey);
 
       clearTimeout(hideTimer);
       if (h1) { clearTimeout(h1); }
@@ -234,30 +213,36 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     return Colors.faithGold;
   };
 
+  const getParticleStyle = (index: number) => ({
+    ...styles.particle,
+    left: 20 + index * 30,
+  });
+
   if (!visible) {
-    console.log(`[AnimatedPointsNotification-${componentId}] Not visible, returning null for:`, activityType);
     return null;
   }
-
-  console.log(`[AnimatedPointsNotification-${componentId}] Rendering notification:`, { points, activityType, visible, timestamp: new Date().toISOString() });
 
   const sparkleRotationInterpolate = sparkleRotation.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
+  const getNotificationStyle = () => ({
+    ...styles.notification,
+    backgroundColor: getActivityColor(),
+  });
+
   return (
     <View style={[styles.container, getPositionStyle()]}>
       <Animated.View
         style={[
-          styles.notification,
+          getNotificationStyle(),
           {
             transform: [
               { translateY },
               { scale },
             ],
             opacity,
-            backgroundColor: getActivityColor(),
           },
         ]}
       >
@@ -265,6 +250,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
         <Animated.View
           style={[
             styles.sparkleBackground,
+            styles.sparkleBackgroundRotation,
             {
               transform: [{ rotate: sparkleRotationInterpolate }],
             },
@@ -324,9 +310,12 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
 
           <View style={styles.sparkleContainer}>
             <Animated.View
-              style={{
-                transform: [{ rotate: sparkleRotationInterpolate }],
-              }}
+              style={[
+                styles.rotatingSparkle,
+                {
+                  transform: [{ rotate: sparkleRotationInterpolate }],
+                },
+              ]}
             >
               <Ionicons name="sparkles" size={20} color={Colors.hopeWhite} />
             </Animated.View>
@@ -338,12 +327,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
           {[...Array(3)].map((_, index) => (
             <Animated.View
               key={index}
-              style={[
-                styles.particle,
-                {
-                  left: 20 + index * 30,
-                },
-              ]}
+              style={getParticleStyle(index)}
             >
               <Ionicons name="star" size={8} color={Colors.hopeWhite} />
             </Animated.View>
@@ -381,6 +365,9 @@ const styles = StyleSheet.create({
     right: -10,
     opacity: 0.5,
   },
+  sparkleBackgroundRotation: {
+    // Base style for sparkle background - transform applied inline
+  },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -409,6 +396,9 @@ const styles = StyleSheet.create({
   },
   sparkleContainer: {
     marginLeft: 10,
+  },
+  rotatingSparkle: {
+    // Base style for rotating sparkle - transform applied inline
   },
   particlesContainer: {
     position: 'absolute',

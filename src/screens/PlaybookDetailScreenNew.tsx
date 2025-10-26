@@ -1309,12 +1309,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             <ScrollView
               style={[
                 styles.stackCardScrollContainer,
-                {
-                  width: SCREEN_WIDTH - 80,
-                  alignSelf: 'center',
-                  borderRadius: 28,
-                  backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : 'transparent',
-                },
+                styles.stackCardScrollBase,
+                cardIndex === cardData.length - 1 ? styles.stackCardBgCoral : styles.stackCardBgTransparent,
               ]}
               showsVerticalScrollIndicator={true}
               bounces={true}
@@ -1323,13 +1319,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               onMomentumScrollBegin={() => setIsScrolling(true)}
               onMomentumScrollEnd={() => setIsScrolling(false)}
               scrollEventThrottle={16}
-              contentContainerStyle={{
-                flexGrow: 1,
-                backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
-                borderRadius: 28,
-                overflow: 'hidden',
-                minHeight: 450,
-              }}
+              contentContainerStyle={[
+                styles.cardContentContainer,
+                {
+                  backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
+                },
+              ]}
             >
               <TouchableOpacity
                 activeOpacity={1}
@@ -1352,14 +1347,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     cardScale.value = withTiming(1, { duration: 100 });
                   }
                 }}
-                style={[
-                  {
-                    borderRadius: 28,
-                    overflow: 'hidden',
-                    minHeight: 450,
-                    backgroundColor: 'transparent',
-                  },
-                ]}
+                style={styles.cardTouchableContainer}
               >
                 {cardContent}
               </TouchableOpacity>
@@ -1483,12 +1471,16 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // ===== MAIN RENDER =====
 
+  const headerSafeAreaPaddingStyle = useMemo(() => ({
+    paddingTop: Math.max(insets.top - HEADER_TOP_ADJUST + 6, 0),
+  }), [insets.top]);
+
   return (
     <View style={styles.container}>
       {/* Status bar handled by useScreenStatusBar */}
 
       {/* In-screen header (replaces native header). Cards overlay will pass over this. */}
-      <View style={[styles.headerSafeArea, { paddingTop: Math.max(insets.top - HEADER_TOP_ADJUST + 6, 0) }]}>
+      <View style={[styles.headerSafeArea, headerSafeAreaPaddingStyle]}>
         <View
           style={[styles.headerContainer, showCompactHeader && styles.headerContainerCompact]}
           onLayout={(e) => setHeaderMeasuredHeight(e.nativeEvent.layout.height)}
@@ -1678,6 +1670,11 @@ interface PlaybookDetailStyles {
   headerTasksText: TextStyle;
   currentCardZIndex: ViewStyle;
   cardOverlay: ViewStyle;
+  cardContentContainer: ViewStyle;
+  cardTouchableContainer: ViewStyle;
+  stackCardScrollBase: ViewStyle;
+  stackCardBgCoral: ViewStyle;
+  stackCardBgTransparent: ViewStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -1815,6 +1812,17 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   stackCardScrollContainer: {
     maxHeight: Dimensions.get('window').height * 0.8,
   },
+  stackCardScrollBase: {
+    width: SCREEN_WIDTH - 80,
+    alignSelf: 'center',
+    borderRadius: 28,
+  },
+  stackCardBgCoral: {
+    backgroundColor: Colors.alertCoral,
+  },
+  stackCardBgTransparent: {
+    backgroundColor: 'transparent',
+  },
   hiddenMeasurement: {
     position: 'absolute',
     opacity: 0,
@@ -1926,6 +1934,18 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  cardContentContainer: {
+    flexGrow: 1,
+    borderRadius: 28,
+    overflow: 'hidden',
+    minHeight: 450,
+  },
+  cardTouchableContainer: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    minHeight: 450,
+    backgroundColor: 'transparent',
   },
   progressAndViewRow: {
     flexDirection: 'row',

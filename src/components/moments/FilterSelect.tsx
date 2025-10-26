@@ -71,7 +71,7 @@ const FilterSelect = forwardRef<FilterSelectHandle, FilterSelectProps>(({ values
           <View style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <ThemedText weight="semiBold" style={[styles.sheetTitle, { fontFamily: fontMedium }]}>Select Filters</ThemedText>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={styles.sheetHeaderRow}>
                 {count > 0 && (
                   <TouchableOpacity onPress={clearAll}>
                     <ThemedText style={[styles.clearText, { fontFamily: fontMedium }]}>Clear</ThemedText>
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   sheet: { width: '88%', maxHeight: '70%', backgroundColor: Colors.anchorBlue, borderRadius: 30, padding: 20 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  sheetHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sheetTitle: { fontSize: 16, color: Colors.hopeWhite },
   clearText: { color: Colors.hopeWhite, opacity: 0.8 },
   option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

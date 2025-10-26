@@ -1105,7 +1105,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalTitleRow}>
-            <ThemedText weight="semiBold" style={[styles.modalTitle, { flex: 1 }]}>Copy Incomplete To-Dos</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.modalTitle, styles.flex1]}>Copy Incomplete To-Dos</ThemedText>
             {planningGating.currentTier === 'seeker' ? (
               <Ionicons style={styles.modalTitleIcon} name="lock-closed" size={18} color={Colors.alertCoral} />
             ) : (
@@ -1766,5 +1766,8 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     flex: 1,
     lineHeight: 20,
+  },
+  flex1: {
+    flex: 1,
   },
 });

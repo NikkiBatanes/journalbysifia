@@ -80,7 +80,7 @@ export default function TruthInLoveCard({
             activeOpacity={0.9}
             accessibilityRole="button"
             accessibilityLabel={isExpanded ? 'Collapse truth content' : 'Expand truth content'}
-            style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+            style={styles.rowCenterFlex1}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.heartIcon} />
@@ -190,6 +190,11 @@ const styles = StyleSheet.create({
   expandIcon: {
     padding: 4,
     marginLeft: 8,
+  },
+  rowCenterFlex1: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
 
 });

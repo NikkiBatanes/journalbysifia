@@ -160,8 +160,8 @@ export class TimeBlockApi {
 
         if (originalBlock) {
           const originalMetadata = originalBlock.metadata || {};
-          const exceptions = originalMetadata.exceptions || [];
-          const isHidden = exceptions.includes(block.selected_date);
+          const exceptionsForDate = originalMetadata.exceptions || [];
+          const isHidden = exceptionsForDate.includes(block.selected_date);
 
           if (isHidden) {
             console.log('🚫 Filtering out hidden instance on', block.selected_date, 'due to exception in original block', originalBlockId);

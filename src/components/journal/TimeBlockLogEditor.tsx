@@ -609,6 +609,54 @@ const createDefaultStyles = (fonts: any) => ({
     fontFamily: fonts.medium,
     marginRight: 4,
   },
+  endRepeatContainer: {
+    marginTop: 8,
+  },
+  endRepeatRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  endRepeatButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  endRepeatButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderColor: Colors.anchorBlue,
+  },
+  endRepeatButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+  },
+  marginTop12: {
+    marginTop: 12,
+  },
+  daySelectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dayButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  dayButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  dayButtonText: {
+    color: Colors.hopeWhite,
+  },
 });
 
 function TimeBlockLogEditorInner(
@@ -629,7 +677,6 @@ function TimeBlockLogEditorInner(
   } = props;
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const regularFont = getFontFamily(fontKey, 'regular');
 
   const fonts = useMemo(() => {
     return {
@@ -875,7 +922,7 @@ function TimeBlockLogEditorInner(
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
-                style={[s.formInput, { fontFamily: regularFont }]}
+                style={[s.formInput, { fontFamily: fonts.regular }]}
                 placeholder="Title"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={title}
@@ -899,36 +946,26 @@ function TimeBlockLogEditorInner(
 
               {/* End Repeat Section - Below Repeat in main form */}
               {repeatOption !== 'Never' && (
-                <View style={{ marginTop: 8 }}>
+                <View style={s.endRepeatContainer}>
                   <ThemedText weight="medium" style={s.inputLabel}>End Repeat</ThemedText>
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                  <View style={s.endRepeatRow}>
                     <TouchableOpacity
                       onPress={() => { setEndRepeatMode('never'); setEndRepeatDate(null); }}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 12,
-                        alignItems: 'center',
-                        borderRadius: 10,
-                        backgroundColor: endRepeatMode === 'never' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        borderColor: endRepeatMode === 'never' ? Colors.anchorBlue : 'rgba(255,255,255,0.2)',
-                      }}
+                      style={[
+                        s.endRepeatButton,
+                        endRepeatMode === 'never' && s.endRepeatButtonActive,
+                      ]}
                     >
-                      <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>Never</ThemedText>
+                      <ThemedText weight="medium" style={s.endRepeatButtonText}>Never</ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => { setShowEndDatePicker(true); }}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 12,
-                        alignItems: 'center',
-                        borderRadius: 10,
-                        backgroundColor: endRepeatMode === 'date' && endRepeatDate ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        borderColor: endRepeatMode === 'date' && endRepeatDate ? Colors.anchorBlue : 'rgba(255,255,255,0.2)',
-                      }}
+                      style={[
+                        s.endRepeatButton,
+                        (endRepeatMode === 'date' && endRepeatDate) && s.endRepeatButtonActive,
+                      ]}
                     >
-                      <ThemedText weight="medium" style={{ color: Colors.hopeWhite, fontSize: 14 }}>
+                      <ThemedText weight="medium" style={s.endRepeatButtonText}>
                         {endRepeatDate ? endRepeatDate.toLocaleDateString() : 'Select End Date'}
                       </ThemedText>
                     </TouchableOpacity>
@@ -1028,7 +1065,7 @@ function TimeBlockLogEditorInner(
                       <View style={s.frequencySelector}>
                         <View style={s.frequencyInputs}>
                           <TextInput
-                            style={[s.frequencyInput, { fontFamily: regularFont }]}
+                            style={[s.frequencyInput, { fontFamily: fonts.regular }]}
                             value={customFrequency.value.toString()}
                             onChangeText={(text) => {
                               const num = parseInt(text, 10) || 1;
@@ -1059,9 +1096,9 @@ function TimeBlockLogEditorInner(
                       </View>
 
                       {customFrequency.unit === 'week' && (
-                        <View style={{ marginTop: 12 }}>
+                        <View style={s.marginTop12}>
                           <ThemedText weight="medium" style={s.customRepeatLabel}>On days:</ThemedText>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <View style={s.daySelectionRow}>
                             {['S','M','T','W','T','F','S'].map((label, idx) => (
                               <TouchableOpacity
                                 key={idx}
@@ -1069,18 +1106,12 @@ function TimeBlockLogEditorInner(
                                   await triggerLightHaptic();
                                   setCustomDays(prev => prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]);
                                 }}
-                                style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: 16,
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  backgroundColor: customDays.includes(idx) ? 'rgba(255,255,255,0.3)' : 'transparent',
-                                  borderWidth: 1,
-                                  borderColor: 'rgba(255,255,255,0.3)',
-                                }}
+                                style={[
+                                  s.dayButton,
+                                  customDays.includes(idx) && s.dayButtonActive,
+                                ]}
                               >
-                                <ThemedText weight="medium" style={{ color: Colors.hopeWhite }}>{label}</ThemedText>
+                                <ThemedText weight="medium" style={s.dayButtonText}>{label}</ThemedText>
                               </TouchableOpacity>
                             ))}
                           </View>
@@ -1172,7 +1203,7 @@ function TimeBlockLogEditorInner(
 
               {/* Location Input */}
               <TextInput
-                style={[s.formInput, { fontFamily: regularFont }]}
+                style={[s.formInput, { fontFamily: fonts.regular }]}
                 placeholder="Location"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={location}
@@ -1181,7 +1212,7 @@ function TimeBlockLogEditorInner(
 
               {/* Notes Input */}
               <TextInput
-                style={[s.formInput, s.multilineInput, { fontFamily: regularFont }]}
+                style={[s.formInput, s.multilineInput, { fontFamily: fonts.regular }]}
                 placeholder="Notes"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={notes}
