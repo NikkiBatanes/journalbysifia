@@ -118,7 +118,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     if (visible) {
       devotionalGating.refreshSubscription();
     }
-  }, [visible, devotionalGating]);
+  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh gating data when usage limit modal is shown
   React.useEffect(() => {
@@ -126,7 +126,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
       devotionalGating.refreshSubscription();
     }
-  }, [showUsageLimitModal, devotionalGating]);
+  }, [showUsageLimitModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Haptics
   const hapticOptions = React.useMemo(() => ({
