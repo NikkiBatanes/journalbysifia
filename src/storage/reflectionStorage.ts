@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 import { checkSession } from './journalStorage';
 
@@ -65,7 +66,10 @@ const getReflectionKey = (userId: string, date: string | Date): string => {
       } else {
         const parsedDate = new Date(date);
         if (isNaN(parsedDate.getTime())) {
-          console.error('Invalid date provided:', date);
+          Logger.error('Invalid date provided', new Error(String(date)), {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
           formattedDate = toLocalDateString(new Date());
         } else {
           formattedDate = toLocalDateString(parsedDate);
@@ -73,7 +77,10 @@ const getReflectionKey = (userId: string, date: string | Date): string => {
       }
     } else if (date instanceof Date) {
       if (isNaN(date.getTime())) {
-        console.error('Invalid Date object provided:', date);
+        Logger.error('Invalid Date object provided', new Error(date.toString()), {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
         formattedDate = new Date().toISOString().split('T')[0];
       } else {
         formattedDate = toLocalDateString(date);
@@ -109,7 +116,10 @@ export const getLocalReflectionEntry = async (key: string): Promise<ReflectionSt
 
     return parsed;
   } catch (error) {
-    console.error('Error getting local reflection entry:', error);
+    Logger.error('Error getting local reflection entry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     return null;
   }
 };
@@ -143,7 +153,10 @@ export const saveLocalReflectionEntry = async (
 
     return storageEntry;
   } catch (error) {
-    console.error('Error saving reflection to AsyncStorage:', error);
+    Logger.error('Error saving reflection to AsyncStorage', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -161,7 +174,10 @@ export const updateLocalReflectionEntry = async (
     await AsyncStorage.setItem(key, JSON.stringify(updated));
 
   } catch (error) {
-    console.error('Error updating local reflection entry:', error);
+    Logger.error('Error updating local reflection entry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -171,7 +187,10 @@ export const deleteLocalReflectionEntry = async (key: string): Promise<void> => 
     await AsyncStorage.removeItem(key);
 
   } catch (error) {
-    console.error('Error deleting local reflection entry:', error);
+    Logger.error('Error deleting local reflection entry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -185,7 +204,10 @@ export const saveCloudReflectionEntry = async (
   try {
     const { session } = await checkSession();
     if (!session?.user?.id) {
-      console.error('No valid session available. User must be logged in.');
+      Logger.error('No valid session available. User must be logged in.', undefined, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
       throw new Error('You must be logged in to save reflection entries');
     }
 
@@ -205,13 +227,19 @@ export const saveCloudReflectionEntry = async (
       .single();
 
     if (error) {
-      console.error('Error saving reflection entry to cloud:', error);
+      Logger.error('Error saving reflection entry to cloud', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in saveCloudReflectionEntry:', error);
+    Logger.error('Error in saveCloudReflectionEntry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -232,7 +260,10 @@ export const getCloudReflectionEntry = async (
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching cloud reflection entry:', error);
+      Logger.error('Error fetching cloud reflection entry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
       throw error;
     }
 
@@ -246,7 +277,10 @@ export const getCloudReflectionEntry = async (
 
     return data;
   } catch (error) {
-    console.error('Error in getCloudReflectionEntry:', error);
+    Logger.error('Error in getCloudReflectionEntry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     return null;
   }
 };
@@ -283,7 +317,10 @@ export const syncReflectionFromCloud = async (
     }
 
   } catch (error) {
-    console.error('Error in syncReflectionFromCloud:', error);
+    Logger.error('Error in syncReflectionFromCloud', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -319,7 +356,10 @@ export const syncReflectionToCloud = async (
     }
 
   } catch (error) {
-    console.error('Error in syncReflectionToCloud:', error);
+    Logger.error('Error in syncReflectionToCloud', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -336,12 +376,18 @@ export const deleteCloudReflectionEntry = async (
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error deleting cloud reflection entry:', error);
+      Logger.error('Error deleting cloud reflection entry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
       throw error;
     }
 
   } catch (error) {
-    console.error('Error in deleteCloudReflectionEntry:', error);
+    Logger.error('Error in deleteCloudReflectionEntry', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -366,11 +412,17 @@ export const saveReflectionEntries = async (
 
       })
       .catch(err => {
-        console.error('Background reflection sync failed:', err);
+        Logger.error('Background reflection sync failed', err as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
       });
 
   } catch (error) {
-    console.error('Error in saveReflectionEntries:', error);
+    Logger.error('Error in saveReflectionEntries', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -394,7 +446,10 @@ export const loadReflectionEntries = async (
 
     return entries;
   } catch (error) {
-    console.error('Error in loadReflectionEntries:', error);
+    Logger.error('Error in loadReflectionEntries', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     return [];
   }
 };
@@ -421,7 +476,10 @@ export const clearReflectionCache = async (userId: string, date?: string): Promi
     }
 
   } catch (error) {
-    console.error('Error in clearReflectionCache:', error);
+    Logger.error('Error in clearReflectionCache', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -442,7 +500,10 @@ export const forceRefreshReflectionEntries = async (
 
     return entries;
   } catch (error) {
-    console.error('Error in forceRefreshReflectionEntries:', error);
+    Logger.error('Error in forceRefreshReflectionEntries', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     return [];
   }
 };
@@ -465,12 +526,18 @@ export const debugReflectionEntries = async (userId: string): Promise<void> => {
       .order('selected_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching cloud reflection entries:', error);
+      Logger.error('Error fetching cloud reflection entries', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
     } else {
 
     }
 
   } catch (error) {
-    console.error('Error in debugReflectionEntries:', error);
+    Logger.error('Error in debugReflectionEntries', error as Error, {
+      component: 'reflectionStorage',
+      action: 'error',
+    });
   }
 };

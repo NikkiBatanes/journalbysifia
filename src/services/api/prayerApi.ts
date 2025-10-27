@@ -1,5 +1,6 @@
 // src/services/api/prayerApi.ts
 import { supabase } from '../supabaseClient';
+import { Logger } from '../../utils/ProductionLogger';
 import { toLocalDateString } from '../../utils/date';
 
 export interface PrayerApiEntry {
@@ -40,14 +41,19 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.warn(`Prayer API session retrieval error (attempt ${i + 1}/${retries}):`, sessionError);
+        Logger.warn(`Prayer API session retrieval error (attempt ${i + 1}/${retries}):`, {
+      component: 'prayerApi',
+      error: sessionError,
+    });
         if (i === retries - 1) {throw sessionError;}
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
         continue;
       }
 
       if (!session) {
-        console.warn(`Prayer API no session found (attempt ${i + 1}/${retries})`);
+        Logger.warn(`Prayer API no session found (attempt ${i + 1}/${retries})`, {
+      component: 'prayerApi',
+    });
         if (i === retries - 1) {
           // Final attempt - try to refresh session
           try {
@@ -57,7 +63,10 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
               return refreshedSession;
             }
           } catch (refreshError) {
-            console.error('❌ Prayer API session refresh failed:', refreshError);
+            Logger.error('❌ Prayer API session refresh failed', refreshError as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
           }
           throw new Error('No active session. Please login.');
         }
@@ -67,7 +76,10 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
 
       return session;
     } catch (error) {
-      console.error(`Prayer API session retrieval failed (attempt ${i + 1}/${retries}):`, error);
+      Logger.error(`Prayer API session retrieval failed (attempt ${i + 1}/${retries}):`, error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       if (i === retries - 1) {throw error;}
       await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
@@ -87,7 +99,10 @@ const ensureAuthenticated = async () => {
 
     return session;
   } catch (error) {
-    console.error('Error setting Supabase session:', error);
+    Logger.error('Error setting Supabase session', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
   }
 };
 
@@ -102,7 +117,10 @@ export class PrayerApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching prayers:', error);
+      Logger.error('Error fetching prayers', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch prayers: ${error.message}`);
     }
 
@@ -133,7 +151,10 @@ export class PrayerApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching unprayed prayer requests:', error);
+      Logger.error('Error fetching unprayed prayer requests', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch unprayed prayer requests: ${error.message}`);
     }
 
@@ -172,7 +193,10 @@ export class PrayerApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching prayers by type:', error);
+      Logger.error('Error fetching prayers by type', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch prayers: ${error.message}`);
     }
 
@@ -199,7 +223,10 @@ export class PrayerApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching ACTS prayers:', error);
+      Logger.error('Error fetching ACTS prayers', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch ACTS prayers: ${error.message}`);
     }
 
@@ -243,7 +270,10 @@ export class PrayerApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching people prayers:', error);
+      Logger.error('Error fetching people prayers', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch people prayers: ${error.message}`);
     }
 
@@ -287,7 +317,10 @@ export class PrayerApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching all devotional prayers:', error);
+      Logger.error('Error fetching all devotional prayers', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch devotional prayers: ${error.message}`);
     }
 
@@ -365,7 +398,10 @@ export class PrayerApi {
         .maybeSingle();
 
       if (lookupError) {
-        console.warn('[PrayerApi.createPrayer] Devotional lookup warning:', lookupError);
+        Logger.warn('[PrayerApi.createPrayer] Devotional lookup warning', {
+      component: 'prayerApi',
+      error: lookupError,
+    });
       }
 
       if (existing) {
@@ -415,7 +451,10 @@ export class PrayerApi {
           } as PrayerApiEntry;
         }
       }
-      console.error('Error creating prayer:', error);
+      Logger.error('Error creating prayer', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to create prayer: ${error.message}`);
     }
 
@@ -467,7 +506,10 @@ export class PrayerApi {
       .single();
 
     if (error) {
-      console.error('Error updating prayer:', error);
+      Logger.error('Error updating prayer', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to update prayer: ${error.message}`);
     }
 
@@ -489,7 +531,10 @@ export class PrayerApi {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting prayer:', error);
+      Logger.error('Error deleting prayer', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to delete prayer: ${error.message}`);
     }
   }
@@ -534,7 +579,10 @@ export class PrayerApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching prayers in date range:', error);
+      Logger.error('Error fetching prayers in date range', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch prayers: ${error.message}`);
     }
 
@@ -556,7 +604,10 @@ export class PrayerApi {
       .limit(limit);
 
     if (error) {
-      console.error('Error searching prayers:', error);
+      Logger.error('Error searching prayers', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to search prayers: ${error.message}`);
     }
 
@@ -573,7 +624,10 @@ export class PrayerApi {
       .lte('selected_date', endDate);
 
     if (error) {
-      console.error('Error fetching prayer stats:', error);
+      Logger.error('Error fetching prayer stats', error as Error, {
+      component: 'prayerApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch prayer stats: ${error.message}`);
     }
 
