@@ -285,7 +285,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'playbook_action_steps' },
-        (payload) => {
+        (_payload) => {
 
           fetchActionSteps();
         }

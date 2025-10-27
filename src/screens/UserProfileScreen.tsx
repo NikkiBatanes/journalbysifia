@@ -916,7 +916,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     let refreshTimeout: NodeJS.Timeout;
 
-    const handlePointsUpdate = (data?: any) => {
+    const handlePointsUpdate = (_data?: any) => {
 
       // Clear any existing timeout to prevent multiple calls
       if (refreshTimeout) {

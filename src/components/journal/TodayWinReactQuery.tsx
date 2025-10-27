@@ -420,7 +420,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           content: JSON.stringify(updatedContent),
         },
       }, {
-        onSuccess: (data) => {
+        onSuccess: (_data) => {
 
           setIsSaving(false);
 
@@ -485,7 +485,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         selected_date: dateStr,
         content: JSON.stringify({ win: winText.trim() }),
       }, {
-        onSuccess: (data) => {
+        onSuccess: (_data) => {
 
           setIsSaving(false);
 

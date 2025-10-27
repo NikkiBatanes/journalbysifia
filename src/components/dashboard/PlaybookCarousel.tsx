@@ -259,7 +259,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
 
   // Listen for custom events from ActionStepsCard for immediate updates
   useEffect(() => {
-    const handleProgressUpdate = (eventData: any) => {
+    const handleProgressUpdate = (_eventData: any) => {
 
       scheduleRefetch();
     };
@@ -303,7 +303,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'playbook_sub_tasks' },
-      (payload: any) => {
+      (_payload: any) => {
 
         // For subtasks, we need to find which playbook they belong to
         fetchPlaybooks(); // Direct call for immediate update

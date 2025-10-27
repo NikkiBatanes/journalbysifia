@@ -537,7 +537,7 @@ export default function ActionStepsCard({
   }, [navigation, user?.id, queryClient]);
 
   // Modal handlers
-  const handleReflectionSave = React.useCallback(async (entry: any) => {
+  const handleReflectionSave = React.useCallback(async (_entry: any) => {
 
     // Protect against logout during save operation
     if ((globalThis as any).authMonitor) {
@@ -576,7 +576,7 @@ export default function ActionStepsCard({
     setSelectedActionStep(null);
   }, []);
 
-  const handleGratitudeSave = React.useCallback(async (entry: any) => {
+  const handleGratitudeSave = React.useCallback(async (_entry: any) => {
 
     // Protect against logout during save operation
     if ((globalThis as any).authMonitor) {
@@ -615,7 +615,7 @@ export default function ActionStepsCard({
     setSelectedActionStep(null);
   }, []);
 
-  const handlePrayerSave = React.useCallback(async (entry: any) => {
+  const handlePrayerSave = React.useCallback(async (_entry: any) => {
 
     // Protect against logout during save operation
     if ((globalThis as any).authMonitor) {
