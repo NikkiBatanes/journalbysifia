@@ -534,7 +534,7 @@ export class OnboardingService {
       } catch (e) {
         Logger.warn('[OnboardingService] Profile check failed, falling back', {
       component: 'onboardingService',
-      error: e,
+      errorMessage: e instanceof Error ? e.message : String(e),
     });
       }
 
