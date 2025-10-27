@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { analytics } from '../utils/analytics';
+import { Logger } from '../utils/ProductionLogger';
 
 interface QueryPerformanceMetrics {
   queryKey: string;
@@ -97,7 +98,9 @@ function trackQueryPerformance(metrics: QueryPerformanceMetrics) {
 
   // Alert for slow queries
   if (metrics.duration > 2000) {
-    console.warn(`Slow query detected: ${metrics.queryKey} took ${metrics.duration}ms`);
+    Logger.warn(`Slow query detected: ${metrics.queryKey} took ${metrics.duration}ms`, {
+        component: 'useQueryPerformance',
+      });
 
     analytics.track('slow_query_detected', {
       queryKey: metrics.queryKey,

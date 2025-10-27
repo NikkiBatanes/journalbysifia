@@ -123,7 +123,9 @@ export const useTodaysFocusData = (userId: string, date: string, config?: Partia
 
         return entries;
       } catch (error) {
-        console.error('Error fetching today\'s focus data:', error);
+        Logger.error('Error fetching today\'s focus data:', error as Error, {
+        component: 'useJournalData',
+      });
         throw error;
       }
     },
@@ -543,7 +545,9 @@ export const useCreateTodayWinEntry = () => {
       }),
     // Removed onMutate optimistic updates to prevent conflicts with component-level optimistic updates
     onError: (err, _newEntry, _context) => {
-      console.error('Error creating today\'s win entry:', err);
+      Logger.error('Error creating today\'s win entry:', err as Error, {
+        component: 'useJournalData',
+      });
       // Error handling is now managed at component level
     },
     onSuccess: (data, variables) => {
@@ -651,13 +655,17 @@ export const useCreateTodaysFocusEntry = () => {
       return { previousEntries };
     },
     onError: (err, newEntry, context) => {
-      console.error('Error creating today\'s focus entry:', err);
+      Logger.error('Error creating today\'s focus entry:', err as Error, {
+        component: 'useJournalData',
+      });
       if (context?.previousEntries) {
         try {
           const queryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
           queryClient.setQueryData(queryKey, context.previousEntries);
         } catch (rollbackError) {
-          console.error('Error rolling back today\'s focus entry creation:', rollbackError);
+          Logger.error('Error rolling back today\'s focus entry creation:', rollbackError as Error, {
+        component: 'useJournalData',
+      });
         }
       }
     },

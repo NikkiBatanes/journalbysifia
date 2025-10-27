@@ -345,7 +345,8 @@ export const saveTimeBlockEntry = async (
         });
 
       if (error) {
-        console.error('❌ TimeBlock: Error inserting to database:', {
+        Logger.error('❌ TimeBlock: Error inserting to database', undefined, {
+        component: 'timeBlockStorage',
           error: error,
           message: error.message,
           code: error.code,

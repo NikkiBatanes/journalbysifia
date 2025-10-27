@@ -290,7 +290,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     triggerLightHaptic();
     setRating(selectedRating);
     // Submit the rating in the background
-    onRatingSubmit(selectedRating).catch(console.error);
+    onRatingSubmit(selectedRating).catch((e) => Logger.error('Async error', e as Error, { component: 'DevotionalCompletionModal' }));
   }, [onRatingSubmit]);
 
   const renderStars = () => {

@@ -60,7 +60,9 @@ export const useApi = () => {
       }
 
       // Handle error responses
-      console.warn(`⚠️ API request failed: ${response.status} ${response.statusText}`);
+      Logger.warn(`⚠️ API request failed: ${response.status} ${response.statusText}`, {
+        component: 'api',
+      });
 
       const errorData = await response.text().catch(() => 'Unknown error');
       const error = {
@@ -97,7 +99,10 @@ export const useApi = () => {
       return response;
 
     } catch (networkError: any) {
-      console.error(`💥 Network error for ${operationId}:`, networkError);
+      Logger.error(`💥 Network error for ${operationId}:`, {
+        component: 'api',
+        data: networkError,
+      });
 
       const result = await authErrorHandler.handleApiError(networkError, {
         ...errorHandlerOptions,

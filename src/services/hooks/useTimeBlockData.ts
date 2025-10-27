@@ -44,7 +44,10 @@ export const useTimeBlockData = (
           version: 1,
         }));
       } catch (error) {
-        console.error(`Failed to fetch time blocks for ${date}:`, error);
+        Logger.error(`Failed to fetch time blocks for ${date}:`, {
+        component: 'useTimeBlockData',
+        data: error,
+      });
         throw new Error('Failed to load time blocks. Please try again.');
       }
     },

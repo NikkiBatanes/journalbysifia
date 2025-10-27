@@ -447,7 +447,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       }
     } catch (err) {
       Logger.error('[DevotionalModal] Error creating devotional', err as Error, { component: 'DevotionalModal' });
-      console.error('[DevotionalModal] Error details:', {
+      Logger.error('[DevotionalModal] Error details', undefined, {
+        component: 'DevotionalModal',
         message: (err as any)?.message,
         stack: (err as any)?.stack,
         name: (err as any)?.name,

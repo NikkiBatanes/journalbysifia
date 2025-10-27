@@ -300,7 +300,8 @@ export class GooglePlayBillingService {
    * Handle purchase errors
    */
   private handlePurchaseError(error: PurchaseError): void {
-    console.error('[GooglePlay] Purchase error details:', {
+    Logger.error('[GooglePlay] Purchase error details', undefined, {
+        component: 'GooglePlayBillingService',
       code: error?.code,
       message: error?.message,
       debugMessage: error?.debugMessage,

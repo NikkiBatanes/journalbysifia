@@ -293,12 +293,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         } else {
           // Construct product ID - NO trial suffix for sales offer (always paid)
           productId = `app.sifia.com.${selectedTier}.${billing}`;
-          console.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`);
+          Logger.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`, {
+        component: 'OnboardingSalesOfferScreen',
+      });
         }
       } catch (error) {
         // Fallback: construct product ID - NO trial suffix for sales offer
         productId = `app.sifia.com.${selectedTier}.${billing}`;
-        console.warn(`[OnboardingSalesOffer] ⚠️ Failed to get products, using constructed ID: ${productId}`);
+        Logger.warn(`[OnboardingSalesOffer] ⚠️ Failed to get products, using constructed ID: ${productId}`, {
+        component: 'OnboardingSalesOfferScreen',
+      });
       }
 
       if (isUpgradeMode) {

@@ -258,7 +258,10 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
       Logger.error('📆 [getSiFiaCalendar] ❌ Could not create siFia calendar', createErr as Error, {
       component: 'calendarSyncService',
     });
-      console.error('📆 [getSiFiaCalendar] Error details:', JSON.stringify(createErr));
+      Logger.error('📆 [getSiFiaCalendar] Error details', undefined, {
+        component: 'calendarSyncService',
+        data: createErr,
+      });
     }
 
     return defaultCalendar?.id || null;

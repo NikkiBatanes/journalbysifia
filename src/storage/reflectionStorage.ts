@@ -90,7 +90,11 @@ const getReflectionKey = (userId: string, date: string | Date): string => {
       formattedDate = new Date().toISOString().split('T')[0];
     }
   } catch (e) {
-    console.error('Error formatting date:', e, 'Input:', date);
+    Logger.error('Error formatting date: Input:', undefined, {
+        component: 'reflectionStorage',
+        data1: e,
+        data2: date,
+      });
     formattedDate = new Date().toISOString().split('T')[0];
   }
 

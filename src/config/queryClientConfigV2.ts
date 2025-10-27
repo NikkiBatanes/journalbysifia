@@ -5,6 +5,7 @@
 
 import { QueryClient, DefaultOptions } from '@tanstack/react-query';
 import { performanceMonitor } from '../utils/performanceMonitor';
+import { Logger } from '../utils/ProductionLogger';
 
 // Performance-optimized default options for React Query v5
 const defaultOptions: DefaultOptions = {
@@ -77,7 +78,8 @@ export const createOptimizedQueryClient = (): QueryClient => {
   // Add global error handling
   queryClient.getQueryCache().subscribe((event) => {
     if (event.type === 'observerResultsUpdated' && event.query.state.error) {
-      console.error('[QueryClient] Query error:', {
+      Logger.error('[QueryClient] Query error', undefined, {
+        component: 'queryClientConfigV2',
         queryKey: event.query.queryKey,
         error: event.query.state.error,
       });
@@ -99,7 +101,8 @@ export const createOptimizedQueryClient = (): QueryClient => {
   // Add mutation error handling
   queryClient.getMutationCache().subscribe((event) => {
     if (event.type === 'updated' && event.mutation.state.error) {
-      console.error('[QueryClient] Mutation error:', {
+      Logger.error('[QueryClient] Mutation error', undefined, {
+        component: 'queryClientConfigV2',
         mutationKey: event.mutation.options.mutationKey,
         error: event.mutation.state.error,
       });

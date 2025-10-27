@@ -161,7 +161,8 @@ export class JournalApi {
       Logger.error('❌ Error updating journal entry by ID', error as Error, {
       component: 'journalApi',
     });
-      console.error('❌ Update details:', { id, updates, verifyEntries });
+      Logger.error('❌ Update details', undefined, {
+        component: 'journalApi', id, updates, verifyEntries });
 
       // Try fallback update using natural key if we have the necessary info
       if (existingEntries && existingEntries.length > 0) {

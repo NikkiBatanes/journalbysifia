@@ -338,11 +338,17 @@ export class EnhancedQueueService {
           })
           .eq('id', item.id);
 
-        console.error(`[EnhancedQueueService] Failed ${item.type} for user ${item.userId}:`, result.error);
+        Logger.error(`[EnhancedQueueService] Failed ${item.type} for user ${item.userId}:`, {
+        component: 'enhancedQueueService',
+        data: result.error,
+      });
       }
 
     } catch (error) {
-      console.error(`[EnhancedQueueService] Error processing item ${item.id}:`, error);
+      Logger.error(`[EnhancedQueueService] Error processing item ${item.id}:`, {
+        component: 'enhancedQueueService',
+        data: error,
+      });
 
       // Mark as failed
       await supabase

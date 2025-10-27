@@ -17,8 +17,9 @@ const ThrowError: React.FC<{ shouldThrow?: boolean }> = ({ shouldThrow = true })
 };
 
 describe('OnboardingErrorBoundary', () => {
-  // Suppress console.error for these tests
+
   const originalError = console.error;
+
   beforeAll(() => {
     console.error = jest.fn();
   });

@@ -526,7 +526,9 @@ export class PerformanceMonitoringService {
   }
 
   private triggerAlert(metric: PerformanceMetrics, threshold: AlertThreshold): void {
-    console.warn(`[ALERT] ${threshold.severity.toUpperCase()}: ${threshold.metric} exceeded threshold. Action: ${threshold.action}`);
+    Logger.warn(`[ALERT] ${threshold.severity.toUpperCase()}: ${threshold.metric} exceeded threshold. Action: ${threshold.action}`, {
+        component: 'performanceMonitoringService',
+      });
 
     // In production, this would send alerts to monitoring systems
     // For now, just log the alert

@@ -276,7 +276,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             }
           }
         } else {
-          console.warn('📅 SmartJournalingTimeBlockModal: Step not found in actionSteps:', {
+          Logger.warn('📅 SmartJournalingTimeBlockModal: Step not found in actionSteps', {
+        component: 'SmartJournalingTimeBlockModal',
             stepId,
             availableStepIds: actionSteps?.map(s => s.id) || [],
           });

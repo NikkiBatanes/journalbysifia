@@ -78,7 +78,10 @@ class PerformanceMonitor {
     } catch {}
 
     if (metric.duration > threshold) {
-      console.warn(`[Performance] Slow ${metric.type}: ${metric.name} took ${metric.duration.toFixed(2)}ms`, metric.metadata);
+      Logger.warn(`[Performance] Slow ${metric.type}: ${metric.name} took ${metric.duration.toFixed(2)}ms`, {
+        component: 'performanceMonitor',
+        data: metric.metadata,
+      });
     }
 
     // Persist to storage periodically

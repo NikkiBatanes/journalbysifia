@@ -687,7 +687,10 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`[deletePlaybook] Error deleting from Supabase (${idStr}):`, errorMessage);
+      Logger.error(`[deletePlaybook] Error deleting from Supabase (${idStr}):`, {
+        component: 'supabaseApi',
+        data: errorMessage,
+      });
       // Continue with local deletion even if Supabase fails
 
     }
@@ -712,7 +715,10 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[deletePlaybook] Error deleting from AsyncStorage (${idStr}):`, errorMessage);
+    Logger.error(`[deletePlaybook] Error deleting from AsyncStorage (${idStr}):`, {
+        component: 'supabaseApi',
+        data: errorMessage,
+      });
     return { success: false, error: `Local deletion failed: ${errorMessage}` };
   }
 

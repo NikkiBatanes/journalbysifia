@@ -186,7 +186,10 @@ export async function generateDevotional(
 
     } catch (error: any) {
       lastError = error;
-      console.error(`Attempt ${attempt + 1} failed:`, error.message);
+      Logger.error(`Attempt ${attempt + 1} failed:`, {
+        component: 'modernDevotionalApi',
+        data: error.message,
+      });
 
       // Handle timeout errors
       if (error.name === 'AbortError') {

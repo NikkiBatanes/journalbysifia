@@ -378,7 +378,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             }
           }
         } else {
-          console.warn('🙏 SmartJournalingPrayerModal: Step not found in actionSteps:', {
+          Logger.warn('🙏 SmartJournalingPrayerModal: Step not found in actionSteps', {
+        component: 'SmartJournalingPrayerModal',
             stepId,
             availableStepIds: actionSteps?.map(s => s.id) || [],
           });

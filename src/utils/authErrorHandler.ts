@@ -294,7 +294,10 @@ export class AuthErrorHandler {
         await operation();
         this.retryQueue.delete(operationId);
       } catch (error) {
-        console.error(`❌ Retry failed for operation ${operationId}:`, error);
+        Logger.error(`❌ Retry failed for operation ${operationId}:`, {
+        component: 'authErrorHandler',
+        data: error,
+      });
       }
     }
   }

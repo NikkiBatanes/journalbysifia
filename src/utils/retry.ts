@@ -2,6 +2,7 @@
 // Retry utility for handling failed API requests
 
 import { RetryConfig } from '../types/api';
+import { Logger } from './ProductionLogger';
 
 /**
  * Default retry configuration
@@ -73,7 +74,10 @@ export async function withRetry<T>(
       // Calculate and apply delay
       const delay = calculateDelay(attempt, finalConfig.delay, finalConfig.backoff);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.warn(`Request failed (attempt ${attempt}/${finalConfig.attempts}), retrying in ${delay}ms:`, errorMessage);
+      Logger.warn(`Request failed (attempt ${attempt}/${finalConfig.attempts}), retrying in ${delay}ms:`, {
+        component: 'retry',
+        data: errorMessage,
+      });
 
       await sleep(delay);
     }

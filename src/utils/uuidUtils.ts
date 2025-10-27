@@ -1,6 +1,7 @@
 /**
  * UUID utility functions for React Native compatibility
  */
+import { Logger } from './ProductionLogger';
 
 /**
  * Generate a UUID v4 compatible with React Native
@@ -29,7 +30,11 @@ export function isValidUUID(uuid: string): boolean {
 export function ensureValidUUID(id: any, context: string = 'unknown'): string {
   if (!id || typeof id !== 'string' || !isValidUUID(id)) {
     const newUUID = generateUUID();
-    console.warn(`⚠️ Invalid ID format in ${context}:`, id, '→ Generated new UUID:', newUUID);
+    Logger.warn(`⚠️ Invalid ID format in ${context}:`, {
+        component: 'uuidUtils',
+        invalidId: id,
+        newUUID: newUUID,
+      });
     return newUUID;
   }
 
