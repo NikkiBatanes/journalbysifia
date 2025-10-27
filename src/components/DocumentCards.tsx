@@ -133,7 +133,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       />
       <View
         key="challenge"
-        style={[propStyles.docCard, propStyles.challengeCard, { marginBottom: 28 }]}
+        style={[propStyles.docCard, propStyles.challengeCard, { marginBottom: 4 }]}
         onLayout={event => {
           challengeCardY.current = event.nativeEvent.layout.y;
           challengeCardHeight.current = event.nativeEvent.layout.height;
