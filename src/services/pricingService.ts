@@ -1,4 +1,5 @@
 import { Platform, NativeModules } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 import { loadDiscountState, saveDiscountState, mergeGuestToUser, type DiscountState } from './discountStorage';
 
 export interface PricingTier {
@@ -213,7 +214,7 @@ class PricingService {
 
       return 'US';
     } catch (error) {
-      console.error('[PricingService] Error getting user location:', error);
+      Logger.error('[PricingService] Error getting user location', error as Error, { component: 'pricingService' });
       return 'DEFAULT';
     }
   }
@@ -472,7 +473,7 @@ class PricingService {
       await saveDiscountStateFn(initialState, userId);
 
     } catch (error) {
-      console.error('[PricingService] 🧪 Failed to clear discount state:', error);
+      Logger.error('[PricingService] 🧪 Failed to clear discount state', error as Error, { component: 'pricingService' });
     }
   }
 

@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -78,7 +79,7 @@ export const AdminDashboard: React.FC = () => {
       setSubscriptionAnalytics(subscriptionData || []);
       setFeatureAnalytics(featureData || []);
     } catch (error) {
-      console.error('[AdminDashboard] Error loading dashboard data:', error);
+      Logger.error('[AdminDashboard] Error loading dashboard data', error as Error, { component: 'AdminDashboard' });
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect, useMemo, createRef } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
@@ -260,7 +261,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
       return () => {}; // No-op cleanup function
     } catch (err) {
-      console.error('Error initializing animations:', err);
+      Logger.error('Error initializing animations', err as Error, { component: 'PlaybookListScreen' });
       return () => {}; // Ensure we always return a cleanup function
     }
   };
@@ -381,7 +382,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
       // Prefetch the first 5 visible playbooks for instant navigation
       const visiblePlaybookIds = filteredPlaybooks.slice(0, 5).map(p => p.id);
       prefetchVisiblePlaybooks(visiblePlaybookIds).catch(error => {
-        console.warn('[PlaybookListScreen] Prefetching failed:', error);
+        Logger.warn('[PlaybookListScreen] Prefetching failed', { component: 'PlaybookListScreen', data: error });
       });
     }
   }, [filteredPlaybooks, userId, prefetchVisiblePlaybooks]);
@@ -444,7 +445,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           return getMostRecentDate(b.data) - getMostRecentDate(a.data);
         });
     } catch (err) {
-      console.error('Error in groupPlaybooksByMonth:', err);
+      Logger.error('Error in groupPlaybooksByMonth', err as Error, { component: 'PlaybookListScreen' });
       return [];
     }
   }, [filter]);
@@ -483,7 +484,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               // Refresh the list after successful deletion
               await refetch();
             } catch (err) {
-              console.error('Error deleting playbook:', err);
+              Logger.error('Error deleting playbook', err as Error, { component: 'PlaybookListScreen' });
               // If there was an error, reload the playbooks to restore the correct state
               await refetch();
               Alert.alert('Error', 'Failed to delete playbook. Please try again.');
@@ -509,7 +510,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
     // Safety check for item
     if (!item || typeof item !== 'object') {
-      console.warn('Invalid item in renderItem:', item);
+      Logger.warn('Invalid item in renderItem', { component: 'PlaybookListScreen', data: item });
       return null;
     }
 

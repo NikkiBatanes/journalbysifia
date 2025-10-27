@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import {
   View,
   TouchableOpacity,
@@ -147,7 +148,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
         }
       }
     } catch (error) {
-      console.error('Calendar sync error:', error);
+      Logger.error('Calendar sync error', error as Error, { component: 'CalendarSyncButton' });
       setSyncStatus('error');
       Alert.alert(
         'Sync Error',
@@ -189,7 +190,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                 );
               }
             } catch (error) {
-              console.error('Calendar remove error:', error);
+              Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
               Alert.alert('Remove Error', 'An unexpected error occurred.');
             } finally {
               setIsLoading(false);

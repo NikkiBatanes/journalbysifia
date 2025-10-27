@@ -4,6 +4,7 @@
 // This handles environment variables for bare RN (not Expo managed)
 
 import Config from 'react-native-config';
+import { Logger } from '../utils/ProductionLogger';
 
 // For bare React Native, install react-native-config:
 // npm install react-native-config
@@ -46,8 +47,8 @@ export const validateEnvironment = () => {
   const missing = required.filter(key => !(ENV as any)[key] || (ENV as any)[key].includes('your_'));
 
   if (missing.length > 0) {
-    console.warn('⚠️ Missing environment variables:', missing);
-    console.warn('Please check your .env file and ensure all required variables are set.');
+    Logger.warn('⚠️ Missing environment variables', { component: 'environment', data: missing });
+    Logger.warn('Please check your .env file and ensure all required variables are set.', { component: 'environment' });
   }
 
   return missing.length === 0;

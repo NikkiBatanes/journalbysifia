@@ -512,7 +512,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   setPrayerForPerson(structuredData.prayerForPerson || '');
                   setPrayerRequest(structuredData.prayerRequest || '');
                 } catch (e) {
-                  console.error('Error parsing structured prayer data:', e);
+                  Logger.error('Error parsing structured prayer data', e as Error, { component: 'PrayerLogEditor' });
                 }
               } else {
                 // Fallback for old drafts without tab info

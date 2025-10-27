@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createEnhancedQueryClient } from '../services/config/queryConfig';
 import {
@@ -52,7 +53,7 @@ export function EnhancedQueryProvider({ children }: EnhancedQueryProviderProps) 
 
         }
       } catch (error) {
-        console.error('Failed to initialize Enhanced Query Client:', error);
+        Logger.error('Failed to initialize Enhanced Query Client', error as Error, { component: 'EnhancedQueryProvider' });
         // Still allow the app to work without offline features
         setIsInitialized(true);
       }

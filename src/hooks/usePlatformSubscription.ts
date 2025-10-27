@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import platformSubscriptionService, {
   SubscriptionProduct,
   UpgradeRequest,
@@ -57,7 +58,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
         ? err.message
         : 'Failed to initialize subscription service';
 
-      console.error('[usePlatformSubscription] Initialization failed:', err);
+      Logger.error('[usePlatformSubscription] Initialization failed', err as Error, { component: 'usePlatformSubscription' });
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -87,7 +88,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
         ? err.message
         : `Upgrade failed: ${(err as any).message || 'Unknown error'}`;
 
-      console.error('[usePlatformSubscription] Upgrade failed:', err);
+      Logger.error('[usePlatformSubscription] Upgrade failed', err as Error, { component: 'usePlatformSubscription' });
       setError(errorMessage);
       throw err;
     } finally {
@@ -122,7 +123,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
         ? err.message
         : `Downgrade request failed: ${(err as any).message || 'Unknown error'}`;
 
-      console.error('[usePlatformSubscription] Downgrade request failed:', err);
+      Logger.error('[usePlatformSubscription] Downgrade request failed', err as Error, { component: 'usePlatformSubscription' });
       setError(errorMessage);
       throw err;
     } finally {
@@ -148,7 +149,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
         ? err.message
         : 'Failed to restore purchases';
 
-      console.error('[usePlatformSubscription] Restore failed:', err);
+      Logger.error('[usePlatformSubscription] Restore failed', err as Error, { component: 'usePlatformSubscription' });
       setError(errorMessage);
       throw err;
     } finally {
@@ -167,7 +168,7 @@ export const usePlatformSubscription = (): UsePlatformSubscriptionReturn => {
       return subscription;
 
     } catch (err) {
-      console.error('[usePlatformSubscription] Failed to get current subscription:', err);
+      Logger.error('[usePlatformSubscription] Failed to get current subscription', err as Error, { component: 'usePlatformSubscription' });
       return null;
     }
   }, []);

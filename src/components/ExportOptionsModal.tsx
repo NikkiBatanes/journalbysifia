@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 // import { useEffect } from 'react'; // unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
@@ -117,7 +118,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
         ]
       );
     } catch (error) {
-      console.error('Export error:', error);
+      Logger.error('Export error', error as Error, { component: 'ExportOptionsModal' });
       Alert.alert(
         'Export Failed',
         'There was an error exporting your content. Please try again.',

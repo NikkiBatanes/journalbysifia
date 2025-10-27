@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useOnboarding } from '../../context/OnboardingContext';
@@ -120,7 +121,7 @@ export const OnboardingTestingUtils = {
    */
   triggerOnboardingTest: async (navigation: any, refreshOnboardingData: () => Promise<void>) => {
     if (!__DEV__) {
-      console.warn('OnboardingTestingUtils only available in development mode');
+      Logger.warn('OnboardingTestingUtils only available in development mode', { component: 'OnboardingIntegration' });
       return;
     }
 

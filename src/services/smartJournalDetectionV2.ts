@@ -5,6 +5,7 @@
  */
 
 import { userContextEngine } from './userContextEngine';
+import { Logger } from '../utils/ProductionLogger';
 import { faithPointsService } from './faithPointsService';
 
 export interface JournalDetectionResult {
@@ -148,7 +149,7 @@ export class SmartJournalDetectionV2 {
       return enhancedResult;
 
     } catch (error) {
-      console.error('[SmartJournalDetectionV2] Error detecting journal type:', error);
+      Logger.error('[SmartJournalDetectionV2] Error detecting journal type', error as Error, { component: 'smartJournalDetectionV2' });
 
       // Return fallback detection
       return {
@@ -194,7 +195,7 @@ export class SmartJournalDetectionV2 {
       };
 
     } catch (error) {
-      console.error('[SmartJournalDetectionV2] Error analyzing journal:', error);
+      Logger.error('[SmartJournalDetectionV2] Error analyzing journal', error as Error, { component: 'smartJournalDetectionV2' });
 
       return {
         primaryType: 'reflection',
@@ -579,7 +580,7 @@ export class SmartJournalDetectionV2 {
       // For now, just log the event
 
     } catch (error) {
-      console.error('[SmartJournalDetectionV2] Error recording detection event:', error);
+      Logger.error('[SmartJournalDetectionV2] Error recording detection event', error as Error, { component: 'smartJournalDetectionV2' });
     }
   }
 }

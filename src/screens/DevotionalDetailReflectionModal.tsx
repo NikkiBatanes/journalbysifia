@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Alert } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -165,7 +166,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       });
       return result;
     } catch (error) {
-      console.error(' Error saving devotional reflection:', error);
+      Logger.error(' Error saving devotional reflection', error as Error, { component: 'DevotionalDetailReflectionModal' });
       Alert.alert('Error', 'Failed to save devotional reflection. Please try again.');
       throw error;
     }
@@ -229,7 +230,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       }
 
     } catch (error: any) {
-      console.error('❌ DevotionalDetailReflectionModal: SAVE FAILED:', error);
+      Logger.error('❌ DevotionalDetailReflectionModal: SAVE FAILED', error as Error, { component: 'DevotionalDetailReflectionModal' });
       Alert.alert(
         'Error',
         `Failed to save reflection: ${error?.message || 'Unknown error'}`,

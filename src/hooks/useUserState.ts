@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { AppState, AppStateStatus } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,7 +47,7 @@ export const useUserState = () => {
         return JSON.parse(stored);
       }
     } catch (error) {
-      console.error('Error loading onboarding progress:', error);
+      Logger.error('Error loading onboarding progress', error as Error, { component: 'useUserState' });
     }
 
     return {
@@ -75,7 +76,7 @@ export const useUserState = () => {
         onboardingProgress,
       }));
     } catch (error) {
-      console.error('Error loading user state:', error);
+      Logger.error('Error loading user state', error as Error, { component: 'useUserState' });
       setUserState(prev => ({ ...prev, isLoading: false }));
     }
   }, [user?.id, subscription, loadOnboardingProgress]);
@@ -124,7 +125,7 @@ export const useUserState = () => {
         onboardingProgress: updatedProgress,
       }));
     } catch (error) {
-      console.error('Error saving onboarding progress:', error);
+      Logger.error('Error saving onboarding progress', error as Error, { component: 'useUserState' });
     }
   }, [user, userState.onboardingProgress]);
 
@@ -181,7 +182,7 @@ export const useUserState = () => {
 
       return subscription;
     } catch (error) {
-      console.error('Error activating free trial:', error);
+      Logger.error('Error activating free trial', error as Error, { component: 'useUserState' });
       setUserState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }

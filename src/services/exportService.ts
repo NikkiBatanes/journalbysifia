@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { subscriptionService } from './subscriptionService';
 
 export interface ExportResult {
@@ -62,7 +63,7 @@ export class ExportService {
         used,
       };
     } catch (error) {
-      console.error('[ExportService] Error checking export access:', error);
+      Logger.error('[ExportService] Error checking export access', error as Error, { component: 'exportService' });
       return {
         allowed: false,
         remaining: 0,
@@ -106,7 +107,7 @@ export class ExportService {
         downloadUrl: pdfUrl,
       };
     } catch (error) {
-      console.error('[ExportService] Error exporting to PDF:', error);
+      Logger.error('[ExportService] Error exporting to PDF', error as Error, { component: 'exportService' });
       return {
         success: false,
         error: 'Failed to export playbook. Please try again.',
@@ -148,7 +149,7 @@ export class ExportService {
         downloadUrl: docxUrl,
       };
     } catch (error) {
-      console.error('[ExportService] Error exporting to DOCX:', error);
+      Logger.error('[ExportService] Error exporting to DOCX', error as Error, { component: 'exportService' });
       return {
         success: false,
         error: 'Failed to export playbook. Please try again.',
@@ -176,7 +177,7 @@ export class ExportService {
       if (error) {throw error;}
       return data;
     } catch (error) {
-      console.error('[ExportService] Error fetching playbook data:', error);
+      Logger.error('[ExportService] Error fetching playbook data', error as Error, { component: 'exportService' });
       return null;
     }
   }

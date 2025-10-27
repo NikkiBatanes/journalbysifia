@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from './useSubscription';
 import { tierRestrictionService, FeatureAccessResult } from '../services/tierRestrictionService';
@@ -59,7 +60,7 @@ export function useFeatureAccess({
         onRestricted(result);
       }
     } catch (error) {
-      console.error('[useFeatureAccess] Error checking access:', error);
+      Logger.error('[useFeatureAccess] Error checking access', error as Error, { component: 'useFeatureAccess' });
       // Default to allowing access on error
       setAccessResult({ hasAccess: true });
     } finally {
@@ -116,7 +117,7 @@ export function useMultipleFeatureAccess(features: string[]) {
       const results = await tierRestrictionService.checkMultipleFeatures(user.id, features);
       setAccessResults(results);
     } catch (error) {
-      console.error('[useMultipleFeatureAccess] Error checking access:', error);
+      Logger.error('[useMultipleFeatureAccess] Error checking access', error as Error, { component: 'useFeatureAccess' });
       // Default to allowing access on error
       const defaultResults: Record<string, FeatureAccessResult> = {};
       features.forEach(feature => {
@@ -236,7 +237,7 @@ export function useRestrictionRetention() {
 
       setRetentionOffer(offer);
     } catch (error) {
-      console.error('[useRestrictionRetention] Error getting offer:', error);
+      Logger.error('[useRestrictionRetention] Error getting offer', error as Error, { component: 'useFeatureAccess' });
     } finally {
       setIsLoadingOffer(false);
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -249,7 +250,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       }
     },
     onError: (error) => {
-      console.error('Error creating prayer:', error);
+      Logger.error('Error creating prayer', error as Error, { component: 'SmartJournalingPrayerModal' });
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     },
   });
@@ -319,7 +320,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       }
     },
     onError: (error) => {
-      console.error('Error updating prayer:', error);
+      Logger.error('Error updating prayer', error as Error, { component: 'SmartJournalingPrayerModal' });
       Alert.alert('Error', 'Failed to update prayer. Please try again.');
     },
   });
@@ -397,7 +398,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       }, 500);
 
     } catch (error: any) {
-      console.error('❌ SmartJournalingPrayerModal: SAVE FAILED:', error);
+      Logger.error('❌ SmartJournalingPrayerModal: SAVE FAILED', error as Error, { component: 'SmartJournalingPrayerModal' });
       Alert.alert(
         'Error',
         `Failed to save prayer: ${error?.message || 'Unknown error'}`,

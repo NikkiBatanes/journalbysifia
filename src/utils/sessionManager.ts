@@ -4,6 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 
 interface SessionInfo {
@@ -38,7 +39,7 @@ class SessionManager {
         this.sessionInfo = { ...this.sessionInfo, ...JSON.parse(storedInfo) };
       }
     } catch (error) {
-      console.error('[SessionManager] Failed to load session info:', error);
+      Logger.error('[SessionManager] Failed to load session info', error as Error, { component: 'sessionManager' });
     }
   }
 
@@ -51,7 +52,7 @@ class SessionManager {
     try {
       await AsyncStorage.setItem(this.SESSION_INFO_KEY, JSON.stringify(this.sessionInfo));
     } catch (error) {
-      console.error('[SessionManager] Failed to save session info:', error);
+      Logger.error('[SessionManager] Failed to save session info', error as Error, { component: 'sessionManager' });
     }
   }
 

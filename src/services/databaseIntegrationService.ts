@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 export interface SchemaValidationResult {
   isValid: boolean;
@@ -200,7 +201,7 @@ class DatabaseIntegrationService {
 
       return true;
     } catch (error) {
-      console.error('Function test error:', error);
+      Logger.error('Function test error', error as Error, { component: 'databaseIntegrationService' });
       return false;
     }
   }

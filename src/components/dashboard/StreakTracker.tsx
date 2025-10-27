@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -150,7 +151,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[StreakTracker] Error fetching activities for streaks:', error);
+        Logger.error('[StreakTracker] Error fetching activities for streaks', error as Error, { component: 'StreakTracker' });
         // Still calculate streaks with empty data to show 0 streaks
         const streakData = calculateStreaks([]);
         setStreaks(streakData);
@@ -163,7 +164,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
       setActivities(data || []);
 
     } catch (err) {
-      console.error('Error fetching streaks:', err);
+      Logger.error('Error fetching streaks', err as Error, { component: 'StreakTracker' });
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -1144,7 +1145,7 @@ return (
             onSave={async (entryData: any) => {
               triggerLightHaptic();
               if (!user) {
-                console.error('User not authenticated');
+                Logger.error('User not authenticated', undefined, { component: 'ReflectionLogReactQuery' });
                 return;
               }
 

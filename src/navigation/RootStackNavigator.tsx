@@ -1,5 +1,6 @@
 // src/navigation/RootStackNavigator.tsx
 import React from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   createNativeStackNavigator,
@@ -130,7 +131,7 @@ const PlaybookHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
 //       try {
 //         navigation.goBack();
 //       } catch (error) {
-//         console.log('Navigation error in DevotionalHeaderLeft:', error);
+//         Logger.debug('Navigation error in DevotionalHeaderLeft', { component: 'RootStackNavigator', data: error });
 //       }
 //     }}
 //   />

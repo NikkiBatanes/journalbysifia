@@ -5,6 +5,7 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -51,7 +52,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to console for debugging
-    console.error('[OnboardingErrorBoundary] Error caught:', error);
+    Logger.error('[OnboardingErrorBoundary] Error caught', error as Error, { component: 'OnboardingErrorBoundary' });
     console.error('[OnboardingErrorBoundary] Error info:', errorInfo);
 
     // Update state with error details

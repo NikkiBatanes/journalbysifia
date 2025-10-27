@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -106,7 +107,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               }
             }
           } catch (parseError) {
-            console.warn('Error parsing playbook bible_verse:', parseError);
+            Logger.warn('Error parsing playbook bible_verse', { component: 'DailyBibleVerseCard', data: parseError });
           }
         });
       }
@@ -246,7 +247,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               }
             } catch {}
           } catch (parseError) {
-            console.warn('Error parsing devotional content:', parseError);
+            Logger.warn('Error parsing devotional content', { component: 'DailyBibleVerseCard', data: parseError });
           }
         });
       }
@@ -283,7 +284,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       }
 
     } catch (err) {
-      console.error('Error fetching daily verse:', err);
+      Logger.error('Error fetching daily verse', err as Error, { component: 'DailyBibleVerseCard' });
       setError('Unable to load verse');
       setVerse(null);
     } finally {
@@ -308,7 +309,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       onVersePress?.(verse);
     } catch (err) {
       // Even if something unexpected happens, still proceed with the callback
-      console.warn('Verse press encountered an issue, proceeding without points:', err);
+      Logger.warn('Verse press encountered an issue, proceeding without points', { component: 'DailyBibleVerseCard', data: err });
       onVersePress?.(verse);
     }
   };

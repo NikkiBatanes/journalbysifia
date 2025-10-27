@@ -1,4 +1,5 @@
 import { NavigationProp } from '@react-navigation/native';
+import { Logger } from '../utils/ProductionLogger';
 
 export type JournalType =
   | 'prayer'
@@ -55,7 +56,7 @@ export class SmartJournalingNavigation {
         break;
 
       default:
-        console.warn('[SmartJournalingNavigation] Unknown journal type:', journalType);
+        Logger.warn('[SmartJournalingNavigation] Unknown journal type', { component: 'smartJournalingNavigation', data: journalType });
         this.navigateToJournalDefault();
         break;
     }

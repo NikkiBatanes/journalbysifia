@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -153,7 +154,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       }
     },
     onError: (error) => {
-      console.error('❌ Error creating time block:', error);
+      Logger.error('❌ Error creating time block', error as Error, { component: 'SmartJournalingTimeBlockModal' });
       Alert.alert('Error', 'Failed to save time block. Please try again.');
     },
   });
@@ -182,7 +183,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       setHasSaved(true);
     },
     onError: (error) => {
-      console.error('❌ Error updating time block:', error);
+      Logger.error('❌ Error updating time block', error as Error, { component: 'SmartJournalingTimeBlockModal' });
       Alert.alert('Error', 'Failed to update time block. Please try again.');
     },
   });
@@ -295,7 +296,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       }, 500);
 
     } catch (error: any) {
-      console.error('❌ SmartJournalingTimeBlockModal: SAVE FAILED:', error);
+      Logger.error('❌ SmartJournalingTimeBlockModal: SAVE FAILED', error as Error, { component: 'SmartJournalingTimeBlockModal' });
       Alert.alert(
         'Error',
         `Failed to save time block: ${error?.message || 'Unknown error'}`,

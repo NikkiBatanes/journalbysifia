@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
@@ -106,7 +107,7 @@ const DevotionalsScreen = () => {
         navigation.navigate('PlaybookDetail', { playbook: playbookData });
       }
     } catch (error) {
-      console.error('Error fetching playbook:', error);
+      Logger.error('Error fetching playbook', error as Error, { component: 'DevotionalsScreen' });
     }
   };
 
@@ -114,7 +115,7 @@ const DevotionalsScreen = () => {
     try {
       await deleteDevotional(devotionalId);
     } catch (error) {
-      console.error('Error deleting devotional:', error);
+      Logger.error('Error deleting devotional', error as Error, { component: 'DevotionalsScreen' });
     }
   };
 

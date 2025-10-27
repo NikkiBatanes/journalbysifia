@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../../utils/ProductionLogger';
 import NetInfo from '@react-native-community/netinfo';
 import { onlineManager, QueryClient } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
@@ -35,7 +36,7 @@ export async function setupQueryPersistence(queryClient: QueryClient) {
       },
     });
   } catch (error) {
-    console.error('Failed to setup query persistence:', error);
+    Logger.error('Failed to setup query persistence', error as Error, { component: 'offlineConfig' });
   }
 }
 
@@ -74,7 +75,7 @@ export async function clearPersistedCache() {
     await asyncStoragePersister.removeClient();
 
   } catch (error) {
-    console.error('Failed to clear persisted cache:', error);
+    Logger.error('Failed to clear persisted cache', error as Error, { component: 'offlineConfig' });
   }
 }
 

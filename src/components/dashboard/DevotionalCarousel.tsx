@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -238,7 +239,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
                 estimatedDuration = Math.max(3, Math.ceil(textLength / 200));
               }
             } catch (parseError) {
-              console.warn('Error parsing devotional content:', parseError);
+              Logger.warn('Error parsing devotional content', { component: 'DevotionalCarousel', data: parseError });
             }
 
             if (progressData && progressData.progress_data) {
@@ -253,7 +254,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
                 completedAt = progress.completedAt || progressUpdatedAt || undefined;
                 lastAccessed = progressUpdatedAt || undefined;
               } catch (parseError) {
-                console.warn('Error parsing progress data:', parseError);
+                Logger.warn('Error parsing progress data', { component: 'DevotionalCarousel', data: parseError });
               }
             }
 
@@ -284,7 +285,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               nextDayTitle,
             };
           } catch (err) {
-            console.warn('Error processing devotional:', err);
+            Logger.warn('Error processing devotional', { component: 'DevotionalCarousel', data: err });
             return {
               id: devotional.id,
               title: devotional.title,
@@ -313,7 +314,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       devotionalIdsRef.current = new Set(sortedDevotionals.map(d => d.id));
 
     } catch (err) {
-      console.error('Error fetching devotionals:', err);
+      Logger.error('Error fetching devotionals', err as Error, { component: 'DevotionalCarousel' });
       setError('Unable to load devotionals');
     } finally {
       setLoading(false);

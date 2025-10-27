@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import {
   View,
   Text,
@@ -62,7 +63,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
       const analytics = await getFamilyUsageAnalytics();
       setUsageAnalytics(analytics);
     } catch (err) {
-      console.error('Error loading usage analytics:', err);
+      Logger.error('Error loading usage analytics', err as Error, { component: 'FamilyAdminDashboardScreen' });
     }
   }, [getFamilyUsageAnalytics]);
 

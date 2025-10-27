@@ -4,6 +4,7 @@
  */
 
 import { faithPointsService } from '../services/faithPointsService';
+import { Logger } from '../utils/ProductionLogger';
 import { generateProgressReport, printProgressReport } from './progressReport';
 
 export const testFaithPointsSystem = async (userId: string) => {
@@ -45,7 +46,7 @@ export const testFaithPointsSystem = async (userId: string) => {
     };
 
   } catch (error) {
-    console.error('❌ Faith Points Test Failed:', error);
+    Logger.error('❌ Faith Points Test Failed', error as Error, { component: 'testFaithPoints' });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -66,6 +67,6 @@ export const logFaithPointsStatus = async (userId: string) => {
     }
 
   } catch (error) {
-    console.error('❌ Failed to get faith points status:', error);
+    Logger.error('❌ Failed to get faith points status', error as Error, { component: 'testFaithPoints' });
   }
 };

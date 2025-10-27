@@ -6,6 +6,7 @@ import {
   UseQueryOptions,
 } from '@tanstack/react-query';
 import { TimeBlockApi, TimeBlockApiEntry, ApiError } from '../api/timeBlockApi';
+import { Logger } from '../../utils/ProductionLogger';
 import { queryKeys } from '../queryKeys';
 import { RETRY_CONFIGS, createRetryFunction } from '../../utils/retry';
 
@@ -134,7 +135,7 @@ export const useCreateTimeBlock = () => {
       return { optimisticId };
     },
     onError: (error, variables, context) => {
-      console.error('Error creating time block:', error);
+      Logger.error('Error creating time block', error as Error, { component: 'useTimeBlockData' });
       // Rollback the optimistic update
       if (context?.optimisticId) {
         const queryKey = queryKeys.timeBlocks.byDate(variables.user_id, variables.selected_date);
@@ -239,7 +240,7 @@ export const useUpdateTimeBlock = () => {
       return { previousTimeBlock, optimisticId, queryKey };
     },
     onError: (error, variables, context) => {
-      console.error('Error updating time block:', error);
+      Logger.error('Error updating time block', error as Error, { component: 'useTimeBlockData' });
 
       // Rollback on error
       if (context?.previousTimeBlock && context?.queryKey) {
@@ -327,7 +328,7 @@ export const useDeleteTimeBlock = () => {
       };
     },
     onError: (error, timeBlockId, context) => {
-      console.error('Error deleting time block:', error);
+      Logger.error('Error deleting time block', error as Error, { component: 'useTimeBlockData' });
 
       // Rollback on error
       if (context?.previousTimeBlocks && context?.queryKey) {

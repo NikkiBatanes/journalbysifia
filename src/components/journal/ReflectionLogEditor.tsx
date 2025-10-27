@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useImperativeHandle, useState, useCallback } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
@@ -1019,7 +1020,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                             await saveDraftHelper();
                             resolve(true);
                           } catch (error) {
-                            console.error('Error saving draft:', error);
+                            Logger.error('Error saving draft', error as Error, { component: 'ReflectionLogEditor' });
                             resolve(false);
                           }
                         },

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 // SwipeableTodoItem handles the gesture handler imports

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -105,7 +106,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       );
 
     } catch (e) {
-      console.warn('Could not set post-auth redirect flag:', e);
+      Logger.warn('Could not set post-auth redirect flag', { component: 'EmailRegisterScreen', data: e });
     }
     // Do not navigate here; the auth state change will switch stacks and Splash will redirect immediately
     return;

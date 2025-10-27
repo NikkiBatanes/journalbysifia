@@ -4,6 +4,7 @@
  */
 
 import { useMemo, useState, useEffect } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { analytics } from '../utils/analytics';
@@ -51,7 +52,7 @@ export const useCalendarGating = (): CalendarGatingState => {
 
         setCurrentTier(subscriptionData.tier || 'seeker');
       } catch (error) {
-        console.error('🔍 useCalendarGating - Failed to get subscription:', error);
+        Logger.error('🔍 useCalendarGating - Failed to get subscription', error as Error, { component: 'useCalendarGating' });
 
         // Fallback to user object properties
         const userTier = (user as any)?.subscription?.tier

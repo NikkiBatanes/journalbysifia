@@ -160,7 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return true;
     } catch (e: any) {
-      console.error('Login error:', e);
+      Logger.error('Login error', e as Error, { component: 'AuthContext' });
       const errorMessage = e.message || 'Login failed. Please check your credentials and try again.';
       setError(errorMessage);
 
@@ -200,7 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setIsAuthenticated(false);
     } catch (e) {
-      console.error('Logout error:', e);
+      Logger.error('Logout error', e as Error, { component: 'AuthContext' });
       setError('Logout failed.');
     } finally {
       setLoading(false);

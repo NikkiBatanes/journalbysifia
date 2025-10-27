@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -378,7 +379,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       // Check if step should be auto-completed
       setTimeout(() => checkAndCompleteStep(stepId), 100);
     } catch (e) {
-      console.error('Failed to mark subtask as done:', e);
+      Logger.error('Failed to mark subtask as done', e as Error, { component: 'ActionStepsCard' });
       setError('Failed to complete subtask. Please try again.');
     }
   }, [user, checkAndCompleteStep, queryClient]);

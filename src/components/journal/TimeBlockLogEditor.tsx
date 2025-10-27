@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useImperativeHandle, useMemo } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -798,7 +799,7 @@ function TimeBlockLogEditorInner(
         existingId: existingTimeBlock?.id, // Pass existing ID for deletion/unmarking
       });
     } catch (error) {
-      console.error('Error in handleSave:', error);
+      Logger.error('Error in handleSave', error as Error, { component: 'TimeBlockLogEditor' });
       Alert.alert('Error', 'Failed to save time block. Please try again.');
     }
   };

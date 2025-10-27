@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { updatePlaybookActionSteps, calculateTaskStats } from '../services/apiIntegration';
 import { usePlaybookStore } from '../store/usePlaybookStore';
 import { Playbook } from '../interfaces/playbook';
@@ -169,7 +170,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
   const saveActionSteps = useCallback(async (pbId: string) => {
     try {
       if (!pbId) {
-        console.warn('[ActionStepsContext] No playbookId provided to saveActionSteps!');
+        Logger.warn('[ActionStepsContext] No playbookId provided to saveActionSteps!', { component: 'ActionStepsContext' });
         return;
       }
 
@@ -177,7 +178,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       await updatePlaybookActionSteps(pbId, actionSteps);
 
     } catch (error) {
-      console.error('[ActionStepsContext] Error saving action steps:', error);
+      Logger.error('[ActionStepsContext] Error saving action steps', error as Error, { component: 'ActionStepsContext' });
       throw error;
     }
   }, [actionSteps]);

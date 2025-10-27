@@ -4,6 +4,7 @@
  */
 
 import { faithPointsService } from '../services/faithPointsService';
+import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 
 interface ProgressMetrics {
@@ -103,7 +104,7 @@ export const generateProgressReport = async (userId: string): Promise<ProgressRe
     return report;
 
   } catch (error) {
-    console.error('❌ Failed to generate progress report:', error);
+    Logger.error('❌ Failed to generate progress report', error as Error, { component: 'progressReport' });
     throw error;
   }
 };

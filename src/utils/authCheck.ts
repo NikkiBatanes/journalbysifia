@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 
 export const debugAuthState = async () => {
@@ -14,7 +15,7 @@ export const debugAuthState = async () => {
     // Validate session
     await supabase.auth.getSession();
   } catch (error) {
-    console.error('[Auth Debug] Error reading AsyncStorage session:', error);
+    Logger.error('[Auth Debug] Error reading AsyncStorage session', error as Error, { component: 'authCheck' });
   }
 
   // Check Supabase session
@@ -25,7 +26,7 @@ export const debugAuthState = async () => {
 
     }
   } catch (error) {
-    console.error('[Auth Debug] Error getting Supabase session:', error);
+    Logger.error('[Auth Debug] Error getting Supabase session', error as Error, { component: 'authCheck' });
   }
 
 };
@@ -50,10 +51,10 @@ export const getCurrentUserId = async (): Promise<string | null> => {
       }
     }
 
-    console.warn('[getCurrentUserId] No user ID found in any source');
+    Logger.warn('[getCurrentUserId] No user ID found in any source', { component: 'authCheck' });
     return null;
   } catch (error) {
-    console.error('[getCurrentUserId] Error getting user ID:', error);
+    Logger.error('[getCurrentUserId] Error getting user ID', error as Error, { component: 'authCheck' });
     return null;
   }
 };

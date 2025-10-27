@@ -4,11 +4,12 @@
  */
 
 import * as Sentry from '@sentry/react-native';
+import { Logger } from '../utils/ProductionLogger';
 
 // Initialize Sentry
 export const initializeSentry = () => {
   if (__DEV__) {
-    console.log('[Sentry] Skipping initialization in development mode');
+    Logger.debug('[Sentry] Skipping initialization in development mode', { component: 'sentry' });
     return;
   }
 
@@ -81,7 +82,7 @@ export const initializeSentry = () => {
     ],
   });
 
-  console.log('[Sentry] Initialized successfully');
+  Logger.debug('[Sentry] Initialized successfully', { component: 'sentry' });
 };
 
 // Set user context

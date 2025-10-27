@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import { View, Alert, Text, StyleSheet } from 'react-native';
 import ReflectionLogEditor from './ReflectionLogEditor';
 import { useReflectionForm } from '../../hooks/useReflectionForm';
@@ -79,7 +80,7 @@ export const EnhancedReflectionLogEditor: React.FC<EnhancedReflectionLogEditorPr
         });
         resetForm();
       } catch (error) {
-        console.error('Error saving reflection:', error);
+        Logger.error('Error saving reflection', error as Error, { component: 'EnhancedReflectionLogEditor' });
         Alert.alert('Error', 'Failed to save reflection. Please try again.');
       }
     },

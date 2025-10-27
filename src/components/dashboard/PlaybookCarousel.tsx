@@ -154,7 +154,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
                   totalSteps = 1;
                 }
               } catch (parseError) {
-                console.warn('Error parsing playbook content:', parseError);
+                Logger.warn('Error parsing playbook content', { component: 'PlaybookCarousel', data: parseError });
                 totalSteps = 1;
               }
             }
@@ -187,7 +187,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               category: playbook.category || 'Personal Growth',
             };
           } catch (err) {
-            console.warn('Error processing playbook:', err);
+            Logger.warn('Error processing playbook', { component: 'PlaybookCarousel', data: err });
             return {
               id: playbook.id,
               title: playbook.title,

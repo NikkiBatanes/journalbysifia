@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -355,7 +356,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     });
                   });
                 } else {
-                  console.error('❌ Error fetching playbook from database:', error);
+                  Logger.error('❌ Error fetching playbook from database', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
                   throw new Error('Failed to fetch generated playbook');
                 }
 
@@ -368,7 +369,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 setTimeout(poll, 1000); // Poll every 1 second for responsive onboarding
               }
             } catch (error) {
-              console.error('❌ Error during polling:', error);
+              Logger.error('❌ Error during polling', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
               throw error;
             }
           };
@@ -378,7 +379,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         };
 
           pollForCompletion().catch((error) => {
-            console.error('❌ Playbook generation failed:', error);
+            Logger.error('❌ Playbook generation failed', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
             setGenerationError(error.message || 'Failed to generate playbook. Please try again.');
             setIsGenerating(false);
           });
@@ -465,7 +466,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('❌ Error generating playbook:', error);
+      Logger.error('❌ Error generating playbook', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
       setGenerationError('Unable to generate your playbook. Please try again.');
       setIsGenerating(false);
     }

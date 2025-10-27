@@ -6,6 +6,7 @@
  */
 
 import { SubscriptionTier, SubscriptionLimits } from '../interfaces/subscription';
+import { Logger } from '../utils/ProductionLogger';
 import { subscriptionService } from './subscriptionService';
 
 export interface FeatureAccessResult {
@@ -191,7 +192,7 @@ class TierRestrictionService {
 
       return { hasAccess: true };
     } catch (error) {
-      console.error('[TierRestrictionService] Error checking feature access:', error);
+      Logger.error('[TierRestrictionService] Error checking feature access', error as Error, { component: 'tierRestrictionService' });
       // Default to allowing access on error to avoid blocking users
       return { hasAccess: true };
     }
@@ -244,7 +245,7 @@ class TierRestrictionService {
       // We'll implement this when retention service is ready
 
     } catch (error) {
-      console.error('[TierRestriction] Error triggering retention:', error);
+      Logger.error('[TierRestriction] Error triggering retention', error as Error, { component: 'tierRestrictionService' });
     }
   }
 

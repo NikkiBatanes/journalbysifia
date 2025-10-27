@@ -1,5 +1,6 @@
 // src/services/hooks/useReflectionData.ts
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { Logger } from '../../utils/ProductionLogger';
 import { ReflectionApi, ReflectionApiEntry } from '../api/reflectionApi';
 import { queryKeys } from '../queryKeys';
 import { defaultQueryOptions, defaultMutationOptions, queryOptionsPresets } from '../config/queryConfig';
@@ -333,7 +334,7 @@ export const useDeleteReflection = () => {
 
     },
     onError: (error) => {
-      console.error('❌ useDeleteReflection: Delete failed:', error);
+      Logger.error('❌ useDeleteReflection: Delete failed', error as Error, { component: 'useReflectionData' });
     },
     // Simple configuration - no retries to avoid complications
     retry: false,

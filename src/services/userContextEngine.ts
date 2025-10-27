@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 export interface UserContext {
   // Core user data
@@ -104,7 +105,7 @@ export class UserContextEngine {
       return context;
 
     } catch (error) {
-      console.error('[UserContextEngine] Error building context:', error);
+      Logger.error('[UserContextEngine] Error building context', error as Error, { component: 'userContextEngine' });
 
       // Return minimal context if error occurs
       return {
@@ -224,7 +225,7 @@ Generate content that directly addresses their input while incorporating their p
       };
 
     } catch (error) {
-      console.error('[UserContextEngine] Error getting historical data:', error);
+      Logger.error('[UserContextEngine] Error getting historical data', error as Error, { component: 'userContextEngine' });
       return {
         recentTopics: [],
         preferredComplexity: 'moderate' as const,
@@ -318,7 +319,7 @@ Generate content that directly addresses their input while incorporating their p
       };
 
     } catch (error) {
-      console.error('[UserContextEngine] Error extracting behavior patterns:', error);
+      Logger.error('[UserContextEngine] Error extracting behavior patterns', error as Error, { component: 'userContextEngine' });
       return {
         averageEngagementTime: 15,
         completionPatterns: [],
@@ -341,7 +342,7 @@ Generate content that directly addresses their input while incorporating their p
           updated_at: new Date().toISOString(),
         });
     } catch (error) {
-      console.error('[UserContextEngine] Error storing context:', error);
+      Logger.error('[UserContextEngine] Error storing context', error as Error, { component: 'userContextEngine' });
     }
   }
 

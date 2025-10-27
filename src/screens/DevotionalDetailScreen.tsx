@@ -549,7 +549,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           selected_date: currentDate,
         })
         .catch(error => {
-          console.warn('[DevotionalDetailScreen] Failed to award devotional prayer faith points:', error);
+          Logger.warn('[DevotionalDetailScreen] Failed to award devotional prayer faith points', { component: 'DevotionalDetailScreen', data: error });
         });
     }
   }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation]);

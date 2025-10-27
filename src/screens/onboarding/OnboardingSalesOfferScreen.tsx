@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -155,7 +156,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           }
         }
       } catch (e) {
-        console.error('Failed to load pricing:', e);
+        Logger.error('Failed to load pricing', e as Error, { component: 'OnboardingSalesOfferScreen' });
       }
     };
     loadPricing();

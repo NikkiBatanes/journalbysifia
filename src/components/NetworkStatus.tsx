@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 
@@ -35,7 +36,7 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
     try {
       await forceSyncNow();
     } catch (error) {
-      console.error('Manual sync failed:', error);
+      Logger.error('Manual sync failed', error as Error, { component: 'NetworkStatus' });
     }
   };
 

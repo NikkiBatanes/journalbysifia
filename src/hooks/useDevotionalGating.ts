@@ -2,6 +2,7 @@
 // Provides comprehensive access control and usage tracking for devotionals
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { subscriptionService } from '../services/subscriptionService';
 import type { SubscriptionTier, Subscription } from '../types/subscription';
@@ -91,7 +92,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
       });
 
     } catch (error) {
-      console.error('[useDevotionalGating] Failed to load subscription:', error);
+      Logger.error('[useDevotionalGating] Failed to load subscription', error as Error, { component: 'useDevotionalGating' });
       setState(prev => ({
         ...prev,
         loading: false,

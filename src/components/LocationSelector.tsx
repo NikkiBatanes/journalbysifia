@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import {
   View,
   TextInput,
@@ -84,7 +85,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         setShowSuggestions(true);
       }
     } catch (error) {
-      console.error('🗺️ [LocationSelector] ❌ Exception:', error);
+      Logger.error('🗺️ [LocationSelector] ❌ Exception', error as Error, { component: 'LocationSelector' });
       // Graceful fallback - just focus the input for manual entry
       setInputValue('');
       setShowSuggestions(true);
@@ -112,7 +113,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         setSearchResults([]);
       }
     } catch (error) {
-      console.error('Error searching locations:', error);
+      Logger.error('Error searching locations', error as Error, { component: 'LocationSelector' });
       setSearchResults([]);
     } finally {
       setIsSearching(false);

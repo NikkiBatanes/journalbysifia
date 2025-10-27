@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 
 export interface ReflectionFormValues {
   title: string;
@@ -143,7 +144,7 @@ export function useReflectionForm({
       try {
         await onSubmit(values);
       } catch (error) {
-        console.error('Form submission error:', error);
+        Logger.error('Form submission error', error as Error, { component: 'useReflectionForm' });
         // You could set a general form error here
       } finally {
         setIsSubmitting(false);

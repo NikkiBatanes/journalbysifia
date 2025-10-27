@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { User, UserPreferences, Goal, Challenge, UserProgress, Badge, AuthError } from '../types/auth';
 import { faithPointsService } from './faithPointsService';
 
@@ -107,7 +108,7 @@ class UserApiService {
         .eq('id', user.user.id);
 
       if (error) {
-        console.error('[UserApi] Error updating preferences:', error);
+        Logger.error('[UserApi] Error updating preferences', error as Error, { component: 'userApi' });
         return {
           success: false,
           error: { code: 'UPDATE_FAILED', message: error.message },

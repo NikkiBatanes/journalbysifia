@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
@@ -199,7 +200,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       // Debug: Check user authentication
 
       if (!user || !user.id) {
-        console.error('User not authenticated or missing ID');
+        Logger.error('User not authenticated or missing ID', undefined, { component: 'PrayerJournalCardReactQuery' });
         return;
       }
 
@@ -243,7 +244,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           date: dateStr,
         }, user.id);
 
-        console.error('Error adding prayer:', err);
+        Logger.error('Error adding prayer', err as Error, { component: 'PrayerJournalCardReactQuery' });
         // Error is handled by React Query
       }
     }
@@ -288,7 +289,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         date: dateStr,
       }, user.id);
 
-      console.error('Error updating prayer status:', err);
+      Logger.error('Error updating prayer status', err as Error, { component: 'PrayerJournalCardReactQuery' });
       // Error is handled by React Query
     }
   };

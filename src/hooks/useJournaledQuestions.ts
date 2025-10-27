@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { ReflectionApi, ReflectionApiEntry } from '../services/api/reflectionApi';
 
 export interface JournaledQuestion {
@@ -42,7 +43,7 @@ export const useJournaledQuestions = (userId: string, devotionalId: string) => {
 
       setJournaledQuestions(journaled);
     } catch (error) {
-      console.error('Error fetching journaled questions:', error);
+      Logger.error('Error fetching journaled questions', error as Error, { component: 'useJournaledQuestions' });
     } finally {
       setLoading(false);
     }

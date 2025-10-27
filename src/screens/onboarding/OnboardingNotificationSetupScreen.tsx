@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -87,7 +88,7 @@ const OnboardingNotificationSetupScreen = () => {
         const hasPermissions = await pushNotificationService.checkPermissions();
         setPermissionStatus(hasPermissions ? 'granted' : 'unknown');
       } catch (error) {
-        console.error('Error checking notification permissions:', error);
+        Logger.error('Error checking notification permissions', error as Error, { component: 'OnboardingNotificationSetupScreen' });
         setPermissionStatus('unknown');
       }
     };
@@ -247,7 +248,7 @@ const OnboardingNotificationSetupScreen = () => {
       }
 
     } catch (error) {
-      console.error('Error setting up notifications:', error);
+      Logger.error('Error setting up notifications', error as Error, { component: 'OnboardingNotificationSetupScreen' });
       Alert.alert(
         'Setup Complete',
         'You can always enable notifications later in your profile settings.',

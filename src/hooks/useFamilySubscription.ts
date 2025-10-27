@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { FamilySubscriptionService, FamilyGroup, FamilyMember, FamilyInvitation } from '../services/FamilySubscriptionService';
 
@@ -63,7 +64,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load family data';
       setError(errorMessage);
-      console.error('[useFamilySubscription] Load error:', err);
+      Logger.error('[useFamilySubscription] Load error', err as Error, { component: 'useFamilySubscription' });
     } finally {
       setLoading(false);
     }
@@ -219,7 +220,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     try {
       return await FamilySubscriptionService.getFamilyUsageAnalytics(familyGroup.id);
     } catch (err) {
-      console.error('[useFamilySubscription] Failed to get analytics:', err);
+      Logger.error('[useFamilySubscription] Failed to get analytics', err as Error, { component: 'useFamilySubscription' });
       throw err;
     }
   }, [familyGroup]);

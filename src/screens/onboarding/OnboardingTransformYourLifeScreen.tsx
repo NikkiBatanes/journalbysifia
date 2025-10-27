@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -79,7 +80,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
       // Navigate to welcome screen
       navigation.navigate('OnboardingWelcome' as any);
     } catch (error) {
-      console.error('Error proceeding to welcome screen:', error);
+      Logger.error('Error proceeding to welcome screen', error as Error, { component: 'OnboardingTransformYourLifeScreen' });
     } finally {
       setIsLoading(false);
     }

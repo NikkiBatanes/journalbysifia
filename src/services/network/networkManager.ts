@@ -4,6 +4,7 @@
  */
 
 import NetInfo from '@react-native-community/netinfo';
+import { Logger } from '../../utils/ProductionLogger';
 import { onlineManager } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -227,7 +228,7 @@ class NetworkManager {
         removeOfflineAction(action.id);
 
       } catch (error) {
-        console.error('❌ Failed to sync offline action:', error);
+        Logger.error('❌ Failed to sync offline action', error as Error, { component: 'networkManager' });
         incrementRetryCount(action.id);
 
         // Remove action if max retries exceeded

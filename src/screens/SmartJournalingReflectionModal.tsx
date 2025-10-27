@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { toLocalDateString } from '../utils/date';
 import { Modal, StyleSheet, Alert, View, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -322,7 +323,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       }, 0);
 
     } catch (error: any) {
-      console.error('❌ SmartJournalingReflectionModal: SAVE FAILED:', error);
+      Logger.error('❌ SmartJournalingReflectionModal: SAVE FAILED', error as Error, { component: 'SmartJournalingReflectionModal' });
       Alert.alert(
         'Error',
         `Failed to save reflection: ${error?.message || 'Unknown error'}`,

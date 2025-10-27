@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
@@ -214,7 +215,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               selected_date: dateStr,
             })
             .catch(catchError => {
-              console.warn('[EnhancedPrayerListReactQuery] Failed to award prayer list faith points:', catchError);
+              Logger.warn('[EnhancedPrayerListReactQuery] Failed to award prayer list faith points', { component: 'EnhancedPrayerListReactQuery', data: catchError });
             });
         }
       }
@@ -235,7 +236,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         globalEditMode.setGlobalEditMode(false);
       }
     } catch (err) {
-      console.error('Error saving prayer:', err);
+      Logger.error('Error saving prayer', err as Error, { component: 'EnhancedPrayerListReactQuery' });
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     } finally {
       setIsSaving(false);

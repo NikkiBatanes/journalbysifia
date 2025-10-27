@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   TouchableOpacity,
@@ -254,7 +255,7 @@ const formatAnsweredDate = (dateString: string | null | undefined): string => {
 
     return date.toLocaleDateString('en-US', options);
   } catch (error) {
-    console.error('Error formatting date:', error);
+    Logger.error('Error formatting date', error as Error, { component: 'PrayerJournalReactQuery' });
     return 'Error formatting date';
   }
 };
@@ -497,7 +498,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               selected_date: dateStr,
             })
             .catch(error => {
-              console.warn('[PrayerJournalReactQuery] Failed to award prayer journal faith points:', error);
+              Logger.warn('[PrayerJournalReactQuery] Failed to award prayer journal faith points', { component: 'PrayerJournalReactQuery', data: error });
             });
         }
 
@@ -569,7 +570,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         date: dateStr,
       });
     } catch (error) {
-      console.error('Error marking prayer as answered:', error);
+      Logger.error('Error marking prayer as answered', error as Error, { component: 'PrayerJournalReactQuery' });
       Alert.alert('Error', 'Failed to update prayer status. Please try again.');
       // Error feedback
       triggerErrorHaptic();

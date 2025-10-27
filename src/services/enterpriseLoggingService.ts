@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -273,12 +274,12 @@ class EnterpriseLoggingService {
         .insert(logsToFlush);
 
       if (error) {
-        console.error('[EnterpriseLogging] Failed to flush logs to database:', error);
+        Logger.error('[EnterpriseLogging] Failed to flush logs to database', error as Error, { component: 'enterpriseLoggingService' });
         // Return logs to buffer for retry
         this.logBuffer.unshift(...logsToFlush);
       }
     } catch (error) {
-      console.error('[EnterpriseLogging] Error flushing logs:', error);
+      Logger.error('[EnterpriseLogging] Error flushing logs', error as Error, { component: 'enterpriseLoggingService' });
       // Return logs to buffer for retry
       this.logBuffer.unshift(...logsToFlush);
     } finally {
@@ -330,7 +331,7 @@ class EnterpriseLoggingService {
 
       return data || [];
     } catch (error) {
-      console.error('[EnterpriseLogging] Error querying logs:', error);
+      Logger.error('[EnterpriseLogging] Error querying logs', error as Error, { component: 'enterpriseLoggingService' });
       return [];
     }
   }
@@ -402,7 +403,7 @@ class EnterpriseLoggingService {
         topErrors,
       };
     } catch (error) {
-      console.error('[EnterpriseLogging] Error getting log metrics:', error);
+      Logger.error('[EnterpriseLogging] Error getting log metrics', error as Error, { component: 'enterpriseLoggingService' });
       return {
         totalLogs: 0,
         logsByLevel: { debug: 0, info: 0, warn: 0, error: 0, fatal: 0 },

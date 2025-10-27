@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
@@ -196,7 +197,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           });
         }
       } catch (e) {
-        console.warn('⚠️ Error checking force navigation flag:', e);
+        Logger.warn('⚠️ Error checking force navigation flag', { component: 'OnboardingPersonalizationScreen', data: e });
       }
     };
 

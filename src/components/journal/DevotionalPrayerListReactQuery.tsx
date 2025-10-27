@@ -1,4 +1,5 @@
 import React, { useRef, useCallback } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -63,7 +64,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
   }
 
   if (error) {
-    console.error('❌ Error loading devotional prayers:', error);
+    Logger.error('❌ Error loading devotional prayers', error as Error, { component: 'DevotionalPrayerListReactQuery' });
     return null; // Don't show error state for devotional prayers
   }
 

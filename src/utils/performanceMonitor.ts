@@ -4,6 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../utils/ProductionLogger';
 
 // Performance metrics interface
 interface PerformanceMetric {
@@ -216,7 +217,7 @@ class PerformanceMonitor {
         this.metrics = JSON.parse(stored);
       }
     } catch (error) {
-      console.warn('[PerformanceMonitor] Failed to load metrics from storage:', error);
+      Logger.warn('[PerformanceMonitor] Failed to load metrics from storage', { component: 'performanceMonitor', data: error });
     }
   }
 
@@ -227,7 +228,7 @@ class PerformanceMonitor {
     try {
       await AsyncStorage.setItem(this.storageKey, JSON.stringify(this.metrics));
     } catch (error) {
-      console.warn('[PerformanceMonitor] Failed to save metrics to storage:', error);
+      Logger.warn('[PerformanceMonitor] Failed to save metrics to storage', { component: 'performanceMonitor', data: error });
     }
   }
 }

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { Logger } from '../utils/ProductionLogger';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Playbook } from '../interfaces/playbook';
@@ -47,7 +48,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
             return { playbooks: merged, isLoading: false };
           });
         } catch (error) {
-          console.error('[loadPlaybooks] Error:', error);
+          Logger.error('[loadPlaybooks] Error', error as Error, { component: 'usePlaybookStore' });
           set({ isLoading: false });
         }
       },
@@ -102,7 +103,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
                 updatedPlaybook.completedAt
               );
             } catch (err) {
-              console.error('[updateActionStep] Error persisting:', err);
+              Logger.error('[updateActionStep] Error persisting', err as Error, { component: 'usePlaybookStore' });
             }
           }
         }, 0);

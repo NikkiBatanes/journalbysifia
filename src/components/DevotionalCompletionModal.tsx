@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Modal,
@@ -229,7 +230,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 setShowLocalPoints(true);
               }, 100);
             } catch (e) {
-              console.error('[DevotionalCompletionModal] Error showing points:', e);
+              Logger.error('[DevotionalCompletionModal] Error showing points', e as Error, { component: 'DevotionalCompletionModal' });
             }
           } else {
 

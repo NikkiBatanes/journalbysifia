@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -276,7 +277,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       setAffirmations(picks);
 
     } catch (err) {
-      console.error('Error fetching daily affirmation:', err);
+      Logger.error('Error fetching daily affirmation', err as Error, { component: 'DailyAffirmationCard' });
       try { triggerErrorHaptic(); } catch {}
       setError('Unable to load affirmation');
       setAffirmations([]);

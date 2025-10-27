@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -276,7 +277,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               }
             }
           } catch (parseError) {
-            console.warn('Error parsing devotional content:', parseError);
+            Logger.warn('Error parsing devotional content', { component: 'ReflectionQuestionsCard', data: parseError });
           }
         });
       }
@@ -318,7 +319,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       setQuestions([...allQuestions, ...guidedQuestions]);
 
     } catch (err) {
-      console.error('Error fetching reflection questions:', err);
+      Logger.error('Error fetching reflection questions', err as Error, { component: 'ReflectionQuestionsCard' });
       setError('Unable to load reflection questions');
       setQuestions([]);
     } finally {

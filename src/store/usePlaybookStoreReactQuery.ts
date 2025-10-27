@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -462,7 +463,7 @@ export const usePlaybookDataWithStore = (userId: string) => {
       }
 
     } catch (error) {
-      console.error('[usePlaybookDataWithStore] Action step sync failed:', error);
+      Logger.error('[usePlaybookDataWithStore] Action step sync failed', error as Error, { component: 'usePlaybookStoreReactQuery' });
       // React Query will handle rollback automatically
     }
   }, [updateActionStepOptimistic, updateActionStepMutation, userId, getPlaybookById, getPlaybookProgress, syncPlaybookProgress, prefetchRelatedData]);
@@ -487,7 +488,7 @@ export const usePlaybookDataWithStore = (userId: string) => {
       });
 
     } catch (error) {
-      console.error('[usePlaybookDataWithStore] Sub-task sync failed:', error);
+      Logger.error('[usePlaybookDataWithStore] Sub-task sync failed', error as Error, { component: 'usePlaybookStoreReactQuery' });
     }
   }, [updateSubTaskOptimistic, updateSubTaskMutation, userId]);
 
@@ -509,7 +510,7 @@ export const usePlaybookDataWithStore = (userId: string) => {
       });
 
     } catch (error) {
-      console.error('[usePlaybookDataWithStore] Affirmation sync failed:', error);
+      Logger.error('[usePlaybookDataWithStore] Affirmation sync failed', error as Error, { component: 'usePlaybookStoreReactQuery' });
     }
   }, [updateAffirmationOptimistic, updateAffirmationMutation, userId]);
 

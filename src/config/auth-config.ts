@@ -1,3 +1,4 @@
+import { Logger } from "./utils/ProductionLogger";
 /**
  * Enterprise Authentication Configuration
  * Contains all authentication provider settings for production deployment
@@ -52,7 +53,7 @@ export const validateAuthConfig = (): boolean => {
   const missing = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
   if (missing.length > 0) {
-    console.warn('⚠️ Missing required environment variables:', missing);
+    Logger.warn('⚠️ Missing required environment variables', { component: 'auth-config', data: missing });
     return false;
   }
 

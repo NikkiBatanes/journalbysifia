@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { Logger } from '../../../utils/ProductionLogger';
 import { View, StyleSheet, SectionList, RefreshControlProps, TouchableOpacity } from 'react-native';
 import { Feather } from 'lucide-react-native';
 import { JournalPlugin } from '../types';
@@ -1001,7 +1002,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
       setRealEntries(entries);
     } catch (error) {
-      console.error('❌ [MomentsRenderer] Error fetching journal entries:', error);
+      Logger.error('❌ [MomentsRenderer] Error fetching journal entries', error as Error, { component: 'EnhancedMomentsRenderer' });
       setRealEntries([]);
     } finally {
       setLoading(false);

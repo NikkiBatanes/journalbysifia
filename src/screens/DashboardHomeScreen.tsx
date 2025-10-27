@@ -976,7 +976,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.unprayedRequests(user.id) });
       }
     } catch (e) {
-      console.error('Failed to mark prayer request as prayed:', e);
+      Logger.error('Failed to mark prayer request as prayed', e as Error, { component: 'DashboardHomeScreen' });
       Alert.alert('Error', 'Failed to update prayer request status.');
     } finally {
       setShowPrayerModal(false);
@@ -1067,7 +1067,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         }, 3200);
       }
     } catch (e) {
-      console.error('Failed to save prayer:', e);
+      Logger.error('Failed to save prayer', e as Error, { component: 'DashboardHomeScreen' });
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     } finally {
       setSavingModalPrayer(false);

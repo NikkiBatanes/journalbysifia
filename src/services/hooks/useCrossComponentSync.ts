@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 import { faithPointsService } from '../faithPointsService';
@@ -138,7 +139,7 @@ export const useCrossComponentSync = (userId: string) => {
 
       return syncEvent;
     } catch (error) {
-      console.error('[CrossComponentSync] Error syncing devotional completion:', error);
+      Logger.error('[CrossComponentSync] Error syncing devotional completion', error as Error, { component: 'useCrossComponentSync' });
       // Clear guard on error to allow retry
       const guardKeyForCleanup = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
       delete completionGuardRef.current[guardKeyForCleanup];

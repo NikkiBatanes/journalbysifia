@@ -3,6 +3,7 @@
 // Handles all subscription logic for the new tier system
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import {
   Subscription,
   SubscriptionTier,
@@ -338,7 +339,7 @@ export class NewSubscriptionService {
     if (error) {
       // Handle specific schema cache errors
       if (error.message?.includes('Could not find') && error.message?.includes('platform')) {
-        console.error('❌ Database schema issue: platform column not found. Please apply the subscription schema.');
+        Logger.error('❌ Database schema issue: platform column not found. Please apply the subscription schema.', undefined, { component: 'NewSubscriptionService' });
         throw new SubscriptionError(
           'Database schema not up to date. Please contact support.',
           'SCHEMA_ERROR',

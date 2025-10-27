@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../services/supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 async function updateOnboardingSchema() {
 
@@ -58,11 +59,11 @@ async function updateOnboardingSchema() {
     if (testError) {
       console.error('❌ Function test failed:', testError);
     } else {
-      console.log('✅ Function test passed');
+      Logger.debug('✅ Function test passed', { component: 'updateOnboardingSchema' });
     }
 
   } catch (error) {
-    console.error('❌ Schema update failed:', error);
+    Logger.error('❌ Schema update failed', error as Error, { component: 'updateOnboardingSchema' });
   }
 }
 

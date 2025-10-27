@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../services/supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 export const checkDatabaseTables = async () => {
 
@@ -68,7 +69,7 @@ export const checkDatabaseTables = async () => {
     };
 
   } catch (error) {
-    console.error('❌ Database check failed:', error);
+    Logger.error('❌ Database check failed', error as Error, { component: 'databaseCheck' });
     return {
       profilesTable: false,
       logTable: false,
@@ -84,6 +85,6 @@ export const createMissingTables = async () => {
     // This would require admin privileges, so we'll just log what needs to be done
 
   } catch (error) {
-    console.error('❌ Failed to create tables:', error);
+    Logger.error('❌ Failed to create tables', error as Error, { component: 'databaseCheck' });
   }
 };

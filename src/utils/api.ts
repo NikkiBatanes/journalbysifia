@@ -1,4 +1,5 @@
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { Logger } from '../utils/ProductionLogger';
 import { authErrorHandler, AuthErrorHandlerOptions } from './authErrorHandler';
 import { useCallback, useRef } from 'react';
 
@@ -25,7 +26,7 @@ export const useApi = () => {
     try {
       // Check if we have a valid session
       if (!session?.access_token) {
-        console.warn('⚠️ No authentication token available');
+        Logger.warn('⚠️ No authentication token available', { component: 'api' });
 
         const result = await authErrorHandler.handleApiError(
           { status: 401, message: 'No authentication token' },

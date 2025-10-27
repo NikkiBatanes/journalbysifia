@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, Animated, Image, Alert, StatusBar, ScrollView, NativeModules } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -177,7 +178,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           });
         }
       } catch (error) {
-        console.error('[GeneratingPlaybook] Error:', error);
+        Logger.error('[GeneratingPlaybook] Error', error as Error, { component: 'GeneratingPlaybookScreen' });
         Alert.alert('Error', 'Failed to generate playbook. Please try again.');
         navigation.goBack();
       } finally {

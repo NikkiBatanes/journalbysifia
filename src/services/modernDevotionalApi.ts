@@ -161,7 +161,7 @@ export async function generateDevotional(
 
         }
       } catch (trackingError) {
-        console.warn('[ModernDevotionalApi] Failed to track usage:', trackingError);
+        Logger.warn('[ModernDevotionalApi] Failed to track usage', { component: 'modernDevotionalApi', data: trackingError });
         // Don't fail the generation if tracking fails
       }
 
