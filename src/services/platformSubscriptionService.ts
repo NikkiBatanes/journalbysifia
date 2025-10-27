@@ -1,4 +1,5 @@
 import * as RNIap from 'react-native-iap';
+import { Logger } from '../utils/ProductionLogger';
 import { Platform } from 'react-native';
 import { SubscriptionTier } from '../types/subscription';
 
@@ -127,7 +128,9 @@ class PlatformSubscriptionService {
       this.isInitialized = true;
 
     } catch (error) {
-      console.error('[PlatformSubscription] Initialization failed:', error);
+      Logger.error('[PlatformSubscription] Initialization failed', error as Error, {
+      component: 'platformSubscriptionService',
+    });
       throw new PlatformSubscriptionError(
         'Failed to initialize subscription service',
         'INIT_FAILED',
@@ -179,7 +182,9 @@ class PlatformSubscriptionService {
       return result;
 
     } catch (error) {
-      console.error('[PlatformSubscription] Upgrade failed:', error);
+      Logger.error('[PlatformSubscription] Upgrade failed', error as Error, {
+      component: 'platformSubscriptionService',
+    });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new PlatformSubscriptionError(
         `Upgrade failed: ${errorMessage}`,
@@ -345,7 +350,9 @@ class PlatformSubscriptionService {
       )[0] || null;
 
     } catch (error) {
-      console.error('[PlatformSubscription] Failed to get current subscription:', error);
+      Logger.error('[PlatformSubscription] Failed to get current subscription', error as Error, {
+      component: 'platformSubscriptionService',
+    });
       return null;
     }
   }
@@ -359,7 +366,9 @@ class PlatformSubscriptionService {
 
       return purchases;
     } catch (error) {
-      console.error('[PlatformSubscription] Restore failed:', error);
+      Logger.error('[PlatformSubscription] Restore failed', error as Error, {
+      component: 'platformSubscriptionService',
+    });
       throw new PlatformSubscriptionError(
         'Failed to restore purchases',
         'RESTORE_FAILED',
@@ -378,7 +387,9 @@ class PlatformSubscriptionService {
       this.isInitialized = false;
 
     } catch (error) {
-      console.error('[PlatformSubscription] Cleanup failed:', error);
+      Logger.error('[PlatformSubscription] Cleanup failed', error as Error, {
+      component: 'platformSubscriptionService',
+    });
     }
   }
 
@@ -401,7 +412,9 @@ class PlatformSubscriptionService {
       const current = await this.getCurrentSubscription();
       return current?.purchaseToken || null;
     } catch (error) {
-      console.error('[PlatformSubscription] Failed to get subscription token:', error);
+      Logger.error('[PlatformSubscription] Failed to get subscription token', error as Error, {
+      component: 'platformSubscriptionService',
+    });
       return null;
     }
   }

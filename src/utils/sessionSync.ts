@@ -1,4 +1,5 @@
 import { supabase } from '../services/supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 /**
  * Session synchronization utilities
@@ -42,7 +43,9 @@ export async function checkSessionSync(): Promise<SessionSyncResult> {
 
     return result;
   } catch (error) {
-    console.error('❌ Session sync check failed:', error);
+    Logger.error('❌ Session sync check failed', error as Error, {
+      component: 'sessionSync',
+    });
 
     return {
       isAuthenticated: false,
@@ -62,18 +65,24 @@ export async function forceSessionRefresh(): Promise<{ success: boolean; error?:
     const { data: { session }, error } = await supabase.auth.refreshSession();
 
     if (error) {
-      console.error('❌ Force refresh failed:', error);
+      Logger.error('❌ Force refresh failed', error as Error, {
+      component: 'sessionSync',
+    });
       return { success: false, error };
     }
 
     if (!session || !session.access_token) {
-      console.warn('⚠️ No valid session after force refresh');
+      Logger.warn('⚠️ No valid session after force refresh', {
+      component: 'sessionSync',
+    });
       return { success: false, error: 'No valid session returned' };
     }
 
     return { success: true };
   } catch (error) {
-    console.error('💥 Force refresh exception:', error);
+    Logger.error('💥 Force refresh exception', error as Error, {
+      component: 'sessionSync',
+    });
     return { success: false, error };
   }
 }
@@ -87,7 +96,9 @@ export async function clearSessionData(): Promise<void> {
     await supabase.auth.signOut();
 
   } catch (error) {
-    console.error('❌ Failed to clear session data:', error);
+    Logger.error('❌ Failed to clear session data', error as Error, {
+      component: 'sessionSync',
+    });
   }
 }
 
@@ -129,7 +140,9 @@ export async function validateSession(): Promise<{
 
     return { isValid, diagnostics };
   } catch (error) {
-    console.error('❌ Session validation failed:', error);
+    Logger.error('❌ Session validation failed', error as Error, {
+      component: 'sessionSync',
+    });
 
     return {
       isValid: false,

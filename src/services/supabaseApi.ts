@@ -410,7 +410,9 @@ export async function savePlaybook(playbook: Playbook, userId: string) {
   try {
 
     if (!playbook.id) {
-      console.error('[savePlaybook] Cannot save playbook without ID');
+      Logger.error('[savePlaybook] Cannot save playbook without ID', undefined, {
+      component: 'supabaseApi',
+    });
       return null;
     }
 
@@ -664,7 +666,9 @@ export async function getPlaybooks(userId: string) {
  */
 export async function deletePlaybook(id: string | number, _userId: string): Promise<{ success: boolean; error?: string }> {
   if (!id) {
-    console.error('[deletePlaybook] No playbook ID provided');
+    Logger.error('[deletePlaybook] No playbook ID provided', undefined, {
+      component: 'supabaseApi',
+    });
     return { success: false, error: 'No playbook ID provided' };
   }
 

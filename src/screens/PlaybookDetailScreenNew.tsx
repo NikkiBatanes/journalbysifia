@@ -1,5 +1,6 @@
 // React & React Native
 import * as React from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
@@ -289,7 +290,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
         return result;
       } catch (err) {
-        console.error('❌ Database fetch error:', err);
+        Logger.error('❌ Database fetch error', err as Error, {
+      component: 'PlaybookDetailScreenNew',
+    });
         throw err;
       }
     },
@@ -695,7 +698,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
       // Prefetch adjacent playbooks and related data
       prefetchForCurrentPlaybook(playbookId).catch(prefetchError => {
-        console.warn('[PlaybookDetailScreen] Prefetching failed:', prefetchError);
+        Logger.warn('[PlaybookDetailScreen] Prefetching failed', {
+      component: 'PlaybookDetailScreenNew',
+      data: prefetchError,
+    });
       });
     }
   }, [playbookId, userId, playbook, prefetchForCurrentPlaybook]);
@@ -894,7 +900,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         await saveActionSteps(playbook.id);
 
       } catch (err) {
-        console.error('Error in debounced save:', err);
+        Logger.error('Error in debounced save', err as Error, {
+      component: 'PlaybookDetailScreenNew',
+    });
       } finally {
         setIsSaving(false);
       }
@@ -940,7 +948,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         lastSavedActionSteps.current = currentActionStepsStr;
 
       } catch (error) {
-        console.error('Error saving progress:', error);
+        Logger.error('Error saving progress', error as Error, {
+      component: 'PlaybookDetailScreenNew',
+    });
       } finally {
         setIsSaving(false);
       }

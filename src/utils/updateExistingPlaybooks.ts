@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../services/supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { detectJournalType } from './journalTypeDetection';
 
 /**
@@ -30,7 +31,9 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
       .or('detected_journal_type.is.null,detected_journal_type.eq.none,detected_journal_type.eq.');
 
     if (error) {
-      console.error('❌ Error fetching subtasks:', error);
+      Logger.error('❌ Error fetching subtasks', error as Error, {
+      component: 'updateExistingPlaybooks',
+    });
       return;
     }
 
@@ -74,7 +77,9 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
     }
 
   } catch (error) {
-    console.error('❌ Error in updateExistingPlaybooksWithJournalTypes:', error);
+    Logger.error('❌ Error in updateExistingPlaybooksWithJournalTypes', error as Error, {
+      component: 'updateExistingPlaybooks',
+    });
   }
 }
 
@@ -99,7 +104,9 @@ export async function updatePlaybookWithJournalTypes(playbookId: string): Promis
       .or('detected_journal_type.is.null,detected_journal_type.eq.none,detected_journal_type.eq.');
 
     if (error) {
-      console.error('❌ Error fetching subtasks:', error);
+      Logger.error('❌ Error fetching subtasks', error as Error, {
+      component: 'updateExistingPlaybooks',
+    });
       return;
     }
 
@@ -136,6 +143,8 @@ export async function updatePlaybookWithJournalTypes(playbookId: string): Promis
     }
 
   } catch (error) {
-    console.error('❌ Error in updatePlaybookWithJournalTypes:', error);
+    Logger.error('❌ Error in updatePlaybookWithJournalTypes', error as Error, {
+      component: 'updateExistingPlaybooks',
+    });
   }
 }

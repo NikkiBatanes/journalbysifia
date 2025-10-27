@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, Keyboard } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -113,7 +114,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
           return parsedContent.metadata?.subtask_id === subtaskId || parsedContent.subtask_id === subtaskId;
         } catch (error) {
-          console.error('Error parsing gratitude content:', error);
+          Logger.error('Error parsing gratitude content', error as Error, {
+      component: 'SmartJournalingGratitudeModal',
+    });
           return false;
         }
       });
@@ -322,7 +325,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       }, 500);
 
     } catch (error: any) {
-      console.error('❌ SmartJournalingGratitudeModal: SAVE FAILED:', error);
+      Logger.error('❌ SmartJournalingGratitudeModal: SAVE FAILED', error as Error, {
+      component: 'SmartJournalingGratitudeModal',
+    });
       Alert.alert(
         'Error',
         `Failed to save gratitude: ${error?.message || 'Unknown error'}`,
@@ -393,7 +398,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
                     : currentGratitudeEntry.content;
                   return parsedContent.items || [];
                 } catch (error) {
-                  console.error('Error parsing gratitude content for initialItems:', error);
+                  Logger.error('Error parsing gratitude content for initialItems', error as Error, {
+      component: 'SmartJournalingGratitudeModal',
+    });
                   return [];
                 }
               })()

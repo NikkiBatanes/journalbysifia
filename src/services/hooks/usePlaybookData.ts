@@ -1,5 +1,6 @@
 // src/services/hooks/usePlaybookData.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Logger } from '../../utils/ProductionLogger';
 import { Playbook } from '../../interfaces/playbook';
 import { queryKeys } from '../queryKeys';
 import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
@@ -44,7 +45,9 @@ export const usePlaybooksData = (userId: string, config?: Partial<QueryConfig>) 
 
           return playbooks;
         } catch (error) {
-          console.error('[usePlaybooksData] Error fetching playbooks:', error);
+          Logger.error('[usePlaybooksData] Error fetching playbooks', error as Error, {
+      component: 'usePlaybookData',
+    });
           throw error;
         }
       },
@@ -83,7 +86,9 @@ export const usePlaybookData = (userId: string, playbookId: string, config?: Par
           }
           return playbook;
         } catch (error) {
-          console.error('[usePlaybookData] Error fetching playbook:', error);
+          Logger.error('[usePlaybookData] Error fetching playbook', error as Error, {
+      component: 'usePlaybookData',
+    });
           throw error;
         }
       },
@@ -119,7 +124,9 @@ export const usePlaybooksByStatus = (
           const playbooks = await getPlaybooksApi(userId);
           return playbooks.filter(p => p.status === status);
         } catch (error) {
-          console.error('[usePlaybooksByStatus] Error:', error);
+          Logger.error('[usePlaybooksByStatus] Error', error as Error, {
+      component: 'usePlaybookData',
+    });
           throw error;
         }
       },
@@ -253,7 +260,9 @@ export const useUpdateActionStep = () => {
 
     // On error, rollback optimistic update
     onError: (error, variables, context) => {
-      console.error('[useUpdateActionStep] Error:', error);
+      Logger.error('[useUpdateActionStep] Error', error as Error, {
+      component: 'usePlaybookData',
+    });
 
       if (context?.previousPlaybooks) {
         queryClient.setQueryData(
@@ -381,7 +390,9 @@ export const useUpdateSubTask = () => {
     },
 
     onError: (error, variables, context) => {
-      console.error('[useUpdateSubTask] Error:', error);
+      Logger.error('[useUpdateSubTask] Error', error as Error, {
+      component: 'usePlaybookData',
+    });
       if (context?.previousPlaybooks) {
         queryClient.setQueryData(
           queryKeys.playbooks.all(variables.userId),
@@ -468,7 +479,9 @@ export const useUpdateAffirmation = () => {
     },
 
     onError: (error, variables, context) => {
-      console.error('[useUpdateAffirmation] Error:', error);
+      Logger.error('[useUpdateAffirmation] Error', error as Error, {
+      component: 'usePlaybookData',
+    });
       if (context?.previousPlaybooks) {
         queryClient.setQueryData(
           queryKeys.playbooks.all(variables.userId),

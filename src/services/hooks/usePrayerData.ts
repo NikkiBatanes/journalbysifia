@@ -1,5 +1,6 @@
 // src/services/hooks/usePrayerData.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Logger } from '../../utils/ProductionLogger';
 import { PrayerApi, PrayerApiEntry } from '../api/prayerApi';
 import { queryKeys } from '../queryKeys';
 import { createRetryFunction } from '../../utils/retry';
@@ -212,7 +213,9 @@ export const useCreatePrayer = () => {
       return { previousPrayers, previousPeoplePrayers, optimisticPrayer };
     },
     onError: (err: Error, newPrayer, context) => {
-      console.error('Error creating prayer:', err);
+      Logger.error('Error creating prayer', err as Error, {
+      component: 'usePrayerData',
+    });
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousPrayers) {
         queryClient.setQueryData(
@@ -304,7 +307,9 @@ export const useUpdatePrayer = () => {
       return { previousPrayers };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
-      console.error('Error updating prayer:', err);
+      Logger.error('Error updating prayer', err as Error, {
+      component: 'usePrayerData',
+    });
       // If the mutation fails, use the context to roll back
       if (context?.previousPrayers) {
         queryClient.setQueryData(
@@ -398,7 +403,9 @@ export const useDeletePrayer = () => {
       return { previousPrayers, previousPeople, previousACTS };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
-      console.error('Error deleting prayer:', err);
+      Logger.error('Error deleting prayer', err as Error, {
+      component: 'usePrayerData',
+    });
       // If the mutation fails, use the context to roll back
       if (context?.previousPrayers) {
         queryClient.setQueryData(
@@ -518,7 +525,9 @@ export const useMarkSupplicationAnswered = () => {
       return { previousPrayers, previousACTSData };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
-      console.error('Error marking supplication as answered:', err);
+      Logger.error('Error marking supplication as answered', err as Error, {
+      component: 'usePrayerData',
+    });
       if (context?.previousPrayers) {
         queryClient.setQueryData(
           queryKeys.prayers.entries(_userId, _dateStr),
@@ -607,7 +616,9 @@ export const useMarkPrayerRequestPrayed = () => {
       return { previousPrayers, previousUnprayed };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
-      console.error('Error marking prayer request as prayed:', err);
+      Logger.error('Error marking prayer request as prayed', err as Error, {
+      component: 'usePrayerData',
+    });
       if (context?.previousPrayers) {
         queryClient.setQueryData(
           queryKeys.prayers.entries(_userId, _dateStr),
@@ -776,7 +787,9 @@ export const useCreateDevotionalPrayer = () => {
     },
     onError: (error, { userId, dateStr }, context) => {
       // Log the error for debugging
-      console.error('Error creating devotional prayer:', error);
+      Logger.error('Error creating devotional prayer', error as Error, {
+      component: 'usePrayerData',
+    });
 
       // Rollback optimistic updates
       if (context?.previousDevotional) {

@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { subscriptionService } from './subscriptionService';
 
 export interface UserIntelligenceProfile {
@@ -102,7 +103,9 @@ export class IntelligenceService {
 
       return data as UserIntelligenceProfile;
     } catch (error) {
-      console.error('[IntelligenceService] Error getting intelligence profile:', error);
+      Logger.error('[IntelligenceService] Error getting intelligence profile', error as Error, {
+      component: 'intelligenceService',
+    });
       throw error;
     }
   }
@@ -142,7 +145,9 @@ export class IntelligenceService {
       await this.updateIntelligenceProfileFromBehavior(userId);
 
     } catch (error) {
-      console.error('[IntelligenceService] Error tracking behavior:', error);
+      Logger.error('[IntelligenceService] Error tracking behavior', error as Error, {
+      component: 'intelligenceService',
+    });
       // Don't throw - behavior tracking should not break the main flow
     }
   }
@@ -167,7 +172,9 @@ export class IntelligenceService {
         currentFocus: this.buildCurrentFocus(profile),
       };
     } catch (error) {
-      console.error('[IntelligenceService] Error generating personalized prompt data:', error);
+      Logger.error('[IntelligenceService] Error generating personalized prompt data', error as Error, {
+      component: 'intelligenceService',
+    });
       return null;
     }
   }
@@ -195,7 +202,9 @@ export class IntelligenceService {
         confidenceScore: profile.confidence_score,
       };
     } catch (error) {
-      console.error('[IntelligenceService] Error getting content recommendations:', error);
+      Logger.error('[IntelligenceService] Error getting content recommendations', error as Error, {
+      component: 'intelligenceService',
+    });
       return null;
     }
   }
@@ -229,7 +238,9 @@ export class IntelligenceService {
       await this.updateIntelligenceProfile(userId, patterns);
 
     } catch (error) {
-      console.error('[IntelligenceService] Error analyzing user patterns:', error);
+      Logger.error('[IntelligenceService] Error analyzing user patterns', error as Error, {
+      component: 'intelligenceService',
+    });
     }
   }
 
@@ -270,7 +281,9 @@ export class IntelligenceService {
       .single();
 
     if (error) {
-      console.error('[IntelligenceService] Error creating intelligence profile:', error);
+      Logger.error('[IntelligenceService] Error creating intelligence profile', error as Error, {
+      component: 'intelligenceService',
+    });
       throw error;
     }
 
