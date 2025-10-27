@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { pushNotificationService } from './pushNotificationService';
 
 export interface NotificationPreferences {
@@ -68,7 +69,10 @@ class NotificationManagementService {
           console.warn('Notification preferences table/column not found - returning null:', error.message);
           return null;
         }
-        console.error('Error fetching notification preferences:', error);
+        Logger.error('Error fetching notification preferences', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         return null;
       }
 
@@ -96,7 +100,10 @@ class NotificationManagementService {
 
       return preferences;
     } catch (error) {
-      console.error('Error in getNotificationPreferences:', error);
+      Logger.error('Error in getNotificationPreferences', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return null;
     }
   }
@@ -139,13 +146,19 @@ class NotificationManagementService {
           console.warn('Notification preferences table/column not found - skipping notification setup:', error.message);
           return true; // Return success to avoid blocking onboarding
         }
-        console.error('Error updating notification preferences:', error);
+        Logger.error('Error updating notification preferences', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in updateNotificationPreferences:', error);
+      Logger.error('Error in updateNotificationPreferences', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return false;
     }
   }
@@ -164,13 +177,19 @@ class NotificationManagementService {
         });
 
       if (error) {
-        console.error('Error scheduling notification:', error);
+        Logger.error('Error scheduling notification', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in scheduleNotification:', error);
+      Logger.error('Error in scheduleNotification', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return false;
     }
   }
@@ -207,7 +226,10 @@ class NotificationManagementService {
 
       return false;
     } catch (error) {
-      console.error('Error in sendImmediateNotification:', error);
+      Logger.error('Error in sendImmediateNotification', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return false;
     }
   }
@@ -237,7 +259,10 @@ class NotificationManagementService {
           updateData.last_playbook_action = new Date().toISOString();
           break;
         default:
-          console.warn('Unknown activity type:', activityType);
+          Logger.warn('Unknown activity type', {
+      component: 'notificationManagementService',
+      activityType,
+    });
           return false;
       }
 
@@ -246,13 +271,19 @@ class NotificationManagementService {
         .upsert(updateData);
 
       if (error) {
-        console.error('Error updating user activity:', error);
+        Logger.error('Error updating user activity', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in updateUserActivity:', error);
+      Logger.error('Error in updateUserActivity', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return false;
     }
   }
@@ -269,13 +300,19 @@ class NotificationManagementService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user activity:', error);
+        Logger.error('Error fetching user activity', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in getUserActivity:', error);
+      Logger.error('Error in getUserActivity', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return null;
     }
   }
@@ -298,13 +335,19 @@ class NotificationManagementService {
       const { error } = await query;
 
       if (error) {
-        console.error('Error cancelling notifications:', error);
+        Logger.error('Error cancelling notifications', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in cancelNotifications:', error);
+      Logger.error('Error in cancelNotifications', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return false;
     }
   }
@@ -322,13 +365,19 @@ class NotificationManagementService {
         .order('scheduled_for', { ascending: true });
 
       if (error) {
-        console.error('Error fetching pending notifications:', error);
+        Logger.error('Error fetching pending notifications', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getPendingNotifications:', error);
+      Logger.error('Error in getPendingNotifications', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return [];
     }
   }
@@ -378,13 +427,19 @@ class NotificationManagementService {
           .insert(initialActivity);
 
         if (error) {
-          console.error('Error initializing user activity:', error);
+          Logger.error('Error initializing user activity', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
         }
       }
 
       return true;
     } catch (error) {
-      console.error('Error in initializeForUser:', error);
+      Logger.error('Error in initializeForUser', error as Error, {
+      component: 'notificationManagementService',
+      action: 'error',
+    });
       return false;
     }
   }

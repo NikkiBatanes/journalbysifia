@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { subscriptionService } from './subscriptionService';
 import { intelligenceService } from './intelligenceService';
 
@@ -88,7 +89,9 @@ export class QueueService {
             personalizationEnabled = true;
           }
         } catch (fetchError) {
-          console.warn('[QueueService] Could not get personalization data, proceeding with basic generation');
+          Logger.warn('[QueueService] Could not get personalization data, proceeding with basic generation', {
+      component: 'queueService',
+    });
         }
       }
 
@@ -126,7 +129,10 @@ export class QueueService {
       if (error) {
         // Silently handle partitioning errors since fallback works perfectly
         if (error.code !== '23514') {
-          console.error('[QueueService] Error adding to queue:', error);
+          Logger.error('[QueueService] Error adding to queue', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
         }
         // If schema mismatch or partitioning error, try with basic fields only
         if (error.code === 'PGRST204' || error.code === '23514') {
@@ -140,7 +146,10 @@ export class QueueService {
           if (basicError) {
             // Silently handle partitioning errors since fallback works perfectly
             if (basicError.code !== '23514') {
-              console.error('[QueueService] Basic insert also failed:', basicError);
+              Logger.error('[QueueService] Basic insert also failed', basicError as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
             }
             // For partitioning errors, don't use queue at all - throw to trigger fallback
             if (error.code === '23514' || basicError.code === '23514') {
@@ -166,7 +175,10 @@ export class QueueService {
     } catch (error) {
       // Silently handle partitioning errors since fallback works perfectly
       if (!(error as any)?.message?.includes('Database partitioning error')) {
-        console.error('[QueueService] Error in addToQueue:', error);
+        Logger.error('[QueueService] Error in addToQueue', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
       }
       throw error;
     }
@@ -210,7 +222,10 @@ export class QueueService {
         intelligenceEnabled: limits.intelligenceEnabled,
       };
     } catch (error) {
-      console.error('[QueueService] Error getting queue status:', error);
+      Logger.error('[QueueService] Error getting queue status', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
       return {
         pending: 0,
         processing: 0,
@@ -254,7 +269,10 @@ export class QueueService {
 
       return result;
     } catch (error) {
-      console.error('[QueueService] Error checking generation status:', error);
+      Logger.error('[QueueService] Error checking generation status', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
       return { status: 'failed', errorMessage: 'Error checking status' };
     }
   }
@@ -309,13 +327,19 @@ export class QueueService {
       // Process items concurrently (respecting OpenAI rate limits)
       const processingPromises = pendingItems.map(item =>
         this.processQueueItem(item).catch(error => {
-          console.error(`[QueueService] Error processing item ${item.id}:`, error);
+          Logger.error(`[QueueService] Error processing item ${item.id}:`, error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
         })
       );
 
       await Promise.allSettled(processingPromises);
     } catch (error) {
-      console.error('[QueueService] Error in processQueue:', error);
+      Logger.error('[QueueService] Error in processQueue', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
     }
   }
 
@@ -373,14 +397,20 @@ export class QueueService {
       }
 
     } catch (error: unknown) {
-      console.error(`[QueueService] Error processing queue item ${item.id}:`, error);
+      Logger.error(`[QueueService] Error processing queue item ${item.id}:`, error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
 
       // Handle retry logic
       if (item.retry_count < item.max_retries) {
         await this.retryQueueItem(item.id);
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`[QueueService] ❌ Final failure for ${item.type} generation (user ${item.user_id}):`, errorMessage);
+        Logger.error(`[QueueService] ❌ Final failure for ${item.type} generation (user ${item.user_id}):`, new Error(errorMessage), {
+      component: 'queueService',
+      action: 'error',
+    });
         await this.updateQueueStatus(item.id, 'failed', {
           failed_at: new Date().toISOString(),
           error_message: errorMessage,
@@ -433,7 +463,10 @@ export class QueueService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[QueueService] Response error:', errorText);
+      Logger.error('[QueueService] Response error', new Error(errorText), {
+      component: 'queueService',
+      action: 'error',
+    });
       throw new Error(`Playbook generation failed: ${response.statusText} - ${errorText}`);
     }
 
@@ -474,7 +507,10 @@ export class QueueService {
         // Don't throw error - the generation succeeded, just log the save issue
       }
     } catch (saveError) {
-      console.error('[QueueService] Error using savePlaybook function:', saveError);
+      Logger.error('[QueueService] Error using savePlaybook function', saveError as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
       // Don't throw error - the generation succeeded, just log the save issue
     }
 
@@ -560,7 +596,10 @@ export class QueueService {
         .eq('id', itemId);
 
       if (error) {
-        console.error(`[QueueService] Failed to update queue status for ${itemId}:`, error);
+        Logger.error(`[QueueService] Failed to update queue status for ${itemId}:`, error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
 
         // If schema error, try with minimal fields only
         if (error.code === 'PGRST204') {
@@ -576,7 +615,10 @@ export class QueueService {
             .eq('id', itemId);
 
           if (minimalError) {
-            console.error(`[QueueService] Even minimal update failed for ${itemId}:`, minimalError);
+            Logger.error(`[QueueService] Even minimal update failed for ${itemId}:`, minimalError as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
             // Don't throw - log and continue to prevent app crashes
             return;
           }
@@ -588,7 +630,10 @@ export class QueueService {
       }
 
     } catch (error) {
-      console.error(`[QueueService] Error updating queue status for ${itemId}:`, error);
+      Logger.error(`[QueueService] Error updating queue status for ${itemId}:`, error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
       // Don't throw to prevent cascading failures - log and continue
 
     }
@@ -676,13 +721,19 @@ export class QueueService {
         .eq('status', 'pending');
 
       if (error) {
-        console.error('[QueueService] Error cancelling queue item:', error);
+        Logger.error('[QueueService] Error cancelling queue item', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('[QueueService] Error in cancelQueueItem:', error);
+      Logger.error('[QueueService] Error in cancelQueueItem', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
       return false;
     }
   }
@@ -729,7 +780,10 @@ export class QueueService {
         processingRate,
       };
     } catch (error) {
-      console.error('[QueueService] Error getting queue statistics:', error);
+      Logger.error('[QueueService] Error getting queue statistics', error as Error, {
+      component: 'queueService',
+      action: 'error',
+    });
       return { totalPending: 0, totalProcessing: 0, averageWaitTime: 0, processingRate: 0 };
     }
   }

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 import RNIap, {
   ProductPurchase,
   PurchaseError,
@@ -339,9 +340,14 @@ export class AppleStoreKitService {
         return true;
       }
     } catch (error) {
-      console.error('[StoreKit] Receipt validation error:', error);
+      Logger.error('[StoreKit] Receipt validation error', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       // Don't fail the purchase if validation errors out
-      console.warn('[StoreKit] Proceeding with purchase despite validation error');
+      Logger.warn('[StoreKit] Proceeding with purchase despite validation error', {
+      component: 'AppleStoreKitService',
+    });
       return true;
     }
   }
@@ -362,7 +368,10 @@ export class AppleStoreKitService {
     if (productId.includes('transformation')) {return 'transformation';}
     if (productId.includes('family')) {return 'family';}
 
-    console.error('[StoreKit] Unknown product ID format:', productId);
+    Logger.error('[StoreKit] Unknown product ID format', new Error(String(productId)), {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
     return null;
   }
 
@@ -412,7 +421,10 @@ export class AppleStoreKitService {
       }
 
     } catch (error) {
-      console.error('[StoreKit] Failed to update user subscription:', error);
+      Logger.error('[StoreKit] Failed to update user subscription', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       throw error;
     }
   }
@@ -426,7 +438,10 @@ export class AppleStoreKitService {
       return this.currentUserId;
     }
 
-    console.error('[StoreKit] No userId available - purchase was not initiated through purchaseSubscription');
+    Logger.error('[StoreKit] No userId available - purchase was not initiated through purchaseSubscription', undefined, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
     return null;
   }
 
@@ -461,7 +476,10 @@ export class AppleStoreKitService {
       this.pendingPurchaseResolvers.clear();
     } else {
       // Real error - reject all pending promises with the original error
-      console.error('[StoreKit] Real purchase error:', error);
+      Logger.error('[StoreKit] Real purchase error', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       this.pendingPurchaseResolvers.forEach((resolver) => {
 
         resolver.reject(error);
@@ -490,7 +508,10 @@ export class AppleStoreKitService {
         expiryDate: subscription.subscription_end_date,
       };
     } catch (error) {
-      console.error('[StoreKit] Failed to get subscription status:', error);
+      Logger.error('[StoreKit] Failed to get subscription status', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       return null;
     }
   }
@@ -524,13 +545,22 @@ export class AppleStoreKitService {
       await this.syncStatusWithDatabase(userId, latestPurchase, status);
 
     } catch (error) {
-      console.error('[StoreKit] ========================================');
-      console.error('[StoreKit] ❌ Failed to sync subscription status:', error);
+      Logger.error('[StoreKit] ========================================', undefined, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
+      Logger.error('[StoreKit] ❌ Failed to sync subscription status', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       console.error('[StoreKit] Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
-      console.error('[StoreKit] ========================================');
+      Logger.error('[StoreKit] ========================================', undefined, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
     }
   }
 
@@ -611,7 +641,10 @@ export class AppleStoreKitService {
 
       return isInTrial;
     } catch (error) {
-      console.error('[StoreKit] Error checking trial period:', error);
+      Logger.error('[StoreKit] Error checking trial period', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       // If we can't determine, assume not in trial (safer)
       return false;
     }
@@ -643,7 +676,10 @@ export class AppleStoreKitService {
       });
 
       if (error) {
-        console.error('[StoreKit] Server validation error:', error);
+        Logger.error('[StoreKit] Server validation error', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
         return {
           success: false,
           error: error.message || 'Server validation failed',
@@ -663,7 +699,10 @@ export class AppleStoreKitService {
         data: data.data,
       };
     } catch (error) {
-      console.error('[StoreKit] Exception during server validation:', error);
+      Logger.error('[StoreKit] Exception during server validation', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -723,7 +762,10 @@ export class AppleStoreKitService {
       }
 
     } catch (error) {
-      console.error('[StoreKit] Failed to sync with database:', error);
+      Logger.error('[StoreKit] Failed to sync with database', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       throw error;
     }
   }
@@ -749,7 +791,10 @@ export class AppleStoreKitService {
       });
 
     } catch (error) {
-      console.error('[StoreKit] Failed to handle no subscription:', error);
+      Logger.error('[StoreKit] Failed to handle no subscription', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
     }
   }
 
@@ -791,7 +836,10 @@ export class AppleStoreKitService {
             console.warn('[StoreKit] ⚠️ Restored purchase validation failed:', purchase.productId);
           }
         } catch (error) {
-          console.error('[StoreKit] Error validating restored purchase:', error);
+          Logger.error('[StoreKit] Error validating restored purchase', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
         }
       }
 
@@ -805,7 +853,10 @@ export class AppleStoreKitService {
       };
 
     } catch (error) {
-      console.error('[StoreKit] Failed to restore purchases:', error);
+      Logger.error('[StoreKit] Failed to restore purchases', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to restore purchases',
@@ -830,7 +881,10 @@ export class AppleStoreKitService {
       this.isInitialized = false;
 
     } catch (error) {
-      console.error('[StoreKit] Cleanup error:', error);
+      Logger.error('[StoreKit] Cleanup error', error as Error, {
+      component: 'AppleStoreKitService',
+      action: 'error',
+    });
     }
   }
 }
