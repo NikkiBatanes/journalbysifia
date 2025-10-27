@@ -522,7 +522,9 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         globalEditMode.setGlobalEditMode(false);
       }
     } catch (saveError) {
-      console.error('Error saving prayer:', saveError);
+      Logger.error('Error saving prayer', saveError as Error, {
+        component: 'PrayerJournalReactQuery',
+      });
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
       // Error feedback
       triggerErrorHaptic();

@@ -170,7 +170,9 @@ class AuthApiService {
         .insert([userProfile]);
 
       if (profileError) {
-        console.error('Profile creation error:', profileError);
+        Logger.error('Profile creation error', profileError as Error, {
+        component: 'authApi',
+      });
         // Continue anyway, profile can be created later
       }
 

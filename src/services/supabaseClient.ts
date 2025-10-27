@@ -42,11 +42,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
         // Disable storage logging to improve performance
         // if (__DEV__) {
-        //   console.log('[SupabaseClient] Storage getItem:', { originalKey: key, mappedKey: storageKey });
+
         // }
         const value = await AsyncStorage.getItem(storageKey);
         // if (__DEV__) {
-        //   console.log('[SupabaseClient] Retrieved from storage:', { key: storageKey, hasValue: !!value });
+
         // }
         return value;
       },
@@ -65,7 +65,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
         // Disable storage logging to improve performance
         // if (__DEV__) {
-        //   console.log('[SupabaseClient] Storage setItem:', { originalKey: key, mappedKey: storageKey });
+
         // }
         await AsyncStorage.setItem(storageKey, value);
       },
@@ -84,7 +84,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
         // Disable storage logging to improve performance
         // if (__DEV__) {
-        //   console.log('[SupabaseClient] Storage removeItem:', { originalKey: key, mappedKey: storageKey });
+
         // }
         await AsyncStorage.removeItem(storageKey);
       },

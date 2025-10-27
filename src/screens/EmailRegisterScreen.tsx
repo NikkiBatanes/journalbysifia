@@ -87,7 +87,9 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     });
 
     if (signUpError) {
-      console.error('❌ Email registration failed:', signUpError);
+      Logger.error('❌ Email registration failed', signUpError as Error, {
+        component: 'EmailRegisterScreen',
+      });
       // Stay on this page and show inline error so user can fix inputs
       triggerErrorHaptic();
       setError(signUpError.message || 'Registration failed. Please try again.');

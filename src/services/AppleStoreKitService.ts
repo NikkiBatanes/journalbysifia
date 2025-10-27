@@ -449,7 +449,8 @@ export class AppleStoreKitService {
    * Handle purchase errors
    */
   private handlePurchaseError(error: PurchaseError): void {
-    console.error('[StoreKit] Purchase error details:', {
+    Logger.error('[StoreKit] Purchase error details', undefined, {
+  component: 'AppleStoreKitService',
       code: error.code,
       message: error.message,
       debugMessage: error.debugMessage,
@@ -553,7 +554,8 @@ export class AppleStoreKitService {
       component: 'AppleStoreKitService',
       action: 'error',
     });
-      console.error('[StoreKit] Error details:', {
+      Logger.error('[StoreKit] Error details', undefined, {
+  component: 'AppleStoreKitService',
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });

@@ -40,7 +40,9 @@ async function updateOnboardingSchema() {
     });
 
     if (functionError) {
-      console.error('❌ Error updating function:', functionError);
+      Logger.error('❌ Error updating function', functionError as Error, {
+        component: 'updateOnboardingSchema',
+      });
       // Try direct execution if exec_sql doesn't exist
       await supabase
         .from('_temp_schema_update')
@@ -57,7 +59,9 @@ async function updateOnboardingSchema() {
       .rpc('calculate_onboarding_metrics');
 
     if (testError) {
-      console.error('❌ Function test failed:', testError);
+      Logger.error('❌ Function test failed', testError as Error, {
+        component: 'updateOnboardingSchema',
+      });
     } else {
       Logger.debug('✅ Function test passed', { component: 'updateOnboardingSchema' });
     }

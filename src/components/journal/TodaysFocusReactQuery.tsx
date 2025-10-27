@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { View, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
@@ -496,7 +497,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       setEditingPriorityId(null);
       setEditingPriorityText('');
     } catch (saveError) {
-      console.error('Failed to save edited priority:', saveError);
+      Logger.error('Failed to save edited priority', saveError as Error, {
+        component: 'TodaysFocusReactQuery',
+      });
       Alert.alert('Error', 'Failed to save priority. Please try again.');
     }
   };

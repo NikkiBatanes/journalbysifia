@@ -180,7 +180,9 @@ class DatabaseIntegrationService {
         .rpc('initialize_onboarding', { p_user_id: userId });
 
       if (initError) {
-        console.error('Initialize onboarding test failed:', initError);
+        Logger.error('Initialize onboarding test failed', initError as Error, {
+        component: 'databaseIntegrationService',
+      });
         return false;
       }
 
@@ -195,7 +197,9 @@ class DatabaseIntegrationService {
         });
 
       if (updateError) {
-        console.error('Update progress test failed:', updateError);
+        Logger.error('Update progress test failed', updateError as Error, {
+        component: 'databaseIntegrationService',
+      });
         return false;
       }
 

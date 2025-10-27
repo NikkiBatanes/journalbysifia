@@ -115,7 +115,9 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       setHasPlaybooks((playbooksCount || 0) > 0);
 
       if (devotionalsError) {
-        console.error('Error fetching devotionals:', devotionalsError);
+        Logger.error('Error fetching devotionals', devotionalsError as Error, {
+        component: 'DevotionalCarousel',
+      });
         return;
       }
 

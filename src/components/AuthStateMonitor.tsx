@@ -161,7 +161,9 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
               return;
             }
           } catch (refreshError) {
-            console.error('❌ Session refresh failed:', refreshError);
+            Logger.error('❌ Session refresh failed', refreshError as Error, {
+        component: 'AuthStateMonitor',
+      });
           }
 
           await handleSilentLogout('Your session has expired. Please log in again.');
@@ -217,7 +219,9 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
             return;
           }
         } catch (refreshError) {
-          console.error('❌ Session refresh failed during periodic check:', refreshError);
+          Logger.error('❌ Session refresh failed during periodic check', refreshError as Error, {
+        component: 'AuthStateMonitor',
+      });
         }
 
         // Only logout if we're absolutely sure the session is invalid

@@ -455,7 +455,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               throw new Error('Direct generation completed but no playbook found');
 
             } catch (directError) {
-              console.error('❌ Direct generation check failed:', directError);
+              Logger.error('❌ Direct generation check failed', directError as Error, {
+        component: 'OnboardingPlaybookGenerationScreen',
+      });
               setGenerationError('Unable to generate your playbook. Please try again.');
               setIsGenerating(false);
             }

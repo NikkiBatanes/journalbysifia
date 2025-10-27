@@ -44,14 +44,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   onSave,
   onCancel,
 }) => {
-  // console.log('🙏 SmartJournalingGratitudeModal: Component rendered with props:', {
-  //   visible,
-  //   subtaskTitle,
-  //   subtaskId,
-  //   stepId,
-  //   playbookId,
-  //   hasExistingGratitude: !!existingGratitude,
-  // });
+
 
   const { user } = useAuth();
   const { handleToggleStep, actionSteps } = useActionSteps();

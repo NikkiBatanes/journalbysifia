@@ -156,7 +156,9 @@ class UserApiService {
         .eq('user_id', user.user.id);
 
       if (goalsError) {
-        console.error('Goals fetch error:', goalsError);
+        Logger.error('Goals fetch error', goalsError as Error, {
+        component: 'userApi',
+      });
       }
 
       const goals = goalsData || [];
