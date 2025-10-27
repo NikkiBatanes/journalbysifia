@@ -109,7 +109,8 @@ class ProductionLogger {
     if (!this.isDevelopment) {
       // In production, only output FATAL errors
       if (entry.level === LogLevel.FATAL) {
-        console.error(this.formatForConsole(entry)); // eslint-disable-line no-console
+        // eslint-disable-next-line no-console
+        console.error(this.formatForConsole(entry));
       }
       return;
     }
@@ -119,20 +120,25 @@ class ProductionLogger {
     switch (entry.level) {
       case LogLevel.DEBUG:
       case LogLevel.INFO:
-        console.log(formatted); // eslint-disable-line no-console
+        // eslint-disable-next-line no-console
+        console.log(formatted);
         break;
       case LogLevel.WARN:
-        console.warn(formatted); // eslint-disable-line no-console
+        // eslint-disable-next-line no-console
+        console.warn(formatted);
         break;
       case LogLevel.ERROR:
       case LogLevel.FATAL:
-        console.error(formatted); // eslint-disable-line no-console
+        // eslint-disable-next-line no-console
+        console.error(formatted);
         break;
     }
   }
 
   private sendToErrorTracker(entry: LogEntry, error?: Error): void {
-    if (!this.errorTracker) return;
+    if (!this.errorTracker) {
+      return;
+    }
 
     if (error) {
       this.errorTracker.captureException(error, {
@@ -153,7 +159,9 @@ class ProductionLogger {
    * Debug level - Development only, most verbose
    */
   debug(message: string, metadata?: LogMetadata): void {
-    if (!this.shouldLog(LogLevel.DEBUG)) return;
+    if (!this.shouldLog(LogLevel.DEBUG)) {
+      return;
+    }
 
     const entry = this.createLogEntry(LogLevel.DEBUG, message, metadata);
     this.addToBuffer(entry);
@@ -164,7 +172,9 @@ class ProductionLogger {
    * Info level - General information
    */
   info(message: string, metadata?: LogMetadata): void {
-    if (!this.shouldLog(LogLevel.INFO)) return;
+    if (!this.shouldLog(LogLevel.INFO)) {
+      return;
+    }
 
     const entry = this.createLogEntry(LogLevel.INFO, message, metadata);
     this.addToBuffer(entry);
@@ -175,7 +185,9 @@ class ProductionLogger {
    * Warning level - Potential issues that don't break functionality
    */
   warn(message: string, metadata?: LogMetadata): void {
-    if (!this.shouldLog(LogLevel.WARN)) return;
+    if (!this.shouldLog(LogLevel.WARN)) {
+      return;
+    }
 
     const entry = this.createLogEntry(LogLevel.WARN, message, metadata);
     this.addToBuffer(entry);
@@ -191,7 +203,9 @@ class ProductionLogger {
    * Error level - Errors that affect functionality but app continues
    */
   error(message: string, error?: Error | unknown, metadata?: LogMetadata): void {
-    if (!this.shouldLog(LogLevel.ERROR)) return;
+    if (!this.shouldLog(LogLevel.ERROR)) {
+      return;
+    }
 
     const errorMeta: LogMetadata = {
       ...metadata,
