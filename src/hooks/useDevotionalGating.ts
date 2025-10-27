@@ -106,7 +106,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
   // Load subscription on mount and user change
   useEffect(() => {
     loadSubscription();
-  }, [user?.id, loadSubscription]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate usage information
   const usageInfo = useMemo((): DevotionalUsageInfo => {

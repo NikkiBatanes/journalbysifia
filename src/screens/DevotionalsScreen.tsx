@@ -36,6 +36,7 @@ import 'react-native-gesture-handler';
 import DevotionalSkeleton from '../components/SkeletonLoader/DevotionalSkeleton';
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
+import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
 
@@ -489,7 +490,14 @@ const DevotionalsScreen = () => {
                       <MaterialCommunityIcons name="clipboard-text-play" size={22} color={Colors.alertCoral} style={styles.cardIcon} />
                       <ThemedText weight="bold" style={styles.cardTitle}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
                       {item.truthInLove?.summary ? (
-                        <ThemedText style={styles.cardSubtitle} numberOfLines={3}>{item.truthInLove.summary}</ThemedText>
+                        <ThemedText style={styles.cardSubtitle} numberOfLines={3}>{replaceAllNamePlaceholders(
+                          item.truthInLove.summary,
+                          {
+                            displayName: (user as any)?.displayName || (user as any)?.user_metadata?.full_name,
+                            firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name,
+                            lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name,
+                          }
+                        )}</ThemedText>
                       ) : null}
                       <TouchableOpacity
                         style={styles.cardCTA}
