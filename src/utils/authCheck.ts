@@ -6,7 +6,7 @@ export const debugAuthState = async () => {
   // Check AsyncStorage session
   try {
     const session = await AsyncStorage.getItem('USER_SESSION');
-    
+
     if (!session) {
       return false;
     }
