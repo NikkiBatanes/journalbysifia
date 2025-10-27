@@ -6,6 +6,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import { Platform } from 'react-native';
 import Config from 'react-native-config';
+import { Logger } from '../utils/ProductionLogger';
 
 // Industry-standard auth types
 interface AuthState {
@@ -64,11 +65,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     const iosClientId = rawIosClientId?.replace('GOOGLE_IOS_CLIENT_ID=', '') || rawIosClientId;
 
     if (!iosClientId || !webClientId) {
-      console.warn('⚠️ Missing Google OAuth client IDs in environment variables');
-      console.warn('Google Sign-In will be disabled. To enable it:');
-      console.warn('1. Create a .env file based on .env.example');
-      console.warn('2. Add GOOGLE_IOS_CLIENT_ID=your-ios-client-id.googleusercontent.com');
-      console.warn('3. Add GOOGLE_WEB_CLIENT_ID=your-web-client-id.googleusercontent.com');
+      Logger.warn('Missing Google OAuth client IDs in environment variables', {
+        component: 'AuthContext',
+        action: 'google_signin_config',
+        hasIosClientId: !!iosClientId,
+        hasWebClientId: !!webClientId,
+      });
       return;
     }
 
@@ -80,7 +82,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
     } catch (error) {
-      console.warn('⚠️ Failed to configure Google Sign-In:', error);
+      Logger.warn('Failed to configure Google Sign-In', {
+        component: 'AuthContext',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
     }
   }, []);
 
@@ -92,7 +97,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('❌ Error getting initial session:', error);
+          Logger.error('Error getting initial session', error as Error, {
+            component: 'AuthContext',
+            action: 'get_initial_session',
+          });
           // Don't immediately set isAuthenticated to false on error
           // Let the auth state change listener handle it
           setAuthState(prev => ({ ...prev, bootstrapping: false }));
@@ -108,7 +116,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         });
 
       } catch (error) {
-        console.error('💥 Failed to get initial session:', error);
+        Logger.fatal('Failed to get initial session', error as Error, {
+          component: 'AuthContext',
+          action: 'get_initial_session_catch',
+        });
         // Only set to unauthenticated if there's a real error
         setAuthState(prev => ({
           ...prev,
@@ -137,7 +148,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         }
 
         if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found
-          console.error('❌ Error checking user profile:', fetchError);
+          Logger.error('Error checking user profile', fetchError as Error, {
+            component: 'AuthContext',
+            action: 'create_user_profile',
+            userId: user.id,
+          });
           return;
         }
 
@@ -161,7 +176,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
           }
         } catch (e) {
-          console.warn('⚠️ Error checking onboarding progress, defaulting to false:', e);
+          Logger.warn('Error checking onboarding progress, defaulting to false', {
+            component: 'AuthContext',
+            action: 'check_onboarding_progress',
+            userId: user.id,
+          });
           // Explicitly set to false on any error
           completed = false;
         }
@@ -180,11 +199,19 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             if (progressCheck && progressCheck.is_completed === true && progressCheck.completed_at) {
 
             } else {
-              console.warn('⚠️ Onboarding_completed was true but no completion record found - correcting to false');
+              Logger.warn('Onboarding_completed was true but no completion record found - correcting to false', {
+                component: 'AuthContext',
+                action: 'verify_onboarding',
+                userId: user.id,
+              });
               completed = false;
             }
           } catch (e) {
-            console.warn('⚠️ Could not verify onboarding completion - defaulting to false');
+            Logger.warn('Could not verify onboarding completion - defaulting to false', {
+              component: 'AuthContext',
+              action: 'verify_onboarding_catch',
+              userId: user.id,
+            });
             completed = false;
           }
         }
@@ -201,7 +228,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           .insert([userProfile]);
 
         if (insertError) {
-          console.error('❌ Error creating user profile:', insertError);
+          Logger.error('Error creating user profile', insertError as Error, {
+            component: 'AuthContext',
+            action: 'insert_user_profile',
+            userId: user.id,
+          });
         } else {
 
           // Create default Seeker subscription for new user
@@ -212,16 +243,31 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
               });
 
             if (subscriptionError) {
-              console.error('❌ Error creating default subscription:', subscriptionError);
+              Logger.error('Error creating default subscription', subscriptionError as Error, {
+                component: 'AuthContext',
+                action: 'create_default_subscription',
+                userId: user.id,
+              });
             } else {
-
+              Logger.info('Default subscription created successfully', {
+                component: 'AuthContext',
+                userId: user.id,
+              });
             }
           } catch (e) {
-            console.error('💥 Failed to create default subscription:', e);
+            Logger.error('Failed to create default subscription', e as Error, {
+              component: 'AuthContext',
+              action: 'create_default_subscription_catch',
+              userId: user.id,
+            });
           }
         }
       } catch (error) {
-        console.error('💥 Unexpected error creating user profile:', error);
+        Logger.fatal('Unexpected error creating user profile', error as Error, {
+          component: 'AuthContext',
+          action: 'create_user_profile_outer_catch',
+          userId: user?.id,
+        });
       }
     };
 
@@ -275,7 +321,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     .single();
 
                   if (profileError && profileError.code !== 'PGRST116') {
-                    console.error('❌ Error checking existing profile:', profileError);
+                    Logger.error('Error checking existing profile', profileError as Error, {
+                      component: 'AuthContext',
+                      action: 'check_existing_profile',
+                      userId: session.user.id,
+                    });
                     throw profileError;
                   }
 
@@ -336,7 +386,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     .single();
 
                   if (profileError) {
-                    console.error('❌ Error fetching profile:', profileError);
+                    Logger.error('Error fetching profile', profileError as Error, {
+                      component: 'AuthContext',
+                      action: 'fetch_profile',
+                      userId: session.user.id,
+                    });
                     throw profileError;
                   }
 
@@ -366,7 +420,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   }
                 }
               } catch (e) {
-                console.error('❌ CRITICAL: Failed to check onboarding status:', e);
+                Logger.fatal('CRITICAL: Failed to check onboarding status', e as Error, {
+                  component: 'AuthContext',
+                  action: 'check_onboarding_status',
+                  userId: session?.user?.id,
+                });
                 // IMPORTANT: On error, check if profile exists at all
                 try {
                   const { data: profileCheck } = await supabase
@@ -389,7 +447,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                       } : {},
                     }));
                   } else {
-                    console.warn('⚠️ No profile found, defaulting to personalization');
+                    Logger.warn('No profile found, defaulting to personalization', {
+                      component: 'AuthContext',
+                      action: 'profile_check_fallback',
+                      userId: session?.user?.id,
+                    });
                     // Pass registrationMethod to ensure OAuth users get proper name collection
                     const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
                     const isOAuth = provider === 'apple' || provider === 'google';
@@ -402,7 +464,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     }));
                   }
                 } catch (retryError) {
-                  console.error('❌ Retry failed, defaulting to personalization:', retryError);
+                  Logger.error('Retry failed, defaulting to personalization', retryError as Error, {
+                    component: 'AuthContext',
+                    action: 'profile_check_retry',
+                    userId: session?.user?.id,
+                  });
                   // Pass registrationMethod to ensure OAuth users get proper name collection
                   const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
                   const isOAuth = provider === 'apple' || provider === 'google';
@@ -474,7 +540,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           refreshPromise = null;
           return refreshSession(retryCount + 1);
         }
-        console.error('[Auth] Session refresh failed after all retries:', error);
+        Logger.error('Session refresh failed after all retries', error as Error, {
+          component: 'AuthContext',
+          action: 'refresh_session',
+          retryCount,
+        });
         throw error;
       }
     })();
@@ -511,7 +581,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       return { error: null };
     } catch (error) {
-      console.error('💥 Sign in error:', error);
+      Logger.error('Sign in error', error as Error, {
+        component: 'AuthContext',
+        action: 'sign_in',
+      });
       setAuthState(prev => ({ ...prev, loading: false }));
       return {
         error: {
@@ -545,13 +618,19 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
       if (error) {
-        console.error('❌ Sign up failed:', error);
+        Logger.error('Sign up failed', error as Error, {
+          component: 'AuthContext',
+          action: 'sign_up',
+        });
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error };
       }
 
       if (!data.user) {
-        console.error('❌ No user returned from sign up');
+        Logger.error('No user returned from sign up', undefined, {
+          component: 'AuthContext',
+          action: 'sign_up',
+        });
         setAuthState(prev => ({ ...prev, loading: false }));
         return {
           error: {
@@ -567,7 +646,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       return { error: null };
     } catch (error) {
-      console.error('💥 Sign up unexpected error:', error);
+      Logger.error('Sign up unexpected error', error as Error, {
+        component: 'AuthContext',
+        action: 'sign_up_catch',
+      });
       setAuthState(prev => ({ ...prev, loading: false }));
       return {
         error: {
@@ -590,7 +672,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         await GoogleSignin.signOut();
 
       } catch (googleError) {
-        console.warn('⚠️ Google revoke/sign-out warning (continuing):', googleError);
+        Logger.warn('Google revoke/sign-out warning (continuing)', {
+          component: 'AuthContext',
+          action: 'sign_out_google',
+          errorMessage: googleError instanceof Error ? googleError.message : String(googleError),
+        });
       }
 
       // Always attempt Supabase sign-out regardless of provider cleanup result
@@ -605,9 +691,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
 
       if (sbError) {
-        console.error('❌ Supabase sign-out error:', sbError);
-      } else {
-
+        Logger.error('Supabase sign-out error', sbError as Error, {
+          component: 'AuthContext',
+          action: 'sign_out_supabase',
+        });
       }
 
       // Clear auth state regardless to avoid stale UI; onAuthStateChange will confirm
@@ -621,7 +708,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       setIsLoggingOut(false);
     } catch (error) {
       setIsLoggingOut(false);
-      console.error('❌ Logout failed:', error);
+      Logger.error('Logout failed', error as Error, {
+        component: 'AuthContext',
+        action: 'sign_out_catch',
+      });
     }
   };
 
@@ -638,13 +728,19 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       );
 
       if (error) {
-        console.error('❌ Password reset failed:', error);
+        Logger.error('Password reset failed', error as Error, {
+          component: 'AuthContext',
+          action: 'reset_password',
+        });
         return { error };
       }
 
       return { error: null };
     } catch (error) {
-      console.error('💥 Password reset error:', error);
+      Logger.error('Password reset error', error as Error, {
+        component: 'AuthContext',
+        action: 'reset_password_catch',
+      });
       return {
         error: {
           message: 'An unexpected error occurred during password reset',
@@ -664,7 +760,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         });
 
         if (error) {
-          console.error('❌ Password update failed:', error);
+          Logger.error('Password update failed', error as Error, {
+            component: 'AuthContext',
+            action: 'update_password_with_token',
+          });
           return { error };
         }
       } else {
@@ -683,14 +782,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         });
 
         if (error) {
-          console.error('❌ Password update failed:', error);
+          Logger.error('Password update failed', error as Error, {
+            component: 'AuthContext',
+            action: 'update_password_authenticated',
+          });
           return { error };
         }
       }
 
       return { error: null };
     } catch (error) {
-      console.error('💥 Password update error:', error);
+      Logger.error('Password update error', error as Error, {
+        component: 'AuthContext',
+        action: 'update_password_catch',
+      });
       return {
         error: {
           message: 'An unexpected error occurred during password update',
@@ -721,7 +826,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
       if (error) {
-        console.error('Update profile error:', error);
+        Logger.error('Update profile error', error as Error, {
+          component: 'AuthContext',
+          action: 'update_profile',
+          userId: authState.user?.id,
+        });
         return { success: false, error };
       }
 
@@ -738,12 +847,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           return { ...prev, user: updatedUser };
         });
       } catch (e) {
-        console.warn('Could not update local auth state after profile update', e);
+        Logger.warn('Could not update local auth state after profile update', {
+          component: 'AuthContext',
+          action: 'update_profile_local_state',
+          userId: authState.user?.id,
+        });
       }
 
       return { success: true };
     } catch (error) {
-      console.error('Update profile error:', error);
+      Logger.error('Update profile error', error as Error, {
+        component: 'AuthContext',
+        action: 'update_profile_catch',
+        userId: authState.user?.id,
+      });
       return {
         success: false,
         error: {
@@ -776,7 +893,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
       if (error) {
-        console.error('Update preferences error:', error);
+        Logger.error('Update preferences error', error as Error, {
+          component: 'AuthContext',
+          action: 'update_preferences',
+          userId: authState.user?.id,
+        });
         return { success: false, error };
       }
       // Optimistically update local auth state so UI reflects preference changes immediately
@@ -789,12 +910,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           return { ...prev, user: updatedUser };
         });
       } catch (e) {
-        console.warn('Could not update local auth state after preferences update', e);
+        Logger.warn('Could not update local auth state after preferences update', {
+          component: 'AuthContext',
+          action: 'update_preferences_local_state',
+          userId: authState.user?.id,
+        });
       }
 
       return { success: true };
     } catch (error) {
-      console.error('Update preferences error:', error);
+      Logger.error('Update preferences error', error as Error, {
+        component: 'AuthContext',
+        action: 'update_preferences_catch',
+        userId: authState.user?.id,
+      });
       return {
         success: false,
         error: {
@@ -814,7 +943,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       const iosClientId = rawIosClientId?.replace('GOOGLE_IOS_CLIENT_ID=', '') || rawIosClientId;
 
       if (!iosClientId || !webClientId) {
-        console.warn('⚠️ Google Sign-In is not configured');
+        Logger.warn('Google Sign-In is not configured', {
+          component: 'AuthContext',
+          action: 'sign_in_with_google',
+        });
         return {
           error: {
             message: 'Google Sign-In is not available. Please use email/password or Apple Sign-In.',
@@ -914,20 +1046,29 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           });
 
           if (retryError) {
-            console.error('❌ Retry Google auth failed:', retryError);
+            Logger.error('Retry Google auth failed', retryError as Error, {
+              component: 'AuthContext',
+              action: 'google_auth_retry',
+            });
             authError = retryError;
           } else {
 
             authError = null;
           }
         } catch (retryErr) {
-          console.error('❌ Google auth retry failed:', retryErr);
+          Logger.error('Google auth retry failed', retryErr as Error, {
+            component: 'AuthContext',
+            action: 'google_auth_retry_catch',
+          });
           authError = retryErr as SupabaseAuthError;
         }
       }
 
       if (authError) {
-        console.error('❌ All Google auth methods failed:', authError);
+        Logger.error('All Google auth methods failed', authError as Error, {
+          component: 'AuthContext',
+          action: 'sign_in_with_google',
+        });
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error: authError };
       }
@@ -982,7 +1123,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         return { error: null }; // Return success to avoid showing error UI
       }
 
-      console.error('❌ Google sign-in error:', error);
+      Logger.error('Google sign-in error', error as Error, {
+        component: 'AuthContext',
+        action: 'sign_in_with_google_catch',
+      });
       return {
         error: {
           message: error.message || 'Google sign-in failed',
@@ -1047,7 +1191,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
 
       if (error) {
-        console.error('❌ Supabase Apple auth error:', error);
+        Logger.error('Supabase Apple auth error', error as Error, {
+          component: 'AuthContext',
+          action: 'sign_in_with_apple',
+        });
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error: error as SupabaseAuthError };
       }
@@ -1074,7 +1221,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       return { error: null };
     } catch (error: any) {
-      console.error('❌ Apple sign-in error:', error);
+      Logger.error('Apple sign-in error', error as Error, {
+        component: 'AuthContext',
+        action: 'sign_in_with_apple_catch',
+      });
       setAuthState(prev => ({ ...prev, loading: false }));
 
       // Handle user cancellation gracefully (suppress error like Google flow)

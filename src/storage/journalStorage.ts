@@ -10,6 +10,7 @@ const generateUUID = (): string => {
 import { supabase } from '../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
+import { Logger } from '../utils/ProductionLogger';
 
 // --- Debug Utilities ---
 export async function debugPrintSupabaseStorage() {
@@ -22,7 +23,10 @@ export async function debugPrintSupabaseStorage() {
     }
 
   } catch (e) {
-    console.error('Error printing Supabase AsyncStorage:', e);
+    Logger.error('Error printing Supabase AsyncStorage', e as Error, {
+      component: 'journalStorage',
+      action: 'debug_print_supabase_storage',
+    });
   }
 }
 
@@ -36,7 +40,10 @@ export async function debugPrintJournalEntries() {
       .limit(10);
 
     if (error) {
-      console.error('Error fetching journal entries:', error);
+      Logger.error('Error fetching journal entries', error as Error, {
+        component: 'journalStorage',
+        action: 'debug_print_journal_entries',
+      });
       return;
     }
 
@@ -44,7 +51,10 @@ export async function debugPrintJournalEntries() {
     // Entry types tracked for debugging if needed
 
   } catch (error) {
-    console.error('Error in debugPrintJournalEntries:', error);
+    Logger.error('Error in debugPrintJournalEntries', error as Error, {
+      component: 'journalStorage',
+      action: 'debug_print_journal_entries_catch',
+    });
   }
 }
 
@@ -85,7 +95,10 @@ const initStorage = async (): Promise<void> => {
     await storage.removeItem(testKey);
 
   } catch (e) {
-    console.error('Failed to initialize AsyncStorage', e);
+    Logger.error('Failed to initialize AsyncStorage', e as Error, {
+      component: 'journalStorage',
+      action: 'init_storage',
+    });
   }
 };
 
@@ -156,7 +169,11 @@ export const getJournalKey = (userId: string, contentType: string, date: string 
       else {
         const parsedDate = new Date(date);
         if (isNaN(parsedDate.getTime())) {
-          console.error('Invalid date provided:', date);
+          Logger.error('Invalid date provided', undefined, {
+            component: 'journalStorage',
+            action: 'get_journal_key',
+            dateInput: String(date),
+          });
           formattedDate = new Date().toISOString().split('T')[0];
         } else {
           formattedDate = parsedDate.toISOString().split('T')[0];
@@ -165,17 +182,30 @@ export const getJournalKey = (userId: string, contentType: string, date: string 
     } else if (date instanceof Date) {
       // If it's a Date object
       if (isNaN(date.getTime())) {
-        console.error('Invalid Date object provided:', date);
+        Logger.error('Invalid Date object provided', undefined, {
+          component: 'journalStorage',
+          action: 'get_journal_key',
+          dateType: 'Date',
+        });
         formattedDate = new Date().toISOString().split('T')[0];
       } else {
         formattedDate = date.toISOString().split('T')[0];
       }
     } else {
-      console.error('Unsupported date type:', typeof date, date);
+      Logger.error('Unsupported date type', undefined, {
+        component: 'journalStorage',
+        action: 'get_journal_key',
+        dateType: typeof date,
+        dateValue: String(date),
+      });
       formattedDate = new Date().toISOString().split('T')[0];
     }
   } catch (e) {
-    console.error('Error formatting date:', e, 'Input:', date);
+    Logger.error('Error formatting date', e as Error, {
+      component: 'journalStorage',
+      action: 'get_journal_key',
+      dateInput: String(date),
+    });
     formattedDate = new Date().toISOString().split('T')[0];
   }
 
@@ -273,7 +303,12 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
 
     return newEntry;
   } catch (error) {
-    console.error('Error saving to AsyncStorage:', error);
+    Logger.error('Error saving to AsyncStorage', error as Error, {
+      component: 'journalStorage',
+      action: 'save_local_entry',
+      key,
+      userId,
+    });
     throw error;
   }
 };
@@ -282,7 +317,11 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
 
   const existingEntry = await getLocalEntry(key);
   if (!existingEntry) {
-    console.error('Cannot update: Entry not found for key:', key);
+    Logger.error('Cannot update: Entry not found', undefined, {
+      component: 'journalStorage',
+      action: 'update_local_entry',
+      key,
+    });
     throw new Error('Entry not found');
   }
 
@@ -305,7 +344,11 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
 
     return updatedEntry;
   } catch (error) {
-    console.error('Error updating AsyncStorage:', error);
+    Logger.error('Error updating AsyncStorage', error as Error, {
+      component: 'journalStorage',
+      action: 'update_local_entry',
+      key,
+    });
     throw error;
   }
 };
@@ -330,7 +373,11 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
       }
       return dateStr;
     } catch (e) {
-      console.error('Error formatting date for key:', e);
+      Logger.error('Error formatting date for key', e as Error, {
+        component: 'journalStorage',
+        action: 'format_date_for_key',
+        dateStr,
+      });
       return dateStr;
     }
   };
@@ -362,7 +409,11 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
     try {
       return new Date(dateStr).toISOString().split('T')[0];
     } catch (e) {
-      console.error('Error formatting date for comparison:', e);
+      Logger.error('Error formatting date for comparison', e as Error, {
+        component: 'journalStorage',
+        action: 'format_date_for_comparison',
+        dateStr,
+      });
       return dateStr; // Fallback to original if parsing fails
     }
   };
@@ -547,7 +598,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
     });
 
     if (sessionError) {
-      console.error('Error setting session:', sessionError);
+      Logger.error('Error setting session', sessionError as Error, {
+        component: 'journalStorage',
+        action: 'get_valid_session',
+      });
       return null;
     }
 
@@ -555,7 +609,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
     const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
     if (error) {
-      console.error('Error getting session:', error);
+      Logger.error('Error getting session', error as Error, {
+        component: 'journalStorage',
+        action: 'get_valid_session',
+      });
       return null;
     }
 
@@ -579,7 +636,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
         await supabase.auth.refreshSession();
 
       if (refreshError) {
-        console.error('Refresh error:', refreshError);
+        Logger.error('Refresh error', refreshError as Error, {
+          component: 'journalStorage',
+          action: 'refresh_session',
+        });
         throw refreshError;
       }
 
@@ -593,7 +653,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
         return refreshedSession;
       }
     } catch (refreshError) {
-      console.error('Failed to refresh session:', refreshError);
+      Logger.error('Failed to refresh session', refreshError as Error, {
+        component: 'journalStorage',
+        action: 'refresh_session_catch',
+      });
       // Clear invalid session
       await Promise.all([
         AsyncStorage.removeItem('ACCESS_TOKEN'),
@@ -631,7 +694,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
             });
 
           if (restoreError) {
-            console.error('Error setting session:', restoreError);
+            Logger.error('Error setting session', restoreError as Error, {
+              component: 'journalStorage',
+              action: 'restore_session',
+            });
             throw restoreError;
           }
 
@@ -642,7 +708,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
 
           }
         } catch (e) {
-          console.error('Error restoring session:', e);
+          Logger.error('Error restoring session', e as Error, {
+            component: 'journalStorage',
+            action: 'restore_session_catch',
+          });
           // Clear invalid session
           await AsyncStorage.removeItem(storageKey);
         }
@@ -654,7 +723,10 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
     return null;
 
   } catch (error) {
-    console.error('Error in getValidSession:', error);
+    Logger.error('Error in getValidSession', error as Error, {
+      component: 'journalStorage',
+      action: 'get_valid_session_outer',
+    });
     return null;
   }
 };
@@ -680,7 +752,12 @@ const cleanupDuplicateEntries = async (userId: string, contentType: string, sele
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.warn('Error checking for duplicates:', error);
+      Logger.warn('Error checking for duplicates', {
+        component: 'journalStorage',
+        action: 'cleanup_duplicates',
+        userId,
+        contentType,
+      });
       return;
     }
 
@@ -695,13 +772,24 @@ const cleanupDuplicateEntries = async (userId: string, contentType: string, sele
         .in('id', toDelete);
 
       if (deleteError) {
-        console.warn('Error deleting duplicates:', deleteError);
+        Logger.warn('Error deleting duplicates', {
+          component: 'journalStorage',
+          action: 'cleanup_duplicates_delete',
+          userId,
+          contentType,
+          deleteCount: toDelete.length,
+        });
       } else {
 
       }
     }
   } catch (error) {
-    console.warn('Error during duplicate cleanup:', error);
+    Logger.warn('Error during duplicate cleanup', {
+      component: 'journalStorage',
+      action: 'cleanup_duplicates_catch',
+      userId,
+      contentType,
+    });
   }
 };
 
@@ -711,26 +799,43 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
     // 1. Get and validate session
     const session = await getValidSession();
     if (!session?.user?.id) {
-      console.error('No valid session available. User must be logged in.');
+      Logger.error('No valid session available for cloud save', undefined, {
+        component: 'journalStorage',
+        action: 'save_cloud_entry',
+      });
       throw new Error('You must be logged in to save entries');
     }
 
     // 2. Use the session user ID
     if (session.user.id !== userId) {
-      console.warn('User ID mismatch, using session user ID');
+      Logger.warn('User ID mismatch in saveCloudEntry, using session user ID', {
+        component: 'journalStorage',
+        action: 'save_cloud_entry',
+        providedUserId: userId,
+        sessionUserId: session.user.id,
+      });
       userId = session.user.id;
     }
 
     // 3. Validate entry ID if present
     if (entry.id && !isValidUUID(entry.id)) {
-      console.warn('Invalid entry ID format, generating new UUID');
+      Logger.warn('Invalid entry ID format, generating new UUID', {
+        component: 'journalStorage',
+        action: 'save_cloud_entry',
+        invalidId: entry.id,
+      });
       entry.id = generateUUID();
     }
 
     // 4. Prepare the entry with proper types and timestamps
     const now = new Date().toISOString();
     if (!entry.selected_date || typeof entry.selected_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.selected_date)) {
-      console.error('Missing or invalid selected_date when saving entry:', entry.selected_date);
+      Logger.error('Missing or invalid selected_date when saving entry', undefined, {
+        component: 'journalStorage',
+        action: 'save_cloud_entry',
+        selectedDate: entry.selected_date,
+        userId,
+      });
       throw new Error('selected_date is required and must be in YYYY-MM-DD format');
     }
     const selectedDate = entry.selected_date;
@@ -792,11 +897,13 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       return newEntry;
 
     } catch (error: any) {
-      console.error('Error in saveCloudEntry:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
+      Logger.error('Error in saveCloudEntry', error as Error, {
+        component: 'journalStorage',
+        action: 'save_cloud_entry',
+        userId,
+        contentType: entry.content_type,
+        errorCode: error.code,
+        errorDetails: error.details,
       });
       throw error;
     }
@@ -804,26 +911,23 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
     // Entry is now handled in the try-catch block above
 
   } catch (error: any) {
-    console.error('\n!!! ERROR in saveCloudEntry !!!');
-
-    // Format error message for logging
-    const errorMessage = error instanceof Error
-      ? {
-          name: error.name,
-          message: error.message,
-          ...(error as any).code && { code: (error as any).code },
-          ...(error as any).details && { details: (error as any).details },
-          stack: error.stack?.split('\n').slice(0, 3).join('\n'),
-        }
-      : { message: String(error) };
-
-    console.error('Error details:', errorMessage);
+    Logger.fatal('CRITICAL ERROR in saveCloudEntry', error as Error, {
+      component: 'journalStorage',
+      action: 'save_cloud_entry_outer',
+      userId,
+      entryId: entry.id,
+      contentType: entry.content_type,
+    });
 
     // Handle specific error cases
     if (error.message?.toLowerCase().includes('function upsert_journal_entry') ||
         error.message?.toLowerCase().includes('does not exist')) {
       const errorMsg = 'Database function not found. Please run the SQL migration to create the required function.';
-      console.error('\n⚠️ ' + errorMsg);
+      Logger.fatal('Database function missing', error as Error, {
+        component: 'journalStorage',
+        action: 'save_cloud_entry',
+        errorType: 'missing_function',
+      });
       throw new Error(errorMsg);
     }
 
@@ -832,7 +936,10 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
         error.message?.toLowerCase().includes('auth') ||
         error.message?.toLowerCase().includes('jwt') ||
         error.message?.toLowerCase().includes('unauthorized')) {
-      console.error('\n⚠️ Authentication issue detected. Please ensure you are logged in.');
+      Logger.error('Authentication issue detected', undefined, {
+        component: 'journalStorage',
+        action: 'auth_check',
+      });
       throw new Error('Your session has expired. Please log in again.');
     }
 
@@ -865,12 +972,18 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
     // 4. Get and validate session
     const session = await getValidSession();
     if (!session?.user?.id) {
-      console.error('No valid session available. User must be logged in.');
+      Logger.error('No valid session available', undefined, {
+        component: 'journalStorage',
+        action: 'session_check',
+      });
       throw new Error('You must be logged in to update entries');
     }
     // 5. Ensure we're using the session user ID
     if (session.user.id !== cleanUserId) {
-      console.warn('User ID mismatch, using session user ID');
+      Logger.warn('User ID mismatch, using session user ID', {
+        component: 'journalStorage',
+        action: 'user_id_validation',
+      });
       userId = session.user.id;
     } else {
       userId = cleanUserId;
@@ -879,7 +992,11 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
     // 6. Prepare the update data
     const now = new Date().toISOString();
     if (!updatedData.selected_date || typeof updatedData.selected_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(updatedData.selected_date)) {
-      console.error('Missing or invalid selected_date when updating entry:', updatedData.selected_date);
+      Logger.error('Missing or invalid selected_date when updating entry', undefined, {
+        component: 'journalStorage',
+        action: 'update_cloud_entry',
+        selectedDate: updatedData.selected_date,
+      });
       throw new Error('selected_date is required and must be in YYYY-MM-DD format');
     }
     const updateData = {
@@ -920,7 +1037,10 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
         // Check if the existing data is newer than our update
         const incomingUpdatedAt = updateData.updated_at || now;
         if (existing.updated_at > incomingUpdatedAt) {
-          console.warn('Existing data is newer than the update');
+          Logger.warn('Existing data is newer than the update', {
+        component: 'journalStorage',
+        action: 'update_cloud_entry',
+      });
           return existing;
         }
 
@@ -940,7 +1060,11 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
 
       } catch (error: any) {
         lastError = error;
-        console.error(`Attempt ${attempt} failed:`, error.message);
+        Logger.error(`Attempt ${attempt} failed`, error as Error, {
+          component: 'journalStorage',
+          action: 'update_cloud_entry_retry',
+          attempt,
+        });
 
         // If this is an auth error, try to refresh the session
         if (error.message?.toLowerCase().includes('jwt') ||
@@ -953,7 +1077,10 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
 
             continue;
           } catch (refreshError) {
-            console.error('Failed to refresh session:', refreshError);
+            Logger.error('Failed to refresh session', refreshError as Error, {
+            component: 'journalStorage',
+            action: 'refresh_session',
+          });
             throw new Error('Session expired. Please log in again.');
           }
         }
@@ -971,20 +1098,18 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
     throw lastError || new Error('Failed to update entry after multiple attempts');
 
   } catch (error: any) {
-    console.error('\n!!! ERROR in updateCloudEntry !!!');
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    });
+    // Error logged below
+    // Error details included in Logger call
 
     // If it's an auth error, suggest logging in again
     if (error.message?.toLowerCase().includes('session') ||
         error.message?.toLowerCase().includes('auth') ||
         error.message?.toLowerCase().includes('jwt') ||
         error.message?.toLowerCase().includes('unauthorized')) {
-      console.error('\n⚠️ Authentication issue detected. Please ensure you are logged in.');
+      Logger.error('Authentication issue detected', undefined, {
+        component: 'journalStorage',
+        action: 'auth_check',
+      });
       throw new Error('Your session has expired. Please log in again.');
     }
 
@@ -1017,13 +1142,19 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
     // 4. Get and validate session
     const session = await getValidSession();
     if (!session?.user?.id) {
-      console.error('No valid session available. User must be logged in.');
+      Logger.error('No valid session available', undefined, {
+        component: 'journalStorage',
+        action: 'session_check',
+      });
       throw new Error('You must be logged in to access cloud entries');
     }
 
     // 5. Ensure we're using the session user ID
     if (session.user.id !== cleanUserId) {
-      console.warn('User ID mismatch, using session user ID');
+      Logger.warn('User ID mismatch, using session user ID', {
+        component: 'journalStorage',
+        action: 'user_id_validation',
+      });
       userId = session.user.id;
     } else {
       userId = cleanUserId;
@@ -1049,11 +1180,9 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
       }
 
       // Log detailed error info
-      console.error('Error fetching cloud entry:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
+      Logger.error('Error fetching cloud entry', error as Error, {
+        component: 'journalStorage',
+        action: 'get_cloud_entry',
       });
 
       // If it's an auth error, try to refresh the session
@@ -1069,7 +1198,10 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
 
           return getCloudEntry(userId, entryId, date);
         } catch (refreshError) {
-          console.error('Failed to refresh session:', refreshError);
+          Logger.error('Failed to refresh session', refreshError as Error, {
+            component: 'journalStorage',
+            action: 'refresh_session',
+          });
           throw new Error('Session expired. Please log in again.');
         }
       }
@@ -1079,7 +1211,10 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
 
     return data as JournalEntryBase;
   } catch (error: any) {
-    console.error('!!! ERROR in getCloudEntry !!!');
+    Logger.fatal('CRITICAL ERROR in getCloudEntry', error as Error, {
+      component: 'journalStorage',
+      action: 'get_cloud_entry',
+    });
 
     // Format error message for logging
     const errorMessage = error instanceof Error
@@ -1090,7 +1225,7 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
         }
       : { message: String(error) };
 
-    console.error('Error details:', errorMessage);
+    // Error details included in Logger call
 
     // Re-throw the error to be handled by the caller
     throw error;
@@ -1134,7 +1269,10 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
       .maybeSingle();
 
     if (fetchError) {
-      console.error('Error checking for existing entries:', fetchError);
+      Logger.error('Error checking for existing entries', fetchError as Error, {
+        component: 'journalStorage',
+        action: 'sync_to_cloud',
+      });
       throw fetchError;
     }
 
@@ -1155,7 +1293,10 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
     }
 
   } catch (error) {
-    console.error('Error during syncToCloud:', error);
+    Logger.error('Error during syncToCloud', error as Error, {
+      component: 'journalStorage',
+      action: 'sync_to_cloud',
+    });
     throw error;
   }
 };
@@ -1173,7 +1314,10 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
     const session = await getValidSession();
 
     if (!session?.user?.id) {
-      console.error('❌ No valid session available. User must be logged in.');
+      Logger.error('No valid session available for sync', undefined, {
+        component: 'journalStorage',
+        action: 'sync_from_cloud',
+      });
 
       // Check if we have any auth data in storage
       // User must be logged in to sync from cloud
@@ -1183,7 +1327,12 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
     // 3. Use the session's user ID to ensure consistency
     const sessionUserId = session.user.id;
     if (sessionUserId !== userId) {
-      console.warn(`User ID mismatch: ${userId} (provided) vs ${sessionUserId} (session). Using session user ID.`);
+      Logger.warn('User ID mismatch in syncFromCloud', {
+        component: 'journalStorage',
+        action: 'sync_from_cloud',
+        providedUserId: userId,
+        sessionUserId,
+      });
       userId = sessionUserId;
     }
 
@@ -1194,7 +1343,10 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
 
     // 4. Ensure we're using the session user ID
     if (session.user.id !== userId) {
-      console.warn('User ID mismatch, using session user ID');
+      Logger.warn('User ID mismatch, using session user ID', {
+        component: 'journalStorage',
+        action: 'user_id_validation',
+      });
       userId = session.user.id;
     }
 
@@ -1213,7 +1365,10 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
         try {
           cloudEntry = await getCloudEntry(userId, localEntry.id, date);
         } catch (error) {
-          console.warn('Error fetching cloud entry by ID, will try by date/type:', error);
+          Logger.warn('Error fetching cloud entry by ID, trying by date/type', {
+            component: 'journalStorage',
+            action: 'sync_from_cloud',
+          });
         }
       }
 
@@ -1230,7 +1385,10 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
           .limit(1);
 
         if (error) {
-          console.error('Error querying cloud entries:', error);
+          Logger.error('Error querying cloud entries', error as Error, {
+            component: 'journalStorage',
+            action: 'sync_from_cloud',
+          });
           throw error;
         }
 
@@ -1280,11 +1438,17 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
 
       return localEntry;
     } catch (error) {
-      console.error('Error in syncFromCloud:', error);
+      Logger.error('Error in syncFromCloud', error as Error, {
+      component: 'journalStorage',
+      action: 'sync_from_cloud',
+    });
       throw error;
     }
   } catch (error) {
-    console.error('Error in syncFromCloud:', error);
+    Logger.error('Error in syncFromCloud', error as Error, {
+      component: 'journalStorage',
+      action: 'sync_from_cloud',
+    });
     throw error;
   } finally {
 
@@ -1480,7 +1644,10 @@ export const clearJournalCache = async (userId: string, contentType?: string, da
     }
 
   } catch (error) {
-    console.error('Error in clearJournalCache:', error);
+    Logger.error('Error in clearJournalCache', error as Error, {
+      component: 'journalStorage',
+      action: 'clear_cache',
+    });
     throw error;
   }
 };
@@ -1501,7 +1668,10 @@ export const forceRefreshJournalData = async (
     await syncFromCloud(userId, dateStr, contentType);
 
   } catch (error) {
-    console.error('Error in forceRefreshJournalData:', error);
+    Logger.error('Error in forceRefreshJournalData', error as Error, {
+      component: 'journalStorage',
+      action: 'force_refresh',
+    });
     throw error;
   }
 };
@@ -1524,7 +1694,11 @@ export const forceRefreshAllJournalData = async (
       try {
         await syncFromCloud(userId, dateStr, contentType);
       } catch (error) {
-        console.error(`Error syncing ${contentType}:`, error);
+        Logger.error(`Error syncing ${contentType}`, error as Error, {
+          component: 'journalStorage',
+          action: 'force_refresh_all',
+          contentType,
+        });
         // Continue with other content types even if one fails
       }
     }
@@ -1534,11 +1708,17 @@ export const forceRefreshAllJournalData = async (
       const { forceRefreshTimeBlocks } = await import('./timeBlockStorage');
       await forceRefreshTimeBlocks(userId, dateStr);
     } catch (error) {
-      console.error('Error syncing time blocks:', error);
+      Logger.error('Error syncing time blocks', error as Error, {
+        component: 'journalStorage',
+        action: 'force_refresh_all',
+      });
     }
 
   } catch (error) {
-    console.error('Error in forceRefreshAllJournalData:', error);
+    Logger.error('Error in forceRefreshAllJournalData', error as Error, {
+      component: 'journalStorage',
+      action: 'force_refresh_all',
+    });
     throw error;
   }
 };

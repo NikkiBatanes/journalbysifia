@@ -36,10 +36,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 // Removed ErrorBoundary unused default import (no default export)
 import { queryClient } from './src/config/queryClientConfig';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
+import { initializeLogger } from './src/config/logging.config';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
 LogBox.ignoreAllLogs(); // Ignore all log notifications
+
+// Initialize production-ready logger
+initializeLogger();
 
 // Global default font is applied dynamically via GlobalFontApplier using theme.currentFont
 
