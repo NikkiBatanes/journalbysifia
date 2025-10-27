@@ -5,6 +5,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { useAuth } from './IndustryStandardAuthContext';
 import {
   onboardingService,
@@ -149,7 +150,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         }
       }
     } catch (err) {
-      console.error('[OnboardingContext] Error initializing onboarding:', err);
+      Logger.error('[OnboardingContext] Error initializing onboarding', err as Error, {
+      component: 'OnboardingContext',
+    });
 
       // Check if this is a foreign key constraint error (deleted user)
       // Handle different error object structures
@@ -232,7 +235,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         setIsOnboardingRequired(!progressData.is_completed);
       }
     } catch (err) {
-      console.error('[OnboardingContext] Error loading onboarding data:', err);
+      Logger.error('[OnboardingContext] Error loading onboarding data', err as Error, {
+      component: 'OnboardingContext',
+    });
       setError(err instanceof Error ? err.message : 'Failed to load onboarding data');
     }
   }, [user?.id]);
@@ -259,7 +264,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       setCurrentStep(1);
       await loadOnboardingData();
     } catch (err) {
-      console.error('[OnboardingContext] Error starting onboarding:', err);
+      Logger.error('[OnboardingContext] Error starting onboarding', err as Error, {
+      component: 'OnboardingContext',
+    });
       setError(err instanceof Error ? err.message : 'Failed to start onboarding');
     } finally {
       setLoading(false);
@@ -281,7 +288,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         setCurrentStep(prev => Math.min(prev + 1, totalSteps));
       }
     } catch (err) {
-      console.error('[OnboardingContext] Error updating step progress:', err);
+      Logger.error('[OnboardingContext] Error updating step progress', err as Error, {
+      component: 'OnboardingContext',
+    });
       setError(err instanceof Error ? err.message : 'Failed to update progress');
     } finally {
       setLoading(false);
@@ -298,7 +307,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       await onboardingService.updateFaithJourneyProfile(user.id, data);
       await loadOnboardingData();
     } catch (err) {
-      console.error('[OnboardingContext] Error updating faith journey:', err);
+      Logger.error('[OnboardingContext] Error updating faith journey', err as Error, {
+      component: 'OnboardingContext',
+    });
       setError(err instanceof Error ? err.message : 'Failed to update faith journey');
     } finally {
       setLoading(false);
@@ -315,7 +326,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       await onboardingService.updatePersonalizationProfile(user.id, data);
       await loadOnboardingData();
     } catch (err) {
-      console.error('[OnboardingContext] Error updating personalization:', err);
+      Logger.error('[OnboardingContext] Error updating personalization', err as Error, {
+      component: 'OnboardingContext',
+    });
       setError(err instanceof Error ? err.message : 'Failed to update personalization');
     } finally {
       setLoading(false);
@@ -332,7 +345,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       await onboardingService.recordChristAcceptance(user.id, data);
       await loadOnboardingData();
     } catch (err) {
-      console.error('[OnboardingContext] Error recording Christ acceptance:', err);
+      Logger.error('[OnboardingContext] Error recording Christ acceptance', err as Error, {
+      component: 'OnboardingContext',
+    });
       setError(err instanceof Error ? err.message : 'Failed to record acceptance');
     } finally {
       setLoading(false);
@@ -351,7 +366,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       setIsOnboardingRequired(false);
       await loadOnboardingData();
     } catch (err) {
-      console.error('[OnboardingContext] Error completing onboarding:', err);
+      Logger.error('[OnboardingContext] Error completing onboarding', err as Error, {
+      component: 'OnboardingContext',
+    });
       setError(err instanceof Error ? err.message : 'Failed to complete onboarding');
     } finally {
       setLoading(false);
@@ -365,7 +382,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       await onboardingService.abandonOnboarding(user.id, currentStepName);
       // Don't reload data - user is leaving onboarding
     } catch (err) {
-      console.error('[OnboardingContext] Error abandoning onboarding:', err);
+      Logger.error('[OnboardingContext] Error abandoning onboarding', err as Error, {
+      component: 'OnboardingContext',
+    });
       // Don't show error to user when abandoning
     }
   }, [user?.id]);

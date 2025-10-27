@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import { Alert, AppState, AppStateStatus } from 'react-native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { supabase } from '../services/supabaseClient';
@@ -122,7 +123,9 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.error('❌ Session validation error:', error);
+        Logger.error('❌ Session validation error', error as Error, {
+      component: 'AuthStateMonitor',
+    });
         // Be very tolerant of network errors during foreground validation
         if (isNetworkError(error)) {
 
@@ -141,7 +144,9 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
       }
 
       if (!currentSession && isAuthenticated) {
-        console.warn('⚠️ Potential silent logout detected on app foreground');
+        Logger.warn('⚠️ Potential silent logout detected on app foreground', {
+      component: 'AuthStateMonitor',
+    });
         // Enhanced retry logic with longer delays
         await new Promise(resolve => setTimeout(resolve, 5000));
         const { data: { session: retrySession } } = await supabase.auth.getSession();
@@ -169,7 +174,9 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
         setLastAuthCheck(new Date());
       }
     } catch (error) {
-      console.error('💥 Session validation failed:', error);
+      Logger.error('💥 Session validation failed', error as Error, {
+      component: 'AuthStateMonitor',
+    });
       // Never interrupt user for network errors during foreground validation
       if (!isNetworkError(error) && !isInActiveOperation) {
         await handleSessionError('Unable to verify your session. Please check your connection.');
@@ -189,13 +196,17 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.error('❌ Periodic session check error:', error);
+        Logger.error('❌ Periodic session check error', error as Error, {
+      component: 'AuthStateMonitor',
+    });
         // Be extremely tolerant during periodic checks - don't logout on any errors
         return;
       }
 
       if (!currentSession && isAuthenticated) {
-        console.warn('⚠️ Potential silent logout detected during periodic check');
+        Logger.warn('⚠️ Potential silent logout detected during periodic check', {
+      component: 'AuthStateMonitor',
+    });
         // Enhanced retry logic for periodic checks
         try {
           const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
@@ -221,7 +232,9 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
         setLastAuthCheck(new Date());
       }
     } catch (error) {
-      console.error('💥 Periodic session check failed:', error);
+      Logger.error('💥 Periodic session check failed', error as Error, {
+      component: 'AuthStateMonitor',
+    });
       // Never interrupt user for network errors during periodic checks
     }
   }, [isAuthenticated, isInActiveOperation, handleSilentLogout, setLastAuthCheck, lastAuthCheck]);
@@ -311,7 +324,9 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
   useEffect(() => {
     if (!isAuthenticated && user) {
       // User was logged in but now isn't - potential silent logout
-      console.warn('⚠️ Authentication state mismatch detected');
+      Logger.warn('⚠️ Authentication state mismatch detected', {
+      component: 'AuthStateMonitor',
+    });
     }
   }, [isAuthenticated, user]);
 

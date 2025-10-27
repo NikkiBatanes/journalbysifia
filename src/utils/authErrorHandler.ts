@@ -1,4 +1,5 @@
 import { Alert } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 
 export interface AuthErrorHandlerOptions {
@@ -35,7 +36,10 @@ export class AuthErrorHandler {
 
     // Check if it's an authentication error
     if (this.isAuthError(error)) {
-      console.warn('🔐 Authentication error detected:', error);
+      Logger.warn('🔐 Authentication error detected', {
+      component: 'authErrorHandler',
+      data: error,
+    });
 
       // Try to refresh session first
       const refreshResult = await this.attemptSessionRefresh();
@@ -52,7 +56,10 @@ export class AuthErrorHandler {
 
     // Check if it's a network error
     if (this.isNetworkError(error)) {
-      console.warn('🌐 Network error detected:', error);
+      Logger.warn('🌐 Network error detected', {
+      component: 'authErrorHandler',
+      data: error,
+    });
 
       if (showUserFeedback) {
         await this.showNetworkErrorDialog(operationName, retryAttempts);
@@ -62,7 +69,9 @@ export class AuthErrorHandler {
     }
 
     // Unknown error
-    console.error('❌ Unhandled API error:', error);
+    Logger.error('❌ Unhandled API error', error as Error, {
+      component: 'authErrorHandler',
+    });
 
     if (showUserFeedback) {
       await this.showGenericErrorDialog(operationName, error);
@@ -147,25 +156,33 @@ export class AuthErrorHandler {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
 
       if (!currentSession) {
-        console.warn('⚠️ No current session to refresh');
+        Logger.warn('⚠️ No current session to refresh', {
+      component: 'authErrorHandler',
+    });
         return { success: false, error: 'No current session' };
       }
 
       const { data: { session }, error } = await supabase.auth.refreshSession();
 
       if (error) {
-        console.error('❌ Session refresh failed:', error);
+        Logger.error('❌ Session refresh failed', error as Error, {
+      component: 'authErrorHandler',
+    });
         return { success: false, error };
       }
 
       if (!session || !session.access_token) {
-        console.warn('⚠️ No valid session after refresh');
+        Logger.warn('⚠️ No valid session after refresh', {
+      component: 'authErrorHandler',
+    });
         return { success: false, error: 'No valid session returned' };
       }
 
       return { success: true };
     } catch (error) {
-      console.error('💥 Session refresh exception:', error);
+      Logger.error('💥 Session refresh exception', error as Error, {
+      component: 'authErrorHandler',
+    });
       return { success: false, error };
     }
   }

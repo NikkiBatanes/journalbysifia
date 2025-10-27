@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { userContextEngine } from './userContextEngine';
 import { faithPointsService } from './faithPointsService';
 
@@ -104,7 +105,9 @@ export class EnhancedQueueService {
         .single();
 
       if (error) {
-        console.error('[EnhancedQueueService] Error adding to queue:', error);
+        Logger.error('[EnhancedQueueService] Error adding to queue', error as Error, {
+      component: 'enhancedQueueService',
+    });
         throw error;
       }
 
@@ -116,7 +119,9 @@ export class EnhancedQueueService {
       return queueItem.id;
 
     } catch (error) {
-      console.error('[EnhancedQueueService] Error adding to queue:', error);
+      Logger.error('[EnhancedQueueService] Error adding to queue', error as Error, {
+      component: 'enhancedQueueService',
+    });
       throw error;
     }
   }
@@ -172,7 +177,9 @@ export class EnhancedQueueService {
       };
 
     } catch (error) {
-      console.error('[EnhancedQueueService] Error getting queue status:', error);
+      Logger.error('[EnhancedQueueService] Error getting queue status', error as Error, {
+      component: 'enhancedQueueService',
+    });
       return {
         position: 0,
         estimatedWaitTime: 0,
@@ -196,7 +203,9 @@ export class EnhancedQueueService {
       return item ? this.mapDatabaseToQueueItem(item) : null;
 
     } catch (error) {
-      console.error('[EnhancedQueueService] Error getting queue item:', error);
+      Logger.error('[EnhancedQueueService] Error getting queue item', error as Error, {
+      component: 'enhancedQueueService',
+    });
       return null;
     }
   }
@@ -223,7 +232,9 @@ export class EnhancedQueueService {
         await this.sleep(this.QUEUE_POLL_INTERVAL_MS);
 
       } catch (error) {
-        console.error('[EnhancedQueueService] Error in queue processing:', error);
+        Logger.error('[EnhancedQueueService] Error in queue processing', error as Error, {
+      component: 'enhancedQueueService',
+    });
         await this.sleep(5000); // Wait 5 seconds on error
       }
     }
@@ -258,7 +269,9 @@ export class EnhancedQueueService {
       }
 
     } catch (error) {
-      console.error('[EnhancedQueueService] Error getting next items:', error);
+      Logger.error('[EnhancedQueueService] Error getting next items', error as Error, {
+      component: 'enhancedQueueService',
+    });
     }
   }
 
@@ -405,7 +418,9 @@ export class EnhancedQueueService {
           updated_at: new Date().toISOString(),
         });
     } catch (error) {
-      console.error('[EnhancedQueueService] Error storing content:', error);
+      Logger.error('[EnhancedQueueService] Error storing content', error as Error, {
+      component: 'enhancedQueueService',
+    });
     }
   }
 
@@ -447,7 +462,9 @@ export class EnhancedQueueService {
         .lt('started_at', timeoutThreshold);
 
     } catch (error) {
-      console.error('[EnhancedQueueService] Error cleaning up timed out workers:', error);
+      Logger.error('[EnhancedQueueService] Error cleaning up timed out workers', error as Error, {
+      component: 'enhancedQueueService',
+    });
     }
   }
 

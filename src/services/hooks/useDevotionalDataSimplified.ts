@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Logger } from '../../utils/ProductionLogger';
 import { DeviceEventEmitter } from 'react-native';
 import { DevotionalApi } from '../api/devotionalApi';
 import type { DevotionalApiEntry } from '../api/devotionalApi';
@@ -122,7 +123,9 @@ export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
 
         return transformed;
       } catch (error) {
-        console.error('[useDevotionalByIdReactQuery] API error:', error);
+        Logger.error('[useDevotionalByIdReactQuery] API error', error as Error, {
+      component: 'useDevotionalDataSimplified',
+    });
         throw error;
       }
     },
@@ -190,7 +193,9 @@ export const useCreateDevotionalReactQuery = () => {
       }
     },
     onError: (err: Error) => {
-      console.error('[useCreateDevotionalReactQuery] Error:', err);
+      Logger.error('[useCreateDevotionalReactQuery] Error', err as Error, {
+      component: 'useDevotionalDataSimplified',
+    });
       // Analytics tracking removed for now
     },
   });
@@ -260,7 +265,9 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       // Analytics tracking removed for now
     },
     onError: (error: Error) => {
-      console.error('[useMarkDayCompleteReactQuery] Error:', error);
+      Logger.error('[useMarkDayCompleteReactQuery] Error', error as Error, {
+      component: 'useDevotionalDataSimplified',
+    });
       // Analytics tracking removed for now
     },
   });
@@ -303,7 +310,9 @@ export const useSubmitDevotionalRatingReactQuery = () => {
       // Analytics tracking removed for now
     },
     onError: (error: Error) => {
-      console.error('[useSubmitDevotionalRatingReactQuery] Error:', error);
+      Logger.error('[useSubmitDevotionalRatingReactQuery] Error', error as Error, {
+      component: 'useDevotionalDataSimplified',
+    });
       // Analytics tracking removed for now
     },
   });
@@ -336,7 +345,9 @@ export const useDeleteDevotionalReactQuery = () => {
       // Analytics tracking removed for now
     },
     onError: (error: Error) => {
-      console.error('[useDeleteDevotionalReactQuery] Error:', error);
+      Logger.error('[useDeleteDevotionalReactQuery] Error', error as Error, {
+      component: 'useDevotionalDataSimplified',
+    });
       // Analytics tracking removed for now
     },
   });
@@ -379,7 +390,10 @@ export const useDevotionalOperations = (userId: string) => {
       const playbook = playbooks.find(p => p.id === playbookId);
 
       if (!playbook) {
-        console.warn('[useDevotionalOperations] Playbook not found:', playbookId);
+        Logger.warn('[useDevotionalOperations] Playbook not found', {
+      component: 'useDevotionalDataSimplified',
+      data: playbookId,
+    });
         return null;
       }
 

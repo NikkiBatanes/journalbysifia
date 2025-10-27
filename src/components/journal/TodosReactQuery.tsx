@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
@@ -205,7 +206,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Handle loading and error states
   useEffect(() => {
     if (error) {
-      console.error('Failed to load todos:', error);
+      Logger.error('Failed to load todos', error as Error, {
+      component: 'TodosReactQuery',
+    });
     }
   }, [error]);
 
