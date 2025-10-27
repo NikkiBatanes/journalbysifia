@@ -423,7 +423,7 @@ export async function savePlaybook(playbook: Playbook, userId: string) {
   }
 }
 
-export async function updatePlaybookActionSteps(playbookId: string | undefined, actionSteps: any[], completedAt?: string | null) {
+export async function updatePlaybookActionSteps(playbookId: string | undefined, actionSteps: any[]) {
 
   if (!playbookId) {
 

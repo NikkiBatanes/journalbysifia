@@ -168,7 +168,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
       return currentSteps;
     });
-  }, [user, queryClient, stepAnimations]);
+  }, [user, queryClient, stepAnimations, logEvent]);
 
   const fetchActionSteps = useCallback(async () => {
     if (!user) {return;}

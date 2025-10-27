@@ -171,7 +171,7 @@ class AnalyticsService {
       }
 
       // Send to external analytics if configured
-      await this.sendToExternalAnalytics(event);
+      await this.sendToExternalAnalytics();
     } catch (error) {
       console.error('Failed to track event:', error);
     }
@@ -631,7 +631,7 @@ class AnalyticsService {
     }
   }
 
-  private async sendToExternalAnalytics(event: AnalyticsEvent) {
+  private async sendToExternalAnalytics() {
     // Placeholder for external analytics integration
     // Could integrate with Mixpanel, Amplitude, Google Analytics, etc.
     if (process.env.NODE_ENV === 'development') {
