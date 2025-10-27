@@ -641,17 +641,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 let shouldIncludeJournalEntry = true;
 
                 if (isPrayerJournalEntry) {
-                  // Apply same filtering logic as prayers table
-                  const isAnswered = ((entry as any).is_answered === true) ||
-                                   ((entry as any).status === 'answered') ||
-                                   !!(entry as any).answered_date;
-
-                  const journalCategory = ((entry as any).journal_category || '').toString().toLowerCase();
-                  const prayerType = ((entry as any).prayer_type || '').toString().toLowerCase();
-
-                  // Only include answered prayers from supplication or open prayer categories
-                  // isSupplicationOrOpenPrayer removed - was calculated but never used
-
                   // Let all prayer journal entries through initially - the secondary filter will handle answered/category filtering
                   shouldIncludeJournalEntry = true;
 
@@ -742,7 +731,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           const peoplePlugin = plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('prayer list')) || null as any;
 
           if (prayerPlugin) {
-            let devoCount = 0;
             prayers.forEach(prayer => {
               // Consider entries with journal_category or devotional markers as valid even if text fields are empty
               const rawContent = (prayer as any).content;
