@@ -230,19 +230,19 @@ const generateRecommendations = (metrics: ProgressMetrics, percentages: any): st
 
 export const printProgressReport = (report: ProgressReport) => {
 
-  report.tabulation.pointsByActivity.forEach((item, i) => {
+  report.tabulation.pointsByActivity.forEach(() => {
 
   });
 
-  report.tabulation.recentAchievements.slice(0, 5).forEach((item, i) => {
+  report.tabulation.recentAchievements.slice(0, 5).forEach(() => {
 
   });
 
-  report.tabulation.weeklyBreakdown.forEach(day => {
+  report.tabulation.weeklyBreakdown.forEach(() => {
 
   });
 
-  report.recommendations.forEach((rec, i) => {
+  report.recommendations.forEach(() => {
 
   });
 

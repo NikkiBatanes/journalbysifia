@@ -1162,7 +1162,6 @@ return (
                   ...(entryData.source && { source: entryData.source }),
                 };
 
-                let result;
                 if (editingId) {
                   // Update existing entry
                   await updateMutation.mutateAsync({ id: editingId, updates: saveData });
