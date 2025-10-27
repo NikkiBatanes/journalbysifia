@@ -2,3 +2,219 @@
 > siFia@0.0.1 lint
 > eslint .
 
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/ActionStepsCard.tsx
+   96:7   error  'shouldShowJournalIcon' is assigned a value but never used                                                                                                 @typescript-eslint/no-unused-vars
+  229:13  error  'completionStates' is assigned a value but never used                                                                                                      @typescript-eslint/no-unused-vars
+  552:57  error  'entry' is defined but never used. Allowed unused args must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+  589:6   error  React Hook React.useCallback has unnecessary dependencies: 'selectedActionStep' and 'selectedSubtask'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+  591:56  error  'entry' is defined but never used. Allowed unused args must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+  628:6   error  React Hook React.useCallback has unnecessary dependencies: 'selectedActionStep' and 'selectedSubtask'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+  630:53  error  'entry' is defined but never used. Allowed unused args must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+  667:6   error  React Hook React.useCallback has unnecessary dependencies: 'selectedActionStep' and 'selectedSubtask'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+  718:6   error  React Hook React.useCallback has unnecessary dependencies: 'selectedActionStep' and 'selectedSubtask'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/ActionStepsCard.tsx
+   75:59  error  'payload' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+  288:10  error  'payload' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/PlaybookCarousel.tsx
+  262:35  error  'eventData' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  306:8   error  'payload' is defined but never used. Allowed unused args must match /^_/u    @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/dashboard/ReflectionQuestionsCard.tsx
+  332:6  error  React Hook useCallback has an unnecessary dependency: 'subscription.tier'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/ReflectionLogReactQuery.tsx
+   389:9   error  'instanceId' is assigned a value but never used                                                                      @typescript-eslint/no-unused-vars
+   486:6   error  React Hook React.useMemo has an unnecessary dependency: 'dateStr'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+   560:19  error  'startTime' is assigned a value but never used                                                                       @typescript-eslint/no-unused-vars
+  1188:19  error  'result' is assigned a value but never used                                                                          @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TimeBlockReactQuery.tsx
+  367:17  error  'updateResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  423:19  error  'updateResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  462:17  error  'updateResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/journal/TodayWinReactQuery.tsx
+  398:13  error  'oldWin' is assigned a value but never used                             @typescript-eslint/no-unused-vars
+  424:21  error  'data' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  489:21  error  'data' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/onboarding/OnboardingIntegration.tsx
+  139:24  error  'context' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/components/ui/AnimatedPointsNotification.tsx
+  74:6  error  React Hook useCallback has an unnecessary dependency: 'componentId'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/ActionStepsContext.tsx
+  180:13  error  'stats' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  181:13  error  'allCompleted' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/context/IndustryStandardAuthContext.tsx
+  588:15  error  'providers' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/hooks/useCalendarGating.ts
+  91:6  error  React Hook useMemo has an unnecessary dependency: 'currentTier'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/DevotionalDetailReflectionModal.tsx
+  138:13  error  'refetchResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/DevotionalDetailScreen.tsx
+  431:13  error  'show' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/GeneratingPlaybookScreen.tsx
+  117:19  error  'pointsResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/PlaybookDetailScreenNew.tsx
+  1179:13  error  'needsExpansion' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/PlaybookListScreen.tsx
+  130:27  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/SmartJournalingGratitudeModal.tsx
+  164:15  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  212:13  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  350:13  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  370:13  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/SmartJournalingPrayerModal.tsx
+  424:13  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  443:13  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/SmartJournalingReflectionModal.tsx
+  350:13  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/SmartJournalingTimeBlockModal.tsx
+  312:13  error  'subtask' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/screens/UserProfileScreen.tsx
+  280:6   error  React Hook useCallback has an unnecessary dependency: 'deleteBirthYear'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+  638:13  error  'url' is assigned a value but never used                                                                                   @typescript-eslint/no-unused-vars
+  919:33  error  'data' is defined but never used. Allowed unused args must match /^_/u                                                     @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/scripts/updateOnboardingSchema.ts
+  55:19  error  'testData' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/AppleStoreKitService.ts
+  457:56  error  'productId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  465:56  error  'productId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/GooglePlayBillingService.ts
+   70:13  error  'result' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  307:9   error  'userMessage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/analyticsService.ts
+  634:41  error  'event' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/api/prayerApi.ts
+  437:11  error  'session' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/api/timeBlockApi.ts
+  117:21  error  'exceptions' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/faithPointsService.ts
+  534:13  error  'transactionData' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  557:17  error  'data' is assigned a value but never used             @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/useDevotionalDataSimplified.ts
+  224:15  error  'syncResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/hooks/usePrayerData.ts
+  208:15  error  'updatedPeoplePrayers' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/modernPlaybookApi.ts
+  183:13  error  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/pricingService.ts
+  453:11  error  'current' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/pushNotificationService.ts
+  85:20  error  'notification' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/smartJournalDetectionV2.ts
+  577:5  error  'userId' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  578:5  error  'content' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  579:5  error  'result' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/smartJournalingNavigation.ts
+   67:28  error  'subTask' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   75:32  error  'subTask' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   83:31  error  'subTask' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   91:31  error  'subTask' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  101:36  error  'subTask' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/supabaseApi.ts
+  426:101  error  'completedAt' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/supabaseApiNormalized.ts
+  288:19  error  'session' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  288:37  error  'sessionError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/services/tierRestrictionService.ts
+  240:5  error  'userId' is defined but never used. Allowed unused args must match /^_/u       @typescript-eslint/no-unused-vars
+  241:5  error  'feature' is defined but never used. Allowed unused args must match /^_/u      @typescript-eslint/no-unused-vars
+  242:5  error  'currentTier' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/storage/journalStorage.ts
+    44:11  error  'todayWinEntries' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+    45:11  error  'lookingForwardEntries' is assigned a value but never used                                                                   @typescript-eslint/no-unused-vars
+    52:41  error  'label' is defined but never used. Allowed unused args must match /^_/u                                                      @typescript-eslint/no-unused-vars
+    53:19  error  'session' is assigned a value but never used                                                                                 @typescript-eslint/no-unused-vars
+    53:30  error  'error' is assigned a value but never used                                                                                   @typescript-eslint/no-unused-vars
+    96:34  error  'event' is defined but never used. Allowed unused args must match /^_/u                                                      @typescript-eslint/no-unused-vars
+    96:49  error  'session' is defined but never used. Allowed unused args must match /^_/u                                                    @typescript-eslint/no-unused-vars
+   274:11  error  'verify' is assigned a value but never used                                                                                  @typescript-eslint/no-unused-vars
+   535:39  error  'userStr' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u       @typescript-eslint/no-unused-vars
+  1182:14  error  'accessToken' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u   @typescript-eslint/no-unused-vars
+  1182:27  error  'refreshToken' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u  @typescript-eslint/no-unused-vars
+  1182:41  error  'user' is assigned a value but never used. Allowed unused elements of array destructuring patterns must match /^_/u          @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/storage/prayerStorage.ts
+  193:15  error  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/storage/reflectionStorage.ts
+  459:13  error  'entry' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  464:19  error  'cloudEntries' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/systems/journal/renderers/EnhancedMomentsRenderer.tsx
+   536:15  error  'processedCount' is assigned a value but never used                                                                                                                               @typescript-eslint/no-unused-vars
+   537:15  error  'skippedCount' is assigned a value but never used                                                                                                                                 @typescript-eslint/no-unused-vars
+   646:25  error  'isAnswered' is assigned a value but never used                                                                                                                                   @typescript-eslint/no-unused-vars
+   650:25  error  'journalCategory' is assigned a value but never used                                                                                                                              @typescript-eslint/no-unused-vars
+   651:25  error  'prayerType' is assigned a value but never used                                                                                                                                   @typescript-eslint/no-unused-vars
+   758:17  error  'devoCount' is assigned a value but never used                                                                                                                                    @typescript-eslint/no-unused-vars
+   796:21  error  'isAnswered' is assigned a value but never used                                                                                                                                   @typescript-eslint/no-unused-vars
+   799:21  error  'prayerType' is assigned a value but never used                                                                                                                                   @typescript-eslint/no-unused-vars
+  1047:6   error  React Hook React.useCallback has unnecessary dependencies: 'dateRange.endDate', 'dateRange.label', and 'dateRange.startDate'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/authCheck.ts
+  11:13  error  'session' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  20:32  error  'error' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/nameReplacement.ts
+  128:9  error  'originalText' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/phase2Validation.ts
+  119:53  error  'state' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  348:11  error  'emoji' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/progressReport.ts
+  233:47  error  'item' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  233:53  error  'i' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
+  237:61  error  'item' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  237:67  error  'i' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
+  241:45  error  'day' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  245:35  error  'rec' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  245:40  error  'i' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/testFaithPoints.ts
+  57:11  error  'profile' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+  62:29  error  't' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  62:37  error  'i' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/nikkimaebatanes/CascadeProjects/siFia/src/utils/updateExistingPlaybooks.ts
+  71:11  error  'updatedCount' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+✖ 115 problems (115 errors, 0 warnings)
+
