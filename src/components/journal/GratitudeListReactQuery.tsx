@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';

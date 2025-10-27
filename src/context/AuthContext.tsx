@@ -111,7 +111,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Check for error in the response
       if (result.error) {
-        console.error('Login error from Supabase:', result.error);
+        Logger.error('Login error from Supabase', result.error as Error, {
+          component: 'AuthContext',
+        });
         throw new Error(result.error.message || 'Login failed. Please check your credentials.');
       }
 

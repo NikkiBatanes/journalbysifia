@@ -70,7 +70,11 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
 
     // Ensure we don't show more completed than total tasks
     if (completed > total) {
-      console.warn('[WARNING] More completed tasks than total tasks!', { completed, total });
+      Logger.warn('[WARNING] More completed tasks than total tasks!', {
+        component: 'ActionStepsContext',
+        completed,
+        total,
+      });
       completed = total;
     }
 
@@ -103,7 +107,10 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       const stepIndex = prevCopy.findIndex(step => step.id === stepId);
 
       if (stepIndex === -1) {
-        console.warn(`[WARNING] Step with id ${stepId} not found`);
+        Logger.warn(`[WARNING] Step with id ${stepId} not found`, {
+          component: 'ActionStepsContext',
+          stepId,
+        });
         return prevCopy;
       }
 

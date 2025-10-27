@@ -197,7 +197,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
           // Note: In React Native, app state will reset on next launch
           // No need for window.location.reload() as that's web-only
         } catch (logoutError) {
-          console.error('[OnboardingContext] Error during forced logout:', logoutError);
+          Logger.error('[OnboardingContext] Error during forced logout', logoutError as Error, {
+            component: 'OnboardingContext',
+          });
           // Even if logout fails, clear the local state
           setIsOnboardingRequired(false);
           setIsOnboardingCompleted(false);

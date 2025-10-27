@@ -1,4 +1,4 @@
-import { Logger } from "./utils/ProductionLogger";
+import { Logger } from "../utils/ProductionLogger";
 /**
  * Enterprise Authentication Configuration
  * Contains all authentication provider settings for production deployment

@@ -1,6 +1,5 @@
 // src/navigation/RootStackNavigator.tsx
 import React from 'react';
-import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   createNativeStackNavigator,
