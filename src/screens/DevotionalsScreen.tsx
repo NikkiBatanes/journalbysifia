@@ -564,7 +564,10 @@ const DevotionalsScreen = () => {
         Animated.stagger(100, animations).start();
       }
     } catch (err) {
-      console.warn('[DevotionalsScreen] initAnimations error', err);
+      Logger.warn('[DevotionalsScreen] initAnimations error', {
+        component: 'DevotionalsScreen',
+        error: err,
+      });
     }
   }, [sortedDevotionals]);
 

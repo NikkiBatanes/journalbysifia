@@ -233,7 +233,10 @@ class NetworkManager {
 
         // Remove action if max retries exceeded
         if (action.retryCount >= action.maxRetries) {
-          console.warn('⚠️ Max retries exceeded for action:', action.id);
+          Logger.warn('⚠️ Max retries exceeded for action', {
+        component: 'networkManager',
+        details: action.id,
+      });
           removeOfflineAction(action.id);
         }
       }

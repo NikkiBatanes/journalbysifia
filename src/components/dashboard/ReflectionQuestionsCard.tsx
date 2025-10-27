@@ -133,7 +133,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         .limit(10);
 
       if (devotionalsResult.error) {
-        console.warn('Supabase devotionals error:', devotionalsResult.error);
+        Logger.warn('Supabase devotionals error', {
+        component: 'ReflectionQuestionsCard',
+        details: devotionalsResult.error,
+      });
       }
 
       const allQuestions: ReflectionQuestion[] = [];

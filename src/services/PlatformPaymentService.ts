@@ -89,7 +89,10 @@ export class PlatformPaymentService {
         return await this.googleService.initialize();
       }
 
-      console.warn('[PlatformPayment] Unsupported platform:', Platform.OS);
+      Logger.warn('[PlatformPayment] Unsupported platform', {
+        component: 'PlatformPaymentService',
+        details: Platform.OS,
+      });
       return false;
     } catch (error) {
       Logger.error('[PlatformPayment] Initialization failed', error as Error, {

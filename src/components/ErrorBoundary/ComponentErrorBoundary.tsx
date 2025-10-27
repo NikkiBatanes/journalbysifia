@@ -3,6 +3,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { Logger } from '../../utils/ProductionLogger';
 
 interface Props {
   children: ReactNode;
@@ -25,7 +26,10 @@ class ComponentErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ComponentErrorBoundary caught an error:', error, errorInfo);
+    Logger.error('ComponentErrorBoundary: ComponentErrorBoundary caught an error', error, {
+        component: 'ComponentErrorBoundary',
+        errorInfo,
+      });
   }
 
   handleRetry = () => {

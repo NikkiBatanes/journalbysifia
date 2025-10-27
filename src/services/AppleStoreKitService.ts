@@ -835,7 +835,10 @@ export class AppleStoreKitService {
             validatedCount++;
 
           } else {
-            console.warn('[StoreKit] ⚠️ Restored purchase validation failed:', purchase.productId);
+            Logger.warn('[StoreKit] ⚠️ Restored purchase validation failed', {
+        component: 'AppleStoreKitService',
+        details: purchase.productId,
+      });
           }
         } catch (error) {
           Logger.error('[StoreKit] Error validating restored purchase', error as Error, {

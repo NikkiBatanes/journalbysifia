@@ -66,7 +66,10 @@ class NotificationManagementService {
             error.message?.includes('does not exist') ||
             error.message?.includes('column') ||
             error.message?.includes('schema cache')) {
-          console.warn('Notification preferences table/column not found - returning null:', error.message);
+          Logger.warn('Notification preferences table/column not found - returning null', {
+        component: 'notificationManagementService',
+        details: error.message,
+      });
           return null;
         }
         Logger.error('Error fetching notification preferences', error as Error, {
@@ -143,7 +146,10 @@ class NotificationManagementService {
             error.message?.includes('does not exist') ||
             error.message?.includes('column') ||
             error.message?.includes('schema cache')) {
-          console.warn('Notification preferences table/column not found - skipping notification setup:', error.message);
+          Logger.warn('Notification preferences table/column not found - skipping notification setup', {
+        component: 'notificationManagementService',
+        details: error.message,
+      });
           return true; // Return success to avoid blocking onboarding
         }
         Logger.error('Error updating notification preferences', error as Error, {

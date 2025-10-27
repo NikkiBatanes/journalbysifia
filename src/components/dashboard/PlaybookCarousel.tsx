@@ -123,7 +123,12 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               .select('id', { count: 'exact', head: true })
               .eq('playbook_id', playbook.id);
 
-            if (totalErr) { console.warn('Error counting total steps', totalErr); }
+            if (totalErr) {
+            Logger.warn('Error counting total steps', {
+              component: 'PlaybookCarousel',
+              error: totalErr,
+            });
+          }
 
             // Completed steps
             const { count: completedStepsCount, error: completedErr } = await supabase
@@ -132,7 +137,12 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               .eq('playbook_id', playbook.id)
               .eq('completed', true);
 
-            if (completedErr) { console.warn('Error counting completed steps', completedErr); }
+            if (completedErr) {
+            Logger.warn('Error counting completed steps', {
+              component: 'PlaybookCarousel',
+              error: completedErr,
+            });
+          }
 
             let totalSteps = totalStepsCount ?? 0;
             let completedSteps = completedStepsCount ?? 0;

@@ -86,7 +86,11 @@ const getReflectionKey = (userId: string, date: string | Date): string => {
         formattedDate = toLocalDateString(date);
       }
     } else {
-      console.error('Unsupported date type:', typeof date, date);
+      Logger.error('Unsupported date type', undefined, {
+        component: 'reflectionStorage',
+        type: typeof date,
+        value: date,
+      });
       formattedDate = new Date().toISOString().split('T')[0];
     }
   } catch (e) {

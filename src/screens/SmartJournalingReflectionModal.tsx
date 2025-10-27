@@ -232,7 +232,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           // Emit global event so dashboard can remove the prompt immediately
           DeviceEventEmitter.emit('guided_reflection_completed', { question: q, date: dateStrKey });
         } catch (e) {
-          console.warn('Failed to persist guided completion', e);
+          Logger.warn('Failed to persist guided completion', {
+        component: 'SmartJournalingReflectionModal',
+        error: e as Error,
+      });
         }
       }
 

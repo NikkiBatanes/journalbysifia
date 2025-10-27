@@ -462,11 +462,17 @@ class EnterpriseLoggingService {
 
         break;
       case 'warn':
-        console.warn(message, logEntry.metadata);
+        Logger.warn(message, {
+        component: 'enterpriseLoggingService',
+        metadata: logEntry.metadata,
+      });
         break;
       case 'error':
       case 'fatal':
-        console.error(message, logEntry.error, logEntry.metadata);
+        Logger.error(message, logEntry.error, {
+        component: 'enterpriseLoggingService',
+        metadata: logEntry.metadata,
+      });
         break;
     }
   }

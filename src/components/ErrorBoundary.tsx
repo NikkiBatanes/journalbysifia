@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../theme/colors';
+import { Logger } from '../utils/ProductionLogger';
 
 interface Props {
   children: ReactNode;
@@ -27,7 +28,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    Logger.error('ErrorBoundary: ErrorBoundary caught an error', error, {
+        component: 'ErrorBoundary',
+        errorInfo,
+      });
     this.setState({ error, errorInfo });
     // You can also log the error to an error reporting service
     // logErrorToService(error, errorInfo);

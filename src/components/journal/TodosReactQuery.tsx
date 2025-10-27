@@ -536,7 +536,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           });
           successCount++;
         } catch (copyError) {
-          console.error('Failed to copy todo:', todo.text, copyError);
+          Logger.error('Failed to copy todo', copyError as Error, {
+        component: 'TodosReactQuery',
+        todoText: todo.text,
+      });
         }
       }
 

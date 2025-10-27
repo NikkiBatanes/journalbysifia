@@ -5,6 +5,7 @@ import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { Logger } from '../../utils/ProductionLogger';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -54,7 +55,10 @@ export function QueryErrorBoundary({ children, fallback }: QueryErrorBoundaryPro
       FallbackComponent={fallback || ErrorFallback}
       onError={(error: Error, errorInfo: any) => {
         // Log error to analytics/crash reporting
-        console.error('Query Error Boundary caught an error:', error, errorInfo);
+        Logger.error('QueryErrorBoundary: Query Error Boundary caught an error', error, {
+        component: 'QueryErrorBoundary',
+        errorInfo,
+      });
 
         // You can add crash reporting here
         // crashlytics().recordError(error);

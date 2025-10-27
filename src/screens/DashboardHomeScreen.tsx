@@ -1022,7 +1022,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             isPrayed: true,
             _userId: selectedPrayerRequest.user_id,
             _dateStr: selectedPrayerRequest.selected_date,
-          }).catch((e) => console.warn('markPrayed failed (background):', e));
+          }).catch((e) => Logger.warn('DashboardHomeScreen: markPrayed failed (background)', { component: 'DashboardHomeScreen', error: e }));
         }
 
         if (user?.id) {
@@ -1031,7 +1031,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             queryClient.invalidateQueries({ queryKey: queryKeys.prayers.all(user.id) }),
             queryClient.invalidateQueries({ queryKey: ['prayers'] }),
             queryClient.invalidateQueries({ queryKey: ['prayer-requests'] }),
-          ]).catch((e) => console.warn('invalidateQueries failed (background):', e));
+          ]).catch((e) => Logger.warn('DashboardHomeScreen: invalidateQueries failed (background)', { component: 'DashboardHomeScreen', error: e }));
 
           // Award faith points in background; toast shown later manually
           faithPointsService
@@ -1042,7 +1042,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               prayed_for: modalPrayerName.trim(),
               suppressNotification: true,
             })
-            .catch((e) => console.warn('awardPoints failed (background):', e));
+            .catch((e) => Logger.warn('DashboardHomeScreen: awardPoints failed (background)', { component: 'DashboardHomeScreen', error: e }));
         }
       } catch (error) {
         Logger.warn('⚠️ Could not award faith points', {
