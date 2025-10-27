@@ -181,6 +181,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               completedDays.add(currentDay);
             }
             
+            // Debug logging
+            Logger.info(`[ReflectionQuestions] Devotional ${contentId}: currentDay=${currentDay}, completedDays=${Array.from(completedDays).join(',')}`, {
+              component: 'ReflectionQuestionsCard',
+            });
+            
             completedDaysMap.set(contentId, completedDays);
           } catch (e) {
             Logger.warn('Error parsing progress data for reflection questions', {
@@ -214,14 +219,24 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               // FILTER: Only show questions from Day 1 OR completed days
               const dayNumber = ctx?.dayNumber || 1;
               if (dayNumber > 1 && !completedDays.has(dayNumber)) {
+                Logger.info(`[ReflectionQuestions] Skipping future day question: ${qText.substring(0, 50)}... (Day ${dayNumber}, completed days: ${Array.from(completedDays).join(',')})`, {
+                  component: 'ReflectionQuestionsCard',
+                });
                 return; // Skip questions from incomplete future days
               }
 
               // Check if this question has already been journaled
               const questionId = `${devotional.id}-${ctx?.dayNumber || 1}-${ctx?.questionIndex || 1}`;
               if (journaledQuestionIds.has(questionId)) {
+                Logger.info(`[ReflectionQuestions] Skipping journaled question: ${qText.substring(0, 50)}... (ID: ${questionId})`, {
+                  component: 'ReflectionQuestionsCard',
+                });
                 return; // Skip journaled questions
               }
+              
+              Logger.info(`[ReflectionQuestions] Including question: ${qText.substring(0, 50)}... (Day ${dayNumber}, ID: ${questionId})`, {
+                component: 'ReflectionQuestionsCard',
+              });
 
               allQuestions.push({
                 id: `devotional-${devotional.id}-${idxSuffix}`,
