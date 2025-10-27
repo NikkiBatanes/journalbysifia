@@ -538,7 +538,7 @@ export class FaithPointsService {
         RETURNING *;
       `;
 
-      const { data: manualData, error: manualError } = await supabase
+      const { error: manualError } = await supabase
         .rpc('execute_sql', { query: manualQuery });
 
       if (manualError) {
