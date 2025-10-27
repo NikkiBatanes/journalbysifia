@@ -9,13 +9,10 @@ import { generateProgressReport, printProgressReport } from './progressReport';
 export const testFaithPointsSystem = async (userId: string) => {
 
   try {
-    // Test 1: Get or create user profile
+    // Test 1: Get initial user profile
+    const initialProfile = await faithPointsService.getUserProfile(userId);
 
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    // Remove unused profileError variable
 
     // Test 2: Award points for devotional completion
 
@@ -39,7 +36,7 @@ export const testFaithPointsSystem = async (userId: string) => {
 
     return {
       success: true,
-      initialPoints: profile.totalPoints,
+      initialPoints: initialProfile.totalPoints,
       finalPoints: updatedProfile.totalPoints,
       pointsAwarded: result.pointsAwarded,
       newLevel: result.newLevel,
@@ -63,7 +60,7 @@ export const logFaithPointsStatus = async (userId: string) => {
 
     if (transactions.length > 0) {
 
-      transactions.forEach((t: any, i) => {
+      transactions.forEach(() => {
 
       });
     }
