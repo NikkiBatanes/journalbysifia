@@ -152,6 +152,14 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
       // Create a map of devotional ID to completed days
       const completedDaysMap = new Map<string, Set<number>>();
+      
+      // Also create a map of devotional current_day from the devotionals table
+      const devotionalCurrentDayMap = new Map<string, number>();
+      devotionalsResult.data?.forEach(dev => {
+        const devCurrentDay = (dev as any).current_day || 1;
+        devotionalCurrentDayMap.set(dev.id, devCurrentDay);
+      });
+      
       if (progressResult.data) {
         progressResult.data.forEach(progress => {
           try {
@@ -162,19 +170,22 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const contentId = progress.content_id;
             const completedDays = new Set<number>();
             
+            // Get current day from multiple sources (devotional table takes precedence)
+            const devotionalCurrentDay = devotionalCurrentDayMap.get(contentId) || 1;
+            const progressCurrentDay = progressData?.current_day || progressData?.currentDay || 1;
+            const currentDay = Math.max(devotionalCurrentDay, progressCurrentDay);
+            
             // DEBUG: Log the entire progress data structure
-            Logger.info(`[ReflectionQuestions] Raw progress data for ${contentId}:`, {
+            Logger.info(`[ReflectionQuestions] Progress for ${contentId}:`, {
               component: 'ReflectionQuestionsCard',
               data: {
-                progressData: progressData,
-                hasCurrentDay: !!progressData?.current_day,
+                devotionalCurrentDay,
+                progressCurrentDay,
+                finalCurrentDay: currentDay,
                 hasDays: !!progressData?.days,
                 daysLength: progressData?.days?.length,
               },
             });
-            
-            // Get current day - all days before current day are considered accessible
-            const currentDay = progressData?.current_day || progressData?.currentDay || 1;
             
             // Extract completed days from progress data
             // Show questions from: Day 1 (always) + all completed days + current day
