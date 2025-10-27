@@ -82,7 +82,7 @@ class PushNotificationService {
         },
 
         // Called when user taps notification
-        onAction: (notification: any) => {
+        onAction: () => {
 
         },
 

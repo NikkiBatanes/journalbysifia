@@ -56,7 +56,7 @@ export class SmartJournalingNavigation {
 
       default:
         console.warn('[SmartJournalingNavigation] Unknown journal type:', journalType);
-        this.navigateToJournalDefault(subTask, context);
+        this.navigateToJournalDefault();
         break;
     }
   }
@@ -98,7 +98,7 @@ export class SmartJournalingNavigation {
   /**
    * Default navigation to journal screen
    */
-  private navigateToJournalDefault(subTask: SubTask, _context?: any) {
+  private navigateToJournalDefault() {
 
     this.navigation.navigate('Journal' as never);
   }

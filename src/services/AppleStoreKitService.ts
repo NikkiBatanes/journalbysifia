@@ -454,7 +454,7 @@ export class AppleStoreKitService {
       (cancellationError as any).code = 'USER_CANCELLED';
 
       // Reject ALL pending purchase promises since user cancelled
-      this.pendingPurchaseResolvers.forEach((resolver, productId) => {
+      this.pendingPurchaseResolvers.forEach((resolver) => {
 
         resolver.reject(cancellationError);
       });
@@ -462,7 +462,7 @@ export class AppleStoreKitService {
     } else {
       // Real error - reject all pending promises with the original error
       console.error('[StoreKit] Real purchase error:', error);
-      this.pendingPurchaseResolvers.forEach((resolver, productId) => {
+      this.pendingPurchaseResolvers.forEach((resolver) => {
 
         resolver.reject(error);
       });
