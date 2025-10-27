@@ -78,7 +78,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       // Simple console log for now - can be enhanced later
 
     } catch (analyticsError) {
-      console.error('Analytics error:', analyticsError);
+      Logger.error('Analytics error', analyticsError as Error, {
+  component: 'ActionStepsCard',
+});
     }
   }, []);
 
@@ -155,7 +157,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
             setCompletedStepId(stepId);
             setTimeout(() => setCompletedStepId(null), 2000);
           } catch (catchError) {
-            console.error('Error completing step:', catchError);
+            Logger.error('Error completing step', catchError as Error, {
+  component: 'ActionStepsCard',
+});
           } finally {
             setCompletingStepId(null);
           }
@@ -199,7 +203,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         .limit(10);
 
       if (progressError) {
-        console.error('Error fetching action steps:', progressError);
+        Logger.error('Error fetching action steps', progressError as Error, {
+  component: 'ActionStepsCard',
+});
         throw progressError;
       }
 
@@ -267,7 +273,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       }
 
     } catch (fetchError) {
-      console.error('Error fetching action steps:', fetchError);
+      Logger.error('Error fetching action steps', fetchError as Error, {
+  component: 'ActionStepsCard',
+});
       setError('Failed to load action steps');
     } finally {
       setLoading(false);

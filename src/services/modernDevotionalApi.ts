@@ -149,7 +149,9 @@ export async function generateDevotional(
         .single();
 
       if (saveError) {
-        console.error('Error saving devotional to database:', saveError);
+        Logger.error('Error saving devotional to database', saveError as Error, {
+  component: 'modernDevotionalApi',
+});
         throw new Error(`Failed to save devotional: ${saveError.message}`);
       }
 
@@ -210,7 +212,9 @@ export async function generateDevotional(
 
   // If all attempts failed, throw the last error
   const errorMessage = lastError?.message || 'Failed to generate devotional after multiple attempts';
-  console.error('❌ All devotional generation attempts failed:', errorMessage);
+  Logger.error('❌ All devotional generation attempts failed', new Error(errorMessage), {
+  component: 'modernDevotionalApi',
+});
   throw new Error(errorMessage);
 }
 

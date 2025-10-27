@@ -45,7 +45,10 @@ export async function generateDevotional(
     const { isValid, diagnostics } = await validateSession();
 
     if (!isValid) {
-      console.error('❌ Invalid session for devotional generation:', diagnostics);
+      Logger.error('❌ Invalid session for devotional generation', undefined, {
+        component: 'apiIntegration',
+        diagnostics,
+      });
 
       // Try to refresh session once before giving up
       if (diagnostics.hasSession && diagnostics.hasToken && diagnostics.isExpired) {
@@ -153,7 +156,10 @@ export async function generatePlaybook(
     const { isValid, diagnostics } = await validateSession();
 
     if (!isValid) {
-      console.error('❌ Invalid session for playbook generation:', diagnostics);
+      Logger.error('❌ Invalid session for playbook generation', undefined, {
+        component: 'apiIntegration',
+        diagnostics,
+      });
 
       // Try to refresh session once before giving up
       if (diagnostics.hasSession && diagnostics.hasToken && diagnostics.isExpired) {
@@ -254,7 +260,9 @@ export async function getPlaybooks(
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      console.error('❌ No active session for getting playbooks:', sessionError);
+      Logger.error('❌ No active session for getting playbooks', sessionError as Error, {
+  component: 'apiIntegration',
+});
 
       const result = await authErrorHandler.handleApiError(
         { status: 401, message: AUTH_ERROR_MESSAGES.NO_SESSION },

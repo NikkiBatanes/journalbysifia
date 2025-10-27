@@ -860,7 +860,10 @@ export async function generateDevotional(duration: number, playbookId?: string, 
     } catch (err: unknown) {
       const error = err as Error;
       lastError = error;
-      console.warn(`Attempt ${attempt + 1} failed:`, error);
+      Logger.warn(`Attempt ${attempt + 1} failed:`, {
+  component: 'supabaseApi',
+  data: error,
+});
       if (attempt < maxRetries) {
         // Wait before retrying (exponential backoff)
         const delay = 1000 * Math.pow(2, attempt);

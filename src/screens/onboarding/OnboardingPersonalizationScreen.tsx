@@ -516,12 +516,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 });
 
                 if (updateError) {
-                  console.error('❌ Error saving name to user metadata:', updateError);
+                  Logger.error('❌ Error saving name to user metadata', updateError as Error, {
+  component: 'OnboardingPersonalizationScreen',
+});
                 } else {
 
                 }
               } catch (nameError) {
-                console.error('❌ Error updating user metadata with name:', nameError);
+                Logger.error('❌ Error updating user metadata with name', nameError as Error, {
+  component: 'OnboardingPersonalizationScreen',
+});
               }
             }
           } catch (error) {
@@ -564,12 +568,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             });
 
             if (updateError) {
-              console.error('❌ Error saving name to user metadata (error case):', updateError);
+              Logger.error('❌ Error saving name to user metadata (error case)', updateError as Error, {
+  component: 'OnboardingPersonalizationScreen',
+});
             } else {
 
             }
           } catch (nameError) {
-            console.error('❌ Error updating user metadata with name (error case):', nameError);
+            Logger.error('❌ Error updating user metadata with name (error case)', nameError as Error, {
+  component: 'OnboardingPersonalizationScreen',
+});
           }
         }
 

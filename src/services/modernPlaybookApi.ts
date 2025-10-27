@@ -20,7 +20,10 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.warn(`Session retrieval error (attempt ${i + 1}/${retries}):`, sessionError);
+        Logger.warn(`Session retrieval error (attempt ${i + 1}/${retries}):`, {
+  component: 'modernPlaybookApi',
+  data: sessionError,
+});
         if (i === retries - 1) {throw sessionError;}
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
         continue;
@@ -147,7 +150,10 @@ export async function generatePlaybook(
       const error = err as Error;
       lastError = error;
 
-      console.warn(`Playbook generation attempt ${attempt + 1} failed:`, error.message);
+      Logger.warn(`Playbook generation attempt ${attempt + 1} failed:`, {
+  component: 'modernPlaybookApi',
+  data: error.message,
+});
 
       // Don't retry on authentication errors
       if (error.message.includes('session') || error.message.includes('token') || error.message.includes('sign in')) {
