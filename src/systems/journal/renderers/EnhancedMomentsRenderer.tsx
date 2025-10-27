@@ -679,6 +679,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
                     entries.push(momentEntry);
                   }
+                }
+              }
+            }
           });
 
         } else {
