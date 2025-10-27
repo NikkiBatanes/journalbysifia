@@ -133,7 +133,7 @@ export class SmartJournalDetectionV2 {
       );
 
       // Record behavior event for learning
-      await this.recordDetectionEvent(userId, content, enhancedResult);
+      await this.recordDetectionEvent();
 
       // Award faith points for journaling
       await faithPointsService.awardPoints(
@@ -573,11 +573,7 @@ export class SmartJournalDetectionV2 {
   /**
    * Record detection event for machine learning
    */
-  private async recordDetectionEvent(
-    userId: string,
-    content: string,
-    result: JournalDetectionResult
-  ): Promise<void> {
+  private async recordDetectionEvent(): Promise<void> {
     try {
       // This would integrate with your user_behavior_events table
       // For now, just log the event
