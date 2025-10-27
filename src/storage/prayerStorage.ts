@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 import { toLocalDateString } from '../utils/date';
 
@@ -62,18 +63,19 @@ export const testDatabaseConnection = async (): Promise<boolean> => {
       .limit(1);
 
     if (error) {
-      console.error('❌ Database connection test failed:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-      });
+      Logger.error('❌ Database connection test failed', undefined, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('❌ Database connection test error:', error);
+    Logger.error('❌ Database connection test error', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     return false;
   }
 };
@@ -92,7 +94,10 @@ export const saveLocalPrayers = async (
     const key = getPrayerStorageKey(userId, date);
     await AsyncStorage.setItem(key, JSON.stringify(prayers));
   } catch (error) {
-    console.error('Error saving prayers to local storage:', error);
+    Logger.error('Error saving prayers to local storage', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -106,7 +111,10 @@ export const getLocalPrayers = async (
     const data = await AsyncStorage.getItem(key);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error loading prayers from local storage:', error);
+    Logger.error('Error loading prayers from local storage', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     return [];
   }
 };
@@ -116,7 +124,10 @@ export const clearLocalPrayers = async (userId: string, date: string): Promise<v
     const key = getPrayerStorageKey(userId, date);
     await AsyncStorage.removeItem(key);
   } catch (error) {
-    console.error('Error clearing local prayers:', error);
+    Logger.error('Error clearing local prayers', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -135,13 +146,19 @@ export const getCloudPrayers = async (
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching prayers from cloud:', error);
+      Logger.error('Error fetching prayers from cloud', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
       throw error;
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error in getCloudPrayers:', error);
+    Logger.error('Error in getCloudPrayers', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -155,7 +172,10 @@ export const syncPrayersFromCloud = async (
     await saveLocalPrayers(userId, date, cloudPrayers);
     return cloudPrayers;
   } catch (error) {
-    console.error('Error syncing prayers from cloud:', error);
+    Logger.error('Error syncing prayers from cloud', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     // Return local prayers as fallback
     return await getLocalPrayers(userId, date);
   }
@@ -219,28 +239,27 @@ export const savePrayerEntry = async (
         .select();
 
       if (error) {
-        console.error('❌ Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
+        Logger.error('❌ Supabase error details', undefined, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
         throw error;
       }
 
     } catch (cloudError: any) {
-      console.error('❌ Failed to save to cloud, but local save succeeded:', {
-        error: cloudError,
-        message: cloudError?.message,
-        code: cloudError?.code,
-        details: cloudError?.details,
-      });
+      Logger.error('❌ Failed to save to cloud, but local save succeeded', undefined, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
       // Don't throw here - local save succeeded
     }
 
     return newPrayer;
   } catch (error) {
-    console.error('Error saving prayer entry:', error);
+    Logger.error('Error saving prayer entry', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -304,18 +323,27 @@ export const updatePrayerEntry = async (
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error updating prayer in cloud:', error);
+        Logger.error('Error updating prayer in cloud', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
         throw error;
       }
 
     } catch (cloudError) {
-      console.error('Failed to update in cloud, but local save succeeded:', cloudError);
+      Logger.error('Failed to update in cloud, but local save succeeded', cloudError as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
       // Don't throw here - local update succeeded
     }
 
     return updatedPrayer;
   } catch (error) {
-    console.error('Error updating prayer entry:', error);
+    Logger.error('Error updating prayer entry', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -342,16 +370,25 @@ export const deletePrayerEntry = async (
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error deleting prayer from cloud:', error);
+        Logger.error('Error deleting prayer from cloud', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
         throw error;
       }
 
     } catch (cloudError) {
-      console.error('Failed to delete from cloud, but local delete succeeded:', cloudError);
+      Logger.error('Failed to delete from cloud, but local delete succeeded', cloudError as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
       // Don't throw here - local delete succeeded
     }
   } catch (error) {
-    console.error('Error deleting prayer entry:', error);
+    Logger.error('Error deleting prayer entry', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -366,7 +403,10 @@ export const getPrayersByType = async (
     const prayers = await getLocalPrayers(userId, date);
     return prayers.filter(prayer => prayer.prayer_type === prayerType);
   } catch (error) {
-    console.error('Error getting prayers by type:', error);
+    Logger.error('Error getting prayers by type', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     return [];
   }
 };
@@ -380,7 +420,10 @@ export const getJournalPrayersByCategory = async (
     const prayers = await getPrayersByType(userId, date, 'journal');
     return prayers.filter(prayer => prayer.journal_category === category);
   } catch (error) {
-    console.error('Error getting journal prayers by category:', error);
+    Logger.error('Error getting journal prayers by category', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     return [];
   }
 };
@@ -397,7 +440,10 @@ export const getPeoplePrayers = async (
     }
     return prayers;
   } catch (error) {
-    console.error('Error getting people prayers:', error);
+    Logger.error('Error getting people prayers', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     return [];
   }
 };
@@ -414,7 +460,10 @@ export const getDevotionalPrayers = async (
     }
     return prayers;
   } catch (error) {
-    console.error('Error getting devotional prayers:', error);
+    Logger.error('Error getting devotional prayers', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     return [];
   }
 };
@@ -433,13 +482,19 @@ export const getAllDevotionalPrayersFromCloud = async (
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ Error in getAllDevotionalPrayersFromCloud:', error);
+      Logger.error('❌ Error in getAllDevotionalPrayersFromCloud', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
       throw error;
     }
 
     return data || [];
   } catch (error) {
-    console.error('❌ Error in getAllDevotionalPrayersFromCloud:', error);
+    Logger.error('❌ Error in getAllDevotionalPrayersFromCloud', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -457,13 +512,19 @@ export const getDevotionalPrayersByDate = async (userId: string, date: string): 
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ Error fetching devotional prayers by date from cloud:', error);
+      Logger.error('❌ Error fetching devotional prayers by date from cloud', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
       throw error;
     }
 
     return data || [];
   } catch (error) {
-    console.error('❌ Error in getDevotionalPrayersByDate:', error);
+    Logger.error('❌ Error in getDevotionalPrayersByDate', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     throw error;
   }
 };
@@ -477,7 +538,10 @@ export const forceRefreshPrayers = async (
     await clearLocalPrayers(userId, date);
     return await syncPrayersFromCloud(userId, date);
   } catch (error) {
-    console.error('Error force refreshing prayers:', error);
+    Logger.error('Error force refreshing prayers', error as Error, {
+      component: 'prayerStorage',
+      action: 'error',
+    });
     return [];
   }
 };

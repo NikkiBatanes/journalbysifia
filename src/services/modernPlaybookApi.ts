@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { Playbook } from '../interfaces/playbook';
 import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
 import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
@@ -26,7 +27,9 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
       }
 
       if (!session) {
-        console.warn(`No session found (attempt ${i + 1}/${retries})`);
+        Logger.warn(`No session found (attempt ${i + 1}/${retries})`, {
+      component: 'modernPlaybookApi',
+    });
         if (i === retries - 1) {
           // Final attempt - try to refresh session
           try {
@@ -36,7 +39,10 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
               return refreshedSession;
             }
           } catch (refreshError) {
-            console.error('❌ Session refresh failed:', refreshError);
+            Logger.error('❌ Session refresh failed', refreshError as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
           }
           throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
         }
@@ -159,7 +165,10 @@ export async function generatePlaybook(
 
   // If we get here, all retries failed
   const errorMessage = lastError?.message || 'Failed to generate playbook after multiple attempts';
-  console.error('❌ All playbook generation attempts failed:', errorMessage);
+  Logger.error('❌ All playbook generation attempts failed', new Error(errorMessage), {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
   throw new Error(errorMessage);
 }
 
@@ -199,7 +208,10 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
       .single();
 
     if (error) {
-      console.error('Error saving playbook to Supabase:', error);
+      Logger.error('Error saving playbook to Supabase', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
       return { success: false, error: error.message };
     }
 
@@ -238,7 +250,10 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         .insert(actionStepsToInsert);
 
       if (actionStepsError) {
-        console.error('❌ Error saving action steps:', actionStepsError);
+        Logger.error('❌ Error saving action steps', actionStepsError as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
         return { success: false, error: `Playbook saved but action steps failed: ${actionStepsError.message}` };
       }
 
@@ -278,7 +293,10 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
             .insert(subTasksToInsert);
 
           if (subTasksError) {
-            console.error('❌ Error saving sub-tasks:', subTasksError);
+            Logger.error('❌ Error saving sub-tasks', subTasksError as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
             return { success: false, error: `Sub-tasks failed for step ${stepIndex + 1}: ${subTasksError.message}` };
           }
 
@@ -309,7 +327,10 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         .insert(affirmationsToInsert);
 
       if (affirmationsError) {
-        console.error('❌ Error saving affirmations:', affirmationsError);
+        Logger.error('❌ Error saving affirmations', affirmationsError as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
         return { success: false, error: `Playbook saved but affirmations failed: ${affirmationsError.message}` };
       }
 
@@ -318,7 +339,10 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
     return { success: true };
 
   } catch (error: any) {
-    console.error('❌ Failed to save playbook:', error);
+    Logger.error('❌ Failed to save playbook', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
     return { success: false, error: error.message };
   }
 }
@@ -355,7 +379,10 @@ export async function updatePlaybookActionSteps(
       .single();
 
     if (ownershipError || !playbookData) {
-      console.error('❌ Playbook ownership verification failed:', ownershipError);
+      Logger.error('❌ Playbook ownership verification failed', ownershipError as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
       return { success: false, error: 'Playbook not found or access denied' };
     }
 
@@ -429,14 +456,20 @@ export async function updatePlaybookActionSteps(
       .eq('id', playbookId);
 
     if (updateError) {
-      console.error('❌ Error updating playbook status:', updateError);
+      Logger.error('❌ Error updating playbook status', updateError as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
       return { success: false, error: `Failed to update playbook status: ${updateError.message}` };
     }
 
     return { success: true };
 
   } catch (error: any) {
-    console.error('❌ Failed to update playbook action steps:', error);
+    Logger.error('❌ Failed to update playbook action steps', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
     return { success: false, error: error.message };
   }
 }
@@ -462,7 +495,10 @@ export async function deletePlaybook(
     // Validate and ensure proper UUID format
     const validatedId = ensureValidUUID(playbookId, 'deletePlaybook');
     if (validatedId !== playbookId) {
-      console.error('❌ Invalid playbook ID format for deletion:', playbookId);
+      Logger.error('❌ Invalid playbook ID format for deletion', new Error(String(playbookId)), {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
       return { success: false, error: `Invalid playbook ID format: ${playbookId}. Expected UUID format.` };
     }
 
@@ -473,14 +509,20 @@ export async function deletePlaybook(
       .eq('id', playbookId);
 
     if (error) {
-      console.error('Error deleting playbook from Supabase:', error);
+      Logger.error('Error deleting playbook from Supabase', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
       return { success: false, error: error.message };
     }
 
     return { success: true };
 
   } catch (error: any) {
-    console.error('❌ Failed to delete playbook:', error);
+    Logger.error('❌ Failed to delete playbook', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
     return { success: false, error: error.message };
   }
 }
@@ -522,7 +564,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('[modernGetPlaybooks] Error fetching playbooks:', error);
+    Logger.error('[modernGetPlaybooks] Error fetching playbooks', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
     throw new Error(`Failed to fetch playbooks: ${error.message}`);
   }
 
@@ -580,7 +625,10 @@ export async function getPlaybook(
     // Validate and ensure proper UUID format
     const validatedId = ensureValidUUID(playbookId, 'getPlaybook');
     if (validatedId !== playbookId) {
-      console.error('❌ Invalid playbook ID format:', playbookId);
+      Logger.error('❌ Invalid playbook ID format', new Error(String(playbookId)), {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
       throw new Error(`Invalid playbook ID format: ${playbookId}. Expected UUID format.`);
     }
 
@@ -597,7 +645,10 @@ export async function getPlaybook(
 
         return null;
       }
-      console.error('❌ Failed to fetch playbook:', error);
+      Logger.error('❌ Failed to fetch playbook', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
       throw new Error(`Failed to fetch playbook: ${error.message}`);
     }
 
@@ -614,7 +665,10 @@ export async function getPlaybook(
       .order('order_index');
 
     if (actionStepsError) {
-      console.warn('⚠️ Warning: Could not fetch action steps:', actionStepsError);
+      Logger.warn('⚠️ Warning: Could not fetch action steps', {
+      component: 'modernPlaybookApi',
+      error: actionStepsError,
+    });
     }
 
     // Fetch affirmations from separate table
@@ -626,7 +680,10 @@ export async function getPlaybook(
       .order('order_index');
 
     if (affirmationsError) {
-      console.warn('⚠️ Warning: Could not fetch affirmations:', affirmationsError);
+      Logger.warn('⚠️ Warning: Could not fetch affirmations', {
+      component: 'modernPlaybookApi',
+      error: affirmationsError,
+    });
     }
 
     // Fetch sub-tasks for all action steps
@@ -641,7 +698,10 @@ export async function getPlaybook(
         .order('order_index');
 
       if (subTasksError) {
-        console.warn('⚠️ Warning: Could not fetch sub-tasks:', subTasksError);
+        Logger.warn('⚠️ Warning: Could not fetch sub-tasks', {
+      component: 'modernPlaybookApi',
+      error: subTasksError,
+    });
       } else {
         subTasksData = subTasksResult || [];
       }
@@ -745,7 +805,10 @@ export async function getPlaybook(
     return playbook;
 
   } catch (error: any) {
-    console.error('❌ Failed to fetch playbook:', error);
+    Logger.error('❌ Failed to fetch playbook', error as Error, {
+      component: 'modernPlaybookApi',
+      action: 'error',
+    });
     throw error;
   }
 }
