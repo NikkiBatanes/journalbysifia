@@ -218,7 +218,7 @@ ACTION STEPS:
    - Sub-task: [Specific, actionable task 3] | Journal: [journal_type]
    - Example: [Practical example of implementation] | Interactive: [true/false]
 
-VALID JOURNAL TYPES: prayer, reflection, gratitude, win, timeblock, none
+VALID JOURNAL TYPES: prayer, reflection, gratitude, timeblock, none
 
 [Continue with 3-6 more action steps following the same format]
 

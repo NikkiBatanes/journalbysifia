@@ -69,7 +69,6 @@ const getJournalTypeIcon = (journalType?: string): string => {
     case 'prayer': return 'hands-pray';
     case 'reflection': return 'head-lightbulb';
     case 'gratitude': return 'heart';
-    case 'win': return 'trophy';
     case 'timeblock': return 'clock';
     case 'none': return '';
     default: return '';
@@ -81,7 +80,6 @@ const getJournalTypeColor = (journalType?: string): string => {
     case 'prayer': return Colors.prayerPurple; // Spiritual connection
     case 'reflection': return Colors.reflectionBlue; // Wisdom and depth
     case 'gratitude': return Colors.gratitudeRed; // Love and warmth
-    case 'win': return Colors.winGold; // Celebration and joy
     case 'timeblock': return Colors.timeblockGreen; // Growth and management
     case 'none': return 'transparent';
     default: return 'transparent';

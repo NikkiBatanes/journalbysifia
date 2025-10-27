@@ -7,7 +7,6 @@ export type JournalType =
   | 'prayer'
   | 'reflection'
   | 'gratitude'
-  | 'win'
   | 'timeblock'
   | 'none';
 
@@ -33,11 +32,6 @@ const JOURNAL_TYPE_PATTERNS: JournalTypePattern[] = [
     type: 'gratitude',
     keywords: ['grateful', 'gratitude', 'thankful', 'appreciate', 'blessing', 'blessed', 'thank', 'praise', 'acknowledge'],
     phrases: ['grateful for', 'thankful for', 'appreciate the', 'count your blessings', 'give thanks', 'express gratitude', 'acknowledge the', 'be thankful', 'feel grateful'],
-  },
-  {
-    type: 'win',
-    keywords: ['celebrate', 'achievement', 'success', 'accomplish', 'victory', 'milestone', 'progress', 'win', 'triumph', 'breakthrough'],
-    phrases: ['celebrate your', 'acknowledge your success', 'recognize your progress', 'celebrate the', 'acknowledge your achievement', 'record your wins', 'note your progress'],
   },
   {
     type: 'timeblock',
