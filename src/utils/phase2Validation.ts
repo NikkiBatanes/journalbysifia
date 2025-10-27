@@ -345,8 +345,6 @@ export class Phase2Validator {
   private addResult(feature: string, status: 'pass' | 'fail' | 'warning', message: string, details?: any): void {
     this.results.push({ feature, status, message, details });
 
-    const emoji = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️';
-
   }
 
   /**

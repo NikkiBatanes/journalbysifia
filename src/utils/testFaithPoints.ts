@@ -11,7 +11,11 @@ export const testFaithPointsSystem = async (userId: string) => {
   try {
     // Test 1: Get or create user profile
 
-    const profile = await faithPointsService.getUserProfile(userId);
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
     // Test 2: Award points for devotional completion
 
@@ -54,7 +58,7 @@ export const testFaithPointsSystem = async (userId: string) => {
 
 export const logFaithPointsStatus = async (userId: string) => {
   try {
-    const profile = await faithPointsService.getUserProfile(userId);
+    await faithPointsService.getUserProfile(userId);
     const transactions = await faithPointsService.getRecentTransactions(userId, 10);
 
     if (transactions.length > 0) {

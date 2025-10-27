@@ -68,7 +68,7 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
         if (updateError) {
           console.error('❌ Error updating batch:', updateError);
         } else {
-          updatedCount += updates.length;
+          // Updates applied successfully
 
         }
       }

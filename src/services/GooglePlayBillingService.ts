@@ -282,29 +282,18 @@ export class GooglePlayBillingService {
    */
   private handlePurchaseError(error: PurchaseError): void {
     console.error('[GooglePlay] Purchase error details:', {
-      code: error.code,
-      message: error.message,
-      debugMessage: error.debugMessage,
+      code: error?.code,
+      message: error?.message,
+      debugMessage: error?.debugMessage,
     });
 
-    // Map Google Play error codes to user-friendly messages
-    let userMessage = 'Purchase failed. Please try again.';
-
-    switch (error.code as string) {
+    // Handle different error types
+    switch (error?.code) {
       case 'E_USER_CANCELLED':
-        userMessage = 'Purchase was cancelled.';
-        break;
-      case 'E_NETWORK_ERROR':
-        userMessage = 'Network error. Please check your connection.';
-        break;
-      case 'E_BILLING_UNAVAILABLE':
-        userMessage = 'Billing is not available on this device.';
-        break;
-      case 'E_ITEM_UNAVAILABLE':
-        userMessage = 'This subscription is not available.';
+        // Purchase was cancelled
         break;
       case 'E_DEVELOPER_ERROR':
-        userMessage = 'Configuration error. Please contact support.';
+        // Configuration error
         break;
     }
 
