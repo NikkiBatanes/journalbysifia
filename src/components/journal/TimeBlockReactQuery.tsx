@@ -364,7 +364,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
           const existingMetadata = originalApiEntry?.metadata || {};
 
-          const updateResult = await updateMutation.mutateAsync({
+          await updateMutation.mutateAsync({
             id: originalId,
             updates: {
               metadata: {
@@ -420,7 +420,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               ? existingExceptions
               : [...existingExceptions, instanceDate];
 
-            const updateResult = await updateMutation.mutateAsync({
+            await updateMutation.mutateAsync({
               id: timeBlock.id,
               updates: {
                 metadata: {
@@ -459,7 +459,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
           const existingMetadata = originalApiEntry?.metadata || {};
 
-          const updateResult = await updateMutation.mutateAsync({
+          await updateMutation.mutateAsync({
             id: timeBlock.id,
             updates: {
               metadata: {
