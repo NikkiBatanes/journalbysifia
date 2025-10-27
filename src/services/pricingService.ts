@@ -450,7 +450,6 @@ class PricingService {
   async forceIncrementOptOut(userId?: string | null): Promise<void> {
 
     await this.trackOptOut(userId);
-    const current = await loadDiscountState(userId);
 
   }
 

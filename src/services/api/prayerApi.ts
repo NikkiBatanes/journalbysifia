@@ -434,7 +434,7 @@ export class PrayerApi {
     id: string,
     updates: Partial<Omit<PrayerApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<PrayerApiEntry> {
-    const session = await ensureAuthenticated();
+    await ensureAuthenticated();
 
     // RLS will automatically ensure user can only update their own prayers
 

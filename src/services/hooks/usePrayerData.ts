@@ -204,10 +204,7 @@ export const useCreatePrayer = () => {
           queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
           (old = []) => [optimisticPrayer, ...old]
         );
-        // Debug log: print cache contents after optimistic update
-        const updatedPeoplePrayers = queryClient.getQueryData<PrayerApiEntry[]>(
-          queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date)
-        );
+        // Cache updated optimistically
 
       }
 

@@ -49,7 +49,7 @@ export async function debugPrintJournalEntries() {
 }
 
 export async function debugPrintSession(label: string) {
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { error } = await supabase.auth.getSession();
 
 }
 

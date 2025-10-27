@@ -93,11 +93,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
     };
   }, []);
 
-  // Helper to determine if all steps/subtasks are completed
-  const areAllStepsCompleted = useCallback((steps: ActionStep[]): boolean => {
-    const { completed, total } = calculateTaskStats(steps);
-    return total > 0 && completed === total;
-  }, []);
+  // Helper function removed as it was unused
 
   const handleToggleStep = useCallback((stepId: string, subTaskId?: string) => {
 
