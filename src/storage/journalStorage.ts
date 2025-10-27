@@ -92,7 +92,7 @@ const initStorage = async (): Promise<void> => {
 initStorage();
 
 // Add debug logging for Supabase auth state
-supabase.auth.onAuthStateChange((event: string, session: any): void => {
+supabase.auth.onAuthStateChange(() => {
 
 });
 

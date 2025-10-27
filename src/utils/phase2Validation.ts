@@ -116,7 +116,7 @@ export class Phase2Validator {
         })}`);
 
       // Test network state subscription
-      const unsubscribe = networkManager.subscribe((state) => {
+      const unsubscribe = networkManager.subscribe(() => {
 
       });
 
