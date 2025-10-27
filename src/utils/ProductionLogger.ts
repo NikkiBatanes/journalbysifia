@@ -109,7 +109,6 @@ class ProductionLogger {
     if (!this.isDevelopment) {
       // In production, only output FATAL errors
       if (entry.level === LogLevel.FATAL) {
-        // eslint-disable-next-line no-console
         console.error(this.formatForConsole(entry));
       }
       return;
@@ -120,16 +119,13 @@ class ProductionLogger {
     switch (entry.level) {
       case LogLevel.DEBUG:
       case LogLevel.INFO:
-        // eslint-disable-next-line no-console
         console.log(formatted);
         break;
       case LogLevel.WARN:
-        // eslint-disable-next-line no-console
         console.warn(formatted);
         break;
       case LogLevel.ERROR:
       case LogLevel.FATAL:
-        // eslint-disable-next-line no-console
         console.error(formatted);
         break;
     }

@@ -283,7 +283,9 @@ export const useUpdateReflection = () => {
       return { id, updates };
     },
     onError: (updateError, { id: _id }, context) => {
-      console.error('🔍 useUpdateReflection: API call failed', updateError);
+      Logger.error('🔍 useUpdateReflection: API call failed', updateError as Error, {
+  component: 'useReflectionData',
+});
       if (context?.previousReflections && context?.queryKey) {
         queryClient.setQueryData(context.queryKey, context.previousReflections);
       }

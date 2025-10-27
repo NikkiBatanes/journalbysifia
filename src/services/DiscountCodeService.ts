@@ -305,7 +305,9 @@ export class DiscountCodeService {
         .eq('id', validation.discount.id);
 
       if (usageError) {
-        console.error('[DiscountService] Failed to update usage count:', usageError);
+        Logger.error('[DiscountService] Failed to update usage count', usageError as Error, {
+  component: 'DiscountCodeService',
+});
       }
 
       return true;

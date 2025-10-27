@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import type { User } from '@supabase/supabase-js';
 
 // Bare React Native: use react-native-image-picker only
@@ -75,7 +76,9 @@ export async function uploadAvatar(user: User, file: { uri: string; name: string
     }
 
   } catch (catchError) {
-    console.error('Error processing file for upload:', catchError);
+    Logger.error('Error processing file for upload', catchError as Error, {
+  component: 'avatarService',
+});
     throw new Error(`Failed to process file: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`);
   }
 

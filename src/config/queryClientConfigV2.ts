@@ -4,7 +4,6 @@
  */
 
 import { QueryClient, DefaultOptions } from '@tanstack/react-query';
-import { Logger } from '../utils/ProductionLogger';
 import { performanceMonitor } from '../utils/performanceMonitor';
 
 // Performance-optimized default options for React Query v5
