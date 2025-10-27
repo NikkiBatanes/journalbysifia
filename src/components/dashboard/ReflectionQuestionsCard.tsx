@@ -162,6 +162,17 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const contentId = progress.content_id;
             const completedDays = new Set<number>();
             
+            // DEBUG: Log the entire progress data structure
+            Logger.info(`[ReflectionQuestions] Raw progress data for ${contentId}:`, {
+              component: 'ReflectionQuestionsCard',
+              data: {
+                progressData: progressData,
+                hasCurrentDay: !!progressData?.current_day,
+                hasDays: !!progressData?.days,
+                daysLength: progressData?.days?.length,
+              },
+            });
+            
             // Get current day - all days before current day are considered accessible
             const currentDay = progressData?.current_day || progressData?.currentDay || 1;
             
