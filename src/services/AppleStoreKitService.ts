@@ -689,7 +689,9 @@ export class AppleStoreKitService {
       }
 
       if (!data?.success) {
-        console.error('[StoreKit] Validation failed:', data?.error);
+        Logger.error('[StoreKit] Validation failed', data?.error ? new Error(String(data.error)) : new Error("Unknown StoreKit error"), {
+        component: 'AppleStoreKitService',
+      });
         return {
           success: false,
           error: data?.error || 'Receipt validation failed',

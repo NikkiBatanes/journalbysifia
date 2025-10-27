@@ -1081,7 +1081,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         setBibleVersionModal(false);
 
       } else {
-        console.error('[UserProfile] Failed to save Bible version:', result.error);
+        Logger.error('[UserProfile] Failed to save Bible version', result.error as Error, {
+        component: 'UserProfileScreen',
+      });
         Alert.alert('Error', result.error?.message || 'Failed to update Bible version');
       }
     } catch (error) {

@@ -364,7 +364,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       }
 
       if (!targetEntry || targetIndex === undefined) {
-        console.warn('saveEditedGratitudeItem: Could not locate target entry/index for', editingItemId);
+        Logger.warn('saveEditedGratitudeItem: Could not locate target entry/index for', {
+        component: 'GratitudeListReactQuery',
+        itemId: editingItemId,
+      });
         Alert.alert('Error', 'Could not locate the item to update. Please try again.');
         return;
       }

@@ -503,7 +503,9 @@ export class QueueService {
       if (saveResult.success) {
 
       } else {
-        console.error('[QueueService] Failed to save playbook with proper function:', saveResult.error);
+        Logger.error('[QueueService] Failed to save playbook with proper function', saveResult.error ? new Error(String(saveResult.error)) : new Error("Unknown save error"), {
+        component: 'queueService',
+      });
         // Don't throw error - the generation succeeded, just log the save issue
       }
     } catch (saveError) {

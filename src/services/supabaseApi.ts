@@ -135,7 +135,9 @@ export async function signIn(email: string, password: string) {
 
     if (!data?.session) {
       const errorMsg = 'No session received from Supabase';
-      console.error(errorMsg);
+      Logger.error('Supabase API error', new Error(errorMsg), {
+        component: 'supabaseApi',
+      });
       return { data: null, error: { message: errorMsg } };
     }
 

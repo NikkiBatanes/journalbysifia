@@ -13,6 +13,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
+import { Logger } from '../utils/ProductionLogger';
 
 // const { width } = Dimensions.get('window'); // Unused, commented out
 
@@ -92,7 +93,10 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
       await pricingService.markDiscountRedeemed(user?.id, discountPercentage);
     } catch (e) {
       // non-blocking
-      console.warn('Failed to mark discount redeemed', e);
+      Logger.warn('Failed to mark discount redeemed', {
+        component: 'DynamicPricingModal',
+        error: e as Error,
+      });
     }
     onClose();
     // Navigate to sales offer screen with discount applied

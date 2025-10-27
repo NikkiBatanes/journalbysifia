@@ -278,7 +278,9 @@ export class EnhancedGenerationService {
         if (saveResult.success) {
 
         } else {
-          console.error('[EnhancedGenerationService] Save failed but generation succeeded:', saveResult.error);
+          Logger.error('[EnhancedGenerationService] Save failed but generation succeeded', saveResult.error ? new Error(String(saveResult.error)) : new Error("Unknown save error"), {
+        component: 'enhancedGenerationService',
+      });
         }
       } catch (saveError) {
         Logger.error('[EnhancedGenerationService] Save error in fallback', saveError as Error, {

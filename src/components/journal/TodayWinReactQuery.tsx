@@ -387,7 +387,10 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         Logger.error('🏆 TodayWin: Entry not found for editing', new Error(String(editingEntryId)), {
         component: 'TodayWinReactQuery',
       });
-        console.error('🏆 TodayWin: Available entries:', entries.map(e => ({ id: e.id, content: e.content })));
+        Logger.error('🏆 TodayWin: Available entries', undefined, {
+        component: 'TodayWinReactQuery',
+        availableEntries: entries.map(e => ({ id: e.id, content: e.content })),
+      });
         return;
       }
 

@@ -183,7 +183,10 @@ export class GooglePlayBillingService {
       const tier = this.getSubscriptionTierFromProductId(purchase.productId);
 
       if (!tier) {
-        console.error('[GooglePlay] Unknown product ID:', purchase.productId);
+        Logger.error('[GooglePlay] Unknown product ID', undefined, {
+        component: 'GooglePlayBillingService',
+        productId: purchase.productId,
+      });
         return;
       }
 
