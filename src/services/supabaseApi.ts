@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-get-random-values';
 import { createClient } from '@supabase/supabase-js';
 import { Playbook } from '../interfaces/playbook';
+import { Logger } from '../utils/ProductionLogger';
 
 // Import environment variables
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@env';
@@ -81,27 +82,35 @@ const config = {
 
 // DEPRECATED: Session storage is handled automatically by Supabase
 export const storeSession = async (_sessionToStore: any) => {
-  console.warn('DEPRECATED: storeSession() is no longer needed. Supabase handles session storage automatically.');
+  Logger.warn('DEPRECATED: storeSession() is no longer needed. Supabase handles session storage automatically.', {
+      component: 'supabaseApi',
+    });
   return true;
 };
 
 // DEPRECATED: Use supabase.auth.getSession() instead
 export const getSession = async () => {
-  console.warn('DEPRECATED: getSession() from supabaseApi.ts is deprecated. Use supabase.auth.getSession() instead.');
+  Logger.warn('DEPRECATED: getSession() from supabaseApi.ts is deprecated. Use supabase.auth.getSession() instead.', {
+      component: 'supabaseApi',
+    });
   const { data: { session } } = await supabase.auth.getSession();
   return session;
 };
 
 // DEPRECATED: Use supabase.auth.getSession() instead
 export const checkAuth = async () => {
-  console.warn('DEPRECATED: checkAuth() from supabaseApi.ts is deprecated. Use supabase.auth.getSession() instead.');
+  Logger.warn('DEPRECATED: checkAuth() from supabaseApi.ts is deprecated. Use supabase.auth.getSession() instead.', {
+      component: 'supabaseApi',
+    });
   const { data: { session } } = await supabase.auth.getSession();
   return !!session?.access_token;
 };
 
 // DEPRECATED: Session clearing is handled by supabase.auth.signOut()
 export const clearSession = async () => {
-  console.warn('DEPRECATED: clearSession() is deprecated. Use supabase.auth.signOut() instead.');
+  Logger.warn('DEPRECATED: clearSession() is deprecated. Use supabase.auth.signOut() instead.', {
+      component: 'supabaseApi',
+    });
   return true;
 };
 
@@ -117,7 +126,10 @@ export async function signIn(email: string, password: string) {
     });
 
     if (error) {
-      console.error('Authentication failed:', error);
+      Logger.error('Authentication failed', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
       return { data: null, error };
     }
 
@@ -141,7 +153,10 @@ export async function signIn(email: string, password: string) {
 
     return { data: session, error: null };
   } catch (error) {
-    console.error('Sign in error:', error);
+    Logger.error('Sign in error', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     return {
       data: null,
       error: {
@@ -172,7 +187,10 @@ export async function signUp(email: string, password: string) {
     await storeSession(data);
     return { data, error: null };
   } catch (error) {
-    console.error('Sign up error:', error);
+    Logger.error('Sign up error', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     return { data: null, error: { message: 'Network error' } };
   }
 }
@@ -242,7 +260,10 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
         await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
         headers.Authorization = `Bearer ${updatedSession.access_token}`;
       } catch (error) {
-        console.error('[Auth] Token refresh failed:', error);
+        Logger.error('[Auth] Token refresh failed', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
         await AsyncStorage.removeItem(SESSION_KEY);
         throw new Error('Session expired. Please sign in again.');
       }
@@ -252,7 +273,10 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
 
     return headers;
   } catch (error) {
-    console.error('[Auth] Error in getHeadersWithAuth:', error);
+    Logger.error('[Auth] Error in getHeadersWithAuth', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     // Return minimal headers without auth if something goes wrong
     return {
       'apikey': config.anonKey,
@@ -315,7 +339,10 @@ export async function deleteRow(table: string, id: string | number) {
   });
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('[deleteRow] Error deleting row:', errorText);
+    Logger.error('[deleteRow] Error deleting row', new Error(errorText), {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     throw new Error(errorText);
   }
   return response.json();
@@ -418,7 +445,10 @@ export async function savePlaybook(playbook: Playbook, userId: string) {
 
     return playbook;
   } catch (error) {
-    console.error('[savePlaybook] Error saving playbook:', error);
+    Logger.error('[savePlaybook] Error saving playbook', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     return null;
   }
 }
@@ -466,7 +496,10 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
         await updateRow('playbooks', playbookId, updateData);
 
       } catch (error) {
-        console.error('[updatePlaybookActionSteps] Supabase update failed:', error);
+        Logger.error('[updatePlaybookActionSteps] Supabase update failed', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
         // Continue to update local storage even if Supabase fails
       }
     }
@@ -490,11 +523,17 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
 
       return { success: true };
     } catch (storageError) {
-      console.error('[updatePlaybookActionSteps] Error updating local storage:', storageError);
+      Logger.error('[updatePlaybookActionSteps] Error updating local storage', storageError as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
       throw storageError;
     }
   } catch (error) {
-    console.error('[updatePlaybookActionSteps] Unexpected error:', error);
+    Logger.error('[updatePlaybookActionSteps] Unexpected error', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     throw error;
   }
 }
@@ -573,7 +612,10 @@ export async function getPlaybooks(userId: string) {
       throw new Error(await response.text());
     }
   } catch (error: unknown) {
-    console.error('[getPlaybooks] Error fetching from Supabase:', error);
+    Logger.error('[getPlaybooks] Error fetching from Supabase', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     // If there's an auth error, clear the session
     if (error instanceof Error && error.message && error.message.includes('JWT')) {
 
@@ -588,7 +630,10 @@ export async function getPlaybooks(userId: string) {
     localPlaybooks = stored ? JSON.parse(stored).map(normalizePlaybook) : [];
 
   } catch (error) {
-    console.error('[getPlaybooks] AsyncStorage get error:', error);
+    Logger.error('[getPlaybooks] AsyncStorage get error', error as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
     // If local storage fails but we have remote, return remote
     if (remotePlaybooks.length > 0) {
       return remotePlaybooks;
@@ -669,7 +714,9 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
 
   // If we tried to delete from Supabase but failed, but local deletion succeeded
   if (!supabaseSuccess && id && isValidUUID(String(id))) {
-    console.warn(`[deletePlaybook] Supabase deletion failed for ${idStr}, but local deletion succeeded`);
+    Logger.warn(`[deletePlaybook] Supabase deletion failed for ${idStr}, but local deletion succeeded`, {
+      component: 'supabaseApi',
+    });
     // You might want to implement a retry mechanism or offline queue here
   }
 
@@ -686,7 +733,10 @@ export async function generatePlaybook(userInput: string, userName: string) {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      console.error('[generatePlaybook] Session error:', sessionError);
+      Logger.error('[generatePlaybook] Session error', sessionError as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
       throw new Error('Authentication required. Please log in again.');
     }
 
@@ -705,7 +755,10 @@ export async function generatePlaybook(userInput: string, userName: string) {
     }
     return await response.json();
   } catch (err: any) {
-    console.error('generatePlaybook error:', err);
+    Logger.error('generatePlaybook error', err as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
 
     // Provide more specific error messages
     if (err.message?.includes('Invalid JWT') || err.message?.includes('401')) {
@@ -782,7 +835,10 @@ export async function generateDevotional(duration: number, playbookId?: string, 
           .single();
 
         if (saveError) {
-          console.error('Error saving devotional to database:', saveError);
+          Logger.error('Error saving devotional to database', saveError as Error, {
+      component: 'supabaseApi',
+      action: 'error',
+    });
           throw new Error(`Failed to save devotional: ${saveError.message}`);
         }
 
@@ -812,7 +868,10 @@ export async function generateDevotional(duration: number, playbookId?: string, 
 
   // If we get here, all retries failed
   const errorMessage = lastError?.message || 'Failed to generate devotional after multiple attempts';
-  console.error('All devotional generation attempts failed:', errorMessage);
+  Logger.error('All devotional generation attempts failed', new Error(errorMessage), {
+      component: 'supabaseApi',
+      action: 'error',
+    });
   throw new Error(errorMessage);
 }
 
