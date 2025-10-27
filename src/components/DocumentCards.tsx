@@ -133,7 +133,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       />
       <View
         key="challenge"
-        style={propStyles.challengeCard}
+        style={[propStyles.docCard, propStyles.challengeCard, { marginBottom: 32 }]}
         onLayout={event => {
           challengeCardY.current = event.nativeEvent.layout.y;
           challengeCardHeight.current = event.nativeEvent.layout.height;
@@ -154,7 +154,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
 
 const styles = StyleSheet.create({
   contentContainer: {
-    paddingBottom: 96,
+    paddingBottom: 140, // Increased from 96 to provide more space for devotional button
   },
   quoteIcon: {
     transform: [{ scaleX: -1 }],

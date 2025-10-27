@@ -1804,7 +1804,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     width: '100%',
     maxWidth: 380,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: 24, // Increased from 16 to provide more spacing between cards
     borderRadius: 28,
     backgroundColor: '#264674',
     overflow: 'hidden',
@@ -1974,7 +1974,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: Colors.alertCoral,
     borderRadius: 24,
     padding: 2,
-    marginBottom: 16,
     width: '100%',
     alignSelf: 'center',
   },
