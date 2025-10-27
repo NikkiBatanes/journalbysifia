@@ -236,18 +236,15 @@ class TierRestrictionService {
   /**
    * Trigger retention flow when user hits restriction
    */
-  async triggerRestrictionRetention(
-    userId: string,
-    feature: string,
-    currentTier: SubscriptionTier
-  ): Promise<void> {
+  async triggerRestrictionRetention(): Promise<void> {
     try {
       // Log feature restriction event for analytics
 
       // Note: retentionService.logRetentionEvent expects specific event types
-      // For now, we'll just log the restriction event
+      // We'll implement this when retention service is ready
+
     } catch (error) {
-      console.error('[TierRestrictionService] Error triggering retention:', error);
+      console.error('[TierRestriction] Error triggering retention:', error);
     }
   }
 

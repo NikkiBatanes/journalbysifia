@@ -136,7 +136,7 @@ export const OnboardingTestingUtils = {
   /**
    * Log current onboarding state for debugging
    */
-  logOnboardingState: (context: any) => {
+  logOnboardingState: () => {
     if (!__DEV__) {return;}
 
   },
@@ -166,6 +166,6 @@ export const useOnboardingTesting = () => {
 
   return {
     triggerOnboardingTest: () => OnboardingTestingUtils.triggerOnboardingTest(navigation, refreshOnboardingData),
-    logOnboardingState: (context: any) => OnboardingTestingUtils.logOnboardingState(context),
+    logOnboardingState: () => OnboardingTestingUtils.logOnboardingState(),
   };
 };

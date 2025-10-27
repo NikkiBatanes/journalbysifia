@@ -127,7 +127,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: false, // Disable automatic refetch on focus (we handle manually)
-    retry: (failureCount, error) => {
+    retry: (failureCount) => {
 
       return failureCount < 3;
     },
