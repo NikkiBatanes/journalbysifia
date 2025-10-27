@@ -533,7 +533,7 @@ export default function ActionStepsCard({
     }
 
     const navService = SmartJournalingNavigation.create(navigation);
-    navService.navigateToJournaling(journalType as any, subTask);
+    navService.navigateToJournaling(journalType as any);
   }, [navigation, user?.id, queryClient]);
 
   // Modal handlers

@@ -71,12 +71,8 @@ export function useFeatureAccess({
     if (!user?.id || !subscription?.tier) {return;}
 
     // Log restriction event for retention
-    tierRestrictionService.triggerRestrictionRetention(
-      user.id,
-      feature,
-      subscription.tier
-    );
-  }, [user?.id, subscription?.tier, feature]);
+    tierRestrictionService.triggerRestrictionRetention();
+  }, [user?.id, subscription?.tier]);
 
   const showUpgradePrompt = useCallback(() => {
     if (!accessResult?.upgradePrompt) {return;}
