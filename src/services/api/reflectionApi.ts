@@ -1,5 +1,6 @@
 // src/services/api/reflectionApi.clean.ts
 import { supabase } from '../supabaseClient';
+import { Logger } from '../../utils/ProductionLogger';
 
 export interface ReflectionApiEntry {
   id: string;
@@ -46,7 +47,9 @@ export class ReflectionApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching reflection entries:', error);
+      Logger.error('Error fetching reflection entries', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch reflection entries: ${error.message}`);
     }
 
@@ -68,7 +71,9 @@ export class ReflectionApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching reflection entries by type:', error);
+      Logger.error('Error fetching reflection entries by type', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch reflection entries: ${error.message}`);
     }
 
@@ -86,7 +91,9 @@ export class ReflectionApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching devotional reflections:', error);
+      Logger.error('Error fetching devotional reflections', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch devotional reflections: ${error.message}`);
     }
 
@@ -104,7 +111,9 @@ export class ReflectionApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching playbook reflections:', error);
+      Logger.error('Error fetching playbook reflections', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch playbook reflections: ${error.message}`);
     }
 
@@ -121,7 +130,9 @@ export class ReflectionApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching reflections by playbook:', error);
+      Logger.error('Error fetching reflections by playbook', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch reflections by playbook: ${error.message}`);
     }
 
@@ -143,7 +154,9 @@ export class ReflectionApi {
       if (error.code === 'PGRST116') {
         return null;
       }
-      console.error('Error fetching reflection by subtask:', error);
+      Logger.error('Error fetching reflection by subtask', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch reflection by subtask: ${error.message}`);
     }
 
@@ -168,7 +181,9 @@ export class ReflectionApi {
       .single();
 
     if (error) {
-      console.error('Error creating reflection entry:', error);
+      Logger.error('Error creating reflection entry', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to create reflection entry: ${error.message}`);
     }
 
@@ -193,7 +208,9 @@ export class ReflectionApi {
       .single();
 
     if (error) {
-      console.error('Error updating reflection entry:', error);
+      Logger.error('Error updating reflection entry', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to update reflection entry: ${error.message}`);
     }
 
@@ -208,7 +225,9 @@ export class ReflectionApi {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting reflection entry:', error);
+      Logger.error('Error deleting reflection entry', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to delete reflection entry: ${error.message}`);
     }
   }
@@ -229,7 +248,9 @@ export class ReflectionApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching reflections in date range:', error);
+      Logger.error('Error fetching reflections in date range', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch reflections: ${error.message}`);
     }
 
@@ -269,7 +290,9 @@ export class ReflectionApi {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error searching reflections:', error);
+      Logger.error('Error searching reflections', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to search reflections: ${error.message}`);
     }
 
@@ -290,7 +313,9 @@ export class ReflectionApi {
       .lte('selected_date', endDate);
 
     if (error) {
-      console.error('Error fetching reflection stats:', error);
+      Logger.error('Error fetching reflection stats', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch reflection stats: ${error.message}`);
     }
 
@@ -317,7 +342,9 @@ export class ReflectionApi {
       .range(page * pageSize, (page + 1) * pageSize - 1);
 
     if (error) {
-      console.error('Error fetching paginated reflections:', error);
+      Logger.error('Error fetching paginated reflections', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to fetch reflections: ${error.message}`);
     }
 
@@ -341,7 +368,9 @@ export class ReflectionApi {
       .select();
 
     if (error) {
-      console.error('Error batch creating reflections:', error);
+      Logger.error('Error batch creating reflections', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to create reflections: ${error.message}`);
     }
 
@@ -356,7 +385,9 @@ export class ReflectionApi {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error getting reflections count:', error);
+      Logger.error('Error getting reflections count', error as Error, {
+      component: 'reflectionApi',
+    });
       throw new Error(`Failed to get reflections count: ${error.message}`);
     }
 
@@ -372,7 +403,9 @@ export class ReflectionApi {
       .single();
 
     if (error) {
-      console.error('Error fetching reflection by ID:', error);
+      Logger.error('Error fetching reflection by ID', error as Error, {
+      component: 'reflectionApi',
+    });
       return null;
     }
 

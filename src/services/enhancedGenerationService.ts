@@ -5,6 +5,7 @@
  */
 
 import { subscriptionService } from './subscriptionService';
+import { Logger } from '../utils/ProductionLogger';
 import { intelligenceService } from './intelligenceService';
 // import { GenerationResult } from './types';
 import { queueService } from './queueService';
@@ -133,7 +134,9 @@ export class EnhancedGenerationService {
       if ((error as any)?.message?.includes('Database partitioning error')) {
 
       } else {
-        console.error('[EnhancedGenerationService] Error in generatePlaybook:', error);
+        Logger.error('[EnhancedGenerationService] Error in generatePlaybook', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       }
 
       // Handle database issues gracefully (schema, partitioning, etc.)
@@ -158,7 +161,9 @@ export class EnhancedGenerationService {
             limit: 10,
           };
         } catch (directError) {
-          console.error('[EnhancedGenerationService] Direct generation also failed:', directError);
+          Logger.error('[EnhancedGenerationService] Direct generation also failed', directError as Error, {
+      component: 'enhancedGenerationService',
+    });
           // Try one more fallback - simple API call
           try {
             await this.generateSimpleFallback(request);
@@ -173,7 +178,9 @@ export class EnhancedGenerationService {
               limit: 10,
             };
           } catch (fallbackError) {
-            console.error('[EnhancedGenerationService] All generation methods failed:', fallbackError);
+            Logger.error('[EnhancedGenerationService] All generation methods failed', fallbackError as Error, {
+      component: 'enhancedGenerationService',
+    });
           }
         }
       }
@@ -195,7 +202,9 @@ export class EnhancedGenerationService {
       // Use the simple fallback method which properly saves to database
       return await this.generateSimpleFallback(request);
     } catch (error) {
-      console.error('[EnhancedGenerationService] Direct generation failed:', error);
+      Logger.error('[EnhancedGenerationService] Direct generation failed', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       throw error; // Re-throw to allow fallback handling
     }
   }
@@ -234,7 +243,9 @@ export class EnhancedGenerationService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[EnhancedGenerationService] Supabase function error:', errorText);
+        Logger.error('[EnhancedGenerationService] Supabase function error', errorText as Error, {
+      component: 'enhancedGenerationService',
+    });
         throw new Error(`Generation failed: ${response.statusText}`);
       }
 
@@ -270,7 +281,9 @@ export class EnhancedGenerationService {
           console.error('[EnhancedGenerationService] Save failed but generation succeeded:', saveResult.error);
         }
       } catch (saveError) {
-        console.error('[EnhancedGenerationService] Save error in fallback:', saveError);
+        Logger.error('[EnhancedGenerationService] Save error in fallback', saveError as Error, {
+      component: 'enhancedGenerationService',
+    });
         // Don't fail the entire operation for save errors
       }
 
@@ -285,7 +298,9 @@ export class EnhancedGenerationService {
         limit: 10,
       };
     } catch (error) {
-      console.error('[EnhancedGenerationService] Simple fallback generation failed:', error);
+      Logger.error('[EnhancedGenerationService] Simple fallback generation failed', error as Error, {
+      component: 'enhancedGenerationService',
+    });
 
       return {
         success: false,
@@ -377,7 +392,9 @@ export class EnhancedGenerationService {
       };
 
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error in generateDevotional:', error);
+      Logger.error('[EnhancedGenerationService] Error in generateDevotional', error as Error, {
+      component: 'enhancedGenerationService',
+    });
 
       return {
         success: false,
@@ -427,7 +444,9 @@ export class EnhancedGenerationService {
         processingTimeSeconds: status.processingTimeSeconds,
       };
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error checking generation status:', error);
+      Logger.error('[EnhancedGenerationService] Error checking generation status', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       return {
         status: 'failed',
         message: 'Error checking generation status',
@@ -458,7 +477,9 @@ export class EnhancedGenerationService {
 
       return cancelled;
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error cancelling generation:', error);
+      Logger.error('[EnhancedGenerationService] Error cancelling generation', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       return false;
     }
   }
@@ -488,7 +509,9 @@ export class EnhancedGenerationService {
         recommendations,
       };
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error getting generation analytics:', error);
+      Logger.error('[EnhancedGenerationService] Error getting generation analytics', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       throw error;
     }
   }
@@ -532,7 +555,9 @@ export class EnhancedGenerationService {
       await this.updateContentEffectiveness(userId, contentType, contentId, completionData);
 
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error tracking content completion:', error);
+      Logger.error('[EnhancedGenerationService] Error tracking content completion', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       // Don't throw - tracking should not break the main flow
     }
   }
@@ -566,7 +591,9 @@ export class EnhancedGenerationService {
         confidenceScore: recommendations.confidenceScore,
       };
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error getting personalized suggestions:', error);
+      Logger.error('[EnhancedGenerationService] Error getting personalized suggestions', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       return null;
     }
   }
@@ -597,7 +624,9 @@ export class EnhancedGenerationService {
           measured_at: new Date().toISOString(),
         });
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error updating content effectiveness:', error);
+      Logger.error('[EnhancedGenerationService] Error updating content effectiveness', error as Error, {
+      component: 'enhancedGenerationService',
+    });
     }
   }
 
@@ -629,7 +658,9 @@ export class EnhancedGenerationService {
     try {
       return await queueService.getQueueStatistics();
     } catch (error) {
-      console.error('[EnhancedGenerationService] Error getting queue statistics:', error);
+      Logger.error('[EnhancedGenerationService] Error getting queue statistics', error as Error, {
+      component: 'enhancedGenerationService',
+    });
       return null;
     }
   }

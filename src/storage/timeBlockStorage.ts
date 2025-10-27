@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 import { toLocalDateString } from '../utils/date';
 
@@ -47,7 +48,9 @@ export const saveLocalTimeBlocks = async (
     const key = getTimeBlockKey(userId, date);
     await AsyncStorage.setItem(key, JSON.stringify(timeBlocks));
   } catch (error) {
-    console.error('Error saving time blocks to local storage:', error);
+    Logger.error('Error saving time blocks to local storage', error as Error, {
+      component: 'timeBlockStorage',
+    });
     throw error;
   }
 };
@@ -61,7 +64,9 @@ export const getLocalTimeBlocks = async (
     const data = await AsyncStorage.getItem(key);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('Error getting time blocks from local storage:', error);
+    Logger.error('Error getting time blocks from local storage', error as Error, {
+      component: 'timeBlockStorage',
+    });
     return [];
   }
 };
@@ -78,7 +83,9 @@ export const clearTimeBlockCache = async (userId: string, date?: string): Promis
       await AsyncStorage.multiRemove(timeBlockKeys);
     }
   } catch (error) {
-    console.error('Error clearing time block cache:', error);
+    Logger.error('Error clearing time block cache', error as Error, {
+      component: 'timeBlockStorage',
+    });
     throw error;
   }
 };
@@ -132,12 +139,16 @@ export const saveCloudTimeBlocks = async (
         }));
 
       if (error) {
-        console.error('Error saving time blocks to cloud:', error);
+        Logger.error('Error saving time blocks to cloud', error as Error, {
+      component: 'timeBlockStorage',
+    });
         throw error;
       }
     }
   } catch (error) {
-    console.error('Error in saveCloudTimeBlocks:', error);
+    Logger.error('Error in saveCloudTimeBlocks', error as Error, {
+      component: 'timeBlockStorage',
+    });
     throw error;
   }
 };
@@ -157,7 +168,9 @@ export const getCloudTimeBlocks = async (
       .order('start_time', { ascending: true });
 
     if (error) {
-      console.error('Error getting time blocks from cloud:', error);
+      Logger.error('Error getting time blocks from cloud', error as Error, {
+      component: 'timeBlockStorage',
+    });
       throw error;
     }
 
@@ -199,7 +212,9 @@ export const getCloudTimeBlocks = async (
 
     return mappedData;
   } catch (error) {
-    console.error('Error in getCloudTimeBlocks:', error);
+    Logger.error('Error in getCloudTimeBlocks', error as Error, {
+      component: 'timeBlockStorage',
+    });
     return [];
   }
 };
@@ -213,7 +228,9 @@ export const syncTimeBlocksFromCloud = async (
     await saveLocalTimeBlocks(userId, date, cloudTimeBlocks);
     return cloudTimeBlocks;
   } catch (error) {
-    console.error('Error syncing time blocks from cloud:', error);
+    Logger.error('Error syncing time blocks from cloud', error as Error, {
+      component: 'timeBlockStorage',
+    });
     // Return local data as fallback
     return await getLocalTimeBlocks(userId, date);
   }
@@ -230,7 +247,9 @@ export const forceRefreshTimeBlocks = async (
     // Sync fresh data from cloud
     return await syncTimeBlocksFromCloud(userId, date);
   } catch (error) {
-    console.error('Error in forceRefreshTimeBlocks:', error);
+    Logger.error('Error in forceRefreshTimeBlocks', error as Error, {
+      component: 'timeBlockStorage',
+    });
     throw error;
   }
 };
@@ -347,13 +366,17 @@ export const saveTimeBlockEntry = async (
       }
 
     } catch (cloudError) {
-      console.error('Failed to save to cloud, but local save succeeded:', cloudError);
+      Logger.error('Failed to save to cloud, but local save succeeded', cloudError as Error, {
+      component: 'timeBlockStorage',
+    });
       // Don't throw here - local save succeeded
     }
 
     return newTimeBlock;
   } catch (error) {
-    console.error('Error saving time block entry:', error);
+    Logger.error('Error saving time block entry', error as Error, {
+      component: 'timeBlockStorage',
+    });
     throw error;
   }
 };
@@ -423,18 +446,24 @@ export const updateTimeBlockEntry = async (
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error updating time block in cloud:', error);
+        Logger.error('Error updating time block in cloud', error as Error, {
+      component: 'timeBlockStorage',
+    });
         throw error;
       }
 
     } catch (cloudError) {
-      console.error('Failed to update in cloud, but local save succeeded:', cloudError);
+      Logger.error('Failed to update in cloud, but local save succeeded', cloudError as Error, {
+      component: 'timeBlockStorage',
+    });
       // Don't throw here - local update succeeded
     }
 
     return updatedTimeBlock;
   } catch (error) {
-    console.error('Error updating time block entry:', error);
+    Logger.error('Error updating time block entry', error as Error, {
+      component: 'timeBlockStorage',
+    });
     throw error;
   }
 };
@@ -463,16 +492,22 @@ export const deleteTimeBlockEntry = async (
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error deleting time block from cloud:', error);
+        Logger.error('Error deleting time block from cloud', error as Error, {
+      component: 'timeBlockStorage',
+    });
         throw error;
       }
 
     } catch (cloudError) {
-      console.error('Failed to delete from cloud, but local delete succeeded:', cloudError);
+      Logger.error('Failed to delete from cloud, but local delete succeeded', cloudError as Error, {
+      component: 'timeBlockStorage',
+    });
       // Don't throw here - local delete succeeded
     }
   } catch (error) {
-    console.error('Error deleting time block entry:', error);
+    Logger.error('Error deleting time block entry', error as Error, {
+      component: 'timeBlockStorage',
+    });
     throw error;
   }
 };

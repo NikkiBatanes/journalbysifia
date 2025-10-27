@@ -1,5 +1,6 @@
 // src/services/hooks/useJournalData.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Logger } from '../../utils/ProductionLogger';
 import { JournalApi, JournalApiEntry } from '../api/journalApi';
 import { JournalCache } from '../cache/journalCache';
 import { queryKeys } from '../queryKeys';
@@ -32,7 +33,9 @@ export const useGratitudeData = (userId: string, date: string, config?: Partial<
 
         return entries;
       } catch (error) {
-        console.error('Error fetching gratitude data:', error);
+        Logger.error('Error fetching gratitude data', error as Error, {
+      component: 'useJournalData',
+    });
         // Only fall back to cache on error
         const cached = await JournalCache.getCache(userId, date, 'gratitude');
         if (cached) {
@@ -78,7 +81,9 @@ export const useTodosData = (userId: string, date: string, config?: Partial<Quer
 
         return entries;
       } catch (error) {
-        console.error('Error fetching todos data:', error);
+        Logger.error('Error fetching todos data', error as Error, {
+      component: 'useJournalData',
+    });
         throw error;
       }
     },
@@ -241,7 +246,9 @@ export const useCreateJournalEntry = () => {
       return { previousEntries, previousContentTypeEntries, contentTypeQueryKey };
     },
     onError: (err: Error, newEntry, context) => {
-      console.error('Error creating journal entry:', err);
+      Logger.error('Error creating journal entry', err as Error, {
+      component: 'useJournalData',
+    });
 
       // Skip rollback for gratitude entries (no optimistic updates to rollback)
       if (context?.skipOptimistic) {
@@ -254,7 +261,9 @@ export const useCreateJournalEntry = () => {
           const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
           queryClient.setQueryData(entriesQueryKey, context.previousEntries);
         } catch (rollbackError) {
-          console.error('Error rolling back journal entry creation:', rollbackError);
+          Logger.error('Error rolling back journal entry creation', rollbackError as Error, {
+      component: 'useJournalData',
+    });
         }
       }
 
@@ -263,7 +272,9 @@ export const useCreateJournalEntry = () => {
         try {
           queryClient.setQueryData(context.contentTypeQueryKey, context.previousContentTypeEntries);
         } catch (rollbackError) {
-          console.error('Error rolling back content-type specific query:', rollbackError);
+          Logger.error('Error rolling back content-type specific query', rollbackError as Error, {
+      component: 'useJournalData',
+    });
         }
       }
     },
@@ -355,14 +366,18 @@ export const useDeleteJournalEntry = () => {
       return { previousEntries, entry: entryToDelete };
     },
     onError: (err: Error, id, context) => {
-      console.error('Error deleting journal entry:', err);
+      Logger.error('Error deleting journal entry', err as Error, {
+      component: 'useJournalData',
+    });
 
       // Rollback on error
       if (context?.previousEntries) {
         try {
           queryClient.setQueryData(['journalEntries'], context.previousEntries);
         } catch (rollbackError) {
-          console.error('Error rolling back journal entry deletion:', rollbackError);
+          Logger.error('Error rolling back journal entry deletion', rollbackError as Error, {
+      component: 'useJournalData',
+    });
         }
       }
     },
@@ -379,7 +394,9 @@ export const useDeleteJournalEntry = () => {
           // Clear cache
           JournalCache.clearCache(entry.user_id, entry.selected_date, entry.content_type);
         } catch (error) {
-          console.error('Error updating cache after successful deletion:', error);
+          Logger.error('Error updating cache after successful deletion', error as Error, {
+      component: 'useJournalData',
+    });
         }
       }
     },
@@ -448,13 +465,17 @@ export const useCreateLookingForwardEntry = () => {
       return { previousEntries };
     },
     onError: (err, newEntry, context) => {
-      console.error('Error creating looking forward entry:', err);
+      Logger.error('Error creating looking forward entry', err as Error, {
+      component: 'useJournalData',
+    });
       if (context?.previousEntries) {
         try {
           const queryKey = queryKeys.journal.lookingForward(newEntry.user_id, newEntry.selected_date);
           queryClient.setQueryData(queryKey, context.previousEntries);
         } catch (rollbackError) {
-          console.error('Error rolling back looking forward entry creation:', rollbackError);
+          Logger.error('Error rolling back looking forward entry creation', rollbackError as Error, {
+      component: 'useJournalData',
+    });
         }
       }
     },
@@ -752,13 +773,17 @@ export const useCreateTodoEntry = () => {
       return { previousEntries };
     },
     onError: (err, newEntry, context) => {
-      console.error('Error creating todo entry:', err);
+      Logger.error('Error creating todo entry', err as Error, {
+      component: 'useJournalData',
+    });
       if (context?.previousEntries) {
         try {
           const queryKey = queryKeys.journal.todos(newEntry.user_id, newEntry.selected_date);
           queryClient.setQueryData(queryKey, context.previousEntries);
         } catch (rollbackError) {
-          console.error('Error rolling back todo entry creation:', rollbackError);
+          Logger.error('Error rolling back todo entry creation', rollbackError as Error, {
+      component: 'useJournalData',
+    });
         }
       }
     },

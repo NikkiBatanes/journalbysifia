@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { notificationService } from './notificationService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from './faithPointsEvents';
 
@@ -177,7 +178,9 @@ export class FaithPointsService {
         .maybeSingle(); // Use maybeSingle to avoid errors when no data found
 
       if (error) {
-        console.error('[FaithPointsService] Database error getting profile:', error);
+        Logger.error('[FaithPointsService] Database error getting profile', error as Error, {
+      component: 'faithPointsService',
+    });
         return await this.createUserProfile(userId);
       }
 
@@ -191,7 +194,9 @@ export class FaithPointsService {
       return updatedProfile;
 
     } catch (error) {
-      console.error('[FaithPointsService] Unexpected error getting user profile:', error);
+      Logger.error('[FaithPointsService] Unexpected error getting user profile', error as Error, {
+      component: 'faithPointsService',
+    });
       return await this.createUserProfile(userId);
     }
   }
@@ -261,7 +266,9 @@ export class FaithPointsService {
         updateError = upsertError;
 
         if (upsertError) {
-          console.error('[FaithPointsService] Upsert failed, trying regular update:', upsertError);
+          Logger.error('[FaithPointsService] Upsert failed, trying regular update', upsertError as Error, {
+      component: 'faithPointsService',
+    });
         } else {
 
         }
@@ -287,10 +294,14 @@ export class FaithPointsService {
       }
 
       if (updateError) {
-        console.error('[FaithPointsService] Profile update failed:', updateError);
+        Logger.error('[FaithPointsService] Profile update failed', updateError as Error, {
+      component: 'faithPointsService',
+    });
         // For onboarding, don't throw error - log and continue
         if (isOnboarding) {
-          console.warn('[FaithPointsService] Onboarding faith points update failed, but continuing...');
+          Logger.warn('[FaithPointsService] Onboarding faith points update failed, but continuing...', {
+      component: 'faithPointsService',
+    });
         } else {
           throw updateError;
         }
@@ -298,7 +309,9 @@ export class FaithPointsService {
 
       // Verify the update worked
       if (!updateResult || updateResult.length === 0) {
-        console.error('[FaithPointsService] Update returned no data - profile may not exist or RLS issue');
+        Logger.error('[FaithPointsService] Update returned no data - profile may not exist or RLS issue', undefined, {
+      component: 'faithPointsService',
+    });
         // Try to fetch the profile again to see current state
         const { data: afterUpdate } = await supabase
           .from('faith_points_profiles')
@@ -321,7 +334,10 @@ export class FaithPointsService {
         await this.recordTransaction(userId, pointsAwarded, activity, _metadata);
 
       } catch (transactionError) {
-        console.warn('[FaithPointsService] Transaction logging failed, but faith points were awarded:', transactionError);
+        Logger.warn('[FaithPointsService] Transaction logging failed, but faith points were awarded', {
+      component: 'faithPointsService',
+      error: transactionError,
+    });
         // Continue execution - don't let transaction logging failure block faith points
       }
 
@@ -374,7 +390,9 @@ export class FaithPointsService {
       };
 
     } catch (error) {
-      console.error('[FaithPointsService] Error awarding points:', error);
+      Logger.error('[FaithPointsService] Error awarding points', error as Error, {
+      component: 'faithPointsService',
+    });
       return { pointsAwarded: 0 };
     }
   }
@@ -393,7 +411,9 @@ export class FaithPointsService {
 
       return transactions || [];
     } catch (error) {
-      console.error('[FaithPointsService] Error getting transactions:', error);
+      Logger.error('[FaithPointsService] Error getting transactions', error as Error, {
+      component: 'faithPointsService',
+    });
       return [];
     }
   }
@@ -474,7 +494,9 @@ export class FaithPointsService {
 
       return achievements || [];
     } catch (error) {
-      console.error('[FaithPointsService] Error getting achievements:', error);
+      Logger.error('[FaithPointsService] Error getting achievements', error as Error, {
+      component: 'faithPointsService',
+    });
       return [];
     }
   }
@@ -516,7 +538,9 @@ export class FaithPointsService {
       return newProfile;
 
     } catch (error) {
-      console.error('[FaithPointsService] Error creating profile:', error);
+      Logger.error('[FaithPointsService] Error creating profile', error as Error, {
+      component: 'faithPointsService',
+    });
       return newProfile;
     }
   }
@@ -556,7 +580,9 @@ export class FaithPointsService {
           });
 
         if (error) {
-          console.error('[FaithPointsService] All insert methods failed:', error);
+          Logger.error('[FaithPointsService] All insert methods failed', error as Error, {
+      component: 'faithPointsService',
+    });
           // Don't throw error, just log it so faith points awarding continues
 
           return;
@@ -567,7 +593,9 @@ export class FaithPointsService {
 
       return;
     } catch (error) {
-      console.error('[FaithPointsService] Error recording transaction:', error);
+      Logger.error('[FaithPointsService] Error recording transaction', error as Error, {
+      component: 'faithPointsService',
+    });
       throw error;
     }
   }
@@ -639,7 +667,9 @@ export class FaithPointsService {
       return newStreak;
 
     } catch (error) {
-      console.error('[FaithPointsService] Error updating streak:', error);
+      Logger.error('[FaithPointsService] Error updating streak', error as Error, {
+      component: 'faithPointsService',
+    });
       return 1;
     }
   }
@@ -673,7 +703,9 @@ export class FaithPointsService {
       return newBadges;
 
     } catch (error) {
-      console.error('[FaithPointsService] Error checking badges:', error);
+      Logger.error('[FaithPointsService] Error checking badges', error as Error, {
+      component: 'faithPointsService',
+    });
       return [];
     }
   }
@@ -743,7 +775,9 @@ export class FaithPointsService {
           unlocked_at: new Date().toISOString(),
         });
     } catch (error) {
-      console.error('[FaithPointsService] Error awarding badge:', error);
+      Logger.error('[FaithPointsService] Error awarding badge', error as Error, {
+      component: 'faithPointsService',
+    });
     }
   }
 

@@ -5,6 +5,7 @@
  */
 
 import { Platform, PermissionsAndroid } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 import RNCalendarEvents from 'react-native-calendar-events';
 import Geolocation from '@react-native-community/geolocation';
 import { analytics } from '../utils/analytics';
@@ -120,7 +121,9 @@ export const requestCalendarPermissions = async (): Promise<boolean> => {
       return false;
     }
   } catch (error) {
-    console.error('Calendar permission error:', error);
+    Logger.error('Calendar permission error', error as Error, {
+      component: 'calendarSyncService',
+    });
     return false;
   }
 };
@@ -164,7 +167,9 @@ export const updateTimeBlockInCalendar = async (
 
     return { success: true };
   } catch (error) {
-    console.error('Calendar update error:', error);
+    Logger.error('Calendar update error', error as Error, {
+      component: 'calendarSyncService',
+    });
     return { success: false, error: error instanceof Error ? error.message : 'Failed to update calendar event' };
   }
 };
@@ -187,7 +192,9 @@ export const requestLocationPermissions = async (): Promise<boolean> => {
     // iOS location permissions are handled automatically by Geolocation
     return true;
   } catch (error) {
-    console.error('Location permission error:', error);
+    Logger.error('Location permission error', error as Error, {
+      component: 'calendarSyncService',
+    });
     return false;
   }
 };
@@ -248,13 +255,17 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
 
       }
     } catch (createErr) {
-      console.error('📆 [getSiFiaCalendar] ❌ Could not create siFia calendar:', createErr);
+      Logger.error('📆 [getSiFiaCalendar] ❌ Could not create siFia calendar', createErr as Error, {
+      component: 'calendarSyncService',
+    });
       console.error('📆 [getSiFiaCalendar] Error details:', JSON.stringify(createErr));
     }
 
     return defaultCalendar?.id || null;
   } catch (error) {
-    console.error('📆 [getSiFiaCalendar] ❌ Error getting calendar:', error);
+    Logger.error('📆 [getSiFiaCalendar] ❌ Error getting calendar', error as Error, {
+      component: 'calendarSyncService',
+    });
     return null;
   }
 };
@@ -331,12 +342,17 @@ export const syncTimeBlockToCalendar = async (
         date: timeBlock.startTime.toISOString().split('T')[0],
       });
     } catch (analyticsError) {
-      console.warn('Analytics error:', analyticsError);
+      Logger.warn('Analytics error', {
+      component: 'calendarSyncService',
+      error: analyticsError,
+    });
     }
 
     return { success: true, eventId };
   } catch (error) {
-    console.error('Calendar sync error:', error);
+    Logger.error('Calendar sync error', error as Error, {
+      component: 'calendarSyncService',
+    });
 
     // Track error analytics
     try {
@@ -346,7 +362,10 @@ export const syncTimeBlockToCalendar = async (
         date: new Date().toISOString().split('T')[0],
       });
     } catch (analyticsError) {
-      console.warn('Analytics error:', analyticsError);
+      Logger.warn('Analytics error', {
+      component: 'calendarSyncService',
+      error: analyticsError,
+    });
     }
 
     return {
@@ -381,7 +400,9 @@ export const removeTimeBlockFromCalendar = async (
 
     // Check if we actually have a real event ID to work with
     if (!realEventId || realEventId === 'undefined' || realEventId === 'null') {
-      console.warn('🗓️ No valid calendar event ID found - cannot remove from calendar');
+      Logger.warn('🗓️ No valid calendar event ID found - cannot remove from calendar', {
+      component: 'calendarSyncService',
+    });
       return { success: false, error: 'No calendar event ID available' };
     }
 
@@ -394,7 +415,10 @@ export const removeTimeBlockFromCalendar = async (
         });
 
       } catch (e) {
-        console.warn('🗓️ Future events removal failed, falling back to series removal:', e);
+        Logger.warn('🗓️ Future events removal failed, falling back to series removal', {
+      component: 'calendarSyncService',
+      errorMessage: e instanceof Error ? e.message : String(e),
+    });
         // Fallback: remove base event if granular removal fails
         await RNCalendarEvents.removeEvent(realEventId);
       }
@@ -406,7 +430,10 @@ export const removeTimeBlockFromCalendar = async (
         });
 
       } catch (e) {
-        console.warn('🗓️ Single instance removal not supported by provider:', e);
+        Logger.warn('🗓️ Single instance removal not supported by provider', {
+      component: 'calendarSyncService',
+      errorMessage: e instanceof Error ? e.message : String(e),
+    });
         // Do NOT delete the entire series when single-instance deletion isn't supported.
         return { success: false, error: 'GRANULAR_SINGLE_DELETE_UNSUPPORTED' };
       }
@@ -418,7 +445,9 @@ export const removeTimeBlockFromCalendar = async (
 
     return { success: true };
   } catch (error) {
-    console.error('Calendar remove error:', error);
+    Logger.error('Calendar remove error', error as Error, {
+      component: 'calendarSyncService',
+    });
 
     return {
       success: false,
@@ -468,7 +497,9 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
               coordinates: { latitude, longitude },
             });
           } catch (error) {
-            console.error('📍 [getCurrentLocation] Reverse geocoding failed:', error);
+            Logger.error('📍 [getCurrentLocation] Reverse geocoding failed', error as Error, {
+      component: 'calendarSyncService',
+    });
             // Fallback to coordinates if reverse geocoding fails
             const locationString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
@@ -480,7 +511,9 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
           }
         },
         (error: any) => {
-          console.error('📍 [getCurrentLocation] ❌ Geolocation error:', error);
+          Logger.error('📍 [getCurrentLocation] ❌ Geolocation error', error as Error, {
+      component: 'calendarSyncService',
+    });
           resolve({
             success: false,
             error: error.message || 'Failed to get location',
@@ -494,7 +527,9 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
       );
     });
   } catch (error) {
-    console.error('Location error:', error);
+    Logger.error('Location error', error as Error, {
+      component: 'calendarSyncService',
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get location',
@@ -523,7 +558,9 @@ export const searchLocations = async (query: string): Promise<LocationSearchResu
 
     return mockResults;
   } catch (error) {
-    console.error('Location search error:', error);
+    Logger.error('Location search error', error as Error, {
+      component: 'calendarSyncService',
+    });
     return [];
   }
 };
@@ -542,7 +579,9 @@ export const deleteRecurringTimeBlock = async (
 
     return { success: true };
   } catch (error) {
-    console.error('Delete recurring error:', error);
+    Logger.error('Delete recurring error', error as Error, {
+      component: 'calendarSyncService',
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete recurring time block',
