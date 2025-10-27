@@ -763,20 +763,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 devoStrings.some(v => {
                   const s = (v || '').toLowerCase();
                   return s.includes('devo') || s.includes('devotional') || s.includes('devotion');
-                }) ||
-                devoBooleans.some(Boolean);
-              if (isDevotional) {devoCount++;}
+                }) || devoBooleans.some(Boolean);
 
-              // Check if prayer is answered
-              const isAnswered = ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date;
-
-              // Get prayer type for filtering
-              const prayerType = ((prayer as any).prayer_type || '').toString().toLowerCase();
-
-              // Only include answered prayers from supplication or open prayer (personal_prayer) categories
-              // Exclude adoration, confession, and thanksgiving
-
-              // Let all prayers through initially - the secondary filter will handle answered/category filtering
               const shouldIncludePrayer = true;
 
               const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isDevotional;
