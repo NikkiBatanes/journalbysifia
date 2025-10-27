@@ -958,7 +958,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
     // Debounce the save to avoid too frequent calls
     const timeoutId = setTimeout(() => {
-      saveProgress().catch(console.error);
+      saveProgress().catch((e) => Logger.error('Async error', e as Error, { component: 'PlaybookDetailScreenNew' }));
     }, 1000);
 
     return () => {
@@ -975,7 +975,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       }
       if (playbook?.id && actionSteps.length > 0) {
 
-        saveActionSteps(playbook.id).catch(console.error);
+        saveActionSteps(playbook.id).catch((e) => Logger.error('Async error', e as Error, { component: 'PlaybookDetailScreenNew' }));
       }
     };
   }, [playbook?.id, actionSteps, saveActionSteps]);

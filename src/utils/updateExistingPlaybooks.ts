@@ -68,7 +68,9 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
           .upsert(updates, { onConflict: 'id' });
 
         if (updateError) {
-          console.error('❌ Error updating batch:', updateError);
+          Logger.error('❌ Error updating batch', updateError as Error, {
+  component: 'updateExistingPlaybooks',
+});
         } else {
           // Updates applied successfully
 
@@ -136,7 +138,9 @@ export async function updatePlaybookWithJournalTypes(playbookId: string): Promis
         .upsert(updates, { onConflict: 'id' });
 
       if (updateError) {
-        console.error('❌ Error updating subtasks:', updateError);
+        Logger.error('❌ Error updating subtasks', updateError as Error, {
+  component: 'updateExistingPlaybooks',
+});
       } else {
 
       }

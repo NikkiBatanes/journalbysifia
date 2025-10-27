@@ -1,4 +1,5 @@
 import React from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -73,7 +74,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setActiveProvider('google');
     const { error: googleError } = await signInWithGoogle();
     if (googleError) {
-      console.error('Google Sign-In Error:', googleError);
+      Logger.error('Google Sign-In Error', googleError as Error, {
+  component: 'RegisterScreen',
+});
       triggerErrorHaptic();
       // Hide cancellation errors to allow choosing other methods
       const msg = googleError.message?.toLowerCase?.() || '';
@@ -96,7 +99,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setActiveProvider('apple');
     const { error: appleError } = await signInWithApple();
     if (appleError) {
-      console.error('Apple Sign-In Error:', appleError);
+      Logger.error('Apple Sign-In Error', appleError as Error, {
+  component: 'RegisterScreen',
+});
       triggerErrorHaptic();
       // Hide cancellation errors to allow choosing other methods
       const msg = appleError.message?.toLowerCase?.() || '';

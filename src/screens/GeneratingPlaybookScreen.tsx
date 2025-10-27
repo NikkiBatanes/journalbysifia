@@ -125,7 +125,9 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             );
 
           } catch (pointsError) {
-            console.error('[GeneratingPlaybook] Failed to award faith points:', pointsError);
+            Logger.error('[GeneratingPlaybook] Failed to award faith points', pointsError as Error, {
+  component: 'GeneratingPlaybookScreen',
+});
             // Don't fail the whole generation if points awarding fails
           }
 
@@ -139,7 +141,9 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             );
 
           } catch (usageError) {
-            console.error('[GeneratingPlaybook] Failed to track usage:', usageError);
+            Logger.error('[GeneratingPlaybook] Failed to track usage', usageError as Error, {
+  component: 'GeneratingPlaybookScreen',
+});
             // Don't fail the whole generation if usage tracking fails
           }
         }

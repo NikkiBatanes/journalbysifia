@@ -2,6 +2,7 @@
 // Comprehensive error boundary for React components
 
 import React, { Component, ReactNode } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -79,7 +80,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     };
 
     // You can send this to your error reporting service
-    console.error('Error Report:', errorReport);
+    Logger.error('Error Report', undefined, {
+      component: 'ErrorBoundary',
+      report: errorReport,
+    });
   };
 
   private handleRetry = () => {

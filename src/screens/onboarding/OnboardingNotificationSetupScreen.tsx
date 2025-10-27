@@ -199,12 +199,16 @@ const OnboardingNotificationSetupScreen = () => {
             });
 
           if (prefsError) {
-            console.error('Error saving notification preferences:', prefsError);
+            Logger.error('Error saving notification preferences', prefsError as Error, {
+  component: 'OnboardingNotificationSetupScreen',
+});
           } else {
 
           }
         } catch (prefsError) {
-          console.error('Error saving notification preferences:', prefsError);
+          Logger.error('Error saving notification preferences', prefsError as Error, {
+  component: 'OnboardingNotificationSetupScreen',
+});
         }
 
         Alert.alert(

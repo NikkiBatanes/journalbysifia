@@ -53,7 +53,9 @@ class OnboardingErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to console for debugging
     Logger.error('[OnboardingErrorBoundary] Error caught', error as Error, { component: 'OnboardingErrorBoundary' });
-    console.error('[OnboardingErrorBoundary] Error info:', errorInfo);
+    Logger.error('[OnboardingErrorBoundary] Error info', errorInfo as Error, {
+  component: 'OnboardingErrorBoundary',
+});
 
     // Update state with error details
     this.setState(prevState => ({
@@ -77,7 +79,9 @@ class OnboardingErrorBoundary extends Component<Props, State> {
         level: 'error',
       });
     } catch (trackingError) {
-      console.error('[OnboardingErrorBoundary] Failed to track error:', trackingError);
+      Logger.error('[OnboardingErrorBoundary] Failed to track error', trackingError as Error, {
+  component: 'OnboardingErrorBoundary',
+});
     }
   }
 

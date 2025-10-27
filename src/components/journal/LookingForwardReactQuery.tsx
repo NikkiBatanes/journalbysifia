@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
@@ -177,7 +178,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       }, user?.id);
       triggerSuccessHaptic();
     } catch (updateError) {
-      console.error('Failed to update looking forward:', updateError);
+      Logger.error('Failed to update looking forward', updateError as Error, {
+  component: 'LookingForwardReactQuery',
+});
       Alert.alert('Error', 'Failed to update looking forward. Please try again.');
       triggerErrorHaptic();
     } finally {
@@ -444,7 +447,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         triggerSuccessHaptic();
       }
     } catch (saveError) {
-      console.error('🌅 LookingForward: Save failed:', saveError);
+      Logger.error('🌅 LookingForward: Save failed', saveError as Error, {
+  component: 'LookingForwardReactQuery',
+});
 
       // Revert optimistic update on error
       setDisplayEntry(lookingForward);

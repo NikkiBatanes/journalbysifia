@@ -543,7 +543,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setBugReportText('');
       Alert.alert('Thanks!', 'Your bug report was sent.');
     } catch (error) {
-      console.error('[ReportBug] Failed to submit bug report', error);
+      Logger.error('[ReportBug] Failed to submit bug report', error as Error, {
+  component: 'UserProfileScreen',
+});
       Alert.alert('Error', 'Failed to submit bug report. Please try again later.');
     }
   };
@@ -709,7 +711,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setFeatureText('');
       Alert.alert('Thanks!', 'Your feature suggestion was sent.');
     } catch (error) {
-      console.error('[FeatureRequest] Failed to submit', error);
+      Logger.error('[FeatureRequest] Failed to submit', error as Error, {
+  component: 'UserProfileScreen',
+});
       Alert.alert('Error', 'Failed to submit feature suggestion. Please try again later.');
     }
   };

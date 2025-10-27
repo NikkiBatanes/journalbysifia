@@ -96,7 +96,9 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         .limit(10);
 
       if (playbooksError) {
-        console.error('Error fetching playbooks:', playbooksError);
+        Logger.error('Error fetching playbooks', playbooksError as Error, {
+  component: 'PlaybookCarousel',
+});
         return;
       }
 

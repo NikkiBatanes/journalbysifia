@@ -569,7 +569,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 }, user.id);
               }
             } catch (deleteError) {
-              console.error('🔍 ReflectionLog: Error deleting reflection entry:', deleteError);
+              Logger.error('🔍 ReflectionLog: Error deleting reflection entry', deleteError as Error, {
+  component: 'ReflectionLogReactQuery',
+});
 
               // Track error analytics
               if (user) {
@@ -1214,7 +1216,9 @@ return (
 
                 // Keep the main modal open - success modal will handle closing via callbacks
               } catch (saveError) {
-                console.error('🔍 ReflectionLog: Save failed:', saveError);
+                Logger.error('🔍 ReflectionLog: Save failed', saveError as Error, {
+  component: 'ReflectionLogReactQuery',
+});
                 Alert.alert('Error', 'Failed to save reflection entry. Please try again.');
                 return; // Don't close the modal if save failed
               }
@@ -1238,7 +1242,9 @@ return (
                 await refetch();
 
               } catch (deleteError) {
-                console.error('Failed to delete reflection:', deleteError);
+                Logger.error('Failed to delete reflection', deleteError as Error, {
+  component: 'ReflectionLogReactQuery',
+});
                 Alert.alert('Error', 'Failed to delete reflection. Please try again.');
               }
             } : undefined}

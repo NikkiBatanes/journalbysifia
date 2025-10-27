@@ -301,13 +301,15 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             }
           }
         } else {
-          console.warn('🙏 SmartJournalingGratitudeModal: Step not found in actionSteps:', {
+          Logger.warn('🙏 SmartJournalingGratitudeModal: Step not found in actionSteps', {
+  component: 'SmartJournalingGratitudeModal',
             stepId,
             availableStepIds: actionSteps?.map(s => s.id) || [],
           });
         }
       } else {
-        console.warn('🙏 SmartJournalingGratitudeModal: Missing required data for completion:', {
+        Logger.warn('🙏 SmartJournalingGratitudeModal: Missing required data for completion', {
+  component: 'SmartJournalingGratitudeModal',
           hasStepId: !!stepId,
           hasSubtaskId: !!subtaskId,
           hasHandleToggleStep: !!handleToggleStep,

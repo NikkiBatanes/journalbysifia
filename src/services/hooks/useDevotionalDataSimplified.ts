@@ -234,7 +234,9 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         });
 
       } catch (syncError) {
-        console.error('[useMarkDayCompleteReactQuery] Sync error:', syncError);
+        Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError as Error, {
+  component: 'useDevotionalDataSimplified',
+});
       }
 
       // Only invalidate the list query to update dashboard, NOT the detail query
@@ -399,7 +401,9 @@ export const useDevotionalOperations = (userId: string) => {
 
       return playbook;
     } catch (catchError) {
-      console.error('[useDevotionalOperations] Error fetching playbook:', catchError);
+      Logger.error('[useDevotionalOperations] Error fetching playbook', catchError as Error, {
+  component: 'useDevotionalDataSimplified',
+});
       return null;
     }
   };
