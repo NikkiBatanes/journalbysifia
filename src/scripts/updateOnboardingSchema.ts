@@ -52,13 +52,13 @@ async function updateOnboardingSchema() {
 
     // Test the function
 
-    const { data: testData, error: testError } = await supabase
+    const { error: testError } = await supabase
       .rpc('calculate_onboarding_metrics');
 
     if (testError) {
       console.error('❌ Function test failed:', testError);
     } else {
-
+      console.log('✅ Function test passed');
     }
 
   } catch (error) {

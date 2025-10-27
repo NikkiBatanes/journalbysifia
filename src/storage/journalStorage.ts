@@ -29,7 +29,7 @@ export async function debugPrintSupabaseStorage() {
 export async function debugPrintJournalEntries() {
   try {
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('journal_entries')
       .select('*')
       .order('created_at', { ascending: false })
@@ -48,8 +48,8 @@ export async function debugPrintJournalEntries() {
   }
 }
 
-export async function debugPrintSession(label: string) {
-  const { error } = await supabase.auth.getSession();
+export async function debugPrintSession() {
+  await supabase.auth.getSession();
 
 }
 

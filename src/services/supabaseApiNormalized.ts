@@ -285,7 +285,7 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
 export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt' | 'updatedAt'>): Promise<Playbook> {
 
   // Check current session
-  const { error: sessionError } = await supabase.auth.getSession();
+  await supabase.auth.getSession();
 
   try {
     // Start a transaction by creating the main playbook first
