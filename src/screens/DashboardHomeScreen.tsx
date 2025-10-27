@@ -1451,24 +1451,29 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           />
           <View style={styles.sectionGap} />
 
-          {/* External Actions header and subtitle (moved out of card) */}
-          <View style={styles.actionsHeaderContainer}>
-            <ThemedText weight="semiBold" style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</ThemedText>
-            <ThemedText weight="medium" style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</ThemedText>
-          </View>
+          {/* Today's Actions - Only show when there are unfinished steps */}
+          {actionsCount > 0 && (
+            <>
+              {/* External Actions header and subtitle (moved out of card) */}
+              <View style={styles.actionsHeaderContainer}>
+                <ThemedText weight="semiBold" style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</ThemedText>
+                <ThemedText weight="medium" style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</ThemedText>
+              </View>
 
-          <ActionStepsCard
-            onStepPress={(step) => {
-              // Navigate to Playbook detail when an action step is tapped
-              triggerLightHaptic();
-              navigation.navigate('PlaybookDetail', { playbookId: step.playbookId });
-            }}
-            onViewAll={() => {
-              // Navigate to all action steps
-            }}
-            onCountChange={setActionsCount}
-          />
-          <View style={styles.sectionGap} />
+              <ActionStepsCard
+                onStepPress={(step) => {
+                  // Navigate to Playbook detail when an action step is tapped
+                  triggerLightHaptic();
+                  navigation.navigate('PlaybookDetail', { playbookId: step.playbookId });
+                }}
+                onViewAll={() => {
+                  // Navigate to all action steps
+                }}
+                onCountChange={setActionsCount}
+              />
+              <View style={styles.sectionGap} />
+            </>
+          )}
 
           {/* Reflection Questions Card */}
           <ReflectionQuestionsCard
