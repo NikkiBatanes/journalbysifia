@@ -60,11 +60,13 @@ interface Devotional {
 interface DevotionalCarouselProps {
   onDevotionalPress?: (devotional: Devotional) => void;
   onViewAll?: () => void;
+  onEmpty?: () => void; // Callback when carousel is empty
 }
 
 const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   onDevotionalPress,
   onViewAll,
+  onEmpty,
 }) => {
   const { user } = useAuth();
   const [devotionals, setDevotionals] = useState<Devotional[]>([]);
@@ -74,6 +76,14 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const devotionalIdsRef = useRef<Set<string>>(new Set());
   const [hasPlaybooks, setHasPlaybooks] = useState(false);
+  const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
+
+  // Notify parent when carousel is empty
+  React.useEffect(() => {
+    if (!loading && devotionals.length === 0) {
+      onEmpty?.();
+    }
+  }, [loading, devotionals.length, onEmpty]);
 
   const formatFinishedDate = (dateStr?: string): string | undefined => {
     if (!dateStr) { return undefined; }

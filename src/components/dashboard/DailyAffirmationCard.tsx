@@ -33,12 +33,20 @@ interface DailyAffirmationCardProps {
   onRefresh?: () => void;
   onAffirmationPress?: (affirmation: Affirmation) => void;
   onReadPress?: () => void;
+  onEmpty?: () => void; // Callback when no affirmations
 }
 
-const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, onAffirmationPress, onReadPress }) => {
+const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, onAffirmationPress, onReadPress, onEmpty }) => {
   const { user } = useAuth();
   const [affirmations, setAffirmations] = useState<Affirmation[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Notify parent when no affirmations
+  React.useEffect(() => {
+    if (!loading && affirmations.length === 0) {
+      onEmpty?.();
+    }
+  }, [loading, affirmations.length, onEmpty]);
   const [error, setError] = useState<string | null>(null);
   const [hasRead, setHasRead] = useState(false);
   const readCooldownRef = useRef<number>(0);

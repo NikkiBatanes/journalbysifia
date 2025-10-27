@@ -771,6 +771,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [refreshing, setRefreshing] = useState(false);
   const [actionsCount, setActionsCount] = useState(0);
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
+  const [hasPlaybooks, setHasPlaybooks] = useState(true); // Track if user has playbooks
+  const [hasDevotionals, setHasDevotionals] = useState(true); // Track if user has devotionals
+  const [hasAffirmations, setHasAffirmations] = useState(true); // Track if affirmations are shown
   // Reflection Questions state
   const [selectedReflection, setSelectedReflection] = useState<{
     question: string;
@@ -1390,11 +1393,18 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
           <View style={styles.sectionGap} />
 
-          {/* Row 1: Inspiration Cards (Affirmation only) */}
-          <View style={styles.row}>
-            <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
-          </View>
-          <View style={styles.sectionGap} />
+          {/* Row 1: Inspiration Cards (Affirmation only) - Hide when empty to prevent gap */}
+          {hasAffirmations && (
+            <>
+              <View style={styles.row}>
+                <DailyAffirmationCard 
+                  onRefresh={() => setRefreshing(true)}
+                  onEmpty={() => setHasAffirmations(false)}
+                />
+              </View>
+              <View style={styles.sectionGap} />
+            </>
+          )}
 
           {/* Prayer Requests Section (hide when empty) */}
           {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
@@ -1406,50 +1416,62 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {/* Removed Weekly Insights and AI Insights */}
 
-          {/* Collapsing Playbook label */}
-          <View style={styles.playbookLabelContainer}>
-            <Animated.View
-              style={[styles.playbookLabelClip, { width: playbookWidth }]}
-            >
-              <ThemedText
-                onLayout={(e) => {
-                  const w = e.nativeEvent.layout.width;
-                  if (w !== playbookMeasuredWidth) {
-                    setPlaybookMeasuredWidth(w);
-                  }
-                }}
-                style={styles.playbookLabel}
-              >
-                Playbook
-              </ThemedText>
-            </Animated.View>
-          </View>
+          {/* Playbooks Section - Only show when user has playbooks */}
+          {hasPlaybooks && (
+            <>
+              {/* Collapsing Playbook label */}
+              <View style={styles.playbookLabelContainer}>
+                <Animated.View
+                  style={[styles.playbookLabelClip, { width: playbookWidth }]}
+                >
+                  <ThemedText
+                    onLayout={(e) => {
+                      const w = e.nativeEvent.layout.width;
+                      if (w !== playbookMeasuredWidth) {
+                        setPlaybookMeasuredWidth(w);
+                      }
+                    }}
+                    style={styles.playbookLabel}
+                  >
+                    Playbook
+                  </ThemedText>
+                </Animated.View>
+              </View>
 
-          <PlaybookCarousel
-            onPlaybookPress={(playbook) => {
-              triggerLightHaptic();
-              navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
-            }}
-            onViewAll={() => {
-              // Navigate to playbooks list
-              triggerLightHaptic();
-              navigation.navigate('Playbooks');
-            }}
-          />
-          <View style={styles.sectionGap} />
-          <DevotionalCarousel
-            onDevotionalPress={(devotional) => {
-              // Navigate to devotional detail screen
-              triggerLightHaptic();
-              navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
-            }}
-            onViewAll={() => {
-              // Navigate to devotionals list
-              triggerLightHaptic();
-              navigation.navigate('Devotionals');
-            }}
-          />
-          <View style={styles.sectionGap} />
+              <PlaybookCarousel
+                onPlaybookPress={(playbook) => {
+                  triggerLightHaptic();
+                  navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
+                }}
+                onViewAll={() => {
+                  // Navigate to playbooks list
+                  triggerLightHaptic();
+                  navigation.navigate('Playbooks');
+                }}
+                onEmpty={() => setHasPlaybooks(false)}
+              />
+              <View style={styles.sectionGap} />
+            </>
+          )}
+          {/* Devotionals Section - Only show when user has devotionals */}
+          {hasDevotionals && (
+            <>
+              <DevotionalCarousel
+                onDevotionalPress={(devotional) => {
+                  // Navigate to devotional detail screen
+                  triggerLightHaptic();
+                  navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
+                }}
+                onViewAll={() => {
+                  // Navigate to devotionals list
+                  triggerLightHaptic();
+                  navigation.navigate('Devotionals');
+                }}
+                onEmpty={() => setHasDevotionals(false)}
+              />
+              <View style={styles.sectionGap} />
+            </>
+          )}
 
           {/* Today's Actions - Only show when there are unfinished steps */}
           {actionsCount > 0 && (

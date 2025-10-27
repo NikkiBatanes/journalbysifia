@@ -54,11 +54,13 @@ interface Playbook {
 interface PlaybookCarouselProps {
   onPlaybookPress?: (playbook: Playbook) => void;
   onViewAll?: () => void;
+  onEmpty?: () => void; // Callback when carousel is empty
 }
 
 const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   onPlaybookPress,
   onViewAll,
+  onEmpty,
 }) => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
@@ -75,6 +77,13 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   // Devotional creation modal state (parity with PlaybookListScreen)
   const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
   const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<Playbook | null>(null);
+
+  // Notify parent when carousel is empty
+  React.useEffect(() => {
+    if (!loading && playbooks.length === 0) {
+      onEmpty?.();
+    }
+  }, [loading, playbooks.length, onEmpty]);
 
   const fetchPlaybooks = useCallback(async () => {
     if (!user) {return;}
