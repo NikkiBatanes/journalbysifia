@@ -71,9 +71,6 @@ const getJournalTypeIcon = (journalType?: string): string => {
     case 'gratitude': return 'heart';
     case 'win': return 'trophy';
     case 'timeblock': return 'clock';
-    case 'financial_budgeting': return 'currency-usd';
-    case 'financial_tithing': return 'gift';
-    case 'financial_debt': return 'credit-card-minus';
     case 'none': return '';
     default: return '';
   }
