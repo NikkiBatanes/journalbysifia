@@ -41,7 +41,6 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
 
     // Process subtasks in batches
     const batchSize = 50;
-    let updatedCount = 0;
 
     for (let i = 0; i < subtasks.length; i += batchSize) {
       const batch = subtasks.slice(i, i + batchSize);

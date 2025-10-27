@@ -530,10 +530,9 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
 
   try {
     // 1. First check if we have tokens in AsyncStorage
-    const [accessToken, refreshToken, userStr] = await Promise.all([
+    const [accessToken, refreshToken] = await Promise.all([
       AsyncStorage.getItem('ACCESS_TOKEN'),
       AsyncStorage.getItem('REFRESH_TOKEN'),
-      AsyncStorage.getItem('USER'),
     ]);
 
     if (!accessToken || !refreshToken) {
