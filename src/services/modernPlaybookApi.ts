@@ -345,6 +345,12 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
 
     }
 
+    // Emit event to notify dashboard and other components
+    try {
+      const { DeviceEventEmitter } = require('react-native');
+      DeviceEventEmitter.emit('playbook_created', { id: playbook.id, user_id: userId });
+    } catch {}
+
     return { success: true };
 
   } catch (error: any) {

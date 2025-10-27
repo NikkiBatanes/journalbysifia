@@ -951,6 +951,27 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     ])
   );
 
+  // Listen for content creation events to show hidden sections
+  useEffect(() => {
+    const onDevotionalCreated = () => {
+      // Show devotionals section when new devotional is created
+      setHasDevotionals(true);
+    };
+
+    const onPlaybookCreated = () => {
+      // Show playbooks section when new playbook is created
+      setHasPlaybooks(true);
+    };
+
+    const subDevotional = DeviceEventEmitter.addListener('devotional_created', onDevotionalCreated);
+    const subPlaybook = DeviceEventEmitter.addListener('playbook_created', onPlaybookCreated);
+
+    return () => {
+      try { subDevotional.remove(); } catch {}
+      try { subPlaybook.remove(); } catch {}
+    };
+  }, []);
+
   // Fetch unprayed prayer requests for current user (across all dates)
   const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests } = useUnprayedPrayerRequests(user?.id || '');
   const markPrayedMutation = useMarkPrayerRequestPrayed();
