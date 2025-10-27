@@ -324,6 +324,12 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     } finally {
       // Mark initial load complete and stop showing skeletons on future refreshes
       if (initialLoadRef.current) {
+        initialLoadRef.current = false;
+        setHasLoaded(true);
+      }
+      setLoading(false);
+    }
+  }, [user, guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts]);
 
   useEffect(() => {
     fetchReflectionQuestions();
