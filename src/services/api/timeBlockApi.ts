@@ -114,7 +114,7 @@ export class TimeBlockApi {
       }) || [];
 
       // Get exception records (hidden instances) for this date
-      const { data: exceptions, error: exceptionsError } = await supabase
+      const { error: exceptionsError } = await supabase
         .from('time_blocks')
         .select('*')
         .eq('user_id', userId)

@@ -582,12 +582,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     try {
       setIsLoggingOut(true);
 
-      // Helpful debug: log provider info from identities if present
-      try {
-        const identities = (authState.user as any)?.identities as Array<any> | undefined;
-        // Provider info available for debugging if needed
-
-      } catch {}
+      // Provider info available for debugging if needed
 
       // Attempt to clear Google session (safe on non-Google sessions)
       try {

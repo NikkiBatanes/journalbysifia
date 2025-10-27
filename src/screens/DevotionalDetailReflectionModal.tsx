@@ -135,7 +135,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
       // Force refetch to ensure UI updates
 
-      const refetchResult = await refetch();
+      await refetch();
 
       // Invalidate cache to update journal screen
       if (user?.id) {

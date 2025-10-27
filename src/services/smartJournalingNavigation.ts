@@ -34,19 +34,19 @@ export class SmartJournalingNavigation {
 
     switch (journalType) {
       case 'prayer':
-        this.navigateToPrayer(subTask, context);
+        this.navigateToPrayer();
         break;
 
       case 'reflection':
-        this.navigateToReflection(subTask, context);
+        this.navigateToReflection();
         break;
 
       case 'gratitude':
-        this.navigateToGratitude(subTask, context);
+        this.navigateToGratitude();
         break;
 
       case 'timeblock':
-        this.navigateToTimeBlock(subTask, context);
+        this.navigateToTimeBlock();
         break;
 
       case 'none':
@@ -64,7 +64,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Prayer tab with context
    */
-  private navigateToPrayer(subTask: SubTask, _context?: any) {
+  private navigateToPrayer() {
 
     this.navigation.navigate('Journal' as never);
   }
@@ -72,7 +72,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Reflection component with context
    */
-  private navigateToReflection(subTask: SubTask, _context?: any) {
+  private navigateToReflection() {
 
     this.navigation.navigate('Journal' as never);
   }
@@ -80,7 +80,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Gratitude component with context
    */
-  private navigateToGratitude(subTask: SubTask, _context?: any) {
+  private navigateToGratitude() {
 
     this.navigation.navigate('Journal' as never);
   }
@@ -88,7 +88,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to TimeBlock component with context
    */
-  private navigateToTimeBlock(subTask: SubTask, _context?: any) {
+  private navigateToTimeBlock() {
 
     // TimeBlock smart journaling is handled via modal in ActionStepsCard
     // This navigation method is for fallback cases where modal isn't available

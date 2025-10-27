@@ -635,9 +635,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       if (!picked) {return;} // user cancelled
 
-      const url = await uploadAvatar(user, picked);
+      await uploadAvatar(user, picked);
 
-      // const result = await updateProfile({ avatar_url: url }); // TODO: Implement updateProfile
+      // TODO: Implement updateProfile to use the uploaded avatar URL
       // if (result?.success === false) {
       //   throw new Error(result?.error?.message || 'Failed to update profile');
       // }

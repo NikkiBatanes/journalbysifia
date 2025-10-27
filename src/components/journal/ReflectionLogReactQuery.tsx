@@ -385,9 +385,6 @@ interface ReflectionLogProps {
 }
 
 export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onPencilTap }) => {
-  // Debug: Track component instances
-  const instanceId = React.useRef(Math.random().toString(36).substr(2, 9));
-
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -483,7 +480,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       updated_at: entry.updated_at,
       selected_date: entry.selected_date,
     }));
-  }, [reflectionEntries, normalizeIncoming, dateStr]);
+  }, [reflectionEntries, normalizeIncoming]);
 
   // Determine if there's content for the selected date
   const hasContentForSelectedDate = React.useMemo(() => {
@@ -1183,7 +1180,7 @@ return (
                   }, user.id);
                 } else {
                   // Create new entry
-                  result = await createMutation.mutateAsync(saveData);
+                  await createMutation.mutateAsync(saveData);
 
                   // Track creation analytics
                   analytics.trackReflectionEvent('reflection_created', {

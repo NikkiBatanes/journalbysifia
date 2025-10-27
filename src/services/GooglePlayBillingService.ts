@@ -67,7 +67,7 @@ export class GooglePlayBillingService {
         return false;
       }
 
-      const result = await initConnection();
+      await initConnection();
 
       // Set up purchase listeners
       this.setupPurchaseListeners();
