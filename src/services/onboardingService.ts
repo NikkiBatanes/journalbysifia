@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 // =============================================
 // TYPES AND INTERFACES
@@ -195,13 +196,19 @@ export class OnboardingService {
       });
 
       if (error) {
-        console.error('[OnboardingService] Error initializing onboarding:', error);
+        Logger.error('[OnboardingService] Error initializing onboarding', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('[OnboardingService] Error in initializeOnboarding:', error);
+      Logger.error('[OnboardingService] Error in initializeOnboarding', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -218,13 +225,19 @@ export class OnboardingService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[OnboardingService] Error getting onboarding progress:', error);
+        Logger.error('[OnboardingService] Error getting onboarding progress', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('[OnboardingService] Error in getOnboardingProgress:', error);
+      Logger.error('[OnboardingService] Error in getOnboardingProgress', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -247,7 +260,10 @@ export class OnboardingService {
       });
 
       if (progressError) {
-        console.error('[OnboardingService] Error updating progress:', progressError);
+        Logger.error('[OnboardingService] Error updating progress', progressError as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw progressError;
       }
 
@@ -255,7 +271,10 @@ export class OnboardingService {
       await this.recordStepAnalytics(userId, stepData);
 
     } catch (error) {
-      console.error('[OnboardingService] Error in updateStepProgress:', error);
+      Logger.error('[OnboardingService] Error in updateStepProgress', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -285,11 +304,17 @@ export class OnboardingService {
         });
 
       if (error) {
-        console.error('[OnboardingService] Error recording analytics:', error);
+        Logger.error('[OnboardingService] Error recording analytics', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         // Don't throw - analytics shouldn't block the main flow
       }
     } catch (error) {
-      console.error('[OnboardingService] Error in recordStepAnalytics:', error);
+      Logger.error('[OnboardingService] Error in recordStepAnalytics', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       // Don't throw - analytics shouldn't block the main flow
     }
   }
@@ -311,12 +336,18 @@ export class OnboardingService {
         });
 
       if (error) {
-        console.error('[OnboardingService] Error updating faith journey:', error);
+        Logger.error('[OnboardingService] Error updating faith journey', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
     } catch (error) {
-      console.error('[OnboardingService] Error in updateFaithJourneyProfile:', error);
+      Logger.error('[OnboardingService] Error in updateFaithJourneyProfile', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -333,13 +364,19 @@ export class OnboardingService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[OnboardingService] Error getting faith journey:', error);
+        Logger.error('[OnboardingService] Error getting faith journey', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('[OnboardingService] Error in getFaithJourneyProfile:', error);
+      Logger.error('[OnboardingService] Error in getFaithJourneyProfile', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -361,13 +398,19 @@ export class OnboardingService {
       });
 
       if (error) {
-        console.error('[OnboardingService] Error recording Christ acceptance:', error);
+        Logger.error('[OnboardingService] Error recording Christ acceptance', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('[OnboardingService] Error in recordChristAcceptance:', error);
+      Logger.error('[OnboardingService] Error in recordChristAcceptance', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -389,12 +432,18 @@ export class OnboardingService {
         });
 
       if (error) {
-        console.error('[OnboardingService] Error updating personalization:', error);
+        Logger.error('[OnboardingService] Error updating personalization', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
     } catch (error) {
-      console.error('[OnboardingService] Error in updatePersonalizationProfile:', error);
+      Logger.error('[OnboardingService] Error in updatePersonalizationProfile', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -411,13 +460,19 @@ export class OnboardingService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[OnboardingService] Error getting personalization:', error);
+        Logger.error('[OnboardingService] Error getting personalization', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('[OnboardingService] Error in getPersonalizationProfile:', error);
+      Logger.error('[OnboardingService] Error in getPersonalizationProfile', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -438,12 +493,18 @@ export class OnboardingService {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[OnboardingService] Error completing onboarding:', error);
+        Logger.error('[OnboardingService] Error completing onboarding', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
     } catch (error) {
-      console.error('[OnboardingService] Error in completeOnboarding:', error);
+      Logger.error('[OnboardingService] Error in completeOnboarding', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -471,7 +532,10 @@ export class OnboardingService {
           }
         }
       } catch (e) {
-        console.warn('[OnboardingService] Profile check failed, falling back:', e);
+        Logger.warn('[OnboardingService] Profile check failed, falling back', {
+      component: 'onboardingService',
+      error: e,
+    });
       }
 
       // 2) Fallback: onboarding_progress.is_completed
@@ -481,7 +545,10 @@ export class OnboardingService {
 
       return fallbackResult;
     } catch (error) {
-      console.error('[OnboardingService] Error checking onboarding completion:', error);
+      Logger.error('[OnboardingService] Error checking onboarding completion', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       return false;
     }
   }
@@ -494,13 +561,19 @@ export class OnboardingService {
       const { data, error } = await this.supabase.rpc('calculate_onboarding_metrics');
 
       if (error) {
-        console.error('[OnboardingService] Error getting metrics:', error);
+        Logger.error('[OnboardingService] Error getting metrics', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('[OnboardingService] Error in getOnboardingMetrics:', error);
+      Logger.error('[OnboardingService] Error in getOnboardingMetrics', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -520,7 +593,10 @@ export class OnboardingService {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[OnboardingService] Error abandoning onboarding:', error);
+        Logger.error('[OnboardingService] Error abandoning onboarding', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
@@ -533,7 +609,10 @@ export class OnboardingService {
       });
 
     } catch (error) {
-      console.error('[OnboardingService] Error in abandonOnboarding:', error);
+      Logger.error('[OnboardingService] Error in abandonOnboarding', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -549,13 +628,19 @@ export class OnboardingService {
         .eq('needs_pastoral_care', true);
 
       if (error) {
-        console.error('[OnboardingService] Error getting pastoral care users:', error);
+        Logger.error('[OnboardingService] Error getting pastoral care users', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('[OnboardingService] Error in getUsersNeedingPastoralCare:', error);
+      Logger.error('[OnboardingService] Error in getUsersNeedingPastoralCare', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
@@ -582,13 +667,19 @@ export class OnboardingService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[OnboardingService] Error getting acceptance events:', error);
+        Logger.error('[OnboardingService] Error getting acceptance events', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('[OnboardingService] Error in getRecentChristAcceptanceEvents:', error);
+      Logger.error('[OnboardingService] Error in getRecentChristAcceptanceEvents', error as Error, {
+      component: 'onboardingService',
+      action: 'onboarding',
+    });
       throw error;
     }
   }
