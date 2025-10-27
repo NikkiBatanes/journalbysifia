@@ -141,6 +141,46 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
       const allQuestions: ReflectionQuestion[] = [];
 
+      // Fetch user progress for all devotionals to determine completed days
+      const devotionalIds = devotionalsResult.data?.map(d => d.id) || [];
+      const progressResult = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('content_type', 'devotional')
+        .in('content_id', devotionalIds);
+
+      // Create a map of devotional ID to completed days
+      const completedDaysMap = new Map<string, Set<number>>();
+      if (progressResult.data) {
+        progressResult.data.forEach(progress => {
+          try {
+            const progressData = typeof progress.progress_data === 'string'
+              ? JSON.parse(progress.progress_data)
+              : progress.progress_data;
+            
+            const contentId = progress.content_id;
+            const completedDays = new Set<number>();
+            
+            // Extract completed days from progress data
+            if (progressData?.days && Array.isArray(progressData.days)) {
+              progressData.days.forEach((day: any, index: number) => {
+                if (day?.completed) {
+                  completedDays.add(index + 1); // 1-based day number
+                }
+              });
+            }
+            
+            completedDaysMap.set(contentId, completedDays);
+          } catch (e) {
+            Logger.warn('Error parsing progress data for reflection questions', {
+              component: 'ReflectionQuestionsCard',
+              details: e,
+            });
+          }
+        });
+      }
+
       // Extract questions from devotionals (top-level and per-day)
       if (devotionalsResult.data) {
         devotionalsResult.data.forEach(devotional => {
@@ -148,6 +188,9 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const content = typeof devotional.content === 'string'
               ? JSON.parse(devotional.content)
               : devotional.content;
+            
+            // Get completed days for this devotional
+            const completedDays = completedDaysMap.get(devotional.id) || new Set<number>();
 
             const pushQ = (
               text: any,
@@ -157,6 +200,12 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             ) => {
               const qText = typeof text === 'string' ? text : text?.question || text?.text || text?.prompt || '';
               if (!qText || typeof qText !== 'string') { return; }
+
+              // FILTER: Only show questions from Day 1 OR completed days
+              const dayNumber = ctx?.dayNumber || 1;
+              if (dayNumber > 1 && !completedDays.has(dayNumber)) {
+                return; // Skip questions from incomplete future days
+              }
 
               // Check if this question has already been journaled
               const questionId = `${devotional.id}-${ctx?.dayNumber || 1}-${ctx?.questionIndex || 1}`;
