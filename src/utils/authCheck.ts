@@ -5,19 +5,21 @@ export const debugAuthState = async () => {
 
   // Check AsyncStorage session
   try {
-    const sessionStr = await AsyncStorage.getItem('@supabase_session');
-
-    if (sessionStr) {
-      const session = JSON.parse(sessionStr);
-
+    const session = await AsyncStorage.getItem('USER_SESSION');
+    
+    if (!session) {
+      return false;
     }
+
+    // Validate session
+    const { data } = await supabase.auth.getSession();
   } catch (error) {
     console.error('[Auth Debug] Error reading AsyncStorage session:', error);
   }
 
   // Check Supabase session
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
 

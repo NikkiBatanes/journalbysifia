@@ -418,12 +418,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleEdit = () => {
 
-    // Debug: Check completion state when editing
-    if (stepId && subtaskId) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-
-    }
+    // Completion state handled by parent component
 
     // Handled by success modal hook
     // Focus the input and position cursor at the end
@@ -437,12 +432,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
   const handleCancel = () => {
 
-    // Debug: Check completion state when cancelling
-    if (stepId && subtaskId) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-
-    }
+    // Completion state handled by parent component
 
     onCancel();
   };

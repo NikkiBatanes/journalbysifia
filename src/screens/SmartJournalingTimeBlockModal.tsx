@@ -306,12 +306,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
   const handleCancel = () => {
 
-    // Debug: Check completion state when cancelling
-    if (stepId && subtaskId) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-
-    }
+    // Completion state handled by parent component
 
     onCancel();
   };

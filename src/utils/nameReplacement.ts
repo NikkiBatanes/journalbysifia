@@ -125,7 +125,6 @@ export function replaceAllNamePlaceholders(
   }
 
   let processedText = text;
-  const originalText = text;
 
   // Use first name only for more natural text flow
   const firstName = user.firstName || (user.displayName ? user.displayName.split(' ')[0] : '');

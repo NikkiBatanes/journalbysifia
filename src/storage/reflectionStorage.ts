@@ -455,13 +455,10 @@ export const debugReflectionEntries = async (userId: string): Promise<void> => {
     const allKeys = await AsyncStorage.getAllKeys();
     const reflectionKeys = allKeys.filter(key => key.startsWith('reflection_log_'));
 
-    for (const key of reflectionKeys) {
-      const entry = await getLocalReflectionEntry(key);
-
-    }
+    // Removed unused local entry iteration
 
     // Also check cloud entries
-    const { data: cloudEntries, error } = await supabase
+    const { error } = await supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)

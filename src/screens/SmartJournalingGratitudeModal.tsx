@@ -158,12 +158,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     if (visible && !prevVisible) {
       // Modal is opening (transition from false to true)
 
-      // Debug: Check completion state when modal opens
-      if (stepId && subtaskId) {
-        const step = actionSteps.find(s => s.id === stepId);
-        const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-
-      }
+      // Completion state checked when modal opens
 
       // Determine if this is an edit session (has existing data)
       const hasExistingData = currentGratitudeEntry?.content && (() => {
@@ -206,13 +201,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   ]);
 
   // Debug: Track actionSteps changes to see if completion state is being lost
-  useEffect(() => {
-    if (stepId && subtaskId && actionSteps?.length > 0) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-
-    }
-  }, [actionSteps, stepId, subtaskId]);
+  // Removed unused debug effect
 
   // Save gratitude data to database immediately and mark subtask complete
   const saveGratitude = async (gratitudeData: {
@@ -344,12 +333,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
   const handleCancel = () => {
 
-    // Debug: Check completion state when cancelling
-    if (stepId && subtaskId) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-
-    }
+    // Completion state handled by parent component
 
     onCancel();
   };
@@ -364,12 +348,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleEdit = () => {
 
-    // Debug: Check completion state when editing
-    if (stepId && subtaskId) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-
-    }
+    // Completion state handled by parent component
 
     // Handled by success modal hook
     // Focus the input and position cursor at the end

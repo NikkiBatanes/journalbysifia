@@ -1179,12 +1179,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
       console.error('❌ No valid session available. User must be logged in.');
 
       // Check if we have any auth data in storage
-      const [accessToken, refreshToken, user] = await Promise.all([
-        AsyncStorage.getItem('ACCESS_TOKEN'),
-        AsyncStorage.getItem('REFRESH_TOKEN'),
-        AsyncStorage.getItem('USER'),
-      ]);
-
+      // User must be logged in to sync from cloud
       throw new Error('You must be logged in to sync from cloud');
     }
 

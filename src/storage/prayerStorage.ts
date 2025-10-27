@@ -190,7 +190,7 @@ export const savePrayerEntry = async (
     // Insert to cloud storage
     try {
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('prayers')
         .insert({
           id: newPrayer.id,
