@@ -452,7 +452,7 @@ export const debugReflectionEntries = async (userId: string): Promise<void> => {
 
   try {
     // Get all reflection keys from AsyncStorage
-    const allKeys = await AsyncStorage.getAllKeys();
+    await AsyncStorage.getAllKeys();
     // Reflection keys filtered for debugging if needed
 
     // Removed unused local entry iteration

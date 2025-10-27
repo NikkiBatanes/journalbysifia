@@ -533,8 +533,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
         if (!journalEntriesError && journalEntries && journalEntries.length > 0) {
 
-          let processedCount = 0;
-          let skippedCount = 0;
+          // Process journal entries
 
           journalEntries.forEach(entry => {
             // Check if entry has meaningful content (or is a devotional marker)
@@ -679,22 +678,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                     };
 
                     entries.push(momentEntry);
-                    processedCount++;
-                  } else {
-
                   }
-                } else {
-
-                  skippedCount++;
-                }
-              } else {
-
-                skippedCount++;
-              }
-            } else {
-
-              skippedCount++;
-            }
           });
 
         } else {
