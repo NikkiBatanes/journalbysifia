@@ -166,19 +166,21 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const currentDay = progressData?.current_day || progressData?.currentDay || 1;
             
             // Extract completed days from progress data
+            // Show questions from: Day 1 (always) + all completed days + current day
             if (progressData?.days && Array.isArray(progressData.days)) {
               progressData.days.forEach((day: any, index: number) => {
                 const dayNumber = index + 1;
-                // Include if explicitly completed OR if current day is past this day
-                if (day?.completed || dayNumber < currentDay) {
+                // Include if explicitly completed OR if it's Day 1 OR if it's the current day
+                if (day?.completed || dayNumber === 1 || dayNumber === currentDay) {
                   completedDays.add(dayNumber); // 1-based day number
                 }
               });
-            }
-            
-            // Also add current day itself (user is working on it)
-            if (currentDay > 0) {
-              completedDays.add(currentDay);
+            } else {
+              // Fallback: if no days array, at least show Day 1 and current day
+              completedDays.add(1);
+              if (currentDay > 1) {
+                completedDays.add(currentDay);
+              }
             }
             
             // Debug logging
