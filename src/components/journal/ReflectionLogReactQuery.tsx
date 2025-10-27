@@ -1165,7 +1165,7 @@ return (
                 let result;
                 if (editingId) {
                   // Update existing entry
-                  result = await updateMutation.mutateAsync({ id: editingId, updates: saveData });
+                  await updateMutation.mutateAsync({ id: editingId, updates: saveData });
 
                   // Track update analytics
                   const existingEntry = entries.find(e => e.id === editingId);

@@ -541,10 +541,10 @@ export class FaithPointsService {
       const { data: manualData, error: manualError } = await supabase
         .rpc('execute_sql', { query: manualQuery });
 
-      if (manualError || !manualData) {
+      if (manualError) {
 
         // Try the simplest possible insert
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('faith_points_log')
           .insert({
             user_id: userId,

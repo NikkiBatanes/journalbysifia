@@ -180,7 +180,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
     playbook.id = ensureValidUUID(playbook.id, 'savePlaybook');
 
     // Save to Supabase using the actual database schema
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('playbooks')
       .upsert({
         id: playbook.id,
