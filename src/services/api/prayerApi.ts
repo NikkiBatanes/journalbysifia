@@ -135,7 +135,8 @@ export class PrayerApi {
     const session = await ensureAuthenticated();
 
     if (userId !== session.user.id) {
-      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
+        component: 'prayerApi',
         provided: userId,
         authenticated: session.user.id,
       });
@@ -177,7 +178,8 @@ export class PrayerApi {
 
     // Ensure userId matches authenticated user for RLS compliance
     if (userId !== session.user.id) {
-      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
+        component: 'prayerApi',
         provided: userId,
         authenticated: session.user.id,
       });
@@ -254,7 +256,8 @@ export class PrayerApi {
 
     // Ensure userId matches authenticated user for RLS compliance
     if (userId !== session.user.id) {
-      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
+        component: 'prayerApi',
         provided: userId,
         authenticated: session.user.id,
       });
@@ -286,7 +289,8 @@ export class PrayerApi {
 
     // Ensure userId matches authenticated user for RLS compliance
     if (userId !== session.user.id) {
-      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
+        component: 'prayerApi',
         provided: userId,
         authenticated: session.user.id,
       });
@@ -302,7 +306,8 @@ export class PrayerApi {
 
     // Ensure userId matches authenticated user for RLS compliance
     if (userId !== session.user.id) {
-      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
+        component: 'prayerApi',
         provided: userId,
         authenticated: session.user.id,
       });
@@ -336,7 +341,8 @@ export class PrayerApi {
 
     // Ensure user_id matches the authenticated user for RLS compliance
     if (prayer.user_id !== session.user.id) {
-      console.warn('Prayer user_id mismatch, correcting for RLS compliance:', {
+      Logger.warn('Prayer user_id mismatch, correcting for RLS compliance', {
+        component: 'prayerApi',
         provided: prayer.user_id,
         authenticated: session.user.id,
       });

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
@@ -291,7 +292,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 triggerSuccessHaptic();
               }
             } catch (deleteError) {
-              console.error('Error deleting gratitude item:', deleteError);
+              Logger.error('Error deleting gratitude item', deleteError as Error, {
+        component: 'GratitudeListReactQuery',
+      });
               Alert.alert('Error', 'Failed to delete gratitude item. Please try again.');
               triggerErrorHaptic();
             }
@@ -392,7 +395,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       }, user.id);
       triggerSuccessHaptic();
     } catch (updateError) {
-      console.error('Failed to update gratitude item:', updateError);
+      Logger.error('Failed to update gratitude item', updateError as Error, {
+        component: 'GratitudeListReactQuery',
+      });
       Alert.alert('Error', 'Failed to update gratitude item. Please try again.');
       triggerErrorHaptic();
     }
@@ -461,7 +466,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               try {
                 await deleteMutation.mutateAsync(gratitudeEntries[i].id);
               } catch (deleteError) {
-                console.error('Error deleting extra gratitude entry:', deleteError);
+                Logger.error('Error deleting extra gratitude entry', deleteError as Error, {
+        component: 'GratitudeListReactQuery',
+      });
               }
             }
           }
@@ -495,7 +502,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           globalEditMode.setGlobalEditMode(false);
         }
       } catch (saveError) {
-        console.error('Error saving gratitude items:', saveError);
+        Logger.error('Error saving gratitude items', saveError as Error, {
+        component: 'GratitudeListReactQuery',
+      });
         Alert.alert('Error', 'Failed to save gratitude items. Please try again.');
         triggerErrorHaptic();
       }

@@ -277,7 +277,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       // Restore input if there was an error and reopen adding mode
       setNewTodo(todoText);
       setIsAdding(true);
-      console.error('Failed to save todo:', saveError);
+      Logger.error('Failed to save todo', saveError as Error, {
+        component: 'TodosReactQuery',
+      });
       Alert.alert('Error', 'Failed to save todo. Please try again.');
     }
   };
@@ -306,7 +308,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 }, user?.id);
               }
             } catch (deleteError) {
-              console.error('Failed to delete todo:', deleteError);
+              Logger.error('Failed to delete todo', deleteError as Error, {
+        component: 'TodosReactQuery',
+      });
               Alert.alert('Error', 'Failed to delete todo. Please try again.');
             }
           },
@@ -355,7 +359,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       setEditingId(null);
       setEditingText('');
     } catch (editError) {
-      console.error('Failed to update todo:', editError);
+      Logger.error('Failed to update todo', editError as Error, {
+        component: 'TodosReactQuery',
+      });
       Alert.alert('Error', 'Failed to update todo. Please try again.');
     }
   };
@@ -386,7 +392,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       });
       return true;
     } catch (addError) {
-      console.error('Failed to add todo:', addError);
+      Logger.error('Failed to add todo', addError as Error, {
+        component: 'TodosReactQuery',
+      });
       return false;
     }
   };
@@ -410,7 +418,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     } catch (inputError) {
       // Restore input if there was an error
       setNewTodo(originalText);
-      console.error('Failed to add todo input:', inputError);
+      Logger.error('Failed to add todo input', inputError as Error, {
+        component: 'TodosReactQuery',
+      });
     }
   };
 
@@ -461,7 +471,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         }, user?.id);
       }
     } catch (toggleError) {
-      console.error('Failed to toggle todo:', toggleError);
+      Logger.error('Failed to toggle todo', toggleError as Error, {
+        component: 'TodosReactQuery',
+      });
       Alert.alert('Error', 'Failed to update todo. Please try again.');
     }
   };
@@ -542,7 +554,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         Alert.alert('Copy Failed', 'Failed to copy todos. Please try again.');
       }
     } catch (copyError) {
-      console.error('Failed to copy todos:', copyError);
+      Logger.error('Failed to copy todos', copyError as Error, {
+        component: 'TodosReactQuery',
+      });
       Alert.alert('Error', 'Failed to copy todos. Please try again.');
     }
   };

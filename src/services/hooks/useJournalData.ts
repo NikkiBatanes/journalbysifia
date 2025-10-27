@@ -591,7 +591,9 @@ export const useUpdateTodayWinEntry = () => {
       // The cache is already updated above with the correct data
     },
     onError: (error) => {
-      console.error('🏆 useUpdateTodayWinEntry: API call failed', error);
+      Logger.error('🏆 useUpdateTodayWinEntry: API call failed', error as Error, {
+        component: 'useJournalData',
+      });
     },
   });
 };

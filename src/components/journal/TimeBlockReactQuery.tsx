@@ -445,8 +445,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             }
 
           } catch (updateError) {
-            console.error('🗓️ Error updating metadata:', updateError);
-            console.error('🗓️ Error details:', JSON.stringify(updateError, null, 2));
+            Logger.error('🗓️ Error updating metadata', updateError as Error, {
+        component: 'TimeBlockReactQuery',
+      });
+            Logger.error('🗓️ Error details', undefined, {
+        component: 'TimeBlockReactQuery',
+        data: updateError,
+      });
             throw updateError;
           }
         } else if (options.type === 'future') {
@@ -514,7 +519,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         date: dateStr,
       }, user?.id);
     } catch (deleteError) {
-      console.error('Delete error:', deleteError);
+      Logger.error('Delete error', deleteError as Error, {
+        component: 'TimeBlockReactQuery',
+      });
 
       // Track delete error analytics
       analytics.trackTimeBlockEvent('timeblock_error', {
@@ -576,7 +583,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           return;
         }
       } catch (dateError) {
-        console.error('Error creating date objects:', dateError);
+        Logger.error('Error creating date objects', dateError as Error, {
+        component: 'TimeBlockReactQuery',
+      });
         Alert.alert('Error', 'Invalid date or time values. Please check your input.');
         return;
       }
@@ -741,7 +750,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       globalEditMode?.setGlobalEditMode(false);
 
     } catch (saveError) {
-      console.error('Time block save error:', saveError);
+      Logger.error('Time block save error', saveError as Error, {
+        component: 'TimeBlockReactQuery',
+      });
 
       // Track error analytics
       analytics.trackTimeBlockEvent('timeblock_error', {
@@ -1014,7 +1025,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                             });
 
                           } catch (catchError) {
-                            console.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID:', catchError);
+                            Logger.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID', catchError as Error, {
+        component: 'TimeBlockReactQuery',
+      });
                           }
                         }}
                         compact

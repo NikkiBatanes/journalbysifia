@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 // SwipeableTodoItem handles the gesture handler imports
@@ -254,7 +255,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       }, user?.id);
       triggerSuccessHaptic();
     } catch (updateError) {
-      console.error('Failed to update win:', updateError);
+      Logger.error('Failed to update win', updateError as Error, {
+        component: 'TodayWinReactQuery',
+      });
       Alert.alert('Error', 'Failed to update win. Please try again.');
       triggerErrorHaptic();
     } finally {
@@ -381,7 +384,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       // Update existing entry
       const currentEntry = entries.find(e => e.id === editingEntryId);
       if (!currentEntry) {
-        console.error('🏆 TodayWin: Entry not found for editing:', editingEntryId);
+        Logger.error('🏆 TodayWin: Entry not found for editing', new Error(String(editingEntryId)), {
+        component: 'TodayWinReactQuery',
+      });
         console.error('🏆 TodayWin: Available entries:', entries.map(e => ({ id: e.id, content: e.content })));
         return;
       }
@@ -439,7 +444,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           // The optimistic update will be replaced by real data when it arrives
         },
         onError: (updateMutationError) => {
-          console.error('🏆 TodayWin: Update mutation failed', updateMutationError);
+          Logger.error('🏆 TodayWin: Update mutation failed', updateMutationError as Error, {
+        component: 'TodayWinReactQuery',
+      });
           setIsSaving(false); // Allow useEffect to work again
           Alert.alert('Error', "Couldn't save your win. Please try again.");
           triggerErrorHaptic();
@@ -503,7 +510,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           // The optimistic update will be replaced by real data when it arrives
         },
         onError: (createMutationError) => {
-          console.error('🏆 TodayWin: Create mutation failed', createMutationError);
+          Logger.error('🏆 TodayWin: Create mutation failed', createMutationError as Error, {
+        component: 'TodayWinReactQuery',
+      });
           setIsSaving(false); // Allow useEffect to work again
           Alert.alert('Error', "Couldn't save your win. Please try again.");
           triggerErrorHaptic();
