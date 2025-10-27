@@ -531,17 +531,7 @@ export class FaithPointsService {
     metadata?: any
   ): Promise<void> {
     try {
-      const transactionData = {
-        user_id: userId,
-        points: points,
-        activity_type: reason,
-        reason: this.getCategoryFromReason(reason),
-        metadata: metadata || null,
-        created_at: new Date().toISOString(),
-      };
-
       // Try manual SQL query to bypass schema cache
-
       const manualQuery = `
         INSERT INTO faith_points_log (user_id, points, activity_type, reason, metadata, created_at)
         VALUES ('${userId}', ${points}, '${reason}', '${this.getCategoryFromReason(reason)}', ${metadata ? `'${JSON.stringify(metadata)}'` : 'NULL'}, NOW())

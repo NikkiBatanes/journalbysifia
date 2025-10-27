@@ -221,7 +221,7 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         const completedDaysCount = data.days.filter(day => day.completed).length;
         const isFullDevotionalComplete = completedDaysCount === data.totalDays;
 
-        const syncResult = await syncDevotionalCompletion(devotionalId, undefined, {
+        await syncDevotionalCompletion(devotionalId, undefined, {
           isFullDevotionalComplete,
           completedDaysCount,
           totalDays: data.totalDays,

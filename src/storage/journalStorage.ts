@@ -41,8 +41,7 @@ export async function debugPrintJournalEntries() {
     }
 
     // Check specifically for today_win and looking_forward entries
-    const todayWinEntries = data?.filter(entry => entry.content_type === 'today_win');
-    const lookingForwardEntries = data?.filter(entry => entry.content_type === 'looking_forward');
+    // Entry types tracked for debugging if needed
 
   } catch (error) {
     console.error('Error in debugPrintJournalEntries:', error);
@@ -271,7 +270,6 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
 
   try {
     await AsyncStorage.setItem(key, JSON.stringify(newEntry));
-    const verify = await AsyncStorage.getItem(key);
 
     return newEntry;
   } catch (error) {

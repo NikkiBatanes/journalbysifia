@@ -220,19 +220,10 @@ export default function ActionStepsCard({
     });
   }, [steps]);
 
-  // Debug: Track when ActionStepsCard re-renders and what completion states it shows
+  // Debug: Track when ActionStepsCard re-renders
   React.useEffect(() => {
     if (steps && steps.length > 0) {
-      const completionStates = steps.map(step => ({
-        stepId: step.id,
-        stepTitle: step.title.substring(0, 30) + '...',
-        stepCompleted: step.completed,
-        subtasks: step.subTasks?.map(st => ({
-          subtaskId: st.id,
-          subtaskText: st.text.substring(0, 20) + '...',
-          subtaskCompleted: st.completed,
-        })) || [],
-      }));
+      // Completion states tracked for debugging if needed
 
     }
   }, [steps]);
