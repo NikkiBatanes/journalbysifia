@@ -30,7 +30,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to appropriate journaling component based on journal type
    */
-  navigateToJournaling(journalType: JournalType, subTask: SubTask, context?: any) {
+  navigateToJournaling(journalType: JournalType) {
 
     switch (journalType) {
       case 'prayer':
@@ -122,7 +122,7 @@ export class SmartJournalingNavigation {
     const types = journalTypes.split(',').map(type => type.trim()).filter(type => type && type !== 'none');
     if (types.length > 0) {
       const navService = SmartJournalingNavigation.create(navigation);
-      navService.navigateToJournaling(types[0] as JournalType, subTask, context);
+      return navService.navigateToJournaling(types[0] as JournalType);
     }
   }
 }

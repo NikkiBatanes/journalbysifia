@@ -12,7 +12,7 @@ export const debugAuthState = async () => {
     }
 
     // Validate session
-    const { data } = await supabase.auth.getSession();
+    await supabase.auth.getSession();
   } catch (error) {
     console.error('[Auth Debug] Error reading AsyncStorage session:', error);
   }

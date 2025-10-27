@@ -12,7 +12,7 @@ export const testFaithPointsSystem = async (userId: string) => {
     // Test 1: Get initial user profile
     const initialProfile = await faithPointsService.getUserProfile(userId);
 
-    // Remove unused profileError variable
+    // Test 1 completed - profile retrieved
 
     // Test 2: Award points for devotional completion
 
