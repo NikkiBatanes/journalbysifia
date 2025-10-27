@@ -162,13 +162,23 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const contentId = progress.content_id;
             const completedDays = new Set<number>();
             
+            // Get current day - all days before current day are considered accessible
+            const currentDay = progressData?.current_day || progressData?.currentDay || 1;
+            
             // Extract completed days from progress data
             if (progressData?.days && Array.isArray(progressData.days)) {
               progressData.days.forEach((day: any, index: number) => {
-                if (day?.completed) {
-                  completedDays.add(index + 1); // 1-based day number
+                const dayNumber = index + 1;
+                // Include if explicitly completed OR if current day is past this day
+                if (day?.completed || dayNumber < currentDay) {
+                  completedDays.add(dayNumber); // 1-based day number
                 }
               });
+            }
+            
+            // Also add current day itself (user is working on it)
+            if (currentDay > 0) {
+              completedDays.add(currentDay);
             }
             
             completedDaysMap.set(contentId, completedDays);
@@ -346,7 +356,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       };
       setDiag(diagPayload);
 
-      // Add guided prompts using centralized service
+      // Add guided prompts using centralized service (limit to 3 random daily)
       const guidedQuestions: ReflectionQuestion[] = [];
 
       // Use hook's daily allocation instead of duplicate logic
@@ -354,7 +364,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       const lockedPrompts = guidedPromptGating.lockedPrompts || [];
       const allGuidedPrompts = [...freePrompts, ...lockedPrompts];
 
-      allGuidedPrompts.forEach((prompt, i) => {
+      // Shuffle and limit to 3 prompts per day
+      const shuffled = [...allGuidedPrompts].sort(() => Math.random() - 0.5);
+      const limitedPrompts = shuffled.slice(0, 3);
+
+      limitedPrompts.forEach((prompt, i) => {
         const isFree = freePrompts.includes(prompt);
         guidedQuestions.push({
           id: `guided-${new Date().toISOString().slice(0, 10)}-${i}`,

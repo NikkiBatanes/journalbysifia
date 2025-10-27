@@ -689,6 +689,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingRight: 16,
+    alignItems: 'center',
   },
   scrollExpanded: {
     overflow: 'visible',
