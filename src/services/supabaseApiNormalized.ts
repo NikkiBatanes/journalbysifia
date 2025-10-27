@@ -5,6 +5,7 @@
 
 import { supabase } from './supabaseClient';
 import { Playbook, ActionStep, SubTask, Affirmation } from '../interfaces/playbook';
+import { Logger } from '../utils/ProductionLogger';
 
 // Types for the normalized database schema
 interface PlaybookRow {
@@ -127,7 +128,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       .order('created_at', { ascending: false });
 
     if (playbooksError) {
-      console.error('[getPlaybooks] Error fetching playbooks:', playbooksError);
+      Logger.error('[getPlaybooks] Error fetching playbooks', playbooksError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybooks',
+    });
       throw playbooksError;
     }
 
@@ -146,7 +150,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       .order('order_index', { ascending: true });
 
     if (actionStepsError) {
-      console.error('[getPlaybooks] Error fetching action steps:', actionStepsError);
+      Logger.error('[getPlaybooks] Error fetching action steps', actionStepsError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybooks',
+    });
       throw actionStepsError;
     }
 
@@ -168,7 +175,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
         .order('order_index', { ascending: true });
 
       if (subTasksError) {
-        console.error('[getPlaybooks] Error fetching sub-tasks:', subTasksError);
+        Logger.error('[getPlaybooks] Error fetching sub-tasks', subTasksError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybooks',
+    });
         throw subTasksError;
       }
 
@@ -183,7 +193,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       .order('order_index', { ascending: true });
 
     if (affirmationsError) {
-      console.error('[getPlaybooks] Error fetching affirmations:', affirmationsError);
+      Logger.error('[getPlaybooks] Error fetching affirmations', affirmationsError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybooks',
+    });
       throw affirmationsError;
     }
 
@@ -198,7 +211,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     return result;
 
   } catch (error) {
-    console.error('[getPlaybooks] Unexpected error:', error);
+    Logger.error('[getPlaybooks] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybooks',
+    });
     throw error;
   }
 }
@@ -222,7 +238,10 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
 
         return null;
       }
-      console.error('[getPlaybook] Error fetching playbook:', playbookError);
+      Logger.error('[getPlaybook] Error fetching playbook', playbookError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybook',
+    });
       throw playbookError;
     }
 
@@ -234,7 +253,10 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
       .order('order_index', { ascending: true });
 
     if (actionStepsError) {
-      console.error('[getPlaybook] Error fetching action steps:', actionStepsError);
+      Logger.error('[getPlaybook] Error fetching action steps', actionStepsError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybook',
+    });
       throw actionStepsError;
     }
 
@@ -250,7 +272,10 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
         .order('order_index', { ascending: true });
 
       if (subTasksError) {
-        console.error('[getPlaybook] Error fetching sub-tasks:', subTasksError);
+        Logger.error('[getPlaybook] Error fetching sub-tasks', subTasksError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybook',
+    });
         throw subTasksError;
       }
 
@@ -265,7 +290,10 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
       .order('order_index', { ascending: true });
 
     if (affirmationsError) {
-      console.error('[getPlaybook] Error fetching affirmations:', affirmationsError);
+      Logger.error('[getPlaybook] Error fetching affirmations', affirmationsError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybook',
+    });
       throw affirmationsError;
     }
 
@@ -274,7 +302,10 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
     return result;
 
   } catch (error) {
-    console.error('[getPlaybook] Unexpected error:', error);
+    Logger.error('[getPlaybook] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybook',
+    });
     throw error;
   }
 }
@@ -305,7 +336,10 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
       .single();
 
     if (playbookError) {
-      console.error('[createPlaybook] Error creating playbook:', playbookError);
+      Logger.error('[createPlaybook] Error creating playbook', playbookError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'createPlaybook',
+    });
       throw playbookError;
     }
 
@@ -342,7 +376,10 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
         .select();
 
       if (actionStepsError) {
-        console.error('[createPlaybook] Error creating action steps:', actionStepsError);
+        Logger.error('[createPlaybook] Error creating action steps', actionStepsError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'createPlaybook',
+    });
         throw actionStepsError;
       }
 
@@ -378,7 +415,11 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
               });
 
             } else {
-              console.warn('[createPlaybook] Skipping sub-task with invalid text:', subTask);
+              Logger.warn('[createPlaybook] Skipping sub-task with invalid text', {
+          component: 'supabaseApiNormalized',
+          action: 'createPlaybook',
+          data: subTask,
+        });
             }
           });
         }
@@ -390,7 +431,10 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
           .insert(subTasksToInsert);
 
         if (subTasksError) {
-          console.error('[createPlaybook] Error creating sub-tasks:', subTasksError);
+          Logger.error('[createPlaybook] Error creating sub-tasks', subTasksError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'createPlaybook',
+    });
           throw subTasksError;
         }
       }
@@ -425,7 +469,11 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
           });
 
         } else {
-          console.warn('[createPlaybook] Skipping affirmation with invalid text:', affirmation);
+          Logger.warn('[createPlaybook] Skipping affirmation with invalid text', {
+          component: 'supabaseApiNormalized',
+          action: 'createPlaybook',
+          data: affirmation,
+        });
         }
       });
 
@@ -434,7 +482,10 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
         .insert(affirmationsToInsert);
 
       if (affirmationsError) {
-        console.error('[createPlaybook] Error creating affirmations:', affirmationsError);
+        Logger.error('[createPlaybook] Error creating affirmations', affirmationsError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'createPlaybook',
+    });
         throw affirmationsError;
       }
     }
@@ -448,7 +499,10 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
     return completePlaybook;
 
   } catch (error) {
-    console.error('[createPlaybook] Unexpected error:', error);
+    Logger.error('[createPlaybook] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'createPlaybook',
+    });
     throw error;
   }
 }
@@ -472,7 +526,10 @@ export async function updatePlaybookActionStep(
       .eq('playbook_id', playbookId);
 
     if (updateError) {
-      console.error('[updatePlaybookActionStep] Error updating action step:', updateError);
+      Logger.error('[updatePlaybookActionStep] Error updating action step', updateError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookActionStep',
+    });
       throw updateError;
     }
 
@@ -485,7 +542,10 @@ export async function updatePlaybookActionStep(
     return updatedPlaybook;
 
   } catch (error) {
-    console.error('[updatePlaybookActionStep] Unexpected error:', error);
+    Logger.error('[updatePlaybookActionStep] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookActionStep',
+    });
     throw error;
   }
 }
@@ -510,7 +570,10 @@ export async function updatePlaybookSubTask(
       .eq('action_step_id', stepId);
 
     if (updateError) {
-      console.error('[updatePlaybookSubTask] Error updating sub-task:', updateError);
+      Logger.error('[updatePlaybookSubTask] Error updating sub-task', updateError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookSubTask',
+    });
       throw updateError;
     }
 
@@ -523,7 +586,10 @@ export async function updatePlaybookSubTask(
     return updatedPlaybook;
 
   } catch (error) {
-    console.error('[updatePlaybookSubTask] Unexpected error:', error);
+    Logger.error('[updatePlaybookSubTask] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookSubTask',
+    });
     throw error;
   }
 }
@@ -547,7 +613,10 @@ export async function updatePlaybookAffirmation(
       .eq('playbook_id', playbookId);
 
     if (updateError) {
-      console.error('[updatePlaybookAffirmation] Error updating affirmation:', updateError);
+      Logger.error('[updatePlaybookAffirmation] Error updating affirmation', updateError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookAffirmation',
+    });
       throw updateError;
     }
 
@@ -560,7 +629,10 @@ export async function updatePlaybookAffirmation(
     return updatedPlaybook;
 
   } catch (error) {
-    console.error('[updatePlaybookAffirmation] Unexpected error:', error);
+    Logger.error('[updatePlaybookAffirmation] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookAffirmation',
+    });
     throw error;
   }
 }
@@ -578,12 +650,18 @@ export async function deletePlaybook(playbookId: string): Promise<void> {
       .eq('id', playbookId);
 
     if (deleteError) {
-      console.error('[deletePlaybook] Error deleting playbook:', deleteError);
+      Logger.error('[deletePlaybook] Error deleting playbook', deleteError as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'deletePlaybook',
+    });
       throw deleteError;
     }
 
   } catch (error) {
-    console.error('[deletePlaybook] Unexpected error:', error);
+    Logger.error('[deletePlaybook] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'deletePlaybook',
+    });
     throw error;
   }
 }
@@ -602,7 +680,10 @@ export async function getPlaybookProgress(playbookId: string): Promise<{
       .rpc('calculate_playbook_progress', { playbook_uuid: playbookId });
 
     if (error) {
-      console.error('[getPlaybookProgress] Error calculating progress:', error);
+      Logger.error('[getPlaybookProgress] Error calculating progress', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybookProgress',
+    });
       throw error;
     }
 
@@ -618,7 +699,10 @@ export async function getPlaybookProgress(playbookId: string): Promise<{
     };
 
   } catch (error) {
-    console.error('[getPlaybookProgress] Unexpected error:', error);
+    Logger.error('[getPlaybookProgress] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'getPlaybookProgress',
+    });
     throw error;
   }
 }
@@ -638,12 +722,18 @@ export async function updatePlaybookStatus(
       .eq('id', playbookId);
 
     if (error) {
-      console.error('[updatePlaybookStatus] Error updating status:', error);
+      Logger.error('[updatePlaybookStatus] Error updating status', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookStatus',
+    });
       throw error;
     }
 
   } catch (error) {
-    console.error('[updatePlaybookStatus] Unexpected error:', error);
+    Logger.error('[updatePlaybookStatus] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookStatus',
+    });
     throw error;
   }
 }
@@ -695,7 +785,11 @@ export async function updatePlaybookActionSteps(
         .eq('id', step.id);
 
       if (stepError) {
-        console.error(`[updatePlaybookActionSteps] Error updating step ${step.id}:`, stepError);
+        Logger.error(`[updatePlaybookActionSteps] Error updating step ${step.id}`, stepError as Error, {
+          component: 'supabaseApiNormalized',
+          action: 'updatePlaybookActionSteps',
+          stepId: step.id,
+        });
         // Continue with other steps even if one fails
       }
 
@@ -713,7 +807,11 @@ export async function updatePlaybookActionSteps(
             .eq('id', subTask.id);
 
           if (subTaskError) {
-            console.error(`[updatePlaybookActionSteps] Error updating subtask ${subTask.id}:`, subTaskError);
+            Logger.error(`[updatePlaybookActionSteps] Error updating subtask ${subTask.id}`, subTaskError as Error, {
+              component: 'supabaseApiNormalized',
+              action: 'updatePlaybookActionSteps',
+              subTaskId: subTask.id,
+            });
             // Continue with other subtasks even if one fails
           }
         }
@@ -730,7 +828,10 @@ export async function updatePlaybookActionSteps(
     );
 
   } catch (error) {
-    console.error('[updatePlaybookActionSteps] Error updating action steps:', error);
+    Logger.error('[updatePlaybookActionSteps] Error updating action steps', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookActionSteps',
+    });
     throw error;
   }
 }

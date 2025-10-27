@@ -1216,16 +1216,7 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
       action: 'get_cloud_entry',
     });
 
-    // Format error message for logging
-    const errorMessage = error instanceof Error
-      ? {
-          name: error.name,
-          message: error.message,
-          stack: error.stack?.split('\n').slice(0, 3).join('\n'),
-        }
-      : { message: String(error) };
-
-    // Error details included in Logger call
+    // Error details included in Logger call above
 
     // Re-throw the error to be handled by the caller
     throw error;

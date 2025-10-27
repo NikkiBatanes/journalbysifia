@@ -1,7 +1,7 @@
 /**
  * Production-Ready Logger Service
  * Enterprise-grade logging with complete production stripping capability
- * 
+ *
  * Features:
  * - Zero console output in production builds
  * - Structured logging with metadata
@@ -109,8 +109,7 @@ class ProductionLogger {
     if (!this.isDevelopment) {
       // In production, only output FATAL errors
       if (entry.level === LogLevel.FATAL) {
-        // eslint-disable-next-line no-console
-        console.error(this.formatForConsole(entry));
+        console.error(this.formatForConsole(entry)); // eslint-disable-line no-console
       }
       return;
     }
@@ -120,17 +119,14 @@ class ProductionLogger {
     switch (entry.level) {
       case LogLevel.DEBUG:
       case LogLevel.INFO:
-        // eslint-disable-next-line no-console
-        console.log(formatted);
+        console.log(formatted); // eslint-disable-line no-console
         break;
       case LogLevel.WARN:
-        // eslint-disable-next-line no-console
-        console.warn(formatted);
+        console.warn(formatted); // eslint-disable-line no-console
         break;
       case LogLevel.ERROR:
       case LogLevel.FATAL:
-        // eslint-disable-next-line no-console
-        console.error(formatted);
+        console.error(formatted); // eslint-disable-line no-console
         break;
     }
   }
