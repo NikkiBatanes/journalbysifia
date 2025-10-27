@@ -115,9 +115,7 @@ export class SmartJournalingNavigation {
    */
   static navigateToFirstType(
     navigation: NavigationProp<any>,
-    journalTypes: string,
-    subTask: SubTask,
-    context?: any
+    journalTypes: string
   ) {
     const types = journalTypes.split(',').map(type => type.trim()).filter(type => type && type !== 'none');
     if (types.length > 0) {
