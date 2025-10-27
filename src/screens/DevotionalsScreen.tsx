@@ -566,7 +566,7 @@ const DevotionalsScreen = () => {
     } catch (err) {
       Logger.warn('[DevotionalsScreen] initAnimations error', {
         component: 'DevotionalsScreen',
-        error: err,
+        error: err as Error,
       });
     }
   }, [sortedDevotionals]);

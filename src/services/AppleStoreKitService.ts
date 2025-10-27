@@ -689,7 +689,7 @@ export class AppleStoreKitService {
       }
 
       if (!data?.success) {
-        Logger.error('[StoreKit] Validation failed', data?.error ? new Error(String(data.error)) : new Error("Unknown StoreKit error"), {
+        Logger.error('[StoreKit] Validation failed', data?.error ? new Error(String(data.error)) : new Error('Unknown StoreKit error'), {
         component: 'AppleStoreKitService',
       });
         return {

@@ -133,7 +133,7 @@ export class FaithPointsService {
     } catch (error) {
       Logger.warn('[FaithPointsService] hasActivityToday check failed, defaulting to false', {
         component: 'faithPointsService',
-        error: error,
+        error: error as Error,
       });
       return false;
     }
@@ -165,7 +165,7 @@ export class FaithPointsService {
     } catch (error) {
       Logger.warn('[FaithPointsService] hasActivityTodayForPlaybook check failed, defaulting to false', {
         component: 'faithPointsService',
-        error: error,
+        error: error as Error,
       });
       return false;
     }
