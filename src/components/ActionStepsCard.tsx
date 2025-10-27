@@ -583,7 +583,7 @@ export default function ActionStepsCard({
     setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
-  }, [selectedActionStep, selectedSubtask]);
+  }, []);
 
   const handleGratitudeSave = React.useCallback(async (entry: any) => {
 
@@ -622,7 +622,7 @@ export default function ActionStepsCard({
     setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
-  }, [selectedActionStep, selectedSubtask]);
+  }, []);
 
   const handlePrayerSave = React.useCallback(async (entry: any) => {
 
@@ -661,7 +661,7 @@ export default function ActionStepsCard({
     setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
-  }, [selectedActionStep, selectedSubtask]);
+  }, []);
 
   const handleTimeBlockSave = React.useCallback(async (entry: any) => {
 
@@ -712,7 +712,7 @@ export default function ActionStepsCard({
     setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
-  }, [selectedActionStep, selectedSubtask]);
+  }, []);
 
   // Create dynamic styles based on props
   const dynamicStyles = useMemo(() => ({

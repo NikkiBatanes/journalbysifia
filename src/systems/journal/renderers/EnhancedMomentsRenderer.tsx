@@ -1044,7 +1044,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       setLoading(false);
       hasLoadedOnce.current = true;
     }
-  }, [user, plugins, dateRange.startDate, dateRange.endDate, dateRange.label]);
+  }, [user, plugins]);
 
   // Fetch entries when component mounts or dependencies change
   React.useEffect(() => {

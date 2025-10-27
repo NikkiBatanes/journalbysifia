@@ -277,7 +277,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         ]
       );
     } catch {}
-  }, [isValidBirthYear, deleteBirthYear]);
+  }, [isValidBirthYear]);
 
   const loadNotificationPreferences = useCallback(async () => {
     if (!user?.id) {return;}

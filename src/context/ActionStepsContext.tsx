@@ -184,7 +184,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       console.error('[ActionStepsContext] Error saving action steps:', error);
       throw error;
     }
-  }, [actionSteps, areAllStepsCompleted]);
+  }, [actionSteps]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

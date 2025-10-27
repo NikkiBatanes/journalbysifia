@@ -71,7 +71,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
         onAnimationComplete?.();
       }
     });
-  }, [translateY, opacity, scale, onAnimationComplete, activityType, points, componentId]);
+  }, [translateY, opacity, scale, onAnimationComplete, activityType, points]);
 
   useEffect(() => {
     if (!visible) {

@@ -88,7 +88,7 @@ export const useCalendarGating = (): CalendarGatingState => {
       canUseLocationServices: true,
       canDeleteSeries: true,
     };
-  }, [isSeeker, currentTier]);
+  }, [isSeeker]);
 
   const handleCalendarLockTap = () => {
     analytics.trackTimeBlockEvent('calendar_lock_tapped' as any, {
