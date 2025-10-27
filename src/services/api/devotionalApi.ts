@@ -1,5 +1,6 @@
 // src/services/api/devotionalApi.ts
 import { supabase } from '../supabaseClient';
+import { Logger } from '../../utils/ProductionLogger';
 import { DeviceEventEmitter } from 'react-native';
 import { Devotional, DevotionalCreationParams } from '../../interfaces/devotional';
 import { Playbook } from '../../interfaces/playbook';
@@ -51,7 +52,9 @@ export class DevotionalApi {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching devotionals:', error);
+      Logger.error('Error fetching devotionals', error as Error, {
+      component: 'devotionalApi',
+    });
       throw new Error(`Failed to fetch devotionals: ${error.message}`);
     }
 
@@ -66,7 +69,10 @@ export class DevotionalApi {
     // Check if ID looks like a valid UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      console.warn('[DevotionalApi] Invalid UUID format:', id);
+      Logger.warn('[DevotionalApi] Invalid UUID format', {
+      component: 'devotionalApi',
+      data: id,
+    });
       return null;
     }
 
@@ -80,7 +86,9 @@ export class DevotionalApi {
       if (error.code === 'PGRST116') {
         return null; // Not found
       }
-      console.error('Error fetching devotional:', error);
+      Logger.error('Error fetching devotional', error as Error, {
+      component: 'devotionalApi',
+    });
       throw new Error(`Failed to fetch devotional: ${error.message}`);
     }
 
@@ -106,7 +114,9 @@ export class DevotionalApi {
       .single();
 
     if (error) {
-      console.error('Error creating devotional:', error);
+      Logger.error('Error creating devotional', error as Error, {
+      component: 'devotionalApi',
+    });
       throw new Error(`Failed to create devotional: ${error.message}`);
     }
 
@@ -136,7 +146,9 @@ export class DevotionalApi {
       .single();
 
     if (error) {
-      console.error('Error updating devotional:', error);
+      Logger.error('Error updating devotional', error as Error, {
+      component: 'devotionalApi',
+    });
       throw new Error(`Failed to update devotional: ${error.message}`);
     }
 
@@ -205,7 +217,9 @@ export class DevotionalApi {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting devotional:', error);
+      Logger.error('Error deleting devotional', error as Error, {
+      component: 'devotionalApi',
+    });
       throw new Error(`Failed to delete devotional: ${error.message}`);
     }
   }
@@ -230,7 +244,9 @@ export class DevotionalApi {
       if (error.code === 'PGRST116') {
         return null; // Not found
       }
-      console.error('Error fetching playbook:', error);
+      Logger.error('Error fetching playbook', error as Error, {
+      component: 'devotionalApi',
+    });
       throw new Error(`Failed to fetch playbook: ${error.message}`);
     }
 

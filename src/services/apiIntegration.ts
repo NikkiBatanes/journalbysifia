@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { authErrorHandler } from '../utils/authErrorHandler';
 import { validateSession, forceSessionRefresh } from '../utils/sessionSync';
 import { AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
@@ -100,7 +101,9 @@ export async function generateDevotional(
     }
 
   } catch (error: any) {
-    console.error('❌ Devotional generation failed:', error);
+    Logger.error('❌ Devotional generation failed', error as Error, {
+      component: 'apiIntegration',
+    });
 
     const result = await authErrorHandler.handleApiError(error, {
       operationName: 'devotional generation',
@@ -138,7 +141,9 @@ export async function generatePlaybook(
   const MAX_RETRIES = 2;
 
   if (_retryCount > MAX_RETRIES) {
-    console.error('[generatePlaybook] Max retries exceeded, aborting');
+    Logger.error('[generatePlaybook] Max retries exceeded, aborting', undefined, {
+      component: 'apiIntegration',
+    });
     throw new Error('Maximum retry attempts exceeded for playbook generation');
   }
 
@@ -207,7 +212,9 @@ export async function generatePlaybook(
     }
 
   } catch (error: any) {
-    console.error('❌ Playbook generation failed:', error);
+    Logger.error('❌ Playbook generation failed', error as Error, {
+      component: 'apiIntegration',
+    });
 
     const result = await authErrorHandler.handleApiError(error, {
       operationName: 'playbook generation',
@@ -291,7 +298,9 @@ export async function getPlaybooks(
     }
 
   } catch (error: any) {
-    console.error('❌ Loading playbooks failed:', error);
+    Logger.error('❌ Loading playbooks failed', error as Error, {
+      component: 'apiIntegration',
+    });
 
     const result = await authErrorHandler.handleApiError(error, {
       operationName: 'loading playbooks',

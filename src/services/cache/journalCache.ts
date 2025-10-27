@@ -1,5 +1,6 @@
 // src/services/cache/journalCache.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../../utils/ProductionLogger';
 import { JournalApiEntry } from '../api/journalApi';
 
 export class JournalCache {
@@ -29,7 +30,9 @@ export class JournalCache {
 
       return cacheAge < this.CACHE_EXPIRY;
     } catch (error) {
-      console.error('Error checking cache validity:', error);
+      Logger.error('Error checking cache validity', error as Error, {
+      component: 'journalCache',
+    });
       return false;
     }
   }
@@ -58,7 +61,9 @@ export class JournalCache {
 
 
     } catch (error) {
-      console.error('Error setting journal cache:', error);
+      Logger.error('Error setting journal cache', error as Error, {
+      component: 'journalCache',
+    });
     }
   }
 
@@ -87,7 +92,9 @@ export class JournalCache {
 
       return entries;
     } catch (error) {
-      console.error('Error getting journal cache:', error);
+      Logger.error('Error getting journal cache', error as Error, {
+      component: 'journalCache',
+    });
       return null;
     }
   }
@@ -101,7 +108,9 @@ export class JournalCache {
       await AsyncStorage.multiRemove([cacheKey, metadataKey]);
 
     } catch (error) {
-      console.error('Error clearing journal cache:', error);
+      Logger.error('Error clearing journal cache', error as Error, {
+      component: 'journalCache',
+    });
     }
   }
 
@@ -118,7 +127,9 @@ export class JournalCache {
 
       }
     } catch (error) {
-      console.error('Error clearing all user journal cache:', error);
+      Logger.error('Error clearing all user journal cache', error as Error, {
+      component: 'journalCache',
+    });
     }
   }
 
@@ -144,7 +155,9 @@ export class JournalCache {
 
       }
     } catch (error) {
-      console.error('Error clearing expired journal cache:', error);
+      Logger.error('Error clearing expired journal cache', error as Error, {
+      component: 'journalCache',
+    });
     }
   }
 
@@ -190,7 +203,9 @@ export class JournalCache {
         totalSize,
       };
     } catch (error) {
-      console.error('Error getting cache stats:', error);
+      Logger.error('Error getting cache stats', error as Error, {
+      component: 'journalCache',
+    });
       return {
         totalEntries: 0,
         validEntries: 0,
@@ -215,7 +230,9 @@ export class JournalCache {
       await Promise.all(promises);
 
     } catch (error) {
-      console.error('Error preloading journal cache:', error);
+      Logger.error('Error preloading journal cache', error as Error, {
+      component: 'journalCache',
+    });
     }
   }
 }

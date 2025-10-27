@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 // userContextEngine import removed as it's not being used
 import { performanceMonitoringService } from './performanceMonitoringService';
 
@@ -156,7 +157,9 @@ export class PredictiveContentEngine {
       return prediction;
 
     } catch (error) {
-      console.error('[PredictiveContent] Error generating prediction:', error);
+      Logger.error('[PredictiveContent] Error generating prediction', error as Error, {
+      component: 'predictiveContentEngine',
+    });
       return this.getDefaultPrediction(userId);
     }
   }
@@ -206,7 +209,9 @@ export class PredictiveContentEngine {
       return profile;
 
     } catch (error) {
-      console.error('[PredictiveContent] Error building profile:', error);
+      Logger.error('[PredictiveContent] Error building profile', error as Error, {
+      component: 'predictiveContentEngine',
+    });
       return this.getDefaultProfile(userId);
     }
   }
@@ -245,7 +250,9 @@ export class PredictiveContentEngine {
       return optimizations.sort((a, b) => b.expectedImpact - a.expectedImpact);
 
     } catch (error) {
-      console.error('[PredictiveContent] Error optimizing content:', error);
+      Logger.error('[PredictiveContent] Error optimizing content', error as Error, {
+      component: 'predictiveContentEngine',
+    });
       return [];
     }
   }
@@ -282,7 +289,9 @@ export class PredictiveContentEngine {
         .slice(0, limit);
 
     } catch (error) {
-      console.error('[PredictiveContent] Error getting recommendations:', error);
+      Logger.error('[PredictiveContent] Error getting recommendations', error as Error, {
+      component: 'predictiveContentEngine',
+    });
       return [];
     }
   }
@@ -318,7 +327,9 @@ export class PredictiveContentEngine {
       };
 
     } catch (error) {
-      console.error('[PredictiveContent] Error analyzing context:', error);
+      Logger.error('[PredictiveContent] Error analyzing context', error as Error, {
+      component: 'predictiveContentEngine',
+    });
       return { timeOfDay: 'morning', hour: 9, dayOfWeek: 1, recentActivity: [], spiritualMomentum: 0.5 };
     }
   }
@@ -485,7 +496,9 @@ export class PredictiveContentEngine {
       return prompt;
 
     } catch (error) {
-      console.error('[PredictiveContent] Error generating personalized prompt:', error);
+      Logger.error('[PredictiveContent] Error generating personalized prompt', error as Error, {
+      component: 'predictiveContentEngine',
+    });
       return 'Create content for your spiritual growth';
     }
   }
@@ -531,7 +544,9 @@ export class PredictiveContentEngine {
         },
       });
     } catch (error) {
-      console.error('[PredictiveContent] Error recording prediction:', error);
+      Logger.error('[PredictiveContent] Error recording prediction', error as Error, {
+      component: 'predictiveContentEngine',
+    });
     }
   }
 

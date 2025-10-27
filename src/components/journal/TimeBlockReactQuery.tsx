@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -647,7 +648,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               }
             }
           } catch (calendarError) {
-            console.warn('Calendar sync failed during update:', calendarError);
+            Logger.warn('Calendar sync failed during update', {
+      component: 'TimeBlockReactQuery',
+      data: calendarError,
+    });
           }
         }
 
@@ -696,7 +700,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               });
             }
           } catch (calendarError) {
-            console.warn('Calendar sync failed during creation:', calendarError);
+            Logger.warn('Calendar sync failed during creation', {
+      component: 'TimeBlockReactQuery',
+      data: calendarError,
+    });
           }
         }
 

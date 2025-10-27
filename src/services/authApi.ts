@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import {
   User,
   LoginCredentials,
@@ -339,13 +340,17 @@ class AuthApiService {
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.error('Logout error:', error);
+        Logger.error('Logout error', error as Error, {
+      component: 'authApi',
+    });
         // Don't fail logout if API call fails
       }
 
       return { success: true };
     } catch (error) {
-      console.error('Logout error:', error);
+      Logger.error('Logout error', error as Error, {
+      component: 'authApi',
+    });
       return { success: true }; // Always succeed for logout
     }
   }
@@ -649,7 +654,9 @@ class AuthApiService {
         .single();
 
       if (error) {
-        console.error('Get user profile error:', error);
+        Logger.error('Get user profile error', error as Error, {
+      component: 'authApi',
+    });
 
         // If profile doesn't exist, create a default one
         if (error.code === 'PGRST116') {
@@ -662,7 +669,9 @@ class AuthApiService {
 
       return data;
     } catch (error) {
-      console.error('Get user profile error:', error);
+      Logger.error('Get user profile error', error as Error, {
+      component: 'authApi',
+    });
       return null;
     }
   }
@@ -674,7 +683,9 @@ class AuthApiService {
         .update({ last_login_at: new Date().toISOString() })
         .eq('id', userId);
     } catch (error) {
-      console.error('Update last login error:', error);
+      Logger.error('Update last login error', error as Error, {
+      component: 'authApi',
+    });
     }
   }
 
@@ -691,13 +702,17 @@ class AuthApiService {
       });
 
       if (error) {
-        console.error('Create default profile error:', error);
+        Logger.error('Create default profile error', error as Error, {
+      component: 'authApi',
+    });
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Create default profile error:', error);
+      Logger.error('Create default profile error', error as Error, {
+      component: 'authApi',
+    });
       return null;
     }
   }

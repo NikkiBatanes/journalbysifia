@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import {
   View,
   ScrollView,
@@ -759,7 +760,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
           }
         } catch (error) {
-          console.error('Direct subscription fetch failed:', error);
+          Logger.error('Direct subscription fetch failed', error as Error, {
+      component: 'DashboardHomeScreen',
+    });
         }
       }
     };
@@ -1042,7 +1045,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             .catch((e) => console.warn('awardPoints failed (background):', e));
         }
       } catch (error) {
-        console.warn('⚠️ Could not award faith points:', error);
+        Logger.warn('⚠️ Could not award faith points', {
+      component: 'DashboardHomeScreen',
+      data: error,
+    });
       }
 
       // Show success feedback (haptic removed; toast provides a single light tap)
@@ -1185,7 +1191,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         queryClient.invalidateQueries({ queryKey: ['devotionals'] }),
       ]);
     } catch (e) {
-      console.warn('Dashboard refresh error:', e);
+      Logger.warn('Dashboard refresh error', {
+      component: 'DashboardHomeScreen',
+      data: e,
+    });
     } finally {
       setRefreshing(false);
     }

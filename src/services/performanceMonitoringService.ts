@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 export interface PerformanceMetrics {
   timestamp: string;
@@ -166,7 +167,9 @@ export class PerformanceMonitoringService {
       };
 
     } catch (error) {
-      console.error('[PerformanceMonitoring] Error getting system health:', error);
+      Logger.error('[PerformanceMonitoring] Error getting system health', error as Error, {
+      component: 'performanceMonitoringService',
+    });
       return this.getDefaultHealth();
     }
   }
@@ -202,7 +205,9 @@ export class PerformanceMonitoringService {
       };
 
     } catch (error) {
-      console.error('[PerformanceMonitoring] Error getting queue health:', error);
+      Logger.error('[PerformanceMonitoring] Error getting queue health', error as Error, {
+      component: 'performanceMonitoringService',
+    });
       return { totalItems: 0, averageWaitTime: 0, processingRate: 0, errorRate: 0 };
     }
   }
@@ -224,7 +229,9 @@ export class PerformanceMonitoringService {
       };
 
     } catch (error) {
-      console.error('[PerformanceMonitoring] Error getting database health:', error);
+      Logger.error('[PerformanceMonitoring] Error getting database health', error as Error, {
+      component: 'performanceMonitoringService',
+    });
       return { connectionPool: 0.5, queryPerformance: 0.5, partitionEfficiency: 0.5 };
     }
   }
@@ -246,7 +253,9 @@ export class PerformanceMonitoringService {
       };
 
     } catch (error) {
-      console.error('[PerformanceMonitoring] Error getting intelligence health:', error);
+      Logger.error('[PerformanceMonitoring] Error getting intelligence health', error as Error, {
+      component: 'performanceMonitoringService',
+    });
       return { contextAccuracy: 0.8, detectionAccuracy: 0.85, generationQuality: 0.8 };
     }
   }
@@ -289,7 +298,9 @@ export class PerformanceMonitoringService {
       };
 
     } catch (error) {
-      console.error('[PerformanceMonitoring] Error getting user engagement:', error);
+      Logger.error('[PerformanceMonitoring] Error getting user engagement', error as Error, {
+      component: 'performanceMonitoringService',
+    });
       return { activeUsers: 0, generationsPerHour: 0, faithPointsAwarded: 0 };
     }
   }
@@ -575,7 +586,9 @@ export class PerformanceMonitoringService {
         );
 
     } catch (error) {
-      console.error('[PerformanceMonitoring] Error flushing metrics:', error);
+      Logger.error('[PerformanceMonitoring] Error flushing metrics', error as Error, {
+      component: 'performanceMonitoringService',
+    });
       // Keep metrics in buffer for retry
       this.metrics = [...this.metrics, ...this.metrics];
     }

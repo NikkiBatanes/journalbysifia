@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { NewSubscriptionService } from './NewSubscriptionService';
 
 export interface DiscountCode {
@@ -85,7 +86,9 @@ export class DiscountCodeService {
 
       return { ...data, is_active: true };
     } catch (error) {
-      console.error('[DiscountService] Failed to generate post-cancellation discount:', error);
+      Logger.error('[DiscountService] Failed to generate post-cancellation discount', error as Error, {
+      component: 'DiscountCodeService',
+    });
       throw error;
     }
   }
@@ -156,7 +159,9 @@ export class DiscountCodeService {
 
       return { ...data, is_active: true };
     } catch (error) {
-      console.error('[DiscountService] Failed to generate personalized discount:', error);
+      Logger.error('[DiscountService] Failed to generate personalized discount', error as Error, {
+      component: 'DiscountCodeService',
+    });
       throw error;
     }
   }
@@ -251,7 +256,9 @@ export class DiscountCodeService {
         discountAmount,
       };
     } catch (error) {
-      console.error('[DiscountService] Failed to validate discount code:', error);
+      Logger.error('[DiscountService] Failed to validate discount code', error as Error, {
+      component: 'DiscountCodeService',
+    });
       return {
         isValid: false,
         discount: null,
@@ -303,7 +310,9 @@ export class DiscountCodeService {
 
       return true;
     } catch (error) {
-      console.error('[DiscountService] Failed to apply discount code:', error);
+      Logger.error('[DiscountService] Failed to apply discount code', error as Error, {
+      component: 'DiscountCodeService',
+    });
       throw error;
     }
   }
@@ -325,7 +334,9 @@ export class DiscountCodeService {
 
       return (data || []).map(code => ({ ...code, is_active: true }));
     } catch (error) {
-      console.error('[DiscountService] Failed to get active discount codes:', error);
+      Logger.error('[DiscountService] Failed to get active discount codes', error as Error, {
+      component: 'DiscountCodeService',
+    });
       return [];
     }
   }
@@ -360,7 +371,9 @@ export class DiscountCodeService {
 
       return { ...data, is_active: true };
     } catch (error) {
-      console.error('[DiscountService] Failed to create custom discount code:', error);
+      Logger.error('[DiscountService] Failed to create custom discount code', error as Error, {
+      component: 'DiscountCodeService',
+    });
       throw error;
     }
   }
@@ -409,7 +422,9 @@ export class DiscountCodeService {
 
       return cleanedCount;
     } catch (error) {
-      console.error('[DiscountService] Failed to cleanup expired codes:', error);
+      Logger.error('[DiscountService] Failed to cleanup expired codes', error as Error, {
+      component: 'DiscountCodeService',
+    });
       return 0;
     }
   }

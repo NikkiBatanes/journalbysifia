@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -318,17 +319,26 @@ export default function ActionStepsCard({
                   }
                 }
               } catch (pbErr) {
-                console.warn('[ActionStepsCard] Failed to award playbook completion bonus (non-fatal):', pbErr);
+                Logger.warn('[ActionStepsCard] Failed to award playbook completion bonus (non-fatal)', {
+      component: 'ActionStepsCard',
+      data: pbErr,
+    });
               }
             } catch (err) {
-              console.warn('[ActionStepsCard] Failed to award faith points:', err);
+              Logger.warn('[ActionStepsCard] Failed to award faith points', {
+      component: 'ActionStepsCard',
+      data: err,
+    });
             }
           })();
         }
       }
     } catch (e) {
       // Non-fatal: haptic prediction failed; continue
-      console.warn('[ActionStepsCard] Haptic prediction error:', e);
+      Logger.warn('[ActionStepsCard] Haptic prediction error', {
+      component: 'ActionStepsCard',
+      data: e,
+    });
     }
 
     // Proceed with actual toggle update in context
@@ -375,7 +385,10 @@ export default function ActionStepsCard({
             });
 
           } catch (error) {
-            console.warn('[ActionStepsCard] Prefetch failed, opening modal anyway:', error);
+            Logger.warn('[ActionStepsCard] Prefetch failed, opening modal anyway', {
+      component: 'ActionStepsCard',
+      data: error,
+    });
           }
         }
 
@@ -420,7 +433,10 @@ export default function ActionStepsCard({
             });
 
           } catch (error) {
-            console.warn('[ActionStepsCard] Gratitude prefetch failed, opening modal anyway:', error);
+            Logger.warn('[ActionStepsCard] Gratitude prefetch failed, opening modal anyway', {
+      component: 'ActionStepsCard',
+      data: error,
+    });
           }
         }
 
@@ -463,7 +479,10 @@ export default function ActionStepsCard({
             });
 
           } catch (error) {
-            console.warn('[ActionStepsCard] Prayer prefetch failed, opening modal anyway:', error);
+            Logger.warn('[ActionStepsCard] Prayer prefetch failed, opening modal anyway', {
+      component: 'ActionStepsCard',
+      data: error,
+    });
           }
         }
 
@@ -506,7 +525,10 @@ export default function ActionStepsCard({
             });
 
           } catch (error) {
-            console.warn('[ActionStepsCard] TimeBlock prefetch failed, opening modal anyway:', error);
+            Logger.warn('[ActionStepsCard] TimeBlock prefetch failed, opening modal anyway', {
+      component: 'ActionStepsCard',
+      data: error,
+    });
           }
         }
 
@@ -528,7 +550,9 @@ export default function ActionStepsCard({
 
     // For other journal types, use navigation service
     if (!navigation) {
-      console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
+      Logger.warn('[ActionStepsCard] Navigation not available for journal type navigation', {
+      component: 'ActionStepsCard',
+    });
       return;
     }
 
