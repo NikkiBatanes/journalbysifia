@@ -103,7 +103,7 @@ export class JournalApi {
 
     // Handle different scenarios
     if (!existingEntries || existingEntries.length === 0) {
-      Logger.error('❌ No entries found with ID', id as Error, {
+      Logger.error('❌ No entries found with ID', new Error(String(id)), {
       component: 'journalApi',
     });
       throw new Error(`No journal entry found with ID: ${id}`);

@@ -5,7 +5,7 @@ try {
 } catch (error) {
   Logger.warn('[PushNotification] react-native-push-notification not available', {
       component: 'pushNotificationService',
-      error: error,
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
 }
 import { Platform, Alert, Linking } from 'react-native';
@@ -202,7 +202,7 @@ class PushNotificationService {
     } catch (error) {
       Logger.warn('[PushNotification] Error checking permissions, using defaults', {
       component: 'pushNotificationService',
-      error: error,
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
       return { alert: true, badge: true, sound: true };
     }

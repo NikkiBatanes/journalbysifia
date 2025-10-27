@@ -344,7 +344,7 @@ export const syncTimeBlockToCalendar = async (
     } catch (analyticsError) {
       Logger.warn('Analytics error', {
       component: 'calendarSyncService',
-      error: analyticsError,
+      errorMessage: analyticsError instanceof Error ? analyticsError.message : String(analyticsError),
     });
     }
 
@@ -364,13 +364,13 @@ export const syncTimeBlockToCalendar = async (
     } catch (analyticsError) {
       Logger.warn('Analytics error', {
       component: 'calendarSyncService',
-      error: analyticsError,
+      errorMessage: String(analyticsError),
     });
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to sync to calendar',
+      error: String(error),
     };
   }
 };

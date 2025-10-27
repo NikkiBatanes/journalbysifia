@@ -336,7 +336,7 @@ export class FaithPointsService {
       } catch (transactionError) {
         Logger.warn('[FaithPointsService] Transaction logging failed, but faith points were awarded', {
       component: 'faithPointsService',
-      error: transactionError,
+      errorMessage: transactionError instanceof Error ? transactionError.message : String(transactionError),
     });
         // Continue execution - don't let transaction logging failure block faith points
       }

@@ -243,7 +243,7 @@ export class EnhancedGenerationService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        Logger.error('[EnhancedGenerationService] Supabase function error', errorText as Error, {
+        Logger.error('[EnhancedGenerationService] Supabase function error', new Error(errorText), {
       component: 'enhancedGenerationService',
     });
         throw new Error(`Generation failed: ${response.statusText}`);

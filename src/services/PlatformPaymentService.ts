@@ -72,7 +72,7 @@ export class PlatformPaymentService {
     } catch (error) {
       Logger.warn('[PlatformPayment] Failed to preload products', {
       component: 'PlatformPaymentService',
-      error: error,
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
       // Don't throw - this is just optimization
     }
