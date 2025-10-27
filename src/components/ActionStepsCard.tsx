@@ -83,9 +83,6 @@ const getJournalTypeColor = (journalType?: string): string => {
     case 'gratitude': return Colors.gratitudeRed; // Love and warmth
     case 'win': return Colors.winGold; // Celebration and joy
     case 'timeblock': return Colors.timeblockGreen; // Growth and management
-    case 'financial_budgeting': return Colors.growthGreen; // Financial stewardship
-    case 'financial_tithing': return Colors.devotionalPurple; // Spiritual giving
-    case 'financial_debt': return Colors.debtRed; // Financial urgency
     case 'none': return 'transparent';
     default: return 'transparent';
   }

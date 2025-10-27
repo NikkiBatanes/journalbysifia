@@ -9,9 +9,6 @@ export type JournalType =
   | 'gratitude'
   | 'win'
   | 'timeblock'
-  | 'financial_budgeting'
-  | 'financial_tithing'
-  | 'financial_debt'
   | 'none';
 
 interface JournalTypePattern {
@@ -46,21 +43,6 @@ const JOURNAL_TYPE_PATTERNS: JournalTypePattern[] = [
     type: 'timeblock',
     keywords: ['schedule', 'time', 'calendar', 'block', 'plan', 'allocate', 'dedicate', 'set aside', 'organize', 'structure'],
     phrases: ['schedule time', 'block time', 'set aside time', 'allocate time', 'plan your time', 'organize your schedule', 'time management', 'dedicate time'],
-  },
-  {
-    type: 'financial_budgeting',
-    keywords: ['budget', 'money', 'financial', 'expense', 'income', 'spending', 'save', 'savings', 'cost', 'price'],
-    phrases: ['create a budget', 'track expenses', 'manage money', 'financial planning', 'budget for', 'save money', 'spending plan', 'financial goals'],
-  },
-  {
-    type: 'financial_tithing',
-    keywords: ['tithe', 'tithing', 'giving', 'donate', 'contribution', 'offering', 'charity', 'generosity'],
-    phrases: ['give back', 'tithe to', 'donate to', 'contribute to', 'offering to', 'support the church', 'charitable giving', 'generous giving'],
-  },
-  {
-    type: 'financial_debt',
-    keywords: ['debt', 'loan', 'payment', 'owe', 'payoff', 'credit', 'mortgage', 'installment'],
-    phrases: ['pay off debt', 'debt reduction', 'loan payment', 'credit card debt', 'debt management', 'pay down', 'eliminate debt', 'debt free'],
   },
 ];
 
