@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
@@ -207,7 +208,9 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       playbookIdsRef.current = new Set(playbooksWithProgress.map((p) => p.id));
 
     } catch (err) {
-      console.error('Error fetching playbooks:', err);
+      Logger.error('Error fetching playbooks', err as Error, {
+      component: 'PlaybookCarousel',
+    });
       setError('Unable to load playbooks');
     } finally {
       hasLoadedRef.current = true;

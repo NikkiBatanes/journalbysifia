@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
@@ -475,7 +476,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
       })
       .catch((error) => {
-        console.error('❌ Error marking day as complete:', error);
+        Logger.error('❌ Error marking day as complete', error as Error, {
+      component: 'DevotionalDetailScreen',
+    });
         // Reset guards on error
         setIsMarkingComplete(false);
         modalOpenedRef.current = false;
@@ -525,7 +528,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
         },
         onError: (error) => {
-          console.error('❌ Error saving devotional prayer:', error);
+          Logger.error('❌ Error saving devotional prayer', error as Error, {
+      component: 'DevotionalDetailScreen',
+    });
           // Revert the local state on error
           setPrayedDays(prev => ({
             ...prev,
@@ -614,7 +619,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             await subscriptionService.trackUsage(user.id, 'devotional');
 
           } catch (error) {
-            console.error('[DevotionalDetail] Failed to track usage:', error);
+            Logger.error('[DevotionalDetail] Failed to track usage', error as Error, {
+      component: 'DevotionalDetailScreen',
+    });
           }
         }, 800);
       }
@@ -622,7 +629,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       // React Query handles optimistic updates automatically
       // No need to update local state
     } catch (error) {
-      console.error('Error submitting rating:', error);
+      Logger.error('Error submitting rating', error as Error, {
+      component: 'DevotionalDetailScreen',
+    });
       // Don't close the modal on error - let the user try again
     }
   };
@@ -1093,7 +1102,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               // Note: We don't close the modal here to allow the success modal to show
               // The modal will be closed when the user clicks Done in the success modal
             } catch (error) {
-              console.error('Error handling saved reflection:', error);
+              Logger.error('Error handling saved reflection', error as Error, {
+      component: 'DevotionalDetailScreen',
+    });
             }
           }}
           onCancel={() => {

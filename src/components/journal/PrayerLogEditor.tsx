@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useImperativeHandle } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Keyboard } from 'react-native';
@@ -529,7 +530,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             }
           }
         } catch (error) {
-          console.error('Error loading draft:', error);
+          Logger.error('Error loading draft', error as Error, {
+      component: 'PrayerLogEditor',
+    });
         } finally {
           if (isFirstLoad) {
             setIsFirstLoad(false);
@@ -593,7 +596,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
         );
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
+      Logger.error('Error saving draft', error as Error, {
+      component: 'PrayerLogEditor',
+    });
     }
   }, [prayerContent, prayerForPerson, prayerRequest, activeTab, _subtaskTitle, playbookTitle, actionStepNumber, getDraftKey]);
 
@@ -627,7 +632,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       try {
         await AsyncStorage.removeItem(getDraftKey());
       } catch (error) {
-        console.error('Error clearing draft:', error);
+        Logger.error('Error clearing draft', error as Error, {
+      component: 'PrayerLogEditor',
+    });
       }
 
       let contentToSave = '';
@@ -662,7 +669,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
         prayerRequest: activeTab === 'people' ? prayerRequest : undefined,
       });
     } catch (error) {
-      console.error('Error in handleSave:', error);
+      Logger.error('Error in handleSave', error as Error, {
+      component: 'PrayerLogEditor',
+    });
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
   };
@@ -680,7 +689,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
         _onCancel();
       }, 10);
     } catch (error) {
-      console.error('Error saving draft before cancel:', error);
+      Logger.error('Error saving draft before cancel', error as Error, {
+      component: 'PrayerLogEditor',
+    });
       // Still proceed with cancel even if draft save fails
       Keyboard.dismiss();
       _onCancel();

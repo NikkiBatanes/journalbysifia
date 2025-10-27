@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { onboardingService } from './onboardingService';
 
 export interface OnboardingAnalytics {
@@ -156,7 +157,9 @@ class OnboardingAnalyticsService {
         christAcceptanceRate,
       };
     } catch (error) {
-      console.error('Error getting overview metrics:', error);
+      Logger.error('Error getting overview metrics', error as Error, {
+      component: 'onboardingAnalyticsService',
+    });
       return {
         totalUsers: 0,
         completedOnboarding: 0,
@@ -190,7 +193,9 @@ class OnboardingAnalyticsService {
         averageInteractions: 0, // Would need additional query for this
       }));
     } catch (error) {
-      console.error('Error getting step analytics:', error);
+      Logger.error('Error getting step analytics', error as Error, {
+      component: 'onboardingAnalyticsService',
+    });
       return [];
     }
   }
@@ -243,7 +248,9 @@ class OnboardingAnalyticsService {
 
       return funnelData;
     } catch (error) {
-      console.error('Error getting conversion funnel data:', error);
+      Logger.error('Error getting conversion funnel data', error as Error, {
+      component: 'onboardingAnalyticsService',
+    });
       return [];
     }
   }
@@ -293,7 +300,9 @@ class OnboardingAnalyticsService {
         averageSpiritualGrowthScore: 0, // Would need additional calculation
       };
     } catch (error) {
-      console.error('Error getting faith journey insights:', error);
+      Logger.error('Error getting faith journey insights', error as Error, {
+      component: 'onboardingAnalyticsService',
+    });
       return {
         totalChristAcceptances: 0,
         acceptanceByContext: {},
@@ -329,7 +338,9 @@ class OnboardingAnalyticsService {
         byEngagementLevel: {}, // Would need additional calculation
       };
     } catch (error) {
-      console.error('Error getting user segmentation:', error);
+      Logger.error('Error getting user segmentation', error as Error, {
+      component: 'onboardingAnalyticsService',
+    });
       return {
         byPersonalityType: {},
         byLearningStyle: {},

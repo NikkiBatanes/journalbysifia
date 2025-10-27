@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../services/supabaseClient';
 
@@ -116,7 +117,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Check if we have valid data
       if (!result.data) {
-        console.error('No data in sign in response');
+        Logger.error('No data in sign in response', undefined, {
+      component: 'AuthContext',
+    });
         throw new Error('No response data received from server');
       }
 
@@ -124,14 +127,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Validate the response data
       if (!session?.access_token) {
-        console.error('No access token in response');
+        Logger.error('No access token in response', undefined, {
+      component: 'AuthContext',
+    });
         throw new Error('Authentication failed: No access token received');
       }
 
       const { access_token, refresh_token } = session;
 
       if (!authUser?.id) {
-        console.error('No user ID in response');
+        Logger.error('No user ID in response', undefined, {
+      component: 'AuthContext',
+    });
         throw new Error('Authentication failed: No user information received');
       }
 

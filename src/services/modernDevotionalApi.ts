@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { AUTH_ERROR_MESSAGES, API_RETRY_ATTEMPTS, API_RETRY_DELAY } from '../constants/sessionConstants';
 import { Devotional, DevotionalCategory } from '../interfaces/devotional';
 
@@ -187,7 +188,9 @@ export async function generateDevotional(
 
       // Handle timeout errors
       if (error.name === 'AbortError') {
-        console.error('Request timed out after 60 seconds');
+        Logger.error('Request timed out after 60 seconds', undefined, {
+      component: 'modernDevotionalApi',
+    });
         throw new Error('Devotional generation timed out. Please try again with a shorter duration.');
       }
 
