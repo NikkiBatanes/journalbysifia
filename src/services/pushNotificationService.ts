@@ -3,9 +3,13 @@ let PushNotification: any = null;
 try {
   PushNotification = require('react-native-push-notification');
 } catch (error) {
-  console.warn('[PushNotification] react-native-push-notification not available:', error);
+  Logger.warn('[PushNotification] react-native-push-notification not available', {
+      component: 'pushNotificationService',
+      error: error,
+    });
 }
 import { Platform, Alert, Linking } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 
 // Conditionally import PushNotificationIOS only on iOS
 let PushNotificationIOS: any = null;
@@ -53,7 +57,9 @@ class PushNotificationService {
     try {
       // Skip initialization if PushNotification is not available
       if (!PushNotification) {
-        console.warn('[PushNotification] Service not available, skipping initialization');
+        Logger.warn('[PushNotification] Service not available, skipping initialization', {
+      component: 'pushNotificationService',
+    });
         this.isInitialized = true;
         return;
       }
@@ -88,7 +94,9 @@ class PushNotificationService {
 
         // Called when registration fails (Android)
         onRegistrationError: (err: any) => {
-          console.error('[PushNotification] Registration error:', err);
+          Logger.error('[PushNotification] Registration error', err as Error, {
+      component: 'pushNotificationService',
+    });
         },
 
         // IOS ONLY: Called when user permissions are granted/denied
@@ -138,7 +146,9 @@ class PushNotificationService {
       this.isInitialized = true;
 
     } catch (error) {
-      console.error('[PushNotification] Initialization error:', error);
+      Logger.error('[PushNotification] Initialization error', error as Error, {
+      component: 'pushNotificationService',
+    });
       throw error;
     }
   }
@@ -169,7 +179,9 @@ class PushNotificationService {
 
       return true;
     } catch (error) {
-      console.error('[PushNotification] Permission request error:', error);
+      Logger.error('[PushNotification] Permission request error', error as Error, {
+      component: 'pushNotificationService',
+    });
       return true; // Return true to not block onboarding
     }
   }
@@ -188,7 +200,10 @@ class PushNotificationService {
         return { alert: true, badge: true, sound: true };
       }
     } catch (error) {
-      console.warn('[PushNotification] Error checking permissions, using defaults:', error);
+      Logger.warn('[PushNotification] Error checking permissions, using defaults', {
+      component: 'pushNotificationService',
+      error: error,
+    });
       return { alert: true, badge: true, sound: true };
     }
   }
@@ -215,12 +230,16 @@ class PushNotificationService {
         });
 
       if (error) {
-        console.error('[PushNotification] Error saving token to Supabase:', error);
+        Logger.error('[PushNotification] Error saving token to Supabase', error as Error, {
+      component: 'pushNotificationService',
+    });
       } else {
 
       }
     } catch (error) {
-      console.error('[PushNotification] Error saving device token:', error);
+      Logger.error('[PushNotification] Error saving device token', error as Error, {
+      component: 'pushNotificationService',
+    });
     }
   }
 
@@ -228,7 +247,9 @@ class PushNotificationService {
     try {
       return await AsyncStorage.getItem('push_token');
     } catch (error) {
-      console.error('[PushNotification] Error getting stored token:', error);
+      Logger.error('[PushNotification] Error getting stored token', error as Error, {
+      component: 'pushNotificationService',
+    });
       return null;
     }
   }
@@ -236,7 +257,9 @@ class PushNotificationService {
   async scheduleLocalNotification(payload: NotificationPayload, date?: Date): Promise<void> {
     try {
       if (!PushNotification) {
-        console.warn('[PushNotification] Service not available, cannot schedule notification');
+        Logger.warn('[PushNotification] Service not available, cannot schedule notification', {
+      component: 'pushNotificationService',
+    });
         return;
       }
 
@@ -251,7 +274,9 @@ class PushNotificationService {
         channelId: payload.priority === 'high' ? 'sifia-critical' : 'sifia-default',
       });
     } catch (error) {
-      console.error('[PushNotification] Error scheduling local notification:', error);
+      Logger.error('[PushNotification] Error scheduling local notification', error as Error, {
+      component: 'pushNotificationService',
+    });
     }
   }
 
@@ -293,7 +318,9 @@ class PushNotificationService {
       }
       return deviceId;
     } catch (error) {
-      console.error('[PushNotification] Error getting device ID:', error);
+      Logger.error('[PushNotification] Error getting device ID', error as Error, {
+      component: 'pushNotificationService',
+    });
       return `${Platform.OS}_${Date.now()}`;
     }
   }

@@ -1,5 +1,6 @@
 // src/services/api/timeBlockApi.ts
 import { PostgrestError } from '@supabase/supabase-js';
+import { Logger } from '../../utils/ProductionLogger';
 import { supabase } from '../supabaseClient';
 
 export class ApiError extends Error {
@@ -22,7 +23,9 @@ export class ApiError extends Error {
 }
 
 export const handleApiError = (error: unknown, context: string): never => {
-  console.error(`[${context}] Error:`, error);
+  Logger.error(`[${context}] Error:`, error as Error, {
+      component: 'timeBlockApi',
+    });
 
   if (error instanceof ApiError) {
     throw error; // Re-throw if it's already an ApiError
@@ -96,7 +99,9 @@ export class TimeBlockApi {
         .order('start_time');
 
       if (regularError) {
-        console.error('❌ Error fetching regular blocks:', regularError);
+        Logger.error('❌ Error fetching regular blocks', regularError as Error, {
+      component: 'timeBlockApi',
+    });
         throw regularError;
       }
 
@@ -122,7 +127,9 @@ export class TimeBlockApi {
         .eq('category', 'exception');
 
       if (exceptionsError) {
-        console.error('❌ Error fetching exceptions:', exceptionsError);
+        Logger.error('❌ Error fetching exceptions', exceptionsError as Error, {
+      component: 'timeBlockApi',
+    });
         throw exceptionsError;
       }
 
@@ -136,7 +143,9 @@ export class TimeBlockApi {
         .order('start_time');
 
       if (repeatingError) {
-        console.error('❌ Error fetching repeating blocks:', repeatingError);
+        Logger.error('❌ Error fetching repeating blocks', repeatingError as Error, {
+      component: 'timeBlockApi',
+    });
         throw repeatingError;
       }
 
@@ -177,7 +186,9 @@ export class TimeBlockApi {
 
       return allBlocks;
     } catch (error) {
-      console.error('❌ Error in getTimeBlocks:', error);
+      Logger.error('❌ Error in getTimeBlocks', error as Error, {
+      component: 'timeBlockApi',
+    });
       throw error;
     }
   }
@@ -324,7 +335,9 @@ export class TimeBlockApi {
       .single();
 
     if (error) {
-      console.error('Error creating time block:', error);
+      Logger.error('Error creating time block', error as Error, {
+      component: 'timeBlockApi',
+    });
       throw new Error(`Failed to create time block: ${error.message}`);
     }
 
@@ -347,7 +360,9 @@ export class TimeBlockApi {
       .single();
 
     if (error) {
-      console.error('Error updating time block:', error);
+      Logger.error('Error updating time block', error as Error, {
+      component: 'timeBlockApi',
+    });
       throw new Error(`Failed to update time block: ${error.message}`);
     }
 
@@ -362,7 +377,9 @@ export class TimeBlockApi {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting time block:', error);
+      Logger.error('Error deleting time block', error as Error, {
+      component: 'timeBlockApi',
+    });
       throw new Error(`Failed to delete time block: ${error.message}`);
     }
   }
@@ -383,7 +400,9 @@ export class TimeBlockApi {
       .order('start_time', { ascending: true });
 
     if (error) {
-      console.error('Error fetching time blocks in date range:', error);
+      Logger.error('Error fetching time blocks in date range', error as Error, {
+      component: 'timeBlockApi',
+    });
       throw new Error(`Failed to fetch time blocks: ${error.message}`);
     }
 
@@ -408,7 +427,9 @@ export class TimeBlockApi {
       .select();
 
     if (error) {
-      console.error('Error creating multiple time blocks:', error);
+      Logger.error('Error creating multiple time blocks', error as Error, {
+      component: 'timeBlockApi',
+    });
       throw new Error(`Failed to create time blocks: ${error.message}`);
     }
 
@@ -437,7 +458,9 @@ export class TimeBlockApi {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error checking time conflicts:', error);
+      Logger.error('Error checking time conflicts', error as Error, {
+      component: 'timeBlockApi',
+    });
       throw new Error(`Failed to check time conflicts: ${error.message}`);
     }
 

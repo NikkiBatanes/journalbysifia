@@ -4,6 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logger } from '../utils/ProductionLogger';
 import { createClient } from '@supabase/supabase-js';
 import 'react-native-get-random-values';
 
@@ -17,7 +18,9 @@ const supabaseAnonKey = env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6Ik
 
 // Validate environment on startup
 if (!validateEnvironment()) {
-  console.warn('⚠️ Some environment variables are missing. Please check your .env file.');
+  Logger.warn('⚠️ Some environment variables are missing. Please check your .env file.', {
+      component: 'supabaseClient',
+    });
 }
 
 // Create Supabase client with proper session persistence
@@ -98,12 +101,16 @@ export const getSession = async () => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
-      console.error('[SupabaseClient] Error getting session:', error);
+      Logger.error('[SupabaseClient] Error getting session', error as Error, {
+      component: 'supabaseClient',
+    });
       return null;
     }
     return session;
   } catch (error) {
-    console.error('[SupabaseClient] Unexpected error getting session:', error);
+    Logger.error('[SupabaseClient] Unexpected error getting session', error as Error, {
+      component: 'supabaseClient',
+    });
     return null;
   }
 };
@@ -112,12 +119,16 @@ export const getUser = async () => {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) {
-      console.error('[SupabaseClient] Error getting user:', error);
+      Logger.error('[SupabaseClient] Error getting user', error as Error, {
+      component: 'supabaseClient',
+    });
       return null;
     }
     return user;
   } catch (error) {
-    console.error('[SupabaseClient] Unexpected error getting user:', error);
+    Logger.error('[SupabaseClient] Unexpected error getting user', error as Error, {
+      component: 'supabaseClient',
+    });
     return null;
   }
 };
@@ -126,7 +137,9 @@ export const signOut = async () => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('[SupabaseClient] Error signing out:', error);
+      Logger.error('[SupabaseClient] Error signing out', error as Error, {
+      component: 'supabaseClient',
+    });
       throw error;
     }
 
@@ -134,7 +147,9 @@ export const signOut = async () => {
     await AsyncStorage.multiRemove(['ACCESS_TOKEN', 'REFRESH_TOKEN', 'USER']);
 
   } catch (error) {
-    console.error('[SupabaseClient] Unexpected error signing out:', error);
+    Logger.error('[SupabaseClient] Unexpected error signing out', error as Error, {
+      component: 'supabaseClient',
+    });
     throw error;
   }
 };

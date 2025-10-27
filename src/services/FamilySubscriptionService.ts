@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 import { NewSubscriptionService } from './NewSubscriptionService';
 
 export interface FamilyGroup {
@@ -84,7 +85,9 @@ export class FamilySubscriptionService {
 
       return data;
     } catch (error) {
-      console.error('[FamilyService] Failed to create family group:', error);
+      Logger.error('[FamilyService] Failed to create family group', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       throw error;
     }
   }
@@ -122,7 +125,9 @@ export class FamilySubscriptionService {
         .eq('status', 'active');
 
       if (membersError) {
-        console.error('[FamilyService] Failed to get members:', membersError);
+        Logger.error('[FamilyService] Failed to get members', membersError as Error, {
+      component: 'FamilySubscriptionService',
+    });
       }
 
       const members: FamilyMember[] = (membersData || []).map(member => ({
@@ -142,7 +147,9 @@ export class FamilySubscriptionService {
         members,
       };
     } catch (error) {
-      console.error('[FamilyService] Failed to get family group:', error);
+      Logger.error('[FamilyService] Failed to get family group', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       throw error;
     }
   }
@@ -161,7 +168,9 @@ export class FamilySubscriptionService {
 
       return await this.getFamilyGroup(subscription.family_group_id);
     } catch (error) {
-      console.error('[FamilyService] Failed to get user family group:', error);
+      Logger.error('[FamilyService] Failed to get user family group', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       return null;
     }
   }
@@ -225,7 +234,9 @@ export class FamilySubscriptionService {
 
       return data;
     } catch (error) {
-      console.error('[FamilyService] Failed to invite member:', error);
+      Logger.error('[FamilyService] Failed to invite member', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       throw error;
     }
   }
@@ -288,7 +299,9 @@ export class FamilySubscriptionService {
         .eq('id', invitation.family_group_id);
 
       if (groupError) {
-        console.error('[FamilyService] Failed to update member count:', groupError);
+        Logger.error('[FamilyService] Failed to update member count', groupError as Error, {
+      component: 'FamilySubscriptionService',
+    });
       }
 
       // Mark invitation as accepted
@@ -298,12 +311,16 @@ export class FamilySubscriptionService {
         .eq('id', invitation.id);
 
       if (updateError) {
-        console.error('[FamilyService] Failed to update invitation status:', updateError);
+        Logger.error('[FamilyService] Failed to update invitation status', updateError as Error, {
+      component: 'FamilySubscriptionService',
+    });
       }
 
       return true;
     } catch (error) {
-      console.error('[FamilyService] Failed to accept invitation:', error);
+      Logger.error('[FamilyService] Failed to accept invitation', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       throw error;
     }
   }
@@ -349,12 +366,16 @@ export class FamilySubscriptionService {
         .eq('id', familyGroupId);
 
       if (groupError) {
-        console.error('[FamilyService] Failed to update member count:', groupError);
+        Logger.error('[FamilyService] Failed to update member count', groupError as Error, {
+      component: 'FamilySubscriptionService',
+    });
       }
 
       return true;
     } catch (error) {
-      console.error('[FamilyService] Failed to remove member:', error);
+      Logger.error('[FamilyService] Failed to remove member', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       throw error;
     }
   }
@@ -377,7 +398,9 @@ export class FamilySubscriptionService {
 
       return data || [];
     } catch (error) {
-      console.error('[FamilyService] Failed to get pending invitations:', error);
+      Logger.error('[FamilyService] Failed to get pending invitations', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       return [];
     }
   }
@@ -415,7 +438,9 @@ export class FamilySubscriptionService {
 
       return true;
     } catch (error) {
-      console.error('[FamilyService] Failed to cancel invitation:', error);
+      Logger.error('[FamilyService] Failed to cancel invitation', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       throw error;
     }
   }
@@ -469,7 +494,9 @@ export class FamilySubscriptionService {
         memberUsage,
       };
     } catch (error) {
-      console.error('[FamilyService] Failed to get usage analytics:', error);
+      Logger.error('[FamilyService] Failed to get usage analytics', error as Error, {
+      component: 'FamilySubscriptionService',
+    });
       throw error;
     }
   }

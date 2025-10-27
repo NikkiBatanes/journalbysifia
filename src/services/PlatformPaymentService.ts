@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 import { AppleStoreKitService, StoreProduct, PurchaseResult } from './AppleStoreKitService';
 import { GooglePlayBillingService, GooglePlayProduct, GooglePlayPurchaseResult } from './GooglePlayBillingService';
 import { NewSubscriptionService } from './NewSubscriptionService';
@@ -69,7 +70,10 @@ export class PlatformPaymentService {
       await this.getAvailableProducts();
 
     } catch (error) {
-      console.warn('[PlatformPayment] Failed to preload products:', error);
+      Logger.warn('[PlatformPayment] Failed to preload products', {
+      component: 'PlatformPaymentService',
+      error: error,
+    });
       // Don't throw - this is just optimization
     }
   }
@@ -88,7 +92,9 @@ export class PlatformPaymentService {
       console.warn('[PlatformPayment] Unsupported platform:', Platform.OS);
       return false;
     } catch (error) {
-      console.error('[PlatformPayment] Initialization failed:', error);
+      Logger.error('[PlatformPayment] Initialization failed', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return false;
     }
   }
@@ -128,11 +134,15 @@ export class PlatformPaymentService {
 
       return unifiedProducts;
     } catch (error) {
-      console.error('[PlatformPayment] Failed to get products:', error);
+      Logger.error('[PlatformPayment] Failed to get products', error as Error, {
+      component: 'PlatformPaymentService',
+    });
 
       // If we have cached products, return them as fallback
       if (this.cachedProducts) {
-        console.warn('[PlatformPayment] Using stale cached products due to error');
+        Logger.warn('[PlatformPayment] Using stale cached products due to error', {
+      component: 'PlatformPaymentService',
+    });
         return this.cachedProducts;
       }
 
@@ -166,7 +176,9 @@ export class PlatformPaymentService {
         error: result.error,
       };
     } catch (error) {
-      console.error('[PlatformPayment] Purchase failed:', error);
+      Logger.error('[PlatformPayment] Purchase failed', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -184,7 +196,9 @@ export class PlatformPaymentService {
       }
       return [];
     } catch (error) {
-      console.error('[PlatformPayment] Failed to get promotional offers:', error);
+      Logger.error('[PlatformPayment] Failed to get promotional offers', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return [];
     }
   }
@@ -203,7 +217,9 @@ export class PlatformPaymentService {
 
       return false;
     } catch (error) {
-      console.error('[PlatformPayment] Failed to restore purchases:', error);
+      Logger.error('[PlatformPayment] Failed to restore purchases', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return false;
     }
   }
@@ -234,7 +250,9 @@ export class PlatformPaymentService {
         platform: subscription.platform as 'apple' | 'google' | null,
       };
     } catch (error) {
-      console.error('[PlatformPayment] Failed to get subscription status:', error);
+      Logger.error('[PlatformPayment] Failed to get subscription status', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return null;
     }
   }
@@ -264,7 +282,9 @@ export class PlatformPaymentService {
 
       return true;
     } catch (error) {
-      console.error('[PlatformPayment] Failed to cancel subscription:', error);
+      Logger.error('[PlatformPayment] Failed to cancel subscription', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return false;
     }
   }
@@ -294,7 +314,9 @@ export class PlatformPaymentService {
 
       return pricing;
     } catch (error) {
-      console.error('[PlatformPayment] Failed to get pricing:', error);
+      Logger.error('[PlatformPayment] Failed to get pricing', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return {};
     }
   }
@@ -306,7 +328,9 @@ export class PlatformPaymentService {
     try {
       return await this.initialize();
     } catch (error) {
-      console.error('[PlatformPayment] Payment availability check failed:', error);
+      Logger.error('[PlatformPayment] Payment availability check failed', error as Error, {
+      component: 'PlatformPaymentService',
+    });
       return false;
     }
   }
@@ -322,7 +346,9 @@ export class PlatformPaymentService {
       ]);
 
     } catch (error) {
-      console.error('[PlatformPayment] Cleanup error:', error);
+      Logger.error('[PlatformPayment] Cleanup error', error as Error, {
+      component: 'PlatformPaymentService',
+    });
     }
   }
 }

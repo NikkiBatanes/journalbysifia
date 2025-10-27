@@ -7,6 +7,7 @@
 
 // Import supabase - adjust path as needed for your project structure
 // import { supabase } from '../config/supabase';
+import { Logger } from '../utils/ProductionLogger';
 // For now, we'll assume supabase is available globally or imported elsewhere
 declare const supabase: any;
 // Using existing subscription tier type from database
@@ -103,7 +104,9 @@ class AnalyticsService {
         await this.loadUserTier();
       }
     } catch (error) {
-      console.error('Failed to initialize analytics user:', error);
+      Logger.error('Failed to initialize analytics user', error as Error, {
+      component: 'analyticsService',
+    });
     }
   }
 
@@ -121,7 +124,9 @@ class AnalyticsService {
       if (error) {throw error;}
       this.tier = data?.tier || 'free_trial';
     } catch (error) {
-      console.error('Failed to load user tier:', error);
+      Logger.error('Failed to load user tier', error as Error, {
+      component: 'analyticsService',
+    });
       this.tier = 'free_trial';
     }
   }
@@ -173,7 +178,9 @@ class AnalyticsService {
       // Send to external analytics if configured
       await this.sendToExternalAnalytics();
     } catch (error) {
-      console.error('Failed to track event:', error);
+      Logger.error('Failed to track event', error as Error, {
+      component: 'analyticsService',
+    });
     }
   }
 
@@ -226,7 +233,9 @@ class AnalyticsService {
             },
           });
       } catch (error) {
-        console.error('Failed to store retention event:', error);
+        Logger.error('Failed to store retention event', error as Error, {
+      component: 'analyticsService',
+    });
       }
     }
   }
@@ -270,7 +279,9 @@ class AnalyticsService {
       if (error) {throw error;}
       return data || [];
     } catch (error) {
-      console.error('Failed to get subscription analytics:', error);
+      Logger.error('Failed to get subscription analytics', error as Error, {
+      component: 'analyticsService',
+    });
       // Return fallback data from direct queries
       return this.getFallbackSubscriptionAnalytics(dateRange);
     }
@@ -288,7 +299,9 @@ class AnalyticsService {
       if (error) {throw error;}
       return data;
     } catch (error) {
-      console.error('Failed to get retention analytics:', error);
+      Logger.error('Failed to get retention analytics', error as Error, {
+      component: 'analyticsService',
+    });
       return null;
     }
   }
@@ -302,7 +315,9 @@ class AnalyticsService {
       if (error) {throw error;}
       return data || [];
     } catch (error) {
-      console.error('Failed to get feature analytics:', error);
+      Logger.error('Failed to get feature analytics', error as Error, {
+      component: 'analyticsService',
+    });
       return [];
     }
   }
@@ -337,7 +352,9 @@ class AnalyticsService {
 
       return this.analyzeBehaviorData(data || []);
     } catch (error) {
-      console.error('Failed to get user behavior metrics:', error);
+      Logger.error('Failed to get user behavior metrics', error as Error, {
+      component: 'analyticsService',
+    });
       return null;
     }
   }
@@ -402,7 +419,9 @@ class AnalyticsService {
         await this.updateUsageTrackingDirect(featureName);
       }
     } catch (error) {
-      console.error('Failed to update usage tracking:', error);
+      Logger.error('Failed to update usage tracking', error as Error, {
+      component: 'analyticsService',
+    });
     }
   }
 
@@ -445,7 +464,9 @@ class AnalyticsService {
           .insert({ user_id: this.userId, ...updates });
       }
     } catch (error) {
-      console.error('Failed to update usage tracking directly:', error);
+      Logger.error('Failed to update usage tracking directly', error as Error, {
+      component: 'analyticsService',
+    });
     }
   }
 
@@ -572,7 +593,9 @@ class AnalyticsService {
         churn_rate: group.total_users > 0 ? ((group.total_users - group.active_users) / group.total_users) * 100 : 0,
       }));
     } catch (error) {
-      console.error('Fallback subscription analytics failed:', error);
+      Logger.error('Fallback subscription analytics failed', error as Error, {
+      component: 'analyticsService',
+    });
       return [];
     }
   }
@@ -586,7 +609,9 @@ class AnalyticsService {
       if (error) {throw error;}
       return data || [];
     } catch (error) {
-      console.error('Failed to get dashboard metrics:', error);
+      Logger.error('Failed to get dashboard metrics', error as Error, {
+      component: 'analyticsService',
+    });
       return this.getFallbackDashboardMetrics(days);
     }
   }
@@ -626,7 +651,9 @@ class AnalyticsService {
         },
       ];
     } catch (error) {
-      console.error('Fallback dashboard metrics failed:', error);
+      Logger.error('Fallback dashboard metrics failed', error as Error, {
+      component: 'analyticsService',
+    });
       return [];
     }
   }

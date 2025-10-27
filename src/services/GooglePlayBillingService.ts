@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 import RNIap, {
   ProductPurchase,
   PurchaseError,
@@ -75,7 +76,9 @@ export class GooglePlayBillingService {
       this.isInitialized = true;
       return true;
     } catch (error) {
-      console.error('[GooglePlay] Failed to initialize billing:', error);
+      Logger.error('[GooglePlay] Failed to initialize billing', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
       return false;
     }
   }
@@ -93,7 +96,9 @@ export class GooglePlayBillingService {
 
     this.purchaseErrorSubscription = purchaseErrorListener(
       (error: PurchaseError) => {
-        console.error('[GooglePlay] Purchase error:', error);
+        Logger.error('[GooglePlay] Purchase error', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
         this.handlePurchaseError(error);
       }
     );
@@ -122,7 +127,9 @@ export class GooglePlayBillingService {
         description: product.description,
       }));
     } catch (error) {
-      console.error('[GooglePlay] Failed to get products:', error);
+      Logger.error('[GooglePlay] Failed to get products', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
       return [];
     }
   }
@@ -146,7 +153,9 @@ export class GooglePlayBillingService {
       // The actual purchase handling will be done in the listener
       return { success: true };
     } catch (error) {
-      console.error('[GooglePlay] Purchase failed:', error);
+      Logger.error('[GooglePlay] Purchase failed', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -164,7 +173,9 @@ export class GooglePlayBillingService {
       const isValid = await this.validatePurchase(purchase);
 
       if (!isValid) {
-        console.error('[GooglePlay] Purchase validation failed');
+        Logger.error('[GooglePlay] Purchase validation failed', undefined, {
+      component: 'GooglePlayBillingService',
+    });
         return;
       }
 
@@ -183,7 +194,9 @@ export class GooglePlayBillingService {
       await finishTransaction({ purchase, isConsumable: false });
 
     } catch (error) {
-      console.error('[GooglePlay] Failed to handle purchase update:', error);
+      Logger.error('[GooglePlay] Failed to handle purchase update', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
     }
   }
 
@@ -209,7 +222,9 @@ export class GooglePlayBillingService {
       // Google Play validation should return purchase details if valid
       return result && result.purchaseState === 1; // 1 = Purchased
     } catch (error) {
-      console.error('[GooglePlay] Purchase validation error:', error);
+      Logger.error('[GooglePlay] Purchase validation error', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
       return false;
     }
   }
@@ -263,7 +278,9 @@ export class GooglePlayBillingService {
       });
 
     } catch (error) {
-      console.error('[GooglePlay] Failed to update user subscription:', error);
+      Logger.error('[GooglePlay] Failed to update user subscription', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
       throw error;
     }
   }
@@ -273,7 +290,9 @@ export class GooglePlayBillingService {
    */
   private async getCurrentUserId(): Promise<string | null> {
     // TODO: Implement this based on your authentication system
-    console.warn('[GooglePlay] getCurrentUserId not implemented - using placeholder');
+    Logger.warn('[GooglePlay] getCurrentUserId not implemented - using placeholder', {
+      component: 'GooglePlayBillingService',
+    });
     return null;
   }
 
@@ -321,7 +340,9 @@ export class GooglePlayBillingService {
 
       return true;
     } catch (error) {
-      console.error('[GooglePlay] Failed to restore purchases:', error);
+      Logger.error('[GooglePlay] Failed to restore purchases', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
       return false;
     }
   }
@@ -346,7 +367,9 @@ export class GooglePlayBillingService {
         expiryDate: subscription.subscription_end_date,
       };
     } catch (error) {
-      console.error('[GooglePlay] Failed to get subscription status:', error);
+      Logger.error('[GooglePlay] Failed to get subscription status', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
       return null;
     }
   }
@@ -362,7 +385,9 @@ export class GooglePlayBillingService {
       // You could open the Google Play Store subscription management page
       // This would require additional implementation with Linking API
     } catch (error) {
-      console.error('[GooglePlay] Failed to initiate cancellation:', error);
+      Logger.error('[GooglePlay] Failed to initiate cancellation', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
     }
   }
 
@@ -383,7 +408,9 @@ export class GooglePlayBillingService {
       this.isInitialized = false;
 
     } catch (error) {
-      console.error('[GooglePlay] Cleanup error:', error);
+      Logger.error('[GooglePlay] Cleanup error', error as Error, {
+      component: 'GooglePlayBillingService',
+    });
     }
   }
 }

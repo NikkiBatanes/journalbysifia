@@ -1,5 +1,6 @@
 // src/services/api/journalApi.ts
 import { supabase } from '../supabaseClient';
+import { Logger } from '../../utils/ProductionLogger';
 import {
   JournalEntry,
 } from '../../types/api';
@@ -28,7 +29,9 @@ export class JournalApi {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching journal entries:', error);
+      Logger.error('Error fetching journal entries', error as Error, {
+      component: 'journalApi',
+    });
       throw new Error(`Failed to fetch journal entries: ${error.message}`);
     }
 
@@ -73,7 +76,9 @@ export class JournalApi {
       .single();
 
     if (error) {
-      console.error('Error creating journal entry:', error);
+      Logger.error('Error creating journal entry', error as Error, {
+      component: 'journalApi',
+    });
       throw new Error(`Failed to create journal entry: ${error.message}`);
     }
 
@@ -98,7 +103,9 @@ export class JournalApi {
 
     // Handle different scenarios
     if (!existingEntries || existingEntries.length === 0) {
-      console.error('❌ No entries found with ID:', id);
+      Logger.error('❌ No entries found with ID', id as Error, {
+      component: 'journalApi',
+    });
       throw new Error(`No journal entry found with ID: ${id}`);
     }
 
@@ -114,7 +121,9 @@ export class JournalApi {
           .eq('id', duplicate.id);
 
         if (deleteError) {
-          console.error('❌ Error deleting duplicate:', deleteError);
+          Logger.error('❌ Error deleting duplicate', deleteError as Error, {
+      component: 'journalApi',
+    });
         } else {
 
         }
@@ -132,7 +141,9 @@ export class JournalApi {
 
 
     if (!verifyEntries || verifyEntries.length === 0) {
-      console.error('❌ No entry found to update after cleanup');
+      Logger.error('❌ No entry found to update after cleanup', undefined, {
+      component: 'journalApi',
+    });
       throw new Error('Entry was deleted during cleanup process');
     }
 
@@ -147,7 +158,9 @@ export class JournalApi {
       .single();
 
     if (error) {
-      console.error('❌ Error updating journal entry by ID:', error);
+      Logger.error('❌ Error updating journal entry by ID', error as Error, {
+      component: 'journalApi',
+    });
       console.error('❌ Update details:', { id, updates, verifyEntries });
 
       // Try fallback update using natural key if we have the necessary info
@@ -168,7 +181,9 @@ export class JournalApi {
           .single();
 
         if (fallbackError) {
-          console.error('❌ Fallback update also failed:', fallbackError);
+          Logger.error('❌ Fallback update also failed', fallbackError as Error, {
+      component: 'journalApi',
+    });
           throw new Error(`Failed to update journal entry: ${error.message}`);
         }
 
@@ -192,7 +207,9 @@ export class JournalApi {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting journal entry:', error);
+      Logger.error('Error deleting journal entry', error as Error, {
+      component: 'journalApi',
+    });
       throw new Error(`Failed to delete journal entry: ${error.message}`);
     }
   }
@@ -212,7 +229,9 @@ export class JournalApi {
       .select();
 
     if (error) {
-      console.error('Error creating multiple journal entries:', error);
+      Logger.error('Error creating multiple journal entries', error as Error, {
+      component: 'journalApi',
+    });
       throw new Error(`Failed to create journal entries: ${error.message}`);
     }
 
@@ -242,7 +261,9 @@ export class JournalApi {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching journal entries in date range:', error);
+      Logger.error('Error fetching journal entries in date range', error as Error, {
+      component: 'journalApi',
+    });
       throw new Error(`Failed to fetch journal entries: ${error.message}`);
     }
 

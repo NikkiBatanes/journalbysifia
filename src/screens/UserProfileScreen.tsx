@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Logger } from '../utils/ProductionLogger';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
@@ -310,7 +311,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       setNotificationPrefs(prefs);
     } catch (error) {
-      console.error('Error loading notification preferences:', error);
+      Logger.error('Error loading notification preferences', error as Error, {
+      component: 'UserProfileScreen',
+    });
       // Set minimal defaults on error
       setNotificationPrefs({
         user_id: user.id,
@@ -365,16 +368,22 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         setUsage(usageData);
 
       } catch (error) {
-        console.error('Failed to load subscription data:', error);
+        Logger.error('Failed to load subscription data', error as Error, {
+      component: 'UserProfileScreen',
+    });
       }
 
       // Load notification preferences separately to avoid blocking
       loadNotificationPreferences().catch(error => {
-        console.error('Failed to load notification preferences:', error);
+        Logger.error('Failed to load notification preferences', error as Error, {
+      component: 'UserProfileScreen',
+    });
       });
 
     } catch (error) {
-      console.error('Failed to load profile data:', error);
+      Logger.error('Failed to load profile data', error as Error, {
+      component: 'UserProfileScreen',
+    });
       Alert.alert('Error', 'Failed to load profile data');
     } finally {
       setLoading(false);
@@ -434,7 +443,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
               }
             } catch (error) {
-              console.error('Restore purchases error:', error);
+              Logger.error('Restore purchases error', error as Error, {
+      component: 'UserProfileScreen',
+    });
               Alert.alert(
                 'Restore Failed',
                 'Unable to restore purchases. Please try again later or contact support.',
@@ -644,7 +655,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Profile Updated', 'Your profile photo has been updated.');
     } catch (e: any) {
       const msg = e?.message || 'Unknown error';
-      console.error('[Avatar] Error:', e);
+      Logger.error('[Avatar] Error', e as Error, {
+      component: 'UserProfileScreen',
+    });
       if (msg.includes('image-picker')) {
         Alert.alert(
           'Image Picker Missing',
@@ -1068,7 +1081,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         Alert.alert('Error', result.error?.message || 'Failed to update Bible version');
       }
     } catch (error) {
-      console.error('[UserProfile] Error saving Bible version:', error);
+      Logger.error('[UserProfile] Error saving Bible version', error as Error, {
+      component: 'UserProfileScreen',
+    });
       Alert.alert('Error', 'Failed to update Bible version');
     }
   };
@@ -1112,7 +1127,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       await signOut();
 
     } catch (error) {
-      console.error('❌ Logout failed:', error);
+      Logger.error('❌ Logout failed', error as Error, {
+      component: 'UserProfileScreen',
+    });
       setLoading(false); // Reset loading state on error
       Alert.alert('Logout Failed', 'Unable to logout. Please try again.');
     }
@@ -1403,7 +1420,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     return;
                   }
                 } catch (error) {
-                  console.error('Failed to check subscription tier:', error);
+                  Logger.error('Failed to check subscription tier', error as Error, {
+      component: 'UserProfileScreen',
+    });
                 }
               }
 
@@ -1579,7 +1598,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   await createFamilyGroup(`${user?.email?.split('@')[0] || 'Family'}'s Group`, 'family-sub-id');
                   await refreshFamilyData();
                 } catch (error) {
-                  console.error('Failed to create family group:', error);
+                  Logger.error('Failed to create family group', error as Error, {
+      component: 'UserProfileScreen',
+    });
                 }
               }}
             >

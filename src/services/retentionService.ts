@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { Logger } from '../utils/ProductionLogger';
 
 export interface RetentionOffer {
   discount: number; // percentage discount
@@ -102,7 +103,9 @@ export class RetentionService {
         .limit(1);
 
       if (error) {
-        console.error('[RetentionService] Error checking retention trigger:', error);
+        Logger.error('[RetentionService] Error checking retention trigger', error as Error, {
+      component: 'retentionService',
+    });
         return false;
       }
 
@@ -115,7 +118,9 @@ export class RetentionService {
 
       return false;
     } catch (error) {
-      console.error('Error tracking retention event:', error);
+      Logger.error('Error tracking retention event', error as Error, {
+      component: 'retentionService',
+    });
       return false;
     }
   }
@@ -158,7 +163,9 @@ export class RetentionService {
         totalScore: Math.min(100, totalScore), // Cap at 100
       };
     } catch (error) {
-      console.error('Error calculating user value score:', error);
+      Logger.error('Error calculating user value score', error as Error, {
+      component: 'retentionService',
+    });
       // Return default medium-value score on error
       return {
         engagementLevel: 15,
@@ -233,7 +240,9 @@ export class RetentionService {
         discountedPrice,
       };
     } catch (error) {
-      console.error('Error generating dynamic offer:', error);
+      Logger.error('Error generating dynamic offer', error as Error, {
+      component: 'retentionService',
+    });
       // Fallback to static offer
       return this.getStaticRetentionOffer(eventType, originalPrice);
     }
@@ -402,12 +411,16 @@ export class RetentionService {
         .insert(retentionEvent);
 
       if (error) {
-        console.error('Error logging retention event:', error);
+        Logger.error('Error logging retention event', error as Error, {
+      component: 'retentionService',
+    });
       } else {
 
       }
     } catch (error) {
-      console.error('Error logging retention event:', error);
+      Logger.error('Error logging retention event', error as Error, {
+      component: 'retentionService',
+    });
     }
   }
 
@@ -427,13 +440,17 @@ export class RetentionService {
         .order('triggered_at', { ascending: false });
 
       if (error) {
-        console.error('Error getting retention offers:', error);
+        Logger.error('Error getting retention offers', error as Error, {
+      component: 'retentionService',
+    });
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error getting retention offers:', error);
+      Logger.error('Error getting retention offers', error as Error, {
+      component: 'retentionService',
+    });
       return [];
     }
   }
@@ -476,7 +493,9 @@ export class RetentionService {
       const userHash = userId.slice(-6);
       return parts[1] === userHash;
     } catch (error) {
-      console.error('Error validating discount code:', error);
+      Logger.error('Error validating discount code', error as Error, {
+      component: 'retentionService',
+    });
       return false;
     }
   }
@@ -498,7 +517,9 @@ export class RetentionService {
 
       return data || {};
     } catch (error) {
-      console.error('Error fetching subscription data:', error);
+      Logger.error('Error fetching subscription data', error as Error, {
+      component: 'retentionService',
+    });
       return {};
     }
   }
@@ -518,7 +539,9 @@ export class RetentionService {
 
       return data || {};
     } catch (error) {
-      console.error('Error fetching usage data:', error);
+      Logger.error('Error fetching usage data', error as Error, {
+      component: 'retentionService',
+    });
       return {};
     }
   }
@@ -536,7 +559,9 @@ export class RetentionService {
 
       return data || {};
     } catch (error) {
-      console.error('[RetentionService] Error fetching profile data:', error);
+      Logger.error('[RetentionService] Error fetching profile data', error as Error, {
+      component: 'retentionService',
+    });
       return {};
     }
   }
