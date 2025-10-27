@@ -395,7 +395,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         updatedContent = {};
       }
 
-      const oldWin = updatedContent.win;
       updatedContent.win = winText.trim();
 
       // Set saving state to prevent useEffect from overriding

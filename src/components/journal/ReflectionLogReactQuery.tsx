@@ -557,8 +557,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           onPress: async () => {
             triggerLightHaptic();
 
-            const startTime = Date.now();
-
             try {
               await deleteMutation.mutateAsync(entryId);
 

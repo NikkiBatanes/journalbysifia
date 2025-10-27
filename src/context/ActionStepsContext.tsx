@@ -177,9 +177,6 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
         return;
       }
 
-      const stats = calculateTaskStats(actionSteps);
-      const allCompleted = areAllStepsCompleted(actionSteps);
-
       // Save action steps directly to database without relying on Zustand store
       await updatePlaybookActionSteps(pbId, actionSteps);
 

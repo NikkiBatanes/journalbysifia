@@ -98,8 +98,8 @@ export const useCrossComponentSync = (userId: string) => {
         userId,
         metadata: {
           timestamp: new Date().toISOString(),
-          pointsAwarded: pointsResult.pointsAwarded,
-          newLevel: pointsResult.newLevel,
+          pointsAwarded: pointsResult?.pointsAwarded || 0,
+          newLevel: pointsResult?.newLevel,
         },
       };
 

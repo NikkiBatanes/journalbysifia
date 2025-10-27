@@ -428,7 +428,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const formattedPrayer = useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
   useEffect(() => {
     if (rawPrayer) {
-      const show = (s: string) => s.replace(/\n/g, '\\n');
+      // Prayer formatting handled by normalizePrayer function
 
     }
   }, [rawPrayer, formattedPrayer]);

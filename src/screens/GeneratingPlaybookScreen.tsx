@@ -114,7 +114,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Award faith points for playbook generation
           try {
-            const pointsResult = await faithPointsService.awardPoints(
+            await faithPointsService.awardPoints(
               user.id,
               'playbook_generated',
               {

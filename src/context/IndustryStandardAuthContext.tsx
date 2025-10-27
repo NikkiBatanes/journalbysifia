@@ -585,7 +585,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Helpful debug: log provider info from identities if present
       try {
         const identities = (authState.user as any)?.identities as Array<any> | undefined;
-        const providers = identities?.map((i) => i?.provider) || [];
+        // Provider info available for debugging if needed
 
       } catch {}
 
