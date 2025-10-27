@@ -72,7 +72,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   const stepAnimations = useRef<{[stepId: string]: Animated.Value}>({}).current;
   // Example modal removed per request; keep UI simple and non-interactive
 
-  const logEvent = useCallback(async (event_type: string) => {
+  const logEvent = useCallback(async () => {
     try {
       // Simple console log for now - can be enhanced later
 
@@ -94,7 +94,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     viewableItems.forEach(({ item, isViewable }) => {
       if (isViewable && item && !viewedStepIdsRef.current.has(item.id)) {
         viewedStepIdsRef.current.add(item.id);
-        logEvent('view_step');
+        logEvent();
       }
     });
   });
@@ -137,7 +137,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
               { playbook_id: step.playbookId, step_id: step.id, title: step.title }
             );
 
-            logEvent('start_step');
+            logEvent();
 
             // Force immediate refetch for all related queries
             await queryClient.invalidateQueries({ queryKey: ['playbooks'] });
@@ -470,7 +470,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       style={styles.stepItem}
       onPress={() => {
         triggerLightHaptic();
-        logEvent('step_toggled');
+        logEvent();
         handleStepPress(item);
       }}
       activeOpacity={0.8}
