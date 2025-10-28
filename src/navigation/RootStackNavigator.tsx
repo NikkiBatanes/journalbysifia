@@ -108,20 +108,6 @@ const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?:
 // These are used in navigation options below
 const renderDefaultProfileImage = ({ navigation }: any) => <ProfileImage navigation={navigation} />;
 
-// Header left components for different screens
-const PlaybookHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
-  <HeaderLeft
-    color={Colors.anchorBlue}
-    onPress={() => {
-      try {
-        navigation.goBack();
-      } catch (error) {
-
-      }
-    }}
-  />
-));
-
 // Unused component - commenting out to fix linting
 // const DevotionalHeaderLeft = ({ navigation }: { navigation: any }) => (
 //   <HeaderLeft
@@ -145,17 +131,6 @@ const MainTabsScreen: React.FC = React.memo(() => {
 const Stack = createNativeStackNavigator();
 
 // Screen options functions
-const getPlaybookDetailOptions = (theme: any): NativeStackNavigationOptions => ({
-  headerShown: true,
-  title: '',
-  headerBackVisible: false,
-  headerLeft: ({ navigation }: any) => <PlaybookHeaderLeft navigation={navigation} />,
-  headerRight: ({ navigation }: any) => renderDefaultProfileImage({ navigation }),
-  headerStyle: { backgroundColor: theme.colors.hopeWhite },
-  headerTitleAlign: 'center' as const,
-  headerTitleStyle: { color: theme.colors.anchorBlue },
-  headerShadowVisible: false,
-});
 
 // Unused function - commenting out to fix linting
 // const _getDevotionalDetailOptions = ({ navigation }: any): NativeStackNavigationOptions => ({
@@ -183,12 +158,8 @@ export default function RootStackNavigator({
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
-  const theme = useTheme();
   // Always start with OnboardingSplash and let it handle all routing decisions
   // including post_auth_redirect, completion checks, and authentication state
-
-  // Get screen options with dynamic theme colors
-  const playbookDetailOptions = getPlaybookDetailOptions(theme);
 
   return (
     <Stack.Navigator
@@ -311,7 +282,12 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="PlaybookDetail"
             component={PlaybookDetailScreen as React.ComponentType}
-            options={playbookDetailOptions}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
           />
           <Stack.Screen
             name="GeneratingPlaybook"
