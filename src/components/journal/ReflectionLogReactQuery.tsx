@@ -1277,7 +1277,7 @@ return (
               ((newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
             }
             lockTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt)}
-            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : editingId && selectedEntry?.source === 'playbook' ? 'playbook' : (newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
+            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : editingId && selectedEntry?.source === 'playbook' ? 'playbook' : selectedPrompt ? 'guided' : 'freeform'}
             // Pass devotional/playbook metadata for existing entries
             devotionalTitle={editingId && selectedEntry && selectedEntry.source === 'devotional' ? selectedEntry.devotional_title : undefined}
             playbookTitle={editingId && selectedEntry && selectedEntry.source === 'playbook' ? selectedEntry.playbook_title : undefined}
