@@ -951,6 +951,41 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       >
         <View style={[styles.timeBlockCard, styles.timeBlockCardInline]}>
           <View style={[styles.timeColumn, styles.timeColumnInline]}>
+            {/* Calendar Sync (inline above time) */}
+            {(calendarGating.canSyncToCalendar || !!block.calendarEventId) && (
+              <View style={styles.calendarSyncInline}>
+                <CalendarSyncButton
+                  timeBlock={block}
+                  calendarEventId={block.calendarEventId}
+                  onSyncComplete={async (eventId) => {
+                    try {
+                      // For repeating instances, block.id is virtual: `${originalId}-${date}`
+                      // Persist to the original record ID so it survives refresh
+                      const persistId = (block.id.includes('-')
+                        ? block.id.split('-').slice(0, 5).join('-')
+                        : block.id);
+
+                      await updateMutation.mutateAsync({
+                        id: persistId,
+                        updates: { calendar_event_id: eventId || undefined },
+                      });
+
+                      // Invalidate to reflect synced state after refresh
+                      try {
+                        await queryClient.invalidateQueries({
+                          queryKey: queryKeys.timeBlocks.byDate(user?.id || '', dateStr),
+                        });
+                      } catch {}
+                    } catch (catchError) {
+                      Logger.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID', catchError as Error, {
+        component: 'TimeBlockReactQuery',
+      });
+                    }
+                  }}
+                  compact
+                />
+              </View>
+            )}
             {block.isAllDay ? (
               <View style={styles.allDayBadge}>
                 <ThemedText weight="semiBold" style={styles.allDayText}>ALL DAY</ThemedText>
@@ -986,7 +1021,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   </ThemedText>
                 </View>
               </View>
-              {(block.location || block.repeat.frequency !== 'never' || block.calendarEventId) && (
+              {(block.location || block.repeat.frequency !== 'never') && (
                 <View style={styles.metaInfoContainer}>
                   {block.location && (
                     <View style={styles.metaInfoRow}>
@@ -1003,35 +1038,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
                         {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
                       </ThemedText>
-                    </View>
-                  )}
-                  {/* Calendar Sync Status */}
-                  {/* Only show the calendar sync button if user can sync OR this block is already synced */}
-                  {(calendarGating.canSyncToCalendar || !!block.calendarEventId) && (
-                    <View style={styles.calendarSyncContainer}>
-                      <CalendarSyncButton
-                        timeBlock={block}
-                        calendarEventId={block.calendarEventId}
-                        onSyncComplete={async (eventId) => {
-                          // Update the timeblock with calendar event ID
-
-                          try {
-
-                            await updateMutation.mutateAsync({
-                              id: block.id,
-                              updates: {
-                                calendar_event_id: eventId || undefined,
-                              },
-                            });
-
-                          } catch (catchError) {
-                            Logger.error('🟢 [onSyncComplete] ❌ Failed to update time block with calendar event ID', catchError as Error, {
-        component: 'TimeBlockReactQuery',
-      });
-                          }
-                        }}
-                        compact
-                      />
                     </View>
                   )}
                 </View>
@@ -2819,6 +2825,11 @@ const styles = StyleSheet.create({
   },
   checkmarkIcon: {
     marginRight: 4,
+  },
+  calendarSyncInline: {
+    alignSelf: 'center',
+    marginBottom: 6,
+    backgroundColor: 'transparent',
   },
   calendarSyncContainer: {
     flexDirection: 'row',
