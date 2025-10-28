@@ -25,6 +25,7 @@ import { getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { LocationSelector } from '../LocationSelector';
 
 interface TimeBlockLogEditorProps {
   onSave: (data: {
@@ -1203,13 +1204,13 @@ function TimeBlockLogEditorInner(
               </Modal>
 
               {/* Location Input */}
-              <TextInput
-                style={[s.formInput, { fontFamily: fonts.regular }]}
-                placeholder="Location"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={location}
-                onChangeText={(text) => handleContentChange('location', text)}
-              />
+              <View style={{ marginBottom: 12 }}>
+                <LocationSelector
+                  currentLocation={location}
+                  onLocationSelect={(loc) => handleContentChange('location', loc)}
+                  placeholder="Add location"
+                />
+              </View>
 
               {/* Notes Input */}
               <TextInput

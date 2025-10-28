@@ -18,6 +18,9 @@ export const ENV = {
   // OpenAI Configuration
   OPENAI_API_KEY: Config.OPENAI_API_KEY || 'your_openai_api_key_here',
 
+  // Google Places
+  GOOGLE_PLACES_API_KEY: Config.GOOGLE_PLACES_API_KEY || '',
+
   // Payment Configuration - US Market
   STRIPE_PUBLISHABLE_KEY: Config.STRIPE_PUBLISHABLE_KEY || 'pk_test_your_stripe_key',
 
@@ -42,6 +45,7 @@ export const validateEnvironment = () => {
   const required = [
     'SUPABASE_URL',
     'SUPABASE_ANON_KEY',
+    'GOOGLE_PLACES_API_KEY',
   ];
 
   const missing = required.filter(key => !(ENV as any)[key] || (ENV as any)[key].includes('your_'));
@@ -58,6 +62,7 @@ export const validateEnvironment = () => {
 export const EXPO_ENV = {
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  GOOGLE_PLACES_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
   // ... other expo variables
 };
 

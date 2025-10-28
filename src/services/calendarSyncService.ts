@@ -476,22 +476,23 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
           const { latitude, longitude } = position.coords;
 
           try {
-            // Use reverse geocoding to get actual address
-
-            const response = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-            );
+            // Reverse geocode with OpenStreetMap Nominatim
+            const reverseUrl = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=jsonv2&addressdetails=1`;
+            const response = await fetch(reverseUrl, {
+              headers: {
+                'User-Agent': 'siFia/1.0 (+https://sifia.app)',
+                'Accept-Language': 'en',
+              },
+            });
             const data = await response.json();
 
             let locationString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-            if (data && (data.locality || data.city)) {
-              const city = data.locality || data.city || '';
-              const region = data.principalSubdivision || '';
-              const country = data.countryName || '';
+            if (data && data.address) {
+              const a = data.address;
+              const city = a.city || a.town || a.village || a.hamlet || '';
+              const region = a.state || a.region || '';
+              const country = a.country || '';
               locationString = [city, region, country].filter(Boolean).join(', ');
-
-            } else {
-
             }
 
             resolve({
@@ -542,24 +543,34 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
 
 export const searchLocations = async (query: string): Promise<LocationSearchResult[]> => {
   try {
-    // For demo purposes, return mock results
-    // In production, integrate with Google Places API or similar
-    const mockResults: LocationSearchResult[] = [
-      {
-        id: 'search_1',
-        name: `${query} - Main Location`,
-        address: `123 ${query} Street, City, State`,
-        coordinates: { latitude: 37.7749, longitude: -122.4194 },
-      },
-      {
-        id: 'search_2',
-        name: `${query} - Secondary Location`,
-        address: `456 ${query} Avenue, City, State`,
-        coordinates: { latitude: 37.7849, longitude: -122.4094 },
-      },
-    ];
+    // OpenStreetMap Nominatim search (autocomplete style)
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      query
+    )}&format=jsonv2&addressdetails=1&limit=5`;
 
-    return mockResults;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'siFia/1.0 (+https://sifia.app)',
+        'Accept-Language': 'en',
+      },
+    });
+    const results: any[] = await resp.json();
+    if (!Array.isArray(results)) return [];
+
+    const mapped: LocationSearchResult[] = results.map((r: any) => {
+      const lat = parseFloat(r.lat);
+      const lon = parseFloat(r.lon);
+      const name = r.name || r.display_name?.split(',')[0] || 'Location';
+      const address = r.display_name || '';
+      return {
+        id: r.place_id?.toString?.() || `${lat},${lon}`,
+        name,
+        address,
+        coordinates: { latitude: lat, longitude: lon },
+      };
+    });
+
+    return mapped;
   } catch (error) {
     Logger.error('Location search error', error as Error, {
       component: 'calendarSyncService',
