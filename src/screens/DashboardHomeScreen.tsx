@@ -773,6 +773,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
   const [hasPlaybooks, setHasPlaybooks] = useState(true); // Track if user has playbooks
   const [hasDevotionals, setHasDevotionals] = useState(true); // Track if user has devotionals
+  const [hasScripture, setHasScripture] = useState(true); // Track if scripture is shown
   const [hasAffirmations, setHasAffirmations] = useState(true); // Track if affirmations are shown
   // Reflection Questions state
   const [selectedReflection, setSelectedReflection] = useState<{
@@ -956,11 +957,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     const onDevotionalCreated = () => {
       // Show devotionals section when new devotional is created
       setHasDevotionals(true);
+      // Devotionals contain scripture, so show scripture section
+      setHasScripture(true);
     };
 
     const onPlaybookCreated = () => {
       // Show playbooks section when new playbook is created
       setHasPlaybooks(true);
+      // Playbooks contain scripture and affirmations, so show both sections
+      setHasScripture(true);
+      setHasAffirmations(true);
     };
 
     const subDevotional = DeviceEventEmitter.addListener('devotional_created', onDevotionalCreated);
@@ -1410,9 +1416,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <StreakTracker />
           <View style={styles.smallSectionGap} />
 
-          {/* Daily Scripture - now below Streak Tracker */}
-          <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
-          <View style={styles.sectionGap} />
+          {/* Daily Scripture - now below Streak Tracker - Hide when empty */}
+          {hasScripture && (
+            <>
+              <DailyBibleVerseCard
+                onRefresh={() => setRefreshing(true)}
+                onEmpty={() => setHasScripture(false)}
+              />
+              <View style={styles.sectionGap} />
+            </>
+          )}
 
           {/* Row 1: Inspiration Cards (Affirmation only) - Hide when empty to prevent gap */}
           {hasAffirmations && (

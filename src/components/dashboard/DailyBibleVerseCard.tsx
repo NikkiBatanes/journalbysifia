@@ -31,15 +31,23 @@ interface BibleVerse {
 interface DailyBibleVerseCardProps {
   onRefresh?: () => void;
   onVersePress?: (verse: BibleVerse) => void;
+  onEmpty?: () => void; // Callback when no verses available
 }
 
 
-const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, onVersePress }) => {
+const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, onVersePress, onEmpty }) => {
   const { user } = useAuth();
   const [verse, setVerse] = useState<BibleVerse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCopyright, setShowCopyright] = useState(false);
+
+  // Notify parent when no verses available
+  React.useEffect(() => {
+    if (!loading && !verse) {
+      onEmpty?.();
+    }
+  }, [loading, verse, onEmpty]);
 
   const fetchDailyVerse = useCallback(async () => {
     if (!user) {return;}
