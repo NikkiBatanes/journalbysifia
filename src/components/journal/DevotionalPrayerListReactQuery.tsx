@@ -17,7 +17,6 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { JournalCard } from './JournalCard';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { normalizePrayerText } from '../../utils/prayerFormatting';
 
 interface DevotionalPrayerListReactQueryProps {
   selectedDate: Date;
@@ -202,7 +201,10 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               >
                 <View style={styles.horizontalPrayerItem}>
                   <View style={styles.prayerContentContainer}>
-                    <ThemedText style={styles.prayerText}>{normalizePrayerText(prayer.content)}</ThemedText>
+                    <ThemedText style={styles.prayerText}>{prayer.content
+                        .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
+                        .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
+                    }</ThemedText>
                   </View>
                   <View style={styles.metadataContainer}>
                     <View style={styles.verticalLine} />

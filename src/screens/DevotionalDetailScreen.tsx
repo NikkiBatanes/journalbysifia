@@ -33,7 +33,6 @@ import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
-import { normalizePrayerText } from '../utils/prayerFormatting';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
@@ -428,7 +427,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // Prepare and debug-format the prayer text for current day
   const rawPrayer = currentDay?.prayer ?? '';
-  const formattedPrayer = useMemo(() => normalizePrayerText(rawPrayer), [rawPrayer]);
+  const formattedPrayer = useMemo(() =>
+    rawPrayer
+      .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
+      .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
+  , [rawPrayer]);
   useEffect(() => {
     if (rawPrayer) {
       // Prayer formatting handled by normalizePrayer function
