@@ -75,6 +75,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const scrollX = React.useRef(new Animated.Value(0)).current;
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const devotionalIdsRef = useRef<Set<string>>(new Set());
+  const hasLoadedRef = useRef(false);
   const [hasPlaybooks, setHasPlaybooks] = useState(false);
 
   // Notify parent when carousel is empty
@@ -101,7 +102,10 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     if (!user) {return;}
 
     try {
-      setLoading(true);
+      // Only show skeleton on first load; keep content visible on background refetches
+      if (!hasLoadedRef.current) {
+        setLoading(true);
+      }
       setError(null);
 
       // Fetch devotionals and playbooks count in parallel
@@ -328,6 +332,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       Logger.error('Error fetching devotionals', err as Error, { component: 'DevotionalCarousel' });
       setError('Unable to load devotionals');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   }, [user]);
