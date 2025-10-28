@@ -1294,7 +1294,13 @@ return (
             totalDays={editingId && selectedEntry ? selectedEntry.total_days : undefined}
             questionNumber={editingId && selectedEntry ? selectedEntry.question_number : undefined}
             styles={reflectionLogStyles}
-            dateString={selectedDate.toISOString()} // Pass ISO string for proper date parsing
+            dateString={(function() {
+              const year = selectedDate.getFullYear();
+              const currentYear = new Date().getFullYear();
+              const base: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+              const withYear: Intl.DateTimeFormatOptions = { ...base, year: 'numeric' };
+              return selectedDate.toLocaleDateString('en-US', year === currentYear ? base : withYear);
+            })()}
           />
 
       </Modal>

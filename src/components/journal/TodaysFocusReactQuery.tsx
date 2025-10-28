@@ -439,10 +439,16 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         return p;
       });
 
-      return {
+      const updated = {
         ...prev,
         priorities: newPriorities,
       };
+
+      // Persist immediately so checks survive refresh
+      // Fire and forget; errors are handled in saveFocus
+      saveFocus(updated).catch(() => {});
+
+      return updated;
     });
   };
 
@@ -458,10 +464,15 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           style: 'destructive',
           onPress: () => {
             try { triggerLightHaptic(); } catch {}
-            setData(prev => ({
-              ...prev,
-              priorities: prev.priorities.filter(p => p.id !== priorityId),
-            }));
+            setData(prev => {
+              const updated = {
+                ...prev,
+                priorities: prev.priorities.filter(p => p.id !== priorityId),
+              };
+              // Persist deletion immediately
+              saveFocus(updated).catch(() => {});
+              return updated;
+            });
           },
         },
       ]

@@ -964,7 +964,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       <StatusBar hidden />
     <View style={s.backgroundContainer} />
     <View style={s.header}>
-      <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
+      {!!dateString && (
+        <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
+      )}
       <View style={s.modeToggle}>
         {/* Always show pencil icon for free-form mode */}
         <TouchableOpacity
