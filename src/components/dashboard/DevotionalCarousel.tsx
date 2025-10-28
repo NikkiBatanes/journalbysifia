@@ -664,11 +664,11 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
+    paddingHorizontal: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     marginBottom: 16,
     gap: 8,
   },
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   scrollContainer: {
-    paddingRight: 16,
+    paddingRight: 0,
     alignItems: 'center',
   },
   scrollExpanded: {

@@ -603,11 +603,11 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
     overflow: 'visible',
+    paddingHorizontal: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     marginBottom: 16,
     gap: 8,
   },
@@ -627,6 +627,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingVertical: 4,
+    paddingRight: 0,
     overflow: 'visible',
     alignItems: 'center',
   },
