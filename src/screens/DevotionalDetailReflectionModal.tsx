@@ -257,7 +257,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     <Modal
       visible={visible}
       animationType="slide"
-      transparent
+      presentationStyle="fullScreen"
       onRequestClose={() => {
         Keyboard.dismiss();
         // Small delay to ensure keyboard is fully dismissed before closing
@@ -268,10 +268,6 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       }}
       onDismiss={() => {}}
     >
-      <KeyboardAvoidingView
-        style={styles.centeredView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
         <View style={styles.modalView}>
           <ReflectionLogEditor
             initialTitle={question}
@@ -311,7 +307,6 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
             onEdit={successModal.handleEdit}
           />
         </View>
-      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -348,27 +343,9 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
     fontWeight: '600',
   },
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
   modalView: {
-    backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    padding: 0,
-    width: '100%',
-    height: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    overflow: 'hidden',
+    flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
 });
 
