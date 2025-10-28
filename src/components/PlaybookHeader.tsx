@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'column',
     alignItems: 'stretch',
-    paddingTop: 5,
+    paddingTop: 0,
     paddingBottom: 4,
     paddingHorizontal: 22,
     backgroundColor: 'transparent',
