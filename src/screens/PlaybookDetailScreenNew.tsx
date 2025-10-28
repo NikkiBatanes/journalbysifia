@@ -1373,7 +1373,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // ===== MAIN RENDER =====
 
   const headerSafeAreaPaddingStyle = useMemo(() => ({
-    paddingTop: 0,
+    paddingTop: 6,
   }), []);
 
   return (
@@ -1386,22 +1386,20 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           style={[styles.headerContainer, showCompactHeader && styles.headerContainerCompact]}
           onLayout={(e) => setHeaderMeasuredHeight(e.nativeEvent.layout.height)}
         >
-          <HeaderLeft
-            navigation={navigation}
-            showUserInput={showUserInput}
-            setShowUserInput={setShowUserInput}
-            chevronStyle={chevronStyle}
-            showCompactHeader={showCompactHeader}
-            playbookTitle={playbook?.title}
-            completedTasksCount={completedTasksCount}
-            totalTasksCount={totalTasksCount}
-            progressPercentage={progress}
-            isFromOnboarding={isFromOnboarding}
-            onboardingNextStep={onboardingNextStep}
-            styles={styles}
-          />
-          <View style={styles.headerRight}>
-            <ProfileButton user={user} navigation={navigation} styles={styles} />
+          <View style={{ width: '100%', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={styles.playbookLabelContainer}
+              onPress={() => {
+                triggerLightHaptic();
+                setShowUserInput(!showUserInput);
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText weight="semiBold" style={styles.playbookLabelText}>PLAYBOOK</ThemedText>
+              <Animated.View style={chevronStyle}>
+                <Ionicons name="chevron-down" size={15} color={Colors.hopeWhite} />
+              </Animated.View>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
