@@ -282,7 +282,6 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     flex: 1,
-    maxWidth: 200,
     height: 12,
     borderRadius: 6,
     overflow: 'hidden',

@@ -146,26 +146,6 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
 
   return (
     <View style={styles.headerLeftContainer}>
-      <TouchableOpacity
-        onPress={() => {
-          // Light haptic on back
-          triggerLightHaptic();
-          try {
-            if (isFromOnboarding && onboardingNextStep) {
-              // Continue onboarding flow to next step
-
-              navigation.navigate(onboardingNextStep);
-            } else {
-              navigation.goBack();
-            }
-          } catch (err) {
-
-          }
-        }}
-        style={styles.backButtonContainer}
-      >
-        <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
-      </TouchableOpacity>
       {!showCompactHeader && (
         <TouchableOpacity
           style={styles.playbookLabelContainer}
@@ -251,7 +231,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   // Status bar: force light icons (white) on dark header background
-  useScreenStatusBar('light', Colors.anchorBlue);
+  useScreenStatusBar('dark', Colors.anchorBlue);
   // Measure header height so we can place the card overlay precisely below it
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
@@ -1213,7 +1193,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 styles.stackCardScrollBase,
                 cardIndex === cardData.length - 1 ? styles.stackCardBgCoral : styles.stackCardBgTransparent,
               ]}
-              showsVerticalScrollIndicator={true}
+              showsVerticalScrollIndicator={false}
               bounces={true}
               onScrollBeginDrag={() => setIsScrolling(true)}
               onScrollEndDrag={() => setIsScrolling(false)}
@@ -1224,6 +1204,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 styles.cardContentContainer,
                 {
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
+                  paddingBottom: 40,
                 },
               ]}
             >
@@ -1373,7 +1354,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // ===== MAIN RENDER =====
 
   const headerSafeAreaPaddingStyle = useMemo(() => ({
-    paddingTop: 6,
+    paddingTop: 8,
   }), []);
 
   return (
@@ -1386,21 +1367,20 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           style={[styles.headerContainer, showCompactHeader && styles.headerContainerCompact]}
           onLayout={(e) => setHeaderMeasuredHeight(e.nativeEvent.layout.height)}
         >
-          <View style={{ width: '100%', alignItems: 'center' }}>
-            <TouchableOpacity
-              style={styles.playbookLabelContainer}
-              onPress={() => {
-                triggerLightHaptic();
-                setShowUserInput(!showUserInput);
-              }}
-              activeOpacity={0.7}
-            >
-              <ThemedText weight="semiBold" style={styles.playbookLabelText}>PLAYBOOK</ThemedText>
-              <Animated.View style={chevronStyle}>
-                <Ionicons name="chevron-down" size={15} color={Colors.hopeWhite} />
-              </Animated.View>
-            </TouchableOpacity>
-          </View>
+          <HeaderLeft
+            navigation={navigation}
+            showUserInput={showUserInput}
+            setShowUserInput={setShowUserInput}
+            chevronStyle={chevronStyle}
+            showCompactHeader={showCompactHeader}
+            playbookTitle={playbook?.title}
+            completedTasksCount={completedTasksCount}
+            totalTasksCount={totalTasksCount}
+            progressPercentage={progress}
+            isFromOnboarding={isFromOnboarding}
+            onboardingNextStep={onboardingNextStep}
+            styles={styles}
+          />
         </View>
       </View>
       {!playbookId ? (
@@ -1744,7 +1724,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 2,
     backgroundColor: Colors.anchorBlue,
@@ -1997,12 +1977,12 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     fontFamily: theme.fonts?.bold || 'System',
     color: Colors.hopeWhite,
     marginLeft: 4,
-    maxWidth: 260,
+    flex: 1,
   },
   playbookLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: 0,
     paddingVertical: 8,
     paddingHorizontal: 12,
     minHeight: 32,
@@ -2048,7 +2028,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   headerProgressContainer: {
     marginLeft: 12,
-    maxWidth: 260,
+    flex: 1,
   },
   headerProgressRow: {
     flexDirection: 'row',
