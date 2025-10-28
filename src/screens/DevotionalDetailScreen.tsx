@@ -87,6 +87,15 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     addJournaledQuestion,
     updateJournaledQuestion,
   } = useJournaledQuestions(userId || '', devotionalId);
+  // Compute initial day index (Day 1 for new devotionals, else first incomplete)
+  const initialDayIndex = useMemo(() => {
+    if (!devotional?.days || devotional.days.length === 0) { return 0; }
+    const isNew = devotional.days.every(day => !day.completed);
+    if (isNew) { return 0; }
+    const firstIncomplete = devotional.days.findIndex(day => !day.completed);
+    return firstIncomplete >= 0 ? firstIncomplete : 0;
+  }, [devotional?.days]);
+
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const loading = devotionalLoading || devotionalFetching; // Use React Query loading state
   // State for completion modal
@@ -336,53 +345,12 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [devotional, allDevotionalPrayers]);
 
-  // Set initial day index from route params or devotional context
+  // Set initial day index when devotional loads; FlatList will mount at this index via initialScrollIndex
   useEffect(() => {
-    if (devotional) {
-      // Check if this is a newly created devotional (all days are incomplete)
-      const isNewDevotional = devotional.days.every(day => !day.completed);
-
-      if (isNewDevotional) {
-        // For newly created devotionals, always start with day 1 (index 0)
-        setCurrentDayIndex(0);
-
-        // Force scroll to day 1 after a short delay
-        setTimeout(() => {
-          if (flatListRef.current) {
-            isScrollingProgrammatically.current = true;
-            flatListRef.current.scrollToIndex({
-              index: 0,
-              animated: false,
-            });
-            setTimeout(() => {
-              isScrollingProgrammatically.current = false;
-            }, 100);
-          }
-        }, 100);
-      } else {
-        // For existing devotionals, find the first incomplete day
-        const firstIncompleteIndex = devotional.days.findIndex(day => !day.completed);
-        const targetIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
-
-        setCurrentDayIndex(targetIndex);
-
-        // Scroll to the target day
-        setTimeout(() => {
-          if (flatListRef.current) {
-            isScrollingProgrammatically.current = true;
-            flatListRef.current.scrollToIndex({
-              index: targetIndex,
-              animated: false,
-            });
-            setTimeout(() => {
-              isScrollingProgrammatically.current = false;
-            }, 100);
-          }
-        }, 100);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [devotional?.id]); // Only run when devotional id changes (first load)
+    if (!devotional) { return; }
+    setCurrentDayIndex(initialDayIndex);
+    // No immediate programmatic scroll here; rely on FlatList initialScrollIndex for alignment
+  }, [devotional, initialDayIndex]);
 
   // Scroll to the correct day when currentDayIndex changes
   const scrollToDay = useCallback((index: number) => {
@@ -816,7 +784,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, idx) => idx.toString()}
-          initialScrollIndex={0}
+          initialScrollIndex={initialDayIndex}
           initialNumToRender={devotional.days.length}
           maxToRenderPerBatch={devotional.days.length}
           windowSize={devotional.days.length}
