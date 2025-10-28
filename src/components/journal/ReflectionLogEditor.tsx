@@ -850,15 +850,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Determine the entry type - if there's a guided prompt, it's a guided entry
     const entryType = promptToCheck ? 'guided' : viewMode;
 
-    // Debug logging to track what's being saved
-    console.log('🔍 ReflectionLogEditor - Preparing to save:', {
-      promptToCheck,
-      selectedPrompt,
-      viewMode,
-      entryType,
-      source,
-      newEntryTitle: newEntry.title,
-    });
 
     const entry = {
       title: newEntry.title.trim(),
@@ -1364,8 +1355,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           triggerLightHaptic();
 
                           // Always allow selecting any prompt - gating happens on save
-                          console.log('🔍 ReflectionLogEditor - Guided prompt selected:', prompt);
-
                           setSelectedPrompt(prompt);
                           setViewMode('free-form');
 
@@ -1377,7 +1366,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                               content: prev.content || '',
                               tags: prev.tags || [],
                             }));
-                            console.log('🔍 ReflectionLogEditor - Updated newEntry, selectedPrompt:', prompt);
 
                             // Focus the content input after the view switches
                             createManagedTimeout(() => {

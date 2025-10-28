@@ -190,19 +190,21 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       // Determine context: guided or playbook
       const isPlaybookContext = !isGuidedReflection && !!playbookId;
 
+      // Use the type from ReflectionLogEditor if it's 'guided', otherwise use modal logic
+      const finalType = entry.type === 'guided' ? 'guided' : (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'free');
+      const finalSource = entry.type === 'guided' ? 'guided' : (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform');
+
       const reflectionData = {
         user_id: user.id,
         title: entry.title,
         content: entry.content,
-        // Use guided type/source when launched from guided prompt
-        // Use playbook when launched from playbook context
-        // Otherwise, default to free-form
-        type: (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'free'),
-        source: (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform'),
+        // Use type/source from ReflectionLogEditor if it determined it's guided
+        type: finalType,
+        source: finalSource,
         selected_date: dateStr,
-        tags: [...(entry.tags || []), (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform')],
+        tags: [...(entry.tags || []), (finalType === 'guided' ? 'guided' : finalType === 'playbook' ? 'playbook' : 'freeform')],
         // Save the prompt for guided reflections so it can be displayed in the journal
-        ...(isGuidedReflection && preservedSubtaskTitle ? { prompt: preservedSubtaskTitle } : {}),
+        ...(finalType === 'guided' && (entry.prompt || preservedSubtaskTitle) ? { prompt: entry.prompt || preservedSubtaskTitle } : {}),
         // Only attach playbook metadata when not guided
         ...(isPlaybookContext && playbookTitle ? { playbook_title: playbookTitle } : {}),
         ...(isPlaybookContext && playbookId ? { playbook_id: playbookId } : {}),

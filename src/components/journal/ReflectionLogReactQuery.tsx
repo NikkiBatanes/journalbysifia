@@ -1159,16 +1159,6 @@ return (
                 // Determine the source - if type is 'guided', override source to 'guided'
                 const determinedSource = normalizedType === 'guided' ? 'guided' : (entryData.source || (normalizedType === 'free' ? 'freeform' : undefined));
 
-                // Debug logging to track reflection saving
-                console.log('🔍 ReflectionLogReactQuery - Saving reflection:', {
-                  rawType,
-                  normalizedType,
-                  entryDataType: entryData.type,
-                  entryDataSource: entryData.source,
-                  determinedSource,
-                  entryDataPrompt: entryData.prompt,
-                  title: entryData.title,
-                });
 
                 // Only include fields that exist in the database schema
                 const saveData = {
