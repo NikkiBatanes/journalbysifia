@@ -1,23 +1,18 @@
 // src/navigation/RootStackNavigator.tsx
 import React from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   createNativeStackNavigator,
-  NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 // Removed CommonActions import as we navigate directly to UserProfile
 
 import { Colors } from '../theme';
-import { useTheme } from '../theme/ThemeContext';
-import { triggerLightHaptic } from '../utils/haptics';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
-import { useAuth } from '../context/IndustryStandardAuthContext';
+// import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
 
 // New Onboarding screens
@@ -36,77 +31,78 @@ import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingN
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
 
-// Header Components
-interface BackButtonProps {
-  onPress: () => void;
-  color?: string;
-}
+// Header Components (commented out - unused)
+// interface BackButtonProps {
+//   onPress: () => void;
+//   color?: string;
+// }
 
-const BackButton = React.memo<BackButtonProps>(({ onPress, color = Colors.anchorBlue }) => (
-  <TouchableOpacity
-    onPress={() => {
-      triggerLightHaptic();
-      onPress();
-    }}
-    style={styles.backButton}
-  >
-    <Ionicons name="chevron-back" size={24} color={color} />
-  </TouchableOpacity>
-));
+// Unused - kept for potential future use
+// const BackButton = React.memo<BackButtonProps>(({ onPress, color = Colors.anchorBlue }) => (
+//   <TouchableOpacity
+//     onPress={() => {
+//       triggerLightHaptic();
+//       onPress();
+//     }}
+//     style={styles.backButton}
+//   >
+//     <Ionicons name="chevron-back" size={24} color={color} />
+//   </TouchableOpacity>
+// ));
 
-interface ProfileImageProps {
-  containerStyle?: object;
-  navigation?: any;
-}
+// interface ProfileImageProps {
+//   containerStyle?: object;
+//   navigation?: any;
+// }
 
-const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation }) => {
-  const { user } = useAuth();
-  const meta: any = (user as any)?.user_metadata || {};
-  const displayName =
-    (user as any)?.displayName ||
-    meta.full_name ||
-    [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
-    (user as any)?.email ||
-    'User';
-  const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
+// Unused - kept for potential future use
+// const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation }) => {
+//   const { user } = useAuth();
+//   const meta: any = (user as any)?.user_metadata || {};
+//   const displayName =
+//     (user as any)?.displayName ||
+//     meta.full_name ||
+//     [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
+//     (user as any)?.email ||
+//     'User';
+//   const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
-  return (
-    <TouchableOpacity
-      onPress={() => {
-        if (navigation) {
-          try {
-            navigation.navigate('UserProfileModal');
-          } catch (error) {
+//   return (
+//     <TouchableOpacity
+//       onPress={() => {
+//         if (navigation) {
+//           try {
+//             navigation.navigate('UserProfileModal');
+//           } catch (error) {
 
-          }
-        }
-      }}
-      style={[styles.profileImageContainer, containerStyle]}
-      activeOpacity={0.7}
-    >
-      {(user as any)?.user_metadata?.avatar_url ? (
-        <Image
-          source={{ uri: (user as any).user_metadata.avatar_url }}
-          style={styles.profileImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.profileImage, styles.initialAvatar]}>
-          <Text style={styles.initialLetter}>{initialLetter}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-});
+//           }
+//         }
+//       }}
+//       style={[styles.profileImageContainer, containerStyle]}
+//       activeOpacity={0.7}
+//     >
+//       {(user as any)?.user_metadata?.avatar_url ? (
+//         <Image
+//           source={{ uri: (user as any).user_metadata.avatar_url }}
+//           style={styles.profileImage}
+//           resizeMode="cover"
+//         />
+//       ) : (
+//         <View style={[styles.profileImage, styles.initialAvatar]}>
+//           <Text style={styles.initialLetter}>{initialLetter}</Text>
+//         </View>
+//       )}
+//     </TouchableOpacity>
+//   );
+// });
 
-// Memoized header components
-const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?: string, onPress: () => void }) => {
-  return <BackButton onPress={onPress} color={color} />;
-});
+// Memoized header components (kept for potential future use)
+// const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?: string, onPress: () => void }) => {
+//   return <BackButton onPress={onPress} color={color} />;
+// });
 
 // Header right components as functions
-// These are used in navigation options below
-const renderDefaultProfileImage = ({ navigation }: any) => <ProfileImage navigation={navigation} />;
+// const renderDefaultProfileImage = ({ navigation }: any) => <ProfileImage navigation={navigation} />;
 
 // Unused component - commenting out to fix linting
 // const DevotionalHeaderLeft = ({ navigation }: { navigation: any }) => (
@@ -354,55 +350,56 @@ export default function RootStackNavigator({
   );
 }
 
-const styles = StyleSheet.create({
-  backButton: {
-    marginLeft: 0,
-    padding: 8,
-    paddingLeft: 0,
-  },
-  profileImageContainer: {
-    marginRight: 16,
-    overflow: 'hidden',
-    borderRadius: 16,
-  },
-  whiteProfileImageContainer: {
-    marginRight: 16,
-    overflow: 'hidden',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  profileImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  initialAvatar: {
-    backgroundColor: Colors.alertCoral,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  initialLetter: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.anchorBlue,
-    textAlign: 'center',
-    marginTop: 2,
-    maxWidth: '70%',
-  },
-  headerStyle: {
-    backgroundColor: '#f2f5f7',
-  },
-  headerTitleContainer: {
-    width: '100%',
-    paddingHorizontal: 16,
-  },
-  darkHeaderStyle: {
-    backgroundColor: Colors.anchorBlue,
-  },
-});
+// Styles commented out - unused after removing header components
+// const styles = StyleSheet.create({
+//   backButton: {
+//     marginLeft: 0,
+//     padding: 8,
+//     paddingLeft: 0,
+//   },
+//   profileImageContainer: {
+//     marginRight: 16,
+//     overflow: 'hidden',
+//     borderRadius: 16,
+//   },
+//   whiteProfileImageContainer: {
+//     marginRight: 16,
+//     overflow: 'hidden',
+//     borderRadius: 16,
+//     borderWidth: 1,
+//     borderColor: 'rgba(255,255,255,0.3)',
+//   },
+//   profileImage: {
+//     width: 32,
+//     height: 32,
+//     borderRadius: 16,
+//   },
+//   initialAvatar: {
+//     backgroundColor: Colors.alertCoral,
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//   },
+//   initialLetter: {
+//     color: Colors.hopeWhite,
+//     fontSize: 14,
+//     fontWeight: '700',
+//   },
+//   headerTitle: {
+//     fontSize: 18,
+//     fontWeight: '800',
+//     color: Colors.anchorBlue,
+//     textAlign: 'center',
+//     marginTop: 2,
+//     maxWidth: '70%',
+//   },
+//   headerStyle: {
+//     backgroundColor: '#f2f5f7',
+//   },
+//   headerTitleContainer: {
+//     width: '100%',
+//     paddingHorizontal: 16,
+//   },
+//   darkHeaderStyle: {
+//     backgroundColor: Colors.anchorBlue,
+//   },
+// });

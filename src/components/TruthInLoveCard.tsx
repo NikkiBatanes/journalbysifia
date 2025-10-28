@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 
 import { Colors } from '../theme';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
@@ -21,7 +21,6 @@ type TruthInLoveCardProps = {
   };
   playbookTitle?: string;
   userInput?: string;
-  onToggleExpand?: () => void;
 };
 
 export default function TruthInLoveCard({
@@ -36,7 +35,6 @@ export default function TruthInLoveCard({
   currentUser,
   playbookTitle: _playbookTitle,
   userInput: _userInput,
-  onToggleExpand,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
   // Use only parent-controlled expansion

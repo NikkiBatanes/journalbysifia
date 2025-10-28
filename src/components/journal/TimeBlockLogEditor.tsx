@@ -193,6 +193,9 @@ const createDefaultStyles = (fonts: any) => ({
   multilineInput: {
     minHeight: 120,
   },
+  locationInputContainer: {
+    marginBottom: 12,
+  },
 
   timeContainer: {
     flexDirection: 'row',
@@ -1204,7 +1207,7 @@ function TimeBlockLogEditorInner(
               </Modal>
 
               {/* Location Input */}
-              <View style={{ marginBottom: 12 }}>
+              <View style={s.locationInputContainer}>
                 <LocationSelector
                   currentLocation={location}
                   onLocationSelect={(loc) => handleContentChange('location', loc)}

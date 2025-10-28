@@ -555,7 +555,9 @@ export const searchLocations = async (query: string): Promise<LocationSearchResu
       },
     });
     const results: any[] = await resp.json();
-    if (!Array.isArray(results)) return [];
+    if (!Array.isArray(results)) {
+      return [];
+    }
 
     const mapped: LocationSearchResult[] = results.map((r: any) => {
       const lat = parseFloat(r.lat);

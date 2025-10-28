@@ -96,8 +96,8 @@ interface CardData {
 }
 
 // Header left component extracted to fix linter warning
-const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, onboardingNextStep, styles }: {
-  navigation: any;
+const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, _onboardingNextStep, styles }: {
+  _navigation: any;
   showUserInput: boolean;
   setShowUserInput: (show: boolean) => void;
   chevronStyle: any;
@@ -106,8 +106,8 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
   completedTasksCount: number;
   totalTasksCount: number;
   progressPercentage: number;
-  isFromOnboarding?: boolean;
-  onboardingNextStep?: string;
+  _isFromOnboarding?: boolean;
+  _onboardingNextStep?: string;
   styles: any;
 }) => (
   <HeaderLeftInner
@@ -121,13 +121,12 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
     totalTasksCount={totalTasksCount}
     progressPercentage={progressPercentage}
     isFromOnboarding={isFromOnboarding}
-    onboardingNextStep={onboardingNextStep}
     styles={styles}
   />
 );
 
 // Inner component to use hooks
-const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, onboardingNextStep, styles }: any) => {
+const HeaderLeftInner = ({ _navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, _isFromOnboarding, _onboardingNextStep, styles }: any) => {
   const progressAnim = React.useRef(new RNAnimated.Value(progressPercentage || 0)).current;
 
   React.useEffect(() => {
@@ -236,8 +235,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
   const overlayTop = Math.max(insets.top, 10) + playbookHeaderHeight - 40;
-  // Reduce top adjust to allow more natural safe area padding; we'll also add a small extra pad
-  const HEADER_TOP_ADJUST = 0;
 
   // Animated collapse progress for smooth header transition (0 = expanded, 1 = collapsed)
   const collapseProgress = useSharedValue(0);
@@ -1202,9 +1199,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               scrollEventThrottle={16}
               contentContainerStyle={[
                 styles.cardContentContainer,
+                styles.expandedCardPadding,
                 {
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
-                  paddingBottom: 40,
                 },
               ]}
             >
@@ -1553,6 +1550,7 @@ interface PlaybookDetailStyles {
   stackCardScrollBase: ViewStyle;
   stackCardBgCoral: ViewStyle;
   stackCardBgTransparent: ViewStyle;
+  expandedCardPadding: ViewStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -2066,6 +2064,9 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   affirmationCardStyle: {
     backgroundColor: '#264674',
+  },
+  expandedCardPadding: {
+    paddingBottom: 40,
   },
 });
 
