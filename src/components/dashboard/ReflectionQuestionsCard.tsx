@@ -152,25 +152,25 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
       // Create a map of devotional ID to completed days
       const completedDaysMap = new Map<string, Set<number>>();
-      
+
       // First, initialize with devotional current_day for ALL devotionals
       devotionalsResult.data?.forEach(dev => {
         const devCurrentDay = (dev as any).current_day || 1;
         const completedDays = new Set<number>();
-        
+
         // Always include Day 1 and current day
         completedDays.add(1);
         if (devCurrentDay > 1) {
           completedDays.add(devCurrentDay);
         }
-        
+
         completedDaysMap.set(dev.id, completedDays);
-        
+
         Logger.info(`[ReflectionQuestions] Initial setup for ${dev.id}: currentDay=${devCurrentDay}, completedDays=${Array.from(completedDays).join(',')}`, {
           component: 'ReflectionQuestionsCard',
         });
       });
-      
+
       // Then, enhance with progress_data if available
       if (progressResult.data) {
         progressResult.data.forEach(progress => {
@@ -178,13 +178,13 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const progressData = typeof progress.progress_data === 'string'
               ? JSON.parse(progress.progress_data)
               : progress.progress_data;
-            
+
             const contentId = progress.content_id;
             // Get the existing completedDays set (already initialized above)
             const completedDays = completedDaysMap.get(contentId) || new Set<number>();
-            
+
             const progressCurrentDay = progressData?.current_day || progressData?.currentDay || 1;
-            
+
             // DEBUG: Log the progress data structure
             Logger.info(`[ReflectionQuestions] Progress data for ${contentId}:`, {
               component: 'ReflectionQuestionsCard',
@@ -195,7 +195,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 daysData: progressData?.days,
               },
             });
-            
+
             // Add any explicitly completed days from progress_data
             if (progressData?.days && Array.isArray(progressData.days)) {
               progressData.days.forEach((day: any, index: number) => {
@@ -209,10 +209,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 }
               });
             }
-            
+
             // Update the map with enhanced data
             completedDaysMap.set(contentId, completedDays);
-            
+
             // Debug logging
             Logger.info(`[ReflectionQuestions] Final for ${contentId}: completedDays=${Array.from(completedDays).join(',')}`, {
               component: 'ReflectionQuestionsCard',
@@ -233,7 +233,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const content = typeof devotional.content === 'string'
               ? JSON.parse(devotional.content)
               : devotional.content;
-            
+
             // Get completed days for this devotional
             const completedDays = completedDaysMap.get(devotional.id) || new Set<number>();
 
@@ -263,7 +263,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 });
                 return; // Skip journaled questions
               }
-              
+
               Logger.info(`[ReflectionQuestions] Including question: ${qText.substring(0, 50)}... (Day ${dayNumber}, ID: ${questionId})`, {
                 component: 'ReflectionQuestionsCard',
               });

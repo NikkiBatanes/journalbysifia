@@ -1,36 +1,49 @@
 #!/usr/bin/env python3
+"""Analyze ESLint JSON output and summarize lint issues."""
+
 import json
 import sys
+from pathlib import Path
 
-with open('/tmp/eslint_output.json', 'r') as f:
-    data = json.load(f)
 
-errors = []
-warnings = []
+def load_eslint_report(path: Path):
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        print(f"File not found: {path}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as exc:
+        print(f"Invalid JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
 
-for file_data in data:
-    file_name = file_data['filePath'].split('/')[-1]
-    for msg in file_data['messages']:
-        item = {
-            'file': file_name,
-            'line': msg['line'],
-            'message': msg['message'],
-            'rule': msg.get('ruleId', 'unknown')
-        }
-        if msg['severity'] == 2:
-            errors.append(item)
-        elif msg['severity'] == 1:
-            warnings.append(item)
 
-print(f'Total Errors: {len(errors)}')
-print(f'Total Warnings: {len(warnings)}')
+def summarize(report):
+    total_files = len(report)
+    total_warnings = 0
+    total_errors = 0
 
-if errors:
-    print(f'\nError Details (first 10):')
-    for e in errors[:10]:
-        print(f"  - {e['file']}:{e['line']} - {e['message']} ({e['rule']})")
+    for file_report in report:
+        for message in file_report.get("messages", []):
+            if message.get("severity") == 2:
+                total_errors += 1
+            else:
+                total_warnings += 1
 
-if warnings:
-    print(f'\nWarning Details (first 10):')
-    for w in warnings[:10]:
-        print(f"  - {w['file']}:{w['line']} - {w['message']} ({w['rule']})")
+    print(f"Files analyzed: {total_files}")
+    print(f"Errors: {total_errors}")
+    print(f"Warnings: {total_warnings}")
+
+
+def main(argv):
+    if len(argv) != 2:
+        print(f"Usage: {argv[0]} <eslint-report.json>", file=sys.stderr)
+        return 1
+
+    report_path = Path(argv[1])
+    report = load_eslint_report(report_path)
+    summarize(report)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

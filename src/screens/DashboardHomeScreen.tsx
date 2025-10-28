@@ -1418,7 +1418,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {hasAffirmations && (
             <>
               <View style={styles.row}>
-                <DailyAffirmationCard 
+                <DailyAffirmationCard
                   onRefresh={() => setRefreshing(true)}
                   onEmpty={() => setHasAffirmations(false)}
                 />

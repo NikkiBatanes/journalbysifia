@@ -76,7 +76,6 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const devotionalIdsRef = useRef<Set<string>>(new Set());
   const [hasPlaybooks, setHasPlaybooks] = useState(false);
-  const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
 
   // Notify parent when carousel is empty
   React.useEffect(() => {

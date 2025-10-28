@@ -133,7 +133,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       />
       <View
         key="challenge"
-        style={[propStyles.docCard, propStyles.challengeCard, { marginBottom: 4 }]}
+        style={[propStyles.docCard, propStyles.challengeCard, styles.challengeCardContainer]}
         onLayout={event => {
           challengeCardY.current = event.nativeEvent.layout.y;
           challengeCardHeight.current = event.nativeEvent.layout.height;
@@ -161,6 +161,9 @@ const styles = StyleSheet.create({
   },
   bibleVerseCard: {
     // No extra margin - docCard already provides marginBottom: 16
+  },
+  challengeCardContainer: {
+    marginBottom: 4,
   },
 });
 
