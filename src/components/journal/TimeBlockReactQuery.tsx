@@ -970,10 +970,27 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         updates: { calendar_event_id: eventId || undefined },
                       });
 
-                      // Invalidate to reflect synced state after refresh
+                      // Optimistically patch cache for current date so UI stays green even after refresh
+                      try {
+                        const qk = queryKeys.timeBlocks.byDate(user?.id || '', dateStr);
+                        queryClient.setQueryData<any[]>(qk, (old) => {
+                          if (!Array.isArray(old)) { return old; }
+                          return old.map((tb) => {
+                            if (tb.id === block.id || tb.id === persistId) {
+                              return { ...tb, calendar_event_id: eventId || undefined };
+                            }
+                            return tb;
+                          });
+                        });
+                      } catch {}
+
+                      // Invalidate to reflect synced state after refresh and across ranges
                       try {
                         await queryClient.invalidateQueries({
                           queryKey: queryKeys.timeBlocks.byDate(user?.id || '', dateStr),
+                        });
+                        await queryClient.invalidateQueries({
+                          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === queryKeys.timeBlocks.all[0],
                         });
                       } catch {}
                     } catch (catchError) {
