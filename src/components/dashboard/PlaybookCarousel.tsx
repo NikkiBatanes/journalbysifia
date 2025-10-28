@@ -573,7 +573,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_INSET }]}
           decelerationRate="fast"
           snapToInterval={ITEM_SIZE}
-          snapToAlignment="start"
+          snapToAlignment="center"
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: true }
@@ -581,7 +581,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           scrollEventThrottle={16}
           bounces={true}
           removeClippedSubviews={false}
-          style={styles.scrollExpanded}
+          style={undefined}
         >
           {playbooks.map((pb, i) => renderPlaybookCard(pb, i))}
         </Animated.ScrollView>
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   },
   scrollExpanded: {
     overflow: 'visible',
-    marginHorizontal: -CARD_HORIZONTAL_PADDING,
+    // Removed negative horizontal margin to keep items visually centered within container
   },
   // Empty state (hero) styles to match DevotionalCarousel
   emptyStateContainer: {

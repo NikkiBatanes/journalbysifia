@@ -606,7 +606,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
           contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_INSET }]}
           decelerationRate="fast"
           snapToInterval={ITEM_SIZE}
-          snapToAlignment="start"
+          snapToAlignment="center"
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: true }
@@ -614,7 +614,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
           scrollEventThrottle={16}
           bounces={true}
           removeClippedSubviews={false}
-          style={styles.scrollExpanded}
+          style={undefined}
         >
           {devotionals.map((devotional, index) => {
             const inputRange = [
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
   },
   scrollExpanded: {
     overflow: 'visible',
-    marginHorizontal: -16, // matches CARD_HORIZONTAL_PADDING
+    // Removed negative margin to keep items visually centered within container
   },
   itemContainer: {
     width: ITEM_WIDTH,
