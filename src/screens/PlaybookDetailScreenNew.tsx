@@ -1373,8 +1373,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // ===== MAIN RENDER =====
 
   const headerSafeAreaPaddingStyle = useMemo(() => ({
-    paddingTop: Math.max(insets.top - HEADER_TOP_ADJUST - 10, 0),
-  }), [insets.top]);
+    paddingTop: 0,
+  }), []);
 
   return (
     <View style={styles.container}>
