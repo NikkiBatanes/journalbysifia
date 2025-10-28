@@ -1068,16 +1068,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           <View onLayout={(e) => setPlaybookHeaderHeight(e.nativeEvent.layout.height)}>
             <PlaybookHeader
               title={currentPlaybook.title}
-              subtitle={
-                currentPlaybook.createdAt
-                  ? new Date(currentPlaybook.createdAt).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })
-                  : ''
-              }
               progress={progress}
               completedTasks={completedTasksCount}
               totalTasks={totalTasksCount}
@@ -1099,16 +1089,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             <View onLayout={(e) => setPlaybookHeaderHeight(e.nativeEvent.layout.height)}>
               <PlaybookHeader
                 title={currentPlaybook.title}
-                subtitle={
-                  currentPlaybook.createdAt
-                    ? new Date(currentPlaybook.createdAt).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    : ''
-                }
                 progress={progress}
                 completedTasks={completedTasksCount}
                 totalTasks={totalTasksCount}
@@ -1546,7 +1526,6 @@ interface PlaybookDetailStyles {
   playbookLabelRow: ViewStyle;
   playbookLabel: TextStyle;
   playbookTitle: TextStyle;
-  creationDate: TextStyle;
   progressAndViewRow: ViewStyle;
   progressContainer: ViewStyle;
   progressRow: ViewStyle;
@@ -1848,13 +1827,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 8,
-  },
-  creationDate: {
-    fontSize: 14,
-    fontFamily: theme.fonts?.regular || 'System',
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 16,
   },
   cardContentContainer: {
     flexGrow: 1,
