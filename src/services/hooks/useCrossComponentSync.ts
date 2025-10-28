@@ -82,13 +82,14 @@ export const useCrossComponentSync = (userId: string) => {
 
     try {
       // Award faith points based on completion type
-      // Suppress global notification here to avoid duplicates (local modal shows FP)
       const activityType = completionContext?.isFullDevotionalComplete ? 'devotional_full_completed' : 'devotional_completed';
+      const isFullCompletion = completionContext?.isFullDevotionalComplete;
+
       const pointsResult = await faithPointsService.awardPoints(userId, activityType as any, {
         devotionalId,
         playbookId,
         timestamp: new Date().toISOString(),
-        suppressNotification: true,
+        suppressNotification: !isFullCompletion, // Show animation only for full completion (3/3), suppress daily (1/3, 2/3)
         completionContext,
       });
 

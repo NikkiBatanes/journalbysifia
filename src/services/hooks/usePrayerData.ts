@@ -550,7 +550,7 @@ export const useMarkSupplicationAnswered = () => {
             _userId,
             'prayer_list_prayed',
             {
-              suppressNotification: true,
+              suppressNotification: false, // Show animation for answered prayers
               source: 'prayer_answered',
             }
           );
