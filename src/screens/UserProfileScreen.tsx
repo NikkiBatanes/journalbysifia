@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -200,6 +200,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [profileForm, user]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   // Modal states
   const [editProfileModal, setEditProfileModal] = useState(false);
@@ -337,7 +338,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      setLoading(true);
+      // Only show skeleton on first load; keep content visible on background refetches
+      if (!hasLoadedRef.current) {
+        setLoading(true);
+      }
 
       // Parallel loading for better performance
       const [progressResponse, statsResponse] = await Promise.allSettled([
@@ -386,6 +390,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     });
       Alert.alert('Error', 'Failed to load profile data');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   }, [user?.id, loadNotificationPreferences]);
@@ -1196,7 +1201,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         plan={planLabel}
         usage={usageSummary}
         subscription={subscription} // Pass subscription for tooltips
-        isLoading={loading || !subscription || !usage}
+        isLoading={loading && !hasLoadedRef.current}
       />
     );
   };
