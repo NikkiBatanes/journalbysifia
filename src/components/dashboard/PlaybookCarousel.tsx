@@ -347,15 +347,13 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       }
     );
 
-    // Optional: also listen for playbooks updates (e.g., content changes)
+    // Listen for ALL playbooks changes (including new creations and deletions)
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'playbooks' },
-      (payload: any) => {
-        const id = (payload.new?.id ?? payload.old?.id) as string | undefined;
-        if (id && playbookIdsRef.current.has(id)) {
-          scheduleRefetch();
-        }
+      (_payload: any) => {
+        // Refetch for any playbook change to catch new creations and deletions
+        scheduleRefetch();
       }
     );
 
