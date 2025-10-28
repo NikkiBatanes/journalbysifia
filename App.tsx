@@ -168,7 +168,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
       <GestureHandlerRootView style={styles.gestureHandler}>
 
 
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
         <ThemeProvider>
           <GlobalFontApplier />
           <ScrollProvider>

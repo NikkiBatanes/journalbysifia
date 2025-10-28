@@ -1576,6 +1576,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   cardStackContainer: {
     flex: 1,
     position: 'relative',
+    marginTop: 40,
     marginBottom: 8,
   },
   swipeUpIndicatorContainer: {
@@ -1973,11 +1974,10 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     paddingLeft: 0,
   },
   compactHeaderTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: theme.fonts?.bold || 'System',
     color: Colors.hopeWhite,
-    marginLeft: 4,
-    flex: 1,
+    marginBottom: 4,
   },
   playbookLabelContainer: {
     flexDirection: 'row',
@@ -2027,8 +2027,9 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     fontFamily: theme.fonts?.semiBold || 'System',
   },
   headerProgressContainer: {
-    marginLeft: 12,
+    marginLeft: 0,
     flex: 1,
+    paddingHorizontal: 16,
   },
   headerProgressRow: {
     flexDirection: 'row',

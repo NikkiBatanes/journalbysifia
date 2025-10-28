@@ -39,12 +39,8 @@ export default function TruthInLoveCard({
   onToggleExpand,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(!!expanded);
-
-  // Keep internal state in sync if parent changes the expanded prop
-  useEffect(() => {
-    setIsExpanded(!!expanded);
-  }, [expanded]);
+  // Use only parent-controlled expansion
+  const isExpanded = expanded;
   // Use fresh user data from auth context, fallback to currentUser prop
   const freshUserData = React.useMemo(() => user ? {
     displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
@@ -74,18 +70,11 @@ export default function TruthInLoveCard({
     <View style={[styles.container, style]}>
       <View style={styles.headerContainer}>
         <View style={styles.headingContainer}>
-          {/* Make the left header area (heart + title) toggle expansion */}
-          <TouchableOpacity
-            onPress={() => (onToggleExpand ? onToggleExpand() : setIsExpanded(prev => !prev))}
-            activeOpacity={0.9}
-            accessibilityRole="button"
-            accessibilityLabel={isExpanded ? 'Collapse truth content' : 'Expand truth content'}
-            style={styles.rowCenterFlex1}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
+          {/* Header area - expansion handled by parent card tap */}
+          <View style={styles.rowCenterFlex1}>
             <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.heartIcon} />
             <ThemedText weight="bold" style={[styles.heading, { color: textColor }]}>Truth in Love</ThemedText>
-          </TouchableOpacity>
+          </View>
           {/* Keep the info/insight button as a separate tap target */}
         </View>
         <ThemedText
