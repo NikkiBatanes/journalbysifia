@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26, 60, 109, 0.05)', // Light blue background for prayer content
     borderRadius: 8,
     padding: 12,
-    marginBottom: 0,
+    marginBottom: 4,
   },
   metadataContainer: {
     marginBottom: 12,
