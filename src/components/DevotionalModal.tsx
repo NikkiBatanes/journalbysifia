@@ -969,8 +969,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     color: Colors.hopeWhite,
-    marginBottom: 12,
-    marginTop: 12,
+    marginBottom: 0,
+    marginTop: 0,
     textAlign: 'center',
     fontWeight: '800',
     letterSpacing: 0.2,
@@ -1122,6 +1122,7 @@ const styles = StyleSheet.create({
   },
   fixedContent: {
     width: '100%',
+    marginTop: 32,
     marginBottom: 16,
     paddingHorizontal: 4,
   },
