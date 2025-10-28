@@ -94,19 +94,19 @@ export class FaithPointsService {
 
     // Completion (HIGHEST tier - scales with length)
     devotional_completed: 2, // Single day (1/3, 2/3) - very low
-    devotional_full_completed: 15, // Full completion (3/3, 5/5, 7/7) - HIGHEST
-    playbook_completed: 15, // Full playbook completion (5/5, 6/6) - HIGHEST, matches devotional
+    devotional_full_completed: 10, // Full completion (3/3, 5/5, 7/7)
+    playbook_completed: 10, // Full playbook completion (5/5, 6/6), matches devotional
 
     // Daily activities (medium tier)
     reflection_question_answered: 4, // Question to ponder
-    journal_entry: 5,
-    prayer_for_now: 3,
-    prayer_journal_acts: 3,
-    prayer_journal_open: 3,
-    prayer_devotional_prayed: 3,
-    prayer_list_prayed: 3,
+    journal_entry: 3,
+    prayer_for_now: 5,
+    prayer_journal_acts: 5,
+    prayer_journal_open: 5,
+    prayer_devotional_prayed: 5,
+    prayer_list_prayed: 5,
     prayer_list_request_added: 2,
-    prayer_answered: 3, // When marking prayer as answered (once per day)
+    prayer_answered: 5, // When marking prayer as answered (once per day)
 
     // Action steps (low-medium tier)
     subtask_completed: 1,
@@ -114,10 +114,10 @@ export class FaithPointsService {
 
     // Streaks and milestones
     daily_streak: 5,
-    weekly_goal_met: 25,
+    weekly_goal_met: 20,
     content_shared: 15,
     feedback_given: 8,
-    achievement_unlocked: 50,
+    achievement_unlocked: 30,
 
     // Streak bonuses
     playbook_streak_3: 5,
