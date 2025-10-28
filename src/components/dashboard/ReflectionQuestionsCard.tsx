@@ -458,8 +458,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         });
       });
 
-      // Limit to 7 total questions in the dashboard
-      setQuestions([...allQuestions, ...guidedQuestions].slice(0, 7));
+      // Limit to 7 total questions: ensure guided prompts are included by limiting devotional questions first
+      const maxDevotionalQuestions = Math.max(0, 7 - guidedQuestions.length);
+      const limitedDevotionalQuestions = allQuestions.slice(0, maxDevotionalQuestions);
+      setQuestions([...limitedDevotionalQuestions, ...guidedQuestions]);
 
     } catch (err) {
       Logger.error('Error fetching reflection questions', err as Error, { component: 'ReflectionQuestionsCard' });
