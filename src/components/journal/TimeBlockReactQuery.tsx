@@ -141,6 +141,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const fontKey = currentFont || 'lexend';
 
   const { user } = useAuth();
+  // Respect user auto-sync preference from profile
+  const autoSyncEnabled = ((user as any)?.user_metadata?.preferences?.calendar?.autoSync ?? false) as boolean;
   const weekStartsOn = useMemo(() => {
     const key = (user as any)?.user_metadata?.preferences?.weekStart as
       | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
@@ -951,8 +953,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       >
         <View style={[styles.timeBlockCard, styles.timeBlockCardInline]}>
           <View style={[styles.timeColumn, styles.timeColumnInline]}>
-            {/* Calendar Sync (inline above time) */}
-            {(calendarGating.canSyncToCalendar || !!block.calendarEventId) && (
+            {/* Calendar Sync (inline above time) - hidden when auto-sync is enabled */}
+            {(!autoSyncEnabled && (calendarGating.canSyncToCalendar || !!block.calendarEventId)) && (
               <View style={styles.calendarSyncInline}>
                 <CalendarSyncButton
                   timeBlock={block}
