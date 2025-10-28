@@ -1157,7 +1157,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           playbookTitle={playbook?.title}
           playbookId={playbook?.id}
           userInput={playbook?.userInput}
-          expanded={isExpanded}
+          expanded={card.type === 'bible' ? true : isExpanded}
         />
       );
 
@@ -1574,7 +1574,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   cardStackContainer: {
     flex: 1,
     position: 'relative',
-    marginTop: 40,
+    marginTop: 0,
     marginBottom: 8,
   },
   swipeUpIndicatorContainer: {
@@ -2066,7 +2066,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: '#264674',
   },
   expandedCardPadding: {
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
 });
 
