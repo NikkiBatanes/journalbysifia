@@ -139,7 +139,7 @@ export class SmartJournalDetectionV2 {
       // Award faith points for journaling
       await faithPointsService.awardPoints(
         userId,
-        'journal_entry_analyzed' as any,
+        'journal_entry',
         {
           detectedType: enhancedResult.detectedType,
           confidence: enhancedResult.confidence,

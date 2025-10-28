@@ -85,10 +85,11 @@ export class FaithPointsService {
   // Points awarded for different activities
   private readonly POINTS_SYSTEM = {
     affirmation_read_aloud: 2,
-    playbook_generated: 10,
+    playbook_generated: 8, // Same as devotional
     devotional_generated: 8,
-    devotional_completed: 5, // Single day completion
-    devotional_full_completed: 15, // Full devotional completion (all days)
+    devotional_completed: 3, // Single day completion (reduced)
+    devotional_full_completed: 8, // Full devotional completion (reduced from 15)
+    reflection_question_answered: 4, // Question to ponder
     journal_entry: 5,
     prayer_for_now: 2,
     prayer_journal_acts: 2,

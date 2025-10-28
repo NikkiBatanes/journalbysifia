@@ -15,6 +15,7 @@ import {
 } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
 import { analytics } from '../utils/analytics';
+import { faithPointsService } from '../services/faithPointsService';
 
 interface DevotionalDetailReflectionModalProps {
   visible: boolean;
@@ -154,6 +155,27 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         await queryClient.invalidateQueries({
           queryKey: ['journal', 'all'],
         });
+      }
+
+      // Award faith points for answering devotional question (only for new entries)
+      if (!existingEntry && user?.id) {
+        try {
+          await faithPointsService.awardPoints(
+            user.id,
+            'reflection_question_answered',
+            {
+              suppressNotification: true,
+              source: 'devotional_question',
+              devotional_id: devotionalId,
+              question,
+            }
+          );
+        } catch (error) {
+          Logger.warn('Failed to award faith points for devotional reflection', {
+            component: 'DevotionalDetailReflectionModal',
+            error: error as Error,
+          });
+        }
       }
 
       // Call the onSave callback to update parent state

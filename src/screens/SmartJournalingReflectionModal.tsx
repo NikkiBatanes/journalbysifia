@@ -13,6 +13,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
+import { faithPointsService } from '../services/faithPointsService';
 
 import { analytics } from '../utils/analytics';
 
@@ -282,6 +283,26 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         type: reflectionData.type,
         source: reflectionData.source,
       });
+
+      // Award faith points for answering reflection question (only for new reflections)
+      if (!existingReflection && user?.id) {
+        try {
+          await faithPointsService.awardPoints(
+            user.id,
+            'reflection_question_answered',
+            {
+              suppressNotification: true,
+              source: finalType === 'guided' ? 'guided_prompt' : finalType === 'playbook' ? 'playbook_reflection' : 'devotional_question',
+              question: preservedSubtaskTitle || entry.title,
+            }
+          );
+        } catch (error) {
+          Logger.warn('Failed to award faith points for reflection', {
+            component: 'SmartJournalingReflectionModal',
+            error: error as Error,
+          });
+        }
+      }
 
       // Call parent onSave callback
       onSave(savedReflection);
