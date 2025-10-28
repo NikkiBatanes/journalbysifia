@@ -3,7 +3,7 @@
  * Shows sync status and handles calendar integration with feature gating
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import {
   View,
@@ -56,6 +56,11 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   const calendarGating = useCalendarGating();
   const [isLoading, setIsLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'unsynced' | 'syncing' | 'error'>(calendarEventId ? 'synced' : 'unsynced');
+
+  // Sync state with prop changes (e.g., after refresh)
+  useEffect(() => {
+    setSyncStatus(calendarEventId ? 'synced' : 'unsynced');
+  }, [calendarEventId]);
 
   // Check if auto-sync is enabled
   const userPreferences = user?.user_metadata?.preferences || {};
