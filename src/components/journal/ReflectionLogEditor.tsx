@@ -1365,6 +1365,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                               title: prompt,
                               content: prev.content || '',
                               tags: prev.tags || [],
+                              type: 'guided', // Mark as guided reflection
                             }));
 
                             // Focus the content input after the view switches
