@@ -208,15 +208,18 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
 
 
 
-      if (allAffirmations.length === 0) {
-        setAffirmations([]);
-        return;
-      }
-
       // 3) Select items (stable per local-day)
       const today = new Date();
       const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
       const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const storageKey = `daily_affirmation_selection_${user.id}_${dateKey}`;
+
+      if (allAffirmations.length === 0) {
+        // No affirmations available - clear cache and hide component
+        setAffirmations([]);
+        try { await AsyncStorage.removeItem(storageKey); } catch {}
+        return;
+      }
 
       // Show up to 3 affirmations regardless of number of playbooks
       const desiredCount = Math.min(3, allAffirmations.length);
@@ -240,7 +243,6 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       };
 
       // Load saved selection for today (to keep stable even if playbooks change)
-      const storageKey = `daily_affirmation_selection_${user.id}_${dateKey}`;
       let picks: Affirmation[] = [];
       let savedIds: string[] | null = null;
       try {

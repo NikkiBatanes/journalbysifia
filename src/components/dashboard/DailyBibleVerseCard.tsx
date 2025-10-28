@@ -261,12 +261,11 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       }
 
       // Only use verses if found in database
+      const today = new Date();
+      const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const storageKey = `daily_scripture_selection_${user.id}_${dateKey}`;
 
       if (allVerses.length > 0) {
-        const today = new Date();
-        const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const storageKey = `daily_scripture_selection_${user.id}_${dateKey}`;
-
         // Try to load cached selection for stability throughout the day
         let cached: string | null = null;
         try {
@@ -288,7 +287,9 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
         setVerse(selected);
         try { await AsyncStorage.setItem(storageKey, selected.id); } catch {}
       } else {
+        // No verses available - clear cache and hide component
         setVerse(null);
+        try { await AsyncStorage.removeItem(storageKey); } catch {}
       }
 
     } catch (err) {
