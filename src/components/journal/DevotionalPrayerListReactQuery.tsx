@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 15,
     lineHeight: 22,
-    marginBottom: 12,
+    marginBottom: 0,
     fontStyle: 'italic',
   },
   emptyStateContainer: {
