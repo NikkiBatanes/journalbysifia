@@ -1100,6 +1100,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
             return false;
           }
+
+          const isDevotionalPrayer = pid.includes('devotional') || ptitle.includes('devotional') || etype.includes('prayed devotional') || etype.includes('devotional');
+          if (isDevotionalPrayer) {
+
+            return false;
+          }
         }
 
         // For answered prayers, hide confession, thanksgiving, and adoration completely
