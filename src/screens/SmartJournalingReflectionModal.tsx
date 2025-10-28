@@ -201,6 +201,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         source: (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform'),
         selected_date: dateStr,
         tags: [...(entry.tags || []), (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform')],
+        // Save the prompt for guided reflections so it can be displayed in the journal
+        ...(isGuidedReflection && preservedSubtaskTitle ? { prompt: preservedSubtaskTitle } : {}),
         // Only attach playbook metadata when not guided
         ...(isPlaybookContext && playbookTitle ? { playbook_title: playbookTitle } : {}),
         ...(isPlaybookContext && playbookId ? { playbook_id: playbookId } : {}),

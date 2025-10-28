@@ -891,6 +891,32 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   });
   // Removed draggable FAB logic (unused)
 
+  // Reintroduce auto-expand animation (parity with PlaybookListScreen)
+  const expandButton = useCallback(() => {
+    let animationCount = 0;
+    const maxAnimations = 2;
+    const runAnimation = () => {
+      if (animationCount >= maxAnimations) { return; }
+      animationCount++;
+      Animated.parallel([
+        Animated.timing(buttonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
+        Animated.timing(textOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
+      ]).start(() => {
+        setTimeout(() => {
+          Animated.parallel([
+            Animated.timing(textOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
+            Animated.timing(buttonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
+          ]).start(() => {
+            if (animationCount < maxAnimations) {
+              setTimeout(() => { runAnimation(); }, 3000);
+            }
+          });
+        }, 2500);
+      });
+    };
+    runAnimation();
+  }, [buttonWidth, textOpacity]);
+
   // Get user's first name with robust fallbacks
   const firstName =
     (user as any)?.firstName ||
@@ -941,6 +967,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         playbookWidth.setValue(playbookMeasuredWidth);
         Animated.timing(playbookWidth, { toValue: 0, duration: 400, useNativeDriver: false }).start();
       }
+      // Auto-expand FAB after a short delay (match PlaybookListScreen UX)
+      setTimeout(() => { expandButton(); }, 1000);
     }, [
       playbookMeasuredWidth,
       playbookWidth,
@@ -949,6 +977,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       refreshSubscription,
       queryClient,
       user?.id,
+      expandButton,
     ])
   );
 
