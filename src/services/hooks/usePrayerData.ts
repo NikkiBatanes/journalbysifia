@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Logger } from '../../utils/ProductionLogger';
 import { PrayerApi, PrayerApiEntry } from '../api/prayerApi';
 import { queryKeys } from '../queryKeys';
+import { faithPointsService } from '../faithPointsService';
 import { createRetryFunction } from '../../utils/retry';
 import { RETRY_CONFIGS } from '../../utils/retry';
 
@@ -539,6 +540,26 @@ export const useMarkSupplicationAnswered = () => {
           queryKeys.prayers.acts(_userId, _dateStr),
           context.previousACTSData
         );
+      }
+    },
+    onSuccess: async (data, { isAnswered, _userId }) => {
+      // Award faith points when marking prayer as answered
+      if (isAnswered && _userId) {
+        try {
+          await faithPointsService.awardPoints(
+            _userId,
+            'prayer_list_prayed',
+            {
+              suppressNotification: true,
+              source: 'prayer_answered',
+            }
+          );
+        } catch (error) {
+          Logger.warn('Failed to award faith points for prayer answered', {
+            component: 'usePrayerData',
+            error: error as Error,
+          });
+        }
       }
     },
     onSettled: (data, error, { _userId, _dateStr }) => {

@@ -91,12 +91,12 @@ export class FaithPointsService {
     devotional_full_completed: 8, // Full devotional completion (reduced from 15)
     reflection_question_answered: 4, // Question to ponder
     journal_entry: 5,
-    prayer_for_now: 2,
-    prayer_journal_acts: 2,
-    prayer_journal_open: 2,
-    prayer_devotional_prayed: 2,
-    prayer_list_prayed: 2,
-    prayer_list_request_added: 1,
+    prayer_for_now: 3, // Increased from 2
+    prayer_journal_acts: 3, // Increased from 2
+    prayer_journal_open: 3, // Increased from 2
+    prayer_devotional_prayed: 3, // Increased from 2
+    prayer_list_prayed: 3, // Increased from 2
+    prayer_list_request_added: 2, // Increased from 1
     subtask_completed: 1,
     action_step_completed: 3,
     playbook_completed: 10,
@@ -105,6 +105,15 @@ export class FaithPointsService {
     content_shared: 15,
     feedback_given: 8,
     achievement_unlocked: 50,
+    // Streak bonuses
+    playbook_streak_3: 5, // 3-day playbook streak bonus
+    playbook_streak_7: 10, // 7-day playbook streak bonus
+    devotional_streak_3: 5, // 3-day devotional streak bonus
+    devotional_streak_7: 10, // 7-day devotional streak bonus
+    journal_streak_3: 5, // 3-day journal streak bonus
+    journal_streak_7: 10, // 7-day journal streak bonus
+    prayer_streak_3: 5, // 3-day prayer streak bonus
+    prayer_streak_7: 10, // 7-day prayer streak bonus
   };
 
   /**

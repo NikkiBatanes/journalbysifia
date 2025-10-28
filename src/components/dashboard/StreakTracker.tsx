@@ -107,6 +107,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
           'prayer_devotional_prayed',
           'prayer_list_prayed',
           'prayer_list_request_added',
+          'prayer_answered', // When marking prayer as answered
         ],
       },
     ];

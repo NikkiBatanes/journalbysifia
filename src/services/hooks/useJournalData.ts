@@ -6,6 +6,7 @@ import { JournalCache } from '../cache/journalCache';
 import { queryKeys } from '../queryKeys';
 import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
 import { QueryConfig } from '../../types/api';
+import { faithPointsService } from '../faithPointsService';
 
 // Hook for getting gratitude entries with enhanced retry logic
 export const useGratitudeData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
@@ -280,7 +281,27 @@ export const useCreateJournalEntry = () => {
         }
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
+      // Award faith points for journal entry
+      if (variables.user_id) {
+        try {
+          await faithPointsService.awardPoints(
+            variables.user_id,
+            'journal_entry',
+            {
+              suppressNotification: true,
+              content_type: variables.content_type,
+              source: 'journal',
+            }
+          );
+        } catch (error) {
+          Logger.warn('Failed to award faith points for journal entry', {
+            component: 'useJournalData',
+            error: error as Error,
+          });
+        }
+      }
+
       // Invalidate and refetch related queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date),
