@@ -976,7 +976,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   heroCard: {
     width: '90%',
     maxWidth: 720,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.subtleOverlay,
     borderRadius: 34,
     paddingVertical: 32,
     paddingHorizontal: 20,
