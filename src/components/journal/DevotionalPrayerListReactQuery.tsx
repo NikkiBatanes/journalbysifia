@@ -28,13 +28,14 @@ interface DevotionalPrayerListReactQueryProps {
 }
 
 const { width: screenWidth } = Dimensions.get('window');
-// Target a ~64px peek of the next card, accounting for card horizontal padding in JournalCard
-const PEEK_WIDTH = 64;
-const HORIZONTAL_GUTTER = 16; // JournalCard content padding
-const CARD_SPACING = 12; // space between cards
-// Card width leaves room for a peek on the right plus both gutters
-const CARD_WIDTH = Math.max(260, screenWidth - (HORIZONTAL_GUTTER * 2) - PEEK_WIDTH);
-const SIDE_PADDING = 16; // side inset inside the scroll area
+// Match ReflectionQuestionsCard carousel sizing for centered, edge-to-edge scrolling
+const CARD_HORIZONTAL_PADDING = 16; // JournalCard content padding
+const VISIBLE_WIDTH = Math.max(0, screenWidth - CARD_HORIZONTAL_PADDING * 2);
+const CARD_WIDTH = VISIBLE_WIDTH * 0.8; // 80% of visible width
+const CARD_SPACING = 8;
+const ITEM_SIZE = CARD_WIDTH + CARD_SPACING;
+// Center the card within visible area
+const SIDE_PADDING = Math.max(0, (VISIBLE_WIDTH - CARD_WIDTH) / 2);
 
 const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryProps> = ({
   selectedDate,
@@ -156,18 +157,14 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           ref={scrollViewRef}
           horizontal
           showsHorizontalScrollIndicator={false}
-          snapToInterval={CARD_WIDTH + CARD_SPACING}
+          snapToInterval={ITEM_SIZE}
           snapToAlignment="start"
           decelerationRate="fast"
           pagingEnabled={false}
           directionalLockEnabled={true}
           bounces={true}
           bouncesZoom={false}
-          contentInset={{
-            left: SIDE_PADDING,
-            right: SIDE_PADDING,
-          }}
-          contentContainerStyle={styles.contentContainerWithPadding}
+          contentContainerStyle={[styles.contentContainerWithPadding, { paddingHorizontal: SIDE_PADDING }]}
           style={styles.horizontalContainer}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -180,9 +177,9 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
         >
           {allPrayers.map((prayer, i) => {
             const inputRange = [
-              (i - 1) * (CARD_WIDTH + CARD_SPACING),
-              i * (CARD_WIDTH + CARD_SPACING),
-              (i + 1) * (CARD_WIDTH + CARD_SPACING),
+              (i - 1) * ITEM_SIZE,
+              i * ITEM_SIZE,
+              (i + 1) * ITEM_SIZE,
             ];
             const scale = scrollX.interpolate({
               inputRange,
@@ -439,7 +436,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   contentContainerWithPadding: {
-    paddingHorizontal: SIDE_PADDING,
+    paddingRight: 0,
     overflow: 'visible',
   },
 });
