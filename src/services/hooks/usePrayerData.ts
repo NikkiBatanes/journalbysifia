@@ -543,17 +543,21 @@ export const useMarkSupplicationAnswered = () => {
       }
     },
     onSuccess: async (data, { isAnswered, _userId }) => {
-      // Award faith points when marking prayer as answered
+      // Award faith points when marking prayer as answered (once per day)
       if (isAnswered && _userId) {
         try {
-          await faithPointsService.awardPoints(
-            _userId,
-            'prayer_list_prayed',
-            {
-              suppressNotification: false, // Show animation for answered prayers
-              source: 'prayer_answered',
-            }
-          );
+          // Check if already awarded today
+          const alreadyAwarded = await faithPointsService.hasActivityToday(_userId, 'prayer_answered');
+          if (!alreadyAwarded) {
+            await faithPointsService.awardPoints(
+              _userId,
+              'prayer_answered',
+              {
+                suppressNotification: false, // Show animation for answered prayers
+                source: 'prayer_answered',
+              }
+            );
+          }
         } catch (error) {
           Logger.warn('Failed to award faith points for prayer answered', {
             component: 'usePrayerData',

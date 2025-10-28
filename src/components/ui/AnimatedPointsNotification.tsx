@@ -290,6 +290,9 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
                 if (at === 'prayer_for_now') {
                   return 'PRAYER';
                 }
+                if (at === 'prayer_answered') {
+                  return 'ANSWERED PRAYER';
+                }
                 if (at === 'devotional_completed') {
                   return 'DEVO DAY COMPLETE';
                 }

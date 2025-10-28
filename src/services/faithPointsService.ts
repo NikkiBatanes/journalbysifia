@@ -97,6 +97,7 @@ export class FaithPointsService {
     prayer_devotional_prayed: 3, // Increased from 2
     prayer_list_prayed: 3, // Increased from 2
     prayer_list_request_added: 2, // Increased from 1
+    prayer_answered: 3, // When marking prayer as answered (once per day)
     subtask_completed: 1,
     action_step_completed: 3,
     playbook_completed: 10,
