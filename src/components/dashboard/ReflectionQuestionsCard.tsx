@@ -153,13 +153,25 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       // Create a map of devotional ID to completed days
       const completedDaysMap = new Map<string, Set<number>>();
       
-      // Also create a map of devotional current_day from the devotionals table
-      const devotionalCurrentDayMap = new Map<string, number>();
+      // First, initialize with devotional current_day for ALL devotionals
       devotionalsResult.data?.forEach(dev => {
         const devCurrentDay = (dev as any).current_day || 1;
-        devotionalCurrentDayMap.set(dev.id, devCurrentDay);
+        const completedDays = new Set<number>();
+        
+        // Always include Day 1 and current day
+        completedDays.add(1);
+        if (devCurrentDay > 1) {
+          completedDays.add(devCurrentDay);
+        }
+        
+        completedDaysMap.set(dev.id, completedDays);
+        
+        Logger.info(`[ReflectionQuestions] Initial setup for ${dev.id}: currentDay=${devCurrentDay}, completedDays=${Array.from(completedDays).join(',')}`, {
+          component: 'ReflectionQuestionsCard',
+        });
       });
       
+      // Then, enhance with progress_data if available
       if (progressResult.data) {
         progressResult.data.forEach(progress => {
           try {
@@ -168,49 +180,43 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               : progress.progress_data;
             
             const contentId = progress.content_id;
-            const completedDays = new Set<number>();
+            // Get the existing completedDays set (already initialized above)
+            const completedDays = completedDaysMap.get(contentId) || new Set<number>();
             
-            // Get current day from multiple sources (devotional table takes precedence)
-            const devotionalCurrentDay = devotionalCurrentDayMap.get(contentId) || 1;
             const progressCurrentDay = progressData?.current_day || progressData?.currentDay || 1;
-            const currentDay = Math.max(devotionalCurrentDay, progressCurrentDay);
             
-            // DEBUG: Log the entire progress data structure
-            Logger.info(`[ReflectionQuestions] Progress for ${contentId}:`, {
+            // DEBUG: Log the progress data structure
+            Logger.info(`[ReflectionQuestions] Progress data for ${contentId}:`, {
               component: 'ReflectionQuestionsCard',
               data: {
-                devotionalCurrentDay,
                 progressCurrentDay,
-                finalCurrentDay: currentDay,
                 hasDays: !!progressData?.days,
                 daysLength: progressData?.days?.length,
+                daysData: progressData?.days,
               },
             });
             
-            // Extract completed days from progress data
-            // Show questions from: Day 1 (always) + all completed days + current day
+            // Add any explicitly completed days from progress_data
             if (progressData?.days && Array.isArray(progressData.days)) {
               progressData.days.forEach((day: any, index: number) => {
                 const dayNumber = index + 1;
-                // Include if explicitly completed OR if it's Day 1 OR if it's the current day
-                if (day?.completed || dayNumber === 1 || dayNumber === currentDay) {
-                  completedDays.add(dayNumber); // 1-based day number
+                // Add if explicitly marked as completed
+                if (day?.completed) {
+                  completedDays.add(dayNumber);
+                  Logger.info(`[ReflectionQuestions] Day ${dayNumber} marked as completed in progress_data`, {
+                    component: 'ReflectionQuestionsCard',
+                  });
                 }
               });
-            } else {
-              // Fallback: if no days array, at least show Day 1 and current day
-              completedDays.add(1);
-              if (currentDay > 1) {
-                completedDays.add(currentDay);
-              }
             }
             
+            // Update the map with enhanced data
+            completedDaysMap.set(contentId, completedDays);
+            
             // Debug logging
-            Logger.info(`[ReflectionQuestions] Devotional ${contentId}: currentDay=${currentDay}, completedDays=${Array.from(completedDays).join(',')}`, {
+            Logger.info(`[ReflectionQuestions] Final for ${contentId}: completedDays=${Array.from(completedDays).join(',')}`, {
               component: 'ReflectionQuestionsCard',
             });
-            
-            completedDaysMap.set(contentId, completedDays);
           } catch (e) {
             Logger.warn('Error parsing progress data for reflection questions', {
               component: 'ReflectionQuestionsCard',
