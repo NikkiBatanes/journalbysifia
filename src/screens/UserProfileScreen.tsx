@@ -198,7 +198,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     const name = [first, last].filter(Boolean).join(' ') || fallback;
     return String(name).trim().charAt(0).toUpperCase();
   }, [profileForm, user]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const hasLoadedRef = useRef(false);
 
