@@ -107,6 +107,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   } | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
+  // Track last known viewport height for accurate comparisons
+  const lastViewportHeightRef = useRef<number>(0);
   const [showFAB, setShowFAB] = useState(false);
   // Track scroll positions for each day to reset when needed
   const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
@@ -692,14 +694,18 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     const contentHeight = event.nativeEvent.contentSize.height;
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
 
+    // Store the latest viewport height for use in other callbacks
+    lastViewportHeightRef.current = scrollViewHeight;
+
     // Show FAB only when scrolled to bottom for incomplete days
     if (currentDay && !currentDay.completed) {
       // If content is shorter than viewport, always show FAB
       if (contentHeight <= scrollViewHeight + 8) {
         setShowFAB(true);
       } else {
-        // Otherwise show FAB when near bottom (within 50px)
-        const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 50;
+        // Otherwise show FAB when near bottom (relaxed threshold to account for padding/bounce)
+        const bottomThreshold = 120; // px
+        const isAtBottom = offsetY + scrollViewHeight >= contentHeight - bottomThreshold;
         setShowFAB(isAtBottom);
       }
     } else {
@@ -712,11 +718,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // Force FAB visibility check when content layout changes
   const handleContentSizeChange = (contentWidth: number, contentHeight: number) => {
-    // Get the current ScrollView's viewport height
-    const viewportHeight = Dimensions.get('window').height * 0.7; // Approximate viewport
+    // Use the last measured viewport height when available
+    const viewportHeight = lastViewportHeightRef.current || Dimensions.get('window').height;
 
-    // If content is shorter than viewport, show FAB immediately for incomplete days
-    if (currentDay && !currentDay.completed && contentHeight <= viewportHeight + 8) {
+    // If content is shorter than (or nearly equal to) viewport, show FAB immediately
+    if (currentDay && !currentDay.completed && contentHeight <= viewportHeight + 16) {
       setShowFAB(true);
     }
   };
