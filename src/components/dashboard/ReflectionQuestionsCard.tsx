@@ -458,7 +458,8 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         });
       });
 
-      setQuestions([...allQuestions, ...guidedQuestions]);
+      // Limit to 7 total questions in the dashboard
+      setQuestions([...allQuestions, ...guidedQuestions].slice(0, 7));
 
     } catch (err) {
       Logger.error('Error fetching reflection questions', err as Error, { component: 'ReflectionQuestionsCard' });
