@@ -848,8 +848,8 @@ const styles = StyleSheet.create({
 const prayerMarkdownStyles = {
   body: {
     color: Colors.anchorBlue,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   heading1: {
     color: Colors.anchorBlue,
