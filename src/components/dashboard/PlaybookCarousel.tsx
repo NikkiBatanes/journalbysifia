@@ -579,7 +579,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           scrollEventThrottle={16}
           bounces={true}
           removeClippedSubviews={false}
-          style={undefined}
+          style={styles.scrollExpanded}
         >
           {playbooks.map((pb, i) => renderPlaybookCard(pb, i))}
         </Animated.ScrollView>
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   },
   scrollExpanded: {
     overflow: 'visible',
-    // Removed negative horizontal margin to keep items visually centered within container
+    marginHorizontal: -16, // matches CARD_HORIZONTAL_PADDING for edge-to-edge scrolling
   },
   // Empty state (hero) styles to match DevotionalCarousel
   emptyStateContainer: {
