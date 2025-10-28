@@ -481,6 +481,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   }, [user, fetchReflectionQuestions]);
 
   // Listen for reflection entries changes to refetch questions
+  // Listen to mutation cache to only refetch when reflections are actually saved
   useEffect(() => {
     const handleReflectionChange = () => {
       // Defer to next tick to avoid setState during another component's render
@@ -489,10 +490,15 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       }, 0);
     };
 
-    // Listen for reflection entries invalidation
-    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.query?.queryKey?.[0] === 'reflections') {
-        handleReflectionChange();
+    // Listen for successful reflection mutations (create/update)
+    const unsubscribe = queryClient.getMutationCache().subscribe((event) => {
+      // Only refetch when a reflection mutation succeeds
+      if (event?.type === 'updated' && event?.mutation?.state?.status === 'success') {
+        const mutationKey = event?.mutation?.options?.mutationKey;
+        // Check if this is a reflection-related mutation
+        if (mutationKey && Array.isArray(mutationKey) && mutationKey[0] === 'createReflection') {
+          handleReflectionChange();
+        }
       }
     });
 
