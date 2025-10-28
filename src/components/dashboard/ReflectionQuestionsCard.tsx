@@ -12,7 +12,7 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage'; // Unused
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
@@ -401,7 +401,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       };
       setDiag(diagPayload);
 
-      // Add guided prompts using centralized service (limit to 3 random daily)
+      // Add guided prompts using centralized service (limit to 3 random daily, but stable per day)
       const guidedQuestions: ReflectionQuestion[] = [];
 
       // Use hook's daily allocation instead of duplicate logic
@@ -409,14 +409,45 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       const lockedPrompts = guidedPromptGating.lockedPrompts || [];
       const allGuidedPrompts = [...freePrompts, ...lockedPrompts];
 
-      // Shuffle and limit to 3 prompts per day
-      const shuffled = [...allGuidedPrompts].sort(() => Math.random() - 0.5);
-      const limitedPrompts = shuffled.slice(0, 3);
+      // Build stable daily key
+      const today = new Date();
+      const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const storageKey = `daily_guided_prompts_${user.id}_${dateKey}`;
 
-      limitedPrompts.forEach((prompt, i) => {
+      let chosenPrompts: string[] = [];
+      try {
+        const cached = await AsyncStorage.getItem(storageKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            // Keep only prompts that still exist
+            chosenPrompts = parsed.filter((p: any) => typeof p === 'string' && allGuidedPrompts.includes(p)).slice(0, 3);
+          }
+        }
+      } catch {}
+
+      // If cache missing or insufficient, pick deterministically and save
+      if (chosenPrompts.length < 3) {
+        const needed = 3 - chosenPrompts.length;
+        // Deterministic selection based on day-of-year and user id hash to avoid changing during the day
+        const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+        const uid = user.id || '';
+        const seed = Array.from(uid).reduce((acc, ch) => acc + ch.charCodeAt(0), 0) + dayOfYear;
+        const remaining = allGuidedPrompts.filter(p => !chosenPrompts.includes(p));
+        const picks: string[] = [];
+        for (let i = 0; i < remaining.length && picks.length < needed; i++) {
+          const idx = (seed + i * 7) % remaining.length; // step by 7 for dispersion
+          const cand = remaining[idx];
+          if (!picks.includes(cand)) { picks.push(cand); }
+        }
+        chosenPrompts = [...chosenPrompts, ...picks].slice(0, 3);
+        try { await AsyncStorage.setItem(storageKey, JSON.stringify(chosenPrompts)); } catch {}
+      }
+
+      chosenPrompts.forEach((prompt, i) => {
         const isFree = freePrompts.includes(prompt);
         guidedQuestions.push({
-          id: `guided-${new Date().toISOString().slice(0, 10)}-${i}`,
+          id: `guided-${dateKey}-${i}`,
           question: prompt,
           source: isFree ? 'Free Guided Prompt' : 'Guided Prompt',
           sourceType: 'guided',
