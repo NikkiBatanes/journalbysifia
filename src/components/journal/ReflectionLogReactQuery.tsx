@@ -1156,6 +1156,9 @@ return (
                 const rawType = editingId ? (selectedEntry?.type || newEntry.type || 'free') : (entryData.type || newEntry.type || 'free');
                 const normalizedType = rawType === 'free-form' ? 'free' : rawType;
 
+                // Determine the source - if type is 'guided', override source to 'guided'
+                const determinedSource = normalizedType === 'guided' ? 'guided' : (entryData.source || (normalizedType === 'free' ? 'freeform' : undefined));
+
                 // Only include fields that exist in the database schema
                 const saveData = {
                   title: entryData.title || '',
@@ -1166,7 +1169,7 @@ return (
                   // Include additional fields if they exist
                   ...(entryData.prompt && { prompt: entryData.prompt }),
                   ...(entryData.tags && entryData.tags.length > 0 && { tags: entryData.tags }),
-                  ...(entryData.source && { source: entryData.source }),
+                  ...(determinedSource && { source: determinedSource }),
                 };
 
                 if (editingId) {
