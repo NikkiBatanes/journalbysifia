@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Alert } from 'react-native';
+import { Modal, View, StyleSheet, Keyboard, Alert } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
