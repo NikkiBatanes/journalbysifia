@@ -29,11 +29,11 @@ export function normalizePrayerText(raw: string): string {
     .replace(/Jesus[''\u2019]\s*Name/gi, (m) => m.replace(/[''\u2019]/, '\u2019'))
     // Ensure exactly one blank line (two newlines) after "Heavenly Father,"
     .replace(/(Heavenly\s+Father,)\s*/gi, '$1\n\n')
-    // Ensure exactly one newline before the closing phrase (no blank line)
+    // Ensure exactly one blank line (two newlines) before the closing phrase
     // Case A: No newline before phrase (e.g., "You.In Jesus'")
-    .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n$2')
-    // Case B: Multiple newlines before phrase - collapse to one
-    .replace(/\n+\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '\n$1')
+    .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n\n$2')
+    // Case B: Exactly one newline before phrase (e.g., "You.\nIn Jesus'")
+    .replace(/\n(?!\n)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '\n\n$1')
     // Trim trailing spaces on lines
     .replace(/[\t ]+$/gm, '');
 }
