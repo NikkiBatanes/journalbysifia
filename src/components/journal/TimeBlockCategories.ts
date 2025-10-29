@@ -8,12 +8,12 @@ export interface TimeBlockCategory {
 
 export const TIMEBLOCK_CATEGORIES: TimeBlockCategory[] = [
   { name: 'Appointments', icon: 'calendar', color: Colors.alertCoral },
-  { name: 'Birthdays', icon: 'gift', color: Colors.spiritualPink }, // Celebrations
+  { name: 'Birthdays', icon: 'gift', color: Colors.treasureGold }, // Celebrations
   { name: 'Break Time', icon: 'cafe', color: 'rgba(255, 182, 193, 0.4)' }, // Subtle light pink
   { name: 'Career Growth', icon: 'rocket', color: Colors.growthGreen },
   { name: 'Church Activities', icon: 'people', color: Colors.alertCoral }, // Community activities
   { name: 'Deep Work', icon: 'code-working', color: Colors.clarityTeal }, // Focus and clarity
-  { name: 'Evening Routine', icon: 'moon-outline', color: Colors.devotionalPurple }, // Evening rituals
+  { name: 'Evening Routine', icon: 'moon-outline', color: Colors.mysticalViolet }, // Evening rituals
   { name: 'Events', icon: 'calendar-number', color: Colors.playbookBlue }, // Planning and events
   { name: 'Family Time', icon: 'people-circle', color: Colors.alertCoral }, // Love and family
   { name: 'Life Admin', icon: 'document-text', color: '#9B8B6F' }, // Khaki

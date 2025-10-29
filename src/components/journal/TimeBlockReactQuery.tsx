@@ -365,7 +365,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const instanceDate = new Date(timeBlock.startTime);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
-          
+
           const endDateStr = endDate.toISOString().split('T')[0];
           console.log('🗓️ [DELETE FUTURE VIRTUAL] Setting end date to:', endDateStr);
 
@@ -373,7 +373,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
           const existingMetadata = originalApiEntry?.metadata || {};
           console.log('🗓️ [DELETE FUTURE VIRTUAL] Existing metadata:', JSON.stringify(existingMetadata));
-          
+
           const newMetadata = {
             ...existingMetadata,
             endDate: endDateStr, // Store as YYYY-MM-DD
@@ -386,7 +386,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               metadata: newMetadata,
             },
           });
-          
+
           console.log('🗓️ [DELETE FUTURE VIRTUAL] Update mutation completed successfully');
 
           // Force cache invalidation for the current date to update UI immediately
@@ -475,7 +475,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const instanceDate = new Date(timeBlock.startTime);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
-          
+
           const endDateStr = endDate.toISOString().split('T')[0];
           console.log('🗓️ [DELETE FUTURE] Setting end date to:', endDateStr);
           console.log('🗓️ [DELETE FUTURE] Time block ID:', timeBlock.id);
@@ -484,7 +484,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
           const existingMetadata = originalApiEntry?.metadata || {};
           console.log('🗓️ [DELETE FUTURE] Existing metadata:', JSON.stringify(existingMetadata));
-          
+
           const newMetadata = {
             ...existingMetadata,
             endDate: endDateStr, // Store as YYYY-MM-DD
@@ -497,7 +497,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               metadata: newMetadata,
             },
           });
-          
+
           console.log('🗓️ [DELETE FUTURE] Update mutation completed successfully');
 
           // Force cache invalidation for the current date to update UI immediately
@@ -2795,7 +2795,6 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   endRepeatOption: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -2817,7 +2816,7 @@ const styles = StyleSheet.create({
   },
   datePickerModalContent: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 16,
+    borderRadius: 30,
     paddingVertical: 12,
     paddingHorizontal: 16,
     margin: 0,

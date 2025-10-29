@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    height: 44,
+    minHeight: 48,
   },
   textInput: {
     flex: 1,
@@ -259,7 +259,8 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginLeft: 8,
     marginRight: 8,
-    paddingVertical: 0,
+    paddingVertical: 12,
+    minHeight: 44,
   },
   currentLocationButton: {
     padding: 4,

@@ -544,9 +544,10 @@ export const getCurrentLocation = async (): Promise<LocationResult> => {
 export const searchLocations = async (query: string): Promise<LocationSearchResult[]> => {
   try {
     // OpenStreetMap Nominatim search (autocomplete style)
+    // Prioritize local results by adding countrycodes parameter for Philippines
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
       query
-    )}&format=jsonv2&addressdetails=1&limit=5`;
+    )}&format=jsonv2&addressdetails=1&limit=5&countrycodes=ph`;
 
     const resp = await fetch(url, {
       headers: {
