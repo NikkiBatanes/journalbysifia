@@ -357,25 +357,37 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           // For 'future' deletion on virtual instances, set end date on original event
           const parts = timeBlock.id.split('-');
           const originalId = parts.slice(0, 5).join('-');
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] Virtual instance detected');
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] Virtual ID:', timeBlock.id);
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] Original ID:', originalId);
 
           // Set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
+          
+          const endDateStr = endDate.toISOString().split('T')[0];
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] Setting end date to:', endDateStr);
 
           // Get current metadata from original event and add end date
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
           const existingMetadata = originalApiEntry?.metadata || {};
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] Existing metadata:', JSON.stringify(existingMetadata));
+          
+          const newMetadata = {
+            ...existingMetadata,
+            endDate: endDateStr, // Store as YYYY-MM-DD
+          };
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] New metadata to save:', JSON.stringify(newMetadata));
 
           await updateMutation.mutateAsync({
             id: originalId,
             updates: {
-              metadata: {
-                ...existingMetadata,
-                endDate: endDate.toISOString().split('T')[0], // Store as YYYY-MM-DD
-              },
+              metadata: newMetadata,
             },
           });
+          
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] Update mutation completed successfully');
 
           // Force cache invalidation for the current date to update UI immediately
 
@@ -457,25 +469,36 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             throw updateError;
           }
         } else if (options.type === 'future') {
+          console.log('🗓️ [DELETE FUTURE] Starting future deletion for non-recurring event');
 
           // For "This entry & future entries", set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
+          
+          const endDateStr = endDate.toISOString().split('T')[0];
+          console.log('🗓️ [DELETE FUTURE] Setting end date to:', endDateStr);
+          console.log('🗓️ [DELETE FUTURE] Time block ID:', timeBlock.id);
 
           // Get current metadata and add end date
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
           const existingMetadata = originalApiEntry?.metadata || {};
+          console.log('🗓️ [DELETE FUTURE] Existing metadata:', JSON.stringify(existingMetadata));
+          
+          const newMetadata = {
+            ...existingMetadata,
+            endDate: endDateStr, // Store as YYYY-MM-DD
+          };
+          console.log('🗓️ [DELETE FUTURE] New metadata to save:', JSON.stringify(newMetadata));
 
           await updateMutation.mutateAsync({
             id: timeBlock.id,
             updates: {
-              metadata: {
-                ...existingMetadata,
-                endDate: endDate.toISOString().split('T')[0], // Store as YYYY-MM-DD
-              },
+              metadata: newMetadata,
             },
           });
+          
+          console.log('🗓️ [DELETE FUTURE] Update mutation completed successfully');
 
           // Force cache invalidation for the current date to update UI immediately
 
@@ -1764,17 +1787,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             textAlignVertical="top"
           />
 
-          {/* Delete Modal */}
-          <DeleteTimeBlockModal
-            visible={showDeleteModal.visible}
-            isRecurring={showDeleteModal.timeBlock?.repeat.frequency !== 'never'}
-            eventDate={showDeleteModal.timeBlock?.startTime || new Date()}
-            eventTitle={showDeleteModal.timeBlock?.title || ''}
-            onDelete={handleDeleteConfirm}
-            onCancel={() => setShowDeleteModal({ visible: false })}
-            canDeleteSeries={calendarGating.canDeleteSeries}
-          />
-
           {/* Category Picker Modal */}
           <TimeBlockCategoryModal
             visible={showCategoryPicker}
@@ -1824,6 +1836,17 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           </View>
         </View>
       )}
+
+      {/* Delete Modal - Always available regardless of edit mode */}
+      <DeleteTimeBlockModal
+        visible={showDeleteModal.visible}
+        isRecurring={showDeleteModal.timeBlock?.repeat.frequency !== 'never'}
+        eventDate={showDeleteModal.timeBlock?.startTime || new Date()}
+        eventTitle={showDeleteModal.timeBlock?.title || ''}
+        onDelete={handleDeleteConfirm}
+        onCancel={() => setShowDeleteModal({ visible: false })}
+        canDeleteSeries={calendarGating.canDeleteSeries}
+      />
     </JournalCard>
   );
 };
