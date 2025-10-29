@@ -42,7 +42,6 @@ import { Gesture } from 'react-native-gesture-handler';
 import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useTheme } from '../theme/ThemeContext';
-import { Typography } from '../theme/typography';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { triggerLightHaptic } from '../utils/haptics';
 
@@ -96,8 +95,8 @@ interface CardData {
 }
 
 // Header left component extracted to fix linter warning
-const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, _onboardingNextStep, styles }: {
-  _navigation: any;
+const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, styles }: {
+  navigation: any;
   showUserInput: boolean;
   setShowUserInput: (show: boolean) => void;
   chevronStyle: any;
@@ -106,8 +105,7 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
   completedTasksCount: number;
   totalTasksCount: number;
   progressPercentage: number;
-  _isFromOnboarding?: boolean;
-  _onboardingNextStep?: string;
+  isFromOnboarding?: boolean;
   styles: any;
 }) => (
   <HeaderLeftInner
@@ -126,7 +124,7 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
 );
 
 // Inner component to use hooks
-const HeaderLeftInner = ({ _navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, _isFromOnboarding, _onboardingNextStep, styles }: any) => {
+const HeaderLeftInner = ({ showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, styles }: any) => {
   const progressAnim = React.useRef(new RNAnimated.Value(progressPercentage || 0)).current;
 
   React.useEffect(() => {
@@ -244,7 +242,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // 1. Route and navigation data
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
   const isFromOnboarding = (route.params as any)?.isFromOnboarding || false;
-  const onboardingNextStep = (route.params as any)?.onboardingNextStep;
 
   // Debug logging for playbookId
 
@@ -643,10 +640,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       totalTasksCount={totalTasksCount}
       progressPercentage={progress}
       isFromOnboarding={isFromOnboarding}
-      onboardingNextStep={onboardingNextStep}
       styles={styles}
     />
-  ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress, isFromOnboarding, onboardingNextStep, styles]);
+  ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress, isFromOnboarding, styles]);
 
   // Header right component
   const headerRight = React.useCallback(() => (
@@ -1375,7 +1371,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             totalTasksCount={totalTasksCount}
             progressPercentage={progress}
             isFromOnboarding={isFromOnboarding}
-            onboardingNextStep={onboardingNextStep}
             styles={styles}
           />
         </View>
@@ -2056,7 +2051,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     gap: 8,
   },
   affirmationsTitle: {
-    ...Typography.interBold,
     fontSize: 20,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
