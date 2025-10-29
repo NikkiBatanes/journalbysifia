@@ -2795,6 +2795,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   endRepeatOption: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
