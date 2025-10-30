@@ -357,9 +357,21 @@ export const syncTimeBlockToCalendar = async (
       hasExistingEventId: !!timeBlock.calendarEventId,
     });
 
-    console.log('📆 [syncTimeBlockToCalendar] Calling RNCalendarEvents.saveEvent...');
-    const eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
-    console.log('📆 [syncTimeBlockToCalendar] ✅ Event saved! Event ID:', eventId);
+    let eventId: string;
+    
+    if (timeBlock.calendarEventId) {
+      // Update existing event
+      console.log('📆 [syncTimeBlockToCalendar] Updating existing event:', timeBlock.calendarEventId);
+      eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails, {
+        id: timeBlock.calendarEventId,
+      });
+      console.log('📆 [syncTimeBlockToCalendar] ✅ Event updated! Event ID:', eventId);
+    } else {
+      // Create new event
+      console.log('📆 [syncTimeBlockToCalendar] Creating new event...');
+      eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
+      console.log('📆 [syncTimeBlockToCalendar] ✅ Event created! Event ID:', eventId);
+    }
 
     // Track success analytics
     try {
