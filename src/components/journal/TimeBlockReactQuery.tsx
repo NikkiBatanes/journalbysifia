@@ -639,25 +639,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         return;
       }
 
-      const timeBlockData = {
-        user_id: user?.id || '',
-        selected_date: dateStr,
-        title: newBlock.title.trim(),
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
-        category: newBlock.category,
-        description: newBlock.notes.trim() || undefined,
-        location: newBlock.location.trim() || undefined,
-        all_day: newBlock.isAllDay,
-        // Repeat fields (only if user can use repeat)
-        repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
-          frequency: newBlock.repeat.frequency,
-          customDays: newBlock.repeat.customDays,
-          customFrequency: newBlock.repeat.customFrequency,
-        } : undefined,
-        repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate && calendarGating.canUseRepeat) ? newBlock.repeat.endDate.toISOString() : undefined,
-      };
-
       // Calculate duration for analytics
       const durationMinutes = Math.round((endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60));
 
@@ -666,6 +647,37 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         const existingBlock = timeBlocks.find(block => block.id === editId);
         const previousDuration = existingBlock ?
           Math.round((existingBlock.endTime.getTime() - existingBlock.startTime.getTime()) / (1000 * 60)) : 0;
+
+        // When editing, preserve the original event's selected_date
+        // Don't use current dateStr as it might be a different date for virtual instances
+        const originalSelectedDate = existingBlock?.startTime ? 
+          existingBlock.startTime.toISOString().split('T')[0] : dateStr;
+
+        const timeBlockData = {
+          user_id: user?.id || '',
+          selected_date: originalSelectedDate, // Use original date, not current view date
+          title: newBlock.title.trim(),
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          category: newBlock.category,
+          description: newBlock.notes.trim() || undefined,
+          location: newBlock.location.trim() || undefined,
+          all_day: newBlock.isAllDay,
+          // Repeat fields (only if user can use repeat)
+          repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
+            frequency: newBlock.repeat.frequency,
+            customDays: newBlock.repeat.customDays,
+            customFrequency: newBlock.repeat.customFrequency,
+          } : undefined, // Clear repeat_rule when frequency is 'never'
+          repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate && calendarGating.canUseRepeat) ? newBlock.repeat.endDate.toISOString() : undefined,
+        };
+
+        console.log('📝 [EDIT] Updating time block with data:', {
+          id: editId,
+          originalDate: originalSelectedDate,
+          currentViewDate: dateStr,
+          repeatFrequency: newBlock.repeat.frequency,
+        });
 
         await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
 
@@ -722,6 +734,26 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           date: dateStr,
         }, user?.id);
       } else {
+        // Create new time block
+        const timeBlockData = {
+          user_id: user?.id || '',
+          selected_date: dateStr,
+          title: newBlock.title.trim(),
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          category: newBlock.category,
+          description: newBlock.notes.trim() || undefined,
+          location: newBlock.location.trim() || undefined,
+          all_day: newBlock.isAllDay,
+          // Repeat fields (only if user can use repeat)
+          repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
+            frequency: newBlock.repeat.frequency,
+            customDays: newBlock.repeat.customDays,
+            customFrequency: newBlock.repeat.customFrequency,
+          } : undefined,
+          repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate && calendarGating.canUseRepeat) ? newBlock.repeat.endDate.toISOString() : undefined,
+        };
+
         const createResult = await createMutation.mutateAsync(timeBlockData);
 
         // Sync new time block to calendar
