@@ -259,14 +259,20 @@ export class TimeBlockApi {
       console.log('🔍 [SHOULD APPEAR] ✅ Block is within end date range');
     }
 
-    const daysDiff = Math.floor((targetDateObj.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Use UTC dates to avoid timezone/DST issues
+    const originalDateUTC = Date.UTC(originalDate.getFullYear(), originalDate.getMonth(), originalDate.getDate());
+    const targetDateUTC = Date.UTC(targetDateObj.getFullYear(), targetDateObj.getMonth(), targetDateObj.getDate());
+    const daysDiff = Math.floor((targetDateUTC - originalDateUTC) / (1000 * 60 * 60 * 24));
 
     switch (frequency) {
       case 'daily':
         return daysDiff % customFrequency === 0;
 
       case 'weekly':
-        return daysDiff % (7 * customFrequency) === 0;
+        // Check if same day of week and correct week interval
+        const isSameDayOfWeek = originalDate.getDay() === targetDateObj.getDay();
+        const weeksDiff = Math.floor(daysDiff / 7);
+        return isSameDayOfWeek && weeksDiff % customFrequency === 0;
 
       case 'monthly':
         // Same day of month

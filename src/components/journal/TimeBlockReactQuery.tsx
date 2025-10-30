@@ -294,7 +294,20 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const handleEditBlock = (block: TimeBlockItem) => {
     closeAllSwipeActions();
     setIsAdding(true);
-    setEditId(block.id);
+    
+    // Check if this is a virtual instance (repeated occurrence)
+    const datePattern = /\d{4}-\d{2}-\d{2}$/;
+    const isVirtualInstance = datePattern.test(block.id);
+    
+    // If it's a virtual instance, extract the original ID to edit the source event
+    let editIdToUse = block.id;
+    if (isVirtualInstance) {
+      const parts = block.id.split('-');
+      editIdToUse = parts.slice(0, 5).join('-'); // Get original UUID
+      console.log('📝 [EDIT] Editing virtual instance, using original ID:', editIdToUse);
+    }
+    
+    setEditId(editIdToUse);
     setNewBlock({
       ...block,
       notes: block.notes || '',
@@ -343,12 +356,23 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Add exception to original recurring event
 
+          // Get existing metadata and merge exceptions
+          const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
+          const existingMetadata = originalApiEntry?.metadata || {};
+          const existingExceptions = existingMetadata.exceptions || [];
+          
+          // Only add if not already in exceptions
+          const newExceptions = existingExceptions.includes(instanceDate)
+            ? existingExceptions
+            : [...existingExceptions, instanceDate];
+
           // Update the original event to add this date as an exception
           await updateMutation.mutateAsync({
             id: originalId,
             updates: {
               metadata: {
-                exceptions: [instanceDate], // This will be merged with existing exceptions
+                ...existingMetadata,
+                exceptions: newExceptions,
               },
             },
           });
@@ -667,19 +691,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               calendarEventId: existingBlock?.calendarEventId,
             };
 
-            if (existingBlock?.calendarEventId) {
-              // Update existing calendar event
-              await syncTimeBlockToCalendar(timeBlockForSync);
-            } else {
-              // Create new calendar event if none exists
-              const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
-              if (syncResult.success && syncResult.eventId) {
-                // Update the time block with the calendar event ID
-                await updateMutation.mutateAsync({
-                  id: editId,
-                  updates: { calendar_event_id: syncResult.eventId },
-                });
-              }
+            // Sync to calendar (update or create)
+            const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
+            
+            // Only update DB if we got a new calendar event ID
+            if (syncResult.success && syncResult.eventId && !existingBlock?.calendarEventId) {
+              await updateMutation.mutateAsync({
+                id: editId,
+                updates: { calendar_event_id: syncResult.eventId },
+              });
             }
           } catch (calendarError) {
             Logger.warn('Calendar sync failed during update', {
@@ -727,7 +747,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
             if (syncResult.success && syncResult.eventId) {
-              // Update the time block with the calendar event ID
+              // Update the time block with the calendar event ID (single update)
               await updateMutation.mutateAsync({
                 id: createResult.id,
                 updates: { calendar_event_id: syncResult.eventId },
