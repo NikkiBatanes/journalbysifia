@@ -308,11 +308,13 @@ export const syncTimeBlockToCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; eventId?: string; error?: string }> => {
   try {
+    console.log('📆 [syncTimeBlockToCalendar] Starting sync for:', timeBlock.title);
+    console.log('📆 [syncTimeBlockToCalendar] Existing calendar event ID:', timeBlock.calendarEventId);
 
     const hasPermission = await requestCalendarPermissions();
 
     if (!hasPermission) {
-
+      console.log('📆 [syncTimeBlockToCalendar] ❌ Permission denied');
       return {
         success: false,
         error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia',
@@ -322,7 +324,7 @@ export const syncTimeBlockToCalendar = async (
     const calendarId = await getSiFiaCalendar();
 
     if (!calendarId) {
-
+      console.log('📆 [syncTimeBlockToCalendar] ❌ No calendar ID');
       return { success: false, error: 'Could not access calendar' };
     }
 
@@ -330,6 +332,7 @@ export const syncTimeBlockToCalendar = async (
     let recurrence: string | undefined;
     if (timeBlock.repeat.frequency !== 'never') {
       recurrence = getRNCalendarRecurrence(timeBlock.repeat);
+      console.log('📆 [syncTimeBlockToCalendar] Recurrence:', recurrence);
     }
 
     // Build event details; only add recurrence if defined to satisfy typings
@@ -346,7 +349,17 @@ export const syncTimeBlockToCalendar = async (
       eventDetails.recurrence = recurrence;
     }
 
+    console.log('📆 [syncTimeBlockToCalendar] Event details:', {
+      title: eventDetails.title,
+      startDate: eventDetails.startDate,
+      endDate: eventDetails.endDate,
+      calendarId: eventDetails.calendarId,
+      hasExistingEventId: !!timeBlock.calendarEventId,
+    });
+
+    console.log('📆 [syncTimeBlockToCalendar] Calling RNCalendarEvents.saveEvent...');
     const eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
+    console.log('📆 [syncTimeBlockToCalendar] ✅ Event saved! Event ID:', eventId);
 
     // Track success analytics
     try {

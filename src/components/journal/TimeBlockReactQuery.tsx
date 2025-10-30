@@ -796,6 +796,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         // Sync new time block to calendar
         if (calendarGating.canSyncToCalendar) {
           try {
+            console.log('📆 [CREATE] Starting calendar sync for new time block');
             // Convert repeat frequency for calendar sync compatibility
             const calendarRepeat = {
               ...newBlock.repeat,
@@ -812,22 +813,33 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               notes: newBlock.notes.trim(),
               isAllDay: newBlock.isAllDay,
               repeat: calendarRepeat,
+              calendarEventId: undefined, // No existing event ID for new time blocks
             };
 
+            console.log('📆 [CREATE] Calling syncTimeBlockToCalendar...');
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
+            console.log('📆 [CREATE] Sync result:', syncResult);
+            
             if (syncResult.success && syncResult.eventId) {
+              console.log('📆 [CREATE] Saving calendar event ID to database:', syncResult.eventId);
               // Update the time block with the calendar event ID (single update)
               await updateMutation.mutateAsync({
                 id: createResult.id,
                 updates: { calendar_event_id: syncResult.eventId },
               });
+              console.log('📆 [CREATE] Calendar event ID saved successfully');
+            } else {
+              console.log('📆 [CREATE] ⚠️ Sync failed or no event ID returned:', syncResult.error);
             }
           } catch (calendarError) {
+            console.error('📆 [CREATE] ❌ Calendar sync error:', calendarError);
             Logger.warn('Calendar sync failed during creation', {
       component: 'TimeBlockReactQuery',
       data: calendarError,
     });
           }
+        } else {
+          console.log('📆 [CREATE] ⚠️ Calendar sync disabled by gating');
         }
 
         analytics.trackTimeBlockEvent('timeblock_created', {
