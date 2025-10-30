@@ -697,9 +697,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           repeatFrequency: newBlock.repeat.frequency,
         });
 
-        await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
+        const updateResult = await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
 
         // Sync updated time block to calendar (before cache invalidation)
+        let calendarEventIdToSave: string | undefined;
         if (calendarGating.canSyncToCalendar) {
           try {
             // Convert repeat frequency for calendar sync compatibility
@@ -718,18 +719,18 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               notes: newBlock.notes.trim(),
               isAllDay: newBlock.isAllDay,
               repeat: calendarRepeat,
-              calendarEventId: existingBlock?.calendarEventId,
+              calendarEventId: existingBlock?.calendarEventId || updateResult.calendar_event_id,
             };
+
+            console.log('📆 [EDIT] Syncing to calendar with event ID:', timeBlockForSync.calendarEventId);
 
             // Sync to calendar (update or create)
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
             
-            // Only update DB if we got a new calendar event ID
-            if (syncResult.success && syncResult.eventId && !existingBlock?.calendarEventId) {
-              await updateMutation.mutateAsync({
-                id: editId,
-                updates: { calendar_event_id: syncResult.eventId },
-              });
+            // Save calendar event ID if it's new
+            if (syncResult.success && syncResult.eventId && !timeBlockForSync.calendarEventId) {
+              calendarEventIdToSave = syncResult.eventId;
+              console.log('📆 [EDIT] New calendar event ID to save:', calendarEventIdToSave);
             }
           } catch (calendarError) {
             Logger.warn('Calendar sync failed during update', {
@@ -737,6 +738,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       data: calendarError,
     });
           }
+        }
+
+        // Save calendar event ID if needed (single update)
+        if (calendarEventIdToSave) {
+          await updateMutation.mutateAsync({
+            id: editId,
+            updates: { calendar_event_id: calendarEventIdToSave },
+          });
+          console.log('📆 [EDIT] Saved calendar event ID to database');
         }
 
         // Force cache invalidation AFTER all operations complete
