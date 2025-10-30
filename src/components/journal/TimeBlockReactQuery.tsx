@@ -387,20 +387,29 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
+          const currentDateStr = instanceDate.toISOString().split('T')[0];
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           const endDateStr = endDate.toISOString().split('T')[0];
           console.log('🗓️ [DELETE FUTURE VIRTUAL] Setting end date to:', endDateStr);
+          console.log('🗓️ [DELETE FUTURE VIRTUAL] Adding current date to exceptions:', currentDateStr);
 
-          // Get current metadata from original event and add end date
+          // Get current metadata from original event
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
           const existingMetadata = originalApiEntry?.metadata || {};
+          const existingExceptions = existingMetadata.exceptions || [];
           console.log('🗓️ [DELETE FUTURE VIRTUAL] Existing metadata:', JSON.stringify(existingMetadata));
+
+          // Add current date to exceptions to hide "this" instance
+          const newExceptions = existingExceptions.includes(currentDateStr)
+            ? existingExceptions
+            : [...existingExceptions, currentDateStr];
 
           const newMetadata = {
             ...existingMetadata,
             endDate: endDateStr, // Store as YYYY-MM-DD
+            exceptions: newExceptions, // Add current date to exceptions
           };
           console.log('🗓️ [DELETE FUTURE VIRTUAL] New metadata to save:', JSON.stringify(newMetadata));
 
@@ -497,21 +506,30 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // For "This entry & future entries", set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
+          const currentDateStr = instanceDate.toISOString().split('T')[0];
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           const endDateStr = endDate.toISOString().split('T')[0];
           console.log('🗓️ [DELETE FUTURE] Setting end date to:', endDateStr);
+          console.log('🗓️ [DELETE FUTURE] Adding current date to exceptions:', currentDateStr);
           console.log('🗓️ [DELETE FUTURE] Time block ID:', timeBlock.id);
 
-          // Get current metadata and add end date
+          // Get current metadata
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
           const existingMetadata = originalApiEntry?.metadata || {};
+          const existingExceptions = existingMetadata.exceptions || [];
           console.log('🗓️ [DELETE FUTURE] Existing metadata:', JSON.stringify(existingMetadata));
+
+          // Add current date to exceptions to hide "this" instance
+          const newExceptions = existingExceptions.includes(currentDateStr)
+            ? existingExceptions
+            : [...existingExceptions, currentDateStr];
 
           const newMetadata = {
             ...existingMetadata,
             endDate: endDateStr, // Store as YYYY-MM-DD
+            exceptions: newExceptions, // Add current date to exceptions
           };
           console.log('🗓️ [DELETE FUTURE] New metadata to save:', JSON.stringify(newMetadata));
 
