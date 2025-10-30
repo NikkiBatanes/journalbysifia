@@ -203,19 +203,24 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
   try {
 
     const calendars = await RNCalendarEvents.findCalendars();
+    console.log('📆 [getSiFiaCalendar] Found calendars:', calendars.length);
 
     // 1) Prefer an existing 'siFia' calendar
     const existingSiFia = calendars.find(cal => cal.title === 'siFia');
     if (existingSiFia) {
-
+      console.log('📆 [getSiFiaCalendar] ✅ Using existing siFia calendar:', existingSiFia.id);
       return existingSiFia.id;
     }
 
-    // 2) Fallback to default calendar if we cannot create (as last resort)
+    // 2) If no calendars exist at all, we need to create one from scratch
+    if (calendars.length === 0) {
+      console.log('📆 [getSiFiaCalendar] ⚠️ No calendars found on device, attempting to create siFia calendar');
+    }
+
+    // 3) Get default calendar for source reference (if available)
     const defaultCalendar = calendars.find(cal => (cal as any).isPrimary) || calendars[0];
 
-    // 3) Try to create a dedicated 'siFia' calendar using the default calendar's source
-    // Note: RNCalendarEvents.saveCalendar requires platform-specific fields.
+    // 4) Try to create a dedicated 'siFia' calendar
     try {
       const baseSource: any = (defaultCalendar as any)?.source || {};
 
@@ -227,32 +232,36 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
       };
 
       if (Platform.OS === 'ios') {
-        // iOS requires a valid source. Reuse default calendar's source when possible.
+        // iOS requires a valid source
         if (baseSource && baseSource.id) {
           config.source = baseSource;
-
+          console.log('📆 [getSiFiaCalendar] Using source from existing calendar:', baseSource.id);
         } else {
-
+          // If no calendars exist, try to use iCloud or local source
+          console.log('📆 [getSiFiaCalendar] No source available, attempting to create with default iCloud source');
+          // Try to create with iCloud source (most common on iOS)
+          config.source = {
+            name: 'iCloud',
+            type: 'com.apple.icloud',
+          };
         }
       } else {
         // Android requires ownerAccount and accessLevel for local calendars
         const ownerAccount = (defaultCalendar as any)?.ownerAccount || 'local';
         config.ownerAccount = ownerAccount;
         config.accessLevel = 'owner';
-        // Some Android devices require accountType to be 'LOCAL'
-        if (baseSource?.type) {
-          config.accountType = baseSource.type;
-        }
-
+        config.accountType = baseSource?.type || 'LOCAL';
+        console.log('📆 [getSiFiaCalendar] Android config:', { ownerAccount, accountType: config.accountType });
       }
 
+      console.log('📆 [getSiFiaCalendar] Attempting to create siFia calendar with config:', config);
       const createdId = await (RNCalendarEvents as any).saveCalendar(config);
 
       if (createdId) {
-
+        console.log('📆 [getSiFiaCalendar] ✅ Successfully created siFia calendar:', createdId);
         return createdId as string;
       } else {
-
+        console.log('📆 [getSiFiaCalendar] ⚠️ saveCalendar returned no ID');
       }
     } catch (createErr) {
       Logger.error('📆 [getSiFiaCalendar] ❌ Could not create siFia calendar', createErr as Error, {
@@ -264,7 +273,14 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
       });
     }
 
-    return defaultCalendar?.id || null;
+    // 5) Last resort: use default calendar if available
+    if (defaultCalendar?.id) {
+      console.log('📆 [getSiFiaCalendar] ⚠️ Falling back to default calendar:', defaultCalendar.id);
+      return defaultCalendar.id;
+    }
+
+    console.log('📆 [getSiFiaCalendar] ❌ No calendar available and could not create one');
+    return null;
   } catch (error) {
     Logger.error('📆 [getSiFiaCalendar] ❌ Error getting calendar', error as Error, {
       component: 'calendarSyncService',
