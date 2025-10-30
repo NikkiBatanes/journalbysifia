@@ -699,16 +699,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
         await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
 
-        // Force cache invalidation for ALL dates to show changes immediately
-        // This is critical for recurring events where changes affect multiple dates
-        if (user?.id) {
-          await queryClient.invalidateQueries({
-            queryKey: [queryKeys.timeBlocks.all[0]],
-          });
-          console.log('📝 [EDIT] Cache invalidated for all time blocks');
-        }
-
-        // Sync updated time block to calendar
+        // Sync updated time block to calendar (before cache invalidation)
         if (calendarGating.canSyncToCalendar) {
           try {
             // Convert repeat frequency for calendar sync compatibility
@@ -746,6 +737,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       data: calendarError,
     });
           }
+        }
+
+        // Force cache invalidation AFTER all operations complete
+        // This is critical for recurring events where changes affect multiple dates
+        if (user?.id) {
+          await queryClient.invalidateQueries({
+            queryKey: [queryKeys.timeBlocks.all[0]],
+          });
+          console.log('📝 [EDIT] Cache invalidated for all time blocks');
         }
 
         analytics.trackTimeBlockEvent('timeblock_updated', {
