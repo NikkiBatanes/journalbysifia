@@ -60,13 +60,13 @@ class WeeklySummaryService {
   async scheduleWeeklySummary(userId: string): Promise<boolean> {
     try {
       const summary = await this.generateWeeklySummary(userId);
-      
+
       if (!summary) {
         return false;
       }
 
       // Only send if user had any activity this week
-      const hasActivity = 
+      const hasActivity =
         summary.stats.prayersLogged > 0 ||
         summary.stats.devotionalsCompleted > 0 ||
         summary.stats.journalEntries > 0 ||
@@ -146,7 +146,7 @@ class WeeklySummaryService {
 
     // Build message
     let message = '';
-    
+
     if (highlights.length > 0) {
       message = `This week: ${highlights.join(', ')}. `;
     }
@@ -189,10 +189,10 @@ class WeeklySummaryService {
     const today = new Date();
     const dayOfWeek = today.getDay();
     const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
-    
+
     const nextSunday = new Date(today);
     nextSunday.setDate(today.getDate() + daysUntilSunday);
-    
+
     return nextSunday;
   }
 
@@ -201,13 +201,13 @@ class WeeklySummaryService {
    */
   private async getWeeklyStats(
     userId: string,
-    weekStart: Date,
-    weekEnd: Date
+    _weekStart: Date,
+    _weekEnd: Date
   ): Promise<WeeklySummary['stats']> {
     try {
       // TODO: Implement actual database queries
       // For now, return placeholder data
-      
+
       // Get streaks
       const { data: streaksData } = await supabase
         .from('user_streaks')

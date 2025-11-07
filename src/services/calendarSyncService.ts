@@ -358,13 +358,15 @@ export const syncTimeBlockToCalendar = async (
     });
 
     let eventId: string;
-    
+
     if (timeBlock.calendarEventId) {
       // Update existing event
       console.log('📆 [syncTimeBlockToCalendar] Updating existing event:', timeBlock.calendarEventId);
-      eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails, {
+      const updateDetails = {
+        ...eventDetails,
         id: timeBlock.calendarEventId,
-      });
+      };
+      eventId = await RNCalendarEvents.saveEvent(timeBlock.title, updateDetails);
       console.log('📆 [syncTimeBlockToCalendar] ✅ Event updated! Event ID:', eventId);
     } else {
       // Create new event

@@ -17,14 +17,14 @@ export class DailyNotificationScheduler {
   static async shouldScheduleToday(): Promise<boolean> {
     try {
       const lastScheduled = await AsyncStorage.getItem(LAST_SCHEDULED_KEY);
-      
+
       if (!lastScheduled) {
         return true;
       }
 
       const lastDate = new Date(lastScheduled);
       const today = new Date();
-      
+
       // Check if it's a new day
       return (
         lastDate.getDate() !== today.getDate() ||
@@ -46,7 +46,7 @@ export class DailyNotificationScheduler {
     try {
       // Check if already scheduled today
       const shouldSchedule = await this.shouldScheduleToday();
-      
+
       if (!shouldSchedule) {
         Logger.info('Notifications already scheduled today', {
           component: 'DailyNotificationScheduler',

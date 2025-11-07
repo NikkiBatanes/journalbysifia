@@ -13,10 +13,10 @@ export const testNotifications = {
   async sendPrayerStreakAlert() {
     try {
       Logger.info('Attempting to send test prayer streak alert');
-      
+
       // Schedule for immediate delivery (1 second from now)
       const scheduledDate = new Date(Date.now() + 1000);
-      
+
       await pushNotificationService.scheduleLocalNotification({
         title: "Don't Break Your 5-Day Prayer Streak! 🔥",
         message: "You're on fire! Keep your spiritual momentum going.",
@@ -28,7 +28,7 @@ export const testNotifications = {
         },
         priority: 'high',
       }, scheduledDate);
-      
+
       Logger.info('Test prayer streak alert scheduled successfully');
       return true;
     } catch (error) {
@@ -62,8 +62,8 @@ export const testNotifications = {
   async sendPrayerRequest() {
     try {
       await pushNotificationService.scheduleLocalNotification({
-        title: "Pray for Sarah Now 🙏",
-        message: "Lift them up in prayer today.",
+        title: 'Pray for Sarah Now 🙏',
+        message: 'Lift them up in prayer today.',
         data: {
           deep_link: 'sifia://journal/prayer?tab=requests',
           type: 'prayer_request_reminder',
@@ -82,8 +82,8 @@ export const testNotifications = {
   async sendMilestoneCelebration() {
     try {
       await pushNotificationService.scheduleLocalNotification({
-        title: "You Reached 500 Faith Points! 🌟",
-        message: "Your spiritual growth is inspiring. Keep going!",
+        title: 'You Reached 500 Faith Points! 🌟',
+        message: 'Your spiritual growth is inspiring. Keep going!',
         data: {
           deep_link: 'sifia://profile/stats',
           type: 'milestone_celebration',
@@ -104,7 +104,7 @@ export const testNotifications = {
     try {
       await pushNotificationService.scheduleLocalNotification({
         title: "Level Up! You're Now a Disciple! 🎉",
-        message: "Your faith journey is progressing beautifully.",
+        message: 'Your faith journey is progressing beautifully.',
         data: {
           deep_link: 'sifia://profile/stats',
           type: 'milestone_celebration',
@@ -124,8 +124,8 @@ export const testNotifications = {
   async sendGratitudeReminder() {
     try {
       await pushNotificationService.scheduleLocalNotification({
-        title: "What Are You Grateful For Today? 🌟",
-        message: "Take a moment to count your blessings.",
+        title: 'What Are You Grateful For Today? 🌟',
+        message: 'Take a moment to count your blessings.',
         data: {
           deep_link: 'sifia://journal/gratitude',
           type: 'gratitude_reminder',
@@ -143,8 +143,8 @@ export const testNotifications = {
   async sendWeeklySummary() {
     try {
       await pushNotificationService.scheduleLocalNotification({
-        title: "Your Week in Faith 📊",
-        message: "This week: 5 prayers, 4 devotionals, 3 journal entries. Active: 7-day prayer streak 🔥. +120 faith points earned!",
+        title: 'Your Week in Faith 📊',
+        message: 'This week: 5 prayers, 4 devotionals, 3 journal entries. Active: 7-day prayer streak 🔥. +120 faith points earned!',
         data: {
           deep_link: 'sifia://profile/stats',
           type: 'weekly_summary',

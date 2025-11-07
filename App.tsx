@@ -127,7 +127,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     if (navigationRef.current && user?.id) {
       console.log('[App] Navigation ref ready for notifications');
     }
-  }, [navigationRef.current, user?.id]);
+  }, [user?.id]);
 
   // Only block initial render while bootstrapping the initial session.
   // DO NOT block on transient auth action loading to avoid navigator remounts

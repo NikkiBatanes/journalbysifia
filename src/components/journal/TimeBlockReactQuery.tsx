@@ -294,11 +294,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const handleEditBlock = (block: TimeBlockItem) => {
     closeAllSwipeActions();
     setIsAdding(true);
-    
+
     // Check if this is a virtual instance (repeated occurrence)
     const datePattern = /\d{4}-\d{2}-\d{2}$/;
     const isVirtualInstance = datePattern.test(block.id);
-    
+
     // If it's a virtual instance, extract the original ID to edit the source event
     let editIdToUse = block.id;
     if (isVirtualInstance) {
@@ -306,7 +306,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       editIdToUse = parts.slice(0, 5).join('-'); // Get original UUID
       console.log('📝 [EDIT] Editing virtual instance, using original ID:', editIdToUse);
     }
-    
+
     setEditId(editIdToUse);
     setNewBlock({
       ...block,
@@ -360,7 +360,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
           const existingMetadata = originalApiEntry?.metadata || {};
           const existingExceptions = existingMetadata.exceptions || [];
-          
+
           // Only add if not already in exceptions
           const newExceptions = existingExceptions.includes(instanceDate)
             ? existingExceptions
@@ -668,7 +668,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
         // When editing, preserve the original event's selected_date
         // Don't use current dateStr as it might be a different date for virtual instances
-        const originalSelectedDate = existingBlock?.startTime ? 
+        const originalSelectedDate = existingBlock?.startTime ?
           existingBlock.startTime.toISOString().split('T')[0] : dateStr;
 
         const timeBlockData = {
@@ -726,7 +726,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
             // Sync to calendar (update or create)
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
-            
+
             // Save calendar event ID if it's new
             if (syncResult.success && syncResult.eventId && !timeBlockForSync.calendarEventId) {
               calendarEventIdToSave = syncResult.eventId;
@@ -819,7 +819,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             console.log('📆 [CREATE] Calling syncTimeBlockToCalendar...');
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
             console.log('📆 [CREATE] Sync result:', syncResult);
-            
+
             if (syncResult.success && syncResult.eventId) {
               console.log('📆 [CREATE] Saving calendar event ID to database:', syncResult.eventId);
               // Update the time block with the calendar event ID (single update)

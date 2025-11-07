@@ -268,24 +268,24 @@ class MilestoneCelebrationService {
       switch (event.type) {
         case 'level_up':
           return await this.celebrateLevelUp(event.userId, Number(event.value));
-        
+
         case 'playbook_complete':
           return await this.celebratePlaybookComplete(
             event.userId,
             String(event.value),
             event.metadata?.playbookTitle || 'Your Playbook'
           );
-        
+
         case 'prayer_answered':
           return await this.celebratePrayerAnswered(event.userId, String(event.value));
-        
+
         case 'faith_points':
           // For faith points, use checkFaithPointsMilestone instead
           Logger.warn('Use checkFaithPointsMilestone for faith points', {
             component: 'milestoneCelebrationService',
           });
           return false;
-        
+
         default:
           Logger.warn('Unknown milestone type', {
             component: 'milestoneCelebrationService',

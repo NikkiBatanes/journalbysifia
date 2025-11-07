@@ -67,7 +67,7 @@ class NotificationAnalyticsService {
           });
           return true;
         }
-        
+
         Logger.error('Failed to track notification sent', error as Error, {
           component: 'notificationAnalyticsService',
           type,
@@ -100,7 +100,7 @@ class NotificationAnalyticsService {
         if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           return true;
         }
-        
+
         Logger.error('Failed to track notification opened', error as Error, {
           component: 'notificationAnalyticsService',
           notificationId,
@@ -124,10 +124,10 @@ class NotificationAnalyticsService {
   async trackTapped(notificationId: string): Promise<boolean> {
     try {
       const now = new Date().toISOString();
-      
+
       const { error } = await supabase
         .from('notification_analytics')
-        .update({ 
+        .update({
           tapped_at: now,
           // Also mark as opened if not already
           opened_at: now,
@@ -139,7 +139,7 @@ class NotificationAnalyticsService {
         if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           return true;
         }
-        
+
         Logger.error('Failed to track notification tapped', error as Error, {
           component: 'notificationAnalyticsService',
           notificationId,
@@ -175,7 +175,7 @@ class NotificationAnalyticsService {
         if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           return null;
         }
-        
+
         Logger.error('Failed to get user metrics', error as Error, {
           component: 'notificationAnalyticsService',
           userId,
@@ -263,7 +263,7 @@ class NotificationAnalyticsService {
         if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           return null;
         }
-        
+
         Logger.error('Failed to get global metrics', error as Error, {
           component: 'notificationAnalyticsService',
         });
@@ -336,7 +336,7 @@ class NotificationAnalyticsService {
   async checkNotificationFatigue(userId: string): Promise<boolean> {
     try {
       const metrics = await this.getUserMetrics(userId, 7);
-      
+
       if (!metrics || metrics.total_sent < 5) {
         // Not enough data to determine fatigue
         return false;

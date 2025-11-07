@@ -17,7 +17,7 @@ export function useNotificationSetup(userId: string | undefined, navigationRef: 
 
     // Set navigation reference for deep links
     notificationDeepLinkService.setNavigationRef(navigationRef);
-    
+
     Logger.info('Notification deep-link service initialized', {
       component: 'notificationSetup',
     });

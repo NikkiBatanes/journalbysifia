@@ -316,7 +316,7 @@ class StreakTrackingService {
 
       const config = messages[streakType];
       const [hour, min] = config.time.split(':').map(Number);
-      
+
       const scheduledFor = new Date();
       scheduledFor.setHours(hour, min, 0, 0);
 

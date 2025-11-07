@@ -27,9 +27,9 @@ export function useNotificationBadge() {
       setLoading(true);
       const pending = await notificationManagementService.getPendingNotifications(user.id);
       const count = pending.length;
-      
+
       setBadgeCount(count);
-      
+
       // Update app icon badge (iOS)
       await pushNotificationService.setBadgeNumber(count);
 

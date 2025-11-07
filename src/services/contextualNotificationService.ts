@@ -1,4 +1,3 @@
-import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { notificationSchedulerService } from './notificationSchedulerService';
 import { NotificationQueueItem } from './notificationManagementService';
@@ -80,7 +79,7 @@ class ContextualNotificationService {
     try {
       // Get unanswered prayer requests older than 24 hours
       const pendingRequests = await this.getPendingPrayerRequests(userId);
-      
+
       if (pendingRequests.length === 0) {
         return false;
       }
@@ -96,10 +95,10 @@ class ContextualNotificationService {
       // Personalize message with name if available
       const firstRequest = pendingRequests[0];
       const personName = firstRequest?.name || firstRequest?.title;
-      
+
       let title = 'Prayer Requests Awaiting 🙏';
       let message = '';
-      
+
       if (pendingRequests.length === 1 && personName) {
         title = `Pray for ${personName} Now 🙏`;
         message = 'Lift them up in prayer today.';
@@ -160,7 +159,7 @@ class ContextualNotificationService {
     try {
       // Get devotionals completed but not reflected on (older than 24 hours)
       const unreflectedDevotionals = await this.getUnreflectedDevotionals(userId);
-      
+
       if (unreflectedDevotionals.length === 0) {
         return false;
       }
@@ -308,7 +307,7 @@ class ContextualNotificationService {
   async scheduleJournalReminder(userId: string): Promise<boolean> {
     try {
       const daysSinceLastJournal = await this.getDaysSinceLastJournal(userId);
-      
+
       if (daysSinceLastJournal < 3) {
         return false;
       }
@@ -354,7 +353,7 @@ class ContextualNotificationService {
   async schedulePlaybookReminder(userId: string): Promise<boolean> {
     try {
       const incompletePlaybooks = await this.getIncompletePlaybooks(userId);
-      
+
       if (incompletePlaybooks.length === 0) {
         return false;
       }
@@ -446,7 +445,7 @@ class ContextualNotificationService {
   async scheduleAffirmationReminder(userId: string): Promise<boolean> {
     try {
       const unreadCount = await this.getUnreadAffirmationsCount(userId);
-      
+
       if (unreadCount === 0) {
         return false;
       }
@@ -519,43 +518,43 @@ class ContextualNotificationService {
 
   // ===== Helper Methods (Database Queries) =====
 
-  private async hasCompletedDevotionalToday(userId: string): Promise<boolean> {
+  private async hasCompletedDevotionalToday(_userId: string): Promise<boolean> {
     // TODO: Implement actual check against devotionals table
     // For now, return false to allow scheduling
     return false;
   }
 
-  private async hasPrayedToday(userId: string): Promise<boolean> {
+  private async hasPrayedToday(_userId: string): Promise<boolean> {
     // TODO: Implement actual check against prayer logs
     return false;
   }
 
-  private async getPendingPrayerRequests(userId: string): Promise<any[]> {
+  private async getPendingPrayerRequests(_userId: string): Promise<any[]> {
     // TODO: Implement actual query for unanswered prayer requests > 24 hours
     return [];
   }
 
-  private async getUnreflectedDevotionals(userId: string): Promise<any[]> {
+  private async getUnreflectedDevotionals(_userId: string): Promise<any[]> {
     // TODO: Implement actual query for completed but unreflected devotionals
     return [];
   }
 
-  private async hasGratitudeToday(userId: string): Promise<boolean> {
+  private async hasGratitudeToday(_userId: string): Promise<boolean> {
     // TODO: Implement actual check against gratitude logs
     return false;
   }
 
-  private async hasWinsToday(userId: string): Promise<boolean> {
+  private async hasWinsToday(_userId: string): Promise<boolean> {
     // TODO: Implement actual check against wins logs
     return false;
   }
 
-  private async getDaysSinceLastJournal(userId: string): Promise<number> {
+  private async getDaysSinceLastJournal(_userId: string): Promise<number> {
     // TODO: Implement actual check against journal entries
     return 0;
   }
 
-  private async getIncompletePlaybooks(userId: string): Promise<any[]> {
+  private async getIncompletePlaybooks(_userId: string): Promise<any[]> {
     // TODO: Implement actual query for playbooks with incomplete steps > 48 hours
     return [];
   }
@@ -569,7 +568,7 @@ class ContextualNotificationService {
     };
   }
 
-  private async getUnreadAffirmationsCount(userId: string): Promise<number> {
+  private async getUnreadAffirmationsCount(_userId: string): Promise<number> {
     // TODO: Implement actual check against affirmations
     return 0;
   }

@@ -26,7 +26,7 @@ class NotificationDeepLinkService {
     try {
       // Remove the scheme (sifia://)
       const path = url.replace(/^sifia:\/\//, '');
-      
+
       // Split into path and query params
       const [pathPart, queryPart] = path.split('?');
       const pathSegments = pathPart.split('/').filter(Boolean);
@@ -59,27 +59,27 @@ class NotificationDeepLinkService {
       return { screen: 'DashboardHome' };
     }
 
-    const [primary, secondary, tertiary] = segments;
+    const [primary, secondary, _tertiary] = segments;
 
     switch (primary) {
       case 'journal':
         return this.mapJournalRoute(secondary, queryParams);
-      
+
       case 'devotionals':
         return this.mapDevotionalsRoute(secondary, queryParams);
-      
+
       case 'playbooks':
         return this.mapPlaybooksRoute(secondary, queryParams);
-      
+
       case 'dashboard':
         return this.mapDashboardRoute(secondary, queryParams);
-      
+
       case 'profile':
         return this.mapProfileRoute(secondary, queryParams);
-      
+
       case 'subscription':
         return this.mapSubscriptionRoute(secondary, queryParams);
-      
+
       default:
         Logger.warn('Unknown deep link path', {
           component: 'notificationDeepLinkService',
@@ -129,7 +129,7 @@ class NotificationDeepLinkService {
     // Devotional detail with ID
     if (secondary && secondary !== 'today') {
       const params: Record<string, any> = { devotionalId: secondary };
-      
+
       if (queryParams.openReflection === 'true') {
         params.openReflection = true;
       }
@@ -151,7 +151,7 @@ class NotificationDeepLinkService {
   private mapPlaybooksRoute(secondary: string | undefined, queryParams: Record<string, any>): DeepLinkRoute {
     if (secondary) {
       const params: Record<string, any> = { playbookId: secondary };
-      
+
       if (queryParams.celebrate === 'true') {
         params.showCelebration = true;
       }
@@ -170,7 +170,7 @@ class NotificationDeepLinkService {
   /**
    * Map dashboard routes
    */
-  private mapDashboardRoute(secondary: string | undefined, queryParams: Record<string, any>): DeepLinkRoute {
+  private mapDashboardRoute(secondary: string | undefined, _queryParams: Record<string, any>): DeepLinkRoute {
     const params: Record<string, any> = {};
 
     if (secondary === 'affirmations') {
@@ -188,7 +188,7 @@ class NotificationDeepLinkService {
   /**
    * Map profile routes
    */
-  private mapProfileRoute(secondary: string | undefined, queryParams: Record<string, any>): DeepLinkRoute {
+  private mapProfileRoute(secondary: string | undefined, _queryParams: Record<string, any>): DeepLinkRoute {
     const params: Record<string, any> = {};
 
     if (secondary === 'stats') {
@@ -204,7 +204,7 @@ class NotificationDeepLinkService {
   /**
    * Map subscription routes
    */
-  private mapSubscriptionRoute(secondary: string | undefined, queryParams: Record<string, any>): DeepLinkRoute {
+  private mapSubscriptionRoute(secondary: string | undefined, _queryParams: Record<string, any>): DeepLinkRoute {
     if (secondary === 'upgrade') {
       return {
         screen: 'OnboardingSalesOffer',
@@ -243,7 +243,7 @@ class NotificationDeepLinkService {
 
       // Main tab screens that should navigate full-screen (not as modals)
       const mainTabScreens = ['DashboardHome', 'PlaybookList', 'Devotionals', 'Journal'];
-      
+
       if (mainTabScreens.includes(route.screen)) {
         // For main tab screens: dismiss any modals and navigate to the tab
         // Use reset to ensure we're at the root of the stack
@@ -267,7 +267,7 @@ class NotificationDeepLinkService {
         // For detail screens (PlaybookDetail, DevotionalDetail, etc.), navigate normally
         this.navigationRef.navigate(route.screen, route.params);
       }
-      
+
       return true;
     } catch (error) {
       Logger.error('Failed to navigate deep link', error as Error, {
@@ -284,7 +284,7 @@ class NotificationDeepLinkService {
   handleNotificationTap(notification: any): void {
     try {
       const { data } = notification;
-      
+
       if (!data) {
         Logger.warn('Notification has no data', {
           component: 'notificationDeepLinkService',
@@ -294,7 +294,7 @@ class NotificationDeepLinkService {
 
       // Extract deep link from notification data
       const deepLink = data.deep_link || data.deepLink || data.action;
-      
+
       if (deepLink && typeof deepLink === 'string') {
         this.navigate(deepLink);
       } else {

@@ -80,7 +80,7 @@ class NotificationSchedulerService {
 
       // Get user's notification preferences
       const preferences = await notificationManagementService.getNotificationPreferences(notification.user_id);
-      
+
       // Check if user has this notification type enabled
       if (preferences && !this.isNotificationTypeEnabled(notification.type, preferences)) {
         Logger.info('Notification type disabled by user', {
@@ -100,7 +100,7 @@ class NotificationSchedulerService {
             userId: notification.user_id,
             count: todayCount,
           });
-          
+
           // Try to batch with existing notifications
           const batched = await this.batchWithExisting(notification);
           return batched;
@@ -109,7 +109,7 @@ class NotificationSchedulerService {
 
       // Adjust scheduled time for quiet hours
       let scheduledFor = notification.scheduled_for ? new Date(notification.scheduled_for) : new Date();
-      
+
       if (respectQuietHours && priority !== 'critical') {
         scheduledFor = await this.adjustForQuietHours(
           scheduledFor,
@@ -126,7 +126,7 @@ class NotificationSchedulerService {
       };
 
       const success = await notificationManagementService.scheduleNotification(finalNotification);
-      
+
       if (success) {
         Logger.info('Notification scheduled successfully', {
           component: 'notificationSchedulerService',

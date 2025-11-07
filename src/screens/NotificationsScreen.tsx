@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -16,7 +15,6 @@ import { useNotificationBadge } from '../hooks/useNotificationBadge';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 import { Logger } from '../utils/ProductionLogger';
-import { testNotifications } from '../utils/testNotifications';
 
 interface NotificationsScreenProps {
   navigation: any;
@@ -28,11 +26,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [sendingTest, setSendingTest] = useState(false);
 
   // Fetch notifications
-  const fetchNotifications = async () => {
-    if (!user?.id) return;
+  const fetchNotifications = React.useCallback(async () => {
+    if (!user?.id) {return;}
 
     try {
       setLoading(true);
@@ -45,7 +42,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   // Refresh notifications
   const onRefresh = async () => {
@@ -91,7 +88,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   // Load notifications on mount
   React.useEffect(() => {
     fetchNotifications();
-  }, [user?.id]);
+  }, [fetchNotifications]);
 
   // Get icon for notification type
   const getNotificationIcon = (type: string) => {
@@ -131,10 +128,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) {return 'Just now';}
+    if (diffMins < 60) {return `${diffMins}m ago`;}
+    if (diffHours < 24) {return `${diffHours}h ago`;}
+    if (diffDays < 7) {return `${diffDays}d ago`;}
     return date.toLocaleDateString();
   };
 
@@ -151,82 +148,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
         </ThemedText>
-        {notifications.length > 0 ? (
+        {notifications.length > 0 && (
           <TouchableOpacity
             style={styles.clearButton}
             onPress={handleClearAll}
           >
             <ThemedText weight="medium" style={styles.clearText}>
               Clear All
-            </ThemedText>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={async () => {
-              if (sendingTest) { return; }
-              setSendingTest(true);
-              try {
-                Logger.info('Test button pressed - starting notification test');
-                
-                // Ensure permissions and initialization before testing
-                const { pushNotificationService } = await import('../services/pushNotificationService');
-                
-                Logger.info('Requesting notification permissions...');
-                const hasPermissions = await pushNotificationService.requestPermissions();
-                Logger.info('Permissions result:', { hasPermissions });
-                
-                if (user?.id) {
-                  Logger.info('Initializing push notification service...');
-                  await pushNotificationService.initialize(user.id);
-                  Logger.info('Push notification service initialized');
-                }
-                
-                Logger.info('Sending test notification...');
-                await testNotifications.sendPrayerStreakAlert();
-                
-                // Add a mock notification to the UI immediately for testing
-                const mockNotification = {
-                  id: `test-${Date.now()}`,
-                  title: "Don't Break Your 5-Day Prayer Streak! 🔥",
-                  message: "You're on fire! Keep your spiritual momentum going.",
-                  type: 'streak_alert',
-                  data: {
-                    deep_link: 'sifia://journal/prayer',
-                    type: 'streak_alert',
-                  },
-                  scheduled_for: new Date().toISOString(),
-                  created_at: new Date().toISOString(),
-                };
-                
-                setNotifications([mockNotification]);
-                await fetchBadgeCount();
-                
-                // Provide immediate user feedback
-                Alert.alert(
-                  'Test Notification Added! 🔔', 
-                  'A sample notification has been added to your list and scheduled to appear on your lock screen in 1-2 seconds.\n\nTo see the actual notification banner:\n• Lock your device, or\n• Go to home screen\n• Wait 1-2 seconds',
-                  [{ text: 'OK' }]
-                );
-              } catch (e) {
-                const error = e as Error;
-                Logger.error('Test notification failed', error, { 
-                  component: 'NotificationsScreen',
-                  errorMessage: error.message,
-                  errorStack: error.stack,
-                });
-                Alert.alert(
-                  'Test Failed', 
-                  `Unable to send test notification.\n\nError: ${error.message}\n\nPlease ensure:\n• Notification permissions are enabled\n• Testing on a real device (not simulator)\n• App has been opened at least once`,
-                  [{ text: 'OK' }]
-                );
-              } finally {
-                setSendingTest(false);
-              }
-            }}
-            >
-            <ThemedText weight="medium" style={styles.clearText}>
-              {sendingTest ? 'Testing…' : 'Test'}
             </ThemedText>
           </TouchableOpacity>
         )}
@@ -375,11 +303,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   iconContainer: {
     width: 48,
