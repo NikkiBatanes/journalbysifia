@@ -1576,7 +1576,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderFamilyManagementSection = () => {
     // Only show family management if user has family subscription or can create one
-    const canManageFamily = Boolean(familyGroup) || subscription?.tier === 'family' || subscription?.tier === 'transformation';
+    const canManageFamily = Boolean(familyGroup) || subscription?.tier === 'family';
     const isAdmin = familyGroup?.admin_user_id === user?.id;
 
     if (!canManageFamily) {return null;}
