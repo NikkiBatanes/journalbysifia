@@ -208,9 +208,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           </View>
         ) : notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off-outline" size={64} color={Colors.hopeWhite} />
+            <Ionicons name="notifications-off-outline" size={64} color={Colors.textGray} />
             <ThemedText weight="medium" style={styles.emptyText}>
-              No notifications
+              No Notifications
             </ThemedText>
             <ThemedText style={styles.emptySubtext}>
               You're all caught up!
@@ -317,9 +317,9 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     marginTop: 8,
-    opacity: 0.8,
+    opacity: 1,
   },
   notificationCard: {
     flexDirection: 'row',
