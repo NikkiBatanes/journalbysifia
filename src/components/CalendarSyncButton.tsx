@@ -94,7 +94,23 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
             frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly',
           },
         });
-        result = { ...updateResult, eventId: calendarEventId };
+
+        // If update failed (event might have been deleted from calendar), create a new one
+        if (!updateResult.success) {
+          Logger.warn('Calendar update failed, creating new event', {
+            component: 'CalendarSyncButton',
+            errorMessage: updateResult.error,
+          });
+          result = await syncTimeBlockToCalendar({
+            ...timeBlock,
+            repeat: {
+              ...timeBlock.repeat,
+              frequency: timeBlock.repeat.frequency as 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly',
+            },
+          });
+        } else {
+          result = { ...updateResult, eventId: calendarEventId };
+        }
 
       } else {
 
