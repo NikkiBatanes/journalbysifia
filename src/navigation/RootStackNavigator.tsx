@@ -14,6 +14,7 @@ import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 // New Onboarding screens
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
@@ -266,6 +267,18 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="UserProfileModal"
             component={UserProfileScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
+          />
+
+          {/* Notifications Screen */}
+          <Stack.Screen
+            name="Notifications"
+            component={NotificationsScreen as React.ComponentType}
             options={{
               headerShown: false,
               presentation: 'modal',

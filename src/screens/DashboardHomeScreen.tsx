@@ -1342,9 +1342,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           style={styles.iconButton}
           onPress={() => {
             triggerLightHaptic();
-            // Navigate to notifications/activity screen
-            // TODO: Create dedicated notifications screen
-            navigation.navigate('UserProfile');
+            navigation.navigate('Notifications');
           }}
         >
           <Ionicons name="notifications-outline" size={24} color={Colors.anchorBlue} />
