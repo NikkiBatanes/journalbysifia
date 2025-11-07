@@ -191,7 +191,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
               No notifications
             </ThemedText>
             <ThemedText style={styles.emptySubtext}>
-              You're all caught up! 🎉
+              You're all caught up!
             </ThemedText>
           </View>
         ) : (
@@ -231,17 +231,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           ))
         )}
       </ScrollView>
-
-      {/* Settings Link */}
-      <TouchableOpacity
-        style={styles.settingsButton}
-        onPress={() => navigation.navigate('UserProfile')}
-      >
-        <Ionicons name="settings-outline" size={20} color={Colors.anchorBlue} />
-        <ThemedText weight="medium" style={styles.settingsText}>
-          Notification Settings
-        </ThemedText>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -301,12 +290,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: Colors.text,
+    color: Colors.anchorBlue,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.anchorBlue,
     marginTop: 8,
   },
   notificationCard: {
@@ -337,31 +326,19 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 15,
-    color: Colors.text,
+    color: Colors.anchorBlue,
     marginBottom: 4,
   },
   notificationMessage: {
     fontSize: 13,
-    color: Colors.textGray,
+    color: Colors.anchorBlue,
     marginBottom: 4,
+    opacity: 0.8,
   },
   notificationTime: {
     fontSize: 11,
-    color: Colors.mutedText,
-  },
-  settingsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.cardBorder,
-    backgroundColor: Colors.hopeWhite,
-    gap: 8,
-  },
-  settingsText: {
-    fontSize: 14,
     color: Colors.anchorBlue,
+    opacity: 0.6,
   },
 });
 
