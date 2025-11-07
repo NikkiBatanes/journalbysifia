@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { notificationManagementService, NotificationQueueItem } from './notificationManagementService';
 import { notificationAnalyticsService } from './notificationAnalyticsService';
+import { AppState, AppStateStatus } from 'react-native';
 
 export interface ScheduleOptions {
   respectQuietHours?: boolean;
@@ -17,6 +18,30 @@ class NotificationSchedulerService {
   private readonly MAX_NOTIFICATIONS_PER_DAY = 3;
   private readonly QUIET_HOURS_DEFAULT_START = '22:00';
   private readonly QUIET_HOURS_DEFAULT_END = '07:00';
+  private appState: AppStateStatus = 'active';
+
+  constructor() {
+    // Listen to app state changes for smart suppression
+    AppState.addEventListener('change', this.handleAppStateChange.bind(this));
+  }
+
+  /**
+   * Handle app state changes
+   */
+  private handleAppStateChange(nextAppState: AppStateStatus): void {
+    this.appState = nextAppState;
+    Logger.info('App state changed', {
+      component: 'notificationSchedulerService',
+      state: nextAppState,
+    });
+  }
+
+  /**
+   * Check if app is currently active (smart suppression)
+   */
+  isAppActive(): boolean {
+    return this.appState === 'active';
+  }
 
   /**
    * Schedule a notification with smart batching and quiet hours
@@ -31,6 +56,16 @@ class NotificationSchedulerService {
         priority = 'normal',
         batchWithOthers = true,
       } = options;
+
+      // Smart suppression: Don't schedule if app is active (user is already engaged)
+      if (this.isAppActive() && priority !== 'critical') {
+        Logger.info('App is active - suppressing notification', {
+          component: 'notificationSchedulerService',
+          userId: notification.user_id,
+          type: notification.type,
+        });
+        return false;
+      }
 
       // Check notification fatigue
       const isFatigued = await notificationAnalyticsService.checkNotificationFatigue(notification.user_id);
