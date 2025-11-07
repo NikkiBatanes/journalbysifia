@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { streakTrackingService, StreakType } from '../services/streakTrackingService';
 import { milestoneCelebrationService } from '../services/milestoneCelebrationService';
+import { contextualNotificationService } from '../services/contextualNotificationService';
 import { Logger } from '../utils/ProductionLogger';
 
 /**
@@ -173,6 +174,56 @@ export function useNotificationIntegration() {
     }
   }, [user?.id]);
 
+  /**
+   * Schedule all daily notifications
+   * Call this once per day (e.g., on app launch or via background task)
+   */
+  const scheduleAllDailyNotifications = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      await contextualNotificationService.scheduleAllDailyNotifications(user.id);
+    } catch (error) {
+      Logger.error('Failed to schedule daily notifications', error as Error, {
+        component: 'useNotificationIntegration',
+        userId: user.id,
+      });
+    }
+  }, [user?.id]);
+
+  /**
+   * Schedule specific contextual notifications
+   */
+  const scheduleDevotionalReminder = useCallback(async (preferredTime?: string) => {
+    if (!user?.id) {
+      return;
+    }
+    return await contextualNotificationService.scheduleDailyDevotionalReminder(user.id, preferredTime);
+  }, [user?.id]);
+
+  const schedulePrayerReminder = useCallback(async (preferredTime?: string) => {
+    if (!user?.id) {
+      return;
+    }
+    return await contextualNotificationService.scheduleDailyPrayerReminder(user.id, preferredTime);
+  }, [user?.id]);
+
+  const scheduleGratitudeReminder = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
+    return await contextualNotificationService.scheduleGratitudeReminder(user.id);
+  }, [user?.id]);
+
+  const scheduleWinsReminder = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
+    return await contextualNotificationService.scheduleWinsReminder(user.id);
+  }, [user?.id]);
+
   return {
     // Activity tracking
     trackPrayer,
@@ -188,5 +239,12 @@ export function useNotificationIntegration() {
 
     // Streak info
     getStreakStatus,
+
+    // Daily notifications
+    scheduleAllDailyNotifications,
+    scheduleDevotionalReminder,
+    schedulePrayerReminder,
+    scheduleGratitudeReminder,
+    scheduleWinsReminder,
   };
 }
