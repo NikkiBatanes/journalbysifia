@@ -61,6 +61,7 @@ import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPraye
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
+import { useNotificationBadge } from '../hooks/useNotificationBadge';
 
 const { width } = Dimensions.get('window');
 
@@ -743,6 +744,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { user } = useAuth();
   const { subscription, usage, refreshSubscription } = useSubscription();
   const queryClient = useQueryClient();
+  const { badgeCount } = useNotificationBadge();
 
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
@@ -1340,12 +1342,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           style={styles.iconButton}
           onPress={() => {
             triggerLightHaptic();
+            // Navigate to notifications/activity screen
+            // TODO: Create dedicated notifications screen
+            navigation.navigate('UserProfile');
           }}
         >
           <Ionicons name="notifications-outline" size={24} color={Colors.anchorBlue} />
-          <View style={styles.notificationBadge}>
-            <ThemedText weight="semiBold" style={styles.notificationCount}>3</ThemedText>
-          </View>
+          {badgeCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <ThemedText weight="semiBold" style={styles.notificationCount}>{badgeCount}</ThemedText>
+            </View>
+          )}
         </TouchableOpacity>
 
         {/* Profile Avatar with Notification */}
