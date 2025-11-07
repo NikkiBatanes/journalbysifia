@@ -93,15 +93,37 @@ class ContextualNotificationService {
         scheduledFor.setDate(scheduledFor.getDate() + 1);
       }
 
+      // Personalize message with name if available
+      const firstRequest = pendingRequests[0];
+      const personName = firstRequest?.name || firstRequest?.title;
+      
+      let title = 'Prayer Requests Awaiting 🙏';
+      let message = '';
+      
+      if (pendingRequests.length === 1 && personName) {
+        title = `Pray for ${personName} Now 🙏`;
+        message = 'Lift them up in prayer today.';
+      } else if (pendingRequests.length === 1) {
+        title = 'Prayer Request Waiting 🙏';
+        message = 'Someone needs your prayers today.';
+      } else if (personName) {
+        title = `Pray for ${personName} and ${pendingRequests.length - 1} Others 🙏`;
+        message = `${pendingRequests.length} prayer requests need your attention.`;
+      } else {
+        title = 'Prayer Requests Awaiting 🙏';
+        message = `You have ${pendingRequests.length} prayer requests that need your prayers today.`;
+      }
+
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'prayer_request_reminder',
-        title: 'Prayer Requests Awaiting Your Attention 🙏',
-        message: `You have ${pendingRequests.length} prayer request(s) that need your prayers today.`,
+        title,
+        message,
         data: {
           deep_link: 'sifia://journal/prayer?tab=requests',
           count: pendingRequests.length,
-          oldest_request_id: pendingRequests[0]?.id,
+          oldest_request_id: firstRequest?.id,
+          person_name: personName,
         },
         scheduled_for: scheduledFor.toISOString(),
         priority: 'normal',
