@@ -162,7 +162,17 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           <TouchableOpacity
             style={styles.clearButton}
             onPress={async () => {
-              await testNotifications.sendPrayerStreakAlert();
+              try {
+                // Ensure permissions and initialization before testing
+                const { pushNotificationService } = await import('../services/pushNotificationService');
+                await pushNotificationService.requestPermissions();
+                if (user?.id) {
+                  await pushNotificationService.initialize(user.id);
+                }
+                await testNotifications.sendPrayerStreakAlert();
+              } catch (e) {
+                Logger.error('Test notification failed', e as Error, { component: 'NotificationsScreen' });
+              }
             }}
           >
             <ThemedText weight="medium" style={styles.clearText}>
@@ -259,7 +269,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: Colors.anchorBlue,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.hopeWhite,
   },
   backButton: {
