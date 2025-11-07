@@ -133,13 +133,22 @@ export const updateTimeBlockInCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; error?: string }> => {
   try {
+    console.log('📆 [updateTimeBlockInCalendar] Starting update for event:', calendarEventId);
+    console.log('📆 [updateTimeBlockInCalendar] Time block:', {
+      title: timeBlock.title,
+      startTime: timeBlock.startTime.toISOString(),
+      endTime: timeBlock.endTime.toISOString(),
+    });
+
     const hasPermission = await requestCalendarPermissions();
     if (!hasPermission) {
+      console.log('📆 [updateTimeBlockInCalendar] ❌ Permission denied');
       return { success: false, error: 'Calendar permission denied' };
     }
 
     const calendarId = await getSiFiaCalendar();
     if (!calendarId) {
+      console.log('📆 [updateTimeBlockInCalendar] ❌ No calendar ID');
       return { success: false, error: 'Could not access calendar' };
     }
 
@@ -147,6 +156,7 @@ export const updateTimeBlockInCalendar = async (
     let recurrence: string | undefined;
     if (timeBlock.repeat.frequency !== 'never') {
       recurrence = getRNCalendarRecurrence(timeBlock.repeat);
+      console.log('📆 [updateTimeBlockInCalendar] Recurrence:', recurrence);
     }
 
     const eventDetails: any = {
@@ -163,10 +173,15 @@ export const updateTimeBlockInCalendar = async (
       eventDetails.recurrence = recurrence;
     }
 
-    await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
+    console.log('📆 [updateTimeBlockInCalendar] Event details:', eventDetails);
+
+    const updatedEventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
+
+    console.log('📆 [updateTimeBlockInCalendar] ✅ Event updated! Event ID:', updatedEventId);
 
     return { success: true };
   } catch (error) {
+    console.log('📆 [updateTimeBlockInCalendar] ❌ Error:', error);
     Logger.error('Calendar update error', error as Error, {
       component: 'calendarSyncService',
     });
