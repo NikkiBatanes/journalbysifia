@@ -15,6 +15,7 @@ import { useNotificationBadge } from '../hooks/useNotificationBadge';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 import { Logger } from '../utils/ProductionLogger';
+import { testNotifications } from '../utils/testNotifications';
 
 interface NotificationsScreenProps {
   navigation: any;
@@ -143,18 +144,29 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.anchorBlue} />
+          <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
         </ThemedText>
-        {notifications.length > 0 && (
+        {notifications.length > 0 ? (
           <TouchableOpacity
             style={styles.clearButton}
             onPress={handleClearAll}
           >
             <ThemedText weight="medium" style={styles.clearText}>
               Clear All
+            </ThemedText>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={async () => {
+              await testNotifications.sendPrayerStreakAlert();
+            }}
+          >
+            <ThemedText weight="medium" style={styles.clearText}>
+              Test
             </ThemedText>
           </TouchableOpacity>
         )}
@@ -179,14 +191,14 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       >
         {loading && notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-outline" size={64} color={Colors.textGray} />
+            <Ionicons name="notifications-outline" size={64} color={Colors.hopeWhite} />
             <ThemedText weight="medium" style={styles.emptyText}>
               Loading notifications...
             </ThemedText>
           </View>
         ) : notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off-outline" size={64} color={Colors.textGray} />
+            <Ionicons name="notifications-off-outline" size={64} color={Colors.hopeWhite} />
             <ThemedText weight="medium" style={styles.emptyText}>
               No notifications
             </ThemedText>
@@ -226,7 +238,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                 </ThemedText>
               </View>
 
-              <Ionicons name="chevron-forward" size={20} color={Colors.textGray} />
+              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
             </TouchableOpacity>
           ))
         )}
@@ -238,7 +250,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   header: {
     flexDirection: 'row',
@@ -246,16 +258,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.cardBorder,
+    borderBottomColor: Colors.hopeWhite,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    color: Colors.text,
+    color: Colors.hopeWhite,
     flex: 1,
     textAlign: 'center',
   },
@@ -267,7 +279,7 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   badgeContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.alertCoral,
     paddingVertical: 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -290,28 +302,24 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginTop: 8,
+    opacity: 0.8,
   },
   notificationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   iconContainer: {
     width: 48,
@@ -326,19 +334,19 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 15,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 4,
   },
   notificationMessage: {
     fontSize: 13,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 4,
     opacity: 0.8,
   },
   notificationTime: {
     fontSize: 11,
-    color: Colors.anchorBlue,
-    opacity: 0.6,
+    color: Colors.alertCoral,
+    opacity: 0.9,
   },
 });
 
