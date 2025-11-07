@@ -580,6 +580,26 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const openExternalLink = useCallback(async (url: string) => {
+    try { triggerLightHaptic(); } catch {}
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Unable to open link', 'Please try again later.');
+        return;
+      }
+
+      await Linking.openURL(url);
+    } catch (error) {
+      Logger.error('Failed to open external link', error as Error, {
+        component: 'UserProfileScreen',
+        url,
+      });
+      Alert.alert('Unable to open link', 'Please try again later.');
+    }
+  }, []);
+
   // Try in-app review first, with gentle app-level gating, then fallback to store page
   const handleLeaveReview = async () => {
     try {
@@ -1301,7 +1321,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
+          onPress={() => { openExternalLink('https://sifia.app/terms'); }}
+          accessibilityLabel="Open Terms of Service"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="document-text" size={18} color={Colors.anchorBlue} />
@@ -1312,7 +1333,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
+          onPress={() => { openExternalLink('https://sifia.app/privacy'); }}
+          accessibilityLabel="Open Privacy Policy"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="lock-closed" size={18} color={Colors.anchorBlue} />
@@ -1330,7 +1352,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
+          onPress={() => { openExternalLink('https://sifia.app/#faq'); }}
+          accessibilityLabel="Open Frequently Asked Questions"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="help-circle" size={18} color={Colors.anchorBlue} />
