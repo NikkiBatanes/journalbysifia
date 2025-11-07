@@ -1471,7 +1471,7 @@ PODS:
     - React-Core
   - react-native-netinfo (11.4.1):
     - React-Core
-  - react-native-safe-area-context (5.6.1):
+  - react-native-safe-area-context (5.6.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1486,8 +1486,8 @@ PODS:
     - React-hermes
     - React-ImageManager
     - React-jsi
-    - react-native-safe-area-context/common (= 5.6.1)
-    - react-native-safe-area-context/fabric (= 5.6.1)
+    - react-native-safe-area-context/common (= 5.6.2)
+    - react-native-safe-area-context/fabric (= 5.6.2)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -1497,7 +1497,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/common (5.6.1):
+  - react-native-safe-area-context/common (5.6.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1521,7 +1521,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/fabric (5.6.1):
+  - react-native-safe-area-context/fabric (5.6.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1922,7 +1922,7 @@ PODS:
     - Yoga
   - RNCPushNotificationIOS (1.11.0):
     - React-Core
-  - RNDateTimePicker (8.4.5):
+  - RNDateTimePicker (8.5.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1946,7 +1946,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNGestureHandler (2.28.0):
+  - RNGestureHandler (2.29.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2025,7 +2025,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNLiveMarkdown (0.1.308):
+  - RNLiveMarkdown (0.1.311):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2198,7 +2198,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNScreens (4.16.0):
+  - RNScreens (4.18.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2222,9 +2222,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 4.16.0)
+    - RNScreens/common (= 4.18.0)
     - Yoga
-  - RNScreens/common (4.16.0):
+  - RNScreens/common (4.18.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2249,7 +2249,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNSentry (7.3.0):
+  - RNSentry (7.4.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2272,7 +2272,7 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - Sentry/HybridSDK (= 8.56.2)
+    - Sentry/HybridSDK (= 8.57.0)
     - Yoga
   - RNSound (0.12.0):
     - DoubleConversion
@@ -2347,7 +2347,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - Sentry/HybridSDK (8.56.2)
+  - Sentry/HybridSDK (8.57.0)
   - SocketRocket (0.7.1)
   - Yoga (0.0.0)
 
@@ -2718,7 +2718,7 @@ SPEC CHECKSUMS:
   react-native-image-picker: db0b3e3c7ae57680876318d4f42e7dbedd72244a
   react-native-in-app-review: 1516ba69d60d58053b7eb3aaaf8d2a5a74af8b57
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
-  react-native-safe-area-context: 895c49ee2613865f90318789be89a8e286fe7b69
+  react-native-safe-area-context: 0b8555c40461feb7198e999912a3446602e7c601
   React-NativeModulesApple: 2c4377e139522c3d73f5df582e4f051a838ff25e
   React-oscompat: ef5df1c734f19b8003e149317d041b8ce1f7d29c
   React-perflogger: 9a151e0b4c933c9205fd648c246506a83f31395d
@@ -2755,22 +2755,22 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: a1c8cc8a99c32de1244a9cf707bf9d83d0de0f71
   RNCPicker: 28c076ae12a1056269ec0305fe35fac3086c477d
   RNCPushNotificationIOS: 6c4ca3388c7434e4a662b92e4dfeeee858e6f440
-  RNDateTimePicker: fabbb1f7cd6fada4c969d2a137012200c49e1f06
-  RNGestureHandler: 0397fea67f39d5a2d17fcf4a028e206f7ba098ba
+  RNDateTimePicker: 5433b7f418c5337abbd26fe6588da1a654f2b5a4
+  RNGestureHandler: dcafa28ad8e981d332a95fff4f9ba9a96b09f5a3
   RNGoogleSignin: 204d0031895b0b350268f29945571d4bed371beb
   RNIap: 61f183ac917792fae42b0326b1bef33598c1adf6
   RNKeychain: 943b4dbceef4b3a310c9122c99d1e5b0bd66b9f3
-  RNLiveMarkdown: a36ba1194c19ac6c96734dfd4ff4422af21ea3ec
+  RNLiveMarkdown: fdd910b86c33786e4036f1324e79df77dd13bca4
   RNReactNativeHapticFeedback: 851adf794e1fcdc0664d80820fa3272ee8a6a538
   RNReanimated: 1a94be2654cbbe861fba2a872c84a142351e9ec0
-  RNScreens: 824a29c178e253fe8b08fb0b2903195d35f724f2
-  RNSentry: 24101364fae12d9db5019ff34e824207cc39b385
+  RNScreens: f38464ec1e83bda5820c3b05ccf4908e3841c5cc
+  RNSentry: 0f61ae3c111d9129a978aeedd1fa05d0cd2307a9
   RNSound: 72c4886fb80b8a0e8c40131099223e09422aa8b4
   RNSVG: 681f8ef5ca50e13cb3c6c88a907ea89b68fee74f
-  Sentry: b53951377b78e21a734f5dc8318e333dbfc682d7
+  Sentry: e1b49e5f49367ff211b25c431a60e2bd83b792aa
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: c758bfb934100bb4bf9cbaccb52557cee35e8bdf
 
 PODFILE CHECKSUM: f3f625a1154d0302a1ce2e232337d83ad7d40659
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.15.2
