@@ -326,27 +326,19 @@ class PushNotificationService {
   }
 
   private handleNotificationTap(notification: any): void {
-
-    // Handle different notification types
-    const { type } = notification.data || {};
-
-    switch (type) {
-      case 'playbook_step':
-        // Navigate to specific playbook and action step
-        // navigation.navigate('PlaybookDetail', { playbookId, actionStepId });
-        break;
-      case 'devotional_reminder':
-        // Navigate to devotional
-        // navigation.navigate('DevotionalDetail', { devotionalId });
-        break;
-      case 'prayer_reminder':
-        // Navigate to prayer/journal section
-        // navigation.navigate('Journal', { tab: 'prayer' });
-        break;
-      default:
-        // Navigate to home screen
-        // navigation.navigate('Home');
-        break;
+    try {
+      // Import deep link service dynamically to avoid circular dependencies
+      import('./notificationDeepLinkService').then(({ notificationDeepLinkService }) => {
+        notificationDeepLinkService.handleNotificationTap(notification);
+      }).catch((error) => {
+        Logger.error('[PushNotification] Failed to load deep link service', error as Error, {
+          component: 'pushNotificationService',
+        });
+      });
+    } catch (error) {
+      Logger.error('[PushNotification] Error handling notification tap', error as Error, {
+        component: 'pushNotificationService',
+      });
     }
   }
 }
