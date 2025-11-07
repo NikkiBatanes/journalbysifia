@@ -12,6 +12,11 @@ export const testNotifications = {
    */
   async sendPrayerStreakAlert() {
     try {
+      Logger.info('Attempting to send test prayer streak alert');
+      
+      // Schedule for immediate delivery (1 second from now)
+      const scheduledDate = new Date(Date.now() + 1000);
+      
       await pushNotificationService.scheduleLocalNotification({
         title: "Don't Break Your 5-Day Prayer Streak! 🔥",
         message: "You're on fire! Keep your spiritual momentum going.",
@@ -21,10 +26,14 @@ export const testNotifications = {
           streak_type: 'prayer',
           current_streak: 5,
         },
-      });
-      Logger.info('Test prayer streak alert sent');
+        priority: 'high',
+      }, scheduledDate);
+      
+      Logger.info('Test prayer streak alert scheduled successfully');
+      return true;
     } catch (error) {
       Logger.error('Failed to send test notification', error as Error);
+      throw error;
     }
   },
 

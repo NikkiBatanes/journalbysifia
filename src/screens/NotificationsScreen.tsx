@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -27,6 +28,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -162,21 +164,52 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           <TouchableOpacity
             style={styles.clearButton}
             onPress={async () => {
+              if (sendingTest) { return; }
+              setSendingTest(true);
               try {
+                Logger.info('Test button pressed - starting notification test');
+                
                 // Ensure permissions and initialization before testing
                 const { pushNotificationService } = await import('../services/pushNotificationService');
-                await pushNotificationService.requestPermissions();
+                
+                Logger.info('Requesting notification permissions...');
+                const hasPermissions = await pushNotificationService.requestPermissions();
+                Logger.info('Permissions result:', { hasPermissions });
+                
                 if (user?.id) {
+                  Logger.info('Initializing push notification service...');
                   await pushNotificationService.initialize(user.id);
+                  Logger.info('Push notification service initialized');
                 }
+                
+                Logger.info('Sending test notification...');
                 await testNotifications.sendPrayerStreakAlert();
+                
+                // Provide immediate user feedback
+                Alert.alert(
+                  'Test Notification Sent! 🔔', 
+                  'A sample notification has been scheduled. It should appear in 1-2 seconds. Check your notification tray or lock screen.',
+                  [{ text: 'OK' }]
+                );
               } catch (e) {
-                Logger.error('Test notification failed', e as Error, { component: 'NotificationsScreen' });
+                const error = e as Error;
+                Logger.error('Test notification failed', error, { 
+                  component: 'NotificationsScreen',
+                  errorMessage: error.message,
+                  errorStack: error.stack,
+                });
+                Alert.alert(
+                  'Test Failed', 
+                  `Unable to send test notification.\n\nError: ${error.message}\n\nPlease ensure:\n• Notification permissions are enabled\n• Testing on a real device (not simulator)\n• App has been opened at least once`,
+                  [{ text: 'OK' }]
+                );
+              } finally {
+                setSendingTest(false);
               }
             }}
-          >
+            >
             <ThemedText weight="medium" style={styles.clearText}>
-              Test
+              {sendingTest ? 'Testing…' : 'Test'}
             </ThemedText>
           </TouchableOpacity>
         )}
@@ -208,7 +241,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           </View>
         ) : notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off-outline" size={64} color={Colors.textGray} />
+            <Ionicons name="notifications-off-outline" size={48} color={Colors.textGray} />
             <ThemedText weight="medium" style={styles.emptyText}>
               No Notifications
             </ThemedText>
