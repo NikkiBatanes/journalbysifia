@@ -241,7 +241,33 @@ class NotificationDeepLinkService {
         params: route.params,
       });
 
-      this.navigationRef.navigate(route.screen, route.params);
+      // Main tab screens that should navigate full-screen (not as modals)
+      const mainTabScreens = ['DashboardHome', 'PlaybookList', 'Devotionals', 'Journal'];
+      
+      if (mainTabScreens.includes(route.screen)) {
+        // For main tab screens: dismiss any modals and navigate to the tab
+        // Use reset to ensure we're at the root of the stack
+        this.navigationRef.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'MainTabs',
+              state: {
+                routes: [
+                  {
+                    name: route.screen,
+                    params: route.params,
+                  },
+                ],
+              },
+            },
+          ],
+        });
+      } else {
+        // For detail screens (PlaybookDetail, DevotionalDetail, etc.), navigate normally
+        this.navigationRef.navigate(route.screen, route.params);
+      }
+      
       return true;
     } catch (error) {
       Logger.error('Failed to navigate deep link', error as Error, {
