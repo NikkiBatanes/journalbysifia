@@ -12,6 +12,7 @@ import { useActionSteps } from '../context/ActionStepsContext';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { PrayerApi, PrayerApiEntry } from '../services/api/prayerApi';
 import { toLocalDateString } from '../utils/date';
+import { useNotificationIntegration } from '../hooks/useNotificationIntegration';
 
 interface SmartJournalingPrayerModalProps {
   visible: boolean;
@@ -52,6 +53,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   const { user } = useAuth();
   const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
+  const { trackPrayer } = useNotificationIntegration();
 
   // Debug logging
 
@@ -236,7 +238,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
       return await PrayerApi.createPrayer(prayerEntry);
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
 
       // Proper cache invalidation using correct query keys
       if (user?.id && data?.selected_date) {
@@ -247,6 +249,13 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', user.id] });
         queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+
+        // Track prayer activity for notifications (streak tracking, alerts)
+        try {
+          await trackPrayer();
+        } catch (error) {
+          Logger.error('Failed to track prayer for notifications', error as Error, { component: 'SmartJournalingPrayerModal' });
+        }
       }
     },
     onError: (error) => {

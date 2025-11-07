@@ -67,12 +67,16 @@ function App(): React.JSX.Element {
 }
 
 import { useAuth } from './src/context/IndustryStandardAuthContext';
+import { useNotificationSetup } from './src/utils/notificationSetup';
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
 
   const { isAuthenticated, bootstrapping, user } = useAuth();
   const navigationRef = React.useRef<NavigationContainerRef<any> | null>(null);
   const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(undefined);
+
+  // Initialize notification system (deep links, scheduling, badges)
+  useNotificationSetup(user?.id, navigationRef.current);
 
   const HIDE_NETWORK_ON = React.useMemo(() => new Set<string>([
     'OnboardingSplash',
@@ -117,6 +121,13 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
 
     syncSubscriptionStatus();
   }, [isAuthenticated, user?.id]);
+
+  // Re-initialize notification setup when navigation ref changes
+  useEffect(() => {
+    if (navigationRef.current && user?.id) {
+      console.log('[App] Navigation ref ready for notifications');
+    }
+  }, [navigationRef.current, user?.id]);
 
   // Only block initial render while bootstrapping the initial session.
   // DO NOT block on transient auth action loading to avoid navigator remounts
