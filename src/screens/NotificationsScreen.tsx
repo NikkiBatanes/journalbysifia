@@ -185,10 +185,27 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                 Logger.info('Sending test notification...');
                 await testNotifications.sendPrayerStreakAlert();
                 
+                // Add a mock notification to the UI immediately for testing
+                const mockNotification = {
+                  id: `test-${Date.now()}`,
+                  title: "Don't Break Your 5-Day Prayer Streak! 🔥",
+                  message: "You're on fire! Keep your spiritual momentum going.",
+                  type: 'streak_alert',
+                  data: {
+                    deep_link: 'sifia://journal/prayer',
+                    type: 'streak_alert',
+                  },
+                  scheduled_for: new Date().toISOString(),
+                  created_at: new Date().toISOString(),
+                };
+                
+                setNotifications([mockNotification]);
+                await fetchBadgeCount();
+                
                 // Provide immediate user feedback
                 Alert.alert(
-                  'Test Notification Sent! 🔔', 
-                  'A sample notification has been scheduled. It should appear in 1-2 seconds. Check your notification tray or lock screen.',
+                  'Test Notification Added! 🔔', 
+                  'A sample notification has been added to your list and scheduled to appear on your lock screen in 1-2 seconds.\n\nTo see the actual notification banner:\n• Lock your device, or\n• Go to home screen\n• Wait 1-2 seconds',
                   [{ text: 'OK' }]
                 );
               } catch (e) {
