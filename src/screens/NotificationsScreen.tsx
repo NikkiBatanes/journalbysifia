@@ -179,14 +179,14 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       >
         {loading && notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-outline" size={64} color={Colors.hopeWhite} />
+            <Ionicons name="notifications-outline" size={48} color={Colors.hopeWhite} />
             <ThemedText weight="medium" style={styles.emptyText}>
               Loading notifications...
             </ThemedText>
           </View>
         ) : notifications.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off-outline" size={48} color={Colors.textGray} />
+            <Ionicons name="notifications-off-outline" size={40} color={Colors.textGray} />
             <ThemedText weight="medium" style={styles.emptyText}>
               No Notifications
             </ThemedText>

@@ -579,8 +579,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   logo: {
-    width: '80%',
-    height: 150,
+    width: '90%',
+    height: 200,
   },
   guidanceSubtitle: {
     color: 'rgba(255,255,255,0.9)',
