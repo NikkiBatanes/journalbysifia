@@ -48,6 +48,7 @@ interface MomentEntry {
   _isGratitude?: boolean;
   _isWin?: boolean;
   _isPlan?: boolean;
+  _searchText?: string;
 }
 
 interface GroupedSection {
@@ -135,6 +136,54 @@ const getEntryRank = (entry: Partial<MomentEntry>): number => {
   const keyFromType = textToOrderKey((entry as any)?.type || entry?.plugin?.title || (entry as any)?.category || '');
   if (keyFromType) {return TYPE_ORDER[keyFromType];}
   return 50;
+};
+
+const parseIfJsonString = (value: string): unknown => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const flattenToString = (value: unknown): string => {
+  if (value === undefined || value === null) {return '';}
+  if (typeof value === 'string') {return value;}
+  if (typeof value === 'number' || typeof value === 'boolean') {return String(value);}
+  if (Array.isArray(value)) {
+    return value.map(flattenToString).filter(Boolean).join(' ');
+  }
+  if (typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>)
+      .map(flattenToString)
+      .filter(Boolean)
+      .join(' ');
+  }
+  return '';
+};
+
+const buildSearchText = (...values: unknown[]): string => {
+  const parts: string[] = [];
+  values.forEach((raw) => {
+    if (raw === undefined || raw === null) {return;}
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        const parsed = parseIfJsonString(trimmed);
+        parts.push(flattenToString(parsed));
+      } else {
+        parts.push(trimmed);
+      }
+      return;
+    }
+    parts.push(flattenToString(raw));
+  });
+
+  return parts
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 };
 
 // Create dynamic styles function
@@ -665,6 +714,15 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       date: entryDate,
                       category: isDevotionalJE ? 'Prayer' : 'Journal',
                       type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
+                      _searchText: buildSearchText(
+                        entry.content,
+                        (entry as any)?.title,
+                        (entry as any)?.subtitle,
+                        (entry as any)?.summary,
+                        (entry as any)?.notes,
+                        (entry as any)?.prompt,
+                        (entry as any)?.metadata,
+                      ),
                     };
 
                     entries.push(momentEntry);
@@ -803,6 +861,19 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   category: 'Prayer',
                   type: typeLabel,
                   isAnswered: ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date,
+                  _searchText: buildSearchText(
+                    contentText,
+                    contentObj,
+                    (prayer as any)?.title,
+                    (prayer as any)?.name,
+                    (prayer as any)?.notes,
+                    (prayer as any)?.people,
+                    (prayer as any)?.prayer_list,
+                    (prayer as any)?.devotional_title,
+                    (prayer as any)?.request,
+                    (prayer as any)?.journal_category,
+                    (prayer as any)?.prayer_type,
+                  ),
                 };
 
                 entries.push(prayerEntry);
@@ -875,6 +946,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                     date: entryDate,
                     category: 'Reflection',
                     type: reflection.type || 'Reflection',
+                    _searchText: buildSearchText(
+                      reflection.content,
+                      (reflection as any)?.title,
+                      (reflection as any)?.subtitle,
+                      (reflection as any)?.prompt,
+                      (reflection as any)?.notes,
+                      (reflection as any)?.metadata,
+                    ),
                   };
 
                   entries.push(reflectionEntry);
@@ -971,6 +1050,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               date: entryDate,
               category: 'Schedule',
               type: 'Time Block',
+              _searchText: buildSearchText(
+                timeBlock.title,
+                (timeBlock as any)?.notes,
+                (timeBlock as any)?.description,
+                (timeBlock as any)?.metadata,
+              ),
             });
           });
         }
@@ -1106,10 +1191,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
     // Then filter by search query if provided
     if (searchQuery.trim()) {
-      filteredEntries = filteredEntries.filter(entry =>
-        entry.plugin.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      filteredEntries = filteredEntries.filter(entry => {
+        const pluginMatch = entry.plugin.title.toLowerCase().includes(normalizedQuery);
+        const categoryMatch = (entry.category || '').toLowerCase().includes(normalizedQuery);
+        const typeMatch = (entry.type || '').toLowerCase().includes(normalizedQuery);
+        const textMatch = (entry._searchText || '').includes(normalizedQuery);
+        return pluginMatch || categoryMatch || typeMatch || textMatch;
+      });
 
     }
 

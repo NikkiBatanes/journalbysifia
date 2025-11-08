@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, Dimensions, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, Dimensions, DeviceEventEmitter, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from 'lucide-react-native';
+import { Feather, Search, X as CloseIcon } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
 import { useTheme } from '../hooks/useTheme';
@@ -34,8 +34,7 @@ export const MomentsScreen: React.FC = () => {
   // Grouping and search state
   const [groupBy, setGroupBy] = useState<GroupingType>('date');
   const [sortBy, _setSortBy] = useState<'newest' | 'oldest' | 'category' | 'type'>('newest');
-  const [searchQuery, _setSearchQuery] = useState('');
-  const [_showSearch, _setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   // Prayer answered filter state
   const [prayerAnswerFilter, setPrayerAnswerFilter] = useState<PrayerAnswerFilter>('all');
@@ -132,6 +131,30 @@ export const MomentsScreen: React.FC = () => {
           </View>
         </View>
         <ThemedText style={[styles.headerSubtitle, { fontFamily: fontRegular }]}>Your journal entries and memories</ThemedText>
+
+        <View style={[styles.searchContainer, isSmallScreen && styles.searchContainerCompact]}>
+          <Search size={18} color={Colors.textGray} style={styles.searchIcon} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search moments"
+            placeholderTextColor={Colors.textGray}
+            style={[styles.searchInput, { fontFamily: fontRegular }]}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={styles.clearButton}
+              accessibilityLabel="Clear search"
+              accessibilityRole="button"
+            >
+              <CloseIcon size={16} color={Colors.textGray} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Enhanced Moments Renderer - now handles its own scrolling */}
@@ -225,6 +248,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textGray,
     marginTop: 4,
+  },
+  searchContainer: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchContainerCompact: {
+    alignSelf: 'stretch',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    paddingVertical: 0,
+  },
+  clearButton: {
+    marginLeft: 8,
+    padding: 4,
   },
   scrollView: {
     flex: 1,
