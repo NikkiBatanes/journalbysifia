@@ -899,30 +899,79 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
         if (!timeBlocksError && timeBlocks && timeBlocks.length > 0) {
 
-          timeBlocks.forEach(timeBlock => {
-            // Check if time block has meaningful user content
-            if (timeBlock.title && timeBlock.title.trim().length > 0) {
-              // Find appropriate plugin
-              let plugin = plugins.find((p: JournalPlugin) =>
-                p.title.toLowerCase().includes('schedule') ||
-                p.title.toLowerCase().includes('time') ||
-                p.title.toLowerCase().includes('plan')
-              );
-
-              // Fallback to a generic plugin
-              if (!plugin && plugins.length > 0) {
-                plugin = plugins[0];
-              }
-
-              if (plugin) {
-                entries.push({
-                  plugin: plugin,
-                  date: new Date(timeBlock.selected_date || timeBlock.created_at), // Use selected_date first, fallback to created_at
-                  category: 'Schedule',
-                  type: 'Time Block',
-                });
-              }
+          const normalizeDateString = (value?: string | null): string | null => {
+            if (!value) {return null;}
+            const trimmed = value.trim();
+            if (!trimmed) {return null;}
+            if (trimmed.includes('T')) {
+              const [datePart] = trimmed.split('T');
+              return datePart;
             }
+            return trimmed;
+          };
+
+          const hasPassedEndDate = (selectedIso: string | null, endIso: string | null): boolean => {
+            if (!selectedIso || !endIso) {return false;}
+            try {
+              const selectedTime = Date.parse(`${selectedIso}T00:00:00Z`);
+              const endTime = Date.parse(`${endIso}T23:59:59Z`);
+              if (!Number.isNaN(selectedTime) && !Number.isNaN(endTime)) {
+                return selectedTime > endTime;
+              }
+            } catch {
+              // fall through to string comparison
+            }
+            return selectedIso > endIso;
+          };
+
+          timeBlocks.forEach(timeBlock => {
+            if (!timeBlock?.title || timeBlock.title.trim().length === 0) {
+              return;
+            }
+
+            if (timeBlock.category === 'exception') {
+              return;
+            }
+
+            const selectedDateIso = normalizeDateString(timeBlock.selected_date);
+            const metadata = (timeBlock as any)?.metadata || {};
+            const exceptionsRaw = Array.isArray(metadata?.exceptions) ? metadata.exceptions : [];
+            const exceptionDates = exceptionsRaw
+              .map((value: unknown) => (typeof value === 'string' ? normalizeDateString(value) : null))
+              .filter((value): value is string => !!value);
+
+            if (selectedDateIso && exceptionDates.includes(selectedDateIso)) {
+              return;
+            }
+
+            const endDateIso = normalizeDateString(metadata?.endDate || timeBlock.repeat_until || timeBlock.repeat_end_date);
+            if (hasPassedEndDate(selectedDateIso, endDateIso)) {
+              return;
+            }
+
+            let plugin = plugins.find((p: JournalPlugin) =>
+              p.title.toLowerCase().includes('schedule') ||
+              p.title.toLowerCase().includes('time') ||
+              p.title.toLowerCase().includes('plan')
+            );
+
+            if (!plugin && plugins.length > 0) {
+              plugin = plugins[0];
+            }
+
+            if (!plugin) {
+              return;
+            }
+
+            const entryDateIso = selectedDateIso || normalizeDateString(timeBlock.created_at);
+            const entryDate = entryDateIso ? new Date(`${entryDateIso}T00:00:00`) : new Date(timeBlock.selected_date || timeBlock.created_at);
+
+            entries.push({
+              plugin,
+              date: entryDate,
+              category: 'Schedule',
+              type: 'Time Block',
+            });
           });
         }
 
