@@ -31,7 +31,7 @@ interface EnhancedMomentsRendererProps {
   headerComponents?: React.ReactElement[];
   refreshControl?: React.ReactElement<RefreshControlProps>;
   prayerAnswerFilter?: 'all' | 'answered' | 'unanswered';
-  filterKeys?: Array<'upcoming' | 'unansweredPrayers' | 'answeredPrayers' | 'reflectionJournals' | 'prayers' | 'gratitude' | 'todaysWin' | 'planCarousel'>;
+  filterKeys?: Array<'upcoming' | 'unansweredPrayers' | 'answeredPrayers' | 'reflectionJournals' | 'prayers' | 'prayerRequests' | 'gratitude' | 'todaysWin' | 'planCarousel'>;
   // Optional handler for empty-state CTA button
   onAddPress?: () => void;
 }
@@ -48,6 +48,7 @@ interface MomentEntry {
   _isGratitude?: boolean;
   _isWin?: boolean;
   _isPlan?: boolean;
+  _isPrayerRequest?: boolean;
   _searchText?: string;
 }
 
@@ -151,11 +152,14 @@ const flattenToString = (value: unknown): string => {
   if (typeof value === 'string') {return value;}
   if (typeof value === 'number' || typeof value === 'boolean') {return String(value);}
   if (Array.isArray(value)) {
-    return value.map(flattenToString).filter(Boolean).join(' ');
+    return value
+      .map((item: unknown) => flattenToString(item))
+      .filter(Boolean)
+      .join(' ');
   }
   if (typeof value === 'object') {
     return Object.values(value as Record<string, unknown>)
-      .map(flattenToString)
+      .map((item: unknown) => flattenToString(item))
       .filter(Boolean)
       .join(' ');
   }
@@ -861,6 +865,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   category: 'Prayer',
                   type: typeLabel,
                   isAnswered: ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date,
+                  _isPrayerRequest: (prayer as any)?.is_prayer_request === true,
                   _searchText: buildSearchText(
                     contentText,
                     contentObj,
@@ -1211,7 +1216,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const isGratitude = type.includes('gratitude');
       const isWin = type.includes("today's win") || type.includes('todays win');
       const isPlan = type.includes("today's focus") || type.includes('todays focus') || type.includes('todo') || type.includes('time block') || type.includes('timeblock');
-      return { ...e, _isPrayer: isPrayer, _isReflection: isReflection, _isGratitude: isGratitude, _isWin: isWin, _isPlan: isPlan } as MomentEntry;
+      const isPrayerRequest = e._isPrayerRequest === true || ((e as any)?.type || '').toLowerCase().includes('request');
+      return { ...e, _isPrayer: isPrayer, _isReflection: isReflection, _isGratitude: isGratitude, _isWin: isWin, _isPlan: isPlan, _isPrayerRequest: isPrayerRequest } as MomentEntry;
     });
 
     // Exclusive handling for answered/unanswered filters: if exactly one is selected, only show matching prayers
@@ -1272,6 +1278,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       filteredEntries = filteredEntries.filter(e => {
         return (
           (categoryFilters.includes('prayers') && e._isPrayer) ||
+          (categoryFilters.includes('prayerRequests') && e._isPrayerRequest) ||
           (categoryFilters.includes('reflectionJournals') && e._isReflection) ||
           (categoryFilters.includes('gratitude') && e._isGratitude) ||
           (categoryFilters.includes('todaysWin') && e._isWin) ||
@@ -2331,6 +2338,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     if (filterKeys?.includes('unansweredPrayers')) {active.push('unanswered prayers');}
     if (filterKeys?.includes('reflectionJournals')) {active.push('reflections');}
     if (filterKeys?.includes('prayers')) {active.push('prayers');}
+    if (filterKeys?.includes('prayerRequests')) {active.push('prayer requests');}
     if (filterKeys?.includes('gratitude')) {active.push('gratitude');}
     if (filterKeys?.includes('todaysWin')) {active.push("today's win");}
     if (filterKeys?.includes('planCarousel')) {active.push('plans');}

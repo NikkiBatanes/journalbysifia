@@ -137,7 +137,7 @@ export const MomentsScreen: React.FC = () => {
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search moments"
+            placeholder="Search Moments"
             placeholderTextColor={Colors.textGray}
             style={[styles.searchInput, { fontFamily: fontRegular }]}
             autoCapitalize="none"
