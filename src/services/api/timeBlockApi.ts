@@ -105,14 +105,80 @@ export class TimeBlockApi {
         throw regularError;
       }
 
+      const normalizeDateString = (value?: string | null): string | null => {
+        if (!value) {return null;}
+        const trimmed = value.trim();
+        if (!trimmed) {return null;}
+        if (trimmed.includes('T')) {
+          const [datePart] = trimmed.split('T');
+          return datePart;
+        }
+        return trimmed;
+      };
+
+      const doesExceptionMatchDate = (
+        rawExceptions: unknown,
+        targetDate: string,
+        blockStartIso?: string
+      ): boolean => {
+        if (!Array.isArray(rawExceptions)) {return false;}
+
+        const normalizedTarget = normalizeDateString(targetDate);
+        if (!normalizedTarget) {return false;}
+
+        const normalizedExceptions = rawExceptions
+          .map(item => (typeof item === 'string' ? normalizeDateString(item) : null))
+          .filter((item): item is string => !!item);
+
+        if (normalizedExceptions.includes(normalizedTarget)) {
+          return true;
+        }
+
+        if (blockStartIso) {
+          try {
+            const blockStartNormalized = normalizeDateString(new Date(blockStartIso).toISOString());
+            if (blockStartNormalized && normalizedExceptions.includes(blockStartNormalized)) {
+              return true;
+            }
+          } catch {
+            // Ignore parsing failures and fall back to other checks
+          }
+        }
+
+        return false;
+      };
+
+      const hasPassedEndDate = (rawEndDate?: string | null): boolean => {
+        const normalizedEndDate = normalizeDateString(rawEndDate);
+        if (!normalizedEndDate) {return false;}
+
+        try {
+          const targetTime = Date.parse(`${date}T00:00:00Z`);
+          const endTime = Date.parse(`${normalizedEndDate}T23:59:59Z`);
+          if (!Number.isNaN(targetTime) && !Number.isNaN(endTime)) {
+            return targetTime > endTime;
+          }
+        } catch {
+          // Fallback to string comparison below
+        }
+
+        return date > normalizedEndDate;
+      };
+
       // Filter out regular blocks that have the target date in their exceptions
       const filteredBlocks = regularBlocks?.filter(block => {
         const metadata = block.metadata || {};
-        const exceptions = metadata.exceptions || [];
-        const isExcepted = exceptions.includes(date);
+        const isExcepted = doesExceptionMatchDate(metadata.exceptions, date, block.start_time);
 
         if (isExcepted) {
 
+        }
+
+        // Respect metadata/repeat end dates for base records
+        const endDateStr = metadata.endDate || block.repeat_until || block.repeat_end_date;
+        if (hasPassedEndDate(endDateStr)) {
+
+          return false;
         }
 
         return !isExcepted;

@@ -45,6 +45,7 @@ interface TimeBlockItem {
   title: string;
   startTime: Date;
   endTime: Date;
+  selectedDate: string;
   category: string;
   notes?: string;
   location?: string;
@@ -176,6 +177,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     title: block.title,
     startTime: new Date(block.start_time), // Now expects ISO timestamp
     endTime: new Date(block.end_time), // Now expects ISO timestamp
+    selectedDate: block.selected_date,
     category: block.category,
     notes: block.description, // Map description field to notes
     location: block.location,
@@ -346,7 +348,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           // For virtual instances, create an exception record to hide this specific occurrence
           const parts = timeBlock.id.split('-');
           const originalId = parts.slice(0, 5).join('-'); // Reconstruct UUID
-          const instanceDate = timeBlock.startTime.toISOString().split('T')[0]; // Use startTime date
+          const instanceDate = toLocalDateString(timeBlock.startTime); // Use startTime date in local timezone
 
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
@@ -387,11 +389,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
-          const currentDateStr = instanceDate.toISOString().split('T')[0];
+          const currentDateStr = toLocalDateString(instanceDate);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
-          const endDateStr = endDate.toISOString().split('T')[0];
+          const endDateStr = toLocalDateString(endDate);
           console.log('🗓️ [DELETE FUTURE VIRTUAL] Setting end date to:', endDateStr);
           console.log('🗓️ [DELETE FUTURE VIRTUAL] Adding current date to exceptions:', currentDateStr);
 
@@ -447,7 +449,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         if (timeBlock.repeat.frequency !== 'never' && options.type === 'single') {
 
           // For original recurring event, "single" means add exception for this date
-          const instanceDate = timeBlock.startTime.toISOString().split('T')[0];
+          const instanceDate = toLocalDateString(timeBlock.startTime);
 
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
@@ -506,11 +508,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // For "This entry & future entries", set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
-          const currentDateStr = instanceDate.toISOString().split('T')[0];
+          const currentDateStr = toLocalDateString(instanceDate);
           const endDate = new Date(instanceDate);
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
-          const endDateStr = endDate.toISOString().split('T')[0];
+          const endDateStr = toLocalDateString(endDate);
           console.log('🗓️ [DELETE FUTURE] Setting end date to:', endDateStr);
           console.log('🗓️ [DELETE FUTURE] Adding current date to exceptions:', currentDateStr);
           console.log('🗓️ [DELETE FUTURE] Time block ID:', timeBlock.id);
