@@ -43,11 +43,19 @@ function chooseStyleFromColor(backgroundColor?: string): 'light' | 'dark' {
  * - style 'auto'  => inferred from backgroundColor luminance
  * Optionally set Android backgroundColor.
  */
+export const resolveStatusBarStyle = (
+  style: StatusBarStylePref = 'auto',
+  backgroundColor?: string
+): 'light-content' | 'dark-content' => {
+  const resolvedStyle = style === 'auto' ? chooseStyleFromColor(backgroundColor) : style;
+  return resolvedStyle === 'light' ? 'light-content' : 'dark-content';
+};
+
 export function useScreenStatusBar(style: StatusBarStylePref = 'auto', backgroundColor?: string) {
   useFocusEffect(
     useCallback(() => {
-      const resolvedStyle = style === 'auto' ? chooseStyleFromColor(backgroundColor) : style;
-      StatusBar.setBarStyle(resolvedStyle === 'light' ? 'light-content' : 'dark-content', true);
+      const barStyle = resolveStatusBarStyle(style, backgroundColor);
+      StatusBar.setBarStyle(barStyle, true);
       if (Platform.OS === 'android' && backgroundColor) {
         StatusBar.setBackgroundColor(backgroundColor, true);
       }

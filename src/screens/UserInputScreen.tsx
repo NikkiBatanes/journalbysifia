@@ -13,7 +13,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +21,7 @@ import { RootStackParamList } from '../navigation/types';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic } from '../utils/haptics';
 import { useTheme } from '../theme/ThemeContext';
@@ -40,19 +40,7 @@ const UserInputScreen: React.FC = () => {
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
-  // Set status bar style
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor(Colors.anchorBlue);
-    }
-    StatusBar.setBarStyle('light-content');
-    return () => {
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor('transparent');
-      }
-      StatusBar.setBarStyle('light-content');
-    };
-  }, []);
+  useScreenStatusBar('dark', Colors.anchorBlue);
 
   // No scrolling needed; content is static and footer is fixed
 
@@ -385,7 +373,6 @@ const UserInputScreen: React.FC = () => {
         keyboardVerticalOffset={Platform.select({ ios: insets.bottom || 0, android: 0 })}
         style={styles.container}
       >
-        <StatusBar barStyle="light-content" />
         <View style={styles.content}>
           <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }, { scale: headerScale }] }]}>
             <Animated.Image source={require('../../assets/images/siFia.png')} style={[styles.logo, { opacity: headerIntroOpacity }]} resizeMode="contain" />

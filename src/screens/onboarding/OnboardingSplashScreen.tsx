@@ -19,6 +19,7 @@ import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBound
 import { supabase } from '../../services/supabaseClient';
 
 import { Colors } from '../../theme/colors';
+import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
 import { logger } from '../../utils/logger';
 import { onboardingService } from '../../services/onboardingService';
 
@@ -27,6 +28,7 @@ interface OnboardingSplashScreenProps {
 }
 
 const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onComplete: _onComplete }) => {
+  useScreenStatusBar('auto', Colors.hopeWhite);
   const navigation = useNavigation();
   const { user, isLoggingOut } = useAuth();
   const hasNavigatedRef = useRef(false);

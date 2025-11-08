@@ -26,6 +26,7 @@ import PlaybookCard from '../components/PlaybookCard';
 import DevotionalModal from '../components/DevotionalModal';
 import BlueSheet from '../components/layout/BlueSheet';
 import { Colors, Fonts } from '../theme';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import ThemedText from '../components/common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
 import type { Playbook } from '../interfaces/playbook';
@@ -451,12 +452,18 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [filter]);
 
   const sections = useMemo(() => {
-    // Ensure filteredPlaybooks is an array before passing to groupPlaybooksByMonth
-    const safeFilteredPlaybooks = Array.isArray(filteredPlaybooks) ? filteredPlaybooks : [];
-    const result = groupPlaybooksByMonth(safeFilteredPlaybooks);
-
-    return result;
+    const grouped = groupPlaybooksByMonth(filteredPlaybooks);
+    return grouped
+      .map(group => ({
+        title: group.title,
+        data: group.data,
+      }))
+      .filter(section => section.data.length > 0);
   }, [filteredPlaybooks, groupPlaybooksByMonth]);
+
+  const isEmptyState = playbooks.length === 0 && !isLoading && !!userId;
+
+  useScreenStatusBar(isEmptyState ? 'light' : 'auto', isEmptyState ? Colors.anchorBlue : undefined);
 
   const handleDelete = async (id: string) => {
     if (!userId) {
