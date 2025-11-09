@@ -335,8 +335,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     <OnboardingErrorBoundary>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-
-      <View style={styles.container}>
+        <View style={OnboardingStyles.innerContainer}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Image
@@ -420,7 +419,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
           </ThemedText>
         </ThemedText>
       </View>
-    </View>
+      </View>
     </OnboardingErrorBoundary>
   );
 };

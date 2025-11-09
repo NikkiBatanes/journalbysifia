@@ -899,7 +899,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         keyboardVerticalOffset={0}
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-
+        <View style={OnboardingStyles.innerContainer}>
       <View style={[styles.header, scrollY > 50 ? styles.headerTransparent : null]}>
         <View style={styles.logoContainer}>
           <Image
@@ -1018,7 +1018,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </Animated.View>
-
+      </View>
     </KeyboardAvoidingView>
     </OnboardingErrorBoundary>
   );

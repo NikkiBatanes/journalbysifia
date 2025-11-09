@@ -18,20 +18,27 @@ export const createOnboardingStyles = (fonts: {
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+    alignItems: 'center',
+  },
+  
+  innerContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 768,
   },
 
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
     paddingTop: 50,
     paddingBottom: 30,
+    paddingHorizontal: 24,
   },
 
   content: {
     flex: 1,
-    paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
+    paddingHorizontal: 24,
   },
 
   // Logo Section

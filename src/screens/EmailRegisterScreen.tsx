@@ -380,6 +380,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 40,
     paddingBottom: 0,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   pb8: {
     paddingBottom: 8,

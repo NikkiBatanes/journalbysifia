@@ -188,6 +188,9 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   logo: {
     width: 120,

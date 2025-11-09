@@ -1050,6 +1050,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   pricingScroll: {
     flex: 1,

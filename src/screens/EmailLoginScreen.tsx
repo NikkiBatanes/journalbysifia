@@ -201,6 +201,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   header: {
     marginBottom: 10,

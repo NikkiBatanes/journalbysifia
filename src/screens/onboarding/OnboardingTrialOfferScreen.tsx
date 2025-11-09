@@ -836,6 +836,9 @@ const createStyles = (fonts: any) => StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'space-between',
     paddingBottom: 56,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   mainTitle: {
     fontSize: 24,

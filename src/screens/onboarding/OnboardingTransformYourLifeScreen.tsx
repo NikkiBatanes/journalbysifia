@@ -89,7 +89,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-
+      <View style={OnboardingStyles.innerContainer}>
       <Animated.View
         style={[
           styles.content,
@@ -167,6 +167,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         </View>
 
       </Animated.View>
+      </View>
     </View>
   );
 };
