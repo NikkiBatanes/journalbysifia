@@ -686,6 +686,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               </View>
             </View>
           </View>
+
           {/* original price now shown inline next to current price */}
         </View>
 
@@ -906,6 +907,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               )
             )}
           </View>
+          {isAnnual && (
+            <View style={styles.freeBannerContainer}>
+              <ThemedText weight="semiBold" style={styles.freeBannerText}>2 months free</ThemedText>
+            </View>
+          )}
           <View style={styles.cardsContainer}>
             {pricingTiers.length > 0 ? (
               pricingTiers.map(renderPricingCard)
@@ -1157,6 +1163,17 @@ const styles = StyleSheet.create({
     // weight handled by ThemedText
     color: Colors.hopeWhite,
   },
+  freeBadgeSmall: {
+    backgroundColor: Colors.faithGold,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  freeBadgeSmallText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+  },
   loadingText: {
     color: Colors.hopeWhite,
     fontSize: 16,
@@ -1165,6 +1182,19 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 12,
     marginTop: 8,
+  },
+  freeBannerContainer: {
+    alignSelf: 'center',
+    backgroundColor: Colors.faithGold,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  freeBannerText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
   },
   errorContainer: {
     padding: 20,

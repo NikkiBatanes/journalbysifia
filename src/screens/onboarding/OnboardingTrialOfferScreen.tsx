@@ -639,6 +639,7 @@ Please check App Store Connect configuration or contact support.`;
                     return `Only ${currencyInfo?.symbol || '₱'}${formatted}/month`;
                   })()}
                 </ThemedText>
+                <ThemedText weight="semiBold" style={styles.freeOfferText}>2 months free</ThemedText>
                 <ThemedText weight="semiBold" style={styles.savingsText}>
                   {(() => {
                     const savings = getAnnualSavings();
@@ -1118,6 +1119,13 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: Colors.growthGreen,
     textAlign: 'center',
     marginTop: 4,
+  },
+  freeOfferText: {
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+    color: Colors.faithGold,
+    textAlign: 'center',
+    marginTop: 2,
   },
   dividerWrapper: {
     width: '100%',

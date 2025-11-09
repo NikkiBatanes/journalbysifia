@@ -1,4 +1,5 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
@@ -72,6 +73,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setError('');
 
     setActiveProvider('google');
+    // Pre-set redirect so Splash honors Personalization immediately after auth
+    try {
+      await AsyncStorage.setItem(
+        'post_auth_redirect',
+        JSON.stringify({ target: 'OnboardingPersonalization', params: { registrationMethod: 'oauth', name: '' } })
+      );
+    } catch {}
     const { error: googleError } = await signInWithGoogle();
     if (googleError) {
       Logger.error('Google Sign-In Error', googleError as Error, {
@@ -86,6 +94,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       }
       setError(googleError.message || 'Google sign up failed. Please try again.');
       setActiveProvider(null);
+      try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
       return;
     }
 
@@ -97,6 +106,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setError('');
 
     setActiveProvider('apple');
+    // Pre-set redirect so Splash honors Personalization immediately after auth
+    try {
+      await AsyncStorage.setItem(
+        'post_auth_redirect',
+        JSON.stringify({ target: 'OnboardingPersonalization', params: { registrationMethod: 'oauth', name: '' } })
+      );
+    } catch {}
     const { error: appleError } = await signInWithApple();
     if (appleError) {
       Logger.error('Apple Sign-In Error', appleError as Error, {
@@ -111,6 +127,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       }
       setError(appleError.message || 'Apple sign up failed. Please try again.');
       setActiveProvider(null);
+      try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
       return;
     }
 
