@@ -9,9 +9,9 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Modal,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,26 +36,36 @@ interface StreakTrackerProps {
 }
 
 
-const { width } = Dimensions.get('window');
 // Chip sizing and spacing (grid layout)
 const CHIP_SPACING = 8;
 const CONTENT_HORIZONTAL_PADDING = 16;
 const CHIP_COLUMNS = 4; // single row of 4 chips
-// reduce total width slightly so the row can be centered with visible side breathing room
-const CHIP_WIDTH = Math.floor(
-  (width - CONTENT_HORIZONTAL_PADDING * 2 - CHIP_SPACING * (CHIP_COLUMNS - 1) - 8) / CHIP_COLUMNS
-);
+const MIN_CHIP_WIDTH = 72;
 
 const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakPress }) => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const [streaks, setStreaks] = useState<Streak[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Streak | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [gridWidth, setGridWidth] = useState<number>(windowWidth);
   const sheetAnim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 visible
   const sheetPaddingStyle = React.useMemo(() => ({ paddingBottom: 16 + insets.bottom }), [insets.bottom]);
+  const chipWidth = React.useMemo(() => {
+    if (!gridWidth) {
+      return MIN_CHIP_WIDTH;
+    }
+    const availableWidth = Math.max(gridWidth - CONTENT_HORIZONTAL_PADDING * 2, 0);
+    const rawWidth = (availableWidth - CHIP_SPACING * (CHIP_COLUMNS - 1)) / CHIP_COLUMNS;
+    return Math.max(Math.floor(rawWidth), MIN_CHIP_WIDTH);
+  }, [gridWidth]);
+
+  useEffect(() => {
+    setGridWidth(windowWidth);
+  }, [windowWidth]);
 
   const calculateStreaks = useCallback((activityList: any[]): Streak[] => {
     const streakTypes = [
@@ -390,25 +400,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
     });
   };
 
-  const renderStreakCard = (streak: Streak) => (
-    <TouchableOpacity
-      key={streak.id}
-      style={styles.chip}
-      onPress={() => { triggerLightHaptic(); openSheet(streak); }}
-      activeOpacity={0.85}
-    >
-      <MaterialCommunityIcons
-        name={getStreakIcon(streak.type) as any}
-        size={18}
-        color={Colors.textGray}
-      />
-      <ThemedText weight="semiBold" style={styles.streakNumber}>{streak.currentStreak}</ThemedText>
-      {streak.isActive && (
-        <MaterialCommunityIcons name="fire" size={14} color={Colors.alertCoral} style={styles.iconMarginLeft} />
-      )}
-    </TouchableOpacity>
-  );
-
   if (loading) {
     return (
       <View style={styles.container}>
@@ -418,7 +409,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
         </View>
         <View style={[styles.grid, { paddingHorizontal: CONTENT_HORIZONTAL_PADDING }]}>
           {[1, 2, 3, 4].map((i) => (
-            <View key={i} style={[styles.chip, styles.chipLoading]}>
+            <View key={i} style={[styles.chip, styles.chipLoading, { width: chipWidth }]}>
               <MaterialCommunityIcons name="fire" size={18} color={Colors.textGray} />
               <ThemedText weight="semiBold" style={styles.streakNumber}>-</ThemedText>
             </View>
@@ -435,8 +426,33 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
         <ThemedText weight="semiBold" style={styles.title}>Streak Tracker</ThemedText>
       </View>
 
-      <View style={[styles.grid, { paddingHorizontal: CONTENT_HORIZONTAL_PADDING }]}>
-        {streaks.map(renderStreakCard)}
+      <View
+        style={[styles.grid, { paddingHorizontal: CONTENT_HORIZONTAL_PADDING }]}
+        onLayout={event => {
+          const measuredWidth = Math.round(event.nativeEvent.layout.width);
+          if (measuredWidth > 0 && Math.abs(measuredWidth - gridWidth) > 1) {
+            setGridWidth(measuredWidth);
+          }
+        }}
+      >
+        {streaks.map(streak => (
+          <TouchableOpacity
+            key={streak.id}
+            style={[styles.chip, { width: chipWidth }]}
+            onPress={() => { triggerLightHaptic(); openSheet(streak); }}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons
+              name={getStreakIcon(streak.type) as any}
+              size={18}
+              color={Colors.textGray}
+            />
+            <ThemedText weight="semiBold" style={styles.streakNumber}>{streak.currentStreak}</ThemedText>
+            {streak.isActive && (
+              <MaterialCommunityIcons name="fire" size={14} color={Colors.alertCoral} style={styles.iconMarginLeft} />
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Bottom Sheet */}
@@ -586,7 +602,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     height: 48,
-    width: CHIP_WIDTH,
+    minWidth: MIN_CHIP_WIDTH,
     // no vertical margin needed in single-row layout
   },
   streakNumber: {

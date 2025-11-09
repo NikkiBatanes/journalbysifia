@@ -17,6 +17,7 @@ import {
   UIManager,
   Animated as RNAnimated,
   Easing as RNEasing,
+  useWindowDimensions,
 } from 'react-native';
 
 // Navigation & Gestures
@@ -71,11 +72,8 @@ import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybook
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 
-// Screen dimensions
+// Screen dimensions - kept for initial StyleSheet creation
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const IS_LANDSCAPE = SCREEN_WIDTH > SCREEN_HEIGHT;
-// In landscape, use more width; in portrait, keep constrained
-const MAX_CARD_WIDTH = IS_LANDSCAPE ? SCREEN_WIDTH - 80 : 720;
 
 // Types
 interface PlaybookScreenProps {
@@ -230,6 +228,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const theme = useTheme();
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
+  const maxCardWidth = isLandscape ? Math.min(windowWidth - 80, 900) : 720;
   // Status bar: force light icons (white) on dark header background
   useScreenStatusBar('dark', Colors.anchorBlue);
   // Measure header height so we can place the card overlay precisely below it
@@ -1182,7 +1183,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 }
               }}
             >
-              <View style={{ width: IS_LANDSCAPE ? SCREEN_WIDTH : Math.min(SCREEN_WIDTH - 64, MAX_CARD_WIDTH) }}>{cardContent}</View>
+              <View style={{ width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth) }}>{cardContent}</View>
             </View>
           )}
 
@@ -1191,6 +1192,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               style={[
                 styles.stackCardScrollContainer,
                 styles.stackCardScrollBase,
+                {
+                  maxHeight: isLandscape ? undefined : windowHeight * 0.85,
+                  width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth),
+                  borderRadius: isLandscape ? 0 : 28,
+                },
                 cardIndex === cardData.length - 1 ? styles.stackCardBgCoral : styles.stackCardBgTransparent,
               ]}
               showsVerticalScrollIndicator={false}
@@ -1206,11 +1212,21 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 styles.cardContentContainer,
                 styles.expandedCardPadding,
                 {
+                  borderRadius: isLandscape ? 0 : 28,
+                  minHeight: isLandscape ? undefined : 450,
+                  paddingBottom: isLandscape ? 200 : 120,
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
                 },
               ]}
             >
-              <View style={styles.cardTouchableContainer}>
+              <View style={[
+                styles.cardTouchableContainer,
+                {
+                  borderRadius: isLandscape ? 0 : 28,
+                  overflow: isLandscape ? 'visible' : 'hidden',
+                  minHeight: isLandscape ? undefined : 450,
+                },
+              ]}>
                 {cardContent}
               </View>
             </ScrollView>
@@ -1238,7 +1254,16 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               }}
               style={[
                 styles.stackCard,
+                {
+                  width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth),
+                  height: isLandscape ? 'auto' : 450,
+                  minHeight: isLandscape ? undefined : 450,
+                  maxHeight: isLandscape ? undefined : (isExpanded ? windowHeight * 0.85 : 450),
+                  borderRadius: isLandscape ? 0 : 28,
+                  overflow: isLandscape ? 'visible' : 'hidden',
+                },
                 isExpanded && styles.stackCardExpanded,
+                isExpanded && { maxHeight: isLandscape ? undefined : windowHeight * 0.85 },
                 card.type === 'affirmation'
                   ? [
                       styles.affirmationCardStyle,
@@ -1294,6 +1319,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               <View
                 style={[
                   styles.stackCard,
+                  {
+                    width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth),
+                    height: isLandscape ? 'auto' : 450,
+                    minHeight: isLandscape ? undefined : 450,
+                    maxHeight: isLandscape ? undefined : 450,
+                    borderRadius: isLandscape ? 0 : 28,
+                    overflow: isLandscape ? 'visible' : 'hidden',
+                  },
                   previousCard.type === 'affirmation'
                     ? styles.affirmationCardStyle
                     : styles.nonAffirmationCardStyle,
@@ -1657,28 +1690,19 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   // Additional required styles
   stackCard: {
-    width: IS_LANDSCAPE ? SCREEN_WIDTH : Math.min(SCREEN_WIDTH - 64, MAX_CARD_WIDTH),
-    height: IS_LANDSCAPE ? 'auto' : 450,
-    minHeight: IS_LANDSCAPE ? undefined : 450,
-    maxHeight: IS_LANDSCAPE ? undefined : 450,
     alignSelf: 'center',
-    borderRadius: IS_LANDSCAPE ? 0 : 28,
     backgroundColor: '#264674',
     padding: 0,
-    overflow: IS_LANDSCAPE ? 'visible' : 'hidden',
   },
   stackCardExpanded: {
     height: 'auto',
     minHeight: undefined,
-    maxHeight: IS_LANDSCAPE ? undefined : Dimensions.get('window').height * 0.85,
   },
   stackCardScrollContainer: {
-    maxHeight: IS_LANDSCAPE ? undefined : Dimensions.get('window').height * 0.85,
+    // maxHeight applied inline
   },
   stackCardScrollBase: {
-    width: IS_LANDSCAPE ? SCREEN_WIDTH : Math.min(SCREEN_WIDTH - 64, MAX_CARD_WIDTH),
     alignSelf: 'center',
-    borderRadius: IS_LANDSCAPE ? 0 : 28,
   },
   stackCardBgCoral: {
     backgroundColor: Colors.alertCoral,
@@ -1793,14 +1817,11 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   cardContentContainer: {
     flexGrow: 1,
-    borderRadius: IS_LANDSCAPE ? 0 : 28,
-    minHeight: IS_LANDSCAPE ? undefined : 450,
+    // borderRadius and minHeight applied inline
   },
   cardTouchableContainer: {
-    borderRadius: IS_LANDSCAPE ? 0 : 28,
-    overflow: IS_LANDSCAPE ? 'visible' : 'hidden',
-    minHeight: IS_LANDSCAPE ? undefined : 450,
     backgroundColor: 'transparent',
+    // borderRadius, overflow, minHeight applied inline
   },
   progressAndViewRow: {
     flexDirection: 'row',
@@ -2042,7 +2063,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: '#264674',
   },
   expandedCardPadding: {
-    paddingBottom: IS_LANDSCAPE ? 200 : 120,
+    // paddingBottom applied inline based on orientation
   },
 });
 
