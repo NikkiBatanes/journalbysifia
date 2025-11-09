@@ -1121,6 +1121,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
+    maxWidth: 500,
     backgroundColor: Colors.anchorBlue,
     borderRadius: BorderRadii.cardXL,
     padding: 24,
@@ -1347,7 +1348,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardContainer: {
-    width: width - 80,
+    width: Math.min(width - 80, 600),
     marginHorizontal: 10,
   },
   cardContent: {
