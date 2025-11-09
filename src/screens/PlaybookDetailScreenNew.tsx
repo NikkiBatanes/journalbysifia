@@ -1175,7 +1175,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 }
               }}
             >
-              <View style={{ width: Math.min(SCREEN_WIDTH - 80, 720) }}>{cardContent}</View>
+              <View style={{ width: Math.min(SCREEN_WIDTH - 64, 720) }}>{cardContent}</View>
             </View>
           )}
 
@@ -1569,7 +1569,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   cardStackContainer: {
     flex: 1,
     position: 'relative',
-    marginTop: 12,
+    marginTop: 24,
     marginBottom: 8,
   },
   swipeUpIndicatorContainer: {
@@ -1669,7 +1669,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   // Additional required styles
   stackCard: {
-    width: Math.min(SCREEN_WIDTH - 80, 720),
+    width: Math.min(SCREEN_WIDTH - 64, 720),
     height: 450,
     alignSelf: 'center',
     borderRadius: 28,
@@ -1685,7 +1685,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     maxHeight: Dimensions.get('window').height * 0.8,
   },
   stackCardScrollBase: {
-    width: Math.min(SCREEN_WIDTH - 80, 720),
+    width: Math.min(SCREEN_WIDTH - 64, 720),
     alignSelf: 'center',
     borderRadius: 28,
   },
