@@ -39,6 +39,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Create dynamic styles with theme fonts
   const styles = useMemo(() => createStyles(fonts), [fonts]);
+  // Layout constants for week header spacing
+  const WEEK_HPAD = 16; // use a single consistent padding on both sides
   // Get week start preference from user metadata
   const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
     | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
@@ -186,8 +188,19 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     }, [])
   );
   const [weeks, setWeeks] = useState<Date[][]>([]);
-  const screenWidth = Dimensions.get('window').width;
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [headerWidth, setHeaderWidth] = useState<number>(0);
   const scrollX = useRef(0);
+
+  // Update screen width on orientation change
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+      // Reset headerWidth to force re-measurement on orientation change
+      setHeaderWidth(0);
+    });
+    return () => subscription?.remove();
+  }, []);
 
   // Scroll tracking refs
   const lastScrollY = useRef(0);
@@ -201,7 +214,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     const now = Date.now();
     const { contentOffset } = event.nativeEvent || {};
     const offsetX = contentOffset?.x ?? 0;
-    const weekIndex = Math.round(offsetX / screenWidth);
+    const weekIndex = Math.round(offsetX / headerWidth);
     if (weeks.length === 0 || weekIndex < 0 || weekIndex >= weeks.length) {return;}
     const currentWeek = weeks[weekIndex];
     if (!currentWeek || selectedDayOfWeek < 0 || selectedDayOfWeek >= currentWeek.length) {return;}
@@ -213,7 +226,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       lastHeaderHapticDateKey.current = key;
       lastHeaderHapticTime.current = now;
     }
-  }, [weeks, selectedDayOfWeek, screenWidth, triggerLightHaptic]);
+  }, [weeks, selectedDayOfWeek, headerWidth, triggerLightHaptic]);
 
   // Animation state
   const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
@@ -274,8 +287,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Initialize scroll position when weeks are first generated
   useEffect(() => {
-    if (scrollViewRef.current && weeks.length > 0 && currentWeekIndex.current >= 0) {
-      const scrollTo = currentWeekIndex.current * screenWidth;
+    if (scrollViewRef.current && weeks.length > 0 && currentWeekIndex.current >= 0 && headerWidth > 0) {
+      const scrollTo = currentWeekIndex.current * headerWidth;
 
       // Small delay to ensure the layout is updated
       setTimeout(() => {
@@ -286,12 +299,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
         }
       }, 50);
     }
-  }, [weeks, screenWidth]);
+  }, [weeks, headerWidth]);
 
   // Handle scroll position when header expands/collapses
   useEffect(() => {
-    if (scrollViewRef.current && weeks.length > 0 && hasInitializedScroll.current) {
-      const scrollTo = currentWeekIndex.current * screenWidth;
+    if (scrollViewRef.current && weeks.length > 0 && hasInitializedScroll.current && headerWidth > 0) {
+      const scrollTo = currentWeekIndex.current * headerWidth;
 
       // Small delay to ensure the layout is updated
       setTimeout(() => {
@@ -301,7 +314,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
         }
       }, 10);
     }
-  }, [isHeaderCollapsed, weeks, screenWidth]);
+  }, [isHeaderCollapsed, weeks, headerWidth]);
 
   // Always keep selectedDayOfWeek in sync with currentDate
   useEffect(() => {
@@ -315,7 +328,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     scrollX.current = offsetX;
 
     // Calculate the current week index based on scroll position
-    const weekIndex = Math.round(offsetX / screenWidth);
+    if (headerWidth === 0) return;
+    const weekIndex = Math.round(offsetX / headerWidth);
 
     // Add bounds checking and ensure we have valid data
     if (weeks.length > 0 && weekIndex >= 0 && weekIndex < weeks.length) {
@@ -364,8 +378,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       week.some(day => isSameDay(day, newDate))
     );
 
-    if (weekIndex >= 0 && scrollViewRef.current) {
-      const scrollTo = weekIndex * screenWidth;
+    if (weekIndex >= 0 && scrollViewRef.current && headerWidth > 0) {
+      const scrollTo = weekIndex * headerWidth;
       // Only scroll if not already at the correct position
       if (Math.abs(scrollX.current - scrollTo) > 1) {
         scrollViewRef.current.scrollTo({
@@ -378,10 +392,11 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   };
 
   const renderWeek = (week: Date[], weekIndex: number) => {
+    const dayWidth = Math.floor((headerWidth - WEEK_HPAD * 2) / 7);
     return (
       <View
         key={`week-${weekIndex}`}
-        style={[styles.weekContainer, { width: screenWidth }]}
+        style={[styles.weekContainer, { width: headerWidth, paddingHorizontal: WEEK_HPAD }]}
       >
         {week.map((date) => {
           const isCurrentDay = isToday(date);
@@ -394,6 +409,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               key={date.toISOString()}
               style={[
                 styles.dayContainer,
+                { width: dayWidth },
                 isCurrentDay && styles.currentDayContainer,
                 isSelected && styles.selectedDayContainer,
               ]}
@@ -509,22 +525,28 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               height: weekHeight,
             },
           ]}
+          onLayout={(e) => {
+            const w = Math.round(e.nativeEvent.layout.width);
+            if (w > 0 && w !== headerWidth) setHeaderWidth(w);
+          }}
         >
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.weeksContainer}
-            snapToInterval={screenWidth}
-            snapToAlignment="start"
-            decelerationRate="fast"
-            pagingEnabled
-            onScroll={handleHeaderScroll}
-            onMomentumScrollEnd={handleScroll}
-            scrollEventThrottle={16}
-          >
-            {weeks.map((week, index) => renderWeek(week, index))}
-          </ScrollView>
+          {headerWidth > 0 && (
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.weeksContainer}
+              snapToInterval={headerWidth}
+              snapToAlignment="start"
+              decelerationRate="fast"
+              pagingEnabled
+              onScroll={handleHeaderScroll}
+              onMomentumScrollEnd={handleScroll}
+              scrollEventThrottle={16}
+            >
+              {weeks.map((week, index) => renderWeek(week, index))}
+            </ScrollView>
+          )}
         </Animated.View>
       </View>
 
@@ -833,19 +855,17 @@ const createStyles = (fonts: {
     flexDirection: 'row',
   },
   weekContainer: {
-    width: Dimensions.get('window').width,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
   },
   dayContainer: {
-    width: 36,
+    flex: 1,
     height: 44,  // Reduced from 48
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 0,
-    flexShrink: 0,
     paddingVertical: 1,  // Reduced from 2
   },
   dayContent: {
