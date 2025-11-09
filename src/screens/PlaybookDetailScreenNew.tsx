@@ -230,7 +230,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
-  const maxCardWidth = isLandscape ? Math.min(windowWidth - 80, 900) : 720;
+  // Always constrain card width, even in landscape - never full screen
+  const maxCardWidth = Math.min(windowWidth - 64, 720);
   // Status bar: force light icons (white) on dark header background
   useScreenStatusBar('dark', Colors.anchorBlue);
   // Measure header height so we can place the card overlay precisely below it
@@ -1183,7 +1184,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 }
               }}
             >
-              <View style={{ width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth) }}>{cardContent}</View>
+              <View style={{ width: maxCardWidth }}>{cardContent}</View>
             </View>
           )}
 
@@ -1193,9 +1194,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 styles.stackCardScrollContainer,
                 styles.stackCardScrollBase,
                 {
-                  maxHeight: isLandscape ? undefined : windowHeight * 0.85,
-                  width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth),
-                  borderRadius: isLandscape ? 0 : 28,
+                  maxHeight: windowHeight * 0.85,
+                  width: maxCardWidth,
+                  borderRadius: 28,
                 },
                 cardIndex === cardData.length - 1 ? styles.stackCardBgCoral : styles.stackCardBgTransparent,
               ]}
@@ -1212,9 +1213,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 styles.cardContentContainer,
                 styles.expandedCardPadding,
                 {
-                  borderRadius: isLandscape ? 0 : 28,
-                  minHeight: isLandscape ? undefined : 450,
-                  paddingBottom: isLandscape ? 200 : 120,
+                  borderRadius: 28,
+                  minHeight: 450,
+                  paddingBottom: 120,
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
                 },
               ]}
@@ -1222,9 +1223,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               <View style={[
                 styles.cardTouchableContainer,
                 {
-                  borderRadius: isLandscape ? 0 : 28,
-                  overflow: isLandscape ? 'visible' : 'hidden',
-                  minHeight: isLandscape ? undefined : 450,
+                  borderRadius: 28,
+                  overflow: 'hidden',
+                  minHeight: 450,
                 },
               ]}>
                 {cardContent}
@@ -1255,15 +1256,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               style={[
                 styles.stackCard,
                 {
-                  width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth),
-                  height: isLandscape ? 'auto' : 450,
-                  minHeight: isLandscape ? undefined : 450,
-                  maxHeight: isLandscape ? undefined : (isExpanded ? windowHeight * 0.85 : 450),
-                  borderRadius: isLandscape ? 0 : 28,
-                  overflow: isLandscape ? 'visible' : 'hidden',
+                  width: maxCardWidth,
+                  height: isExpanded ? 'auto' : 450,
+                  minHeight: 450,
+                  maxHeight: isExpanded ? windowHeight * 0.85 : 450,
+                  borderRadius: 28,
+                  overflow: 'hidden',
                 },
                 isExpanded && styles.stackCardExpanded,
-                isExpanded && { maxHeight: isLandscape ? undefined : windowHeight * 0.85 },
                 card.type === 'affirmation'
                   ? [
                       styles.affirmationCardStyle,
@@ -1320,12 +1320,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 style={[
                   styles.stackCard,
                   {
-                    width: isLandscape ? windowWidth : Math.min(windowWidth - 64, maxCardWidth),
-                    height: isLandscape ? 'auto' : 450,
-                    minHeight: isLandscape ? undefined : 450,
-                    maxHeight: isLandscape ? undefined : 450,
-                    borderRadius: isLandscape ? 0 : 28,
-                    overflow: isLandscape ? 'visible' : 'hidden',
+                    width: maxCardWidth,
+                    height: 450,
+                    minHeight: 450,
+                    maxHeight: 450,
+                    borderRadius: 28,
+                    overflow: 'hidden',
                   },
                   previousCard.type === 'affirmation'
                     ? styles.affirmationCardStyle
