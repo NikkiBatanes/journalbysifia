@@ -249,6 +249,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.hopeWhite,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   backButton: {
     padding: 8,

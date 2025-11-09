@@ -1200,6 +1200,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     justifyContent: 'center',
     height: 52,
     width: '100%',
+    maxWidth: 720,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 3 },
@@ -1215,6 +1216,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     paddingBottom: 6,
     paddingHorizontal: 24,
     backgroundColor: 'transparent',
+    alignItems: 'center',
   },
   startTrialButtonText: {
     fontSize: 17,

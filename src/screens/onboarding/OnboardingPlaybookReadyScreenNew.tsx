@@ -1186,9 +1186,6 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 720,
   },
   scrollContent: {
     paddingBottom: 16,
@@ -1201,6 +1198,9 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     minHeight: 48,
     position: 'relative',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   mainTitleInline: {
     marginLeft: 8,
@@ -1221,6 +1221,9 @@ const styles = StyleSheet.create({
   headerTextBlock: {
     paddingBottom: 6,
     marginTop: 4,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   mainTitle: {
     fontSize: 24,
