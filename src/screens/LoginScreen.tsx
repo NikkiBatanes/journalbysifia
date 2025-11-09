@@ -190,8 +190,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logo: {
-    width: 140,
-    height: 140,
+    width: 120,
+    height: 120,
     alignSelf: 'flex-start',
     marginTop: 0,
     marginBottom: 10,
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
     width: '100%',
   },
   titleContainerCompressed: {
@@ -243,19 +243,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: Fonts.system.regular,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
+    marginBottom: 4,
   },
   buttonContainer: {
     width: '100%',
-    gap: 16,
-    // Keep buttons fixed toward the bottom even when error appears
-    marginTop: 'auto',
+    gap: 12,
+    marginTop: 16,
   },
   appleButton: {
     flexDirection: 'row',

@@ -1031,7 +1031,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 28,
     paddingBottom: 0,
     backgroundColor: Colors.anchorBlue,
   },
@@ -1063,8 +1063,8 @@ const styles = StyleSheet.create({
     width: 32,
   },
   logoImage: {
-    width: 140,
-    height: 140,
+    width: 120,
+    height: 120,
   },
   progressContainer: {
     flexDirection: 'row',

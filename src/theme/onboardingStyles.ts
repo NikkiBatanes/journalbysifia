@@ -41,8 +41,8 @@ export const createOnboardingStyles = (fonts: {
   },
 
   logoImage: {
-    width: 140,
-    height: 140,
+    width: 120,
+    height: 120,
   },
 
   // Typography Standards

@@ -4,7 +4,7 @@
  * Shows Biblical Wisdom, Personalized Playbooks, and Smart Journaling
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -13,8 +13,10 @@ import {
   Animated,
   StatusBar,
   Image,
+  Linking,
   Dimensions,
   FlatList,
+  Text,
 } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
@@ -403,9 +405,19 @@ const OnboardingWelcomeScreen: React.FC = () => {
         {/* Terms Text */}
         <ThemedText style={styles.termsText}>
           By continuing, you agree to our{' '}
-          <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+          <ThemedText
+            style={styles.linkText}
+            onPress={() => Linking.openURL('https://sifia.app/terms')}
+          >
+            Terms of Service
+          </ThemedText>
           {' '}and{' '}
-          <ThemedText style={styles.linkText}>Privacy Policy</ThemedText>
+          <ThemedText
+            style={styles.linkText}
+            onPress={() => Linking.openURL('https://sifia.app/privacy')}
+          >
+            Privacy Policy
+          </ThemedText>
         </ThemedText>
       </View>
     </View>
@@ -422,10 +434,13 @@ const styles = StyleSheet.create({
   logoSection: {
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 56,
+    marginBottom: OnboardingSpacing.md,
   },
-  logoImage: OnboardingStyles.logoImage,
+  logoImage: {
+    width: 120,
+    height: 120,
+  },
 
   // Carousel Styles
   carouselContainer: {

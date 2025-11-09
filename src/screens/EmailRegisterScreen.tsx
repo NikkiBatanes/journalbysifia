@@ -392,8 +392,8 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   logo: {
-    width: 140,
-    height: 140,
+    width: 120,
+    height: 120,
     alignSelf: 'flex-start',
     marginTop: 0,
     marginBottom: 10,
