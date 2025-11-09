@@ -1215,7 +1215,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 {
                   borderRadius: 28,
                   minHeight: 450,
-                  paddingBottom: 120,
+                  paddingBottom: isLandscape ? 200 : (insets.bottom + 100),
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
                 },
               ]}
