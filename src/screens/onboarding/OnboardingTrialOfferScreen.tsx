@@ -370,8 +370,12 @@ Please check App Store Connect configuration or contact support.`;
   const getLocalizedPrice = () => {
     // Use tier pricing with currency
     const t = getSelectedTier();
-    if (!t) {return '₱0.00';} // Use Philippine peso as fallback in development
+    if (!t) {return '₱0';} // Use Philippine peso as fallback in development
     const price = isAnnual ? t.annualPrice : t.monthlyPrice;
+    // Remove .00 for PHP whole numbers
+    if (currencyInfo?.currency === 'PHP' && price % 1 === 0) {
+      return `${currencyInfo.symbol}${Math.floor(price)}`;
+    }
     return `${currencyInfo?.symbol || '₱'}${price.toFixed(2)}`;
   };
 
@@ -629,10 +633,18 @@ Please check App Store Connect configuration or contact support.`;
             {isAnnual ? (
               <View style={styles.savingsContainer}>
                 <ThemedText weight="bold" style={styles.pricingSubtitle}>
-                  {`Only ${currencyInfo?.symbol || '₱'}${getMonthlyEquivalent().toFixed(2)}/month`}
+                  {(() => {
+                    const monthlyEq = getMonthlyEquivalent();
+                    const formatted = (currencyInfo?.currency === 'PHP' && monthlyEq % 1 === 0) ? Math.floor(monthlyEq) : monthlyEq.toFixed(2);
+                    return `Only ${currencyInfo?.symbol || '₱'}${formatted}/month`;
+                  })()}
                 </ThemedText>
                 <ThemedText weight="semiBold" style={styles.savingsText}>
-                  {`Save ${currencyInfo?.symbol || '₱'}${getAnnualSavings().toFixed(2)} (${getSavingsPercentage()}%)`}
+                  {(() => {
+                    const savings = getAnnualSavings();
+                    const formatted = (currencyInfo?.currency === 'PHP' && savings % 1 === 0) ? Math.floor(savings) : savings.toFixed(2);
+                    return `Save ${currencyInfo?.symbol || '₱'}${formatted} (${getSavingsPercentage()}%)`;
+                  })()}
                 </ThemedText>
               </View>
             ) : null}
@@ -744,7 +756,9 @@ Please check App Store Connect configuration or contact support.`;
                     >
                       {(() => {
                         // Use tier pricing directly
-                        return `${currencyInfo?.symbol || '₱'}${(isAnnual ? (tier.annualPrice || 0) : (tier.monthlyPrice || 0)).toFixed(2)}${isAnnual ? '/yr' : '/mo'}`;
+                        const price = isAnnual ? (tier.annualPrice || 0) : (tier.monthlyPrice || 0);
+                        const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
+                        return `${currencyInfo?.symbol || '₱'}${formatted}${isAnnual ? '/yr' : '/mo'}`;
                       })()}
                     </ThemedText>
                   </View>

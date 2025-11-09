@@ -519,7 +519,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           >
             <View style={styles.affirmationsHeader}>
               <MaterialCommunityIcons
-                name="format-quote-close"
+                name="format-quote-open"
                 size={24}
                 color={Colors.alertCoral}
                 style={styles.quoteIcon}
@@ -1095,6 +1095,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           onClose={() => setShowDevotionalModal(false)}
           playbookId={playbook.id}
           userInput={userInput}
+          isOnboarding={true}
         />
 
         {/* TUTORIAL OVERLAY */}
@@ -1374,7 +1375,7 @@ const styles = StyleSheet.create({
   },
   quoteIcon: {
     marginRight: 8,
-    transform: [{ scaleX: -1 }],
+    transform: [{ scaleY: -1 }],
   },
   affirmationsList: {
     paddingTop: 14,

@@ -515,10 +515,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   };
 
   const getMonthlyEquivalent = (tier: PricingTier) => {
-    if (isAnnual) {
-      return (tier.annualPrice / 12).toFixed(2);
+    const price = isAnnual ? (tier.annualPrice / 12) : tier.monthlyPrice;
+    // Remove .00 for PHP whole numbers
+    if (currencyInfo?.currency === 'PHP' && price % 1 === 0) {
+      return Math.floor(price).toString();
     }
-    return tier.monthlyPrice.toFixed(2);
+    return price.toFixed(2);
   };
 
   const toggleCardExpansion = (tierId: string) => {
@@ -625,14 +627,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <View style={styles.priceRow}>
             <View style={styles.priceLeft}>
               <ThemedText weight="bold" style={[styles.currentPrice, isSelected && styles.selectedText]}>
-                {(currencyInfo?.symbol || '$')}{isAnnual ? tier.annualPrice.toFixed(2) : tier.monthlyPrice.toFixed(2)}
+                {(() => {
+                  const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+                  const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
+                  return `${currencyInfo?.symbol || '$'}${formatted}`;
+                })()}
               </ThemedText>
               {(() => {
                 const original = isAnnual ? tier.annualOriginal : tier.monthlyOriginal;
                 const current = isAnnual ? tier.annualPrice : tier.monthlyPrice;
                 return original && original > current ? (
                   <ThemedText weight="semiBold" style={styles.originalPrice}>
-                    {(currencyInfo?.symbol || '$')}{original.toFixed(2)}
+                    {(() => {
+                      const formatted = (currencyInfo?.currency === 'PHP' && original % 1 === 0) ? Math.floor(original) : original.toFixed(2);
+                      return `${currencyInfo?.symbol || '$'}${formatted}`;
+                    })()}
                   </ThemedText>
                 ) : null;
               })()}
@@ -642,7 +651,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               onStartShouldSetResponderCapture={() => false}
             >
               <ThemedText weight="semiBold" style={styles.monthlyEquivalent}>
-                {(currencyInfo?.symbol || '$')}{isAnnual ? getMonthlyEquivalent(tier) : tier.monthlyPrice.toFixed(2)}/month
+                {(currencyInfo?.symbol || '$')}{getMonthlyEquivalent(tier)}/month
               </ThemedText>
               <View
                 onStartShouldSetResponder={() => true}

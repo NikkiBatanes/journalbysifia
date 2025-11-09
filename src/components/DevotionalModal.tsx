@@ -78,6 +78,7 @@ interface DevotionalModalProps {
   playbookId?: string;
   userInput?: string;
   onDevotionalCreated?: (devotionalId: string) => void;
+  isOnboarding?: boolean;
 }
 
 const DevotionalModal: React.FC<DevotionalModalProps> = ({
@@ -88,6 +89,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   playbookId,
   userInput,
   onDevotionalCreated,
+  isOnboarding = false,
 }) => {
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const { user } = useAuth();
@@ -658,8 +660,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                         styles.optionButton,
                         isLocked && styles.optionButtonLocked,
                       ]}
-                      onPress={() => { triggerLightHaptic(); handleSelectDuration(option.days); }}
-                      disabled={isCreating}
+                      onPress={() => {
+                        if (isOnboarding && isLocked) {
+                          // In onboarding, locked durations should not be tappable
+                          return;
+                        }
+                        triggerLightHaptic();
+                        handleSelectDuration(option.days);
+                      }}
+                      disabled={isCreating || (isOnboarding && isLocked)}
                       activeOpacity={isLocked ? 0.6 : 0.8}
                     >
                       <View style={styles.optionHeader}>
@@ -684,6 +693,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                           duration={option.days}
                           context={playbookId ? 'onboarding' : 'inApp'}
                           onLockTap={() => {
+                            if (isOnboarding) {
+                              // In onboarding, lock icon should not trigger sales offer
+                              return;
+                            }
                             onClose();
                             navigation.navigate('OnboardingSalesOffer' as any, {
                               upgradeMode: true,
@@ -706,8 +719,23 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 })}
               </View>
   )}
-  {/* Usage Badges moved near footer and centered */}
-  {(((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'transformation') &&
+  {/* Continue My Journey button for onboarding */}
+  {isOnboarding && !(isCreating || isSuccess) && (
+    <TouchableOpacity
+      style={styles.continueJourneyButton}
+      onPress={() => {
+        try { triggerLightHaptic(); } catch {}
+        handleClose(() => {
+          navigation.navigate('OnboardingSalesOffer' as any);
+        });
+      }}
+      activeOpacity={0.85}
+    >
+      <ThemedText weight="semiBold" style={styles.continueJourneyButtonText}>Continue My Journey</ThemedText>
+    </TouchableOpacity>
+  )}
+  {/* Usage Badges moved near footer and centered (hidden during onboarding) */}
+  {!isOnboarding && (((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'transformation') &&
     ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'family')) && (
     <View style={styles.badgeRow}>
       <View style={styles.tierBadgeContainer}>
@@ -1310,6 +1338,19 @@ const styles = StyleSheet.create({
   },
   usageLimitButtons: {
     gap: 12,
+  },
+  continueJourneyButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    marginTop: 16,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  continueJourneyButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
   },
   upgradeButtonFull: {
     backgroundColor: Colors.alertCoral,
