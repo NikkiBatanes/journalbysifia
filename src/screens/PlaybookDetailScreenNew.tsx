@@ -238,6 +238,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
   const overlayTop = Math.max(insets.top, 10) + playbookHeaderHeight - 40;
+  const [expandedTopY, setExpandedTopY] = useState(0);
+  const expandedContainerRef = useRef<View | null>(null);
 
   // Animated collapse progress for smooth header transition (0 = expanded, 1 = collapsed)
   const collapseProgress = useSharedValue(0);
@@ -1189,12 +1191,25 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           )}
 
           {isExpanded ? (
+            <View
+              ref={expandedContainerRef}
+              onLayout={() => {
+                // Measure absolute Y so we can compute available height precisely
+                try {
+                  expandedContainerRef.current?.measureInWindow?.((x: number, y: number) => {
+                    if (typeof y === 'number' && Math.abs(y - expandedTopY) > 1) {
+                      setExpandedTopY(y);
+                    }
+                  });
+                } catch {}
+              }}
+            >
             <ScrollView
               style={[
                 styles.stackCardScrollContainer,
                 styles.stackCardScrollBase,
                 {
-                  maxHeight: windowHeight - overlayTop - 20,
+                  height: Math.max(300, windowHeight - expandedTopY - insets.bottom - 12),
                   width: maxCardWidth,
                   borderRadius: 28,
                 },
@@ -1203,6 +1218,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               showsVerticalScrollIndicator={false}
               bounces={true}
               nestedScrollEnabled
+              contentInset={{ bottom: insets.bottom + 36 }}
+              contentInsetAdjustmentBehavior="never"
+              automaticallyAdjustContentInsets={false}
+              scrollIndicatorInsets={{ bottom: insets.bottom + 36 }}
               onScrollBeginDrag={() => setIsScrolling(true)}
               onScrollEndDrag={() => setIsScrolling(false)}
               onMomentumScrollBegin={() => setIsScrolling(true)}
@@ -1215,7 +1234,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 {
                   borderRadius: 28,
                   minHeight: 450,
-                  paddingBottom: isLandscape ? 200 : (insets.bottom + 100),
+                  paddingBottom: isLandscape ? 260 : (insets.bottom + 180),
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
                 },
               ]}
@@ -1231,6 +1250,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 {cardContent}
               </View>
             </ScrollView>
+            </View>
           ) : (
             <TouchableOpacity
               activeOpacity={1}
@@ -1259,7 +1279,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   width: maxCardWidth,
                   height: isExpanded ? 'auto' : 450,
                   minHeight: 450,
-                  maxHeight: isExpanded ? (windowHeight - overlayTop - 20) : 450,
+                  maxHeight: isExpanded ? Math.max(300, windowHeight - overlayTop - insets.bottom - 12) : 450,
                   borderRadius: 28,
                   overflow: 'hidden',
                 },
