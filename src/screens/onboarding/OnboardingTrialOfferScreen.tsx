@@ -788,6 +788,9 @@ const createStyles = (fonts: any) => StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 8,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
   },
   headerTextBlock: {
     alignItems: 'flex-start',

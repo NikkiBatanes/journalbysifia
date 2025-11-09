@@ -1502,6 +1502,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 10,
     paddingTop: 10,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 768,
   },
   noMarginBottom: {
     marginBottom: 0,

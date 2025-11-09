@@ -1340,6 +1340,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 10,
+    width: '100%',
+    maxWidth: 720,
   },
   unlockButtonText: {
     fontSize: 18,
@@ -1356,6 +1358,7 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 12,
     backgroundColor: Colors.anchorBlue,
+    alignItems: 'center',
   },
   footerRow: {
     flexDirection: 'row',
