@@ -1748,12 +1748,12 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     alignItems: 'center',
     paddingHorizontal: 16,
     width: '100%',
-    maxWidth: 500,
+    maxWidth: 720,
     alignSelf: 'center',
   },
   docCard: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 720,
     alignSelf: 'center',
     marginBottom: 24, // Increased from 16 to provide more spacing between cards
     borderRadius: 28,
