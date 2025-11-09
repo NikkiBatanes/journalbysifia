@@ -348,11 +348,6 @@ Please check App Store Connect configuration or contact support.`;
           setPricingTiers(tiers || []);
           // setDynamicPricing([]); // Not using dynamic pricing for now - removed unused state
           setCurrencyInfo(currency || null);
-
-          // FORCE Philippine currency in development for testing
-          if (__DEV__) {
-            setCurrencyInfo({ currency: 'PHP', symbol: '₱', multiplier: 1.0 });
-          }
         }
       } catch (e) {
         // Error silently handled - pricing loading is not critical

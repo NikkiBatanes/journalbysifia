@@ -140,12 +140,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setPricingTiers(tiers);
           setCurrencyInfo(currency);
 
-          // FORCE Philippine currency in development for testing
-          if (__DEV__) {
-
-            setCurrencyInfo({ currency: 'PHP', symbol: '₱', multiplier: 1.0 });
-          }
-
           // Default selection: prefer POPULAR, then 'growth', then first
           if (tiers.length > 0) {
             const popularTier = tiers.find(t => (t as any).isPopular === true);
@@ -1188,12 +1182,12 @@ const styles = StyleSheet.create({
   },
   freeBannerContainer: {
     alignSelf: 'center',
-    backgroundColor: Colors.faithGold,
+    backgroundColor: Colors.alertCoral,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 14,
+    borderRadius: 999,
     marginTop: 8,
-    marginBottom: 6,
+    marginBottom: 16,
   },
   freeBannerText: {
     fontSize: 14,

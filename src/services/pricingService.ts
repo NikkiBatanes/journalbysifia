@@ -122,10 +122,10 @@ class PricingService {
         'Calendar Sync to stay on track',
         'Copy To-Dos to other dates for flexibility',
       ],
-      // PHP prices
-      monthlyPrice: 199,
-      annualOriginal: 199 * 12, // 2388
-      annualPrice: 1990,
+      // PHP prices (in pesos, not cents)
+      monthlyPrice: 199.00,
+      annualOriginal: 2388.00,
+      annualPrice: 1990.00,
     },
     {
       id: 'growth',
@@ -140,9 +140,9 @@ class PricingService {
         'Calendar Sync to stay on track',
         'Copy To-Dos to other dates for flexibility',
       ],
-      monthlyPrice: 399,
-      annualOriginal: 399 * 12, // 4788
-      annualPrice: 3990,
+      monthlyPrice: 399.00,
+      annualOriginal: 4788.00,
+      annualPrice: 3990.00,
       isPopular: true,
     },
     {
@@ -159,9 +159,9 @@ class PricingService {
         'Calendar Sync to stay on track',
         'Copy To-Dos to other dates for flexibility',
       ],
-      monthlyPrice: 599,
-      annualOriginal: 599 * 12, // 7188
-      annualPrice: 5990,
+      monthlyPrice: 599.00,
+      annualOriginal: 7188.00,
+      annualPrice: 5990.00,
     },
     {
       id: 'family',
@@ -177,9 +177,9 @@ class PricingService {
         'Calendar Sync to stay on track',
         'Copy To-Dos to other dates for flexibility',
       ],
-      monthlyPrice: 1290,
-      annualOriginal: 1290 * 12, // 15480
-      annualPrice: 11990,
+      monthlyPrice: 1290.00,
+      annualOriginal: 15480.00,
+      annualPrice: 11990.00,
     },
   ];
 
@@ -238,13 +238,20 @@ class PricingService {
       return this.phOverridePricing;
     }
 
-    return this.baseUSDPricing.map(tier => ({
-      ...tier,
-      monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
-      annualPrice: Math.round(tier.annualPrice * locationData.multiplier * 100) / 100,
-      monthlyOriginal: tier.monthlyOriginal ? Math.round(tier.monthlyOriginal * locationData.multiplier * 100) / 100 : undefined,
-      annualOriginal: tier.annualOriginal ? Math.round(tier.annualOriginal * locationData.multiplier * 100) / 100 : undefined,
-    }));
+    // DEFAULT to Philippine pricing (this is a Philippines-focused app)
+    // Only use USD pricing if explicitly in a USD market
+    if (location === 'US' || location === 'CA' || location === 'GB' || location === 'AU') {
+      return this.baseUSDPricing.map(tier => ({
+        ...tier,
+        monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
+        annualPrice: Math.round(tier.annualPrice * locationData.multiplier * 100) / 100,
+        monthlyOriginal: tier.monthlyOriginal ? Math.round(tier.monthlyOriginal * locationData.multiplier * 100) / 100 : undefined,
+        annualOriginal: tier.annualOriginal ? Math.round(tier.annualOriginal * locationData.multiplier * 100) / 100 : undefined,
+      }));
+    }
+
+    // Default to PHP pricing for all other markets
+    return this.phOverridePricing;
   }
 
   /**
@@ -252,7 +259,20 @@ class PricingService {
    */
   async getCurrencyInfo(): Promise<LocationPricing> {
     const location = await this.getUserLocation();
-    return this.locationPricing[location] || this.locationPricing.DEFAULT;
+    
+    // FORCE Philippine currency for development/testing (matches pricing override)
+    if (__DEV__) {
+      return this.locationPricing['PH'];
+    }
+    
+    // DEFAULT to Philippine currency (this is a Philippines-focused app)
+    // Only use USD currency if explicitly in a USD market
+    if (location === 'US' || location === 'CA' || location === 'GB' || location === 'AU') {
+      return this.locationPricing[location] || this.locationPricing.DEFAULT;
+    }
+    
+    // Default to PHP currency for all other markets
+    return this.locationPricing['PH'];
   }
 
   /**
@@ -421,20 +441,39 @@ class PricingService {
   async getLocationAdjustedUpgradeTiers(currentTier: string): Promise<PricingTier[]> {
     const location = await this.getUserLocation();
     const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
-    const upgradeTiers = this.getUpgradeTiers(currentTier);
+    
+    // Get tier hierarchy to filter upgrade tiers
+    const hierarchy = this.getTierHierarchy();
+    const currentIndex = hierarchy.indexOf(currentTier);
+    const availableTierIds = currentIndex === -1 
+      ? hierarchy 
+      : hierarchy.slice(currentIndex + 1);
+
+    // Use explicit PH pricing when market is Philippines
     if (location === 'PH') {
-      // Filter PH overrides to only include tiers above currentTier
-      const ids = upgradeTiers.map(t => t.id);
-      return this.phOverridePricing.filter(t => ids.includes(t.id));
+      return this.phOverridePricing.filter(t => availableTierIds.includes(t.id));
     }
 
-    return upgradeTiers.map(tier => ({
-      ...tier,
-      monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
-      annualPrice: Math.round(tier.annualPrice * locationData.multiplier * 100) / 100,
-      monthlyOriginal: tier.monthlyOriginal ? Math.round(tier.monthlyOriginal * locationData.multiplier * 100) / 100 : undefined,
-      annualOriginal: tier.annualOriginal ? Math.round(tier.annualOriginal * locationData.multiplier * 100) / 100 : undefined,
-    }));
+    // FORCE Philippine pricing for development/testing
+    if (__DEV__) {
+      return this.phOverridePricing.filter(t => availableTierIds.includes(t.id));
+    }
+
+    // DEFAULT to Philippine pricing (this is a Philippines-focused app)
+    // Only use USD pricing if explicitly in a USD market
+    if (location === 'US' || location === 'CA' || location === 'GB' || location === 'AU') {
+      const upgradeTiers = this.getUpgradeTiers(currentTier);
+      return upgradeTiers.map(tier => ({
+        ...tier,
+        monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
+        annualPrice: Math.round(tier.annualPrice * locationData.multiplier * 100) / 100,
+        monthlyOriginal: tier.monthlyOriginal ? Math.round(tier.monthlyOriginal * locationData.multiplier * 100) / 100 : undefined,
+        annualOriginal: tier.annualOriginal ? Math.round(tier.annualOriginal * locationData.multiplier * 100) / 100 : undefined,
+      }));
+    }
+
+    // Default to PHP pricing for all other markets
+    return this.phOverridePricing.filter(t => availableTierIds.includes(t.id));
   }
 
   /**
