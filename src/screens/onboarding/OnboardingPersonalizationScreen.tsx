@@ -185,25 +185,46 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Check for force navigation flag after successful auth
   React.useEffect(() => {
+    let isActive = true;
+
     const checkForceNavigation = async () => {
       try {
         const forceNavigate = await AsyncStorage.getItem('force_navigate_to_main');
-        if (forceNavigate === 'true') {
+        if (forceNavigate !== 'true') {return;}
 
+        const userId = user?.id;
+        if (!userId) {
+          Logger.debug('Force navigation flag present but user missing; clearing flag to avoid unintended redirect');
+          await AsyncStorage.removeItem('force_navigate_to_main');
+          return;
+        }
+
+        const hasCompleted = await onboardingService.hasCompletedOnboarding(userId);
+        if (!isActive) {return;}
+
+        if (hasCompleted) {
+          Logger.debug('Force navigation flag confirmed with completed onboarding. Redirecting to MainTabs.');
           await AsyncStorage.removeItem('force_navigate_to_main');
           (navigation as any).reset({
             index: 0,
             routes: [{ name: 'MainTabs' }],
           });
+        } else {
+          Logger.debug('Force navigation flag found but onboarding incomplete. Clearing flag and staying in onboarding.');
+          await AsyncStorage.removeItem('force_navigate_to_main');
         }
       } catch (e) {
         Logger.warn('⚠️ Error checking force navigation flag', { component: 'OnboardingPersonalizationScreen', data: e });
+        await AsyncStorage.removeItem('force_navigate_to_main');
       }
     };
 
     checkForceNavigation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally run only on mount
+
+    return () => {
+      isActive = false;
+    };
+  }, [navigation, user?.id]);
 
   // Debug effect for step rendering
   React.useEffect(() => {
