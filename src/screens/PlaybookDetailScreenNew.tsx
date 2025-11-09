@@ -1743,19 +1743,19 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     flex: 1,
   },
   docContentContainer: {
-    paddingTop: 0,
+    paddingTop: 24,
     paddingBottom: 32,
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 32,
     width: '100%',
-    maxWidth: 720,
+    maxWidth: 784,
     alignSelf: 'center',
   },
   docCard: {
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
-    marginBottom: 24, // Increased from 16 to provide more spacing between cards
+    marginBottom: 24,
     borderRadius: 28,
     backgroundColor: '#264674',
     overflow: 'hidden',
