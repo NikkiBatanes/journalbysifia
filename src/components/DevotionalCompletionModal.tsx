@@ -362,6 +362,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           </View>
 
           <View style={styles.contentContainer}>
+            <View style={styles.contentLimiter}>
             {isLastDay ? (
               <>
                 <ThemedText weight="bold" style={styles.congratsTitle}>
@@ -575,6 +576,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 </TouchableOpacity>
               </>
             )}
+            </View>
           </View>
         </Animated.View>
         {showLocalPoints && animationKeyRef.current && (
@@ -637,6 +639,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     alignItems: 'center',
     justifyContent: 'flex-start',
+  },
+  // Limits only the inner content width on larger screens (e.g., iPad)
+  contentLimiter: {
+    width: '100%',
+    maxWidth: 640, // adjust as desired (e.g., 600-720)
+    alignSelf: 'center',
   },
   dayTitle: {
     fontSize: 24,

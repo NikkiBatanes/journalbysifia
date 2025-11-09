@@ -12,6 +12,7 @@ import {
   Animated,
   NativeModules,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -52,6 +53,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const { devotionalId } = route.params;
   const { user } = useAuth();
   const userId = user?.id;
+  const { width: screenWidth } = useWindowDimensions();
+  // Measured viewport width of the list (works inside modal and with insets)
+  const [pageWidth, setPageWidth] = useState<number>(0);
 
   // React Query hooks for devotional data
   // Clean and validate devotional ID from route params to avoid simulator-only issues
@@ -86,7 +90,16 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     addJournaledQuestion,
     updateJournaledQuestion,
   } = useJournaledQuestions(userId || '', devotionalId);
-  const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  
+  // Calculate initial day index based on first incomplete day
+  const getInitialDayIndex = useCallback(() => {
+    if (!devotional) return 0;
+    const firstIncompleteIndex = devotional.days.findIndex(day => !day.completed);
+    // If all days are complete, show the last day. Otherwise, show the first incomplete day.
+    return firstIncompleteIndex >= 0 ? firstIncompleteIndex : devotional.days.length - 1;
+  }, [devotional]);
+  
+  const [currentDayIndex, setCurrentDayIndex] = useState(() => getInitialDayIndex());
   const loading = devotionalLoading || devotionalFetching; // Use React Query loading state
   // State for completion modal
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -337,50 +350,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [devotional, allDevotionalPrayers]);
 
-  // Set initial day index from route params or devotional context
+  // Update day index when devotional data changes
   useEffect(() => {
     if (devotional) {
-      // Check if this is a newly created devotional (all days are incomplete)
-      const isNewDevotional = devotional.days.every(day => !day.completed);
-
-      if (isNewDevotional) {
-        // For newly created devotionals, always start with day 1 (index 0)
-        setCurrentDayIndex(0);
-
-        // Force scroll to day 1 after a short delay
-        setTimeout(() => {
-          if (flatListRef.current) {
-            isScrollingProgrammatically.current = true;
-            flatListRef.current.scrollToIndex({
-              index: 0,
-              animated: false,
-            });
-            setTimeout(() => {
-              isScrollingProgrammatically.current = false;
-            }, 100);
-          }
-        }, 100);
-      } else {
-        // For existing devotionals, find the first incomplete day
-        const firstIncompleteIndex = devotional.days.findIndex(day => !day.completed);
-        const targetIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
-
-        setCurrentDayIndex(targetIndex);
-
-        // Scroll to the target day
-        setTimeout(() => {
-          if (flatListRef.current) {
-            isScrollingProgrammatically.current = true;
-            flatListRef.current.scrollToIndex({
-              index: targetIndex,
-              animated: false,
-            });
-            setTimeout(() => {
-              isScrollingProgrammatically.current = false;
-            }, 100);
-          }
-        }, 100);
-      }
+      const targetIndex = getInitialDayIndex();
+      setCurrentDayIndex(targetIndex);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [devotional?.id]); // Only run when devotional id changes (first load)
@@ -759,7 +733,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaView
         style={styles.container}
-        edges={['right', 'left']}
+        edges={['top']}
       >
       <StatusBar barStyle="dark-content" />
 
@@ -820,7 +794,19 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       </GestureDetector>
 
       {/* Main content */}
-      <View style={styles.mainContent}>
+      <View
+        style={styles.mainContent}
+        onLayout={(e) => {
+          const w = Math.round(e.nativeEvent.layout.width);
+          if (w > 0 && w !== pageWidth) {
+            setPageWidth(w);
+          }
+        }}
+      >
+        {/* Wait for layout to measure exact width */}
+        {pageWidth === 0 ? (
+          <DevotionalDetailSkeleton />
+        ) : (
         <FlatList
           ref={flatListRef}
           data={devotional.days}
@@ -828,15 +814,23 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, idx) => idx.toString()}
-          initialScrollIndex={0}
-          initialNumToRender={devotional.days.length}
-          maxToRenderPerBatch={devotional.days.length}
-          windowSize={devotional.days.length}
-          getItemLayout={(_, index) => ({
-            length: Dimensions.get('window').width,
-            offset: Dimensions.get('window').width * index,
-            index,
-          })}
+          initialScrollIndex={currentDayIndex}
+          key={`devotional-list-${pageWidth}`}
+          style={{ width: '100%' }}
+          decelerationRate="fast"
+          snapToInterval={pageWidth}
+          snapToAlignment="start"
+          disableIntervalMomentum
+          bounces={false}
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          contentInset={{ left: 0, right: 0 }}
+          onLayout={(e) => {
+            const w = Math.round(e.nativeEvent.layout.width);
+            if (w > 0 && w !== pageWidth) setPageWidth(w);
+          }}
+          getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
+          snapToOffsets={Array.from({ length: devotional.days.length }, (_, i) => i * pageWidth)}
           onMomentumScrollEnd={event => {
             // Skip if this is a programmatic scroll to prevent feedback loop
             if (isScrollingProgrammatically.current) {
@@ -845,7 +839,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             }
 
             const newIndex = Math.min(
-              Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width),
+              Math.round(event.nativeEvent.contentOffset.x / Math.max(1, pageWidth)),
               devotional.days.length - 1
             );
             // Only update if the index actually changed and is within bounds
@@ -867,29 +861,33 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             });
           }}
           renderItem={({ item: day, index }) => (
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollViewContent}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={true}
-              onScroll={(event) => {
-                // Reset scroll position when changing pages
-                if (index === currentDayIndex) {
-                  handleScroll(event);
-                }
-              }}
-              onContentSizeChange={(contentWidth, contentHeight) => {
-                // Only handle content size changes for the current day
-                if (index === currentDayIndex) {
-                  handleContentSizeChange(contentWidth, contentHeight);
-                }
-              }}
-              scrollEventThrottle={16}
-              keyboardShouldPersistTaps="handled"
-              // Reset scroll position when this item becomes visible
-              contentOffset={{x: 0, y: index === currentDayIndex ? 0 : (scrollPositions[index] || 0)}}
-              key={`scroll-${index}-${currentDayIndex === index ? 'active' : 'inactive'}`}
-            >
+            <View style={{ width: pageWidth, height: '100%' }}>
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.scrollViewContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
+                contentInsetAdjustmentBehavior="never"
+                automaticallyAdjustContentInsets={false}
+                bounces={false}
+                onScroll={(event) => {
+                  // Reset scroll position when changing pages
+                  if (index === currentDayIndex) {
+                    handleScroll(event);
+                  }
+                }}
+                onContentSizeChange={(contentWidth, contentHeight) => {
+                  // Only handle content size changes for the current day
+                  if (index === currentDayIndex) {
+                    handleContentSizeChange(contentWidth, contentHeight);
+                  }
+                }}
+                scrollEventThrottle={16}
+                keyboardShouldPersistTaps="handled"
+                // Reset scroll position when this item becomes visible
+                contentOffset={{x: 0, y: index === currentDayIndex ? 0 : (scrollPositions[index] || 0)}}
+                key={`scroll-${index}-${currentDayIndex === index ? 'active' : 'inactive'}`}
+              >
             {/* Day Title - Moved below progress bar */}
             <View style={styles.dayTitleContainer}>
               <ThemedText weight="semiBold" style={styles.dayNumber}>Day {index + 1}</ThemedText>
@@ -1083,9 +1081,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 </View>
               </View>
             </DevotionalSectionCard>
-            </ScrollView>
+              </ScrollView>
+            </View>
           )}
           />
+        )}
         {/* Visual indicator for swipe down to dismiss */}
         <View style={styles.swipeIndicatorContainer}>
           <View style={styles.swipeIndicator} />
@@ -1277,7 +1277,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    width: Dimensions.get('window').width,
     paddingTop: 0, // No top padding as per design
   },
   contentContainer: {
@@ -1286,8 +1285,6 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   scrollViewContent: {
-    flexGrow: 1,
-    paddingHorizontal: CARD_HORIZONTAL_PADDING,
     paddingBottom: 80, // Add padding to bottom to prevent FAB overlap
     paddingTop: 80, // Set scrollable padding to 60px
   },
@@ -1504,6 +1501,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
+    overflow: 'hidden',
   },
   journaledQuestionNumber: {
     backgroundColor: Colors.growthGreen,
