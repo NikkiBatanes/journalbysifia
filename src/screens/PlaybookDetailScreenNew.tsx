@@ -1194,7 +1194,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 styles.stackCardScrollContainer,
                 styles.stackCardScrollBase,
                 {
-                  maxHeight: windowHeight * 0.85,
+                  maxHeight: windowHeight - overlayTop - 20,
                   width: maxCardWidth,
                   borderRadius: 28,
                 },
@@ -1259,7 +1259,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   width: maxCardWidth,
                   height: isExpanded ? 'auto' : 450,
                   minHeight: 450,
-                  maxHeight: isExpanded ? windowHeight * 0.85 : 450,
+                  maxHeight: isExpanded ? (windowHeight - overlayTop - 20) : 450,
                   borderRadius: 28,
                   overflow: 'hidden',
                 },
