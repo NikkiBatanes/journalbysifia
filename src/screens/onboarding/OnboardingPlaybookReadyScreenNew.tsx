@@ -1263,7 +1263,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   playbookHeaderContainer: {
-    marginBottom: 6,
+    marginBottom: height > width ? 6 : 4,
   },
   playbookTitleRow: {
     flexDirection: 'row',
@@ -1322,8 +1322,8 @@ const styles = StyleSheet.create({
     borderColor: '#385886',
     padding: 12,
     borderRadius: 12,
-    marginTop: 8,
-    marginBottom: 10,
+    marginTop: height > width ? 8 : 4,
+    marginBottom: height > width ? 10 : 6,
   },
   userInputLabel: {
     fontSize: 12,
@@ -1340,7 +1340,7 @@ const styles = StyleSheet.create({
     // keep content visually centered within screen width
     marginHorizontal: 0,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: height > width ? 20 : 10,
   },
   carouselContent: {
     paddingHorizontal: 16,
