@@ -68,6 +68,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
   const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
+  const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
+  const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
@@ -784,9 +786,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 ? 'Upgrade to Plan Ahead'
                 : fromCopyTodosLock
                   ? 'Unlock Copy To-Dos & More'
-                  : fromGuidedPromptsLock
-                    ? 'Unlock Unlimited Guided Prompts'
-                    : "You've taken your first step!"}
+                  : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                    ? 'Unlock Recurring Time Blocks'
+                    : fromGuidedPromptsLock
+                      ? 'Unlock Unlimited Guided Prompts'
+                      : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isUpgradeMode
@@ -795,9 +799,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
                 : fromCopyTodosLock
                   ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features and unlimited devotionals.`
-                  : fromGuidedPromptsLock
-                    ? 'Access unlimited guided reflection prompts to deepen your spiritual practice, plus playbooks and devotionals.'
-                    : 'Keep walking, one faithful step at a time.'}
+                  : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                    ? 'Create recurring time blocks to build consistent rhythms. Also unlock calendar sync and more powerful planning features.'
+                    : fromGuidedPromptsLock
+                      ? 'Access unlimited guided reflection prompts to deepen your spiritual practice, plus playbooks and devotionals.'
+                      : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}
@@ -944,7 +950,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           disabled={isPurchasing}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : 'Continue My Journey'))}
+            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Unlock Repeat Options' : 'Continue My Journey'))}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
