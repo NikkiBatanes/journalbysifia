@@ -347,6 +347,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       navigation.navigate('OnboardingSalesOffer' as any, {
         upgradeMode: true,
         currentTier: 'seeker',
+        requestedDuration: days,
         skipNotificationPreference: true,
       });
       return;

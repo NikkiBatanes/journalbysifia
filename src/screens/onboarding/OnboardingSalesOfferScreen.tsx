@@ -50,7 +50,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const devotionalGating = useDevotionalGating();
 
   const [isAnnual, setIsAnnual] = useState(true);
-  const [selectedTier, setSelectedTier] = useState('growth');
+  const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' : 'growth';
+  const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [showDynamicModal, setShowDynamicModal] = useState(false);
   const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -124,17 +125,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           symbol: currency.symbol,
         } : { status: 'No tiers' });
 
-        // If a specific devotional duration was requested, only show tiers that UNLOCK it
-        if (requestedDuration && tiers.length > 0) {
-          const unlocked = tiers.filter(t => {
-            // pricingService tier ids align with SubscriptionTier ids for paid plans
-            const tierId = t.id as SubscriptionTier;
-            return !isDevotionalDurationLocked(tierId, requestedDuration);
-          });
-          if (unlocked.length > 0) {
-            tiers = unlocked;
-          }
-        }
+        // Keep all tiers visible; selection logic will prefer an appropriate tier based on requestedDuration
 
         if (isMounted) {
           setPricingTiers(tiers);
