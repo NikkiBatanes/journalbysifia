@@ -143,7 +143,7 @@ export const useCalendarGating = (): CalendarGatingState => {
       source: 'repeat_upgrade_prompt',
       feature: 'Recurring Time Blocks',
       context: 'timeblock',
-      message: 'Create recurring time blocks and build consistent spiritual habits, plus unlock generating playbooks and devotionals, calendar sync, and more powerful planning tools.',
+      message: 'Create recurring time blocks and build consistent spiritual habits.',
       skipNotificationPreference: true,
     });
   };
