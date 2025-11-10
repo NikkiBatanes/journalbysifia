@@ -453,7 +453,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     );
   };
 
-  
+
 
   // Inline view removed: no pages pagination
 
