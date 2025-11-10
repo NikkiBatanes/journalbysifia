@@ -735,7 +735,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const cardDynamicStyle = { width: ITEM_WIDTH };
 
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
-    const canToggle = (isTruthCard || isActionCard) && (measured > COLLAPSED_HEIGHT + 1);
+    const canToggle = (isTruthCard || isActionCard);
     const Wrapper: React.ComponentType<any> = canToggle ? TouchableOpacity : View;
 
     return (
