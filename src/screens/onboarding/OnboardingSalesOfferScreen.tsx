@@ -950,7 +950,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           disabled={isPurchasing}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Unlock Repeat Options' : 'Continue My Journey'))}
+            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Upgrade to Repeat Options' : 'Continue My Journey'))}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>

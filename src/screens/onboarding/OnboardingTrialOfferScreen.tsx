@@ -555,10 +555,7 @@ Please check App Store Connect configuration or contact support.`;
         </TouchableOpacity>
         <View style={styles.headerTextBlock}>
           <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-            You've taken your first step!
-          </ThemedText>
-          <ThemedText style={styles.headerSubtitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-            Keep walking, one faithful step at a time.
+            Not sure yet?
           </ThemedText>
         </View>
       </View>
