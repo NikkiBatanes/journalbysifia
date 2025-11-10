@@ -640,14 +640,14 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
       <View style={s.header}>
         <ThemedText weight="bold" style={s.title}>{getCurrentDate()}</ThemedText>
         <View style={s.modeToggle}>
-          <TouchableOpacity style={s.modeButton}>
+          <View style={s.modeButton} pointerEvents="none">
             <Pencil
               size={22}
               color={Colors.alertCoral}
               fill={Colors.alertCoral}
               strokeWidth={1.5}
             />
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -774,20 +774,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
 
       {/* Floating Action Buttons - matching reflection editor */}
       <View style={s.fabWrapper}>
-        {/* Left Add FAB */}
-        <View style={[s.fabContainer, s.leftFabContainer, s.fabDefaultPosition]}>
-          <TouchableOpacity
-            style={[s.fab, s.addFab]}
-            onPress={addGratitudeItem}
-          >
-            <Ionicons
-              name="add"
-              size={24}
-              color="rgba(255, 255, 255, 0.6)"
-            />
-          </TouchableOpacity>
-        </View>
-
         {/* Right Action Buttons */}
         <View style={[s.fabContainer, s.fabDefaultPosition]}>
           <View style={s.fabRow}>

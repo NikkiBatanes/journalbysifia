@@ -735,7 +735,8 @@ function TimeBlockLogEditorInner(
   const [repeatOption, setRepeatOption] = React.useState('Never');
   const [tempStartTime, setTempStartTime] = React.useState(startTime);
   const [tempEndTime, setTempEndTime] = React.useState(endTime);
-  const [showAddMenu, setShowAddMenu] = React.useState(false);
+  // Commenting out add menu for MVP; keep state preserving future functionality
+  // const [showAddMenu, setShowAddMenu] = React.useState(false);
 
   // Category modal state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -853,14 +854,14 @@ function TimeBlockLogEditorInner(
       <View style={s.header}>
         <ThemedText weight="bold" style={s.title}>{headerDate}</ThemedText>
         <View style={s.modeToggle}>
-          <TouchableOpacity style={s.modeButton}>
+          <View style={s.modeButton} pointerEvents="none">
             <Pencil
               size={22}
               color={Colors.alertCoral}
               fill={Colors.alertCoral}
               strokeWidth={1.5}
             />
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -1345,38 +1346,8 @@ function TimeBlockLogEditorInner(
 
       {/* Floating Action Buttons - Standard Layout */}
       <View style={s.fabWrapper}>
-        {/* Left Add FAB with Menu */}
-        <View style={[s.fabContainer, s.leftFabContainer, s.fabDefaultPosition]}>
-          {showAddMenu && (
-            <View style={s.addMenu}>
-              <TouchableOpacity style={s.addMenuItem}>
-                <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
-                <ThemedText weight="medium" style={s.addMenuText}>Tags</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.addMenuItem}>
-                <Ionicons name="image" size={20} color={Colors.hopeWhite} />
-                <ThemedText weight="medium" style={s.addMenuText}>Photos</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.addMenuItem}>
-                <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
-                <ThemedText weight="medium" style={s.addMenuText}>Camera</ThemedText>
-              </TouchableOpacity>
-            </View>
-          )}
-          <TouchableOpacity
-            style={[s.fab, s.addFab]}
-            onPress={() => setShowAddMenu(!showAddMenu)}
-          >
-            <Ionicons
-              name={showAddMenu ? 'close' : 'add'}
-              size={24}
-              color="rgba(255, 255, 255, 0.6)"
-            />
-          </TouchableOpacity>
-        </View>
-
         {/* Right Action Buttons */}
-        <View style={[s.fabContainer, s.fabDefaultPosition, s.rightFabContainer]}>
+        <View style={[s.fabContainer, s.rightFabContainer, s.fabDefaultPosition]}>
           <View style={s.fabRow}>
             {/* Cancel FAB */}
             <TouchableOpacity

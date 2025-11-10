@@ -509,7 +509,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Check if we're editing an existing entry (has content)
   const isEditing = !!initialEntry.content;
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
-  const [showAddMenu, setShowAddMenu] = React.useState(false);
+  // Commenting out add menu for MVP; keep state preserving future functionality
+  // const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [showFormattingModal] = React.useState(false);
   const [_keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible] = useState(false);
@@ -1393,44 +1394,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       {/* Floating Action Buttons - Only show in free-form mode */}
       {effectiveViewMode === 'free-form' && (
         <View style={s.fabWrapper}>
-          {/* Left Add FAB with Menu */}
-          <Animated.View style={[
-            s.fabContainer,
-            s.leftFabContainer,
-            { bottom: fabAnimatedValue },
-          ]}>
-            {showAddMenu && (
-              <View style={s.addMenu}>
-                <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
-                  <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
-                  <ThemedText style={s.addMenuText}>Tags</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
-                  <Ionicons name="image" size={20} color={Colors.hopeWhite} />
-                  <ThemedText style={s.addMenuText}>Photos</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
-                  <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
-                  <ThemedText style={s.addMenuText}>Camera</ThemedText>
-                </TouchableOpacity>
-              </View>
-            )}
-            <TouchableOpacity
-              style={[s.fab, s.addFab]}
-              onPress={() => {
-                triggerLightHaptic();
-                setShowAddMenu(!showAddMenu);
-              }}
-            >
-              <Ionicons
-                name={showAddMenu ? 'close' : 'add'}
-                size={24}
-                color="rgba(255, 255, 255, 0.6)"
-              />
-            </TouchableOpacity>
-
-          </Animated.View>
-
           {/* Right Action Buttons */}
           <Animated.View style={[
             s.fabContainer,

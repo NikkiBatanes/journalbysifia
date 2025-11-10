@@ -397,7 +397,8 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   const [prayerContent, setPrayerContent] = React.useState(initialContent);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
-  const [showAddMenu, setShowAddMenu] = React.useState(false);
+  // Commenting out add menu for MVP; keep state preserving future functionality
+  // const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
 
   // Tab management
@@ -820,36 +821,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
-
-        {/* Left Add FAB */}
-        <View style={[s.fabContainer, s.leftFabContainer, s.fabDefaultPosition]}>
-          {showAddMenu && (
-            <View style={s.addMenu}>
-              <TouchableOpacity style={s.addMenuItem}>
-                <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
-                <ThemedText style={s.addMenuText}>Tags</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.addMenuItem}>
-                <Ionicons name="image" size={20} color={Colors.hopeWhite} />
-                <ThemedText style={s.addMenuText}>Photos</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.addMenuItem}>
-                <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
-                <ThemedText style={s.addMenuText}>Camera</ThemedText>
-              </TouchableOpacity>
-            </View>
-          )}
-          <TouchableOpacity
-            style={[s.fab, s.addFab]}
-            onPress={() => setShowAddMenu(!showAddMenu)}
-          >
-            <Ionicons
-              name={showAddMenu ? 'close' : 'add'}
-              size={24}
-              color="rgba(255, 255, 255, 0.6)"
-            />
-          </TouchableOpacity>
-        </View>
 
         {/* Right Action Buttons */}
         <View style={[s.fabContainer, s.fabDefaultPosition]}>
