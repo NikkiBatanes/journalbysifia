@@ -131,10 +131,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       logger.debug('First time showing modal, setting flag');
       setShowIntroModal(true);
       hasShownPlaybookIntroModal = true;
-    } else {
-      logger.debug('Modal already shown, ensuring state is false');
-      setShowIntroModal(false);
     }
+    // Don't call setShowIntroModal(false) here - it causes unnecessary re-renders
+    // The modal will be hidden by the Explore button or tutorial completion
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally run only on mount
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
@@ -146,14 +145,29 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [headerH, setHeaderH] = useState(0);
   const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
   const availableHeight = Math.max(0, screenHeight - headerH - footerH);
+  
+  // Log available height calculations for debugging
+  useEffect(() => {
+    logger.debug('Available height calculated', {
+      screenHeight,
+      headerH,
+      footerH,
+      availableHeight
+    });
+  }, [screenHeight, headerH, footerH, availableHeight]);
 
   // Update screen height on dimension changes (rotation)
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      logger.debug('Screen dimensions changed', { 
+        newHeight: window.height, 
+        newWidth: window.width,
+        oldHeight: screenHeight 
+      });
       setScreenHeight(window.height);
     });
     return () => subscription?.remove();
-  }, []);
+  }, [screenHeight]);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
