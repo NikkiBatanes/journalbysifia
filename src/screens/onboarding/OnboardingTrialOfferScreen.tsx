@@ -569,7 +569,7 @@ Please check App Store Connect configuration or contact support.`;
           {/* Intro Text */}
           <View style={styles.introSection}>
             <ThemedText weight="semiBold" style={styles.introTitle}>
-              That's okay—starting something new can feel uncertain.
+              That's okay. Starting something new can feel uncertain.
             </ThemedText>
             <ThemedText style={styles.introText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
               Here's what you'll unlock during your free trial.
@@ -864,10 +864,10 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 20,
   },
   introTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   introText: {
     fontSize: 15,
