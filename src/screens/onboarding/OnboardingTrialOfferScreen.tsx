@@ -588,15 +588,12 @@ Please check App Store Connect configuration or contact support.`;
       <View style={styles.scrollContainer}>
         {/* Main Content */}
         <View style={styles.contentWrap}>
-          {/* Spacer below header */}
-          <View style={styles.spacerHeight} />
-
           {/* Intro Text */}
           <View style={styles.introSection}>
             <ThemedText weight="semiBold" style={styles.introTitle}>
               That's okay. Starting something new can feel uncertain.
             </ThemedText>
-            <ThemedText style={styles.introText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
+            <ThemedText style={styles.introSubtitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
               Here's what you'll unlock during your free trial.
             </ThemedText>
           </View>
@@ -886,7 +883,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 32,
   },
   introSection: {
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 20,
   },
   introTitle: {
@@ -895,12 +892,13 @@ const createStyles = (fonts: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 4,
   },
-  introText: {
-    fontSize: 15,
-    fontFamily: fonts.regular,
+  introSubtitle: {
+    fontSize: 17,
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    lineHeight: 22,
+    lineHeight: 24,
     opacity: 0.9,
+    marginTop: 12,
   },
   trialWarningContainer: {
     flexDirection: 'row',
@@ -1261,7 +1259,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 0,
   },
   spacerHeight: {
-    height: 16,
+    height: 0,
   },
   modalOverlay: {
     flex: 1,
