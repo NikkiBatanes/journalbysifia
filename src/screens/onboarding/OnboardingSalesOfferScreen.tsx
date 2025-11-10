@@ -229,12 +229,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           selectedTierId: selectedTier,
           billing: isAnnual ? 'annual' : 'monthly',
           skipNotificationPreference: routeParams?.skipNotificationPreference,
-          // Ensure closing Trial also closes SalesOffer when launched from profile or reflection
-          closeAllOnDismiss: (
-            routeParams?.returnTo === 'UserProfile' ||
-            routeParams?.context === 'profile_settings' ||
-            routeParams?.returnToReflection === true
-          ),
+          // Always close both Trial and Sales Offer when user cancels Sales Offer
+          closeAllOnDismiss: true,
           returnTo: routeParams?.returnTo,
           context: routeParams?.context,
         });
