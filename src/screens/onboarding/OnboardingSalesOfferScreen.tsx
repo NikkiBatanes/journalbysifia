@@ -72,6 +72,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
   const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
+  const fromSmartJournalingLock = !isUpgradeMode && routeParams?.source === 'smart_journaling_lock' && routeParams?.feature === 'smart_journaling' && currentUserTier === 'seeker';
   const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
   const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
   const fromCalendarAutoSync = !isUpgradeMode && routeParams?.source === 'calendar_auto_sync';
@@ -827,7 +828,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       ? 'Unlock Calendar Auto-Sync'
                       : fromGuidedPromptsLock
                         ? 'Unlock Unlimited Guided Prompts'
-                        : "You've taken your first step!"}
+                        : fromSmartJournalingLock
+                          ? 'Upgrade to Unlock Smart Journaling'
+                          : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isUpgradeMode
@@ -842,7 +845,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
                       : fromGuidedPromptsLock
                         ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
-                        : 'Keep walking, one faithful step at a time.'}
+                        : fromSmartJournalingLock
+                          ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
+                          : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}
