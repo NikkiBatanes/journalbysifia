@@ -716,8 +716,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
             const created = await createMutation.mutateAsync(createData as any);
 
-            // Optional: sync to calendar for the one-off instance
-            if (calendarGating.canSyncToCalendar) {
+            // Optional: sync to calendar for the one-off instance (only if autoSync is enabled)
+            if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
               try {
                 const timeBlockForSync = {
                   id: created.id,
@@ -813,9 +813,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
         const updateResult = await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
 
-        // Sync updated time block to calendar (before cache invalidation)
+        // Sync updated time block to calendar (before cache invalidation) when autoSync is enabled
         let calendarEventIdToSave: string | undefined;
-        if (calendarGating.canSyncToCalendar) {
+        if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
           try {
             // Convert repeat frequency for calendar sync compatibility
             const calendarRepeat = {
@@ -907,8 +907,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
         const createResult = await createMutation.mutateAsync(timeBlockData);
 
-        // Sync new time block to calendar
-        if (calendarGating.canSyncToCalendar) {
+        // Sync new time block to calendar when autoSync is enabled
+        if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
           try {
             console.log('📆 [CREATE] Starting calendar sync for new time block');
             // Convert repeat frequency for calendar sync compatibility
