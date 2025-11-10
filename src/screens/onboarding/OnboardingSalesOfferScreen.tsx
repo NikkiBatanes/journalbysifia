@@ -969,6 +969,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 selectedTierId: selectedTier,
                 billing: isAnnual ? 'annual' : 'monthly',
                 skipNotificationPreference: routeParams?.skipNotificationPreference,
+                closeAllOnDismiss: true,
               });
             } else {
               const source = routeParams?.source;

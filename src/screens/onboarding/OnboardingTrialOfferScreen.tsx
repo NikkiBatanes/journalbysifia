@@ -8,7 +8,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService from '../../services/pricingService';
@@ -73,12 +73,12 @@ const OnboardingTrialOfferScreen = () => {
 
     // If instructed, close both Trial and Sales Offer screens to avoid loops
     if (routeParams?.closeAllOnDismiss) {
-      // Pop Trial Offer
-      navigation.goBack();
-      // Pop Sales Offer shortly after
-      setTimeout(() => {
-        try { (navigation as any).goBack(); } catch {}
-      }, 50);
+      try {
+        // Atomically pop Trial and Sales Offer to return to the previous context (e.g., PlaybookDetail)
+        (navigation as any).dispatch(StackActions.pop(2));
+      } catch {
+        try { navigation.goBack(); } catch {}
+      }
     } else {
       // Default: go to notification setup or back, depending on skip flag
       const skipNotificationPreference = routeParams?.skipNotificationPreference;
