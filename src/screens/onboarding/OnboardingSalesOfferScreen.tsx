@@ -798,9 +798,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               : fromPlanningLock
                 ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
                 : fromCopyTodosLock
-                  ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features and unlimited devotionals.`
+                  ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features, playbooks, and devotionals.`
                   : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                    ? 'Create recurring time blocks to build consistent rhythms. Also unlock calendar sync and more powerful planning features.'
+                    ? 'Create recurring time blocks to build consistent rhythms. Also unlock generating playbooks and devotionals, calendar sync, and more powerful planning features.'
                     : fromGuidedPromptsLock
                       ? 'Access unlimited guided reflection prompts to deepen your spiritual practice, plus playbooks and devotionals.'
                       : 'Keep walking, one faithful step at a time.'}
