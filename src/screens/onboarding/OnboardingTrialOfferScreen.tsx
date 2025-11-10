@@ -75,13 +75,33 @@ const OnboardingTrialOfferScreen = () => {
     // Check if we came from user profile or other specific context
     const fromUserProfile = routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings';
 
-    // If instructed, close both Trial and Sales Offer screens to avoid loops
-    if (routeParams?.closeAllOnDismiss || fromUserProfile) {
+    // If from user profile, we need special handling since UserProfile is nested in HomeStack
+    if (fromUserProfile) {
       try {
-        // Atomically pop Trial and Sales Offer to return to the previous context (e.g., PlaybookDetail or UserProfile)
-        (navigation as any).dispatch(StackActions.pop(2));
-      } catch {
+        // First pop this screen (Trial Offer)
+        navigation.goBack();
+        // Then after a brief delay, pop Sales Offer and navigate to UserProfile
+        setTimeout(() => {
+          navigation.goBack(); // Pop Sales Offer
+          // UserProfile should now be visible since it's a modal in HomeStack
+        }, 100);
+      } catch (error) {
+        // Fallback
         try { navigation.goBack(); } catch {}
+      }
+    } else if (routeParams?.closeAllOnDismiss) {
+      try {
+        // Atomically pop Trial and Sales Offer to return to the previous context (e.g., PlaybookDetail)
+        const popAction = StackActions.pop(2);
+        navigation.dispatch(popAction);
+      } catch (error) {
+        // Fallback: try going back twice
+        try {
+          navigation.goBack();
+          setTimeout(() => {
+            navigation.goBack();
+          }, 50);
+        } catch {}
       }
     } else {
       // Default: go to notification setup or back, depending on skip flag
