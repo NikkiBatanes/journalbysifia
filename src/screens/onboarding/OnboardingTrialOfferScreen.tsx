@@ -815,14 +815,15 @@ const createStyles = (fonts: any) => StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 8,
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     width: '100%',
-    maxWidth: 720,
   },
   headerContent: {
     flex: 1,
-    alignSelf: 'stretch',
     alignItems: 'flex-start',
+    maxWidth: 720,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerTextBlock: {
     alignItems: 'flex-start',
@@ -1224,6 +1225,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   contentWrap: {
     flexShrink: 1,
     paddingBottom: 8,
+    marginTop: 12,
   },
   startTrialButton: {
     backgroundColor: Colors.alertCoral,
