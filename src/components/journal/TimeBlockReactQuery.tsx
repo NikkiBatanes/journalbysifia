@@ -218,6 +218,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
   const [_inputValue, setInputValue] = useState('1');
 
+  // Track if we're editing a virtual (expanded) instance of a repeating block
+  const [editIsVirtualInstance, setEditIsVirtualInstance] = useState<boolean>(false);
+  const [editInstanceDate, setEditInstanceDate] = useState<string | null>(null);
+
   const [newBlock, setNewBlock] = useState<{
     title: string;
     startTime: Date;
@@ -307,6 +311,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       const parts = block.id.split('-');
       editIdToUse = parts.slice(0, 5).join('-'); // Get original UUID
       console.log('📝 [EDIT] Editing virtual instance, using original ID:', editIdToUse);
+    }
+
+    // Remember whether this edit came from a virtual instance (and which date)
+    setEditIsVirtualInstance(isVirtualInstance);
+    try {
+      const instanceDateStr = toLocalDateString(block.startTime);
+      setEditInstanceDate(isVirtualInstance ? instanceDateStr : null);
+    } catch {
+      setEditInstanceDate(isVirtualInstance ? dateStr : null);
     }
 
     setEditId(editIdToUse);
@@ -663,15 +676,114 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       const durationMinutes = Math.round((endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60));
 
       if (editId) {
+        // Special case: editing a virtual instance while repeat features are gated
+        // Instead of clearing the recurrence on the original event (which makes the instance disappear),
+        // we add an exception for this date and create a one-off block for the edited instance.
+        if (editIsVirtualInstance && !calendarGating.canUseRepeat) {
+          try {
+            const instanceDateStr = editInstanceDate || dateStr;
+
+            // 1) Hide this date from the original recurring event by adding an exception (append)
+            const originalApiEntry = timeBlockEntries.find(entry => entry.id === editId);
+            const existingExceptions = (originalApiEntry?.metadata?.exceptions || []) as string[];
+            const newExceptions = existingExceptions.includes(instanceDateStr)
+              ? existingExceptions
+              : [...existingExceptions, instanceDateStr];
+
+            await updateMutation.mutateAsync({
+              id: editId,
+              updates: {
+                metadata: {
+                  exceptions: newExceptions,
+                },
+              },
+            });
+
+            // 2) Create a one-off time block for this date with the edited values
+            const createData = {
+              user_id: user?.id || '',
+              selected_date: dateStr,
+              title: newBlock.title.trim(),
+              start_time: startDateTime.toISOString(),
+              end_time: endDateTime.toISOString(),
+              category: newBlock.category,
+              description: newBlock.notes.trim() || undefined,
+              location: newBlock.location.trim() || undefined,
+              all_day: newBlock.isAllDay,
+              repeat_rule: undefined,
+              repeat_until: undefined,
+            } as const;
+
+            const created = await createMutation.mutateAsync(createData as any);
+
+            // Optional: sync to calendar for the one-off instance
+            if (calendarGating.canSyncToCalendar) {
+              try {
+                const timeBlockForSync = {
+                  id: created.id,
+                  title: newBlock.title.trim(),
+                  startTime: startDateTime,
+                  endTime: endDateTime,
+                  location: newBlock.location.trim(),
+                  notes: newBlock.notes.trim(),
+                  isAllDay: newBlock.isAllDay,
+                  repeat: { frequency: 'never' as const },
+                  calendarEventId: undefined,
+                };
+                const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
+                if (syncResult.success && syncResult.eventId) {
+                  await updateMutation.mutateAsync({ id: created.id, updates: { calendar_event_id: syncResult.eventId } });
+                }
+              } catch (calendarError) {
+                Logger.warn('Calendar sync failed for one-off edit instance', {
+      component: 'TimeBlockReactQuery',
+      data: calendarError,
+    });
+              }
+            }
+
+            // Invalidate caches to refresh UI
+            if (user?.id) {
+              await queryClient.invalidateQueries({ queryKey: [queryKeys.timeBlocks.all[0]] });
+            }
+
+            const prevDurationMins = originalApiEntry
+              ? Math.round((new Date(originalApiEntry.end_time).getTime() - new Date(originalApiEntry.start_time).getTime()) / 60000)
+              : durationMinutes;
+
+            analytics.trackTimeBlockEvent('timeblock_updated', {
+              timeblock_id: editId,
+              title_length: newBlock.title.trim().length,
+              category: newBlock.category,
+              duration_minutes: durationMinutes,
+              previous_duration_minutes: prevDurationMins,
+              is_all_day: newBlock.isAllDay,
+              has_location: !!newBlock.location.trim(),
+              has_notes: !!newBlock.notes.trim(),
+              repeat_frequency: String(newBlock.repeat.frequency),
+              date: dateStr,
+            }, user?.id);
+
+            return; // Done with special-case flow
+
+          } catch (specialEditError) {
+            Logger.error('Error editing virtual instance without repeat access', specialEditError as Error, {
+        component: 'TimeBlockReactQuery',
+      });
+            // Fall through to regular edit handling as a fallback
+          }
+        }
         // Track update analytics
         const existingBlock = timeBlocks.find(block => block.id === editId);
         const previousDuration = existingBlock ?
           Math.round((existingBlock.endTime.getTime() - existingBlock.startTime.getTime()) / (1000 * 60)) : 0;
 
-        // When editing, preserve the original event's selected_date
-        // Don't use current dateStr as it might be a different date for virtual instances
-        const originalSelectedDate = existingBlock?.startTime ?
-          existingBlock.startTime.toISOString().split('T')[0] : dateStr;
+        // When editing, preserve the original event's selected_date.
+        // For virtual instance edits, the original block is not in timeBlocks.
+        // Look up the API entry to get the true original selected_date; fallback to existing block/dateStr.
+        const originalApiEntry = timeBlockEntries.find(entry => entry.id === editId);
+        const originalSelectedDate = originalApiEntry?.selected_date
+          || (existingBlock?.startTime ? existingBlock.startTime.toISOString().split('T')[0] : dateStr);
 
         const timeBlockData = {
           user_id: user?.id || '',
