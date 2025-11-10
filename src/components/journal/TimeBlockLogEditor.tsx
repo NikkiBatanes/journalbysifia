@@ -174,6 +174,14 @@ const createDefaultStyles = (fonts: any) => ({
     marginBottom: 20,
     // fontWeight handled by ThemedText weight="bold",
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleTextFlex: {
+    flex: 1,
+  },
   formContainer: {
     padding: 20,
   },
@@ -894,8 +902,8 @@ function TimeBlockLogEditorInner(
         <View style={s.contentCard}>
           <ScrollView style={s.content} contentContainerStyle={s.scrollContent} scrollEnabled={true}>
             {/* Title section with lock icon */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, { flex: 1 }]}>
+            <View style={s.titleRow}>
+              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
                 {_subtaskTitle || 'Time Block Entry'}
               </ThemedText>
               {smartJournalingGating.isLocked && (

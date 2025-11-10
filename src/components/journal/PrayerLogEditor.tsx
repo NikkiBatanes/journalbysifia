@@ -199,6 +199,14 @@ const defaultStyles = {
     textAlignVertical: 'center',
     marginBottom: 20, // Space below title
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleTextFlex: {
+    flex: 1,
+  },
   contentCard: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -776,8 +784,8 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
               keyboardShouldPersistTaps="handled"
             >
               {/* Title section with lock icon */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, { flex: 1 }]}>
+              <View style={s.titleRow}>
+                <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
                   {_subtaskTitle || ''}
                 </ThemedText>
                 {smartJournalingGating.isLocked && (

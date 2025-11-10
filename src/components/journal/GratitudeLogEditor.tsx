@@ -175,6 +175,14 @@ const defaultStyles = {
     textAlignVertical: 'center',
     marginBottom: 20, // Increased from 2 to 20 for better spacing
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleTextFlex: {
+    flex: 1,
+  },
   contentCard: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -687,8 +695,8 @@ const GratitudeLogEditorInner = (
             keyboardShouldPersistTaps="handled"
           >
             {/* Title section with lock icon */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, { flex: 1 }]}>
+            <View style={s.titleRow}>
+              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
                 What are you grateful for today?
               </ThemedText>
               {smartJournalingGating.isLocked && (
