@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, ViewStyle, Animated } from 'react-native';
+import { View, StyleSheet, ViewStyle, Animated, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 
 interface SkeletonBoxProps {
@@ -58,9 +59,14 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
 };
 
 const PlaybookSkeletonLoader = () => {
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
+  const horizontalPadding = isTablet ? 48 : 16;
+  const tabletCardWidth = Math.min(width - horizontalPadding * 2, 720);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.contentContainer}>
+    <SafeAreaView style={styles.container}>
+      <View style={[styles.contentContainer, isTablet && styles.contentContainerTablet]}>
         {/* Playbook Info Skeleton */}
         <View style={styles.playbookInfoContainer}>
           <View style={styles.playbookHeader}>
@@ -98,8 +104,14 @@ const PlaybookSkeletonLoader = () => {
           </View>
         </View>
 
-        <View style={styles.cardContainer}>
-          <View style={styles.card}>
+        <View style={[styles.cardContainer, isTablet && styles.cardContainerTablet]}>
+          <View
+            style={[
+              styles.card,
+              isTablet && styles.cardTablet,
+              isTablet && { width: tabletCardWidth, maxWidth: tabletCardWidth },
+            ]}
+          >
             {/* Title */}
             <SkeletonBox width="60%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.20)'} />
             <View style={styles.summaryContainer}>
@@ -121,7 +133,7 @@ const PlaybookSkeletonLoader = () => {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -133,6 +145,11 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     padding: 16,
+  },
+  contentContainerTablet: {
+    paddingHorizontal: 48,
+    paddingTop: 24,
+    paddingBottom: 32,
   },
   playbookInfoContainer: {
     marginBottom: 24,
@@ -195,6 +212,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 0,
   },
+  cardContainerTablet: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
   card: {
     width: '100%',
     maxWidth: 335, // Matches SCREEN_WIDTH - 80 when screen width is 375 (iPhone 8)
@@ -202,6 +223,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.modalBlue,
     borderRadius: 36,
     padding: 24,
+  },
+  cardTablet: {
+    maxWidth: 520,
+    height: 520,
+    padding: 32,
+    borderRadius: 40,
   },
   summaryContainer: {
     marginBottom: 24,
