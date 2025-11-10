@@ -44,7 +44,7 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
   // But user can change it via "Change Plan" button
-  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean } | undefined;
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'annual'; // Use sales offer billing or default to annual
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
@@ -72,10 +72,13 @@ const OnboardingTrialOfferScreen = () => {
       triggerLightHaptic();
     } catch {}
 
+    // Check if we came from user profile or other specific context
+    const fromUserProfile = routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings';
+
     // If instructed, close both Trial and Sales Offer screens to avoid loops
-    if (routeParams?.closeAllOnDismiss) {
+    if (routeParams?.closeAllOnDismiss || fromUserProfile) {
       try {
-        // Atomically pop Trial and Sales Offer to return to the previous context (e.g., PlaybookDetail)
+        // Atomically pop Trial and Sales Offer to return to the previous context (e.g., PlaybookDetail or UserProfile)
         (navigation as any).dispatch(StackActions.pop(2));
       } catch {
         try { navigation.goBack(); } catch {}
