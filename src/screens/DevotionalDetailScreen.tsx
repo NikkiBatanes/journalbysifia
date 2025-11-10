@@ -1258,10 +1258,11 @@ const styles = StyleSheet.create({
   },
 
   dayTitleContainer: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 16,
     paddingTop: 0,
-    paddingBottom: 4, // Reduced bottom padding
-    marginBottom: 10,  // Reduced margin bottom
+    paddingBottom: 4,
+    marginBottom: 10,
+    alignItems: 'flex-start',
   },
   dayNumber: {
     fontSize: 14,
