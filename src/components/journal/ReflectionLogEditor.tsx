@@ -1179,7 +1179,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                               skipNotificationPreference: true,
                               returnToReflection: true,
                             });
-                          }, 100);
+                          }, 300);
                         }}
                         size={20}
                         position="right"
@@ -1242,7 +1242,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                             skipNotificationPreference: true,
                             returnToReflection: true,
                           });
-                        }, 100);
+                        }, 300);
                       }}
                       size={20}
                       position="right"
@@ -1352,7 +1352,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                                 skipNotificationPreference: true,
                                 returnToReflection: true,
                               });
-                            }, 100);
+                            }, 300);
                           }}
                           size={16}
                           position="right"
