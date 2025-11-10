@@ -235,7 +235,7 @@ export default function RootStackNavigator({
             component={OnboardingTrialOfferScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
               animationDuration: 350,
               gestureEnabled: true,
