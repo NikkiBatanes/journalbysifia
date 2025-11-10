@@ -829,8 +829,8 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingTop: 18,
+    paddingBottom: 12,
     alignSelf: 'stretch',
     width: '100%',
   },
@@ -851,13 +851,13 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignSelf: 'stretch',
   },
   headerMainTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'left',
-    lineHeight: 26,
-    letterSpacing: 0.2,
-    marginBottom: 2,
+    lineHeight: 30,
+    letterSpacing: 0.25,
+    marginBottom: 0,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -877,7 +877,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     right: 16,
-    top: 0,
+    top: 8,
     zIndex: 2,
   },
   disabledButton: {
@@ -908,7 +908,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 32,
   },
   introSection: {
-    marginTop: 8,
+    marginTop: 0,
     marginBottom: 20,
   },
   introTitle: {
