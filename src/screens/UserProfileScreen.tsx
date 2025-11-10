@@ -367,6 +367,25 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         };
         setUsage(usageData);
 
+        // Auto-disable calendar autoSync if user is on seeker tier
+        if (subscriptionData.tier === 'seeker' && preferences.calendar?.autoSync === true) {
+          const updatedPreferences = {
+            ...preferences,
+            calendar: {
+              ...preferences.calendar,
+              autoSync: false,
+            },
+          };
+          const result = await updatePreferences(updatedPreferences);
+          if (result.success) {
+            setPreferences(updatedPreferences);
+            Logger.info('Auto-disabled calendar autoSync for seeker tier', {
+              component: 'UserProfileScreen',
+              userId: user.id,
+            });
+          }
+        }
+
       } catch (error) {
         Logger.error('Failed to load subscription data', error as Error, {
       component: 'UserProfileScreen',
@@ -388,6 +407,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, loadNotificationPreferences]);
 
   /**

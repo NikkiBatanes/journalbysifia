@@ -34,7 +34,7 @@ export interface CalendarGatingState {
 }
 
 export const useCalendarGating = (): CalendarGatingState => {
-  const { user } = useAuth();
+  const { user, updatePreferences } = useAuth();
   const navigation = useNavigation();
   const [currentTier, setCurrentTier] = useState<string>('seeker');
 
@@ -90,6 +90,36 @@ export const useCalendarGating = (): CalendarGatingState => {
       canDeleteSeries: true,
     };
   }, [isSeeker]);
+
+  // When user becomes seeker (cancelled or downgraded), automatically turn off calendar auto-sync
+  useEffect(() => {
+    const ensureAutoSyncOffForSeeker = async () => {
+      try {
+        if (!user?.id) {return;}
+        if (currentTier !== 'seeker') {return;}
+
+        const prefs = (user as any)?.user_metadata?.preferences || {};
+        const calendarPrefs = prefs?.calendar || {};
+        if (calendarPrefs.autoSync === true) {
+          const updated = {
+            ...prefs,
+            calendar: { ...calendarPrefs, autoSync: false },
+          };
+          try {
+            await updatePreferences(updated);
+            Logger.info('Auto-disabled calendar autoSync for seeker tier', { component: 'useCalendarGating', userId: user.id });
+          } catch (e) {
+            Logger.warn('Failed to auto-disable calendar autoSync for seeker tier', { component: 'useCalendarGating', userId: user.id });
+          }
+        }
+      } catch (error) {
+        Logger.warn('ensureAutoSyncOffForSeeker error', { component: 'useCalendarGating', errorMessage: (error as Error)?.message });
+      }
+    };
+
+    ensureAutoSyncOffForSeeker();
+    // Depend on tier and user identity only
+  }, [currentTier, user?.id, user, updatePreferences]);
 
   const handleCalendarLockTap = () => {
     analytics.trackTimeBlockEvent('calendar_lock_tapped' as any, {
