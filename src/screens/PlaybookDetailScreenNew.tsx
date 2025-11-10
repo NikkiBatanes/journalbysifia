@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  Dimensions,
   ViewStyle,
   TextStyle,
   ImageStyle,
@@ -72,8 +71,8 @@ import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybook
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 
-// Screen dimensions - kept for initial StyleSheet creation
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Screen dimensions - kept for initial StyleSheet creation (unused but may be needed for future static styles)
+// const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Types
 interface PlaybookScreenProps {

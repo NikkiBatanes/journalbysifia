@@ -20,7 +20,7 @@ export const createOnboardingStyles = (fonts: {
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
   },
-  
+
   innerContainer: {
     flex: 1,
     width: '100%',

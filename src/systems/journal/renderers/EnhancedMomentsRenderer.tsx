@@ -1022,7 +1022,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             const exceptionsRaw = Array.isArray(metadata?.exceptions) ? metadata.exceptions : [];
             const exceptionDates = exceptionsRaw
               .map((value: unknown) => (typeof value === 'string' ? normalizeDateString(value) : null))
-              .filter((value): value is string => !!value);
+              .filter((value: string | null): value is string => !!value);
 
             if (selectedDateIso && exceptionDates.includes(selectedDateIso)) {
               return;

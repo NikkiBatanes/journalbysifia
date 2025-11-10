@@ -12,7 +12,6 @@ import {
   Animated,
   NativeModules,
   StatusBar,
-  useWindowDimensions,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,7 +52,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const { devotionalId } = route.params;
   const { user } = useAuth();
   const userId = user?.id;
-  const { width: screenWidth } = useWindowDimensions();
   // Measured viewport width of the list (works inside modal and with insets)
   const [pageWidth, setPageWidth] = useState<number>(0);
 
@@ -90,15 +88,15 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     addJournaledQuestion,
     updateJournaledQuestion,
   } = useJournaledQuestions(userId || '', devotionalId);
-  
+
   // Calculate initial day index based on first incomplete day
   const getInitialDayIndex = useCallback(() => {
-    if (!devotional) return 0;
+    if (!devotional) {return 0;}
     const firstIncompleteIndex = devotional.days.findIndex(day => !day.completed);
     // If all days are complete, show the last day. Otherwise, show the first incomplete day.
     return firstIncompleteIndex >= 0 ? firstIncompleteIndex : devotional.days.length - 1;
   }, [devotional]);
-  
+
   const [currentDayIndex, setCurrentDayIndex] = useState(() => getInitialDayIndex());
   const loading = devotionalLoading || devotionalFetching; // Use React Query loading state
   // State for completion modal
@@ -827,7 +825,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           contentInset={{ left: 0, right: 0 }}
           onLayout={(e) => {
             const w = Math.round(e.nativeEvent.layout.width);
-            if (w > 0 && w !== pageWidth) setPageWidth(w);
+            if (w > 0 && w !== pageWidth) {setPageWidth(w);}
           }}
           getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
           snapToOffsets={Array.from({ length: devotional.days.length }, (_, i) => i * pageWidth)}

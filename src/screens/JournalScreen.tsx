@@ -188,7 +188,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     }, [])
   );
   const [weeks, setWeeks] = useState<Date[][]>([]);
-  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [_screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [headerWidth, setHeaderWidth] = useState<number>(0);
   const scrollX = useRef(0);
 
@@ -328,7 +328,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     scrollX.current = offsetX;
 
     // Calculate the current week index based on scroll position
-    if (headerWidth === 0) return;
+    if (headerWidth === 0) {return;}
     const weekIndex = Math.round(offsetX / headerWidth);
 
     // Add bounds checking and ensure we have valid data
@@ -527,7 +527,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
           ]}
           onLayout={(e) => {
             const w = Math.round(e.nativeEvent.layout.width);
-            if (w > 0 && w !== headerWidth) setHeaderWidth(w);
+            if (w > 0 && w !== headerWidth) {setHeaderWidth(w);}
           }}
         >
           {headerWidth > 0 && (

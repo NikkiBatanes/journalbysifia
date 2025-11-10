@@ -259,20 +259,20 @@ class PricingService {
    */
   async getCurrencyInfo(): Promise<LocationPricing> {
     const location = await this.getUserLocation();
-    
+
     // FORCE Philippine currency for development/testing (matches pricing override)
     if (__DEV__) {
-      return this.locationPricing['PH'];
+      return this.locationPricing.PH;
     }
-    
+
     // DEFAULT to Philippine currency (this is a Philippines-focused app)
     // Only use USD currency if explicitly in a USD market
     if (location === 'US' || location === 'CA' || location === 'GB' || location === 'AU') {
       return this.locationPricing[location] || this.locationPricing.DEFAULT;
     }
-    
+
     // Default to PHP currency for all other markets
-    return this.locationPricing['PH'];
+    return this.locationPricing.PH;
   }
 
   /**
@@ -441,12 +441,12 @@ class PricingService {
   async getLocationAdjustedUpgradeTiers(currentTier: string): Promise<PricingTier[]> {
     const location = await this.getUserLocation();
     const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
-    
+
     // Get tier hierarchy to filter upgrade tiers
     const hierarchy = this.getTierHierarchy();
     const currentIndex = hierarchy.indexOf(currentTier);
-    const availableTierIds = currentIndex === -1 
-      ? hierarchy 
+    const availableTierIds = currentIndex === -1
+      ? hierarchy
       : hierarchy.slice(currentIndex + 1);
 
     // Use explicit PH pricing when market is Philippines

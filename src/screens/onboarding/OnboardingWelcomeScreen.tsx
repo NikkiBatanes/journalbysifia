@@ -4,7 +4,7 @@
  * Shows Biblical Wisdom, Personalized Playbooks, and Smart Journaling
  */
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -16,7 +16,6 @@ import {
   Linking,
   Dimensions,
   FlatList,
-  Text,
 } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
