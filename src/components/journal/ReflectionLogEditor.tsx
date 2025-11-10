@@ -1187,7 +1187,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     >
                       {initialTitle || newEntry.title}
                     </ThemedText>
-                    {isSelectedPromptLocked && (
+                    {(isSelectedPromptLocked || (!selectedPrompt && smartJournalingGating.isLocked)) && (
                       <GuidedPromptLockIcon
                         tier={subscription?.tier || 'seeker'}
                         usedPrompts={guidedPromptGating.usedPrompts}
@@ -1197,9 +1197,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                             onUpgradeRequired();
                           }
                           setTimeout(() => {
+                            // Use different source based on whether it's a guided prompt or free-form
+                            const isGuidedPrompt = isSelectedPromptLocked;
                             (navigation as any).navigate('OnboardingSalesOffer', {
-                              source: 'guided_prompts_lock',
-                              feature: 'guided_prompts',
+                              source: isGuidedPrompt ? 'guided_prompts_lock' : 'smart_journaling_lock',
+                              feature: isGuidedPrompt ? 'guided_prompts' : 'smart_journaling',
                               tier: subscription?.tier || 'seeker',
                               upgradeMode: false,
                               skipNotificationPreference: true,
@@ -1250,7 +1252,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     selectionColor={Colors.hopeWhite}
                     multiline={true}
                   />
-                  {isSelectedPromptLocked && (
+                  {(isSelectedPromptLocked || (!selectedPrompt && smartJournalingGating.isLocked)) && (
                     <GuidedPromptLockIcon
                       tier={subscription?.tier || 'seeker'}
                       usedPrompts={guidedPromptGating.usedPrompts}
@@ -1260,9 +1262,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           onUpgradeRequired();
                         }
                         setTimeout(() => {
+                          const isGuidedPrompt = isSelectedPromptLocked;
                           (navigation as any).navigate('OnboardingSalesOffer', {
-                            source: 'guided_prompts_lock',
-                            feature: 'guided_prompts',
+                            source: isGuidedPrompt ? 'guided_prompts_lock' : 'smart_journaling_lock',
+                            feature: isGuidedPrompt ? 'guided_prompts' : 'smart_journaling',
                             tier: subscription?.tier || 'seeker',
                             upgradeMode: false,
                             skipNotificationPreference: true,

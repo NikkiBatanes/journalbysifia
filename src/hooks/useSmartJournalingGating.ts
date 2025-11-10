@@ -30,7 +30,7 @@ export function useSmartJournalingGating(): SmartJournalingGatingResult {
       tier,
       canUseFeature,
       upgradeMessage: isLocked
-        ? 'Unlock smart journaling with Spark to track time blocks, gratitude, prayers, and reflections'
+        ? 'Upgrade to unlock Smart Journaling and track time blocks, gratitude, prayers, and reflections'
         : '',
     };
   }, [tier]);
