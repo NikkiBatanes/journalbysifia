@@ -140,12 +140,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setPricingTiers(tiers);
           setCurrencyInfo(currency);
 
-          // Default selection: prefer POPULAR, then 'growth', then first
+          // Default selection:
+          // - If user requested a 7-day devotional, prefer 'transformation' tier
+          // - Else prefer POPULAR, then 'growth', then first available
           if (tiers.length > 0) {
-            const popularTier = tiers.find(t => (t as any).isPopular === true);
-            const growthTier = tiers.find(t => t.id === 'growth');
-            const fallback = tiers[0];
-            const chosen = popularTier || growthTier || fallback;
+            let chosen: PricingTier | undefined;
+            if (requestedDuration === 7) {
+              chosen = tiers.find(t => t.id === 'transformation');
+            }
+            if (!chosen) {
+              const popularTier = tiers.find(t => (t as any).isPopular === true);
+              const growthTier = tiers.find(t => t.id === 'growth');
+              chosen = popularTier || growthTier || tiers[0];
+            }
             setSelectedTier(chosen.id);
           }
         }
@@ -168,13 +175,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
 
-    // For Seeker users in upgrade mode, just go back immediately
-    const currentTier = routeParams?.currentTier;
-    if (currentTier === 'seeker' && isUpgradeMode) {
-      logger.debug('Seeker user closing - going back to previous screen');
-      navigation.goBack();
-      return;
-    }
+    // Note: Even for seeker users in upgrade mode, we continue to trial logic below if eligible
 
     logger.info('Sales offer cancelled - navigating to notification setup');
 
@@ -208,7 +209,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Continue to navigation even if discount check fails
     }
 
-    // Always show trial if eligible for cancelled sales offer
+    // Always show trial if eligible for cancelled sales offer (regardless of upgrade/onboarding)
     logger.info('Sales offer cancelled - checking trial eligibility');
     if (canOfferTrial) {
       logger.info('User eligible for trial - navigating to trial offer');
