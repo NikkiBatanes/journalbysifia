@@ -578,10 +578,12 @@ Please check App Store Connect configuration or contact support.`;
         >
           <Ionicons name="close" size={22} color={Colors.hopeWhite} />
         </TouchableOpacity>
-        <View style={styles.headerTextBlock}>
-          <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-            Not sure yet?
-          </ThemedText>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTextBlock}>
+            <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+              Not sure yet?
+            </ThemedText>
+          </View>
         </View>
       </View>
 
@@ -806,6 +808,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
   },
   header: {
+    flexDirection: 'row',
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
@@ -815,6 +818,11 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: 720,
+  },
+  headerContent: {
+    flex: 1,
+    alignSelf: 'stretch',
+    alignItems: 'flex-start',
   },
   headerTextBlock: {
     alignItems: 'flex-start',
