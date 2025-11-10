@@ -16,6 +16,11 @@ import {
 import { Pencil, X } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
+import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
+import { useNavigation } from '@react-navigation/native';
+import { useSubscription } from '../../hooks/useSubscription';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -402,11 +407,14 @@ const defaultStyles = {
   },
 };
 
-const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogEditorProps>((
-  {
+const GratitudeLogEditorInner = (
+  props: GratitudeLogEditorProps,
+  ref: React.Ref<GratitudeLogEditorRef>
+) => {
+  const {
     onSave,
-    onCancel: _onCancel,
-    initialItems = ['', '', ''],
+    onCancel,
+    initialItems = [],
     subtaskTitle,
     subtaskId,
     stepId,
@@ -415,9 +423,11 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
     actionStepTitle,
     isLoading = false,
     styles,
-  },
-  ref
-) => {
+  } = props;
+  const navigation = useNavigation();
+  const { subscription } = useSubscription();
+  const smartJournalingGating = useSmartJournalingGating();
+
   const s = { ...defaultStyles, ...styles };
 
   // Helper function to ensure items have proper numbering
@@ -598,6 +608,19 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
   };
 
   const handleSave = async () => {
+    // Check if feature is gated for seeker accounts
+    if (smartJournalingGating.isLocked) {
+      try { triggerLightHaptic(); } catch {}
+      (navigation as any).navigate('OnboardingSalesOffer', {
+        source: 'smart_journaling_lock',
+        feature: 'smart_journaling',
+        tier: subscription?.tier || 'seeker',
+        upgradeMode: false,
+        skipNotificationPreference: true,
+      });
+      return;
+    }
+
     const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
     if (filledItems.length === 0) {
@@ -663,10 +686,29 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
             contentContainerStyle={s.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Title section */}
-            <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
-              What are you grateful for today?
-            </ThemedText>
+            {/* Title section with lock icon */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, { flex: 1 }]}>
+                What are you grateful for today?
+              </ThemedText>
+              {smartJournalingGating.isLocked && (
+                <TouchableOpacity
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    (navigation as any).navigate('OnboardingSalesOffer', {
+                      source: 'smart_journaling_lock',
+                      feature: 'smart_journaling',
+                      tier: subscription?.tier || 'seeker',
+                      upgradeMode: false,
+                      skipNotificationPreference: true,
+                    });
+                  }}
+                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                >
+                  <MaterialCommunityIcons name="lock" size={20} color={Colors.alertCoral} />
+                </TouchableOpacity>
+              )}
+            </View>
             {/* Gratitude items */}
             {gratitudeItems.map((item, index) => (
               <View
@@ -780,7 +822,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
             {/* Cancel FAB */}
             <TouchableOpacity
               style={[s.fab, s.cancelFab]}
-              onPress={_onCancel}
+              onPress={onCancel}
             >
               <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
             </TouchableOpacity>
@@ -809,6 +851,8 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
 
     </View>
   );
-});
+};
+
+const GratitudeLogEditor = React.forwardRef(GratitudeLogEditorInner);
 
 export default GratitudeLogEditor;
