@@ -229,6 +229,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
+  const isTablet = windowWidth >= 768;
   // Always constrain card width, even in landscape - never full screen
   const maxCardWidth = Math.min(windowWidth - 64, 720);
   // Status bar: force light icons (white) on dark header background
@@ -236,7 +237,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Measure header height so we can place the card overlay precisely below it
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
-  const overlayTop = Math.max(insets.top, 10) + playbookHeaderHeight - 40;
+  const headerSpacingAdjustment = isTablet ? 24 : -40;
+  const baseTopInset = Math.max(insets.top, 10);
+  const overlayTop = baseTopInset + playbookHeaderHeight + headerSpacingAdjustment;
   const [expandedTopY, setExpandedTopY] = useState(0);
   const expandedContainerRef = useRef<View | null>(null);
 
@@ -396,7 +399,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   const overlayTopAnimatedStyle = useAnimatedStyle(() => ({
     top: viewMode === 'document'
-      ? interpolate(collapseProgress.value, [0, 1], [overlayTop, 10])
+      ? interpolate(collapseProgress.value, [0, 1], [overlayTop, isTablet ? 24 : 10])
       : overlayTop,
   }));
 
