@@ -43,7 +43,7 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
   // But user can change it via "Change Plan" button
-  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean } | undefined;
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'annual'; // Use sales offer billing or default to annual
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
@@ -58,7 +58,7 @@ const OnboardingTrialOfferScreen = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [trialProductAvailable, setTrialProductAvailable] = useState<boolean | null>(null);
-  const navigationInProgressRef = React.useRef(false);
+  const [navigationInProgressRef] = [React.useRef(false)];
 
   const handleClose = async () => {
     if (isClosing || isStartingTrial || navigationInProgressRef.current) {
@@ -71,17 +71,25 @@ const OnboardingTrialOfferScreen = () => {
       triggerLightHaptic();
     } catch {}
 
-    // Always go to notification setup for cancelled trial - this is the expected flow
-    const skipNotificationPreference = route?.params?.skipNotificationPreference;
-    if (skipNotificationPreference) {
-      // If skip pref set, go back to sales offer (they can try again or go back further)
+    // If instructed, close both Trial and Sales Offer screens to avoid loops
+    if (routeParams?.closeAllOnDismiss) {
+      // Pop Trial Offer
       navigation.goBack();
+      // Pop Sales Offer shortly after
+      setTimeout(() => {
+        try { (navigation as any).goBack(); } catch {}
+      }, 50);
     } else {
-      // Navigate to notification setup for cancelled trial users
-      (navigation as any).navigate('OnboardingNotificationSetup', {
-        userType: 'freemium',
-        fromCancelledTrial: true,
-      });
+      // Default: go to notification setup or back, depending on skip flag
+      const skipNotificationPreference = routeParams?.skipNotificationPreference;
+      if (skipNotificationPreference) {
+        navigation.goBack();
+      } else {
+        (navigation as any).navigate('OnboardingNotificationSetup', {
+          userType: 'freemium',
+          fromCancelledTrial: true,
+        });
+      }
     }
 
     // Set isClosing AFTER navigation to avoid blocking the navigation

@@ -218,6 +218,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           selectedTierId: selectedTier,
           billing: isAnnual ? 'annual' : 'monthly',
           skipNotificationPreference: routeParams?.skipNotificationPreference,
+          closeAllOnDismiss: true, // ensure closing trial also closes sales offer
         });
       }, 100);
     } else {
