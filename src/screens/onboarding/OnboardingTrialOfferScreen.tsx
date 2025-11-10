@@ -22,6 +22,7 @@ import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { getFontFamily } from '../../theme/fonts';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
+import { logger } from '../../utils/logger';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
@@ -44,7 +45,7 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
   // But user can change it via "Change Plan" button
-  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string } | undefined;
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'annual'; // Use sales offer billing or default to annual
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
@@ -63,10 +64,13 @@ const OnboardingTrialOfferScreen = () => {
 
   const handleClose = async () => {
     if (isClosing || isStartingTrial || navigationInProgressRef.current) {
+      logger.debug('handleClose blocked', { isClosing, isStartingTrial, navInProgress: navigationInProgressRef.current });
       return;
     }
 
+    logger.debug('handleClose executing', { routeParams });
     navigationInProgressRef.current = true;
+    setIsClosing(true);
 
     try {
       triggerLightHaptic();
@@ -77,6 +81,7 @@ const OnboardingTrialOfferScreen = () => {
 
     // If from user profile, we need special handling since UserProfile is nested in HomeStack
     if (fromUserProfile) {
+      logger.debug('Closing from user profile - going back twice');
       try {
         // First pop this screen (Trial Offer)
         navigation.goBack();
@@ -89,7 +94,18 @@ const OnboardingTrialOfferScreen = () => {
         // Fallback
         try { navigation.goBack(); } catch {}
       }
+    } else if (routeParams?.onboardingFlow) {
+      // In onboarding, closing Trial should advance to Notification setup, not return to Playbook
+      logger.debug('Onboarding flow - navigating to notification setup');
+      setTimeout(() => {
+        (navigation as any).navigate('OnboardingNotificationSetup', {
+          userType: 'freemium',
+          fromCancelledTrial: true,
+          onboardingFlow: true,
+        });
+      }, 50);
     } else if (routeParams?.closeAllOnDismiss) {
+      logger.debug('closeAllOnDismiss - popping 2 screens');
       try {
         // Atomically pop Trial and Sales Offer to return to the previous context (e.g., PlaybookDetail)
         const popAction = StackActions.pop(2);
@@ -105,19 +121,19 @@ const OnboardingTrialOfferScreen = () => {
       }
     } else {
       // Default: go to notification setup or back, depending on skip flag
+      logger.debug('Default close behavior');
       const skipNotificationPreference = routeParams?.skipNotificationPreference;
       if (skipNotificationPreference) {
         navigation.goBack();
       } else {
-        (navigation as any).navigate('OnboardingNotificationSetup', {
-          userType: 'freemium',
-          fromCancelledTrial: true,
-        });
+        setTimeout(() => {
+          (navigation as any).navigate('OnboardingNotificationSetup', {
+            userType: 'freemium',
+            fromCancelledTrial: true,
+          });
+        }, 50);
       }
     }
-
-    // Set isClosing AFTER navigation to avoid blocking the navigation
-    setIsClosing(true);
 
     // Reset state after navigation
     setTimeout(() => {

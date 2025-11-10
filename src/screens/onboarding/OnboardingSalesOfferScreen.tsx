@@ -190,6 +190,25 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
     logger.info('Sales offer cancelled - navigating to notification setup');
 
+    // If we're in onboarding flow, skip dynamic pricing and go straight to Trial/Notifications
+    const isOnboardingFlow = (routeParams as any)?.onboardingFlow === true;
+    if (isOnboardingFlow) {
+      if (canOfferTrial) {
+        setTimeout(() => {
+          (navigation as any).navigate('OnboardingTrialOffer', {
+            selectedTierId: selectedTier,
+            billing: isAnnual ? 'annual' : 'monthly',
+            onboardingFlow: true,
+          });
+        }, 50);
+      } else {
+        setTimeout(() => {
+          (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'freemium', fromCancelledSales: true });
+        }, 50);
+      }
+      return;
+    }
+
     // Check for dynamic discount eligibility first
     try {
       logger.debug('Checking dynamic discount eligibility:', {
@@ -231,6 +250,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           skipNotificationPreference: routeParams?.skipNotificationPreference,
           // Always close both Trial and Sales Offer when user cancels Sales Offer
           closeAllOnDismiss: true,
+          // Forward onboarding flow flag so Trial can route to Notifications on dismiss
+          onboardingFlow: (routeParams as any)?.onboardingFlow === true,
           returnTo: routeParams?.returnTo,
           context: routeParams?.context,
         });
