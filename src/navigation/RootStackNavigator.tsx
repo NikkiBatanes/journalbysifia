@@ -224,8 +224,9 @@ export default function RootStackNavigator({
             component={OnboardingSalesOfferScreen as React.ComponentType}
             options={{
               headerShown: false,
-              animation: 'slide_from_bottom',
-              animationDuration: 400,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_right',
+              animationDuration: 350,
               gestureEnabled: true,
             }}
           />
@@ -234,8 +235,9 @@ export default function RootStackNavigator({
             component={OnboardingTrialOfferScreen as React.ComponentType}
             options={{
               headerShown: false,
-              animation: 'slide_from_bottom',
-              animationDuration: 400,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_right',
+              animationDuration: 350,
               gestureEnabled: true,
             }}
           />
