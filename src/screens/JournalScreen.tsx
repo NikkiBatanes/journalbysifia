@@ -60,6 +60,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     return key ? (map[key] ?? 0) : 0; // default Sunday
   }, [weekStartPreference]);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const { setShowTabBar, setContentScrollRef } = useScroll();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [refreshKey] = useState(0);
@@ -138,6 +139,13 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Refs for header weeks scroller and vertical content scroller
   const scrollViewRef = useRef<ScrollView>(null);
   const contentScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    setContentScrollRef(contentScrollRef);
+    return () => {
+      setContentScrollRef(null);
+    };
+  }, [setContentScrollRef]);
 
   // Reset to today's date when screen comes into focus
   useFocusEffect(
@@ -445,7 +453,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     );
   };
 
-  const { setShowTabBar } = useScroll();
+  
 
   // Inline view removed: no pages pagination
 

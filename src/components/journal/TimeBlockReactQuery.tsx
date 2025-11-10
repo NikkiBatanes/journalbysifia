@@ -37,6 +37,7 @@ import { LocationSelector } from '../LocationSelector';
 import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
 import { CalendarSyncButton } from '../CalendarSyncButton';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
+import { useScroll } from '../../context/ScrollContext';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -159,6 +160,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     return key ? map[key] ?? 0 : 0;
   }, [user]);
   const dateStr = toLocalDateString(selectedDate);
+  const { scrollToTop } = useScroll();
 
   // Performance monitoring
   const loadStartTime = useRef<number>(Date.now());
@@ -966,6 +968,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           repeat_frequency: newBlock.repeat.frequency,
           date: dateStr,
         }, user?.id);
+
+        // After creating a new time block, scroll the page to top
+        try { scrollToTop(true); } catch {}
       }
 
       // Reset form
