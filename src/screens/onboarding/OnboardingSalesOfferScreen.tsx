@@ -141,12 +141,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setCurrencyInfo(currency);
 
           // Default selection:
-          // - If user requested a 7-day devotional, prefer 'transformation' tier
+          // - If user requested a 7-day devotional, prefer 'transformation' tier, then any tier that unlocks the request
           // - Else prefer POPULAR, then 'growth', then first available
           if (tiers.length > 0) {
             let chosen: PricingTier | undefined;
             if (requestedDuration === 7) {
-              chosen = tiers.find(t => t.id === 'transformation');
+              chosen = tiers.find(t => t.id === 'transformation')
+                || tiers.find(t => !isDevotionalDurationLocked(t.id as SubscriptionTier, requestedDuration))
+                || tiers[0];
             }
             if (!chosen) {
               const popularTier = tiers.find(t => (t as any).isPopular === true);
@@ -164,8 +166,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUpgradeMode, currentUserTier]); // requestedDuration intentionally excluded - only run on mode/tier change
+  }, [isUpgradeMode, currentUserTier, requestedDuration]);
+
+  // Ensure 7-day requests always highlight Transformation when tiers already cached
+  useEffect(() => {
+    if (requestedDuration === 7 && pricingTiers.length > 0) {
+      const transformationTier = pricingTiers.find(t => t.id === 'transformation');
+      const fallbackTier = pricingTiers.find(t => !isDevotionalDurationLocked(t.id as SubscriptionTier, requestedDuration));
+      const target = transformationTier || fallbackTier;
+      if (target && selectedTier !== target.id) {
+        setSelectedTier(target.id);
+      }
+    }
+  }, [requestedDuration, pricingTiers, selectedTier]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
