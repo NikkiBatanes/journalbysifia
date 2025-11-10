@@ -368,11 +368,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         setUsage(usageData);
 
         // Auto-disable calendar autoSync if user is on seeker tier
-        if (subscriptionData.tier === 'seeker' && preferences.calendar?.autoSync === true) {
+        // Check user metadata directly since preferences state may not be loaded yet
+        const currentPrefs = (user as any)?.user_metadata?.preferences || {};
+        if (subscriptionData.tier === 'seeker' && currentPrefs.calendar?.autoSync === true) {
           const updatedPreferences = {
-            ...preferences,
+            ...currentPrefs,
             calendar: {
-              ...preferences.calendar,
+              ...currentPrefs.calendar,
               autoSync: false,
             },
           };
