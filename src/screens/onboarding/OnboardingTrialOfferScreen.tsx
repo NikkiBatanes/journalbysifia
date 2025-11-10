@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   Modal,
+  StatusBar,
   Platform,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
@@ -527,6 +528,7 @@ Please check App Store Connect configuration or contact support.`;
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
       {/* ENTERPRISE IMPROVEMENT: Loading Modal */}
       <PurchaseLoadingModal
         visible={isStartingTrial && !showSuccessModal}

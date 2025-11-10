@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  StatusBar,
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -711,6 +712,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     });
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
             <Ionicons name="close" size={24} color={Colors.hopeWhite} />
@@ -730,6 +732,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
       {/* ENTERPRISE IMPROVEMENT: Loading Modal */}
       <PurchaseLoadingModal
         visible={isPurchasing}
