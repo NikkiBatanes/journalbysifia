@@ -247,8 +247,11 @@ export default function RootStackNavigator({
             component={OnboardingNotificationSetupScreen as React.ComponentType}
             options={{
               headerShown: false,
+              presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
               animationDuration: 300,
+              gestureEnabled: true,
+              gestureDirection: 'vertical',
             }}
           />
 
