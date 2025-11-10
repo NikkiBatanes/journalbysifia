@@ -49,7 +49,7 @@ import OnboardingTutorial from '../../components/tutorial/OnboardingTutorial';
 import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
-const { width, height } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface PlaybookCard {
   id: string;
@@ -132,7 +132,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       setShowIntroModal(true);
       hasShownPlaybookIntroModal = true;
     } else {
-      logger.debug('Modal already shown, skipping');
+      logger.debug('Modal already shown, ensuring state is false');
+      setShowIntroModal(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally run only on mount
@@ -143,7 +144,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Heights for sticky header and fixed footer to vertically center carousel area
   const [headerH, setHeaderH] = useState(0);
-  const availableHeight = Math.max(0, height - headerH - footerH);
+  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
+  const availableHeight = Math.max(0, screenHeight - headerH - footerH);
+
+  // Update screen height on dimension changes (rotation)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenHeight(window.height);
+    });
+    return () => subscription?.remove();
+  }, []);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
@@ -201,9 +211,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Carousel sizing: modern center-snap with spacing and narrower cards
   const ITEM_SPACING = 16;
-  const ITEM_WIDTH = Math.round(width * 0.80); // slimmer card for better centering
+  const ITEM_WIDTH = Math.round(SCREEN_WIDTH * 0.80); // slimmer card for better centering
   const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-  const sidePadding = Math.round((width - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
+  const sidePadding = Math.round((SCREEN_WIDTH - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
 
   // Cleanup on unmount
   useEffect(() => {
@@ -820,7 +830,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={showIntroModal && !showTutorial} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
@@ -1276,7 +1286,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   playbookHeaderContainer: {
-    marginBottom: height > width ? 6 : 4,
+    marginBottom: SCREEN_HEIGHT > SCREEN_WIDTH ? 6 : 4,
   },
   playbookTitleRow: {
     flexDirection: 'row',
@@ -1335,8 +1345,8 @@ const styles = StyleSheet.create({
     borderColor: '#385886',
     padding: 12,
     borderRadius: 12,
-    marginTop: height > width ? 8 : 4,
-    marginBottom: height > width ? 10 : 6,
+    marginTop: SCREEN_HEIGHT > SCREEN_WIDTH ? 8 : 4,
+    marginBottom: SCREEN_HEIGHT > SCREEN_WIDTH ? 10 : 6,
   },
   userInputLabel: {
     fontSize: 12,
@@ -1353,7 +1363,7 @@ const styles = StyleSheet.create({
     // keep content visually centered within screen width
     marginHorizontal: 0,
     alignItems: 'center',
-    marginBottom: height > width ? 20 : 10,
+    marginBottom: SCREEN_HEIGHT > SCREEN_WIDTH ? 20 : 10,
   },
   carouselContent: {
     paddingHorizontal: 16,
@@ -1364,7 +1374,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardContainer: {
-    width: Math.min(width - 80, 600),
+    width: Math.min(SCREEN_WIDTH - 80, 600),
     marginHorizontal: 10,
   },
   cardContent: {
