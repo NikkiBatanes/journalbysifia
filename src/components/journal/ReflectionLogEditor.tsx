@@ -13,6 +13,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
+import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
 import GuidedPromptLockIcon from '../GuidedPromptLockIcon';
 import { useNavigation } from '@react-navigation/native';
 
@@ -454,6 +455,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     },
   });
 
+  // Smart journaling gating for free-form reflections
+  const smartJournalingGating = useSmartJournalingGating();
+
   const sortedGuidedPrompts = React.useMemo(() => {
     // Use new simplified API - free prompts first, then locked
     const freePrompts = guidedPromptGating.freePrompts || [];
@@ -815,6 +819,23 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Check if this is a guided prompt and if user has access
     // Check both selectedPrompt and title to prevent loopholes
     const promptToCheck = selectedPrompt || (guidedPromptGating.allPrompts.includes(newEntry.title) ? newEntry.title : null);
+
+    // For free-form reflections (not guided prompts), check smart journaling gating
+    if (!promptToCheck && smartJournalingGating.isLocked) {
+      if (onUpgradeRequired) {
+        try { onUpgradeRequired(); } catch {}
+      }
+      setTimeout(() => {
+        (navigation as any).navigate('OnboardingSalesOffer', {
+          source: 'smart_journaling_lock',
+          feature: 'smart_journaling',
+          tier: subscription?.tier || 'seeker',
+          upgradeMode: false,
+          skipNotificationPreference: true,
+        });
+      }, 300);
+      return; // Block the save
+    }
 
     if (promptToCheck) {
       // Use async canUsePrompt method
