@@ -41,6 +41,7 @@ interface RouteParams {
   skipNotificationPreference?: boolean;
   context?: string; // e.g., 'profile_settings', 'timeblock'
   returnTo?: string; // e.g., 'UserProfile' - screen to return to on close
+  returnToReflection?: boolean; // when launched from reflection editor
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
@@ -228,7 +229,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           selectedTierId: selectedTier,
           billing: isAnnual ? 'annual' : 'monthly',
           skipNotificationPreference: routeParams?.skipNotificationPreference,
-          closeAllOnDismiss: routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings', // ensure closing trial also closes sales offer when from profile
+          // Ensure closing Trial also closes SalesOffer when launched from profile or reflection
+          closeAllOnDismiss: (
+            routeParams?.returnTo === 'UserProfile' ||
+            routeParams?.context === 'profile_settings' ||
+            routeParams?.returnToReflection === true
+          ),
           returnTo: routeParams?.returnTo,
           context: routeParams?.context,
         });
@@ -818,7 +824,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                     : fromCalendarAutoSync
                       ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
                       : fromGuidedPromptsLock
-                        ? 'Access unlimited guided reflection prompts to deepen your spiritual practice, plus playbooks and devotionals.'
+                        ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
                         : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
@@ -966,7 +972,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           disabled={isPurchasing}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Upgrade to Repeat Options' : fromCalendarAutoSync ? 'Upgrade to Auto-Sync' : 'Continue My Journey'))}
+            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Upgrade to Repeat Options' : fromCalendarAutoSync ? 'Upgrade to Auto-Sync' : 'Upgrade to Full Access'))}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>

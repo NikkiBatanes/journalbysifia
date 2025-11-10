@@ -821,16 +821,21 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       const canUseResult = await guidedPromptGating.canUsePrompt(promptToCheck);
 
       if (!canUseResult) {
-        // Navigate to upgrade screen instead of saving
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          source: 'guided_prompts_lock',
-          feature: 'guided_prompts',
-          tier: subscription?.tier || 'seeker',
-          upgradeMode: false,
-          skipNotificationPreference: true,
-          returnToReflection: true,
-          presentation: 'modal',
-        });
+        // Close the reflection modal first so the sales offer shows in front
+        if (onUpgradeRequired) {
+          try { onUpgradeRequired(); } catch {}
+        }
+        // Wait briefly for modal animation before navigating
+        setTimeout(() => {
+          (navigation as any).navigate('OnboardingSalesOffer', {
+            source: 'guided_prompts_lock',
+            feature: 'guided_prompts',
+            tier: subscription?.tier || 'seeker',
+            upgradeMode: false,
+            skipNotificationPreference: true,
+            returnToReflection: true,
+          });
+        }, 300);
         return; // Block the save
       }
     }
