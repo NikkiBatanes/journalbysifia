@@ -861,6 +861,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 32,
   },
   introSection: {
+    marginTop: 16,
     marginBottom: 20,
   },
   introTitle: {
