@@ -241,6 +241,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [expandedTopY, setExpandedTopY] = useState(0);
   const expandedContainerRef = useRef<View | null>(null);
 
+  useEffect(() => {
+    setExpandedTopY(0);
+  }, [isLandscape, windowWidth, windowHeight]);
+
   // Animated collapse progress for smooth header transition (0 = expanded, 1 = collapsed)
   const collapseProgress = useSharedValue(0);
 
@@ -1196,20 +1200,27 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               onLayout={() => {
                 // Measure absolute Y so we can compute available height precisely
                 try {
-                  expandedContainerRef.current?.measureInWindow?.((x: number, y: number) => {
-                    if (typeof y === 'number' && Math.abs(y - expandedTopY) > 1) {
-                      setExpandedTopY(y);
-                    }
+                  requestAnimationFrame(() => {
+                    expandedContainerRef.current?.measureInWindow?.((x: number, y: number) => {
+                      if (typeof y === 'number' && Math.abs(y - expandedTopY) > 1) {
+                        setExpandedTopY(y);
+                      }
+                    });
                   });
                 } catch {}
               }}
             >
+            {(() => {
+              const measuredTop = expandedTopY > 0 ? expandedTopY : overlayTop;
+              const availableHeight = Math.max(340, windowHeight - measuredTop - insets.bottom - 4);
+              const bottomExtra = insets.bottom + (isLandscape ? 340 : 240);
+              return (
             <ScrollView
               style={[
                 styles.stackCardScrollContainer,
                 styles.stackCardScrollBase,
                 {
-                  height: Math.max(300, windowHeight - expandedTopY - insets.bottom - 12),
+                  height: availableHeight,
                   width: maxCardWidth,
                   borderRadius: 28,
                 },
@@ -1218,10 +1229,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               showsVerticalScrollIndicator={false}
               bounces={true}
               nestedScrollEnabled
-              contentInset={{ bottom: insets.bottom + 36 }}
+              contentInset={{ bottom: bottomExtra }}
               contentInsetAdjustmentBehavior="never"
               automaticallyAdjustContentInsets={false}
-              scrollIndicatorInsets={{ bottom: insets.bottom + 36 }}
+              scrollIndicatorInsets={{ bottom: bottomExtra }}
               onScrollBeginDrag={() => setIsScrolling(true)}
               onScrollEndDrag={() => setIsScrolling(false)}
               onMomentumScrollBegin={() => setIsScrolling(true)}
@@ -1234,7 +1245,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 {
                   borderRadius: 28,
                   minHeight: 450,
-                  paddingBottom: isLandscape ? 260 : (insets.bottom + 180),
+                  paddingBottom: bottomExtra,
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
                 },
               ]}
@@ -1250,6 +1261,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 {cardContent}
               </View>
             </ScrollView>
+              );
+            })()}
             </View>
           ) : (
             <TouchableOpacity
@@ -1279,7 +1292,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   width: maxCardWidth,
                   height: isExpanded ? 'auto' : 450,
                   minHeight: 450,
-                  maxHeight: isExpanded ? Math.max(300, windowHeight - overlayTop - insets.bottom - 12) : 450,
+                  maxHeight: isExpanded ? Math.max(300, windowHeight - (expandedTopY > 0 ? expandedTopY : overlayTop) - insets.bottom - 12) : 450,
                   borderRadius: 28,
                   overflow: 'hidden',
                 },
