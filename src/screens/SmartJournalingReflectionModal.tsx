@@ -398,6 +398,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               ref={reflectionEditorRef}
               onSave={saveReflection}
               onCancel={handleCancel}
+              onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
               // Free-form mode (carousel): blank title with placeholder and unlocked title
               initialTitle={isGuidedReflection ? preservedSubtaskTitle : (playbookId ? (preservedSubtaskTitle || '') : '')}

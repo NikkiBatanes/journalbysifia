@@ -30,6 +30,7 @@ interface ReflectionLogEditorProps {
   }) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
+  onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
   entryId?: string;
   devotionalTitle?: string;
   playbookTitle?: string;
@@ -382,6 +383,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     onSave,
     onCancel,
     onDelete,
+    onUpgradeRequired,
     entryId,
     devotionalTitle,
     playbookTitle,
@@ -1165,15 +1167,19 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                         usedPrompts={guidedPromptGating.usedPrompts}
                         context="inApp"
                         onLockTap={() => {
-                          (navigation as any).navigate('OnboardingSalesOffer', {
-                            source: 'guided_prompts_lock',
-                            feature: 'guided_prompts',
-                            tier: subscription?.tier || 'seeker',
-                            upgradeMode: false,
-                            skipNotificationPreference: true,
-                            returnToReflection: true,
-                            presentation: 'modal',
-                          });
+                          if (onUpgradeRequired) {
+                            onUpgradeRequired();
+                          }
+                          setTimeout(() => {
+                            (navigation as any).navigate('OnboardingSalesOffer', {
+                              source: 'guided_prompts_lock',
+                              feature: 'guided_prompts',
+                              tier: subscription?.tier || 'seeker',
+                              upgradeMode: false,
+                              skipNotificationPreference: true,
+                              returnToReflection: true,
+                            });
+                          }, 100);
                         }}
                         size={20}
                         position="right"
@@ -1224,15 +1230,19 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                       usedPrompts={guidedPromptGating.usedPrompts}
                       context="inApp"
                       onLockTap={() => {
-                        (navigation as any).navigate('OnboardingSalesOffer', {
-                          source: 'guided_prompts_lock',
-                          feature: 'guided_prompts',
-                          tier: subscription?.tier || 'seeker',
-                          upgradeMode: false,
-                          skipNotificationPreference: true,
-                          returnToReflection: true,
-                          presentation: 'modal',
-                        });
+                        if (onUpgradeRequired) {
+                          onUpgradeRequired();
+                        }
+                        setTimeout(() => {
+                          (navigation as any).navigate('OnboardingSalesOffer', {
+                            source: 'guided_prompts_lock',
+                            feature: 'guided_prompts',
+                            tier: subscription?.tier || 'seeker',
+                            upgradeMode: false,
+                            skipNotificationPreference: true,
+                            returnToReflection: true,
+                          });
+                        }, 100);
                       }}
                       size={20}
                       position="right"
@@ -1330,16 +1340,19 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           usedPrompts={guidedPromptGating.usedPrompts}
                           context="inApp"
                           onLockTap={() => {
-
-                            (navigation as any).navigate('OnboardingSalesOffer', {
-                              source: 'guided_prompts_lock',
-                              feature: 'guided_prompts',
-                              tier: subscription?.tier || 'seeker',
-                              upgradeMode: false,
-                              skipNotificationPreference: true,
-                              returnToReflection: true,
-                              presentation: 'modal',
-                            });
+                            if (onUpgradeRequired) {
+                              onUpgradeRequired();
+                            }
+                            setTimeout(() => {
+                              (navigation as any).navigate('OnboardingSalesOffer', {
+                                source: 'guided_prompts_lock',
+                                feature: 'guided_prompts',
+                                tier: subscription?.tier || 'seeker',
+                                upgradeMode: false,
+                                skipNotificationPreference: true,
+                                returnToReflection: true,
+                              });
+                            }, 100);
                           }}
                           size={16}
                           position="right"
