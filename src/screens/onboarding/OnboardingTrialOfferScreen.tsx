@@ -1238,7 +1238,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 0,
   },
   spacerHeight: {
-    height: 4,
+    height: 16,
   },
   modalOverlay: {
     flex: 1,
