@@ -35,10 +35,12 @@ interface RouteParams {
   currentTier?: string;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
   // Navigation context flags
-  source?: string; // e.g., 'planning_lock', 'copy_todos_lock', 'guided_prompts_lock'
+  source?: string; // e.g., 'planning_lock', 'copy_todos_lock', 'guided_prompts_lock', 'calendar_auto_sync'
   feature?: string; // e.g., 'future_planning', 'copy_todos', 'guided_prompts'
   tier?: string; // caller-reported tier
   skipNotificationPreference?: boolean;
+  context?: string; // e.g., 'profile_settings', 'timeblock'
+  returnTo?: string; // e.g., 'UserProfile' - screen to return to on close
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
@@ -71,6 +73,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
   const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
   const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
+  const fromCalendarAutoSync = !isUpgradeMode && routeParams?.source === 'calendar_auto_sync';
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
@@ -225,13 +228,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           selectedTierId: selectedTier,
           billing: isAnnual ? 'annual' : 'monthly',
           skipNotificationPreference: routeParams?.skipNotificationPreference,
-          closeAllOnDismiss: true, // ensure closing trial also closes sales offer
+          closeAllOnDismiss: routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings', // ensure closing trial also closes sales offer when from profile
+          returnTo: routeParams?.returnTo,
+          context: routeParams?.context,
         });
       }, 100);
     } else {
-      logger.info('No trial eligible - navigating to notification setup');
+      logger.info('No trial eligible - checking navigation context');
       setTimeout(() => {
-        if (!routeParams?.skipNotificationPreference) {
+        // Check if we came from a specific screen (e.g., UserProfile)
+        if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
+          logger.debug('Returning to user profile');
+          navigation.goBack();
+        } else if (!routeParams?.skipNotificationPreference) {
           // During onboarding flow, go to notification setup
           logger.debug('Onboarding flow - navigating to notification setup');
           (navigation as any).navigate('OnboardingNotificationSetup', {
@@ -791,9 +800,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   ? 'Unlock Copy To-Dos & More'
                   : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
                     ? 'Unlock Recurring Time Blocks'
-                    : fromGuidedPromptsLock
-                      ? 'Unlock Unlimited Guided Prompts'
-                      : "You've taken your first step!"}
+                    : fromCalendarAutoSync
+                      ? 'Unlock Calendar Auto-Sync'
+                      : fromGuidedPromptsLock
+                        ? 'Unlock Unlimited Guided Prompts'
+                        : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isUpgradeMode
@@ -804,9 +815,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features, playbooks, and devotionals.`
                   : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
                     ? 'Create recurring time blocks to build consistent rhythms. Also unlock generating playbooks and devotionals, calendar sync, and more powerful planning features.'
-                    : fromGuidedPromptsLock
-                      ? 'Access unlimited guided reflection prompts to deepen your spiritual practice, plus playbooks and devotionals.'
-                      : 'Keep walking, one faithful step at a time.'}
+                    : fromCalendarAutoSync
+                      ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
+                      : fromGuidedPromptsLock
+                        ? 'Access unlimited guided reflection prompts to deepen your spiritual practice, plus playbooks and devotionals.'
+                        : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}
@@ -953,7 +966,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           disabled={isPurchasing}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Upgrade to Repeat Options' : 'Continue My Journey'))}
+            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Upgrade to Repeat Options' : fromCalendarAutoSync ? 'Upgrade to Auto-Sync' : 'Continue My Journey'))}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
