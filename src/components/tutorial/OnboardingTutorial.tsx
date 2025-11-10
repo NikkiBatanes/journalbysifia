@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -95,6 +96,9 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
 }) => {
   if (!showTutorial) {return null;}
 
+  const { height } = Dimensions.get('window');
+  const isLargeScreen = height >= 900;
+
   return (
     <View style={styles.tutorialOverlay}>
       {tutorialStep === 1 && (
@@ -106,7 +110,7 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
 
       {/* Confirmation button */}
       <TouchableOpacity
-        style={styles.confirmButton}
+        style={[styles.confirmButton, isLargeScreen && styles.confirmButtonLarge]}
         onPress={() => {
           try { triggerLightHaptic(); } catch {}
           tutorialStep === 1 ? onTapTutorialComplete() : onSwipeTutorialComplete();
@@ -120,7 +124,7 @@ const OnboardingTutorial: React.FC<TutorialOverlayProps> = ({
 
       {/* Skip Tutorial button */}
       <TouchableOpacity
-        style={styles.skipButton}
+        style={[styles.skipButton, isLargeScreen && styles.skipButtonLarge]}
         onPress={() => {
           try { triggerLightHaptic(); } catch {}
           onSkipTutorial();
@@ -182,7 +186,7 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     position: 'absolute',
-    top: '70%',
+    top: '68%',
     alignSelf: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     paddingHorizontal: 24,
@@ -204,14 +208,20 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  confirmButtonLarge: {
+    top: '74%',
+  },
   skipButton: {
     position: 'absolute',
-    top: '78%',
+    top: '80%',
     alignSelf: 'center',
     backgroundColor: 'transparent',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
+  },
+  skipButtonLarge: {
+    top: '86%',
   },
   skipText: {
     color: 'rgba(255, 255, 255, 0.7)',

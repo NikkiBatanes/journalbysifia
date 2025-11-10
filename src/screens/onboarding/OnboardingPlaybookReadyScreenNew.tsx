@@ -377,6 +377,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [user]);
 
   // Tutorial handlers
+  const closeTutorial = useCallback(() => {
+    setShowTutorial(false);
+    setShowIntroModal(false);
+  }, []);
+
   const handleTapTutorialComplete = useCallback(() => {
     setTutorialStep(2);
   }, []);
@@ -386,20 +391,20 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     awardFaithPoints();
     // Small delay to let faith points notification appear before hiding tutorial
     setTimeout(() => {
-      setShowTutorial(false);
+      closeTutorial();
       setTutorialStep(1); // Reset for next time
     }, 200);
-  }, [awardFaithPoints]);
+  }, [awardFaithPoints, closeTutorial]);
 
   const handleSkipTutorial = useCallback(() => {
     // Award faith points first while tutorial is still visible
     awardFaithPoints();
     // Small delay to let faith points notification appear before hiding tutorial
     setTimeout(() => {
-      setShowTutorial(false);
+      closeTutorial();
       setTutorialStep(1); // Reset for next time
     }, 200);
-  }, [awardFaithPoints]);
+  }, [awardFaithPoints, closeTutorial]);
 
   const handleContinueJourney = useCallback(() => {
     try {
