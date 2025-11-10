@@ -779,6 +779,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               height: isExpanded ? 'auto' : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
+              // Remove overflow hidden when expanded to prevent cropping
+              overflow: isExpanded ? 'visible' : 'hidden',
             },
             {
               transform: [{ scale }, { translateY }],

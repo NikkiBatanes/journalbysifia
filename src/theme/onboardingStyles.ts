@@ -24,7 +24,6 @@ export const createOnboardingStyles = (fonts: {
   innerContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: 768,
   },
 
   scrollContent: {
