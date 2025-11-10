@@ -568,9 +568,11 @@ Please check App Store Connect configuration or contact support.`;
 
           {/* Intro Text */}
           <View style={styles.introSection}>
-            <ThemedText weight="semiBold" style={styles.introTitle}>Not sure yet?</ThemedText>
+            <ThemedText weight="semiBold" style={styles.introTitle}>
+              That's okay—starting something new can feel uncertain.
+            </ThemedText>
             <ThemedText style={styles.introText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
-              That's okay. Starting something new can feel uncertain.
+              Here's what you'll unlock during your free trial.
             </ThemedText>
           </View>
 
