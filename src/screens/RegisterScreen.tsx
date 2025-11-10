@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Image,
   StatusBar,
+  Linking,
+  Alert,
 } from 'react-native';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -145,6 +147,25 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Login');
   };
 
+  const openExternalLink = async (url: string) => {
+    try { triggerLightHaptic(); } catch {}
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Unable to open link', 'Please try again later.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (linkError) {
+      Logger.error('Failed to open external link', linkError as Error, {
+        component: 'RegisterScreen',
+        url,
+      });
+      Alert.alert('Unable to open link', 'Please try again later.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
@@ -242,9 +263,19 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.termsContainer}>
           <ThemedText style={styles.termsText}>
             By continuing, you agree to our{' '}
-            <ThemedText style={styles.termsLink}>Terms of Service</ThemedText>
+            <ThemedText
+              style={styles.termsLink}
+              onPress={() => openExternalLink('https://sifia.app/terms')}
+            >
+              Terms of Service
+            </ThemedText>
             {' '}and{' '}
-            <ThemedText style={styles.termsLink}>Privacy Policy</ThemedText>
+            <ThemedText
+              style={styles.termsLink}
+              onPress={() => openExternalLink('https://sifia.app/privacy')}
+            >
+              Privacy Policy
+            </ThemedText>
           </ThemedText>
         </View>
       </View>

@@ -61,7 +61,7 @@ const slides: Slide[] = [
   {
     id: 2,
     title: 'A plan for your heart,\nnot just your calendar.',
-    subtitle: 'Your playbook is more than a checklist. \nIt\'s a companion for your walk with God.',
+    subtitle: 'Your playbook is more than a checklist. It\'s a companion for your walk with God.',
     features: [
       'Made for your season of life',
       'Clear steps that bring real progress',
@@ -74,7 +74,7 @@ const slides: Slide[] = [
   {
     id: 3,
     title: 'Grow steady,\neven in the storm.',
-    subtitle: 'Guided devotionals and journaling prompts \nwill help you keep your heart anchored in truth.',
+    subtitle: 'Guided devotionals and journaling prompts will help you keep your heart anchored in truth.',
     features: [
       'Daily moments with God',
       'Reflections that reveal His work in you',
