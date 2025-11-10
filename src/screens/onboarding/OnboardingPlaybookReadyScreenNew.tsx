@@ -143,31 +143,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Heights for sticky header and fixed footer to vertically center carousel area
   const [headerH, setHeaderH] = useState(0);
-  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height);
-  const availableHeight = Math.max(0, screenHeight - headerH - footerH);
-  
-  // Log available height calculations for debugging
-  useEffect(() => {
-    logger.debug('Available height calculated', {
-      screenHeight,
-      headerH,
-      footerH,
-      availableHeight
-    });
-  }, [screenHeight, headerH, footerH, availableHeight]);
-
-  // Update screen height on dimension changes (rotation)
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      logger.debug('Screen dimensions changed', { 
-        newHeight: window.height, 
-        newWidth: window.width,
-        oldHeight: screenHeight 
-      });
-      setScreenHeight(window.height);
-    });
-    return () => subscription?.remove();
-  }, [screenHeight]);
+  const availableHeight = Math.max(0, SCREEN_HEIGHT - headerH - footerH);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
