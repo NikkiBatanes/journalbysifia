@@ -380,6 +380,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const closeTutorial = useCallback(() => {
     setShowTutorial(false);
     setShowIntroModal(false);
+    hasShownPlaybookIntroModal = true;
   }, []);
 
   const handleTapTutorialComplete = useCallback(() => {
