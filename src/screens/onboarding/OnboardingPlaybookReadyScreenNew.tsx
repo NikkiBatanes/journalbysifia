@@ -50,6 +50,7 @@ import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 const { width, height } = Dimensions.get('window');
+const isTablet = Math.min(width, height) >= 768;
 
 interface PlaybookCard {
   id: string;
@@ -962,7 +963,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         </View>
 
         {/* CAROUSEL CARDS */}
-        <View style={[styles.centeredJustified, { minHeight: availableHeight }] }>
+        <View style={[
+          styles.centeredJustified,
+          isTablet ? { height: availableHeight } : { minHeight: availableHeight },
+        ] }>
         <View style={[
           styles.carouselContainer,
           {
