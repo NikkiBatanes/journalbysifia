@@ -1226,16 +1226,32 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               const measuredTop = expandedTopY > 0 ? expandedTopY : overlayTop;
               const availableHeight = Math.max(340, windowHeight - measuredTop - insets.bottom - 4);
               const bottomExtra = insets.bottom + (isLandscape ? 340 : 240);
+
+              const expandedScrollViewStyle = {
+                height: availableHeight,
+                width: maxCardWidth,
+                borderRadius: 28,
+              };
+
+              const expandedContentStyle = {
+                borderRadius: 28,
+                minHeight: 450,
+                paddingBottom: bottomExtra,
+                backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
+              };
+
+              const expandedTouchableStyle = {
+                borderRadius: 28,
+                overflow: 'hidden' as const,
+                minHeight: 450,
+              };
+
               return (
             <ScrollView
               style={[
                 styles.stackCardScrollContainer,
                 styles.stackCardScrollBase,
-                {
-                  height: availableHeight,
-                  width: maxCardWidth,
-                  borderRadius: 28,
-                },
+                expandedScrollViewStyle,
                 cardIndex === cardData.length - 1 ? styles.stackCardBgCoral : styles.stackCardBgTransparent,
               ]}
               showsVerticalScrollIndicator={false}
@@ -1265,21 +1281,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               contentContainerStyle={[
                 styles.cardContentContainer,
                 styles.expandedCardPadding,
-                {
-                  borderRadius: 28,
-                  minHeight: 450,
-                  paddingBottom: bottomExtra,
-                  backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
-                },
+                expandedContentStyle,
               ]}
             >
               <View style={[
                 styles.cardTouchableContainer,
-                {
-                  borderRadius: 28,
-                  overflow: 'hidden',
-                  minHeight: 450,
-                },
+                expandedTouchableStyle,
               ]}>
                 {cardContent}
               </View>
@@ -1311,14 +1318,17 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               }}
               style={[
                 styles.stackCard,
-                {
-                  width: maxCardWidth,
-                  height: isExpanded ? 'auto' : 450,
-                  minHeight: 450,
-                  maxHeight: isExpanded ? Math.max(300, windowHeight - (expandedTopY > 0 ? expandedTopY : overlayTop) - insets.bottom - 12) : 450,
-                  borderRadius: 28,
-                  overflow: 'hidden',
-                },
+                (() => {
+                  const collapsedCardStyle = {
+                    width: maxCardWidth,
+                    height: isExpanded ? ('auto' as const) : 450,
+                    minHeight: 450,
+                    maxHeight: isExpanded ? Math.max(300, windowHeight - (expandedTopY > 0 ? expandedTopY : overlayTop) - insets.bottom - 12) : 450,
+                    borderRadius: 28,
+                    overflow: 'hidden' as const,
+                  };
+                  return collapsedCardStyle;
+                })(),
                 isExpanded && styles.stackCardExpanded,
                 card.type === 'affirmation'
                   ? [
@@ -1375,14 +1385,17 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               <View
                 style={[
                   styles.stackCard,
-                  {
-                    width: maxCardWidth,
-                    height: 450,
-                    minHeight: 450,
-                    maxHeight: 450,
-                    borderRadius: 28,
-                    overflow: 'hidden',
-                  },
+                  (() => {
+                    const previousCardStyle = {
+                      width: maxCardWidth,
+                      height: 450,
+                      minHeight: 450,
+                      maxHeight: 450,
+                      borderRadius: 28,
+                      overflow: 'hidden' as const,
+                    };
+                    return previousCardStyle;
+                  })(),
                   previousCard.type === 'affirmation'
                     ? styles.affirmationCardStyle
                     : styles.nonAffirmationCardStyle,

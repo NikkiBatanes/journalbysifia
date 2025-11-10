@@ -814,7 +814,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           keyExtractor={(_, idx) => idx.toString()}
           initialScrollIndex={currentDayIndex}
           key={`devotional-list-${pageWidth}`}
-          style={{ width: '100%' }}
+          style={styles.flatListContainer}
           decelerationRate="fast"
           snapToInterval={pageWidth}
           snapToAlignment="start"
@@ -859,9 +859,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             });
           }}
           renderItem={({ item: day, index }) => (
-            <View style={{ width: pageWidth, height: '100%' }}>
+            <View style={[styles.pageContainer, { width: pageWidth }]}>
               <ScrollView
-                style={{ flex: 1 }}
+                style={styles.scrollViewContainer}
                 contentContainerStyle={styles.scrollViewContent}
                 showsVerticalScrollIndicator={false}
                 nestedScrollEnabled={true}
@@ -1495,6 +1495,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   gestureRoot: {
+    flex: 1,
+  },
+  flatListContainer: {
+    width: '100%',
+  },
+  pageContainer: {
+    height: '100%',
+  },
+  scrollViewContainer: {
     flex: 1,
   },
   mainContent: {
