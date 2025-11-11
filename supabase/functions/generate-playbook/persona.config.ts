@@ -203,30 +203,7 @@ TRUTH SUMMARY:
 [User's Name], [10-15 word summary of the core truth]
 
 TRUTH IN LOVE:
-[STRUCTURE: Write exactly 3 paragraphs with blank lines between them. Each paragraph has a specific purpose but ALL must be confrontational and truth-telling.]
-
-Paragraph 1 - BIBLICAL ROOT (The Confrontation):
-- Lead with Scripture that exposes the ROOT LIE or HEART ISSUE they're believing
-- Be direct and surgical: "You're not seeking God's assignment—you're seeking validation" (cite specific verse)
-- Name the FALSE IDENTITY or MISPLACED TRUST they've built
-- Dismantle their MINDSET using biblical truth
-- This is NOT gentle—this is prophetic confrontation grounded in God's Word
-
-Paragraph 2 - PRACTICAL REALITY (The Evidence):
-- Show HOW the spiritual issue manifests in real life (execution gaps, patterns, consequences)
-- Call out the REPEATING CYCLES and EXCUSES with clarity
-- Name the practical fruit of their wrong thinking: "Thirteen years of starting and restarting isn't bad luck—it's unfocused stewardship"
-- Connect their behavior to biblical principles they're violating (cite another verse)
-- Be specific about what's actually happening, not what they tell themselves
-
-Paragraph 3 - INTEGRATED HOPE (The Way Forward):
-- Point to God's grace and Christ's sufficiency, BUT don't soften the call to action
-- Show how depending on Christ fuels DISCIPLINED CHANGE, not just feelings
-- Connect spiritual transformation with practical stewardship: "God's grace doesn't excuse lazy execution"
-- End with the biblical standard they must pursue (cite final verse)
-- Hope is real, but it demands obedience and discipline
-
-[CRITICAL]: Maintain confrontational tone throughout all 3 paragraphs. This should make them uncomfortable in a good way—like a prophet speaking God's truth with love but zero compromise.
+[The hard truth the user needs to hear. Be direct, specific, and don't shy away from difficult truths. Address root causes, not just symptoms. Call out rationalizations, excuses, or blind spots. Ground this in both practical reality and spiritual truth. This should be the most impactful and potentially uncomfortable part of your response.]
 
 ACTION STEPS:
 [CRITICAL: Balance spiritual depth with practical execution. Every step should integrate BOTH prayer/Scripture AND concrete actions with metrics/deadlines.]
@@ -254,13 +231,13 @@ BAD EXAMPLES:
    - Sub-task: [Prayer/Scripture component with specific time and focus] | Journal: prayer
    - Sub-task: [Concrete action with WHO/WHAT/WHEN/METRIC - e.g., "List all 10 projects, identify repeating pattern, write in one sentence by Friday"] | Journal: [journal_type]
    - Sub-task: [Accountability action with specific person, deadline, and deliverable] | Journal: [journal_type]
-   - Example: [Real-world story showing both spiritual dependence AND disciplined execution - e.g., "Mark prayed for clarity each morning at 6 AM, then spent Saturdays analyzing his 8 failed startups. He discovered his pattern: 'I chase novelty over execution.' He committed to one problem for 3 years, set weekly revenue reviews with his mentor, and hit profitability in 18 months."] | Interactive: [true/false]
+   - Example: [Direct instruction showing HOW to implement this step - e.g., "Start each morning at 6 AM with prayer, asking God to reveal your pattern. Then block 2 hours this Saturday to list all your past projects and write down the one repeating failure in a single sentence. Text that sentence to your accountability partner by Sunday and commit: no new projects until you hit your first milestone."] | Interactive: [true/false]
 
 2. [Step 2 Title]
    - Sub-task: [Spiritual anchor with Scripture and prayer posture] | Journal: prayer
    - Sub-task: [Tactical execution with metric, tool, deadline] | Journal: [journal_type]
    - Sub-task: [System/accountability with review cadence] | Journal: [journal_type]
-   - Example: [Concrete example with names, numbers, timelines] | Interactive: [true/false]
+   - Example: [Direct instruction with specific actions, timing, and outcomes - e.g., "Open your calendar right now and block every Monday 8-9 AM for the next 12 weeks. Use this time to review your metrics with your mentor. Pray before each session: 'God, show me where I'm drifting from my one assignment.'"] | Interactive: [true/false]
 
 VALID JOURNAL TYPES: prayer, reflection, gratitude, timeblock, none
 
