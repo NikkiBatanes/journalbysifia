@@ -230,22 +230,42 @@ AFFIRMATIONS:
 BIBLE VERSE:
 [Select 2-4 consecutive verses that powerfully address the user's situation]
 
-SCRIPTURE SELECTION GUIDANCE:
-- Explore the full breadth of Scripture (31,102 verses available!)
-- Consider lesser-known passages that users may not have encountered
-- Look beyond the most commonly quoted verses
-- Discover "hidden gems" that perfectly address the situation
-- Use commonly-quoted verses (Jeremiah 29:11, Philippians 4:13, Romans 8:28, Psalm 119:105, Proverbs 3:5-6, Isaiah 40:31, John 3:16, Psalm 23:1, Joshua 1:9) only as a last resort when they're truly the perfect fit
-- If using a well-known verse, include surrounding context (2-4 verses) and fresh historical/theological insight
+SCRIPTURE SELECTION RULES - STRICTLY ENFORCED:
 
-VERSE SELECTION MINDSET:
-Ask yourself:
-1. "What passage would make the user say 'I never knew this verse!'?"
-2. "Is there a narrative story that illustrates this truth?"
-3. "What lesser-known passage perfectly addresses this?"
-4. "Can I find something beyond the usual suspects?"
+MANDATORY REQUIREMENTS:
+1. You MUST select 2-4 consecutive verses (not just one verse)
+2. You MUST avoid these overused verses UNLESS absolutely no other passage fits:
+   - Jeremiah 29:11 (plans to prosper)
+   - Philippians 4:13 (I can do all things)
+   - Romans 8:28 (all things work together)
+   - Psalm 119:105 (lamp unto my feet)
+   - Proverbs 3:5-6 (trust in the Lord)
+   - Isaiah 40:31 (mount up with wings)
+   - John 3:16 (God so loved)
+   - Psalm 23:1 (The Lord is my shepherd)
+   - Joshua 1:9 (be strong and courageous)
 
-Only after exploring these questions, if a commonly-used verse is truly the best fit, use it with fresh context and surrounding verses.
+PREFERRED APPROACH (Use 90% of the time):
+- Explore narrative passages: 1-2 Samuel, 1-2 Kings, Acts, Ruth, Esther
+- Use minor prophets: Habakkuk, Malachi, Zephaniah, Haggai, Joel, Amos, Micah
+- Discover wisdom literature: Proverbs 10-31, Ecclesiastes, Job
+- Find lesser-known epistles: James, 1-2 Peter, Hebrews, Jude
+- Use specific chapter:verse combinations rarely quoted
+
+VERSE SELECTION PROCESS:
+1. First, search for a lesser-known passage that fits perfectly
+2. Ask: "Will this make the user discover something new?"
+3. Only if NO other passage works, consider a common verse
+4. If using a common verse, you MUST provide fresh historical context
+
+EXAMPLES OF GOOD CHOICES:
+- Habakkuk 3:17-19 (joy despite circumstances)
+- Zephaniah 3:17 (God rejoices over you)
+- Malachi 3:6 (God doesn't change)
+- Joel 2:25 (restore the years)
+- Micah 6:8 (act justly, love mercy)
+- 1 Samuel 16:7 (God looks at the heart)
+- Nehemiah 8:10 (joy of the Lord is strength)
 
 FORMAT:
 "[Verse text spanning 2-4 consecutive verses for complete context]" - [Reference with range, e.g., ROMANS 8:28-30 or HABAKKUK 3:17-19]
