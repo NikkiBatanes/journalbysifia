@@ -13,6 +13,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
 import { subscriptionService } from '../services/subscriptionService';
 import ThemedText from '../components/common/ThemedText';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 
@@ -160,6 +161,13 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         // Success haptic when progress completes
         triggerSuccessHaptic();
 
+        // Clear draft on successful generation (user's text was used)
+        try {
+          await AsyncStorage.removeItem('@siFia:userInputDraft');
+        } catch (error) {
+          // Silent fail - not critical
+        }
+
         // Navigate based on whether this is from onboarding or main flow
         if (isFromOnboarding) {
           navigation.navigate('PlaybookDetail' as any, {
@@ -183,8 +191,37 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         }
       } catch (error) {
         Logger.error('[GeneratingPlaybook] Error', error as Error, { component: 'GeneratingPlaybookScreen' });
-        Alert.alert('Error', 'Failed to generate playbook. Please try again.');
-        navigation.goBack();
+        
+        // Don't lose user's input - navigate back with the original text
+        Alert.alert(
+          'Generation Failed',
+          'We couldn\'t generate your playbook. Your text has been preserved - please try again.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Navigate back and preserve the input
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  // If can't go back, reset to UserInput with preserved text
+                  (navigation as any).reset({
+                    index: 0,
+                    routes: [
+                      {
+                        name: 'MainTabs',
+                        state: {
+                          routes: [{ name: 'Home' }],
+                          index: 0,
+                        },
+                      },
+                    ],
+                  });
+                }
+              },
+            },
+          ]
+        );
       } finally {
         setIsGenerating(false);
       }

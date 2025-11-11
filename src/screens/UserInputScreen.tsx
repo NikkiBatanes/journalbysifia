@@ -30,6 +30,7 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { useNewSubscription } from '../hooks/useNewSubscription';
 import { checkAndRecordRequest, type SubscriptionTier } from '../utils/rateLimiting';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -54,6 +55,50 @@ const UserInputScreen: React.FC = () => {
   // Typing, cycling placeholder for guided, non-chat input
   const [placeholderText, setPlaceholderText] = useState('What happened?');
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Auto-save draft to prevent data loss
+  const DRAFT_KEY = '@siFia:userInputDraft';
+  
+  // Load saved draft on mount
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        const draft = await AsyncStorage.getItem(DRAFT_KEY);
+        if (draft && draft.trim()) {
+          setUserInput(draft);
+        }
+      } catch (error) {
+        // Silent fail - draft is not critical
+      }
+    };
+    loadDraft();
+  }, []);
+  
+  // Auto-save draft when user types (debounced)
+  const saveDraftTimer = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (saveDraftTimer.current) {
+      clearTimeout(saveDraftTimer.current);
+    }
+    
+    saveDraftTimer.current = setTimeout(async () => {
+      try {
+        if (userInput.trim()) {
+          await AsyncStorage.setItem(DRAFT_KEY, userInput);
+        } else {
+          await AsyncStorage.removeItem(DRAFT_KEY);
+        }
+      } catch (error) {
+        // Silent fail - draft is not critical
+      }
+    }, 1000); // Save 1 second after user stops typing
+    
+    return () => {
+      if (saveDraftTimer.current) {
+        clearTimeout(saveDraftTimer.current);
+      }
+    };
+  }, [userInput]);
   useEffect(() => {
     const prompts = [
       'What happened?',
@@ -365,6 +410,9 @@ const UserInputScreen: React.FC = () => {
       userInput,
       userName: userName || 'Friend',
     });
+    
+    // Clear draft after successful navigation (generation will handle clearing input on success)
+    // Note: Draft is preserved if generation fails, so user can try again
 };
 
   const handleInputPress = () => {
