@@ -65,50 +65,36 @@ Examples:
 REFLECTION:
 [🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
 
-This reflection MUST be IMPACTFUL, CONVICTING, and lead to genuine CHANGE. Follow this structure:
+Write a FLOWING, CONTINUOUS narrative that reads like a story, not a structured outline. This reflection MUST be IMPACTFUL, CONVICTING, and lead to genuine CHANGE.
 
-1. **SCRIPTURE CONTEXT** (75-100 words):
-   - Explain the passage in its original historical and cultural context
-   - What was happening when this was written?
-   - Who was the original audience?
-   - What problem or situation was being addressed?
+Your reflection should naturally weave together these elements in a seamless narrative:
+- Begin with the Scripture's original context (what was happening, who was the audience)
+- Reveal God's character and how this points to His redemptive plan
+- Include ONE detailed story (150-200 words) - either a biblical narrative, historical Christian example, or modern application
+- Address root issues with conviction - call out rationalizations and blind spots with compassion
+- End with practical application pointing to Jesus
 
-2. **GOD'S CHARACTER REVEALED** (75-100 words):
-   - What does this passage reveal about God's nature?
-   - How does this point to His redemptive plan?
-   - Connect to the gospel and Jesus' work
+🚨 STORY REQUIREMENTS - MANDATORY:
+Use ONLY ONE story per reflection. Choose ONE of:
+- Biblical narrative (e.g., David and Goliath)
+- Historical Christian (e.g., Corrie ten Boom, George Müller, Hudson Taylor)
+- Modern real-life application
 
-3. **REAL-LIFE STORY** (150-200 words) - MANDATORY, NOT OPTIONAL:
-   🚨 CRITICAL: Use ONLY ONE story per reflection. Choose ONE of the following:
-   
-   a) **Biblical Narrative Example:**
-      ❌ WRONG (too brief): "David trusted God when facing Goliath."
-      ✅ CORRECT (detailed): "When David faced Goliath, he wasn't just fighting a giant—he was defending God's honor against a blasphemer who mocked the living God. While Saul's army cowered in fear for forty days, David, a shepherd boy with no armor, stepped forward. His confidence wasn't in his sling or stones, but in the God who had delivered him from lions and bears. 'The battle is the LORD's,' he declared, and with one stone, he proved that God doesn't need human strength to accomplish His purposes—He just needs willing hearts."
-   
-   b) **Historical Christian Example:**
-      ❌ WRONG (too brief): "Corrie ten Boom endured suffering with faith."
-      ✅ CORRECT (detailed): "Corrie ten Boom spent years in a Nazi concentration camp after hiding Jews in her home during World War II. In the darkest moments of Ravensbruck, watching her sister Betsie die in her arms, Corrie learned that 'there is no pit so deep that God's love is not deeper still.' Years later, she came face-to-face with one of her former guards at a church service. He extended his hand, asking for forgiveness. In that moment, Corrie discovered that forgiveness isn't a feeling—it's an act of obedience. She took his hand, and God's love flowed through her, transforming bitter hatred into supernatural forgiveness."
-   
-   c) **Modern Real-Life Application:**
-      Provide a specific, detailed scenario showing how this truth applies today
-   
-   ⚠️ IMPORTANT: Do NOT mix multiple stories. If you use David, don't also mention Corrie ten Boom. If you use Corrie ten Boom, don't also mention David. ONE story per reflection to maintain focus and clarity.
+❌ WRONG (too brief): "David trusted God when facing Goliath."
+✅ CORRECT (detailed): "When David faced Goliath, he wasn't just fighting a giant—he was defending God's honor against a blasphemer who mocked the living God. While Saul's army cowered in fear for forty days, David, a shepherd boy with no armor, stepped forward. His confidence wasn't in his sling or stones, but in the God who had delivered him from lions and bears. 'The battle is the LORD's,' he declared, and with one stone, he proved that God doesn't need human strength to accomplish His purposes—He just needs willing hearts."
 
-4. **CONVICTION & CHALLENGE** (100-150 words):
-   - Address ROOT ISSUES, not just symptoms
-   - Call out common rationalizations, excuses, or blind spots
-   - Present uncomfortable truths with compassion
-   - Be DIRECT and SPECIFIC about what needs to change
-   - Example: "We often claim to trust God while simultaneously trying to control every outcome. This reveals our true belief: that we're better managers of our lives than He is. But Scripture shows us that true trust means releasing our grip and surrendering our plans to His wisdom, even when it terrifies us. The question isn't whether God is trustworthy—it's whether we're willing to let go of our illusion of control."
+⚠️ CRITICAL: Do NOT mix multiple stories. If you use David, don't mention Corrie ten Boom. ONE story per reflection.
 
-5. **PRACTICAL APPLICATION** (50-75 words):
-   - What specific, concrete action should the reader take?
-   - How does this change their daily life?
-   - Point to Jesus as the source of transformation
+## WRITING STYLE:
+- Write in flowing paragraphs, not numbered sections
+- Use natural transitions between ideas
+- Make it read like a compelling devotional essay
+- Be conversational yet profound
+- Let ideas build on each other naturally
 
 ## DEPTH REQUIREMENTS:
 - Minimum 400 words, target 500-600 words
-- Include rich detail and context in stories
+- Include rich detail and context in your ONE story
 - Don't rush - develop ideas fully
 - Prioritize DEPTH over brevity
 - Make it MEMORABLE and LIFE-CHANGING
@@ -161,13 +147,15 @@ SCRIPTURE:
 
 REFLECTION:
 [🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
-Follow the same structure as single-day devotionals:
-1. Scripture Context (75-100 words)
-2. God's Character Revealed (75-100 words)
-3. Real-Life Story - MANDATORY with rich detail (150-200 words)
-4. Conviction & Challenge (100-150 words)
-5. Practical Application (50-75 words)
 
+Write a FLOWING, CONTINUOUS narrative (not numbered sections). Naturally weave together:
+- Scripture's original context
+- God's character revealed
+- ONE detailed story (150-200 words) - biblical, historical Christian, or modern
+- Conviction addressing root issues
+- Practical application pointing to Jesus
+
+Write in flowing paragraphs with natural transitions. Make it read like a compelling devotional essay.
 Minimum 400 words, target 500-600 words. Prioritize DEPTH and IMPACT.
 
 REFLECTION QUESTIONS:
