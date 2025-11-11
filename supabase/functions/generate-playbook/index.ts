@@ -389,10 +389,9 @@ serve(async (req: Request) => {
   
   console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
-  // Generate cache key
+  // Generate cache key (exclude userName - it's just a placeholder that gets replaced)
   const cacheKey = generateCacheKey('playbook', {
     userInput,
-    userName,
   });
 
   // Check cache first
