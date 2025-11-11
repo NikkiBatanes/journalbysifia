@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
+import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,9 +54,11 @@ Please provide a thoughtful, biblical, and encouraging response that:
 Keep your response personal, encouraging, and around 2-3 paragraphs. Make it feel like a conversation with a trusted spiritual advisor.
     `;
 
-    // Call OpenAI API with retry logic
-    console.log('[Answer-Question] Calling OpenAI API with retry logic...');
-    const response = await fetchWithRetry(
+    // Call OpenAI API with circuit breaker + retry logic
+    console.log('[Answer-Question] Calling OpenAI API with circuit breaker + retry logic...');
+    const response = await CircuitBreaker.execute(
+      CIRCUIT_KEYS.OPENAI_QUESTION,
+      async () => await fetchWithRetry(
       'https://api.openai.com/v1/chat/completions',
       {
         method: 'POST',
@@ -80,6 +83,7 @@ Keep your response personal, encouraging, and around 2-3 paragraphs. Make it fee
         }),
       },
       OPENAI_RETRY_CONFIG
+      )
     );
     
     console.log('[Answer-Question] OpenAI API call successful');

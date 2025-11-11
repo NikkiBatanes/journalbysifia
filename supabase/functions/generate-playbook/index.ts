@@ -4,6 +4,7 @@ import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
+import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -427,9 +428,11 @@ serve(async (req: Request) => {
       ? `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}\n\nNote: User has existing playbooks. Create a different title.`
       : `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}`;
 
-    // Call OpenAI API with retry logic for resilience
-    console.log('[Generate-Playbook] Calling OpenAI API with retry logic...');
-    const openAIRes = await fetchWithRetry(
+    // Call OpenAI API with circuit breaker + retry logic
+    console.log('[Generate-Playbook] Calling OpenAI API with circuit breaker + retry logic...');
+    const openAIRes = await CircuitBreaker.execute(
+      CIRCUIT_KEYS.OPENAI_PLAYBOOK,
+      async () => await fetchWithRetry(
       'https://api.openai.com/v1/chat/completions',
       {
         method: 'POST',
@@ -454,6 +457,7 @@ serve(async (req: Request) => {
         }),
       },
       OPENAI_RETRY_CONFIG
+      )
     );
     
     console.log('[Generate-Playbook] OpenAI API call successful');

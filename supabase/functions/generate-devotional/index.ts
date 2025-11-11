@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from './persona.config.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRateLimitHeaders } from '../_shared/simpleRateLimiter.ts';
+import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 
 interface Scripture {
   text: string;
@@ -953,9 +954,11 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
       }
     }
 
-    // Use retry logic for resilient API calls
-    console.log('[Generate-Devotional] Calling OpenAI API with retry logic...');
-    const openAIRes = await fetchWithRetry(
+    // Use circuit breaker + retry logic for resilient API calls
+    console.log('[Generate-Devotional] Calling OpenAI API with circuit breaker + retry logic...');
+    const openAIRes = await CircuitBreaker.execute(
+      CIRCUIT_KEYS.OPENAI_DEVOTIONAL,
+      async () => await fetchWithRetry(
       'https://api.openai.com/v1/chat/completions',
       {
         method: 'POST',
@@ -980,6 +983,7 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
         }),
       },
       OPENAI_RETRY_CONFIG
+      )
     );
     
     console.log('[Generate-Devotional] OpenAI API call successful');

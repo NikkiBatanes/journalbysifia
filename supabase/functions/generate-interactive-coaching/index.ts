@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
+import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -73,9 +74,11 @@ serve(async (req) => {
 
     console.log('Generated prompt for interactive coaching:', prompt.substring(0, 200) + '...');
 
-    // Call OpenAI API with retry logic
-    console.log('[Interactive-Coaching] Calling OpenAI API with retry logic...');
-    const openaiResponse = await fetchWithRetry(
+    // Call OpenAI API with circuit breaker + retry logic
+    console.log('[Interactive-Coaching] Calling OpenAI API with circuit breaker + retry logic...');
+    const openaiResponse = await CircuitBreaker.execute(
+      CIRCUIT_KEYS.OPENAI_COACHING,
+      async () => await fetchWithRetry(
       'https://api.openai.com/v1/chat/completions',
       {
         method: 'POST',
@@ -100,6 +103,7 @@ serve(async (req) => {
         }),
       },
       OPENAI_RETRY_CONFIG
+      )
     );
     
     console.log('[Interactive-Coaching] OpenAI API call successful');
