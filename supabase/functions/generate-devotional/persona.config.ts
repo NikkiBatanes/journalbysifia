@@ -79,7 +79,7 @@ This reflection MUST be IMPACTFUL, CONVICTING, and lead to genuine CHANGE. Follo
    - Connect to the gospel and Jesus' work
 
 3. **REAL-LIFE STORY** (150-200 words) - MANDATORY, NOT OPTIONAL:
-   You MUST include ONE of the following with RICH DETAIL (3-5 sentences minimum):
+   🚨 CRITICAL: Use ONLY ONE story per reflection. Choose ONE of the following:
    
    a) **Biblical Narrative Example:**
       ❌ WRONG (too brief): "David trusted God when facing Goliath."
@@ -91,6 +91,8 @@ This reflection MUST be IMPACTFUL, CONVICTING, and lead to genuine CHANGE. Follo
    
    c) **Modern Real-Life Application:**
       Provide a specific, detailed scenario showing how this truth applies today
+   
+   ⚠️ IMPORTANT: Do NOT mix multiple stories. If you use David, don't also mention Corrie ten Boom. If you use Corrie ten Boom, don't also mention David. ONE story per reflection to maintain focus and clarity.
 
 4. **CONVICTION & CHALLENGE** (100-150 words):
    - Address ROOT ISSUES, not just symptoms
