@@ -1,6 +1,7 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -84,11 +85,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     }
   }
 
-  // Clean up markdown formatting from titles
+  // Clean up markdown formatting and quotes from titles
   const cleanMarkdown = (text: string): string => {
     if (!text) {return '';}
     // Remove markdown bold/italic formatting (**, __, *)
-    return text.replace(/\*\*|__|\*/g, '').trim();
+    let cleaned = text.replace(/\*\*|__|\*/g, '').trim();
+    // Remove quotes from titles
+    cleaned = cleaned.replace(/^["'`]+|["'`]+$/g, '').trim();
+    return cleaned;
   };
 
   mainTitle = cleanMarkdown(mainTitle);
@@ -340,6 +344,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
 interface RequestBody {
   userInput: string;
   userName: string;
+  userId?: string;
 }
 
 serve(async (req: Request) => {
@@ -360,12 +365,47 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName } = requestBody;
+  const { userInput, userName, userId } = requestBody;
 
   try {
+    // ENTERPRISE FEATURE: Fetch user's recent playbook titles to ensure uniqueness
+    let recentTitles: string[] = [];
+    if (userId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          // Fetch last 10 playbook titles for this user
+          const { data: recentPlaybooks } = await supabase
+            .from('playbooks')
+            .select('title')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+          
+          if (recentPlaybooks && recentPlaybooks.length > 0) {
+            recentTitles = recentPlaybooks.map((p: { title: string }) => p.title).filter(Boolean);
+            console.log(`Found ${recentTitles.length} recent playbook titles for context`);
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch recent playbooks for context:', error);
+        // Continue without context - non-blocking
+      }
+    }
+
     // Persona context is applied through the system prompt
     // Keeping the function call for future use
     applyPersonaContext(strategicAdvisorPersona, userInput);
+
+    // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
+    const timestamp = new Date().toISOString();
+    const contextualPrompt = recentTitles.length > 0
+      ? `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}\n\nNote: User has existing playbooks. Create a different title.`
+      : `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}`;
 
     // Call OpenAI API with persona context
     const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -383,10 +423,10 @@ serve(async (req: Request) => {
           },
           {
             role: 'user',
-            content: `User: ${userName}\nStruggle: ${userInput}`,
+            content: contextualPrompt,
           },
         ],
-        temperature: 0.7,
+        temperature: 0.85, // Increased from 0.7 for more creative variation
         max_tokens: 2500,
       }),
     });

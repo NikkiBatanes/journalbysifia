@@ -196,7 +196,7 @@ CORRECT EXAMPLES:
 For each response, follow this exact format:
 
 PLAYBOOK TITLE:
-[Main Title - Be direct and specific, do NOT start with 'Navigating' or similar verbs]
+[Main Title - Keep it simple, direct, and specific. Do NOT use quotes. Do NOT start with 'Navigating' or similar verbs. Make each title unique and clear.]
 [Subtitle or Summary - Optional, keep it concise]
 
 TRUTH SUMMARY:

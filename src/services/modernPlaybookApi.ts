@@ -96,10 +96,12 @@ export async function generatePlaybook(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
 
-      // Resolve user's preferred Bible version (default NASB)
+      // Resolve user's preferred Bible version (default NASB) and get userId
       let bibleVersion = 'NASB';
+      let userId: string | undefined;
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id; // ENTERPRISE: Pass userId for context-aware generation
         const fromMeta = (user as any)?.user_metadata?.preferences?.content?.bibleVersion;
         if (typeof fromMeta === 'string' && fromMeta.trim()) {
           bibleVersion = fromMeta.trim();
@@ -113,7 +115,7 @@ export async function generatePlaybook(
           'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ userInput, userName, bibleVersion }),
+        body: JSON.stringify({ userInput, userName, bibleVersion, userId }),
       });
 
       if (!response.ok) {
