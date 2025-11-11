@@ -85,7 +85,20 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   }, [playbookTitle]);
 
   const { user } = useAuth();
-  const { handleToggleStep, actionSteps } = useActionSteps();
+  
+  // Make ActionSteps optional - modal can work without it (e.g., from Dashboard)
+  let handleToggleStep: ((stepId: string) => void) | undefined;
+  let actionSteps: any[] | undefined;
+  try {
+    const context = useActionSteps();
+    handleToggleStep = context.handleToggleStep;
+    actionSteps = context.actionSteps;
+  } catch (error) {
+    // Not in ActionStepsProvider context - that's okay, modal still works
+    handleToggleStep = undefined;
+    actionSteps = undefined;
+  }
+  
   const queryClient = useQueryClient();
 
   // Success modal handlers
@@ -308,19 +321,19 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       onSave(savedReflection);
 
       // Mark subtask as completed immediately since data is saved (only for new reflections)
-      if (!existingReflection && stepId && subtaskId && handleToggleStep && !isGuidedReflection && isPlaybookContext) {
+      if (!existingReflection && stepId && subtaskId && handleToggleStep && actionSteps && !isGuidedReflection && isPlaybookContext) {
 
         // Check if the step/subtask is already completed before toggling
-        const step = actionSteps.find(s => s.id === stepId);
+        const step = actionSteps.find((s: any) => s.id === stepId);
 
         if (step) {
           if (subtaskId) {
             // Check subtask completion
-            const subtask = step.subTasks?.find(st => st.id === subtaskId);
+            const subtask = step.subTasks?.find((st: any) => st.id === subtaskId);
 
             if (subtask && !subtask.completed) {
 
-              handleToggleStep(stepId, subtaskId);
+              handleToggleStep(stepId);
 
             } else {
 
@@ -329,14 +342,13 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             // Check step completion
             if (!step.completed) {
 
-              handleToggleStep(stepId, subtaskId);
+              handleToggleStep(stepId);
 
             } else {
 
             }
           }
         }
-
       }
 
       // Show success modal in next render cycle to avoid React state batching issues
