@@ -349,6 +349,8 @@ interface RequestBody {
   userInput: string;
   userName: string;
   userId?: string;
+  dateOfBirth?: string;  // ISO date string from user profile
+  ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
 }
 
 serve(async (req: Request) => {
@@ -369,7 +371,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, ageGroup } = requestBody;
 
   // Extract user ID from authorization header for rate limiting
   const authHeader = req.headers.get('authorization');
@@ -389,9 +391,56 @@ serve(async (req: Request) => {
   
   console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
+  // Calculate age context for personalization
+  let ageContext = '';
+  let userAge: number | null = null;
+  
+  if (dateOfBirth) {
+    try {
+      const birthDate = new Date(dateOfBirth);
+      const today = new Date();
+      userAge = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        userAge--;
+      }
+      
+      // Determine age group from calculated age
+      if (userAge >= 13 && userAge <= 17) {
+        ageContext = 'teen (13-17)';
+      } else if (userAge >= 18 && userAge <= 25) {
+        ageContext = 'young adult (18-25)';
+      } else if (userAge >= 26 && userAge <= 35) {
+        ageContext = 'adult (26-35)';
+      } else if (userAge >= 36 && userAge <= 55) {
+        ageContext = 'middle-aged (36-55)';
+      } else if (userAge >= 56) {
+        ageContext = 'senior (56+)';
+      }
+    } catch (error) {
+      console.log('[Generate-Playbook] Error calculating age from dateOfBirth:', error);
+    }
+  }
+  
+  // Fallback to age group from onboarding if no birthday
+  if (!ageContext && ageGroup) {
+    const ageGroupMap: Record<string, string> = {
+      'teen': 'teen (13-17)',
+      'young-adult': 'young adult (18-25)',
+      'adult': 'adult (26-35)',
+      'middle-aged': 'middle-aged (36-55)',
+      'senior': 'senior (56+)',
+    };
+    ageContext = ageGroupMap[ageGroup] || '';
+  }
+  
+  console.log('[Generate-Playbook] Age context:', ageContext || 'not provided');
+
   // Generate cache key (exclude userName - it's just a placeholder that gets replaced)
+  // Include ageContext in cache key for age-appropriate content
   const cacheKey = generateCacheKey('playbook', {
     userInput,
+    ageContext: ageContext || 'general',
   });
 
   // Check cache first
@@ -442,11 +491,21 @@ serve(async (req: Request) => {
     // Keeping the function call for future use
     applyPersonaContext(strategicAdvisorPersona, userInput);
 
+    // ENTERPRISE FEATURE: Build recent titles context for uniqueness
+    const recentTitlesContext = recentTitles.length > 0
+      ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. Do NOT reuse or slightly modify any of these titles.`
+      : '';
+
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
-    const timestamp = new Date().toISOString();
-    const contextualPrompt = recentTitles.length > 0
-      ? `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}\n\nNote: User has existing playbooks. Create a different title.`
-      : `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}`;
+    // Build contextual prompt with title uniqueness check and age personalization
+    let contextualPrompt = `${userInput}
+
+${recentTitlesContext}`;
+    
+    // Add age-appropriate context if available
+    if (ageContext) {
+      contextualPrompt += `\n\n## USER AGE CONTEXT\nThe user is a ${ageContext}. Please tailor the language, examples, and action steps to be age-appropriate and relevant to their life stage. Consider typical challenges, responsibilities, and experiences for this age group.`;
+    }
 
     // Call OpenAI API with circuit breaker + retry logic
     console.log('[Generate-Playbook] Calling OpenAI API with circuit breaker + retry logic...');

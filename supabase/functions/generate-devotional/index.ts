@@ -53,6 +53,8 @@ interface DevotionalRequestBody {
   userInput?: string;
   userName?: string;
   bibleVersion?: string;
+  dateOfBirth?: string;  // ISO date string from user profile
+  ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
 }
 
 // Initialize Supabase client
@@ -889,7 +891,7 @@ serve(async (req: Request): Promise<Response> => {
     return createErrorResponse(400, 'We couldn\'t process your request. Please try again.');
   }
 
-  const { duration = 1, playbookId, userInput = '', userName = 'User', bibleVersion = 'NASB' } = requestBody;
+  const { duration = 1, playbookId, userInput = '', userName = 'User', bibleVersion = 'NASB', dateOfBirth, ageGroup } = requestBody;
   console.log('[Generate-Devotional] Request body:', JSON.stringify(requestBody, null, 2));
   console.log('[Generate-Devotional] Bible version received:', bibleVersion);
   console.log('[Generate-Devotional] User input received:', userInput);
@@ -912,12 +914,59 @@ serve(async (req: Request): Promise<Response> => {
   
   console.log('[Generate-Devotional] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
+  // Calculate age context for personalization
+  let ageContext = '';
+  let userAge: number | null = null;
+  
+  if (dateOfBirth) {
+    try {
+      const birthDate = new Date(dateOfBirth);
+      const today = new Date();
+      userAge = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        userAge--;
+      }
+      
+      // Determine age group from calculated age
+      if (userAge >= 13 && userAge <= 17) {
+        ageContext = 'teen (13-17)';
+      } else if (userAge >= 18 && userAge <= 25) {
+        ageContext = 'young adult (18-25)';
+      } else if (userAge >= 26 && userAge <= 35) {
+        ageContext = 'adult (26-35)';
+      } else if (userAge >= 36 && userAge <= 55) {
+        ageContext = 'middle-aged (36-55)';
+      } else if (userAge >= 56) {
+        ageContext = 'senior (56+)';
+      }
+    } catch (error) {
+      console.log('[Generate-Devotional] Error calculating age from dateOfBirth:', error);
+    }
+  }
+  
+  // Fallback to age group from onboarding if no birthday
+  if (!ageContext && ageGroup) {
+    const ageGroupMap: Record<string, string> = {
+      'teen': 'teen (13-17)',
+      'young-adult': 'young adult (18-25)',
+      'adult': 'adult (26-35)',
+      'middle-aged': 'middle-aged (36-55)',
+      'senior': 'senior (56+)',
+    };
+    ageContext = ageGroupMap[ageGroup] || '';
+  }
+  
+  console.log('[Generate-Devotional] Age context:', ageContext || 'not provided');
+
   // Generate cache key for this request
+  // Include ageContext in cache key for age-appropriate content
   const cacheKey = generateCacheKey('devotional', {
     userInput,
     duration,
     bibleVersion,
     playbookId: playbookId || 'none',
+    ageContext: ageContext || 'general',
   });
 
   // Check cache first
@@ -1001,7 +1050,7 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
             },
             {
               role: 'user',
-              content: `User: ${userName}\nRequest: ${userInput}\nDuration: ${duration} day${duration > 1 ? 's' : ''}`,
+              content: `User: ${userName}\nRequest: ${userInput}\nDuration: ${duration} day${duration > 1 ? 's' : ''}${ageContext ? `\nUser Age Group: ${ageContext} - Please tailor the devotional content, language, examples, and application steps to be age-appropriate and relevant to this life stage.` : ''}`,
             },
           ],
           temperature: 0.7,
