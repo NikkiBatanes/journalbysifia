@@ -2234,12 +2234,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(false); }}>
-            <Text style={[styles.cancelText, font]}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Close</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Notifications</Text>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleUpdatePreferences(); }}>
-            <Text style={[styles.saveText, font]}>Save</Text>
-          </TouchableOpacity>
+          <View style={{ width: 52 }} />
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
