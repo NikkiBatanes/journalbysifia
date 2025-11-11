@@ -48,16 +48,68 @@ DESCRIPTION: [EXACTLY 80 CHARACTERS MAX - Start with "This 1-day devotional" or 
 Example: "This 1-day devotional explores how to find peace in God's presence during life's storms." (74 characters)
 
 SCRIPTURE:
-[Primary Bible passage with reference in this format: "Verse text" - BOOK CHAPTER:VERSE]
+[🚨 CRITICAL - COMPLETE VERSE REQUIRED]:
+- MUST provide the COMPLETE verse text - NO truncation, NO ellipsis (...)
+- If verse is long (>50 words), include the FULL text anyway
+- If context is needed for understanding, include 2-4 consecutive verses
+- NEVER use "..." or abbreviate verses
+- Format: "Complete verse text here" - BOOK CHAPTER:VERSE
+
+Examples:
+✅ CORRECT: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life." - John 3:16
+❌ WRONG: "For God so loved the world..." - John 3:16 (INCOMPLETE - NEVER DO THIS)
+
+✅ CORRECT: "Go therefore and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit, teaching them to observe all that I have commanded you. And behold, I am with you always, to the end of the age." - Matthew 28:19-20
+❌ WRONG: "Go therefore and make disciples..." - Matthew 28:19 (INCOMPLETE - NEVER DO THIS)
 
 REFLECTION:
-[200-300 word reflection that:
-1. Explains the Scripture in its original context
-2. Reveals God's character and redemptive plan
-3. Includes relevant biblical narratives or stories of faithful Christians
-4. Connects to real-life struggles with practical wisdom
-5. Points to Jesus as the ultimate answer and hope
-6. May include brief, accurate historical accounts of believers who exemplified the passage's truth]
+[🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
+
+This reflection MUST be IMPACTFUL, CONVICTING, and lead to genuine CHANGE. Follow this structure:
+
+1. **SCRIPTURE CONTEXT** (75-100 words):
+   - Explain the passage in its original historical and cultural context
+   - What was happening when this was written?
+   - Who was the original audience?
+   - What problem or situation was being addressed?
+
+2. **GOD'S CHARACTER REVEALED** (75-100 words):
+   - What does this passage reveal about God's nature?
+   - How does this point to His redemptive plan?
+   - Connect to the gospel and Jesus' work
+
+3. **REAL-LIFE STORY** (150-200 words) - MANDATORY, NOT OPTIONAL:
+   You MUST include ONE of the following with RICH DETAIL (3-5 sentences minimum):
+   
+   a) **Biblical Narrative Example:**
+      ❌ WRONG (too brief): "David trusted God when facing Goliath."
+      ✅ CORRECT (detailed): "When David faced Goliath, he wasn't just fighting a giant—he was defending God's honor against a blasphemer who mocked the living God. While Saul's army cowered in fear for forty days, David, a shepherd boy with no armor, stepped forward. His confidence wasn't in his sling or stones, but in the God who had delivered him from lions and bears. 'The battle is the LORD's,' he declared, and with one stone, he proved that God doesn't need human strength to accomplish His purposes—He just needs willing hearts."
+   
+   b) **Historical Christian Example:**
+      ❌ WRONG (too brief): "Corrie ten Boom endured suffering with faith."
+      ✅ CORRECT (detailed): "Corrie ten Boom spent years in a Nazi concentration camp after hiding Jews in her home during World War II. In the darkest moments of Ravensbruck, watching her sister Betsie die in her arms, Corrie learned that 'there is no pit so deep that God's love is not deeper still.' Years later, she came face-to-face with one of her former guards at a church service. He extended his hand, asking for forgiveness. In that moment, Corrie discovered that forgiveness isn't a feeling—it's an act of obedience. She took his hand, and God's love flowed through her, transforming bitter hatred into supernatural forgiveness."
+   
+   c) **Modern Real-Life Application:**
+      Provide a specific, detailed scenario showing how this truth applies today
+
+4. **CONVICTION & CHALLENGE** (100-150 words):
+   - Address ROOT ISSUES, not just symptoms
+   - Call out common rationalizations, excuses, or blind spots
+   - Present uncomfortable truths with compassion
+   - Be DIRECT and SPECIFIC about what needs to change
+   - Example: "We often claim to trust God while simultaneously trying to control every outcome. This reveals our true belief: that we're better managers of our lives than He is. But Scripture shows us that true trust means releasing our grip and surrendering our plans to His wisdom, even when it terrifies us. The question isn't whether God is trustworthy—it's whether we're willing to let go of our illusion of control."
+
+5. **PRACTICAL APPLICATION** (50-75 words):
+   - What specific, concrete action should the reader take?
+   - How does this change their daily life?
+   - Point to Jesus as the source of transformation
+
+## DEPTH REQUIREMENTS:
+- Minimum 400 words, target 500-600 words
+- Include rich detail and context in stories
+- Don't rush - develop ideas fully
+- Prioritize DEPTH over brevity
+- Make it MEMORABLE and LIFE-CHANGING
 
 REFLECTION QUESTIONS:
 1. [Question that helps apply the truth personally]
@@ -99,10 +151,22 @@ Example: "A 5-day journey discovering how to trust God's plan when life feels un
 DAY 1: [Specific day focus - max 32 characters, must be different from series title]
 
 SCRIPTURE:
-[Primary Bible passage with reference]
+[🚨 CRITICAL - COMPLETE VERSE REQUIRED]:
+- MUST provide the COMPLETE verse text - NO truncation, NO ellipsis (...)
+- If verse is long, include the FULL text anyway
+- If context is needed, include 2-4 consecutive verses
+- Format: "Complete verse text here" - BOOK CHAPTER:VERSE
 
 REFLECTION:
-[200-300 word reflection]
+[🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
+Follow the same structure as single-day devotionals:
+1. Scripture Context (75-100 words)
+2. God's Character Revealed (75-100 words)
+3. Real-Life Story - MANDATORY with rich detail (150-200 words)
+4. Conviction & Challenge (100-150 words)
+5. Practical Application (50-75 words)
+
+Minimum 400 words, target 500-600 words. Prioritize DEPTH and IMPACT.
 
 REFLECTION QUESTIONS:
 1. [Question 1]
@@ -120,11 +184,13 @@ In Jesus' Name, Amen
 
 # BIBLICAL FOUNDATION REQUIREMENTS:
 - Every devotional must be centered on God's Word with accurate interpretation
-- Include relevant biblical narratives that illustrate the passage's truth
-- Share stories of faithful Christians throughout history when applicable (e.g., Corrie ten Boom, George Müller, Hudson Taylor, Amy Carmichael, etc.)
+- MUST include relevant biblical narratives that illustrate the passage's truth (not optional)
+- MUST share stories of faithful Christians throughout history with RICH DETAIL (3-5 sentences minimum)
+  Examples: Corrie ten Boom, George Müller, Hudson Taylor, Amy Carmichael, Jim Elliot, Elisabeth Elliot, Dietrich Bonhoeffer, etc.
 - Present the gospel clearly when applicable
 - Emphasize God's character and promises through both Scripture and testimony
 - Include specific biblical references with proper context
+- Stories must have enough detail to be MEMORABLE and IMPACTFUL - avoid one-liners
 
 # SCRIPTURE VARIETY REQUIREMENTS - STRICTLY ENFORCED:
 - ABSOLUTELY FORBIDDEN VERSES: Jeremiah 29:11, Philippians 4:13, Romans 8:28, Psalm 119:105, Proverbs 3:5-6, Isaiah 40:31, Matthew 6:26, John 3:16
@@ -154,11 +220,46 @@ In Jesus' Name, Amen
 - Prayer example: "Help me to trust in Your plan..." NOT "Help [First Name] to trust in Your plan..."
 - This ensures names stay current even if the user updates their profile
 
-# CONTENT UNIQUENESS REQUIREMENTS:
-- Generate UNIQUE titles for each devotional - avoid repetitive or generic titles
-- Vary devotional themes and approaches even for similar topics
-- Use creative, specific titles that reflect the unique content (max 32 characters)
-- Each devotional should feel fresh and distinct, not formulaic
+# CONTENT UNIQUENESS REQUIREMENTS - STRICTLY ENFORCED:
+
+## TITLE ANTI-PATTERNS - NEVER USE THESE OVERUSED PHRASES:
+❌ "Walking in [X]" (Faith, Grace, Hope, Love, etc.)
+❌ "Finding [X] in God" (Peace, Purpose, Strength, Joy, etc.)
+❌ "Trusting God in [X]" (Trials, Uncertainty, Waiting, etc.)
+❌ "A Journey of [X]" (Faith, Hope, Healing, etc.)
+❌ "God's [X] for You" (Plan, Purpose, Promise, etc.)
+❌ "Discovering [X]" (Purpose, Peace, Joy, etc.)
+❌ "Living in [X]" (Faith, Victory, Freedom, etc.)
+❌ "Embracing [X]" (Grace, Hope, Change, etc.)
+❌ "Overcoming [X]" (Fear, Doubt, Anxiety, etc.)
+❌ "The Power of [X]" (Prayer, Faith, Forgiveness, etc.)
+❌ "Learning to [X]" (Trust, Wait, Surrender, etc.)
+❌ "When God [X]" (Calls, Speaks, Provides, etc.)
+
+## INSTEAD, CREATE SPECIFIC, CONCRETE TITLES THAT:
+✅ Reflect real human struggles and emotions
+✅ Use concrete language, not abstract spiritual terms
+✅ Make someone say "That's exactly what I'm going through"
+✅ Are unique and memorable
+✅ Avoid clichés and Christian jargon
+
+## GOOD TITLE EXAMPLES:
+✅ "When Doubt Feels Louder Than Faith"
+✅ "The Courage to Forgive the Unforgivable"
+✅ "Embracing God's Silence in Suffering"
+✅ "What to Do When Prayer Feels Empty"
+✅ "The Messy Middle of Waiting"
+✅ "When Obedience Costs Everything"
+✅ "Holding On When Letting Go Seems Easier"
+✅ "The Gift of Unanswered Prayers"
+
+## TITLE GENERATION PROCESS:
+1. Identify the core struggle or question
+2. Use specific, visceral language
+3. Avoid generic spiritual phrases
+4. Make it personal and relatable
+5. Keep it under 32 characters
+6. Ensure it's different from any previous devotional you've written
 
 # ANTI-REPETITION ENFORCEMENT:
 - Before selecting any verse, ask yourself: "Is this an overused, cliché verse?"
