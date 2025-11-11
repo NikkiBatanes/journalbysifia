@@ -359,13 +359,9 @@ EXAMPLES OF COMPLETE VERSES:
 ❌ WRONG: "Go therefore and make disciples of all nations..." - Matthew 28:19 (INCOMPLETE - NEVER DO THIS)
 
 CHALLENGE:
-[TWO-PART CHALLENGE - BOTH REQUIRED]:
+[Combine spiritual and practical into ONE unified challenge. Weave prayer/Scripture commitment with concrete action and deadline naturally.]
 
-SPIRITUAL: [Specific prayer commitment, Scripture to meditate on, or worship act - with timing]
-
-TACTICAL (48-72 hour deadline): [Concrete deliverable with metric or proof - e.g., "Complete full post-mortem by Friday, identify your one-sentence failure pattern, and text it to your accountability partner by Saturday noon."]
-
-[Make it explicit WHO they report to and WHEN they'll do it.]`,
+[Example: "This week, pray Psalm 139:23-24 daily at 6 AM for God to search your heart. Then complete your full post-mortem by Friday, identify your one-sentence failure pattern, and text it to your accountability partner by Saturday noon."]`,
 };
 
 export const applyPersonaContext = (persona: Persona, userInput: string): string => {
