@@ -1154,18 +1154,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       const disableExpansionForType = card.type === 'affirmation' || card.type === 'bible';
       const isExpanded = isTopCard && expandedCardIndex === cardIndex && !disableExpansionForType;
       const measuredHeight = contentHeights[cardIndex] || 0;
-      let touchActive = false;
-      let touchMoved = false;
-      const resetTouchFlags = () => {
-        touchActive = false;
-        touchMoved = false;
-      };
-      const handleExpandedTouchEnd = () => {
-        if (touchActive && !touchMoved && !isScrolling) {
-          handleCardPress(cardIndex);
-        }
-        resetTouchFlags();
-      };
 
       // For now, allow all cards to expand for testing
       // const needsExpansion = !disableExpansionForType && true; // Future: measuredHeight > COLLAPSED_HEIGHT + 50;
@@ -1264,17 +1252,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               contentInsetAdjustmentBehavior="never"
               automaticallyAdjustContentInsets={false}
               scrollIndicatorInsets={{ bottom: bottomExtra }}
-              onTouchStart={() => {
-                touchActive = true;
-                touchMoved = false;
-              }}
-              onTouchMove={() => {
-                if (touchActive) {
-                  touchMoved = true;
-                }
-              }}
-              onTouchCancel={resetTouchFlags}
-              onTouchEnd={handleExpandedTouchEnd}
               onScrollBeginDrag={() => setIsScrolling(true)}
               onScrollEndDrag={() => setIsScrolling(false)}
               onMomentumScrollBegin={() => setIsScrolling(true)}
@@ -1287,12 +1264,20 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 expandedContentStyle,
               ]}
             >
-              <View style={[
-                styles.cardTouchableContainer,
-                expandedTouchableStyle,
-              ]}>
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => {
+                  if (!isScrolling) {
+                    handleCardPress(cardIndex);
+                  }
+                }}
+                style={[
+                  styles.cardTouchableContainer,
+                  expandedTouchableStyle,
+                ]}
+              >
                 {cardContent}
-              </View>
+              </TouchableOpacity>
             </ScrollView>
               );
             })()}

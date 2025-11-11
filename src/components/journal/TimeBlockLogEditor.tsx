@@ -1312,6 +1312,8 @@ function TimeBlockLogEditorInner(
               mode="time"
               is24Hour={false}
               display="spinner"
+              themeVariant="dark"
+              textColor={Colors.hopeWhite}
               onChange={(event, selectedTime) => {
                 if (selectedTime) {
                   setTempStartTime(selectedTime);
@@ -1362,6 +1364,8 @@ function TimeBlockLogEditorInner(
               mode="time"
               is24Hour={false}
               display="spinner"
+              themeVariant="dark"
+              textColor={Colors.hopeWhite}
               onChange={(event, selectedTime) => {
                 if (selectedTime) {
                   setTempEndTime(selectedTime);
