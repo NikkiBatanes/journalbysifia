@@ -12,6 +12,8 @@ import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../con
 import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeout';
 import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
 import { monitoring } from '../utils/monitoring';
+import { withCircuitBreaker } from '../utils/circuitBreaker';
+import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
 
 /**
  * Robust session retrieval with retry logic
@@ -115,19 +117,21 @@ async function generatePlaybookInternal(
         }
       } catch {}
 
-      // Wrap fetch with timeout to prevent hanging (60s for AI generation)
-      const response = await withTimeout(
-        fetch(functionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ userInput, userName, bibleVersion, userId }),
-        }),
-        TIMEOUT_CONFIGS.AI_GENERATION
-      );
+      // Wrap with circuit breaker and timeout for resilience (no UI impact)
+      const response = await withCircuitBreaker('openai-generation', async () => {
+        return withTimeout(
+          fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ userInput, userName, bibleVersion, userId }),
+          }),
+          TIMEOUT_CONFIGS.AI_GENERATION
+        );
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
