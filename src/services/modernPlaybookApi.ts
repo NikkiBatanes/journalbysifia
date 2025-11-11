@@ -11,6 +11,7 @@ import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
 import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
 import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeout';
 import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
+import { monitoring } from '../utils/monitoring';
 
 /**
  * Robust session retrieval with retry logic
@@ -80,6 +81,9 @@ async function generatePlaybookInternal(
   userId: string,
   maxRetries: number = API_RETRY_ATTEMPTS
 ): Promise<Playbook> {
+  // Start performance timer (no UI impact)
+  const endTimer = monitoring.startTimer('playbook_generation');
+  
   // Get session with retry logic to handle race conditions
   const session = await getSessionWithRetry();
 
@@ -152,6 +156,14 @@ async function generatePlaybookInternal(
 
       // Add journal type detection to all subtasks
       const playbookWithJournalTypes = addJournalTypesToPlaybook(result);
+
+      // Track successful generation (no UI impact)
+      endTimer(true);
+      monitoring.trackEvent('playbook_generated', {
+        success: true,
+        attempts: attempt + 1,
+        userId,
+      }, userId);
 
       // Usage tracking is handled by GeneratingPlaybookScreen.tsx to avoid double counting
       // and to properly handle onboarding flag

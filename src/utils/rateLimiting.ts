@@ -6,6 +6,7 @@
 
 import { Logger } from './ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { monitoring } from './monitoring';
 
 export type SubscriptionTier = 'seeker' | 'spark' | 'growth' | 'transformation' | 'family';
 
@@ -116,6 +117,14 @@ class RateLimiter {
     const timeSinceLastRequest = (now - state.lastRequestTime) / 1000;
     if (timeSinceLastRequest < limits.cooldownSeconds) {
       const waitSeconds = Math.ceil(limits.cooldownSeconds - timeSinceLastRequest);
+      
+      // Track rate limit hit (no UI impact)
+      monitoring.trackMetric('rate_limit_hit', 1, {
+        tier,
+        limitType: 'cooldown',
+        waitSeconds,
+      });
+      
       return {
         allowed: false,
         reason: `Unusual activity detected. Please wait ${waitSeconds} seconds to ensure quality.`,
