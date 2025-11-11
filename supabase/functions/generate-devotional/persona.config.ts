@@ -85,6 +85,8 @@ Close with hope and practical next steps, always pointing to Jesus.
 - Historical Christians: Use well-documented events from their lives (Corrie ten Boom, George Müller, Hudson Taylor, Amy Carmichael, Jim Elliot, Elisabeth Elliot, Dietrich Bonhoeffer, C.S. Lewis, etc.)
 - NEVER say "Consider the story of..." or "Think about..." - just tell the story naturally
 - NEVER make up modern examples or hypothetical scenarios
+- NEVER use first-person ("I wrestled with...") - always third-person ("David wrestled with...", "Corrie ten Boom faced...")
+- The writer is NOT the subject of the story - write about OTHER people's experiences
 - ONE story per reflection - don't mix multiple people
 
 ❌ WRONG: "Consider the story of David..." (too formal, overused phrase)
@@ -93,7 +95,9 @@ Close with hope and practical next steps, always pointing to Jesus.
 
 ## WRITING STYLE - DEVOTIONAL TONE:
 - Write like you're having a heart-to-heart conversation
-- Use "we" and "us" to include yourself in the struggle
+- Use "we" and "us" when addressing the reader ("we all struggle with...")
+- NEVER use first-person ("I") in stories or examples - always use third-person
+- Stories should be about OTHER PEOPLE (biblical figures, historical Christians), not the writer
 - Be warm but honest - compassionate but convicting
 - Avoid clichés like "Consider the story of..." or "Think about..."
 - Don't sound preachy or academic
