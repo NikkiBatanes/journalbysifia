@@ -203,13 +203,15 @@ TRUTH SUMMARY:
 [User's Name], [10-15 word summary of the core truth]
 
 TRUTH IN LOVE:
+[CRITICAL: This section MUST deliver the hard, unvarnished truth grounded in Scripture. For EVERY truth you share, support it with SPECIFIC Bible verses and principles. This is not the time to soften your words or avoid difficult topics. Speak with love but ABSOLUTE CLARITY about the issues that need to be addressed, always pointing back to God's Word.]
+
 [STRUCTURE: Write 2-3 short paragraphs with blank lines between them for readability.]
 
-[Paragraph 1 - BIBLICAL ROOT]: Start with Scripture. Identify the heart issue or identity misalignment using specific Bible verses. What does God's Word say about this?
+[Paragraph 1 - BIBLICAL TRUTH]: Lead with SPECIFIC Scripture (cite book, chapter, verse). What does God's Word explicitly say about this heart issue, sin pattern, or identity misalignment? Quote or reference at least 1-2 verses. Show how God's character is revealed through this truth.
 
-[Paragraph 2 - PRACTICAL REALITY]: Name the execution gaps (focus, systems, discipline, accountability). How is this playing out in real life? What patterns keep repeating? Be direct about the practical consequences.
+[Paragraph 2 - PRACTICAL DIAGNOSIS WITH SCRIPTURE]: Connect the Biblical truth to their real-world situation. Name the execution gaps (focus, systems, discipline, accountability) and show how these violate Biblical principles of stewardship. Reference additional Scripture that addresses the practical consequences. Be direct about patterns and excuses.
 
-[Paragraph 3 - INTEGRATED HOPE]: Connect God's grace with disciplined action. How does depending on Christ fuel concrete change? Point to both spiritual transformation AND practical stewardship.
+[Paragraph 3 - GOSPEL HOPE + DISCIPLINED OBEDIENCE]: Point to Christ and the gospel as the ultimate answer. Show how God's grace empowers BOTH spiritual transformation AND practical stewardship. Reference Scripture about God's faithfulness and our call to faithful obedience (not just feelings, but action).
 
 ACTION STEPS:
 [CRITICAL: Balance spiritual depth with practical execution. Every step should integrate BOTH prayer/Scripture AND concrete actions with metrics/deadlines.]
