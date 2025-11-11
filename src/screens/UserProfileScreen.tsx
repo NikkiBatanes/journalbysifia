@@ -60,7 +60,6 @@ import { reportFeature } from '../services/featureRequestService';
 import InAppReview from 'react-native-in-app-review';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
-import { requestCalendarPermissions, requestLocationPermissions } from '../services/calendarSyncService';
 import { pushNotificationService } from '../services/pushNotificationService';
 
 const { width } = Dimensions.get('window');
@@ -1099,20 +1098,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleUpdatePreferences = async () => {
-    try {
-      const result = await updatePreferences(preferences);
-      if (result.success) {
-        setSettingsModal(false);
-        Alert.alert('Success', '🎨 Theme and font preferences updated! Changes will apply immediately.');
-      } else {
-        Alert.alert('Error', result.error?.message || 'Failed to update preferences');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update preferences');
-    }
-  };
-
   // Save handler for week start (no success alert)
   const handleSaveWeekStart = async () => {
     try {
@@ -1340,6 +1325,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.twitterIconText}>X</Text>
           </View>
           <Text style={[styles.menuText, font]}>X</Text>
+          <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://www.youtube.com/@sifiaapp'); }}
+          accessibilityRole="button"
+          accessibilityLabel="Open YouTube channel @sifiaapp"
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="logo-youtube" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={[styles.menuText, font]}>YouTube</Text>
           <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
@@ -2126,7 +2125,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={[styles.cancelText, font]}>Close</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>System Permissions</Text>
-          <View style={{ width: 52 }} />
+          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
@@ -2135,7 +2134,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
 
           <View style={styles.settingGroup}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.settingItem}
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
@@ -2153,7 +2152,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.settingGroup}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.settingItem}
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
@@ -2175,7 +2174,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.settingGroup}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.settingItem}
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
@@ -2212,7 +2211,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={[styles.cancelText, font]}>Close</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Notifications</Text>
-          <View style={{ width: 52 }} />
+          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
@@ -2914,6 +2913,9 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 15,
     fontWeight: '600',
+  },
+  headerSpacer: {
+    width: 52,
   },
   permissionTextContainer: {
     flex: 1,
