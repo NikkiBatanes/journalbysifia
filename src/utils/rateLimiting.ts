@@ -19,56 +19,55 @@ export interface RateLimitConfig {
 
 /**
  * Rate limits per subscription tier
- * Based on your pricing tiers and expected usage patterns
+ * PHILOSOPHY: Only prevent abuse, not restrict normal usage
+ * Paying users should NEVER hit these limits in normal use
  */
 export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
-  // Free tier - Very conservative to prevent abuse
+  // Free tier - Prevent abuse (they already have subscription limits)
   seeker: {
     perMinute: 1,
     perHour: 3,
-    perDay: 5,
-    perMonth: 10,
-    cooldownSeconds: 30, // 30 seconds between requests
-  },
-  
-  // Spark tier - 8 playbooks/month included
-  // Allow some flexibility but prevent abuse
-  spark: {
-    perMinute: 2,
-    perHour: 5,
     perDay: 10,
-    perMonth: 20, // 2.5x monthly limit for flexibility
-    cooldownSeconds: 15, // 15 seconds between requests
+    perMonth: 999999, // No monthly limit - subscription service handles this
+    cooldownSeconds: 30, // Prevent button mashing
   },
   
-  // Growth tier - 20 playbooks/month included
-  // More generous limits for engaged users
+  // Spark tier - 8 playbooks/month (subscription handles limit)
+  // Rate limits ONLY prevent rapid abuse, not normal usage
+  spark: {
+    perMinute: 3,     // Can generate 3 quickly if needed
+    perHour: 10,      // Generous - normal users won't hit this
+    perDay: 999999,   // No daily limit - subscription handles monthly
+    perMonth: 999999, // No monthly limit - subscription handles this
+    cooldownSeconds: 5, // Just prevent accidental double-clicks
+  },
+  
+  // Growth tier - 20 playbooks/month (subscription handles limit)
+  // Rate limits ONLY prevent rapid abuse
   growth: {
-    perMinute: 3,
-    perHour: 10,
-    perDay: 25,
-    perMonth: 50, // 2.5x monthly limit
-    cooldownSeconds: 10, // 10 seconds between requests
+    perMinute: 5,     // Very generous
+    perHour: 20,      // More than they can use
+    perDay: 999999,   // No daily limit - subscription handles monthly
+    perMonth: 999999, // No monthly limit - subscription handles this
+    cooldownSeconds: 5, // Just prevent accidental double-clicks
   },
   
-  // Transformation tier - Unlimited playbooks
-  // High limits but still prevent abuse
+  // Transformation tier - Unlimited (but prevent abuse)
   transformation: {
-    perMinute: 5,
-    perHour: 30,
-    perDay: 100,
-    perMonth: 500, // Reasonable "unlimited" with abuse protection
-    cooldownSeconds: 5, // 5 seconds between requests
+    perMinute: 10,    // Very generous
+    perHour: 50,      // More than anyone needs
+    perDay: 200,      // Abuse protection only
+    perMonth: 1000,   // Extreme abuse protection ($10 cost cap)
+    cooldownSeconds: 3, // Minimal - just prevent accidents
   },
   
-  // Family tier - Unlimited for 5 users
-  // Same as transformation but tracked per family
+  // Family tier - Unlimited for 5 users (but prevent abuse)
   family: {
-    perMinute: 10, // 5 users × 2 requests/min
-    perHour: 60,   // 5 users × 12 requests/hour
-    perDay: 200,   // 5 users × 40 requests/day
-    perMonth: 1000, // 5 users × 200 requests/month
-    cooldownSeconds: 5, // 5 seconds between requests per user
+    perMinute: 20,    // 5 users × 4 = very generous
+    perHour: 100,     // 5 users × 20 = more than needed
+    perDay: 500,      // Abuse protection only
+    perMonth: 2000,   // Extreme abuse protection ($20 cost cap)
+    cooldownSeconds: 3, // Minimal - just prevent accidents
   },
 };
 
