@@ -170,7 +170,7 @@ class PricingService {
       description: 'For the whole family\'s growth',
       features: [
         'Everything in Transformation',
-        'Up to 6 family member accounts',
+        'Up to 5 family member accounts',
         'Family devotionals & activities',
         'Parental guidance resources',
         'Journaling tools to capture your reflections',

@@ -7,7 +7,7 @@ export type SubscriptionTier =
   | 'spark'            // 8 playbooks/devotionals + smart journaling
   | 'growth'           // 20 playbooks/devotionals
   | 'transformation'   // Unlimited (no dashboard counts)
-  | 'family';          // Unlimited for up to 6 members
+  | 'family';          // Unlimited for up to 5 members (1 admin + 4 additional)
 
 export type SubscriptionStatus =
   | 'active'

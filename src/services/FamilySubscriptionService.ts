@@ -63,7 +63,7 @@ export class FamilySubscriptionService {
           admin_user_id: options.admin_user_id,
           group_name: options.group_name,
           platform_subscription_id: options.platform_subscription_id,
-          max_members: options.max_members || 6,
+          max_members: options.max_members || 5,
           current_members: 1,
           status: 'active',
         })

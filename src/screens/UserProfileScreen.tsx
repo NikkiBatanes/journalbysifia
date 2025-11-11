@@ -39,6 +39,7 @@ interface Subscription {
   id: string;
   tier: string;
   status: string;
+  platform_subscription_id?: string;
   limits?: {
     playbooks: number;
     devotionals: number;
@@ -1646,12 +1647,35 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
                 try {
-                  await createFamilyGroup(`${user?.email?.split('@')[0] || 'Family'}'s Group`, 'family-sub-id');
-                  await refreshFamilyData();
+                  // Get platform subscription ID from subscription object
+                  const platformSubId = subscription?.platform_subscription_id || subscription?.id || 'family-subscription';
+                  const groupName = `${user?.email?.split('@')[0] || 'Family'}'s Group`;
+                  
+                  const success = await createFamilyGroup(groupName, platformSubId);
+                  
+                  if (success) {
+                    await refreshFamilyData();
+                    Alert.alert(
+                      'Family Group Created!',
+                      'You can now invite up to 4 family members to join.',
+                      [{ text: 'OK' }]
+                    );
+                  } else {
+                    Alert.alert(
+                      'Error',
+                      'Failed to create family group. Please try again.',
+                      [{ text: 'OK' }]
+                    );
+                  }
                 } catch (error) {
                   Logger.error('Failed to create family group', error as Error, {
       component: 'UserProfileScreen',
     });
+                  Alert.alert(
+                    'Error',
+                    error instanceof Error ? error.message : 'Failed to create family group',
+                    [{ text: 'OK' }]
+                  );
                 }
               }}
             >
