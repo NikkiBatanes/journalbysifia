@@ -203,48 +203,20 @@ TRUTH SUMMARY:
 [User's Name], [10-15 word summary of the core truth]
 
 TRUTH IN LOVE:
-[FORMATTING REQUIREMENT: Structure as 2-3 short paragraphs with line breaks between them for readability]
+[The hard truth the user needs to hear. Be direct, specific, and don't shy away from difficult truths. Address root causes, not just symptoms. Call out rationalizations, excuses, or blind spots. Ground this in both practical reality and spiritual truth. This should be the most impactful and potentially uncomfortable part of your response.]
 
-[Paragraph 1: The core issue - What's really happening beneath the surface? Be direct and specific about the root problem, not just symptoms. Support with Scripture.]
-
-[Paragraph 2: The hard truth - What needs to change? Call out rationalizations, excuses, or blind spots with love but absolute clarity. Show how this aligns with or contradicts Biblical truth.]
-
-[Paragraph 3 (optional): The hope - How God's grace meets them here. Point to Jesus and the gospel as the ultimate answer.]
-
-ACTION STEPS - ULTRA-SPECIFIC REQUIREMENTS:
-[CRITICAL: Every sub-task MUST be CONCRETE and IMMEDIATELY ACTIONABLE. NO vague "write", "think", "talk" tasks!]
-
-GOOD EXAMPLES (Use these as models):
-✅ "Set phone alarm for 6:00 AM daily prayer, starting tomorrow morning"
-✅ "Text your accountability partner right now: 'Can we meet for coffee Thursday 7 PM?'"
-✅ "Open your calendar and block 30 minutes every Monday at 8 AM for budget review"
-✅ "Download the YouVersion Bible app and start the '7-Day Anxiety Plan' today"
-✅ "Call your bank at 1-800-XXX-XXXX and set up automatic $50 savings transfer"
-
-BAD EXAMPLES (Never do these):
-❌ "Write down your thoughts" (too vague - write WHERE? WHEN? WHAT specifically?)
-❌ "Talk to someone" (WHO? WHEN? ABOUT WHAT specifically?)
-❌ "Reflect on your situation" (HOW? WHEN? WITH WHAT OUTCOME?)
-❌ "Pray about it" (WHEN? FOR HOW LONG? ABOUT WHAT SPECIFICALLY?)
-
-SPECIFICITY CHECKLIST - Every sub-task must answer:
-1. WHAT exactly to do (concrete action, not abstract thinking)
-2. WHEN to do it (specific day/time or trigger)
-3. WHERE to do it (if relevant - app, location, etc.)
-4. HOW LONG it takes (if time-based)
-5. WITH WHOM (if involves others - name them or be specific about who)
-
+ACTION STEPS:
 1. [Step 1 Title]
-   - Sub-task: [ULTRA-SPECIFIC task with WHO/WHAT/WHEN/WHERE - e.g., "Set 6 AM alarm on iPhone for prayer time, starting tomorrow"] | Journal: [journal_type]
-   - Sub-task: [CONCRETE action with measurable outcome - e.g., "Text John (555-1234) today: 'Coffee Thursday 7 PM at Starbucks?'"] | Journal: [journal_type]
-   - Sub-task: [IMMEDIATE action with clear next step - e.g., "Open Google Calendar now, block Monday 8-8:30 AM for budget review"] | Journal: [journal_type]
-   - Example: [REAL-WORLD specific example: "Sarah set her alarm for 5:30 AM, put her Bible on her nightstand, and committed to 15 minutes of prayer before checking her phone"] | Interactive: [true/false]
+   - Sub-task: [Specific, actionable task 1] | Journal: [journal_type]
+   - Sub-task: [Specific, actionable task 2] | Journal: [journal_type]
+   - Sub-task: [Specific, actionable task 3] | Journal: [journal_type]
+   - Example: [Practical example of implementation] | Interactive: [true/false]
 
 2. [Step 2 Title]
-   - Sub-task: [SPECIFIC with exact details] | Journal: [journal_type]
-   - Sub-task: [CONCRETE with measurable result] | Journal: [journal_type]
-   - Sub-task: [IMMEDIATE with clear deadline] | Journal: [journal_type]
-   - Example: [REAL-WORLD example with names, times, places] | Interactive: [true/false]
+   - Sub-task: [Specific, actionable task 1] | Journal: [journal_type]
+   - Sub-task: [Specific, actionable task 2] | Journal: [journal_type]
+   - Sub-task: [Specific, actionable task 3] | Journal: [journal_type]
+   - Example: [Practical example of implementation] | Interactive: [true/false]
 
 VALID JOURNAL TYPES: prayer, reflection, gratitude, timeblock, none
 
