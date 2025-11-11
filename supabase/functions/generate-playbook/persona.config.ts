@@ -106,10 +106,12 @@ DETAILED RULES:
 
 3. "CREATE/PLAN/OUTLINE/DRAFT" = Context-dependent
    - "Create an outline" → reflection (thinking/organizing)
+   - "Create a list" → reflection (creating/organizing requires thinking)
    - "Draft an outline" → timeblock (allocating time to draft)
    - "Plan a Q&A session" → reflection (thinking/planning)
    - "Schedule a..." → timeblock (setting specific time)
    - "Create a strategy" → reflection (thinking/organizing)
+   - "Create a schedule" → timeblock (time-based planning)
 
 4. "IDENTIFY X" (with numbers) = REFLECTION
    - "Identify 2 or 3 key issues" → reflection
@@ -251,7 +253,7 @@ CORRECT EXAMPLES:
 - "Create a weekly exercise schedule" → timeblock (creating schedule)
 - "Dedicate at least 10 minutes daily for prayer" → timeblock (daily time allocation)
 - "Set specific times for meals and snacks" → timeblock (setting specific times)
-- "Create a list of specific prayers" → none (creating a list)
+- "Create a list of specific prayers" → reflection (creating/organizing requires thinking)
 - "Schedule an appointment with healthcare provider" → none (scheduling task)
 - "Spend dedicated time in prayer asking God for wisdom" → prayer (spiritual request TO God)
 - "Commit to a weekly 'no spend' day" → none (behavioral commitment)
