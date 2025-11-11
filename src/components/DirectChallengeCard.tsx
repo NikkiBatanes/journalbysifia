@@ -36,15 +36,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
         <>
           {/* Spiritual Section */}
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <MaterialCommunityIcons
-                name="hands-pray"
-                size={18}
-                color={Colors.anchorBlue}
-                style={styles.sectionIcon}
-              />
-              <ThemedText weight="bold" style={styles.sectionLabel}>Spiritual</ThemedText>
-            </View>
+            <ThemedText weight="bold" style={styles.sectionLabel}>Spiritual</ThemedText>
             <ThemedText weight="semiBold" style={styles.sectionText}>
               {spiritualText}
             </ThemedText>
@@ -52,15 +44,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
 
           {/* Tactical Section */}
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <MaterialCommunityIcons
-                name="target"
-                size={18}
-                color={Colors.alertCoral}
-                style={styles.sectionIcon}
-              />
-              <ThemedText weight="bold" style={styles.sectionLabel}>Tactical</ThemedText>
-            </View>
+            <ThemedText weight="bold" style={styles.sectionLabel}>Tactical</ThemedText>
             <ThemedText weight="semiBold" style={styles.sectionText}>
               {tacticalText}
             </ThemedText>
@@ -132,25 +116,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingLeft: 8,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionIcon: {
-    marginRight: 8,
-  },
   sectionLabel: {
     fontSize: 16,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     opacity: 0.9,
+    marginBottom: 8,
   },
   sectionText: {
     fontSize: 17,
     color: Colors.hopeWhite,
     lineHeight: 25,
     textAlign: 'left',
-    paddingLeft: 26, // Indent to align with text after icon
+    paddingLeft: 8,
   },
 });
