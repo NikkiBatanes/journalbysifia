@@ -55,7 +55,7 @@ class CircuitBreaker {
     if (this.state === 'OPEN') {
       if (this.nextAttemptTime && Date.now() < this.nextAttemptTime) {
         const error = new Error(`Circuit breaker is OPEN for ${this.name}`);
-        
+
         Logger.warn(`🔴 Circuit OPEN: ${this.name}`, {
           component: 'circuitBreaker',
           data: {
@@ -73,7 +73,7 @@ class CircuitBreaker {
         // Timeout expired, try half-open
         this.state = 'HALF_OPEN';
         this.successes = 0;
-        
+
         Logger.info(`🟡 Circuit HALF-OPEN: ${this.name}`, {
           component: 'circuitBreaker',
         });
@@ -270,7 +270,7 @@ class CircuitBreakerRegistry {
    */
   getAllStats(): Record<string, CircuitBreakerStats> {
     const stats: Record<string, CircuitBreakerStats> = {};
-    
+
     this.breakers.forEach((breaker, name) => {
       stats[name] = breaker.getStats();
     });

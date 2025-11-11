@@ -38,12 +38,12 @@ export async function withTimeout<T>(
         `Operation '${operationName}' timed out after ${timeoutMs}ms`,
         operationName
       );
-      
+
       Logger.warn(`⏱️ Timeout: ${operationName}`, {
         component: 'apiTimeout',
         data: { timeoutMs, operationName },
       });
-      
+
       reject(error);
     }, timeoutMs);
 
@@ -69,7 +69,7 @@ export async function withTimeoutAndRetry<T>(
   config: TimeoutConfig
 ): Promise<T> {
   const { retryOnTimeout = false, maxRetries = 0 } = config;
-  
+
   let lastError: Error | null = null;
   const attempts = retryOnTimeout ? maxRetries + 1 : 1;
 
@@ -80,22 +80,22 @@ export async function withTimeoutAndRetry<T>(
       return result;
     } catch (error) {
       lastError = error as Error;
-      
+
       // If it's not a timeout error, don't retry
       if (!(error instanceof TimeoutError)) {
         throw error;
       }
-      
+
       // If this was the last attempt, throw
       if (attempt === attempts - 1) {
         throw error;
       }
-      
+
       // Log retry attempt
       Logger.warn(`🔄 Retrying ${config.operationName} (attempt ${attempt + 2}/${attempts})`, {
         component: 'apiTimeout',
       });
-      
+
       // Wait before retry (exponential backoff)
       await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
     }
@@ -115,7 +115,7 @@ export const TIMEOUT_CONFIGS = {
     operationName: 'AI Generation',
     retryOnTimeout: false, // Don't retry AI generation on timeout
   },
-  
+
   // Database operations should be fast
   DATABASE_READ: {
     timeoutMs: 10000, // 10 seconds
@@ -123,14 +123,14 @@ export const TIMEOUT_CONFIGS = {
     retryOnTimeout: true,
     maxRetries: 2,
   },
-  
+
   DATABASE_WRITE: {
     timeoutMs: 15000, // 15 seconds
     operationName: 'Database Write',
     retryOnTimeout: true,
     maxRetries: 2,
   },
-  
+
   // API calls to external services
   API_CALL: {
     timeoutMs: 30000, // 30 seconds
@@ -138,7 +138,7 @@ export const TIMEOUT_CONFIGS = {
     retryOnTimeout: true,
     maxRetries: 1,
   },
-  
+
   // Quick operations
   QUICK_OPERATION: {
     timeoutMs: 5000, // 5 seconds

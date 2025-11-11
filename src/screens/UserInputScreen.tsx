@@ -55,10 +55,10 @@ const UserInputScreen: React.FC = () => {
   // Typing, cycling placeholder for guided, non-chat input
   const [placeholderText, setPlaceholderText] = useState('What happened?');
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Auto-save draft to prevent data loss
   const DRAFT_KEY = '@siFia:userInputDraft';
-  
+
   // Load saved draft on mount
   useEffect(() => {
     const loadDraft = async () => {
@@ -73,14 +73,14 @@ const UserInputScreen: React.FC = () => {
     };
     loadDraft();
   }, []);
-  
+
   // Auto-save draft when user types (debounced)
   const saveDraftTimer = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (saveDraftTimer.current) {
       clearTimeout(saveDraftTimer.current);
     }
-    
+
     saveDraftTimer.current = setTimeout(async () => {
       try {
         if (userInput.trim()) {
@@ -92,7 +92,7 @@ const UserInputScreen: React.FC = () => {
         // Silent fail - draft is not critical
       }
     }, 1000); // Save 1 second after user stops typing
-    
+
     return () => {
       if (saveDraftTimer.current) {
         clearTimeout(saveDraftTimer.current);
@@ -388,7 +388,7 @@ const UserInputScreen: React.FC = () => {
       try {
         const tier = subscriptionData.subscription.tier as SubscriptionTier;
         const rateLimitCheck = await checkAndRecordRequest(user.id, tier, 'playbook');
-        
+
         if (!rateLimitCheck.allowed) {
           // Show user-friendly rate limit message
           Alert.alert(
@@ -410,7 +410,7 @@ const UserInputScreen: React.FC = () => {
       userInput,
       userName: userName || 'Friend',
     });
-    
+
     // Clear draft after successful navigation (generation will handle clearing input on success)
     // Note: Draft is preserved if generation fails, so user can try again
 };

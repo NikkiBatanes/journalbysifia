@@ -432,9 +432,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     // Get user name for dynamic replacement
     const userMeta: any = (user as any)?.user_metadata || {};
     const firstName = userMeta.first_name || (user as any)?.displayName?.split(' ')[0] || '';
-    const displayName = (user as any)?.displayName || 
-                       userMeta.full_name || 
-                       [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() || 
+    const displayName = (user as any)?.displayName ||
+                       userMeta.full_name ||
+                       [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
                        '';
 
     // Debug action steps data
@@ -451,7 +451,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           )
           .map(a => ({
             ...a,
-            text: replaceAllNamePlaceholders(a.text, { firstName, displayName })
+            text: replaceAllNamePlaceholders(a.text, { firstName, displayName }),
           }))
       : [];
 
@@ -745,12 +745,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Auto-refetch if playbook data is incomplete
   useEffect(() => {
     if (playbook && shouldFetchFromDB && !isLoading) {
-      const isIncomplete = !playbook.title || 
-                          !playbook.actionSteps || 
+      const isIncomplete = !playbook.title ||
+                          !playbook.actionSteps ||
                           !playbook.bibleVerse ||
                           !playbook.truthInLove?.text ||
                           !playbook.directChallenge;
-      
+
       if (isIncomplete) {
         Logger.warn('⚠️ Detected incomplete playbook data, triggering refetch', {
           component: 'PlaybookDetailScreenNew',
@@ -761,12 +761,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           hasTruthInLove: !!playbook.truthInLove?.text,
           hasChallenge: !!playbook.directChallenge,
         });
-        
+
         // Trigger refetch after a short delay
         const timeoutId = setTimeout(() => {
           refetch();
         }, 500);
-        
+
         return () => clearTimeout(timeoutId);
       }
     }
@@ -940,23 +940,24 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const pendingSaveRef = useRef(false);
 
   // Immediate save function (no debounce) for critical saves
-  const immediateSave = useCallback(async () => {
-    if (!playbook?.id || isSaving) {
-      return;
-    }
+  // Currently unused but kept for future use
+  // const immediateSave = useCallback(async () => {
+  //   if (!playbook?.id || isSaving) {
+  //     return;
+  //   }
 
-    try {
-      setIsSaving(true);
-      await saveActionSteps(playbook.id);
-      pendingSaveRef.current = false;
-    } catch (err) {
-      Logger.error('Error in immediate save', err as Error, {
-        component: 'PlaybookDetailScreenNew',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [playbook?.id, isSaving, saveActionSteps]);
+  //   try {
+  //     setIsSaving(true);
+  //     await saveActionSteps(playbook.id);
+  //     pendingSaveRef.current = false;
+  //   } catch (err) {
+  //     Logger.error('Error in immediate save', err as Error, {
+  //       component: 'PlaybookDetailScreenNew',
+  //     });
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // }, [playbook?.id, isSaving, saveActionSteps]);
 
   const debouncedSaveProgress = useCallback(() => {
     if (!playbook?.id) {

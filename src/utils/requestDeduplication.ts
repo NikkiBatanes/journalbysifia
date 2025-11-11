@@ -38,10 +38,10 @@ class RequestCache {
   ): Promise<T> {
     // Check if request is already in flight
     const cached = this.cache.get(key);
-    
+
     if (cached) {
       const age = Date.now() - cached.timestamp;
-      
+
       if (age < this.CACHE_TTL) {
         Logger.info(`🔄 Deduplicating ${operationName} request`, {
           component: 'requestDeduplication',
@@ -61,7 +61,7 @@ class RequestCache {
     });
 
     const promise = requestFactory();
-    
+
     // Cache the promise
     this.cache.set(key, {
       promise,
@@ -90,8 +90,8 @@ class RequestCache {
    */
   isInFlight(key: string): boolean {
     const cached = this.cache.get(key);
-    if (!cached) return false;
-    
+    if (!cached) {return false;}
+
     const age = Date.now() - cached.timestamp;
     return age < this.CACHE_TTL;
   }
@@ -114,7 +114,7 @@ class RequestCache {
    * Start periodic cleanup of expired requests
    */
   private startCleanup(): void {
-    if (this.cleanupInterval) return;
+    if (this.cleanupInterval) {return;}
 
     this.cleanupInterval = setInterval(() => {
       const now = Date.now();

@@ -191,7 +191,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         }
       } catch (error) {
         Logger.error('[GeneratingPlaybook] Error', error as Error, { component: 'GeneratingPlaybookScreen' });
-        
+
         // Don't lose user's input - navigate back with the original text
         Alert.alert(
           'Generation Failed',

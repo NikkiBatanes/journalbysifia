@@ -32,7 +32,7 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
     perMonth: 999999, // No monthly limit - subscription service handles this
     cooldownSeconds: 30, // Prevent button mashing
   },
-  
+
   // Spark tier - 8 playbooks/month (subscription handles limit)
   // Rate limits ONLY prevent rapid abuse, not normal usage
   spark: {
@@ -42,7 +42,7 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
     perMonth: 999999, // No monthly limit - subscription handles this
     cooldownSeconds: 5, // Just prevent accidental double-clicks
   },
-  
+
   // Growth tier - 20 playbooks/month (subscription handles limit)
   // Rate limits ONLY prevent rapid abuse
   growth: {
@@ -52,7 +52,7 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
     perMonth: 999999, // No monthly limit - subscription handles this
     cooldownSeconds: 5, // Just prevent accidental double-clicks
   },
-  
+
   // Transformation tier - Unlimited (but prevent abuse)
   transformation: {
     perMinute: 10,    // Very generous
@@ -61,7 +61,7 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
     perMonth: 1000,   // Extreme abuse protection ($10 cost cap)
     cooldownSeconds: 3, // Minimal - just prevent accidents
   },
-  
+
   // Family tier - Unlimited for 5 users (but prevent abuse)
   family: {
     perMinute: 20,    // 5 users × 4 = very generous
@@ -117,14 +117,14 @@ class RateLimiter {
     const timeSinceLastRequest = (now - state.lastRequestTime) / 1000;
     if (timeSinceLastRequest < limits.cooldownSeconds) {
       const waitSeconds = Math.ceil(limits.cooldownSeconds - timeSinceLastRequest);
-      
+
       // Track rate limit hit (no UI impact)
       monitoring.trackMetric('rate_limit_hit', 1, {
         tier,
         limitType: 'cooldown',
         waitSeconds,
       });
-      
+
       return {
         allowed: false,
         reason: `Unusual activity detected. Please wait ${waitSeconds} seconds to ensure quality.`,
@@ -175,10 +175,10 @@ class RateLimiter {
     if (state.monthRequests.length >= limits.perMonth) {
       const oldestRequest = state.monthRequests[0];
       const waitMs = 2592000000 - (now - oldestRequest.timestamp); // 30 days
-      const waitDays = Math.ceil(waitMs / 86400000);
+      // const waitDays = Math.ceil(waitMs / 86400000); // Unused but kept for reference
       return {
         allowed: false,
-        reason: `Unusual activity detected this month. This helps us maintain service quality. Please contact support if you need assistance.`,
+        reason: 'Unusual activity detected this month. This helps us maintain service quality. Please contact support if you need assistance.',
         waitSeconds: Math.ceil(waitMs / 1000),
       };
     }
@@ -291,7 +291,7 @@ class RateLimiter {
     state: RateLimitState
   ): Promise<void> {
     const cacheKey = `${userId}-${operationType}`;
-    
+
     // Update cache immediately (synchronous)
     this.cache.set(cacheKey, state);
 
@@ -361,7 +361,7 @@ class RateLimiter {
   getUserFriendlyMessage(
     tier: SubscriptionTier,
     reason: string,
-    waitSeconds?: number
+    _waitSeconds?: number // Prefixed with _ to indicate intentionally unused
   ): string {
     // All messages now use "unusual activity" language
     // Just return the reason as-is since it's already user-friendly
@@ -373,7 +373,7 @@ class RateLimiter {
    */
   async clearUserLimits(userId: string): Promise<void> {
     const keys = [`${userId}-playbook`, `${userId}-devotional`];
-    
+
     for (const key of keys) {
       this.cache.delete(key);
       try {

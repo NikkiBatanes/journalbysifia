@@ -13,7 +13,8 @@ import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeou
 import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
 import { monitoring } from '../utils/monitoring';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
-import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
+// Offline queue utilities available but not currently used
+// import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
 
 /**
  * Robust session retrieval with retry logic
@@ -85,7 +86,7 @@ async function generatePlaybookInternal(
 ): Promise<Playbook> {
   // Start performance timer (no UI impact)
   const endTimer = monitoring.startTimer('playbook_generation');
-  
+
   // Get session with retry logic to handle race conditions
   const session = await getSessionWithRetry();
 

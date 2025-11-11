@@ -85,7 +85,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   }, [playbookTitle]);
 
   const { user } = useAuth();
-  
+
   // Make ActionSteps optional - modal can work without it (e.g., from Dashboard)
   let handleToggleStep: ((stepId: string) => void) | undefined;
   let actionSteps: any[] | undefined;
@@ -98,7 +98,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     handleToggleStep = undefined;
     actionSteps = undefined;
   }
-  
+
   const queryClient = useQueryClient();
 
   // Success modal handlers

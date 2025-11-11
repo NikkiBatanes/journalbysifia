@@ -146,7 +146,7 @@ class OfflineQueueService {
       const sortedQueue = [...this.queue].sort((a, b) => {
         const priorityOrder = { high: 3, medium: 2, low: 1 };
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
-        if (priorityDiff !== 0) return priorityDiff;
+        if (priorityDiff !== 0) {return priorityDiff;}
         return a.timestamp - b.timestamp;
       });
 
@@ -199,7 +199,7 @@ class OfflineQueueService {
       if (success) {
         // Remove from queue
         this.queue = this.queue.filter((r) => r.id !== request.id);
-        
+
         Logger.info(`✅ Successfully processed queued request: ${request.type}`, {
           component: 'offlineQueue',
         });
@@ -215,7 +215,7 @@ class OfflineQueueService {
         if (request.retryCount >= request.maxRetries) {
           // Max retries reached - remove from queue
           this.queue = this.queue.filter((r) => r.id !== request.id);
-          
+
           Logger.error(
             `❌ Max retries reached for ${request.type}`,
             new Error('Max retries exceeded'),
@@ -247,7 +247,7 @@ class OfflineQueueService {
     try {
       // Import dynamically to avoid circular dependencies
       const { generatePlaybook } = await import('../services/modernPlaybookApi');
-      
+
       const result = await generatePlaybook(
         request.payload.userInput,
         request.payload.userName
@@ -266,7 +266,7 @@ class OfflineQueueService {
   private async retryPlaybookSave(request: QueuedRequest): Promise<boolean> {
     try {
       const { savePlaybook } = await import('../services/modernPlaybookApi');
-      
+
       const result = await savePlaybook(
         request.payload.playbook,
         request.payload.userId
@@ -284,7 +284,7 @@ class OfflineQueueService {
 
   private async retryApiCall(request: QueuedRequest): Promise<boolean> {
     try {
-      if (!request.endpoint) return false;
+      if (!request.endpoint) {return false;}
 
       const response = await fetch(request.endpoint, {
         method: request.payload.method || 'POST',
@@ -371,12 +371,12 @@ class OfflineQueueService {
   async removeRequest(id: string): Promise<boolean> {
     const initialLength = this.queue.length;
     this.queue = this.queue.filter((r) => r.id !== id);
-    
+
     if (this.queue.length < initialLength) {
       await this.saveQueue();
       return true;
     }
-    
+
     return false;
   }
 

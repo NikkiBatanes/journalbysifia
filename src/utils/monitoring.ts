@@ -53,7 +53,7 @@ class MonitoringService {
   private analyticsBuffer: AnalyticsEvent[] = [];
   private performanceBuffer: PerformanceMetric[] = [];
   private errorBuffer: ErrorReport[] = [];
-  
+
   private readonly BUFFER_SIZE = 50; // Send after 50 events
   private readonly FLUSH_INTERVAL = 60000; // Or every 60 seconds
   private flushTimer: NodeJS.Timeout | null = null;
@@ -91,7 +91,7 @@ class MonitoringService {
     };
 
     this.metricsBuffer.push(metric);
-    
+
     // Also log for immediate visibility
     Logger.info(`📊 Metric: ${name} = ${value}`, {
       component: 'monitoring',
@@ -225,7 +225,7 @@ class MonitoringService {
 
     return (success: boolean = true, metadata?: Record<string, any>) => {
       const duration = Date.now() - startTime;
-      
+
       const perfMetric: PerformanceMetric = {
         operation,
         duration,
@@ -350,7 +350,7 @@ class MonitoringService {
     // Store locally for now (can be sent to backend later)
     try {
       await this.storeLocally(snapshot);
-      
+
       // TODO: Send to backend analytics service
       // await this.sendToBackend(snapshot);
     } catch (error) {
@@ -448,12 +448,12 @@ class MonitoringService {
         key.startsWith('@siFia:monitoring:')
       );
       await AsyncStorage.multiRemove(monitoringKeys);
-      
+
       this.metricsBuffer = [];
       this.analyticsBuffer = [];
       this.performanceBuffer = [];
       this.errorBuffer = [];
-      
+
       Logger.info('Monitoring data cleared', { component: 'monitoring' });
     } catch (error) {
       Logger.error('Failed to clear monitoring data', error as Error, {
