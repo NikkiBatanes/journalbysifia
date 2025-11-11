@@ -138,8 +138,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Advanced prefetching for lightning-fast navigation
   const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
 
-  // Set filter to 'ongoing' by default to show in-progress playbooks first
-  const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
+  // Set filter to 'all' by default to show all playbooks
+  const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
 
   // Subtle selection animation for filter tabs
   const tabKeys = useMemo(() => (['all', 'ongoing', 'completed'] as const), []);
