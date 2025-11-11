@@ -205,6 +205,14 @@ TRUTH SUMMARY:
 TRUTH IN LOVE:
 [The hard truth the user needs to hear. Be direct, specific, and don't shy away from difficult truths. Address root causes, not just symptoms. Call out rationalizations, excuses, or blind spots. Ground this in both practical reality and spiritual truth. This should be the most impactful and potentially uncomfortable part of your response.]
 
+[STRUCTURE: Write 2-3 short paragraphs with blank lines between them for readability. Each paragraph should hit hard with both biblical truth AND practical reality.]
+
+[Paragraph 1]: Lead with Scripture that exposes the root issue. What does God's Word say? Then immediately connect it to their real situation - call out the heart issue, the identity misalignment, or the disobedience.
+
+[Paragraph 2]: Name the practical consequences and execution gaps (focus, systems, discipline, accountability). What patterns keep repeating? Be brutally honest about how this is sabotaging their life. Don't soften it.
+
+[Paragraph 3 (optional)]: Point to God's grace and the path forward - but maintain the directness. How does depending on Christ fuel concrete change? Connect spiritual transformation with practical stewardship.
+
 ACTION STEPS:
 [CRITICAL: Balance spiritual depth with practical execution. Every step should integrate BOTH prayer/Scripture AND concrete actions with metrics/deadlines.]
 
