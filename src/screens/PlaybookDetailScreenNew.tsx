@@ -269,12 +269,25 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const isFullPlaybook = routePlaybook && typeof routePlaybook === 'object' && 'title' in routePlaybook && 'actionSteps' in routePlaybook;
   const shouldFetchFromDB = !isFullPlaybook && !!playbookId && !!userId;
 
-  const { data: fetchedPlaybook, isLoading, error } = useQuery<Playbook | null>({
-    queryKey: ['playbook', playbookId],
+  const { data: fetchedPlaybook, isLoading, error, refetch } = useQuery<Playbook | null>({
+    queryKey: ['playbook', playbookId, userId],
     queryFn: async () => {
 
       try {
         const result = await getPlaybook(userId || '', playbookId);
+
+        // Validate that we got complete playbook data
+        if (result && (!result.title || !result.actionSteps || !result.bibleVerse)) {
+          Logger.warn('⚠️ Incomplete playbook data received, refetching...', {
+            component: 'PlaybookDetailScreenNew',
+            playbookId,
+            hasTitle: !!result.title,
+            hasActionSteps: !!result.actionSteps,
+            hasBibleVerse: !!result.bibleVerse,
+          });
+          // Return null to trigger a refetch
+          return null;
+        }
 
         return result;
       } catch (err) {
@@ -285,8 +298,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       }
     },
     enabled: shouldFetchFromDB,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchOnMount: true, // Always refetch on mount to ensure fresh data
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    retry: 2, // Retry failed requests twice
   });
 
   // Use route params playbook if it's a full playbook, otherwise use fetched playbook
@@ -725,6 +741,36 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   useEffect(() => {
 
   }, [playbook]);
+
+  // Auto-refetch if playbook data is incomplete
+  useEffect(() => {
+    if (playbook && shouldFetchFromDB && !isLoading) {
+      const isIncomplete = !playbook.title || 
+                          !playbook.actionSteps || 
+                          !playbook.bibleVerse ||
+                          !playbook.truthInLove?.text ||
+                          !playbook.directChallenge;
+      
+      if (isIncomplete) {
+        Logger.warn('⚠️ Detected incomplete playbook data, triggering refetch', {
+          component: 'PlaybookDetailScreenNew',
+          playbookId,
+          hasTitle: !!playbook.title,
+          hasActionSteps: !!playbook.actionSteps,
+          hasBibleVerse: !!playbook.bibleVerse,
+          hasTruthInLove: !!playbook.truthInLove?.text,
+          hasChallenge: !!playbook.directChallenge,
+        });
+        
+        // Trigger refetch after a short delay
+        const timeoutId = setTimeout(() => {
+          refetch();
+        }, 500);
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [playbook, shouldFetchFromDB, isLoading, playbookId, refetch]);
 
   // View mode change effect
   useEffect(() => {
