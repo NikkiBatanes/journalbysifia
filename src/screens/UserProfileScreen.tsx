@@ -60,6 +60,8 @@ import { reportFeature } from '../services/featureRequestService';
 import InAppReview from 'react-native-in-app-review';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { requestCalendarPermissions, requestLocationPermissions } from '../services/calendarSyncService';
+import { pushNotificationService } from '../services/pushNotificationService';
 
 const { width } = Dimensions.get('window');
 
@@ -208,6 +210,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [deleteBirthYear, setDeleteBirthYear] = useState<string>('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
+  const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
     if (birthDateStr) {
@@ -1416,7 +1419,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            setSettingsModal(true);
+          }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="notifications" size={18} color={Colors.anchorBlue} />
@@ -1497,7 +1503,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            setSystemPermissionsModal(true);
+          }}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="shield-checkmark" size={18} color={Colors.anchorBlue} />
@@ -2087,6 +2096,119 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </Modal>
   );
 
+  const renderSystemPermissionsModal = () => (
+    <Modal
+      visible={systemPermissionsModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setSystemPermissionsModal(false)}
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setSystemPermissionsModal(false); }}>
+            <Text style={[styles.cancelText, font]}>Close</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, font]}>System Permissions</Text>
+          <View style={{ width: 52 }} />
+        </View>
+
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+          <Text style={[styles.settingDescription, font]}>
+            Manage the device permissions siFia uses for notifications, calendar sync, and location-based features. Permissions stay managed in your system settings.
+          </Text>
+
+          <View style={styles.settingGroup}>
+            <Text style={[styles.settingLabel, font]}>Notifications</Text>
+            <Text style={[styles.settingHint, font]}>
+              Allow siFia to send reminders and updates. You can turn these on in system settings.
+            </Text>
+            <TouchableOpacity
+              style={styles.permissionActionButton}
+              onPress={async () => {
+                try { triggerLightHaptic(); } catch {}
+                const granted = await pushNotificationService.requestPermissions();
+                if (!granted) {
+                  Alert.alert(
+                    'Enable Notifications',
+                    'Open your device Settings to enable notifications for siFia.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Open Settings',
+                        onPress: () => pushNotificationService.openNotificationSettings(),
+                      },
+                    ],
+                  );
+                } else {
+                  Alert.alert('Notifications Enabled', 'Notifications are now allowed.');
+                }
+              }}
+            >
+              <Ionicons name="notifications" size={18} color={Colors.hopeWhite} />
+              <Text style={[styles.permissionActionText, font]}>Check Notification Permission</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.settingGroup}>
+            <Text style={[styles.settingLabel, font]}>Calendar</Text>
+            <Text style={[styles.settingHint, font]}>
+              Allow calendar access to sync time blocks to your device calendar.
+            </Text>
+            <TouchableOpacity
+              style={styles.permissionActionButton}
+              onPress={async () => {
+                try { triggerLightHaptic(); } catch {}
+                const granted = await requestCalendarPermissions();
+                if (!granted) {
+                  Alert.alert(
+                    'Calendar Access Needed',
+                    'We could not access the calendar. Please enable calendar permissions for siFia in your device settings.',
+                    [
+                      { text: 'OK' },
+                    ],
+                  );
+                } else {
+                  Alert.alert('Calendar Enabled', 'Calendar permissions are active.');
+                }
+              }}
+            >
+              <Ionicons name="calendar" size={18} color={Colors.hopeWhite} />
+              <Text style={[styles.permissionActionText, font]}>Allow Calendar Access</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.settingGroup}>
+            <Text style={[styles.settingLabel, font]}>Location</Text>
+            <Text style={[styles.settingHint, font]}>
+              Enable location to add places to your time blocks and helpful prompts.
+            </Text>
+            <TouchableOpacity
+              style={styles.permissionActionButton}
+              onPress={async () => {
+                try { triggerLightHaptic(); } catch {}
+                const granted = await requestLocationPermissions();
+                if (!granted) {
+                  Alert.alert(
+                    'Location Access Needed',
+                    'Please allow location access for siFia in your device settings to use location features.',
+                    [
+                      { text: 'OK' },
+                    ],
+                  );
+                } else {
+                  Alert.alert('Location Enabled', 'Location permissions are active.');
+                }
+              }}
+            >
+              <Ionicons name="location" size={18} color={Colors.hopeWhite} />
+              <Text style={[styles.permissionActionText, font]}>Allow Location Access</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
   const renderSettingsModal = () => (
     <Modal
       visible={settingsModal}
@@ -2293,6 +2415,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       {renderWeekStartModal()}
       {renderBibleVersionModal()}
       {renderAppearanceModal()}
+      {renderSystemPermissionsModal()}
       {renderSettingsModal()}
       {renderReportBugModal()}
       {renderFeatureModal()}
@@ -2748,6 +2871,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.gentleBorder,
+  },
+  permissionActionButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: Colors.alertCoral,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10 as any,
+  },
+  permissionActionText: {
+    color: Colors.hopeWhite,
+    fontSize: 15,
+    fontWeight: '600',
   },
   settingHint: {
     fontSize: 14,
