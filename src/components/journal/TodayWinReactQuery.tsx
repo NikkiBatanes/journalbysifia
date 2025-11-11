@@ -655,12 +655,13 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                 <View style={[
                   styles.winContainer,
                   viewMode === 'inline' && styles.winContainerInline,
-                  { justifyContent: 'center', alignItems: 'center' },
+                  styles.winDisplayWrapper,
                 ]}>
                   <ThemedText
                     style={[
                       styles.winText,
-                      { fontFamily: getFontFamily(fontKey, 'bold'), textAlign: 'center' },
+                      styles.winTextCentered,
+                      { fontFamily: getFontFamily(fontKey, 'bold') },
                     ]}
                     numberOfLines={viewMode === 'inline' ? undefined : 6}
                   >
@@ -780,15 +781,23 @@ const styles = StyleSheet.create({
   winContent: {
     flex: 1,
   },
+  winDisplayWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   winText: {
     color: Colors.hopeWhite,
     fontSize: 18,
     lineHeight: 24,
+    marginBottom: 12,
     textAlign: 'left',
     letterSpacing: 1,
     fontWeight: '600',
     flexWrap: 'wrap',
     width: '100%',
+  },
+  winTextCentered: {
+    textAlign: 'center',
   },
   editButton: {
     padding: 4,
@@ -966,7 +975,8 @@ const styles = StyleSheet.create({
   // New empty state styles
   iconContainer: {
     alignItems: 'center',
-    marginBottom: 8,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   emptyStateIcon: {
     marginBottom: 8,
