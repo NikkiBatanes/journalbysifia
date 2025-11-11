@@ -12,6 +12,14 @@ type DirectChallengeCardProps = {
 };
 
 export default function DirectChallengeCard({ challenge, challengeCTA }: DirectChallengeCardProps) {
+  // Parse SPIRITUAL and TACTICAL sections if they exist
+  const spiritualMatch = challenge.match(/SPIRITUAL:\s*(.+?)(?=TACTICAL:|$)/is);
+  const tacticalMatch = challenge.match(/TACTICAL[^:]*:\s*(.+?)$/is);
+  
+  const hasStructuredFormat = spiritualMatch && tacticalMatch;
+  const spiritualText = spiritualMatch?.[1]?.trim();
+  const tacticalText = tacticalMatch?.[1]?.trim();
+
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
@@ -23,13 +31,50 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
         />
         <ThemedText weight="bold" style={styles.heading}>Rise in Faith</ThemedText>
       </View>
-      <ThemedText weight="semiBold" style={styles.text}>
-        {challenge}
-      </ThemedText>
+      
+      {hasStructuredFormat ? (
+        <>
+          {/* Spiritual Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons
+                name="hands-pray"
+                size={18}
+                color={Colors.anchorBlue}
+                style={styles.sectionIcon}
+              />
+              <ThemedText weight="bold" style={styles.sectionLabel}>Spiritual</ThemedText>
+            </View>
+            <ThemedText weight="semiBold" style={styles.sectionText}>
+              {spiritualText}
+            </ThemedText>
+          </View>
+
+          {/* Tactical Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons
+                name="target"
+                size={18}
+                color={Colors.alertCoral}
+                style={styles.sectionIcon}
+              />
+              <ThemedText weight="bold" style={styles.sectionLabel}>Tactical</ThemedText>
+            </View>
+            <ThemedText weight="semiBold" style={styles.sectionText}>
+              {tacticalText}
+            </ThemedText>
+          </View>
+        </>
+      ) : (
+        <ThemedText weight="semiBold" style={styles.text}>
+          {challenge}
+        </ThemedText>
+      )}
+      
       {challengeCTA && (
         <ThemedText weight="semiBold" style={styles.cta}>{challengeCTA}</ThemedText>
       )}
-
     </View>
   );
 }
@@ -82,5 +127,30 @@ const styles = StyleSheet.create({
   expandIcon: {
     padding: 4,
     marginLeft: 8,
+  },
+  section: {
+    marginTop: 20,
+    paddingLeft: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionIcon: {
+    marginRight: 8,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+    opacity: 0.9,
+  },
+  sectionText: {
+    fontSize: 17,
+    color: Colors.hopeWhite,
+    lineHeight: 25,
+    textAlign: 'left',
+    paddingLeft: 26, // Indent to align with text after icon
   },
 });
