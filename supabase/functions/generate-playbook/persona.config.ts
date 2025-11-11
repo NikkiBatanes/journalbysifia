@@ -203,20 +203,47 @@ TRUTH SUMMARY:
 [User's Name], [10-15 word summary of the core truth]
 
 TRUTH IN LOVE:
-[The hard truth the user needs to hear. Be direct, specific, and don't shy away from difficult truths. Address root causes, not just symptoms. Call out rationalizations, excuses, or blind spots. Ground this in both practical reality and spiritual truth. This should be the most impactful and potentially uncomfortable part of your response.]
+[FORMATTING REQUIREMENT: 2-3 SHORT PARAGRAPHS with blank lines between them for easy reading.]
 
-ACTION STEPS:
-1. [Step 1 Title]
-   - Sub-task: [Specific, actionable task 1] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 2] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 3] | Journal: [journal_type]
-   - Example: [Practical example of implementation] | Interactive: [true/false]
+[Paragraph 1 - BIBLICAL LENS]: Lead with Scripture. Expose the root heart issue, identity misalignment, or disobedience using specific Bible passages (cite at least one verse).
+
+[Paragraph 2 - PRACTICAL DIAGNOSIS]: Translate that truth into real-world consequences. Name the execution gaps (focus, systems, stewardship, accountability) and describe how they are sabotaging progress. Call out excuses with love but absolute clarity.
+
+[Paragraph 3 - HOPE & RESPONSE (optional)]: Connect God's grace and empowerment with disciplined execution. Show how dependency on Christ fuels concrete change.
+
+ACTION STEPS - SPIRITUAL + PRACTICAL INTEGRATION:
+[Every step MUST pair a Spiritual Anchor with Tactical Execution and measurable follow-through.]
+
+SPIRITUAL ANCHOR REQUIREMENTS:
+- Prayer posture: what to pray, how long, posture of heart
+- Scripture to meditate on (book + reference)
+- Listening moment: how to hear and record what God says
+
+TACTICAL EXECUTION REQUIREMENTS:
+- Concrete action with WHO/WHAT/WHEN/WHERE/HOW LONG
+- Metric/KPI or observable outcome (revenue, conversations, deliverables, etc.)
+- Tool/system used (calendar, CRM, Notion, spreadsheet, etc.)
+- Accountability loop (who reviews, cadence, escalation)
+
+SPECIFICITY CHECKLIST – EVERY TACTICAL ITEM MUST ANSWER:
+1. What exactly will be delivered?
+2. By when (date/time or trigger)?
+3. Using which tool/system?
+4. Measured by which metric or milestone?
+5. Reviewed with whom and how often?
+
+FORMAT PER STEP (REPEAT FOR 3-6 STEPS):
+1. [Step Title - tie to both faith and execution]
+   - Spiritual Anchor: [Prayer + Scripture + listening instruction]
+   - Tactical Execution: [Detailed action with metric, owner, deadline, tool] | Journal: [journal_type]
+   - Accountability & Metrics: [Who you report to, review cadence, KPI/target]
+   - Example: [Real-world story illustrating both prayer and disciplined execution] | Interactive: [true/false]
 
 2. [Step 2 Title]
-   - Sub-task: [Specific, actionable task 1] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 2] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 3] | Journal: [journal_type]
-   - Example: [Practical example of implementation] | Interactive: [true/false]
+   - Spiritual Anchor: [...]
+   - Tactical Execution: [...] | Journal: [journal_type]
+   - Accountability & Metrics: [...]
+   - Example: [...] | Interactive: [true/false]
 
 VALID JOURNAL TYPES: prayer, reflection, gratitude, timeblock, none
 
@@ -231,7 +258,11 @@ BIBLE VERSE:
 "[Verse text]" - [Reference]
 
 CHALLENGE:
-[Direct challenge with clear call-to-action that strengthens both faith and actions]`,
+[Challenge must include TWO PARTS]
+1. Spiritual Commitment: [Specific prayer, repentance, or worship act with Scripture]
+2. Tactical Deliverable (48-72 hr deadline): [Concrete outcome to submit/report back on, with metric or proof of completion]
+
+Make it explicit that the user must report the tactical deliverable to an accountability partner or system, and note the exact time they'll do it.`,
 };
 
 export const applyPersonaContext = (persona: Persona, userInput: string): string => {
