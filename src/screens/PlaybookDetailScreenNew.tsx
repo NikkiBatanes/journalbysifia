@@ -451,7 +451,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           )
           .map(a => ({
             ...a,
-            text: replaceAllNamePlaceholders(a.text, { firstName, displayName }),
+            text: replaceAllNamePlaceholders(
+              a.text, 
+              { firstName, displayName },
+              { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
+            )
           }))
       : [];
 
@@ -460,11 +464,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       type: 'truth' as const,
       truth: replaceAllNamePlaceholders(
         playbook.truthInLove?.text ?? '',
-        { firstName, displayName }
+        { firstName, displayName },
+        { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
       ),
       summary: replaceAllNamePlaceholders(
         playbook.truthInLove?.summary ?? '',
-        { firstName, displayName }
+        { firstName, displayName },
+        { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
       ),
       tappable: false,
     },
@@ -492,7 +498,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         typeof playbook.directChallenge === 'string'
           ? playbook.directChallenge
           : playbook.directChallenge?.text ?? '',
-        { firstName, displayName }
+        { firstName, displayName },
+        { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
       ),
       challengeCTA: playbook.challengeCTA,
       tappable: false,
