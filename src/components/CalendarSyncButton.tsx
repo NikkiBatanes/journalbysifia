@@ -192,13 +192,18 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
             setIsLoading(true);
 
             try {
+              console.log('[CalendarSyncButton] Removing calendar event:', calendarEventId);
               const result = await removeTimeBlockFromCalendar(calendarEventId);
+              console.log('[CalendarSyncButton] Remove result:', result);
 
               if (result.success) {
+                console.log('[CalendarSyncButton] Successfully removed, calling onSyncComplete(null)');
                 setSyncStatus('unsynced');
-                onSyncComplete(null);
+                await onSyncComplete(null);
                 triggerSelectionHaptic();
+                Alert.alert('Success', 'Time block removed from calendar.');
               } else {
+                console.error('[CalendarSyncButton] Remove failed:', result.error);
                 Alert.alert(
                   'Remove Failed',
                   result.error || 'Failed to remove from calendar.',
@@ -206,8 +211,9 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                 );
               }
             } catch (error) {
+              console.error('[CalendarSyncButton] Exception during remove:', error);
               Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
-              Alert.alert('Remove Error', 'An unexpected error occurred.');
+              Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
             } finally {
               setIsLoading(false);
             }

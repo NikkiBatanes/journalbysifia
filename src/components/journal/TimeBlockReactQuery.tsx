@@ -2119,7 +2119,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         {option.label}
                       </ThemedText>
                       {newBlock.alert === option.value && (
-                        <Ionicons name="checkmark" size={20} color={Colors.anchorBlue} />
+                        <Ionicons name="checkmark" size={20} color={Colors.alertCoral} />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -2952,8 +2952,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   alertModalContent: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 20,
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 30,
     width: '85%',
     maxWidth: 320,
     maxHeight: '70%',
@@ -2962,15 +2962,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    overflow: 'hidden',
   },
   alertModalTitle: {
     fontSize: 18,
-    color: Colors.darkGray,
+    color: Colors.alertCoral,
     textAlign: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   alertOptions: {
     maxHeight: 400,
@@ -2982,17 +2983,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   selectedAlertOption: {
-    backgroundColor: 'rgba(0, 102, 204, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   alertOptionText: {
     fontSize: 16,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
   },
   selectedAlertOptionText: {
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   gridContainer: {
     padding: 4,
