@@ -99,6 +99,7 @@ Close with hope and practical next steps, always pointing to Jesus.
 - Don't sound preachy or academic
 - Let the story flow naturally into the reflection
 - Make it feel personal and intimate, like a letter to a friend
+- NEVER use em dashes (—) - use commas, periods, or regular hyphens (-) instead
 
 ## DEPTH REQUIREMENTS:
 - Minimum 400 words, target 500-600 words
