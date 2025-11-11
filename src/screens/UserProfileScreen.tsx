@@ -2351,12 +2351,41 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </ScrollView>
       </SafeAreaView>
-      {showTimePicker && (
+      {showTimePicker && Platform.OS === 'ios' && (
+        <View style={styles.timePickerModal}>
+          <View style={styles.timePickerContainer}>
+            <DateTimePicker
+              value={tempTime}
+              mode="time"
+              is24Hour={false}
+              display="spinner"
+              themeVariant="dark"
+              textColor={Colors.hopeWhite}
+              onChange={(event, selectedDate) => {
+                if (selectedDate) {
+                  setTempTime(selectedDate);
+                }
+              }}
+            />
+            <TouchableOpacity
+              style={styles.timePickerDoneButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                handleTimeChange({} as any, tempTime);
+                setShowTimePicker(false);
+              }}
+            >
+              <Text style={[styles.timePickerDoneText, font]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      {showTimePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={tempTime}
           mode="time"
           is24Hour={false}
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           onChange={handleTimeChange}
         />
       )}
@@ -2912,6 +2941,33 @@ const styles = StyleSheet.create({
   timeValue: {
     fontSize: 16,
     color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  timePickerModal: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  timePickerContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  timePickerDoneButton: {
+    backgroundColor: Colors.alertCoral,
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  timePickerDoneText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
     fontWeight: '600',
   },
   yearPickerModalContainer: {
