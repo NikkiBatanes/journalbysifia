@@ -228,30 +228,7 @@ AFFIRMATIONS:
 3. [Affirmation 3]
 
 BIBLE VERSE:
-[Select 2-4 consecutive verses that powerfully address the user's situation]
-
-SCRIPTURE SELECTION GUIDANCE:
-- Explore the full breadth of Scripture (31,102 verses available!)
-- Consider lesser-known passages that users may not have encountered
-- Look beyond the most commonly quoted verses
-- Discover "hidden gems" that perfectly address the situation
-- Use commonly-quoted verses (Jeremiah 29:11, Philippians 4:13, Romans 8:28, Psalm 119:105, Proverbs 3:5-6, Isaiah 40:31, John 3:16, Psalm 23:1, Joshua 1:9) only as a last resort when they're truly the perfect fit
-- If using a well-known verse, include surrounding context (2-4 verses) and fresh historical/theological insight
-
-VERSE SELECTION MINDSET:
-Ask yourself:
-1. "What passage would make the user say 'I never knew this verse!'?"
-2. "Is there a narrative story that illustrates this truth?"
-3. "What lesser-known passage perfectly addresses this?"
-4. "Can I find something beyond the usual suspects?"
-
-Only after exploring these questions, if a commonly-used verse is truly the best fit, use it with fresh context and surrounding verses.
-
-FORMAT:
-"[Verse text spanning 2-4 consecutive verses for complete context]" - [Reference with range, e.g., ROMANS 8:28-30 or HABAKKUK 3:17-19]
-
-WHY THIS PASSAGE:
-[1-2 sentences explaining what makes this passage uniquely suited to the user's situation and how the verses work together]
+"[Verse text]" - [Reference]
 
 CHALLENGE:
 [Direct challenge with clear call-to-action that strengthens both faith and actions]`,

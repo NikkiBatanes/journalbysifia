@@ -253,43 +253,32 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     });
   }
 
-  // Parse Bible Verse with enhanced scripture patterns (supports verse ranges)
-  const verseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=WHY THIS PASSAGE:|CHALLENGE:|$)/i);
+  // Parse Bible Verse with enhanced scripture patterns
+  const verseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
   if (verseMatch) {
     const verseContent = verseMatch[1].trim();
 
     // Define scripture patterns to try in order of specificity
-    // Enhanced to better handle verse ranges (e.g., ROMANS 8:28-30, HABAKKUK 3:17-19)
     const scripturePatterns = [
-      // Format: "verse" - BOOK 1:19-20 (with verse range)
+      // Format: "verse" - BOOK 1:19-20 (with dash)
       {
-        pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+[-–]\d+)/i,
-        name: 'format 1 ("verse" - BOOK 1:19-20 with range)',
-      },
-      // Format: BOOK 1:19-20 - "verse" (with verse range)
-      {
-        pattern: /([A-Za-z0-9 ]+\s*\d+:\d+[-–]\d+)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
-        name: 'format 2 (BOOK 1:19-20 - "verse" with range)',
-      },
-      // Format: "verse" - BOOK 1:19 (single verse, less preferred)
-      {
-        pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
-        name: 'format 3 ("verse" - BOOK 1:19)',
+        pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+        name: 'format 1 ("verse" - BOOK 1:19-20 with dash)',
       },
       // Format: BOOK 1:19-20 - "verse"
       {
         pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
-        name: 'format 4 (BOOK 1:19-20 - "verse")',
+        name: 'format 2 (BOOK 1:19-20 - "verse")',
       },
       // Format: BOOK 1:19-20 verse (without quotes)
       {
         pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s+([^\n]+)/i,
-        name: 'format 5 (BOOK 1:19-20 verse)',
+        name: 'format 3 (BOOK 1:19-20 verse)',
       },
       // Fallback: Just look for a verse reference pattern
       {
         pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
-        name: 'format 6 (just verse reference)',
+        name: 'format 4 (just verse reference)',
       },
     ];
 
@@ -341,16 +330,6 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     // Set the values in the playbook
     playbook.bibleVerse.text = verseText || verseContent;
     playbook.bibleVerse.reference = verseRef || '';
-  }
-
-  // Parse "Why This Passage" explanation (optional but encouraged)
-  const whyPassageMatch = content.match(/WHY THIS PASSAGE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
-  if (whyPassageMatch) {
-    const explanation = whyPassageMatch[1].trim();
-    // Store as part of bible verse context (can be displayed in UI later)
-    if (explanation) {
-      playbook.bibleVerse.text = `${playbook.bibleVerse.text}\n\n${explanation}`;
-    }
   }
 
   // Parse Direct Challenge
