@@ -122,6 +122,7 @@ class NotificationManagementService {
         notification_type: 'user_preferences', // Required NOT NULL field in deployed database
         prayer_reminders: preferences.prayer_reminders ?? true,
         prayer_request_alerts: preferences.prayer_request_alerts ?? true,
+        prayer_requests: preferences.prayer_requests ?? true,
         playbook_steps: preferences.playbook_steps ?? true,
         devotional_reminders: preferences.devotional_reminders ?? true,
         journal_prompts: preferences.journal_prompts ?? true,
@@ -155,6 +156,12 @@ class NotificationManagementService {
         Logger.error('Error updating notification preferences', error as Error, {
       component: 'notificationManagementService',
       action: 'error',
+      data: {
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+      },
     });
         return false;
       }
