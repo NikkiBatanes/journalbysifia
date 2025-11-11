@@ -54,19 +54,19 @@ export async function generateDevotional(
       let ageGroup: string | undefined;
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (user?.id) {
           const { data: profile } = await supabase
             .from('user_profiles')
             .select('date_of_birth')
             .eq('id', user.id)
             .single();
-          
+
           if (profile?.date_of_birth) {
             dateOfBirth = profile.date_of_birth;
           }
         }
-        
+
         // Fallback to age group from user metadata (onboarding)
         if (!dateOfBirth && user) {
           ageGroup = (user as any)?.user_metadata?.ageGroup;

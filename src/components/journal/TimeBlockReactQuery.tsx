@@ -2074,12 +2074,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             animationType="fade"
             onRequestClose={() => setShowAlertModal(false)}
           >
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalOverlay}
               activeOpacity={1}
               onPress={() => setShowAlertModal(false)}
             >
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.alertModalContent}
                 activeOpacity={1}
                 onPress={(e) => e.stopPropagation()}
@@ -2111,7 +2111,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         setShowAlertModal(false);
                       }}
                     >
-                      <ThemedText 
+                      <ThemedText
                         weight={newBlock.alert === option.value ? 'semiBold' : 'medium'}
                         style={[
                           styles.alertOptionText,

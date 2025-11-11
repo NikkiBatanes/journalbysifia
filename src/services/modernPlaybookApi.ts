@@ -118,7 +118,7 @@ async function generatePlaybookInternal(
         if (typeof fromMeta === 'string' && fromMeta.trim()) {
           bibleVersion = fromMeta.trim();
         }
-        
+
         // Get user profile for age data
         if (user?.id) {
           const { data: profile } = await supabase
@@ -126,12 +126,12 @@ async function generatePlaybookInternal(
             .select('date_of_birth')
             .eq('id', user.id)
             .single();
-          
+
           if (profile?.date_of_birth) {
             dateOfBirth = profile.date_of_birth;
           }
         }
-        
+
         // Fallback to age group from user metadata (onboarding)
         if (!dateOfBirth) {
           ageGroup = (user as any)?.user_metadata?.ageGroup;
@@ -148,10 +148,10 @@ async function generatePlaybookInternal(
               'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
               'Authorization': `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({ 
-              userInput, 
-              userName, 
-              bibleVersion, 
+            body: JSON.stringify({
+              userInput,
+              userName,
+              bibleVersion,
               userId: userIdForGeneration,
               dateOfBirth,
               ageGroup,
