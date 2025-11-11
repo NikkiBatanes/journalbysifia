@@ -231,13 +231,13 @@ BAD EXAMPLES:
    - Sub-task: [Prayer/Scripture component with specific time and focus] | Journal: prayer
    - Sub-task: [Concrete action with WHO/WHAT/WHEN/METRIC - e.g., "List all 10 projects, identify repeating pattern, write in one sentence by Friday"] | Journal: [journal_type]
    - Sub-task: [Accountability action with specific person, deadline, and deliverable] | Journal: [journal_type]
-   - Example: [Direct instruction showing HOW to implement this step - e.g., "Start each morning at 6 AM with prayer, asking God to reveal your pattern. Then block 2 hours this Saturday to list all your past projects and write down the one repeating failure in a single sentence. Text that sentence to your accountability partner by Sunday and commit: no new projects until you hit your first milestone."] | Interactive: [true/false]
+   - Example: [Practical instruction showing HOW to do THIS SPECIFIC STEP. Must align with the step title. If step is "Define Your Mission," show how to define a mission practically. If step is "Conduct Post-Mortem," show how to do a post-mortem. Include specific actions, timing, and tools. E.g., for "Define Your Mission": "Block 90 minutes this Saturday morning. Start with 15 minutes of prayer asking God: 'What one problem do You want me to solve for the next 3 years?' Then write your mission in one sentence: 'I will [solve X problem] for [Y people] by [Z method].' Read it to your spouse/mentor by Sunday and ask: 'Does this sound like me running after God or running after success?'"] | Interactive: [true/false]
 
 2. [Step 2 Title]
    - Sub-task: [Spiritual anchor with Scripture and prayer posture] | Journal: prayer
    - Sub-task: [Tactical execution with metric, tool, deadline] | Journal: [journal_type]
    - Sub-task: [System/accountability with review cadence] | Journal: [journal_type]
-   - Example: [Direct instruction with specific actions, timing, and outcomes - e.g., "Open your calendar right now and block every Monday 8-9 AM for the next 12 weeks. Use this time to review your metrics with your mentor. Pray before each session: 'God, show me where I'm drifting from my one assignment.'"] | Interactive: [true/false]
+   - Example: [Practical instruction for THIS SPECIFIC STEP with concrete actions, timing, and outcomes. Must match the step title and show exactly how to execute it.] | Interactive: [true/false]
 
 VALID JOURNAL TYPES: prayer, reflection, gratitude, timeblock, none
 
