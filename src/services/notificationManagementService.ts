@@ -137,7 +137,9 @@ class NotificationManagementService {
 
       const { error } = await supabase
         .from('notification_preferences')
-        .upsert(dbPreferences);
+        .upsert(dbPreferences, {
+          onConflict: 'user_id,notification_type',
+        });
 
       if (error) {
         // Check if it's a missing table or column error (common during development)
