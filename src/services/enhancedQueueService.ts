@@ -367,32 +367,132 @@ export class EnhancedQueueService {
   }
 
   /**
-   * Generate content using OpenAI
+   * Generate content using Supabase Edge Functions
+   * Calls the appropriate generation function based on content type
    */
   private async generateContent(item: QueueItem): Promise<ProcessingResult> {
-    try {
-      // Build contextual prompt
-      const contextualPrompt = await userContextEngine.generateContextualPrompt(
-        this.getBasePrompt(item.type),
-        item.contextData
-      );
+    const startTime = Date.now();
 
-      // Make OpenAI API call (placeholder - replace with actual implementation)
-      const response = await this.callOpenAI(contextualPrompt.enhancedPrompt);
+    try {
+      let response;
+      let tokensUsed = 0;
+
+      // Call the appropriate Supabase Edge Function based on type
+      switch (item.type) {
+        case 'playbook':
+          response = await this.generatePlaybook(item);
+          tokensUsed = this.estimateTokenUsage(item.userInput, item.contextData);
+          break;
+
+        case 'devotional':
+          response = await this.generateDevotional(item);
+          tokensUsed = this.estimateTokenUsage(item.userInput, item.contextData);
+          break;
+
+        case 'journal_expansion':
+          response = await this.generateJournalExpansion(item);
+          tokensUsed = this.estimateTokenUsage(item.userInput, item.contextData);
+          break;
+
+        default:
+          throw new Error(`Unsupported content type: ${item.type}`);
+      }
+
+      const processingTime = Date.now() - startTime;
 
       return {
         success: true,
-        content: response.content,
-        tokensUsed: response.tokensUsed,
-        processingTime: response.processingTime,
+        content: JSON.stringify(response),
+        tokensUsed,
+        processingTime,
       };
 
     } catch (error) {
+      const processingTime = Date.now() - startTime;
+      Logger.error('[EnhancedQueueService] Content generation failed', error as Error, {
+        component: 'enhancedQueueService',
+        itemType: item.type,
+        userId: item.userId,
+      });
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Generation failed',
+        processingTime,
       };
     }
+  }
+
+  /**
+   * Generate playbook via Supabase Edge Function
+   */
+  private async generatePlaybook(item: QueueItem): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('generate-playbook', {
+      body: {
+        userInput: item.userInput,
+        userName: item.userName,
+        userId: item.userId,
+      },
+    });
+
+    if (error) {
+      throw new Error(`Playbook generation failed: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error('No data returned from playbook generation');
+    }
+
+    return data;
+  }
+
+  /**
+   * Generate devotional via Supabase Edge Function
+   */
+  private async generateDevotional(item: QueueItem): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('generate-devotional', {
+      body: {
+        userInput: item.userInput,
+        userName: item.userName,
+        duration: item.contextData?.duration || 1,
+        bibleVersion: item.contextData?.bibleVersion || 'NASB',
+        playbookId: item.contextData?.playbookId,
+      },
+    });
+
+    if (error) {
+      throw new Error(`Devotional generation failed: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error('No data returned from devotional generation');
+    }
+
+    return data;
+  }
+
+  /**
+   * Generate journal expansion via appropriate Edge Function
+   * TODO: Implement when journal expansion Edge Function is created
+   */
+  private async generateJournalExpansion(item: QueueItem): Promise<any> {
+    // For now, throw an error as this feature is not yet implemented
+    throw new Error('Journal expansion generation not yet implemented');
+
+    // Future implementation:
+    // const { data, error } = await supabase.functions.invoke('expand-journal-entry', {
+    //   body: {
+    //     entryId: item.contextData?.entryId,
+    //     userInput: item.userInput,
+    //     userName: item.userName,
+    //   },
+    // });
+    //
+    // if (error) {
+    //   throw new Error(`Journal expansion failed: ${error.message}`);
+    // }
+    //
+    // return data;
   }
 
   /**
@@ -522,20 +622,6 @@ export class EnhancedQueueService {
     };
   }
 
-  private async callOpenAI(prompt: string): Promise<{ content: string; tokensUsed: number; processingTime: number }> {
-    // Placeholder for actual OpenAI implementation
-    // This would integrate with your existing OpenAI service
-    const startTime = Date.now();
-
-    // Simulate API call
-    await this.sleep(2000 + Math.random() * 3000); // 2-5 second simulation
-
-    return {
-      content: `Generated content for: ${prompt.substring(0, 100)}...`,
-      tokensUsed: Math.floor(Math.random() * 500) + 200,
-      processingTime: Date.now() - startTime,
-    };
-  }
 
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));

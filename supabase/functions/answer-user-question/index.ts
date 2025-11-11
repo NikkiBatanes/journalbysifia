@@ -92,25 +92,20 @@ Keep your response personal, encouraging, and around 2-3 paragraphs. Make it fee
   } catch (error) {
     console.error('Error generating AI response:', error);
 
-    // Return fallback response
-    const fallbackResponse = `Thank you for your question. While I'm having trouble connecting to generate a personalized response right now, I want you to know that God cares deeply about what you're going through. 
-
-I encourage you to bring this question to God in prayer, and consider looking into relevant Scripture passages that might speak to your situation. Remember that "in all your ways acknowledge Him, and He will make your paths straight" (Proverbs 3:6).
-
-Please try asking your question again in a moment, and I'll do my best to provide you with more specific guidance.`;
-
+    // Return proper error status - no fallback
     return new Response(
       JSON.stringify({
-        response: fallbackResponse,
         success: false,
-        error: 'AI service temporarily unavailable',
+        error: 'Failed to generate AI response',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        retryable: true,
       }),
       {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-        status: 200, // Still return 200 so the UI can handle the fallback gracefully
+        status: 500,
       }
     );
   }

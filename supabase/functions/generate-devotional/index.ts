@@ -168,37 +168,6 @@ function cleanMarkdown(text: unknown): string {
 }
 
 /**
- * Creates a default devotional day for error cases
- * @deprecated This function is no longer used as we removed fallbacks for better error handling
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _createDefaultDay(dayNumber: number, isError = false, bibleVersion = 'ESV'): DevotionalDay {
-  const timestamp = Date.now();
-  return {
-    id: `${timestamp}-day-${dayNumber}`,
-    dayNumber,
-    title: isError ? 'Error' : `Day ${dayNumber}`,
-    scripture: {
-      text: isError ? 'The Lord is my shepherd; I shall not want.' : 'Your word is a lamp to my feet and a light to my path.',
-      reference: isError ? 'PSALM 23:1' : 'PSALM 119:105',
-      version: bibleVersion,
-    },
-    reflection: isError
-      ? 'We encountered an error generating this devotional. Please try again.'
-      : 'Reflect on God’s guidance in your life today.',
-    reflectionQuestions: [
-      { id: 'q1', text: 'What stands out to you from today’s scripture?' },
-      { id: 'q2', text: 'How can you apply this to your life today?' },
-      { id: 'q3', text: 'How does this point you to Christ?' },
-    ],
-    prayer: isError
-      ? ''
-      : 'Heavenly Father,\n\nThank You for Your guiding word.\nForgive me for doubting Your path.\nGuide me in Your truth today.\nThank You for Your faithfulness.\n\nIn Jesus’ Name, Amen',
-    completed: false,
-  };
-}
-
-/**
  * Safely parses the OpenAI response into a structured devotional format
  * Enhanced with comprehensive error handling, input validation, and detailed logging
  */

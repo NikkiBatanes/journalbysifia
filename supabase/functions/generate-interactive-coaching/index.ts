@@ -9,7 +9,7 @@ interface ConversationContext {
   originalUserInput: string;
   playbookTitle: string;
   currentStepText: string;
-  userSpiritualProfile?: any;
+  userSpiritualProfile?: Record<string, unknown>;
 }
 
 interface ConversationMessage {
@@ -17,7 +17,7 @@ interface ConversationMessage {
   type: 'user' | 'ai' | 'system';
   content: string;
   timestamp: Date;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface InteractiveCoachingRequest {
@@ -95,20 +95,13 @@ serve(async (req) => {
       throw new Error('No content received from OpenAI');
     }
 
-    // Parse the JSON response
+    // Parse the JSON response - fail if not valid JSON
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(aiContent);
-    } catch (parseError) {
+    } catch (_parseError) {
       console.error('Failed to parse OpenAI response as JSON:', aiContent);
-      // Fallback response
-      parsedResponse = {
-        message: aiContent,
-        followUpQuestions: [],
-        suggestedActions: [],
-        prayerPoints: [],
-        scriptureRecommendations: [],
-      };
+      throw new Error('AI returned invalid JSON format. Please retry.');
     }
 
     console.log('Interactive coaching response generated successfully');
@@ -126,29 +119,20 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-interactive-coaching function:', error);
 
-    // Return fallback response
-    const fallbackResponse = {
-      message: "I'm here to walk alongside you in your faith journey. What's on your heart right now?",
-      followUpQuestions: [
-        {
-          id: 'fallback_1',
-          question: 'What feels most challenging about this step?',
-          purpose: 'clarification',
-          priority: 'high',
-        },
-      ],
-      suggestedActions: ['Take a moment to pray about this situation'],
-      prayerPoints: ['For wisdom and guidance in this area'],
-      scriptureRecommendations: [],
-    };
-
+    // Return proper error status - no fallback
     return new Response(
-      JSON.stringify(fallbackResponse),
+      JSON.stringify({
+        success: false,
+        error: 'Failed to generate coaching response',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        retryable: true,
+      }),
       {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
+        status: 500,
       }
     );
   }
@@ -214,7 +198,12 @@ function buildConversationalPrompt(
   userMessage: string,
   conversationHistory: ConversationMessage[],
   context: ConversationContext,
-  insights?: any
+  insights?: {
+    keyThemes?: string[];
+    breakthroughs?: string[];
+    prayerRequests?: string[];
+    scriptureReferences?: string[];
+  }
 ): string {
   const recentHistory = conversationHistory.slice(-4).map(msg =>
     `${msg.type === 'user' ? 'User' : 'Coach'}: ${msg.content}`
