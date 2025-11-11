@@ -104,11 +104,12 @@ DETAILED RULES:
      * "Write a gratitude list" → gratitude
      * "Write a prayer asking God for wisdom" → prayer
 
-3. "CREATE/PLAN/OUTLINE" = REFLECTION (planning/organizing)
-   - "Create an outline" → reflection
-   - "Plan a Q&A session" → reflection
-   - "Plan a meeting agenda" → reflection
-   - "Create a strategy" → reflection
+3. "CREATE/PLAN/OUTLINE/DRAFT" = Context-dependent
+   - "Create an outline" → reflection (thinking/organizing)
+   - "Draft an outline" → timeblock (allocating time to draft)
+   - "Plan a Q&A session" → reflection (thinking/planning)
+   - "Schedule a..." → timeblock (setting specific time)
+   - "Create a strategy" → reflection (thinking/organizing)
 
 4. "IDENTIFY X" (with numbers) = REFLECTION
    - "Identify 2 or 3 key issues" → reflection
@@ -121,10 +122,11 @@ DETAILED RULES:
    - "Track your progress" → none
    - "Track your habits" → none
 
-6. "SHARE/TELL/ASK SOMEONE" = NONE (action, not journaling)
+6. "SHARE/TELL/ASK/REACH OUT" = NONE (action, not journaling)
    - "Share with your wife..." → none
    - "Ask your wife..." → none
    - "Tell your mentor..." → none
+   - "Reach out to..." → none
 
 7. "PRAY TOGETHER/WITH" = NONE (joint activity)
    - "Pray together with your spouse" → none
@@ -203,6 +205,11 @@ GRATITUDE (for expressing thankfulness):
 - Recognizing blessings
 
 CORRECT EXAMPLES:
+- "Draft an outline for your mission statement" → timeblock (allocating time to draft)
+- "Schedule a meeting with your mentor" → timeblock (setting specific time)
+- "Schedule a Q&A session for next week" → timeblock (setting specific time)
+- "Reach out to your accountability partner" → none (action, not journaling)
+- "Reach out to 3 potential mentors" → none (action, not journaling)
 - "Write a prayer to God" → prayer (writing TO God)
 - "Write a list of your failures" → reflection (planning/documenting)
 - "Write a plan for next quarter" → reflection (planning)
@@ -284,16 +291,19 @@ TRUTH IN LOVE:
 ACTION STEPS:
 [CRITICAL: Balance spiritual depth with practical execution. Every step should integrate BOTH prayer/Scripture AND concrete actions with metrics/deadlines.]
 
+[JOURNALING IN THE APP]:
+When tasks involve journaling (prayer, reflection, gratitude), reference the app's built-in journal feature naturally. Instead of "keep a journal," say "use your journal in the app" or "journal your response in the app." Make it clear the app has this capability without being repetitive.
+
 [SPECIFICITY REQUIREMENTS FOR SUB-TASKS]:
 - Include WHO (specific person/role if applicable)
 - Include WHAT (concrete deliverable, not vague "think" or "write")
 - Include WHEN (specific day/time or clear trigger)
-- Include WHERE/HOW (tool, system, location if relevant)
+- Include WHERE/HOW (tool, system, location if relevant - for journaling, mention "in the app")
 - Include METRIC (measurable outcome, KPI, or observable result)
 
 GOOD EXAMPLES:
-✅ "Complete post-mortem: list all 10+ projects since 2012, identify the one repeating failure pattern, write it in one sentence by Friday" | Journal: reflection
-✅ "Set 6 AM daily alarm for 15-min prayer; ask God to reveal your one assignment; journal His response" | Journal: prayer
+✅ "Complete post-mortem: list all 10+ projects since 2012, identify the one repeating failure pattern, journal it in the app by Friday" | Journal: reflection
+✅ "Set 6 AM daily alarm for 15-min prayer; ask God to reveal your one assignment; journal His response in the app" | Journal: prayer
 ✅ "Text accountability partner today: 'Can we do weekly check-ins on revenue/metrics starting this Sunday 7 PM?'" | Journal: none
 ✅ "Block 2 hours on calendar this Saturday to define your 3-year commitment; no pivots allowed until you hit $10K MRR" | Journal: timeblock
 
