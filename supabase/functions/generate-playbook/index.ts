@@ -344,14 +344,12 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse "Why This Passage" explanation (optional but encouraged)
-  // Note: We're NOT appending this to verse text - just logging it for now
-  // The explanation can be stored separately in the future if needed
   const whyPassageMatch = content.match(/WHY THIS PASSAGE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
   if (whyPassageMatch) {
     const explanation = whyPassageMatch[1].trim();
+    // Store as part of bible verse context (can be displayed in UI later)
     if (explanation) {
-      console.log('[PLAYBOOK PARSER] Why This Passage explanation:', explanation);
-      // Don't append to verse text - keep verse clean
+      playbook.bibleVerse.text = `${playbook.bibleVerse.text}\n\n${explanation}`;
     }
   }
 
