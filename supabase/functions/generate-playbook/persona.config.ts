@@ -81,39 +81,63 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
 4. SPIRITUAL REQUESTS TO GOD = PRAYER - "Pray for...", "Ask God to...", "Seek God's..." → prayer (ONLY if it's talking TO God, not about prayer!)
 
 DETAILED RULES:
-1. "Dedicate time" / "Set aside X minutes" = TIMEBLOCK
-   - "Dedicate 15 minutes each morning to pray" → timeblock (time allocation)
-   - "Pray daily for your wife. Dedicate 15 minutes..." → timeblock (time allocation takes priority)
 
-2. "Write down" = REFLECTION (unless it's gratitude/blessings)
-   - "Write down your thoughts" → reflection
-   - "Write down your prayers" → prayer (exception: writing prayers TO God)
-   - "Write down what you're grateful for" → gratitude
+1. TIME ALLOCATION = TIMEBLOCK (always check this first!)
+   - "Dedicate X minutes/hours" → timeblock
+   - "Set aside X minutes/hours" → timeblock
+   - "Spend X hours/minutes" → timeblock
+   - "Spend time" → timeblock
+   - Examples:
+     * "Dedicate 15 minutes each morning to pray" → timeblock
+     * "Set aside 30 mins for reflection" → timeblock
+     * "Spend 2 hours analyzing your projects" → timeblock
+     * "Spend 1 hr in prayer" → timeblock
+     * "Spend time with your mentor" → timeblock
 
-3. "Share" / "Tell" / "Ask someone" = NONE (action, not journaling)
-   - "Share with your wife the areas you're praying for her" → none (sharing is an action)
-   - "Ask your wife about her needs" → none (asking is an action)
-   - "Tell your mentor about your progress" → none (telling is an action)
+2. "WRITE A..." = Context-dependent
+   - "Write a prayer" → prayer (writing TO God)
+   - "Write a letter to God" → prayer (writing TO God)
+   - "Write a..." (anything else) → reflection
+   - Examples:
+     * "Write a list of your failures" → reflection
+     * "Write a plan for next quarter" → reflection
+     * "Write a gratitude list" → gratitude
+     * "Write a prayer asking God for wisdom" → prayer
 
-4. "Pray together" / "Pray with" = NONE (action, not solo journaling)
-   - "Pray together with your spouse" → none (joint activity)
-   - "Pray with your accountability partner" → none (joint activity)
+3. "CREATE/PLAN/OUTLINE" = REFLECTION (planning/organizing)
+   - "Create an outline" → reflection
+   - "Plan a Q&A session" → reflection
+   - "Plan a meeting agenda" → reflection
+   - "Create a strategy" → reflection
 
-5. "Identify" / "Prepare" = REFLECTION (analysis/planning)
-   - "Identify a local church" → reflection (identifying/evaluating)
-   - "Identify specific areas" → reflection (analysis)
-   - "Prepare questions for your session" → reflection (planning)
+4. "IDENTIFY X" (with numbers) = REFLECTION
+   - "Identify 2 or 3 key issues" → reflection
+   - "Identify 5 areas for growth" → reflection
+   - "Identify a local church" → reflection
+   - Any "Identify..." → reflection
 
-6. "Pray for" (solo, to God) = PRAYER
-   - "Pray for God to reveal..." → prayer (spiritual request)
-   - "Pray for wisdom" → prayer (spiritual request)
+5. "TRACK YOUR..." = NONE (ongoing activity)
+   - "Track your expenses" → none
+   - "Track your progress" → none
+   - "Track your habits" → none
+
+6. "SHARE/TELL/ASK SOMEONE" = NONE (action, not journaling)
+   - "Share with your wife..." → none
+   - "Ask your wife..." → none
+   - "Tell your mentor..." → none
+
+7. "PRAY TOGETHER/WITH" = NONE (joint activity)
+   - "Pray together with your spouse" → none
+   - "Pray with your accountability partner" → none
+
+8. "PRAY FOR" (solo, to God) = PRAYER
+   - "Pray for God to reveal..." → prayer
+   - "Pray for wisdom" → prayer
    - BUT: "Pray for 15 minutes daily" → timeblock (time allocation!)
 
-7. DISTINGUISH TASK vs JOURNALING
-   - "Read a book" → none (task)
-   - "Reflect on what you read" → reflection (journaling)
-   - "Create list" → none (task)
-   - "Schedule meeting" → none (task)
+9. "PREPARE/IDENTIFY" (no numbers) = REFLECTION
+   - "Prepare questions" → reflection
+   - "Identify specific areas" → reflection
 
 JOURNAL TYPES:
 
@@ -179,6 +203,21 @@ GRATITUDE (for expressing thankfulness):
 - Recognizing blessings
 
 CORRECT EXAMPLES:
+- "Write a prayer to God" → prayer (writing TO God)
+- "Write a list of your failures" → reflection (planning/documenting)
+- "Write a plan for next quarter" → reflection (planning)
+- "Spend 2 hours analyzing your projects" → timeblock (time allocation)
+- "Spend 1 hr in prayer" → timeblock (time allocation)
+- "Spend time with your mentor" → timeblock (time allocation)
+- "Create an outline for your mission" → reflection (planning/organizing)
+- "Plan a Q&A session with your team" → reflection (planning)
+- "Set aside 30 mins for reflection" → timeblock (time allocation)
+- "Identify 2 or 3 key issues" → reflection (identifying with numbers)
+- "Identify 5 areas for growth" → reflection (identifying with numbers)
+- "Dedicate 15 minutes each morning to pray" → timeblock (time allocation)
+- "Dedicate 1 minute daily for gratitude" → timeblock (time allocation)
+- "Track your expenses in a spreadsheet" → none (ongoing activity)
+- "Track your progress weekly" → none (ongoing activity)
 - "Pray daily for your wife. Dedicate 15 minutes each morning..." → timeblock (time allocation takes priority!)
 - "Write down your thoughts" → reflection (writing/documenting)
 - "Write down your prayers" → prayer (writing prayers TO God)
