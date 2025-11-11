@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -37,8 +38,11 @@ const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
   const inputRef = useRef<TextInput | null>(null);
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
+  const isLandscape = width > height;
+  const isPad = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
   useScreenStatusBar('dark', Colors.anchorBlue);
 
@@ -184,7 +188,7 @@ const UserInputScreen: React.FC = () => {
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
-  const headerTranslateY = useRef(new Animated.Value(-16)).current; // start slightly above for intro
+  const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -80 : -16)).current; // in iPad landscape, move UP closer to input
   const headerScale = useRef(new Animated.Value(1)).current;
   const headerIntroOpacity = useRef(new Animated.Value(0)).current;
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
@@ -198,7 +202,11 @@ const UserInputScreen: React.FC = () => {
       Animated.delay(220), // small delay to let modal finish sliding
       Animated.parallel([
         Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
-        Animated.timing(headerTranslateY, { toValue: 0, duration: 320, useNativeDriver: true }),
+        // In iPad landscape, keep logo UP closer to input; otherwise animate to 0
+        Animated.timing(
+          headerTranslateY,
+          { toValue: isPad && isLandscape ? -80 : 0, duration: 320, useNativeDriver: true }
+        ),
         Animated.sequence([
           Animated.delay(100),
           Animated.parallel([
@@ -208,28 +216,30 @@ const UserInputScreen: React.FC = () => {
         ]),
       ]),
     ]).start();
-  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY]);
+  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad]);
   const handleFocus = () => {
     Animated.timing(inputBorderWidth, {
       toValue: 2,
       duration: 120,
       useNativeDriver: false,
     }).start();
-    // Move logo down closer to the input with a gentle spring and slight scale
-    Animated.parallel([
-      Animated.spring(headerTranslateY, {
-        toValue: 96,
-        useNativeDriver: true,
-        stiffness: 180,
-        damping: 18,
-        mass: 0.9,
-      }),
-      Animated.timing(headerScale, {
-        toValue: 0.98,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // In iPad landscape, do not move the logo; only animate in portrait
+    if (!(isPad && isLandscape)) {
+      Animated.parallel([
+        Animated.spring(headerTranslateY, {
+          toValue: 96,
+          useNativeDriver: true,
+          stiffness: 180,
+          damping: 18,
+          mass: 0.9,
+        }),
+        Animated.timing(headerScale, {
+          toValue: 0.98,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
     if (showTooltip) {
       Animated.parallel([
         Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
@@ -243,20 +253,23 @@ const UserInputScreen: React.FC = () => {
       duration: 120,
       useNativeDriver: false,
     }).start();
-    Animated.parallel([
-      Animated.spring(headerTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        stiffness: 200,
-        damping: 20,
-        mass: 0.9,
-      }),
-      Animated.timing(headerScale, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // In iPad landscape, keep the logo position stable; only reset in portrait
+    if (!(isPad && isLandscape)) {
+      Animated.parallel([
+        Animated.spring(headerTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          stiffness: 200,
+          damping: 20,
+          mass: 0.9,
+        }),
+        Animated.timing(headerScale, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
   };
 
   const animateButton = () => {
@@ -373,14 +386,14 @@ const UserInputScreen: React.FC = () => {
         keyboardVerticalOffset={Platform.select({ ios: insets.bottom || 0, android: 0 })}
         style={styles.container}
       >
-        <View style={styles.content}>
+        <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }, { scale: headerScale }] }]}>
             <Animated.Image source={require('../../assets/images/siFia.png')} style={[styles.logo, { opacity: headerIntroOpacity }]} resizeMode="contain" />
           </Animated.View>
         </View>
 
         {/* Fixed footer input anchored to safe area */}
-        <View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 8 }]}>
+        <View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20 }]}>
           <View style={styles.inputContainer}>
             <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
               <View style={styles.askWrapper}>
@@ -558,6 +571,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 0,
+  },
+  contentLandscape: {
+    justifyContent: 'flex-end',
+    paddingBottom: 40,
   },
   header: {
     justifyContent: 'center',

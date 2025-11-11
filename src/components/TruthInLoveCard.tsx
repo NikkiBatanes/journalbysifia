@@ -58,6 +58,17 @@ export default function TruthInLoveCard({
     return result;
   }, [summary, freshUserData]);
 
+  const truthParagraphs = React.useMemo(() => {
+    if (!processedTruth) {
+      return [] as string[];
+    }
+
+    return processedTruth
+      .split(/\n\s*\n+/)
+      .map(paragraph => paragraph.trim())
+      .filter(paragraph => paragraph.length > 0);
+  }, [processedTruth]);
+
   // Debug styles - can be removed after fixing
   const debugStyle = {
     // borderWidth: 1,
@@ -85,21 +96,32 @@ export default function TruthInLoveCard({
 
       <View style={[styles.contentWrapper, debugStyle]}>
         <View style={styles.textContainer}>
-          <ThemedText
-            weight="regular"
-            style={[styles.truth, {
-              color: textColor,
-              // Remove flex from text style as it's now on the container
-            }]}
-            numberOfLines={isExpanded ? undefined : numberOfLines}
-            ellipsizeMode={isExpanded ? 'clip' : ellipsizeMode}
-            // Add these props to ensure proper text measurement
-            textBreakStrategy="highQuality"
-            allowFontScaling={true}
-            adjustsFontSizeToFit={false}
-          >
-            {processedTruth}
-          </ThemedText>
+          {isExpanded
+            ? truthParagraphs.map((paragraph, index) => (
+                <ThemedText
+                  weight="regular"
+                  style={[styles.truth, styles.truthParagraph, { color: textColor }]}
+                  key={`truth-paragraph-${index}`}
+                  textBreakStrategy="highQuality"
+                  allowFontScaling={true}
+                  adjustsFontSizeToFit={false}
+                >
+                  {paragraph}
+                </ThemedText>
+              ))
+            : (
+                <ThemedText
+                  weight="regular"
+                  style={[styles.truth, { color: textColor }]}
+                  numberOfLines={numberOfLines}
+                  ellipsizeMode={ellipsizeMode}
+                  textBreakStrategy="highQuality"
+                  allowFontScaling={true}
+                  adjustsFontSizeToFit={false}
+                >
+                  {truthParagraphs.length > 0 ? truthParagraphs[0] : processedTruth}
+                </ThemedText>
+              )}
         </View>
       </View>
 
@@ -167,6 +189,9 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     opacity: 0.8,
     marginTop: 4, // Further reduced from 8 to 4
+  },
+  truthParagraph: {
+    marginBottom: 12,
   },
   truncatedTruth: {
     // Typography handled by ThemedText weight="regular"
