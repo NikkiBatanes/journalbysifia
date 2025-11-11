@@ -37,6 +37,7 @@ import DevotionalSkeleton from '../components/SkeletonLoader/DevotionalSkeleton'
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
 
@@ -649,6 +650,8 @@ const DevotionalsScreen = () => {
   // Treat screen as loading until BOTH queries have settled to avoid flashing the no-playbooks empty state
   const isInitialLoading = isLoading || isLoadingPlaybooks;
   const isTrulyEmpty = !isInitialLoading && totalDevotionalsAll === 0;
+
+  useScreenStatusBar(isTrulyEmpty ? 'light' : 'auto', isTrulyEmpty ? Colors.anchorBlue : undefined);
 
   // Prefetch detail data for visible items
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: Devotional }> }) => {

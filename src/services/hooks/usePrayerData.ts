@@ -604,6 +604,11 @@ export const useMarkPrayerRequestPrayed = () => {
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
+      if (_dateStr) {
+        await queryClient.cancelQueries({
+          queryKey: queryKeys.prayers.people(_userId, _dateStr),
+        });
+      }
 
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
@@ -611,6 +616,11 @@ export const useMarkPrayerRequestPrayed = () => {
       const previousUnprayed = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.unprayedRequests(_userId)
       );
+      const previousPeople = _dateStr
+        ? queryClient.getQueryData<PrayerApiEntry[]>(
+            queryKeys.prayers.people(_userId, _dateStr)
+          )
+        : undefined;
 
       queryClient.setQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr),
@@ -620,6 +630,17 @@ export const useMarkPrayerRequestPrayed = () => {
             : prayer
         )
       );
+
+      if (_dateStr) {
+        queryClient.setQueryData<PrayerApiEntry[]>(
+          queryKeys.prayers.people(_userId, _dateStr),
+          (old = []) => old.map(prayer =>
+            prayer.id === id
+              ? { ...prayer, prayed: isPrayed, is_prayed: isPrayed, updated_at: new Date().toISOString() }
+              : prayer
+          )
+        );
+      }
 
       // Update dashboard unprayed requests list immediately
       queryClient.setQueryData<PrayerApiEntry[]>(
@@ -638,7 +659,7 @@ export const useMarkPrayerRequestPrayed = () => {
         }
       );
 
-      return { previousPrayers, previousUnprayed };
+      return { previousPrayers, previousUnprayed, previousPeople };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       Logger.error('Error marking prayer request as prayed', err as Error, {
@@ -656,6 +677,12 @@ export const useMarkPrayerRequestPrayed = () => {
           context.previousUnprayed
         );
       }
+      if (_dateStr && context?.previousPeople) {
+        queryClient.setQueryData(
+          queryKeys.prayers.people(_userId, _dateStr),
+          context.previousPeople
+        );
+      }
     },
     onSettled: (data, error, { _userId, _dateStr }) => {
       queryClient.invalidateQueries({
@@ -664,6 +691,11 @@ export const useMarkPrayerRequestPrayed = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
+      if (_dateStr) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.people(_userId, _dateStr),
+        });
+      }
     },
   });
 };

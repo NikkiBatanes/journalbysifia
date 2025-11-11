@@ -655,8 +655,17 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                 <View style={[
                   styles.winContainer,
                   viewMode === 'inline' && styles.winContainerInline,
+                  { justifyContent: 'center', alignItems: 'center' },
                 ]}>
-                  <ThemedText style={[styles.winText, { fontFamily: getFontFamily(fontKey, 'bold') }]}>{displayWin.text}</ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.winText,
+                      { fontFamily: getFontFamily(fontKey, 'bold'), textAlign: 'center' },
+                    ]}
+                    numberOfLines={viewMode === 'inline' ? undefined : 6}
+                  >
+                    {displayWin.text}
+                  </ThemedText>
                 </View>
               )}
             </SwipeableTodoItem>
