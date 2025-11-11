@@ -190,10 +190,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       }
     };
 
-    // Start showing UI immediately; delay the actual generation slightly
-    setIsGenerating(true);
-    const timer = setTimeout(generatePlaybookContent, 3000);
-    return () => clearTimeout(timer);
+    // Start generation immediately (removed artificial 3-second delay for enterprise-grade UX)
+    generatePlaybookContent();
   }, [userInput, userName, isFromOnboarding, isGenerating, navigation, user?.id, progressAnim, triggerSuccessHaptic]);
 
   // Bottom sun ring animation loop

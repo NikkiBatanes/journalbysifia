@@ -868,11 +868,34 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Debounced save function to prevent excessive calls
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSaveRef = useRef(false);
+
+  // Immediate save function (no debounce) for critical saves
+  const immediateSave = useCallback(async () => {
+    if (!playbook?.id || isSaving) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await saveActionSteps(playbook.id);
+      pendingSaveRef.current = false;
+    } catch (err) {
+      Logger.error('Error in immediate save', err as Error, {
+        component: 'PlaybookDetailScreenNew',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [playbook?.id, isSaving, saveActionSteps]);
 
   const debouncedSaveProgress = useCallback(() => {
     if (!playbook?.id) {
       return;
     }
+
+    // Mark that we have a pending save
+    pendingSaveRef.current = true;
 
     // Clear existing timeout
     if (saveTimeoutRef.current) {
@@ -882,19 +905,17 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     // Set new timeout
     saveTimeoutRef.current = setTimeout(async () => {
       if (isSaving) {
-
         return;
       }
 
       try {
         setIsSaving(true);
-
         await saveActionSteps(playbook.id);
-
+        pendingSaveRef.current = false;
       } catch (err) {
         Logger.error('Error in debounced save', err as Error, {
-      component: 'PlaybookDetailScreenNew',
-    });
+          component: 'PlaybookDetailScreenNew',
+        });
       } finally {
         setIsSaving(false);
       }
@@ -903,14 +924,26 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Call debounced save when actionSteps change
   useEffect(() => {
-
     if (isInitialized && actionSteps.length > 0) {
-
       debouncedSaveProgress();
-    } else {
-
     }
-  }, [actionSteps, isInitialized, debouncedSaveProgress]);
+
+    // CRITICAL: Force immediate save on unmount if there's a pending save
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      // If there's a pending save, execute it immediately before unmount
+      if (pendingSaveRef.current && playbook?.id) {
+        // Use synchronous approach to ensure save happens
+        saveActionSteps(playbook.id).catch((err) => {
+          Logger.error('Error in unmount save', err as Error, {
+            component: 'PlaybookDetailScreenNew',
+          });
+        });
+      }
+    };
+  }, [actionSteps, isInitialized, debouncedSaveProgress, playbook?.id, saveActionSteps]);
 
   // DISABLED - Old automatic save logic
   /*

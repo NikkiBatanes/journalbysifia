@@ -9,6 +9,8 @@ import { Logger } from '../utils/ProductionLogger';
 import { Playbook } from '../interfaces/playbook';
 import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
 import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
+import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeout';
+import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
 
 /**
  * Robust session retrieval with retry logic
@@ -69,12 +71,13 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
 import { addJournalTypesToPlaybook } from '../utils/journalTypeDetection';
 
 /**
- * Generate a new playbook using modern Supabase session
- * This replaces the legacy generatePlaybook function
+ * Internal function that does the actual generation
+ * Wrapped by generatePlaybook for deduplication
  */
-export async function generatePlaybook(
+async function generatePlaybookInternal(
   userInput: string,
   userName: string,
+  userId: string,
   maxRetries: number = API_RETRY_ATTEMPTS
 ): Promise<Playbook> {
   // Get session with retry logic to handle race conditions
@@ -108,15 +111,19 @@ export async function generatePlaybook(
         }
       } catch {}
 
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ userInput, userName, bibleVersion, userId }),
-      });
+      // Wrap fetch with timeout to prevent hanging (60s for AI generation)
+      const response = await withTimeout(
+        fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ userInput, userName, bibleVersion, userId }),
+        }),
+        TIMEOUT_CONFIGS.AI_GENERATION
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -155,13 +162,21 @@ export async function generatePlaybook(
       const error = err as Error;
       lastError = error;
 
-      Logger.warn(`Playbook generation attempt ${attempt + 1} failed:`, {
-  component: 'modernPlaybookApi',
-  data: error.message,
-});
+      // Log timeout errors differently
+      if (isTimeoutError(error)) {
+        Logger.warn(`⏱️ Playbook generation timeout (attempt ${attempt + 1}):`, {
+          component: 'modernPlaybookApi',
+          data: error.message,
+        });
+      } else {
+        Logger.warn(`Playbook generation attempt ${attempt + 1} failed:`, {
+          component: 'modernPlaybookApi',
+          data: error.message,
+        });
+      }
 
-      // Don't retry on authentication errors
-      if (error.message.includes('session') || error.message.includes('token') || error.message.includes('sign in')) {
+      // Don't retry on authentication errors or timeouts (timeout means server is slow, not failed)
+      if (error.message.includes('session') || error.message.includes('token') || error.message.includes('sign in') || isTimeoutError(error)) {
         throw error;
       }
 
@@ -181,6 +196,39 @@ export async function generatePlaybook(
       action: 'error',
     });
   throw new Error(errorMessage);
+}
+
+/**
+ * Generate a new playbook with request deduplication
+ * Public API that wraps generatePlaybookInternal with deduplication
+ * Prevents duplicate requests from the same user with same input
+ */
+export async function generatePlaybook(
+  userInput: string,
+  userName: string,
+  maxRetries: number = API_RETRY_ATTEMPTS
+): Promise<Playbook> {
+  // Get userId for deduplication
+  let userId: string;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+    userId = user.id;
+  } catch (error) {
+    Logger.error('Failed to get user for deduplication', error as Error, {
+      component: 'modernPlaybookApi',
+    });
+    throw error;
+  }
+
+  // Wrap with deduplication
+  return deduplicatePlaybookGeneration(
+    userId,
+    userInput,
+    () => generatePlaybookInternal(userInput, userName, userId, maxRetries)
+  );
 }
 
 /**
