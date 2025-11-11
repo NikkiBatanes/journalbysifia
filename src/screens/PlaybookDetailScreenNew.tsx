@@ -66,6 +66,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
+import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 
 // Navigation types
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -412,24 +413,43 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const cardData: CardData[] = useMemo(() => {
     if (!playbook) {return [];}
 
+    // Get user name for dynamic replacement
+    const userMeta: any = (user as any)?.user_metadata || {};
+    const firstName = userMeta.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+    const displayName = (user as any)?.displayName || 
+                       userMeta.full_name || 
+                       [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() || 
+                       '';
+
     // Debug action steps data
     const finalActionSteps = Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
           (Array.isArray(playbook?.actionSteps) ? playbook.actionSteps : []);
 
-    // Debug affirmations data
+    // Debug affirmations data - apply name replacement
     const finalAffirmations = Array.isArray(playbook?.affirmations)
-      ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
-          a?.id !== undefined &&
-          a?.text !== undefined &&
-          a?.completed !== undefined
-        )
+      ? playbook.affirmations
+          .filter((a): a is Required<Affirmation> =>
+            a?.id !== undefined &&
+            a?.text !== undefined &&
+            a?.completed !== undefined
+          )
+          .map(a => ({
+            ...a,
+            text: replaceAllNamePlaceholders(a.text, { firstName, displayName })
+          }))
       : [];
 
     return [
     {
       type: 'truth' as const,
-      truth: playbook.truthInLove?.text ?? '',
-      summary: playbook.truthInLove?.summary ?? '',
+      truth: replaceAllNamePlaceholders(
+        playbook.truthInLove?.text ?? '',
+        { firstName, displayName }
+      ),
+      summary: replaceAllNamePlaceholders(
+        playbook.truthInLove?.summary ?? '',
+        { firstName, displayName }
+      ),
       tappable: false,
     },
     {
@@ -452,14 +472,17 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     },
     {
       type: 'challenge' as const,
-      challenge: typeof playbook.directChallenge === 'string'
-        ? playbook.directChallenge
-        : playbook.directChallenge?.text ?? '',
+      challenge: replaceAllNamePlaceholders(
+        typeof playbook.directChallenge === 'string'
+          ? playbook.directChallenge
+          : playbook.directChallenge?.text ?? '',
+        { firstName, displayName }
+      ),
       challengeCTA: playbook.challengeCTA,
       tappable: false,
     },
   ];
-  }, [playbook, actionSteps]);
+  }, [playbook, actionSteps, user]);
 
   // Navigation callbacks that depend on cardData
   const goToNextCard = useCallback(() => {
