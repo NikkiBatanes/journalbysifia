@@ -13,13 +13,14 @@ type DirectChallengeCardProps = {
 
 export default function DirectChallengeCard({ challenge, challengeCTA }: DirectChallengeCardProps) {
   // Parse SPIRITUAL and TACTICAL sections if they exist
-  const spiritualMatch = challenge.match(/SPIRITUAL:\s*(.+?)(?=TACTICAL:|$)/is);
+  const spiritualMatch = challenge.match(/SPIRITUAL:\s*(.+?)(?=\n\s*TACTICAL)/is);
   const tacticalMatch = challenge.match(/TACTICAL[^:]*:\s*(.+?)$/is);
   
   const hasStructuredFormat = spiritualMatch && tacticalMatch;
   const spiritualText = spiritualMatch?.[1]?.trim();
   // Remove any remaining "TACTICAL (48-72 hour deadline):" prefix from the tactical text
-  const tacticalText = tacticalMatch?.[1]?.trim().replace(/^TACTICAL[^:]*:\s*/i, '');
+  // This handles cases where the AI includes the label in the content
+  const tacticalText = tacticalMatch?.[1]?.trim().replace(/^TACTICAL[^:]*:\s*/gi, '');
 
   return (
     <View style={styles.container}>
