@@ -109,12 +109,32 @@ async function generatePlaybookInternal(
       // Resolve user's preferred Bible version (default NASB) and get user data
       let bibleVersion = 'NASB';
       let userIdForGeneration: string | undefined;
+      let dateOfBirth: string | undefined;
+      let ageGroup: string | undefined;
       try {
         const { data: { user } } = await supabase.auth.getUser();
         userIdForGeneration = user?.id; // ENTERPRISE: Pass userId for context-aware generation
         const fromMeta = (user as any)?.user_metadata?.preferences?.content?.bibleVersion;
         if (typeof fromMeta === 'string' && fromMeta.trim()) {
           bibleVersion = fromMeta.trim();
+        }
+        
+        // Get user profile for age data
+        if (user?.id) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('date_of_birth')
+            .eq('id', user.id)
+            .single();
+          
+          if (profile?.date_of_birth) {
+            dateOfBirth = profile.date_of_birth;
+          }
+        }
+        
+        // Fallback to age group from user metadata (onboarding)
+        if (!dateOfBirth) {
+          ageGroup = (user as any)?.user_metadata?.ageGroup;
         }
       } catch {}
 
@@ -128,7 +148,14 @@ async function generatePlaybookInternal(
               'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
               'Authorization': `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({ userInput, userName, bibleVersion, userId: userIdForGeneration }),
+            body: JSON.stringify({ 
+              userInput, 
+              userName, 
+              bibleVersion, 
+              userId: userIdForGeneration,
+              dateOfBirth,
+              ageGroup,
+            }),
           }),
           TIMEOUT_CONFIGS.AI_GENERATION
         );
