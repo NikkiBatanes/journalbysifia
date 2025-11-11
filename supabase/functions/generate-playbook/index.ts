@@ -67,7 +67,7 @@ interface OpenAIData {
   }>;
 }
 
-function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: string): Playbook {
+function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: string): Playbook {
   const content = aiData.choices[0]?.message?.content || '';
 
   // Extract playbook title and subtitle
@@ -124,26 +124,10 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   // Parse Truth Summary
   const truthSummaryMatch = content.match(/TRUTH SUMMARY:\s*([\s\S]*?)(?=TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthSummaryMatch) {
-    let summary = truthSummaryMatch[1].trim();
+    const summary = truthSummaryMatch[1].trim();
 
-    // More robust name replacement to prevent duplicates
-    // First, check if it already has the placeholder
-    if (!summary.includes('[User\'s Name]')) {
-      // Replace any occurrence of the userName (not just at the beginning)
-      const userNameRegex = new RegExp(`\\b${userName}\\b`, 'gi');
-      summary = summary.replace(userNameRegex, '[User\'s Name]');
-
-      // If still no placeholder found, and the summary doesn't start with the user's name,
-      // only add placeholder if the summary seems to be addressing the user directly
-      if (!summary.includes('[User\'s Name]') && summary.length > 0) {
-        // Check if it starts with a direct address pattern (like "you are", "your", etc.)
-        const directAddressPattern = /^(you\s|your\s)/i;
-        if (directAddressPattern.test(summary)) {
-          summary = '[User\'s Name], ' + summary.charAt(0).toLowerCase() + summary.slice(1);
-        }
-        // Otherwise, leave the summary as-is to avoid forced name insertion
-      }
-    }
+    // Keep the actual userName in playbooks (don't replace with placeholder)
+    // The AI should include the user's name naturally in the summary
 
     playbook.truthInLove.summary = summary;
   }
@@ -151,14 +135,10 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   // Parse Truth in Love
   const truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthInLoveMatch) {
-    let truthText = truthInLoveMatch[1].trim();
+    const truthText = truthInLoveMatch[1].trim();
 
-    // Apply the same robust name replacement logic as summary
-    if (!truthText.includes('[User\'s Name]')) {
-      // Replace any occurrence of the userName
-      const userNameRegex = new RegExp(`\\b${userName}\\b`, 'gi');
-      truthText = truthText.replace(userNameRegex, '[User\'s Name]');
-    }
+    // Keep the actual userName in playbooks (don't replace with placeholder)
+    // The AI should include the user's name naturally in the truth text
 
     playbook.truthInLove.text = truthText;
   }
@@ -498,7 +478,7 @@ serve(async (req: Request) => {
 
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
     // Build contextual prompt with title uniqueness check and age personalization
-    let contextualPrompt = `${userInput}
+    let contextualPrompt = `User Name: ${userName}\nUser Request: ${userInput}
 
 ${recentTitlesContext}`;
     

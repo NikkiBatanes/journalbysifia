@@ -297,7 +297,9 @@ PLAYBOOK TITLE:
 [Subtitle or Summary - Optional, keep it concise]
 
 TRUTH SUMMARY:
-[User's Name], [10-15 word summary of the core truth]
+{userName}, [10-15 word summary of the core truth]
+
+⚠️ IMPORTANT: Use the actual user's name (provided in the request) instead of "[User's Name]" placeholder. Make it personal and direct.
 
 TRUTH IN LOVE:
 [The hard truth the user needs to hear. Be direct, specific, and don't shy away from difficult truths. Address root causes, not just symptoms. Call out rationalizations, excuses, or blind spots. Ground this in both practical reality and spiritual truth. This should be the most impactful and potentially uncomfortable part of your response.
