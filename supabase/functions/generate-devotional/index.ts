@@ -5,6 +5,7 @@ import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from '.
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRateLimitHeaders } from '../_shared/simpleRateLimiter.ts';
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
+import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
 
 interface Scripture {
   text: string;
@@ -911,6 +912,31 @@ serve(async (req: Request): Promise<Response> => {
   
   console.log('[Generate-Devotional] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
+  // Generate cache key for this request
+  const cacheKey = generateCacheKey('devotional', {
+    userInput,
+    duration,
+    bibleVersion,
+    playbookId: playbookId || 'none',
+  });
+
+  // Check cache first
+  console.log('[Generate-Devotional] Checking cache...');
+  const cachedResponse = ResponseCache.get(cacheKey, CACHE_CONFIGS.devotional);
+  if (cachedResponse) {
+    console.log('[Generate-Devotional] Returning cached response');
+    return new Response(JSON.stringify(cachedResponse), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
+  console.log('[Generate-Devotional] Cache miss, generating new devotional...');
+
   // Add anti-repetition context to user input
   const enhancedUserInput = `${userInput}
 
@@ -1008,11 +1034,16 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
       bibleVersion
     );
 
+    // Cache the successful response
+    ResponseCache.set(cacheKey, devotional, CACHE_CONFIGS.devotional);
+    console.log('[Generate-Devotional] Response cached successfully');
+
     return new Response(JSON.stringify(devotional), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'X-Cache': 'MISS',
       },
     });
   } catch (error) {

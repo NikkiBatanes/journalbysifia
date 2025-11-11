@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
+import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -388,6 +389,26 @@ serve(async (req: Request) => {
   
   console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
+  // Generate cache key
+  const cacheKey = generateCacheKey('playbook', {
+    userInput,
+    userName,
+  });
+
+  // Check cache first
+  console.log('[Generate-Playbook] Checking cache...');
+  const cachedResponse = ResponseCache.get(cacheKey, CACHE_CONFIGS.playbook);
+  if (cachedResponse) {
+    console.log('[Generate-Playbook] Returning cached response');
+    return new Response(JSON.stringify(cachedResponse), {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
+  console.log('[Generate-Playbook] Cache miss, generating new playbook...');
+
   try {
     // ENTERPRISE FEATURE: Fetch user's recent playbook titles to ensure uniqueness
     let recentTitles: string[] = [];
@@ -489,8 +510,15 @@ serve(async (req: Request) => {
     playbook.progress = 0; // Reset progress to 0 since no tasks are completed yet
     playbook.persona = strategicAdvisorPersona.role; // Track which persona was used
 
+    // Cache the successful response
+    ResponseCache.set(cacheKey, playbook, CACHE_CONFIGS.playbook);
+    console.log('[Generate-Playbook] Response cached successfully');
+
     return new Response(JSON.stringify(playbook, null, 2), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cache': 'MISS',
+      },
     });
   } catch (error: unknown) {
     console.error('Error generating playbook:', error);
