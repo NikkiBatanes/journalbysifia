@@ -337,16 +337,21 @@ AFFIRMATIONS:
 3. [Affirmation 3]
 
 BIBLE VERSE:
-"[Verse text]" - [Reference]
+[🚨 CRITICAL: Provide the COMPLETE verse text. Do NOT truncate or use ellipsis (...). If the verse is long, include the FULL text. If context is needed, include 2-4 consecutive verses.]
+
+"[FULL verse text - do not truncate, do not use ellipsis, write out the complete verse(s)]" - [Reference]
+
+EXAMPLES OF COMPLETE VERSES:
+✅ CORRECT: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life." - John 3:16
+❌ WRONG: "For God so loved the world..." - John 3:16 (INCOMPLETE - NEVER DO THIS)
+
+✅ CORRECT: "Go therefore and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit, teaching them to observe all that I have commanded you. And behold, I am with you always, to the end of the age." - Matthew 28:19-20
+❌ WRONG: "Go therefore and make disciples of all nations..." - Matthew 28:19 (INCOMPLETE - NEVER DO THIS)
 
 CHALLENGE:
-[TWO-PART CHALLENGE - BOTH REQUIRED]:
+[Combine spiritual and practical into ONE unified challenge. No need for "SPIRITUAL:" or "TACTICAL:" labels. Weave prayer/Scripture commitment with concrete action and deadline naturally.]
 
-SPIRITUAL: [Specific prayer commitment, Scripture to meditate on, or worship act - with timing]
-
-TACTICAL (48-72 hour deadline): [Concrete deliverable with metric or proof - e.g., "Complete full post-mortem by Friday, identify your one-sentence failure pattern, and text it to your accountability partner by Saturday noon."]
-
-[Make it explicit WHO they report to and WHEN they'll do it.]`,
+[Example: "This week, pray Psalm 139:23-24 daily at 6 AM for God to search your heart. Then complete your full post-mortem by Friday, identify your one-sentence failure pattern, and text it to your accountability partner by Saturday noon."]`,
 };
 
 export const applyPersonaContext = (persona: Persona, userInput: string): string => {
