@@ -52,6 +52,7 @@ interface TimeBlockItem {
   location?: string;
   isAllDay: boolean;
   calendarEventId?: string; // For calendar sync
+  alert?: 'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'; // Alert/reminder
   repeat: {
     frequency: RepeatFrequency;
     endDate?: Date;
@@ -232,6 +233,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     notes: string;
     location: string;
     isAllDay: boolean;
+    alert: 'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
     repeat: {
       frequency: RepeatFrequency;
       endDate?: Date;
@@ -249,6 +251,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     notes: '',
     location: '',
     isAllDay: false,
+    alert: 'none',
     repeat: {
       frequency: 'never',
       endDate: undefined,
@@ -331,6 +334,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       location: block.location || '',
       startTime: new Date(block.startTime),
       endTime: new Date(block.endTime),
+      alert: block.alert || 'none',
     });
     setInputValue(block.repeat.customFrequency?.value?.toString() || '1');
     setCustomFrequency(block.repeat.customFrequency || { value: 1, unit: 'week' });
@@ -982,6 +986,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         notes: '',
         location: '',
         isAllDay: false,
+        alert: 'none',
         repeat: {
           frequency: 'never',
           endDate: undefined,
@@ -1040,6 +1045,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       notes: '',
       location: '',
       isAllDay: false,
+      alert: 'none',
       repeat: {
         frequency: 'never',
       },

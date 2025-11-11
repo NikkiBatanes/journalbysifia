@@ -41,6 +41,7 @@ interface TimeBlockLogEditorProps {
     location?: string;
     isAllDay: boolean;
     date: Date;
+    alert?: 'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
     // Repeat information to mirror journal TimeBlock component
     repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
     repeatEndDate?: Date | null;
@@ -745,6 +746,8 @@ function TimeBlockLogEditorInner(
   const [notes, setNotes] = React.useState(existingTimeBlock?.description || '');
   const [location, setLocation] = React.useState(existingTimeBlock?.location || '');
   const [isAllDay, setIsAllDay] = React.useState(existingTimeBlock?.all_day || false);
+  const [alert, setAlert] = React.useState<'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'>('none');
+  const [showAlertModal, setShowAlertModal] = React.useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
   const [repeatOption, setRepeatOption] = React.useState('Never');
@@ -814,6 +817,7 @@ function TimeBlockLogEditorInner(
         notes: notesWithMetadata,
         location: location.trim(),
         isAllDay,
+        alert,
         date: new Date(),
         // Provide repeat info mirroring journal screen
         repeatFrequency: ((): any => {
@@ -1027,6 +1031,32 @@ function TimeBlockLogEditorInner(
                 </View>
               )}
 
+              {/* Alert Section */}
+              <TouchableOpacity
+                style={s.repeatButton}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowAlertModal(true);
+                }}
+              >
+                <ThemedText weight="medium" style={s.repeatText}>Alert</ThemedText>
+                <View style={s.repeatOptionContainer}>
+                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin]}>
+                    {alert === 'none' ? 'None' :
+                     alert === 'at-time' ? 'At time of event' :
+                     alert === '5-min' ? '5 minutes before' :
+                     alert === '15-min' ? '15 minutes before' :
+                     alert === '30-min' ? '30 minutes before' :
+                     alert === '1-hour' ? '1 hour before' :
+                     alert === '2-hours' ? '2 hours before' :
+                     alert === '1-day' ? '1 day before' :
+                     alert === '2-days' ? '2 days before' :
+                     alert === '1-week' ? '1 week before' : 'None'}
+                  </ThemedText>
+                  <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
+                </View>
+              </TouchableOpacity>
+
               {/* Category Selection */}
               <TouchableOpacity
                 style={[
@@ -1098,6 +1128,53 @@ function TimeBlockLogEditorInner(
                       </TouchableOpacity>
                     ))}
 
+                  </View>
+                </View>
+              </Modal>
+
+              {/* Alert Modal */}
+              <Modal
+                visible={showAlertModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowAlertModal(false)}
+              >
+                <View style={s.repeatModal}>
+                  <View style={s.repeatModalContainer}>
+                    <ThemedText weight="semiBold" style={s.repeatModalTitle}>Alert</ThemedText>
+                    {[
+                      { value: 'none', label: 'None' },
+                      { value: 'at-time', label: 'At time of event' },
+                      { value: '5-min', label: '5 minutes before' },
+                      { value: '15-min', label: '15 minutes before' },
+                      { value: '30-min', label: '30 minutes before' },
+                      { value: '1-hour', label: '1 hour before' },
+                      { value: '2-hours', label: '2 hours before' },
+                      { value: '1-day', label: '1 day before' },
+                      { value: '2-days', label: '2 days before' },
+                      { value: '1-week', label: '1 week before' },
+                    ].map((option, index, array) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          s.repeatOption,
+                          index === array.length - 1 && s.repeatOptionLast,
+                          alert === option.value && s.repeatOptionSelected,
+                        ]}
+                        onPress={async () => {
+                          await triggerLightHaptic();
+                          setAlert(option.value as any);
+                          setShowAlertModal(false);
+                        }}
+                      >
+                        <ThemedText weight="medium" style={[
+                          s.repeatOptionText,
+                          alert === option.value && s.repeatOptionSelectedText,
+                        ]}>
+                          {option.label}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
               </Modal>
