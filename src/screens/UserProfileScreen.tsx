@@ -184,10 +184,25 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       const field = timePickerType === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
       const updated = { ...notificationPrefs, [field]: timeString };
 
+      Logger.info(`Saving quiet hours ${field}`, {
+        component: 'UserProfileScreen',
+        data: { field, timeString, updated },
+      });
+
       const success = await notificationManagementService.updateNotificationPreferences(updated);
       if (success) {
         setNotificationPrefs(updated);
+        Logger.info(`Successfully saved quiet hours ${field}`, {
+          component: 'UserProfileScreen',
+          data: { field, timeString },
+        });
         try { triggerLightHaptic(); } catch {}
+      } else {
+        Logger.error('Failed to save quiet hours', new Error('Update failed'), {
+          component: 'UserProfileScreen',
+          data: { field, timeString },
+        });
+        Alert.alert('Error', 'Failed to save quiet hours. Please try again.');
       }
     }
   }, [notificationPrefs, user?.id, timePickerType]);
