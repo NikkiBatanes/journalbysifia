@@ -557,7 +557,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Continue with navigation regardless of completion update success
 
         // Use main playbook generation UI with onboarding data
-        const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
+        const userInput = challengeDetails.trim();
 
         // Skip redundant screens and go directly to playbook generation
         logger.debug('Proceeding directly to Playbook Generation');
@@ -602,7 +602,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           }
         }
 
-        const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
+        const userInput = challengeDetails.trim();
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
           userInput,
