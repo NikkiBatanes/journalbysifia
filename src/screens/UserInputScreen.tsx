@@ -340,17 +340,23 @@ const UserInputScreen: React.FC = () => {
 
     // ENTERPRISE: Check rate limiting before generation
     if (user?.id && subscriptionData?.subscription?.tier) {
-      const tier = subscriptionData.subscription.tier as SubscriptionTier;
-      const rateLimitCheck = await checkAndRecordRequest(user.id, tier, 'playbook');
-      
-      if (!rateLimitCheck.allowed) {
-        // Show user-friendly rate limit message
-        Alert.alert(
-          'Please Wait',
-          rateLimitCheck.message || 'Please wait before generating another playbook.',
-          [{ text: 'OK', style: 'default' }]
-        );
-        return;
+      try {
+        const tier = subscriptionData.subscription.tier as SubscriptionTier;
+        const rateLimitCheck = await checkAndRecordRequest(user.id, tier, 'playbook');
+        
+        if (!rateLimitCheck.allowed) {
+          // Show user-friendly rate limit message
+          Alert.alert(
+            'Please Wait',
+            rateLimitCheck.message || 'Please wait before generating another playbook.',
+            [{ text: 'OK', style: 'default' }]
+          );
+          return;
+        }
+      } catch (rateLimitError) {
+        // If rate limiting fails, log but don't block the user
+        console.warn('Rate limiting check failed:', rateLimitError);
+        // Continue with generation - better UX than crashing
       }
     }
 

@@ -88,6 +88,7 @@ interface RateLimitState {
 class RateLimiter {
   private storageKey = '@siFia:rateLimits';
   private cache = new Map<string, RateLimitState>();
+  private saveLocks = new Map<string, Promise<void>>(); // Prevent concurrent saves
 
   /**
    * Check if a request is allowed for the given user and tier
@@ -193,37 +194,44 @@ class RateLimiter {
     userId: string,
     operationType: 'playbook' | 'devotional' = 'playbook'
   ): Promise<void> {
-    const state = await this.getState(userId, operationType);
-    const now = Date.now();
+    try {
+      const state = await this.getState(userId, operationType);
+      const now = Date.now();
 
-    // Update last request time
-    state.lastRequestTime = now;
+      // Update last request time
+      state.lastRequestTime = now;
 
-    // Add to all time windows
-    const entry: RateLimitEntry = { timestamp: now, count: 1 };
-    state.minuteRequests.push(entry);
-    state.hourRequests.push(entry);
-    state.dayRequests.push(entry);
-    state.monthRequests.push(entry);
+      // Add to all time windows
+      const entry: RateLimitEntry = { timestamp: now, count: 1 };
+      state.minuteRequests.push(entry);
+      state.hourRequests.push(entry);
+      state.dayRequests.push(entry);
+      state.monthRequests.push(entry);
 
-    // Clean up old entries
-    this.cleanupOldEntries(state, now);
+      // Clean up old entries
+      this.cleanupOldEntries(state, now);
 
-    // Save state
-    await this.saveState(userId, operationType, state);
+      // Save state (non-blocking)
+      await this.saveState(userId, operationType, state);
 
-    Logger.info(`📊 Rate limit recorded for ${userId}`, {
-      component: 'rateLimiting',
-      data: {
-        operationType,
-        remaining: {
-          minute: state.minuteRequests.length,
-          hour: state.hourRequests.length,
-          day: state.dayRequests.length,
-          month: state.monthRequests.length,
+      Logger.info(`📊 Rate limit recorded for ${userId}`, {
+        component: 'rateLimiting',
+        data: {
+          operationType,
+          remaining: {
+            minute: state.minuteRequests.length,
+            hour: state.hourRequests.length,
+            day: state.dayRequests.length,
+            month: state.monthRequests.length,
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      // Log error but don't throw - rate limiting is not critical enough to block user
+      Logger.error('Failed to record rate limit', error as Error, {
+        component: 'rateLimiting',
+      });
+    }
   }
 
   /**
@@ -267,7 +275,7 @@ class RateLimiter {
   }
 
   /**
-   * Save rate limit state
+   * Save rate limit state with lock to prevent race conditions
    */
   private async saveState(
     userId: string,
@@ -275,18 +283,43 @@ class RateLimiter {
     state: RateLimitState
   ): Promise<void> {
     const cacheKey = `${userId}-${operationType}`;
+    
+    // Update cache immediately (synchronous)
     this.cache.set(cacheKey, state);
 
-    try {
-      await AsyncStorage.setItem(
-        `${this.storageKey}:${cacheKey}`,
-        JSON.stringify(state)
-      );
-    } catch (error) {
-      Logger.error('Failed to save rate limit state', error as Error, {
-        component: 'rateLimiting',
-      });
+    // Wait for any existing save to complete
+    const existingLock = this.saveLocks.get(cacheKey);
+    if (existingLock) {
+      try {
+        await existingLock;
+      } catch {
+        // Ignore errors from previous save
+      }
     }
+
+    // Create new save promise
+    const savePromise = (async () => {
+      try {
+        await AsyncStorage.setItem(
+          `${this.storageKey}:${cacheKey}`,
+          JSON.stringify(state)
+        );
+      } catch (error) {
+        Logger.error('Failed to save rate limit state', error as Error, {
+          component: 'rateLimiting',
+        });
+        // Don't throw - we have the cache
+      } finally {
+        // Clean up lock
+        this.saveLocks.delete(cacheKey);
+      }
+    })();
+
+    // Store the promise
+    this.saveLocks.set(cacheKey, savePromise);
+
+    // Don't await - let it save in background
+    // This prevents blocking the UI
   }
 
   /**
