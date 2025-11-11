@@ -18,7 +18,8 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
   
   const hasStructuredFormat = spiritualMatch && tacticalMatch;
   const spiritualText = spiritualMatch?.[1]?.trim();
-  const tacticalText = tacticalMatch?.[1]?.trim();
+  // Remove any remaining "TACTICAL (48-72 hour deadline):" prefix from the tactical text
+  const tacticalText = tacticalMatch?.[1]?.trim().replace(/^TACTICAL[^:]*:\s*/i, '');
 
   return (
     <View style={styles.container}>
