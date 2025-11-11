@@ -2,6 +2,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -407,42 +408,36 @@ serve(async (req: Request) => {
       ? `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}\n\nNote: User has existing playbooks. Create a different title.`
       : `User: ${userName}\nStruggle: ${userInput}\nGeneration Time: ${timestamp}`;
 
-    // Call OpenAI API with persona context
-    const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: strategicAdvisorPersona.systemPrompt,
-          },
-          {
-            role: 'user',
-            content: contextualPrompt,
-          },
-        ],
-        temperature: 0.85, // Increased from 0.7 for more creative variation
-        max_tokens: 2500,
-      }),
-    });
-
-    if (!openAIRes.ok) {
-      const error = await openAIRes.text();
-      console.error('OpenAI API Error:', error);
-      return new Response(
-        JSON.stringify({ 
-          error: 'We couldn\'t create your playbook right now',
-          message: 'Our AI assistant is temporarily unavailable. Please try again in a moment.',
-          retryable: true
+    // Call OpenAI API with retry logic for resilience
+    console.log('[Generate-Playbook] Calling OpenAI API with retry logic...');
+    const openAIRes = await fetchWithRetry(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: strategicAdvisorPersona.systemPrompt,
+            },
+            {
+              role: 'user',
+              content: contextualPrompt,
+            },
+          ],
+          temperature: 0.85, // Increased from 0.7 for more creative variation
+          max_tokens: 2500,
         }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+      },
+      OPENAI_RETRY_CONFIG
+    );
+    
+    console.log('[Generate-Playbook] OpenAI API call successful');
 
     const aiData = await openAIRes.json();
 

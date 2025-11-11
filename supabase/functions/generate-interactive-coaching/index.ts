@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,35 +59,36 @@ serve(async (req) => {
 
     console.log('Generated prompt for interactive coaching:', prompt.substring(0, 200) + '...');
 
-    // Call OpenAI API
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
+    // Call OpenAI API with retry logic
+    console.log('[Interactive-Coaching] Calling OpenAI API with retry logic...');
+    const openaiResponse = await fetchWithRetry(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a wise, compassionate Christian spiritual director and coach. You provide personalized, biblical guidance with deep empathy and practical wisdom. Always respond in valid JSON format as specified in the prompts.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          max_tokens: 1000,
+          temperature: 0.7,
+        }),
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a wise, compassionate Christian spiritual director and coach. You provide personalized, biblical guidance with deep empathy and practical wisdom. Always respond in valid JSON format as specified in the prompts.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
-    }
+      OPENAI_RETRY_CONFIG
+    );
+    
+    console.log('[Interactive-Coaching] OpenAI API call successful');
 
     const openaiData = await openaiResponse.json();
     const aiContent = openaiData.choices[0]?.message?.content;

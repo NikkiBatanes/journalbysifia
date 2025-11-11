@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,34 +39,36 @@ Please provide a thoughtful, biblical, and encouraging response that:
 Keep your response personal, encouraging, and around 2-3 paragraphs. Make it feel like a conversation with a trusted spiritual advisor.
     `;
 
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
+    // Call OpenAI API with retry logic
+    console.log('[Answer-Question] Calling OpenAI API with retry logic...');
+    const response = await fetchWithRetry(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a wise, compassionate Christian spiritual director providing personalized guidance and coaching. Your responses should be biblical, practical, encouraging, and deeply personal.',
+            },
+            {
+              role: 'user',
+              content: questionPrompt,
+            },
+          ],
+          max_tokens: 600,
+          temperature: 0.7,
+        }),
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a wise, compassionate Christian spiritual director providing personalized guidance and coaching. Your responses should be biblical, practical, encouraging, and deeply personal.',
-          },
-          {
-            role: 'user',
-            content: questionPrompt,
-          },
-        ],
-        max_tokens: 600,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('OpenAI API error:', response.status, response.statusText);
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
+      OPENAI_RETRY_CONFIG
+    );
+    
+    console.log('[Answer-Question] OpenAI API call successful');
 
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content;

@@ -2,6 +2,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from './persona.config.ts';
+import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 
 interface Scripture {
   text: string;
@@ -933,34 +934,36 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
       }
     }
 
-    const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+    // Use retry logic for resilient API calls
+    console.log('[Generate-Devotional] Calling OpenAI API with retry logic...');
+    const openAIRes = await fetchWithRetry(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: contextualPersona + playbookContext,
+            },
+            {
+              role: 'user',
+              content: `User: ${userName}\nRequest: ${userInput}\nDuration: ${duration} day${duration > 1 ? 's' : ''}`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 6000, // Increased from 4000 to accommodate 400-600 word reflections with detailed stories
+        }),
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: contextualPersona + playbookContext,
-          },
-          {
-            role: 'user',
-            content: `User: ${userName}\nRequest: ${userInput}\nDuration: ${duration} day${duration > 1 ? 's' : ''}`,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 6000, // Increased from 4000 to accommodate 400-600 word reflections with detailed stories
-      }),
-    });
-
-    if (!openAIRes.ok) {
-      const error = await openAIRes.text();
-      console.error('OpenAI API Error:', error);
-      return createErrorResponse(500, 'We couldn\'t create your devotional right now. Please try again in a moment.');
-    }
+      OPENAI_RETRY_CONFIG
+    );
+    
+    console.log('[Generate-Devotional] OpenAI API call successful');
 
     const aiData = await openAIRes.json();
 
