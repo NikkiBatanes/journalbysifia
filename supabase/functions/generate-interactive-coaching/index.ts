@@ -45,7 +45,7 @@ serve(async (req) => {
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('Service configuration error. Please contact support.');
     }
 
     let prompt: string;
@@ -92,7 +92,7 @@ serve(async (req) => {
     const aiContent = openaiData.choices[0]?.message?.content;
 
     if (!aiContent) {
-      throw new Error('No content received from OpenAI');
+      throw new Error('We couldn\'t generate a coaching response. Please try again.');
     }
 
     // Parse the JSON response - fail if not valid JSON
@@ -101,7 +101,7 @@ serve(async (req) => {
       parsedResponse = JSON.parse(aiContent);
     } catch (_parseError) {
       console.error('Failed to parse OpenAI response as JSON:', aiContent);
-      throw new Error('AI returned invalid JSON format. Please retry.');
+      throw new Error('We received an unexpected response. Please try again.');
     }
 
     console.log('Interactive coaching response generated successfully');
@@ -123,8 +123,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Failed to generate coaching response',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        error: 'We couldn\'t generate coaching guidance right now',
+        message: error instanceof Error ? error.message : 'Our coaching assistant is temporarily unavailable. Please try again in a moment.',
         retryable: true,
       }),
       {

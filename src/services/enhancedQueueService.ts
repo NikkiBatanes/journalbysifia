@@ -436,11 +436,11 @@ export class EnhancedQueueService {
     });
 
     if (error) {
-      throw new Error(`Playbook generation failed: ${error.message}`);
+      throw new Error('We couldn\'t create your playbook right now. Please try again.');
     }
 
     if (!data) {
-      throw new Error('No data returned from playbook generation');
+      throw new Error('We couldn\'t create your playbook. Please try again.');
     }
 
     return data;
@@ -461,11 +461,11 @@ export class EnhancedQueueService {
     });
 
     if (error) {
-      throw new Error(`Devotional generation failed: ${error.message}`);
+      throw new Error('We couldn\'t create your devotional right now. Please try again.');
     }
 
     if (!data) {
-      throw new Error('No data returned from devotional generation');
+      throw new Error('We couldn\'t create your devotional. Please try again.');
     }
 
     return data;
@@ -477,7 +477,7 @@ export class EnhancedQueueService {
    */
   private async generateJournalExpansion(item: QueueItem): Promise<any> {
     // For now, throw an error as this feature is not yet implemented
-    throw new Error('Journal expansion generation not yet implemented');
+    throw new Error('This feature is coming soon. Stay tuned!');
 
     // Future implementation:
     // const { data, error } = await supabase.functions.invoke('expand-journal-entry', {

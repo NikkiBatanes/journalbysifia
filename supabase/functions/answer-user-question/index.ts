@@ -16,7 +16,7 @@ serve(async (req) => {
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('Service configuration error. Please contact support.');
     }
 
     console.log('Generating AI response for user question:', question?.substring(0, 50) + '...');
@@ -96,8 +96,8 @@ Keep your response personal, encouraging, and around 2-3 paragraphs. Make it fee
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Failed to generate AI response',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        error: 'We couldn\'t generate a response right now',
+        message: 'Our AI assistant is temporarily unavailable. Please try asking your question again in a moment.',
         retryable: true,
       }),
       {

@@ -850,12 +850,13 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
  * Main server handler
  */
 serve(async (req: Request): Promise<Response> => {
-  const createErrorResponse = (status: number, error: string, details?: unknown) => {
-    console.error(`Error ${status}:`, error, details);
+  const createErrorResponse = (status: number, userMessage: string, technicalDetails?: unknown) => {
+    console.error(`Error ${status}:`, userMessage, technicalDetails);
     return new Response(
       JSON.stringify({
-        error,
-        details: (details && typeof details === 'object' && 'message' in details) ? String((details as { message: unknown }).message) : String(details),
+        error: userMessage,
+        message: userMessage,
+        retryable: status >= 500, // Server errors are retryable
       }),
       {
         status,
@@ -868,7 +869,7 @@ serve(async (req: Request): Promise<Response> => {
   };
 
   if (req.method !== 'POST') {
-    return createErrorResponse(405, 'Method not allowed', 'hustle and bustle - Only POST requests are accepted');
+    return createErrorResponse(405, 'Invalid request method');
   }
 
   let requestBody: DevotionalRequestBody;
@@ -878,10 +879,10 @@ serve(async (req: Request): Promise<Response> => {
 
     // Validate required fields
     if (!requestBody.userInput) {
-      return createErrorResponse(400, 'Missing required field: userInput');
+      return createErrorResponse(400, 'Please provide a topic for your devotional');
     }
-  } catch (error) {
-    return createErrorResponse(400, 'Invalid request body', error instanceof Error ? error.message : 'Unknown error');
+  } catch (_error) {
+    return createErrorResponse(400, 'We couldn\'t process your request. Please try again.');
   }
 
   const { duration = 1, playbookId, userInput = '', userName = 'User', bibleVersion = 'NASB' } = requestBody;
@@ -899,7 +900,7 @@ REQUIRED: Use verses from lesser-known books like Zephaniah, Haggai, Malachi, Na
 Choose an obscure but meaningful verse that relates to the topic above.`;
 
   if (typeof duration !== 'number' || duration < 1 || duration > 7) {
-    return createErrorResponse(400, 'Invalid duration', 'Must be a number between 1 and 7.');
+    return createErrorResponse(400, 'Please choose a devotional length between 1 and 7 days.');
   }
 
   try {
@@ -958,7 +959,7 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
     if (!openAIRes.ok) {
       const error = await openAIRes.text();
       console.error('OpenAI API Error:', error);
-      return createErrorResponse(openAIRes.status, 'Error from OpenAI API', error);
+      return createErrorResponse(500, 'We couldn\'t create your devotional right now. Please try again in a moment.');
     }
 
     const aiData = await openAIRes.json();
@@ -992,8 +993,7 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
     console.error('Error generating devotional:', error);
     return createErrorResponse(
       500,
-      'Failed to generate devotional',
-      error instanceof Error ? error.message : 'Unknown error'
+      'We couldn\'t create your devotional right now. Please try again in a moment.'
     );
   }
 });

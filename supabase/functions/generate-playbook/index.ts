@@ -349,7 +349,7 @@ interface RequestBody {
 
 serve(async (req: Request) => {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+    return new Response(JSON.stringify({ error: 'Invalid request method' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -359,7 +359,7 @@ serve(async (req: Request) => {
   try {
     requestBody = await req.json();
   } catch (_error) {
-    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+    return new Response(JSON.stringify({ error: 'We couldn\'t process your request. Please try again.' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -435,8 +435,12 @@ serve(async (req: Request) => {
       const error = await openAIRes.text();
       console.error('OpenAI API Error:', error);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate playbook', details: error }),
-        { status: openAIRes.status }
+        JSON.stringify({ 
+          error: 'We couldn\'t create your playbook right now',
+          message: 'Our AI assistant is temporarily unavailable. Please try again in a moment.',
+          retryable: true
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -472,11 +476,11 @@ serve(async (req: Request) => {
     });
   } catch (error: unknown) {
     console.error('Error generating playbook:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(
       JSON.stringify({
-        error: 'Failed to generate playbook',
-        details: errorMessage,
+        error: 'We couldn\'t create your playbook right now',
+        message: 'Something went wrong while creating your personalized playbook. Please try again in a moment.',
+        retryable: true,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
