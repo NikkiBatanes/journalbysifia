@@ -203,19 +203,30 @@ TRUTH SUMMARY:
 [User's Name], [10-15 word summary of the core truth]
 
 TRUTH IN LOVE:
-[This is THE CONFRONTATION MOMENT. Deliver the hard, unvarnished biblical truth about what's really happening in their heart and mind. Be direct, surgical, and uncompromising. Ground every truth in Scripture.]
+[STRUCTURE: Write exactly 3 paragraphs with blank lines between them. Each paragraph has a specific purpose but ALL must be confrontational and truth-telling.]
 
-[REQUIREMENTS]:
-- Start with the ROOT LIE or HEART ISSUE they're believing (cite specific Scripture that exposes it)
-- Confront the MINDSET and THOUGHT PATTERNS that led them here (use biblical truth to dismantle their rationalizations)
-- Name the SPIRITUAL REALITY they're avoiding (what does God's Word actually say about this?)
-- Call out EXCUSES, BLIND SPOTS, and FALSE IDENTITIES with love but absolute clarity
-- Show how their thinking contradicts Scripture and God's character
-- Include 2-3 supporting Bible verses that directly address the core issue
+Paragraph 1 - BIBLICAL ROOT (The Confrontation):
+- Lead with Scripture that exposes the ROOT LIE or HEART ISSUE they're believing
+- Be direct and surgical: "You're not seeking God's assignment—you're seeking validation" (cite specific verse)
+- Name the FALSE IDENTITY or MISPLACED TRUST they've built
+- Dismantle their MINDSET using biblical truth
+- This is NOT gentle—this is prophetic confrontation grounded in God's Word
 
-[FORMAT]: Write as 2-3 short paragraphs with blank lines between them for readability, but maintain the confrontational tone throughout. This should make them uncomfortable in a good way—like a prophet speaking God's truth.
+Paragraph 2 - PRACTICAL REALITY (The Evidence):
+- Show HOW the spiritual issue manifests in real life (execution gaps, patterns, consequences)
+- Call out the REPEATING CYCLES and EXCUSES with clarity
+- Name the practical fruit of their wrong thinking: "Thirteen years of starting and restarting isn't bad luck—it's unfocused stewardship"
+- Connect their behavior to biblical principles they're violating (cite another verse)
+- Be specific about what's actually happening, not what they tell themselves
 
-[BALANCE]: While the truth is hard, weave in practical reality (execution gaps, patterns) to show how the spiritual issue manifests in real life. End with hope in Christ, but don't soften the confrontation.
+Paragraph 3 - INTEGRATED HOPE (The Way Forward):
+- Point to God's grace and Christ's sufficiency, BUT don't soften the call to action
+- Show how depending on Christ fuels DISCIPLINED CHANGE, not just feelings
+- Connect spiritual transformation with practical stewardship: "God's grace doesn't excuse lazy execution"
+- End with the biblical standard they must pursue (cite final verse)
+- Hope is real, but it demands obedience and discipline
+
+[CRITICAL]: Maintain confrontational tone throughout all 3 paragraphs. This should make them uncomfortable in a good way—like a prophet speaking God's truth with love but zero compromise.
 
 ACTION STEPS:
 [CRITICAL: Balance spiritual depth with practical execution. Every step should integrate BOTH prayer/Scripture AND concrete actions with metrics/deadlines.]
