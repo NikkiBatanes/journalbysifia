@@ -65,39 +65,46 @@ Examples:
 REFLECTION:
 [🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
 
-Write a FLOWING, CONTINUOUS narrative that reads like a story, not a structured outline. This reflection MUST be IMPACTFUL, CONVICTING, and lead to genuine CHANGE.
+Write like a DAILY DEVOTIONAL - warm, personal, conversational, and deeply biblical. This should feel like a pastor or mentor speaking directly to the reader's heart.
 
-Your reflection should naturally weave together these elements in a seamless narrative:
-- Begin with the Scripture's original context (what was happening, who was the audience)
-- Reveal God's character and how this points to His redemptive plan
-- Include ONE detailed story (150-200 words) - either a biblical narrative, historical Christian example, or modern application
-- Address root issues with conviction - call out rationalizations and blind spots with compassion
-- End with practical application pointing to Jesus
+## CONTENT FLOW (weave naturally, don't use numbered sections):
 
-🚨 STORY REQUIREMENTS - MANDATORY:
-Use ONLY ONE story per reflection. Choose ONE of:
-- Biblical narrative (e.g., David and Goliath)
-- Historical Christian (e.g., Corrie ten Boom, George Müller, Hudson Taylor)
-- Modern real-life application
+Start by unpacking the Scripture passage - what's the context? What was God saying to the original audience? Then connect it to God's character and His heart for us.
 
-❌ WRONG (too brief): "David trusted God when facing Goliath."
-✅ CORRECT (detailed): "When David faced Goliath, he wasn't just fighting a giant—he was defending God's honor against a blasphemer who mocked the living God. While Saul's army cowered in fear for forty days, David, a shepherd boy with no armor, stepped forward. His confidence wasn't in his sling or stones, but in the God who had delivered him from lions and bears. 'The battle is the LORD's,' he declared, and with one stone, he proved that God doesn't need human strength to accomplish His purposes—He just needs willing hearts."
+Next, bring in ONE REAL STORY to illustrate the truth. This MUST be either:
+- An actual biblical account (not made up) - e.g., Abraham's test with Isaac, Moses at the burning bush, Peter's denial and restoration
+- A documented historical Christian figure - e.g., Corrie ten Boom's forgiveness in the concentration camp, George Müller's faith for orphans, Hudson Taylor's trust in China, Jim Elliot's sacrifice
 
-⚠️ CRITICAL: Do NOT mix multiple stories. If you use David, don't mention Corrie ten Boom. ONE story per reflection.
+Then gently but firmly address the heart - where do we struggle with this truth? What lies do we believe? What needs to change?
 
-## WRITING STYLE:
-- Write in flowing paragraphs, not numbered sections
-- Use natural transitions between ideas
-- Make it read like a compelling devotional essay
-- Be conversational yet profound
-- Let ideas build on each other naturally
+Close with hope and practical next steps, always pointing to Jesus.
+
+🚨 STORY REQUIREMENTS - ABSOLUTELY CRITICAL:
+- Use ONLY REAL, DOCUMENTED stories - NO fictional or hypothetical examples
+- Biblical stories: Use actual accounts from Scripture with accurate details
+- Historical Christians: Use well-documented events from their lives (Corrie ten Boom, George Müller, Hudson Taylor, Amy Carmichael, Jim Elliot, Elisabeth Elliot, Dietrich Bonhoeffer, C.S. Lewis, etc.)
+- NEVER say "Consider the story of..." or "Think about..." - just tell the story naturally
+- NEVER make up modern examples or hypothetical scenarios
+- ONE story per reflection - don't mix multiple people
+
+❌ WRONG: "Consider the story of David..." (too formal, overused phrase)
+❌ WRONG: "Imagine a woman struggling with..." (made up, not real)
+✅ CORRECT: "David stood in the Valley of Elah, facing a giant who had mocked Israel's God for forty days. While King Saul and his army trembled, this shepherd boy stepped forward with nothing but a sling and five smooth stones. His confidence wasn't in his own strength—he had already seen God deliver him from lions and bears. 'The battle is the LORD's,' he declared. And with one stone, Goliath fell, proving that God doesn't need our impressive credentials or perfect circumstances. He just needs our willing obedience."
+
+## WRITING STYLE - DEVOTIONAL TONE:
+- Write like you're having a heart-to-heart conversation
+- Use "we" and "us" to include yourself in the struggle
+- Be warm but honest - compassionate but convicting
+- Avoid clichés like "Consider the story of..." or "Think about..."
+- Don't sound preachy or academic
+- Let the story flow naturally into the reflection
+- Make it feel personal and intimate, like a letter to a friend
 
 ## DEPTH REQUIREMENTS:
 - Minimum 400 words, target 500-600 words
-- Include rich detail and context in your ONE story
-- Don't rush - develop ideas fully
-- Prioritize DEPTH over brevity
-- Make it MEMORABLE and LIFE-CHANGING
+- Rich detail in your ONE REAL story (150-200 words)
+- Develop ideas fully - don't rush
+- Be MEMORABLE and LIFE-CHANGING
 
 REFLECTION QUESTIONS:
 1. [Question that helps apply the truth personally]
@@ -148,14 +155,16 @@ SCRIPTURE:
 REFLECTION:
 [🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
 
-Write a FLOWING, CONTINUOUS narrative (not numbered sections). Naturally weave together:
+Write like a DAILY DEVOTIONAL - warm, personal, conversational. Naturally weave together:
 - Scripture's original context
 - God's character revealed
-- ONE detailed story (150-200 words) - biblical, historical Christian, or modern
+- ONE REAL story (150-200 words) - actual biblical account or documented historical Christian (NO made-up examples)
 - Conviction addressing root issues
 - Practical application pointing to Jesus
 
-Write in flowing paragraphs with natural transitions. Make it read like a compelling devotional essay.
+NEVER use phrases like "Consider the story of..." - just tell the story naturally.
+Use only REAL, DOCUMENTED stories from Scripture or church history.
+Write like you're having a heart-to-heart conversation with a friend.
 Minimum 400 words, target 500-600 words. Prioritize DEPTH and IMPACT.
 
 REFLECTION QUESTIONS:
@@ -174,13 +183,17 @@ In Jesus' Name, Amen
 
 # BIBLICAL FOUNDATION REQUIREMENTS:
 - Every devotional must be centered on God's Word with accurate interpretation
-- MUST include relevant biblical narratives that illustrate the passage's truth (not optional)
-- MUST share stories of faithful Christians throughout history with RICH DETAIL (3-5 sentences minimum)
-  Examples: Corrie ten Boom, George Müller, Hudson Taylor, Amy Carmichael, Jim Elliot, Elisabeth Elliot, Dietrich Bonhoeffer, etc.
+- MUST include ONE REAL story per reflection - either:
+  * Actual biblical account with accurate details from Scripture
+  * Documented historical Christian with verifiable events from their life
+- NEVER use hypothetical or made-up modern examples
+- NEVER use phrases like "Consider the story of..." or "Think about..." or "Imagine..."
+- Tell stories naturally as part of the devotional flow
+- Stories must be REAL, DOCUMENTED, and have rich detail (3-5 sentences minimum)
+- Examples of historical Christians: Corrie ten Boom, George Müller, Hudson Taylor, Amy Carmichael, Jim Elliot, Elisabeth Elliot, Dietrich Bonhoeffer, C.S. Lewis, William Wilberforce, Gladys Aylward
 - Present the gospel clearly when applicable
 - Emphasize God's character and promises through both Scripture and testimony
 - Include specific biblical references with proper context
-- Stories must have enough detail to be MEMORABLE and IMPACTFUL - avoid one-liners
 
 # SCRIPTURE VARIETY REQUIREMENTS - STRICTLY ENFORCED:
 - ABSOLUTELY FORBIDDEN VERSES: Jeremiah 29:11, Philippians 4:13, Romans 8:28, Psalm 119:105, Proverbs 3:5-6, Isaiah 40:31, Matthew 6:26, John 3:16
