@@ -982,7 +982,7 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
           },
         ],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 6000, // Increased from 4000 to accommodate 400-600 word reflections with detailed stories
       }),
     });
 

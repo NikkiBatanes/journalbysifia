@@ -51,7 +51,7 @@ export async function generateDevotional(
 
       // Create AbortController for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout (increased for longer reflections)
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -193,7 +193,7 @@ export async function generateDevotional(
 
       // Handle timeout errors
       if (error.name === 'AbortError') {
-        Logger.error('Request timed out after 60 seconds', undefined, {
+        Logger.error('Request timed out after 120 seconds', undefined, {
       component: 'modernDevotionalApi',
     });
         throw new Error('Devotional generation timed out. Please try again with a shorter duration.');

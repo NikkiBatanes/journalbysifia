@@ -452,10 +452,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           .map(a => ({
             ...a,
             text: replaceAllNamePlaceholders(
-              a.text, 
+              a.text,
               { firstName, displayName },
               { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
-            )
+            ),
           }))
       : [];
 

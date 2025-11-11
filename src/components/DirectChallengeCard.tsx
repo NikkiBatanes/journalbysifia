@@ -15,7 +15,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
   // Parse SPIRITUAL and TACTICAL sections if they exist
   const spiritualMatch = challenge.match(/SPIRITUAL:\s*(.+?)(?=\n\s*TACTICAL)/is);
   const tacticalMatch = challenge.match(/TACTICAL[^:]*:\s*(.+?)$/is);
-  
+
   const hasStructuredFormat = spiritualMatch && tacticalMatch;
   const spiritualText = spiritualMatch?.[1]?.trim();
   // Remove any remaining "TACTICAL (48-72 hour deadline):" prefix from the tactical text
@@ -33,7 +33,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
         />
         <ThemedText weight="bold" style={styles.heading}>Rise in Faith</ThemedText>
       </View>
-      
+
       {hasStructuredFormat ? (
         <>
           {/* Spiritual Section */}
@@ -57,7 +57,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
           {challenge}
         </ThemedText>
       )}
-      
+
       {challengeCTA && (
         <ThemedText weight="semiBold" style={styles.cta}>{challengeCTA}</ThemedText>
       )}
