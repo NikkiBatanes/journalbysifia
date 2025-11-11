@@ -3,7 +3,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
@@ -216,6 +216,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding;
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
   const [_showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [_showFrequencySelector, setShowFrequencySelector] = useState(false);
   const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
@@ -2001,7 +2002,42 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             </Modal>
           )}
 
-          {/* 6. Notes */}
+          {/* 6. Alert */}
+          <View style={styles.inputContainer}>
+            <TouchableOpacity
+              style={styles.repeatButton}
+              onPress={() => {
+                triggerLightHaptic();
+                setShowAlertModal(true);
+              }}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={18}
+                color={Colors.hopeWhite}
+                style={styles.repeatIcon}
+              />
+              <ThemedText style={styles.repeatText}>
+                {newBlock.alert === 'none' ? 'None' :
+                 newBlock.alert === 'at-time' ? 'At time of event' :
+                 newBlock.alert === '5-min' ? '5 minutes before' :
+                 newBlock.alert === '15-min' ? '15 minutes before' :
+                 newBlock.alert === '30-min' ? '30 minutes before' :
+                 newBlock.alert === '1-hour' ? '1 hour before' :
+                 newBlock.alert === '2-hours' ? '2 hours before' :
+                 newBlock.alert === '1-day' ? '1 day before' :
+                 newBlock.alert === '2-days' ? '2 days before' :
+                 newBlock.alert === '1-week' ? '1 week before' : 'None'}
+              </ThemedText>
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={Colors.hopeWhite}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* 7. Notes */}
           <TextInput
             style={[styles.input, styles.notesInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
             value={newBlock.notes}
@@ -2029,6 +2065,68 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             }}
             onCancel={() => setShowCategoryPicker(false)}
           />
+
+          {/* Alert Modal */}
+          <Modal
+            visible={showAlertModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowAlertModal(false)}
+          >
+            <TouchableOpacity 
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowAlertModal(false)}
+            >
+              <TouchableOpacity 
+                style={styles.alertModalContent}
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+              >
+                <ThemedText weight="semiBold" style={styles.alertModalTitle}>Alert</ThemedText>
+                <ScrollView style={styles.alertOptions}>
+                  {[
+                    { value: 'none', label: 'None' },
+                    { value: 'at-time', label: 'At time of event' },
+                    { value: '5-min', label: '5 minutes before' },
+                    { value: '15-min', label: '15 minutes before' },
+                    { value: '30-min', label: '30 minutes before' },
+                    { value: '1-hour', label: '1 hour before' },
+                    { value: '2-hours', label: '2 hours before' },
+                    { value: '1-day', label: '1 day before' },
+                    { value: '2-days', label: '2 days before' },
+                    { value: '1-week', label: '1 week before' },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.alertOption,
+                        newBlock.alert === option.value && styles.selectedAlertOption,
+                      ]}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setNewBlock({...newBlock, alert: option.value as any});
+                        setShowAlertModal(false);
+                      }}
+                    >
+                      <ThemedText 
+                        weight={newBlock.alert === option.value ? 'semiBold' : 'medium'}
+                        style={[
+                          styles.alertOptionText,
+                          newBlock.alert === option.value && styles.selectedAlertOptionText,
+                        ]}
+                      >
+                        {option.label}
+                      </ThemedText>
+                      {newBlock.alert === option.value && (
+                        <Ionicons name="checkmark" size={20} color={Colors.anchorBlue} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
 
           <View style={styles.buttonRow}>
             <View style={styles.buttonGroup}>
@@ -2852,6 +2950,49 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  alertModalContent: {
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 20,
+    width: '85%',
+    maxWidth: 320,
+    maxHeight: '70%',
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  alertModalTitle: {
+    fontSize: 18,
+    color: Colors.darkGray,
+    textAlign: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  alertOptions: {
+    maxHeight: 400,
+  },
+  alertOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  selectedAlertOption: {
+    backgroundColor: 'rgba(0, 102, 204, 0.05)',
+  },
+  alertOptionText: {
+    fontSize: 16,
+    color: Colors.darkGray,
+  },
+  selectedAlertOptionText: {
+    color: Colors.anchorBlue,
   },
   gridContainer: {
     padding: 4,
