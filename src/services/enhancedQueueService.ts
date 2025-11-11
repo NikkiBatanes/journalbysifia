@@ -475,7 +475,7 @@ export class EnhancedQueueService {
    * Generate journal expansion via appropriate Edge Function
    * TODO: Implement when journal expansion Edge Function is created
    */
-  private async generateJournalExpansion(item: QueueItem): Promise<any> {
+  private async generateJournalExpansion(_item: QueueItem): Promise<any> {
     // For now, throw an error as this feature is not yet implemented
     throw new Error('This feature is coming soon. Stay tuned!');
 
