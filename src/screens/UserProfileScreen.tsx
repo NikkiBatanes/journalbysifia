@@ -2378,9 +2378,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               />
               <TouchableOpacity
                 style={styles.timePickerDoneButton}
-                onPress={() => {
+                onPress={async () => {
                   try { triggerLightHaptic(); } catch {}
-                  handleTimeChange({} as any, tempTime);
+                  await handleTimeChange({} as any, tempTime);
                   setShowTimePicker(false);
                 }}
               >
