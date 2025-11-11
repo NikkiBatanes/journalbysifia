@@ -226,6 +226,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState(false);
+  const [calendarPermission, setCalendarPermission] = useState(false);
+  const [locationPermission, setLocationPermission] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
     if (birthDateStr) {
@@ -986,6 +989,19 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       loadNotificationPreferences();
     }
   }, [settingsModal, user?.id, loadNotificationPreferences]);
+
+  // Check permission status when system permissions modal opens
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (systemPermissionsModal) {
+        try {
+          const notifPerms = await pushNotificationService.checkPermissions();
+          setNotificationPermission(!!(notifPerms?.alert || notifPerms?.badge || notifPerms?.sound));
+        } catch {}
+      }
+    };
+    checkPermissions();
+  }, [systemPermissionsModal]);
 
   useEffect(() => {
     loadProfileData();
@@ -2134,91 +2150,105 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
 
           <View style={styles.settingGroup}>
-            <Text style={[styles.settingLabel, font]}>Notifications</Text>
-            <Text style={[styles.settingHint, font]}>
-              Allow siFia to send reminders and updates. You can turn these on in system settings.
-            </Text>
-            <TouchableOpacity
-              style={styles.permissionActionButton}
-              onPress={async () => {
-                try { triggerLightHaptic(); } catch {}
-                const granted = await pushNotificationService.requestPermissions();
-                if (!granted) {
-                  Alert.alert(
-                    'Enable Notifications',
-                    'Open your device Settings to enable notifications for siFia.',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Open Settings',
-                        onPress: () => pushNotificationService.openNotificationSettings(),
-                      },
-                    ],
-                  );
-                } else {
-                  Alert.alert('Notifications Enabled', 'Notifications are now allowed.');
-                }
-              }}
-            >
-              <Ionicons name="notifications" size={18} color={Colors.hopeWhite} />
-              <Text style={[styles.permissionActionText, font]}>Check Notification Permission</Text>
-            </TouchableOpacity>
+            <View style={styles.settingItem}>
+              <View style={styles.permissionTextContainer}>
+                <Text style={[styles.settingLabel, font]}>Notifications</Text>
+                <Text style={[styles.settingHint, font]}>
+                  Allow siFia to send reminders and updates
+                </Text>
+              </View>
+              <Switch
+                value={notificationPermission}
+                onValueChange={async (value) => {
+                  try { triggerLightHaptic(); } catch {}
+                  if (value) {
+                    const granted = await pushNotificationService.requestPermissions();
+                    setNotificationPermission(granted);
+                    if (!granted) {
+                      Alert.alert(
+                        'Enable Notifications',
+                        'Open your device Settings to enable notifications for siFia.',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Open Settings',
+                            onPress: () => pushNotificationService.openNotificationSettings(),
+                          },
+                        ],
+                      );
+                    }
+                  } else {
+                    pushNotificationService.openNotificationSettings();
+                  }
+                }}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
+              />
+            </View>
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={[styles.settingLabel, font]}>Calendar</Text>
-            <Text style={[styles.settingHint, font]}>
-              Allow calendar access to sync time blocks to your device calendar.
-            </Text>
-            <TouchableOpacity
-              style={styles.permissionActionButton}
-              onPress={async () => {
-                try { triggerLightHaptic(); } catch {}
-                const granted = await requestCalendarPermissions();
-                if (!granted) {
-                  Alert.alert(
-                    'Calendar Access Needed',
-                    'We could not access the calendar. Please enable calendar permissions for siFia in your device settings.',
-                    [
-                      { text: 'OK' },
-                    ],
-                  );
-                } else {
-                  Alert.alert('Calendar Enabled', 'Calendar permissions are active.');
-                }
-              }}
-            >
-              <Ionicons name="calendar" size={18} color={Colors.hopeWhite} />
-              <Text style={[styles.permissionActionText, font]}>Allow Calendar Access</Text>
-            </TouchableOpacity>
+            <View style={styles.settingItem}>
+              <View style={styles.permissionTextContainer}>
+                <Text style={[styles.settingLabel, font]}>Calendar</Text>
+                <Text style={[styles.settingHint, font]}>
+                  Sync time blocks to your device calendar
+                </Text>
+              </View>
+              <Switch
+                value={calendarPermission}
+                onValueChange={async (value) => {
+                  try { triggerLightHaptic(); } catch {}
+                  if (value) {
+                    const granted = await requestCalendarPermissions();
+                    setCalendarPermission(granted);
+                    if (!granted) {
+                      Alert.alert(
+                        'Calendar Access Needed',
+                        'Please enable calendar permissions for siFia in your device settings.',
+                        [{ text: 'OK' }],
+                      );
+                    }
+                  } else {
+                    Linking.openSettings();
+                  }
+                }}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
+              />
+            </View>
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={[styles.settingLabel, font]}>Location</Text>
-            <Text style={[styles.settingHint, font]}>
-              Enable location to add places to your time blocks and helpful prompts.
-            </Text>
-            <TouchableOpacity
-              style={styles.permissionActionButton}
-              onPress={async () => {
-                try { triggerLightHaptic(); } catch {}
-                const granted = await requestLocationPermissions();
-                if (!granted) {
-                  Alert.alert(
-                    'Location Access Needed',
-                    'Please allow location access for siFia in your device settings to use location features.',
-                    [
-                      { text: 'OK' },
-                    ],
-                  );
-                } else {
-                  Alert.alert('Location Enabled', 'Location permissions are active.');
-                }
-              }}
-            >
-              <Ionicons name="location" size={18} color={Colors.hopeWhite} />
-              <Text style={[styles.permissionActionText, font]}>Allow Location Access</Text>
-            </TouchableOpacity>
+            <View style={styles.settingItem}>
+              <View style={styles.permissionTextContainer}>
+                <Text style={[styles.settingLabel, font]}>Location</Text>
+                <Text style={[styles.settingHint, font]}>
+                  Add places to your time blocks
+                </Text>
+              </View>
+              <Switch
+                value={locationPermission}
+                onValueChange={async (value) => {
+                  try { triggerLightHaptic(); } catch {}
+                  if (value) {
+                    const granted = await requestLocationPermissions();
+                    setLocationPermission(granted);
+                    if (!granted) {
+                      Alert.alert(
+                        'Location Access Needed',
+                        'Please allow location access for siFia in your device settings.',
+                        [{ text: 'OK' }],
+                      );
+                    }
+                  } else {
+                    Linking.openSettings();
+                  }
+                }}
+                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
+                thumbColor={Colors.hopeWhite}
+              />
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -2939,6 +2969,10 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 15,
     fontWeight: '600',
+  },
+  permissionTextContainer: {
+    flex: 1,
+    marginRight: 12,
   },
   settingHint: {
     fontSize: 14,
