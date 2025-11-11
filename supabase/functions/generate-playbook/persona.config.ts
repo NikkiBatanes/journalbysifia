@@ -73,18 +73,47 @@ NONE (for simple reminders/notifications only):
 - NOTE: Use TODOS if task needs checking off or UI interaction.
 
 CRITICAL RULES - FOLLOW THESE EXACTLY:
-1. PRAYER KEYWORDS = PRAYER - ANY task with "Pray", "Ask God", "Seek God", "Request from God" = prayer (NOT reflection!)
-2. TIME ALLOCATION = TIMEBLOCK - "Dedicate time", "Schedule", "Set aside time", "daily", "weekly", "X minutes", "each day" = timeblock
-3. GRATITUDE LISTS = GRATITUDE - "List things grateful for", "Write down blessings", "Count blessings" = gratitude (NOT reflection!)
-4. SCHEDULING ACTIVITIES = TIMEBLOCK - "Schedule check-ins", "Set regular times", "Plan meetings" = timeblock (NOT none!)
-5. SPIRITUAL REQUESTS = PRAYER - "Ask God to reveal", "Pray for clarity", "Seek God's guidance" = prayer (NOT reflection!)
-6. DISTINGUISH TASK vs JOURNALING - "Read a book" = todos, "Reflect on what you read" = reflection
-7. CREATE/MAKE/SCHEDULE = TODOS - "Create list", "Make appointment", "Schedule meeting" are actionable tasks
-8. IDENTIFY/EVALUATE = REFLECTION - "Identify items", "Evaluate options" require thinking/analysis
-9. KEEP/MAINTAIN = TODOS - "Keep a journal", "Maintain a log" are ongoing tasks to do
-10. MEDITATE/CONTEMPLATE = REFLECTION - "Meditate on verse", "Contemplate meaning" require deep thinking
-11. PREPARE = REFLECTION - "Prepare questions", "Prepare topics" require planning and thinking
-12. MULTIPLE ACTIONS = MULTIPLE TYPES - Some tasks may have 2 journal types
+
+🚨 PRIORITY ORDER (Check in this order):
+1. TIME ALLOCATION FIRST - If task has "Dedicate X minutes", "Set aside time", "Schedule", "daily", "weekly" → TIMEBLOCK (even if it mentions prayer!)
+2. WRITE/IDENTIFY/PREPARE = REFLECTION - "Write down your...", "Identify...", "Prepare questions..." → reflection (NOT prayer, even if about spiritual topics!)
+3. ACTION VERBS = NONE - "Share with...", "Ask your spouse...", "Pray together with...", "Tell someone..." → none (these are actions, not journaling!)
+4. SPIRITUAL REQUESTS TO GOD = PRAYER - "Pray for...", "Ask God to...", "Seek God's..." → prayer (ONLY if it's talking TO God, not about prayer!)
+
+DETAILED RULES:
+1. "Dedicate time" / "Set aside X minutes" = TIMEBLOCK
+   - "Dedicate 15 minutes each morning to pray" → timeblock (time allocation)
+   - "Pray daily for your wife. Dedicate 15 minutes..." → timeblock (time allocation takes priority)
+
+2. "Write down" = REFLECTION (unless it's gratitude/blessings)
+   - "Write down your thoughts" → reflection
+   - "Write down your prayers" → prayer (exception: writing prayers TO God)
+   - "Write down what you're grateful for" → gratitude
+
+3. "Share" / "Tell" / "Ask someone" = NONE (action, not journaling)
+   - "Share with your wife the areas you're praying for her" → none (sharing is an action)
+   - "Ask your wife about her needs" → none (asking is an action)
+   - "Tell your mentor about your progress" → none (telling is an action)
+
+4. "Pray together" / "Pray with" = NONE (action, not solo journaling)
+   - "Pray together with your spouse" → none (joint activity)
+   - "Pray with your accountability partner" → none (joint activity)
+
+5. "Identify" / "Prepare" = REFLECTION (analysis/planning)
+   - "Identify a local church" → reflection (identifying/evaluating)
+   - "Identify specific areas" → reflection (analysis)
+   - "Prepare questions for your session" → reflection (planning)
+
+6. "Pray for" (solo, to God) = PRAYER
+   - "Pray for God to reveal..." → prayer (spiritual request)
+   - "Pray for wisdom" → prayer (spiritual request)
+   - BUT: "Pray for 15 minutes daily" → timeblock (time allocation!)
+
+7. DISTINGUISH TASK vs JOURNALING
+   - "Read a book" → none (task)
+   - "Reflect on what you read" → reflection (journaling)
+   - "Create list" → none (task)
+   - "Schedule meeting" → none (task)
 
 JOURNAL TYPES:
 
@@ -150,9 +179,19 @@ GRATITUDE (for expressing thankfulness):
 - Recognizing blessings
 
 CORRECT EXAMPLES:
+- "Pray daily for your wife. Dedicate 15 minutes each morning..." → timeblock (time allocation takes priority!)
+- "Write down your thoughts" → reflection (writing/documenting)
+- "Write down your prayers" → prayer (writing prayers TO God)
+- "Write down what you're grateful for" → gratitude (gratitude expression)
+- "Share with your wife the specific areas you're praying for her" → none (sharing is an action, not journaling)
+- "Ask your wife about her needs" → none (asking someone is an action)
+- "Pray together with your spouse" → none (joint activity, not solo journaling)
+- "Identify a local church to visit" → reflection (identifying/evaluating)
+- "Identify specific areas for improvement" → reflection (analysis)
+- "Prepare questions for your counseling session" → reflection (planning/preparing)
+- "Pray for God to reveal root causes" → prayer (spiritual request TO God)
 - "Set small, measurable goals" → reflection (goal setting)
 - "Celebrate achievements" → none (just celebrating, no journaling)
-- "Set goals and celebrate achievements" → reflection (both actions)
 - "Share goals with friends" → none (just sharing, no journaling)
 - "Attend regular meetings" → none (regular activity)
 - "Read a book on healthy eating" → none (regular activity)
@@ -168,14 +207,12 @@ CORRECT EXAMPLES:
 - "Set specific times for meals and snacks" → timeblock (setting specific times)
 - "Create a list of specific prayers" → none (creating a list)
 - "Schedule an appointment with healthcare provider" → none (scheduling task)
-- "Spend dedicated time in prayer asking God for wisdom" → prayer (spiritual request)
+- "Spend dedicated time in prayer asking God for wisdom" → prayer (spiritual request TO God)
 - "Commit to a weekly 'no spend' day" → none (behavioral commitment)
 - "Identify items to sell that you no longer need" → reflection (identifying/evaluating)
 - "Dedicate time each day for prayer" → timeblock (daily time allocation)
 - "Keep a prayer journal to track how God answers" → none (maintaining a journal)
 - "Meditate on Romans 8:1" → reflection (contemplating scripture)
-- "Pray for God to reveal root causes" → prayer (spiritual request)
-- "Prepare specific questions for your session" → reflection (preparing discussion topics)
 - "Pray for God to help you process these emotions" → prayer (spiritual request)
 - "Pray for the ability to forgive your friend, asking God to soften your heart" → prayer (spiritual request)
 - "Pray for wisdom to understand God's purpose for work and rest in your life" → prayer (spiritual request)
