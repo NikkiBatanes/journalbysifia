@@ -2322,8 +2322,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Request Alerts</Text>
               <Switch
-                value={notificationPrefs?.prayer_requests ?? false}
-                onValueChange={(value) => updatePref('prayer_requests', value)}
+                value={notificationPrefs?.prayer_request_alerts ?? false}
+                onValueChange={(value) => updatePref('prayer_request_alerts', value)}
                 disabled={!notificationPrefs}
                 trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
                 thumbColor={Colors.hopeWhite}

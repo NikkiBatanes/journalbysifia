@@ -93,6 +93,7 @@ class NotificationManagementService {
         milestone_celebrations: data.milestone_celebrations,
         trial_notifications: data.trial_notifications,
         streak_alerts: data.streak_alerts,
+        prayer_requests: data.prayer_requests,
         prayer_request_alerts: data.prayer_request_alerts,
         quiet_hours_start: data.quiet_hours_start,
         quiet_hours_end: data.quiet_hours_end,
