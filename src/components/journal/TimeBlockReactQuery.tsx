@@ -802,6 +802,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           description: newBlock.notes.trim() || undefined,
           location: newBlock.location.trim() || undefined,
           all_day: newBlock.isAllDay,
+          alert: newBlock.alert || 'none',
           // Repeat fields (only if user can use repeat)
           repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
             frequency: newBlock.repeat.frequency,
@@ -903,6 +904,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           description: newBlock.notes.trim() || undefined,
           location: newBlock.location.trim() || undefined,
           all_day: newBlock.isAllDay,
+          alert: newBlock.alert || 'none',
           // Repeat fields (only if user can use repeat)
           repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
             frequency: newBlock.repeat.frequency,

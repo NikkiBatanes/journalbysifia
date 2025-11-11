@@ -198,6 +198,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     location?: string;
     isAllDay: boolean;
     date: Date;
+    alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
   }) => {
     try {
       if (!user) {
@@ -215,6 +216,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         location: timeBlockData.location || '',
         category: timeBlockData.category,
         description: timeBlockData.notes || '',
+        alert: timeBlockData.alert || 'none',
         is_completed: false,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         metadata: {
