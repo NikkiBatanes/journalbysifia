@@ -1650,9 +1650,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   // Get platform subscription ID from subscription object
                   const platformSubId = subscription?.platform_subscription_id || subscription?.id || 'family-subscription';
                   const groupName = `${user?.email?.split('@')[0] || 'Family'}'s Group`;
-                  
+
                   const success = await createFamilyGroup(groupName, platformSubId);
-                  
+
                   if (success) {
                     await refreshFamilyData();
                     Alert.alert(
