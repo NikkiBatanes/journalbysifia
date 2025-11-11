@@ -118,7 +118,7 @@ class RateLimiter {
       const waitSeconds = Math.ceil(limits.cooldownSeconds - timeSinceLastRequest);
       return {
         allowed: false,
-        reason: `Please wait ${waitSeconds} seconds before generating another ${operationType}`,
+        reason: `Unusual activity detected. Please wait ${waitSeconds} seconds to ensure quality.`,
         waitSeconds,
       };
     }
@@ -133,7 +133,7 @@ class RateLimiter {
       const waitSeconds = Math.ceil(waitMs / 1000);
       return {
         allowed: false,
-        reason: `You've reached your limit of ${limits.perMinute} ${operationType}s per minute. Please wait ${waitSeconds} seconds.`,
+        reason: `Unusual activity detected. Please wait ${waitSeconds} seconds while we ensure quality.`,
         waitSeconds,
       };
     }
@@ -145,7 +145,7 @@ class RateLimiter {
       const waitMinutes = Math.ceil(waitMs / 60000);
       return {
         allowed: false,
-        reason: `You've reached your limit of ${limits.perHour} ${operationType}s per hour. Please wait ${waitMinutes} minutes.`,
+        reason: `Unusual activity detected. Please wait ${waitMinutes} minutes while we ensure quality for everyone.`,
         waitSeconds: Math.ceil(waitMs / 1000),
       };
     }
@@ -157,7 +157,7 @@ class RateLimiter {
       const waitHours = Math.ceil(waitMs / 3600000);
       return {
         allowed: false,
-        reason: `You've reached your daily limit of ${limits.perDay} ${operationType}s. Please try again in ${waitHours} hours.`,
+        reason: `Unusual activity detected today. This helps us maintain quality for everyone. Please try again in ${waitHours} hours.`,
         waitSeconds: Math.ceil(waitMs / 1000),
       };
     }
@@ -169,7 +169,7 @@ class RateLimiter {
       const waitDays = Math.ceil(waitMs / 86400000);
       return {
         allowed: false,
-        reason: `You've reached your monthly limit of ${limits.perMonth} ${operationType}s. Please upgrade your plan or wait ${waitDays} days.`,
+        reason: `Unusual activity detected this month. This helps us maintain service quality. Please contact support if you need assistance.`,
         waitSeconds: Math.ceil(waitMs / 1000),
       };
     }
@@ -354,32 +354,8 @@ class RateLimiter {
     reason: string,
     waitSeconds?: number
   ): string {
-    const limits = TIER_RATE_LIMITS[tier];
-
-    // For transformation and family tiers, emphasize quality over quantity
-    if (tier === 'transformation' || tier === 'family') {
-      if (waitSeconds && waitSeconds < 60) {
-        return `Taking a moment to ensure quality... Please wait ${waitSeconds} seconds.`;
-      }
-      return reason;
-    }
-
-    // For paid tiers, be encouraging
-    if (tier === 'spark' || tier === 'growth') {
-      if (reason.includes('monthly limit')) {
-        return `You've used your monthly playbooks! Upgrade to Transformation for unlimited access, or wait for your limit to reset.`;
-      }
-      if (waitSeconds && waitSeconds < 60) {
-        return `Almost ready! Please wait ${waitSeconds} seconds before creating another playbook.`;
-      }
-      return reason;
-    }
-
-    // For free tier, encourage upgrade
-    if (reason.includes('monthly limit') || reason.includes('daily limit')) {
-      return `You've reached your free limit. Upgrade to Spark for 8 playbooks per month, or Growth for 20!`;
-    }
-
+    // All messages now use "unusual activity" language
+    // Just return the reason as-is since it's already user-friendly
     return reason;
   }
 
