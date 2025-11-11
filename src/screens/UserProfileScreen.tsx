@@ -523,6 +523,42 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [featureText, setFeatureText] = useState('');
   const [featureCategory, setFeatureCategory] = useState<string>('UI/UX');
 
+  // User preferences state
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    notifications: {
+      dailyDevotional: true,
+      prayerReminders: true,
+      journalPrompts: true,
+      playbookUpdates: true,
+      achievements: true,
+      weeklyReports: true,
+      pushEnabled: true,
+      emailEnabled: true,
+      reminderTime: '08:00',
+      timezone: 'UTC',
+    },
+    theme: 'default',
+    font: 'lexend',
+    fontSize: 'medium',
+    colorScheme: 'default',
+    weekStart: 'sunday',
+    calendar: {
+      autoSync: false,
+    },
+    privacy: {
+      profileVisibility: 'public',
+      shareProgress: true,
+      shareJournal: false,
+    },
+    content: {
+      language: 'en',
+      bibleVersion: 'NASB',
+      autoPlayAudio: false,
+      downloadForOffline: false,
+      showVerseOfDay: true,
+    },
+  });
+
   // Load persisted experience preferences on mount (defaults are ON)
   useEffect(() => {
     let mounted = true;
@@ -944,42 +980,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </Modal>
   );
 
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    notifications: {
-      dailyDevotional: true,
-      prayerReminders: true,
-      journalPrompts: true,
-      playbookUpdates: true,
-      achievements: true,
-      weeklyReports: true,
-      pushEnabled: true,
-      emailEnabled: true,
-      reminderTime: '08:00',
-      timezone: 'UTC',
-    },
-    theme: 'default',
-    font: 'lexend',
-    fontSize: 'medium',
-    colorScheme: 'default',
-    weekStart: 'sunday',
-    calendar: {
-      autoSync: false,
-    },
-    privacy: {
-      profileVisibility: 'public',
-      shareProgress: true,
-      shareJournal: false,
-    },
-    content: {
-      language: 'en',
-      bibleVersion: 'NASB',
-      autoPlayAudio: false,
-      downloadForOffline: false,
-      showVerseOfDay: true,
-    },
-  });
-
-  // Reload preferences whenever the settings modal opens (placed after declaration to satisfy lints)
+  // Reload preferences whenever the settings modal opens
   useEffect(() => {
     if (settingsModal && user?.id) {
       loadNotificationPreferences();
