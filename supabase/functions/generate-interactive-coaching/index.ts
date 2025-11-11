@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,6 +43,19 @@ serve(async (req) => {
 
   try {
     const { type, userMessage, conversationHistory, context, insights }: InteractiveCoachingRequest = await req.json();
+
+    // Extract user ID from authorization header for rate limiting
+    const authHeader = req.headers.get('authorization');
+    const userId = authHeader ? authHeader.split(' ')[1] : 'anonymous';
+
+    // Check rate limit
+    const rateLimitResult = SimpleRateLimiter.checkLimit(userId, RATE_LIMIT_CONFIGS.coaching);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitError(
+        rateLimitResult,
+        `You're sending messages too quickly. Please wait ${rateLimitResult.retryAfter} seconds.`
+      );
+    }
 
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');

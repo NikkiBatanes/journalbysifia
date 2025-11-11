@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from './persona.config.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRateLimitHeaders } from '../_shared/simpleRateLimiter.ts';
 
 interface Scripture {
   text: string;
@@ -890,6 +891,24 @@ serve(async (req: Request): Promise<Response> => {
   console.log('[Generate-Devotional] Request body:', JSON.stringify(requestBody, null, 2));
   console.log('[Generate-Devotional] Bible version received:', bibleVersion);
   console.log('[Generate-Devotional] User input received:', userInput);
+
+  // Extract user ID from authorization header for rate limiting
+  const authHeader = req.headers.get('authorization');
+  const userId = authHeader ? authHeader.split(' ')[1] : 'anonymous';
+
+  // Check rate limit
+  console.log('[Generate-Devotional] Checking rate limit for user:', userId);
+  const rateLimitResult = SimpleRateLimiter.checkLimit(userId, RATE_LIMIT_CONFIGS.devotional);
+  
+  if (!rateLimitResult.allowed) {
+    console.log('[Generate-Devotional] Rate limit exceeded for user:', userId);
+    return createRateLimitError(
+      rateLimitResult,
+      `You've created ${RATE_LIMIT_CONFIGS.devotional.maxRequests} devotionals in the last hour. Please wait a moment before creating another.`
+    );
+  }
+  
+  console.log('[Generate-Devotional] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
   // Add anti-repetition context to user input
   const enhancedUserInput = `${userInput}

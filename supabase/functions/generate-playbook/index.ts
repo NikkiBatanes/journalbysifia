@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -367,6 +368,24 @@ serve(async (req: Request) => {
   }
 
   const { userInput, userName, userId } = requestBody;
+
+  // Extract user ID from authorization header for rate limiting
+  const authHeader = req.headers.get('authorization');
+  const rateLimitUserId = authHeader ? authHeader.split(' ')[1] : userId || 'anonymous';
+
+  // Check rate limit
+  console.log('[Generate-Playbook] Checking rate limit for user:', rateLimitUserId);
+  const rateLimitResult = SimpleRateLimiter.checkLimit(rateLimitUserId, RATE_LIMIT_CONFIGS.playbook);
+  
+  if (!rateLimitResult.allowed) {
+    console.log('[Generate-Playbook] Rate limit exceeded for user:', rateLimitUserId);
+    return createRateLimitError(
+      rateLimitResult,
+      `You've created ${RATE_LIMIT_CONFIGS.playbook.maxRequests} playbooks in the last hour. Please wait a moment before creating another.`
+    );
+  }
+  
+  console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
   try {
     // ENTERPRISE FEATURE: Fetch user's recent playbook titles to ensure uniqueness
