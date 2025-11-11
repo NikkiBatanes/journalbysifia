@@ -1,5 +1,6 @@
 // src/services/hooks/useReflectionData.ts
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { DeviceEventEmitter } from 'react-native';
 import { Logger } from '../../utils/ProductionLogger';
 import { ReflectionApi, ReflectionApiEntry } from '../api/reflectionApi';
 import { queryKeys } from '../queryKeys';
@@ -333,6 +334,13 @@ export const useDeleteReflection = () => {
       queryClient.invalidateQueries({
         queryKey: ['reflections'],
       });
+
+      // Emit event to notify other components (like MomentsScreen) to refresh
+      try {
+        DeviceEventEmitter.emit('reflection_deleted');
+      } catch (emitError) {
+        Logger.warn('Failed to emit reflection_deleted event', { component: 'useReflectionData', error: emitError as Error });
+      }
 
     },
     onError: (error) => {

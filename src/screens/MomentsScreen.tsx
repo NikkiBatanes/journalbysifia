@@ -61,17 +61,18 @@ export const MomentsScreen: React.FC = () => {
     if (next !== groupBy) {setGroupBy(next);}
   }, [groupBy, groupingMode]);
 
-  // Listen for reflection save events to refresh the moments view
+  // Listen for reflection save and delete events to refresh the moments view
   useEffect(() => {
-    const handleReflectionSaved = () => {
-
+    const handleReflectionChanged = () => {
       setRefreshKey(prev => prev + 1);
     };
 
-    const subscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionSaved);
+    const savedSubscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionChanged);
+    const deletedSubscription = DeviceEventEmitter.addListener('reflection_deleted', handleReflectionChanged);
 
     return () => {
-      subscription.remove();
+      savedSubscription.remove();
+      deletedSubscription.remove();
     };
   }, []);
 
