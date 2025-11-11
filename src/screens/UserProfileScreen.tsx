@@ -2157,7 +2157,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.settingItem}
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
-                await Linking.openSettings();
+                if (Platform.OS === 'ios') {
+                  await Linking.openURL('app-settings:');
+                } else {
+                  await Linking.openSettings();
+                }
               }}
             >
               <View style={styles.permissionTextContainer}>
@@ -2175,7 +2179,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.settingItem}
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
-                await Linking.openSettings();
+                if (Platform.OS === 'ios') {
+                  await Linking.openURL('app-settings:');
+                } else {
+                  await Linking.openSettings();
+                }
               }}
             >
               <View style={styles.permissionTextContainer}>
