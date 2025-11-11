@@ -226,9 +226,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState(false);
-  const [calendarPermission, setCalendarPermission] = useState(false);
-  const [locationPermission, setLocationPermission] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
     if (birthDateStr) {
@@ -990,18 +987,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [settingsModal, user?.id, loadNotificationPreferences]);
 
-  // Check permission status when system permissions modal opens
-  useEffect(() => {
-    const checkPermissions = async () => {
-      if (systemPermissionsModal) {
-        try {
-          const notifPerms = await pushNotificationService.checkPermissions();
-          setNotificationPermission(!!(notifPerms?.alert || notifPerms?.badge || notifPerms?.sound));
-        } catch {}
-      }
-    };
-    checkPermissions();
-  }, [systemPermissionsModal]);
 
   useEffect(() => {
     loadProfileData();
@@ -2150,105 +2135,57 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
 
           <View style={styles.settingGroup}>
-            <View style={styles.settingItem}>
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={async () => {
+                try { triggerLightHaptic(); } catch {}
+                await pushNotificationService.openNotificationSettings();
+              }}
+            >
               <View style={styles.permissionTextContainer}>
                 <Text style={[styles.settingLabel, font]}>Notifications</Text>
                 <Text style={[styles.settingHint, font]}>
-                  Allow siFia to send reminders and updates
+                  Tap to manage in device settings
                 </Text>
               </View>
-              <Switch
-                value={notificationPermission}
-                onValueChange={async (value) => {
-                  try { triggerLightHaptic(); } catch {}
-                  if (value) {
-                    const granted = await pushNotificationService.requestPermissions();
-                    setNotificationPermission(granted);
-                    if (!granted) {
-                      Alert.alert(
-                        'Enable Notifications',
-                        'Open your device Settings to enable notifications for siFia.',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Open Settings',
-                            onPress: () => pushNotificationService.openNotificationSettings(),
-                          },
-                        ],
-                      );
-                    }
-                  } else {
-                    pushNotificationService.openNotificationSettings();
-                  }
-                }}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
-            </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.settingGroup}>
-            <View style={styles.settingItem}>
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={async () => {
+                try { triggerLightHaptic(); } catch {}
+                await Linking.openSettings();
+              }}
+            >
               <View style={styles.permissionTextContainer}>
                 <Text style={[styles.settingLabel, font]}>Calendar</Text>
                 <Text style={[styles.settingHint, font]}>
-                  Sync time blocks to your device calendar
+                  Tap to manage in device settings
                 </Text>
               </View>
-              <Switch
-                value={calendarPermission}
-                onValueChange={async (value) => {
-                  try { triggerLightHaptic(); } catch {}
-                  if (value) {
-                    const granted = await requestCalendarPermissions();
-                    setCalendarPermission(granted);
-                    if (!granted) {
-                      Alert.alert(
-                        'Calendar Access Needed',
-                        'Please enable calendar permissions for siFia in your device settings.',
-                        [{ text: 'OK' }],
-                      );
-                    }
-                  } else {
-                    Linking.openSettings();
-                  }
-                }}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
-            </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.settingGroup}>
-            <View style={styles.settingItem}>
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={async () => {
+                try { triggerLightHaptic(); } catch {}
+                await Linking.openSettings();
+              }}
+            >
               <View style={styles.permissionTextContainer}>
                 <Text style={[styles.settingLabel, font]}>Location</Text>
                 <Text style={[styles.settingHint, font]}>
-                  Add places to your time blocks
+                  Tap to manage in device settings
                 </Text>
               </View>
-              <Switch
-                value={locationPermission}
-                onValueChange={async (value) => {
-                  try { triggerLightHaptic(); } catch {}
-                  if (value) {
-                    const granted = await requestLocationPermissions();
-                    setLocationPermission(granted);
-                    if (!granted) {
-                      Alert.alert(
-                        'Location Access Needed',
-                        'Please allow location access for siFia in your device settings.',
-                        [{ text: 'OK' }],
-                      );
-                    }
-                  } else {
-                    Linking.openSettings();
-                  }
-                }}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
-            </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
