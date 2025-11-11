@@ -28,6 +28,8 @@ import { triggerLightHaptic } from '../utils/haptics';
 import { useTheme } from '../theme/ThemeContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { useNewSubscription } from '../hooks/useNewSubscription';
+import { checkAndRecordRequest, type SubscriptionTier } from '../utils/rateLimiting';
+import { Alert } from 'react-native';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -334,6 +336,22 @@ const UserInputScreen: React.FC = () => {
         });
       }
       return;
+    }
+
+    // ENTERPRISE: Check rate limiting before generation
+    if (user?.id && subscriptionData?.subscription?.tier) {
+      const tier = subscriptionData.subscription.tier as SubscriptionTier;
+      const rateLimitCheck = await checkAndRecordRequest(user.id, tier, 'playbook');
+      
+      if (!rateLimitCheck.allowed) {
+        // Show user-friendly rate limit message
+        Alert.alert(
+          'Please Wait',
+          rateLimitCheck.message || 'Please wait before generating another playbook.',
+          [{ text: 'OK', style: 'default' }]
+        );
+        return;
+      }
     }
 
     // Navigate directly to GeneratingPlaybookScreen - it will handle the generation and usage tracking
