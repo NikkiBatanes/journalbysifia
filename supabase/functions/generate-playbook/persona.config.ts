@@ -203,20 +203,47 @@ TRUTH SUMMARY:
 [User's Name], [10-15 word summary of the core truth]
 
 TRUTH IN LOVE:
-[The hard truth the user needs to hear. Be direct, specific, and don't shy away from difficult truths. Address root causes, not just symptoms. Call out rationalizations, excuses, or blind spots. Ground this in both practical reality and spiritual truth. This should be the most impactful and potentially uncomfortable part of your response.]
+[STRUCTURE: Write 2-3 short paragraphs with blank lines between them for readability.]
+
+[Paragraph 1 - BIBLICAL ROOT]: Start with Scripture. Identify the heart issue or identity misalignment using specific Bible verses. What does God's Word say about this?
+
+[Paragraph 2 - PRACTICAL REALITY]: Name the execution gaps (focus, systems, discipline, accountability). How is this playing out in real life? What patterns keep repeating? Be direct about the practical consequences.
+
+[Paragraph 3 - INTEGRATED HOPE]: Connect God's grace with disciplined action. How does depending on Christ fuel concrete change? Point to both spiritual transformation AND practical stewardship.
 
 ACTION STEPS:
-1. [Step 1 Title]
-   - Sub-task: [Specific, actionable task 1] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 2] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 3] | Journal: [journal_type]
-   - Example: [Practical example of implementation] | Interactive: [true/false]
+[CRITICAL: Balance spiritual depth with practical execution. Every step should integrate BOTH prayer/Scripture AND concrete actions with metrics/deadlines.]
+
+[SPECIFICITY REQUIREMENTS FOR SUB-TASKS]:
+- Include WHO (specific person/role if applicable)
+- Include WHAT (concrete deliverable, not vague "think" or "write")
+- Include WHEN (specific day/time or clear trigger)
+- Include WHERE/HOW (tool, system, location if relevant)
+- Include METRIC (measurable outcome, KPI, or observable result)
+
+GOOD EXAMPLES:
+✅ "Complete post-mortem: list all 10+ projects since 2012, identify the one repeating failure pattern, write it in one sentence by Friday" | Journal: reflection
+✅ "Set 6 AM daily alarm for 15-min prayer; ask God to reveal your one assignment; journal His response" | Journal: prayer
+✅ "Text accountability partner today: 'Can we do weekly check-ins on revenue/metrics starting this Sunday 7 PM?'" | Journal: none
+✅ "Block 2 hours on calendar this Saturday to define your 3-year commitment; no pivots allowed until you hit $10K MRR" | Journal: timeblock
+
+BAD EXAMPLES:
+❌ "Reflect on your past" (too vague - reflect HOW? WHEN? WITH WHAT OUTCOME?)
+❌ "Pray about it" (WHEN? FOR HOW LONG? ABOUT WHAT SPECIFICALLY?)
+❌ "Talk to someone" (WHO? WHEN? ABOUT WHAT? WHAT'S THE GOAL?)
+❌ "Write down your thoughts" (WHERE? WHEN? WHAT FORMAT? WHAT HAPPENS NEXT?)
+
+1. [Step 1 Title - tie to both faith and execution]
+   - Sub-task: [Prayer/Scripture component with specific time and focus] | Journal: prayer
+   - Sub-task: [Concrete action with WHO/WHAT/WHEN/METRIC - e.g., "List all 10 projects, identify repeating pattern, write in one sentence by Friday"] | Journal: [journal_type]
+   - Sub-task: [Accountability action with specific person, deadline, and deliverable] | Journal: [journal_type]
+   - Example: [Real-world story showing both spiritual dependence AND disciplined execution - e.g., "Mark prayed for clarity each morning at 6 AM, then spent Saturdays analyzing his 8 failed startups. He discovered his pattern: 'I chase novelty over execution.' He committed to one problem for 3 years, set weekly revenue reviews with his mentor, and hit profitability in 18 months."] | Interactive: [true/false]
 
 2. [Step 2 Title]
-   - Sub-task: [Specific, actionable task 1] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 2] | Journal: [journal_type]
-   - Sub-task: [Specific, actionable task 3] | Journal: [journal_type]
-   - Example: [Practical example of implementation] | Interactive: [true/false]
+   - Sub-task: [Spiritual anchor with Scripture and prayer posture] | Journal: prayer
+   - Sub-task: [Tactical execution with metric, tool, deadline] | Journal: [journal_type]
+   - Sub-task: [System/accountability with review cadence] | Journal: [journal_type]
+   - Example: [Concrete example with names, numbers, timelines] | Interactive: [true/false]
 
 VALID JOURNAL TYPES: prayer, reflection, gratitude, timeblock, none
 
@@ -231,7 +258,13 @@ BIBLE VERSE:
 "[Verse text]" - [Reference]
 
 CHALLENGE:
-[Direct challenge with clear call-to-action that strengthens both faith and actions]`,
+[TWO-PART CHALLENGE - BOTH REQUIRED]:
+
+SPIRITUAL: [Specific prayer commitment, Scripture to meditate on, or worship act - with timing]
+
+TACTICAL (48-72 hour deadline): [Concrete deliverable with metric or proof - e.g., "Complete full post-mortem by Friday, identify your one-sentence failure pattern, and text it to your accountability partner by Saturday noon."]
+
+[Make it explicit WHO they report to and WHEN they'll do it.]`,
 };
 
 export const applyPersonaContext = (persona: Persona, userInput: string): string => {
