@@ -52,7 +52,7 @@ interface TimeBlockItem {
   location?: string;
   isAllDay: boolean;
   calendarEventId?: string; // For calendar sync
-  alert?: 'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'; // Alert/reminder
+  alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'; // Alert/reminder
   repeat: {
     frequency: RepeatFrequency;
     endDate?: Date;
@@ -234,7 +234,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     notes: string;
     location: string;
     isAllDay: boolean;
-    alert: 'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
+    alert: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
     repeat: {
       frequency: RepeatFrequency;
       endDate?: Date;
@@ -2021,6 +2021,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 {newBlock.alert === 'none' ? 'None' :
                  newBlock.alert === 'at-time' ? 'At time of event' :
                  newBlock.alert === '5-min' ? '5 minutes before' :
+                 newBlock.alert === '10-min' ? '10 minutes before' :
                  newBlock.alert === '15-min' ? '15 minutes before' :
                  newBlock.alert === '30-min' ? '30 minutes before' :
                  newBlock.alert === '1-hour' ? '1 hour before' :
@@ -2089,6 +2090,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     { value: 'none', label: 'None' },
                     { value: 'at-time', label: 'At time of event' },
                     { value: '5-min', label: '5 minutes before' },
+                    { value: '10-min', label: '10 minutes before' },
                     { value: '15-min', label: '15 minutes before' },
                     { value: '30-min', label: '30 minutes before' },
                     { value: '1-hour', label: '1 hour before' },

@@ -41,7 +41,7 @@ interface TimeBlockLogEditorProps {
     location?: string;
     isAllDay: boolean;
     date: Date;
-    alert?: 'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
+    alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
     // Repeat information to mirror journal TimeBlock component
     repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
     repeatEndDate?: Date | null;
@@ -746,7 +746,7 @@ function TimeBlockLogEditorInner(
   const [notes, setNotes] = React.useState(existingTimeBlock?.description || '');
   const [location, setLocation] = React.useState(existingTimeBlock?.location || '');
   const [isAllDay, setIsAllDay] = React.useState(existingTimeBlock?.all_day || false);
-  const [alert, setAlert] = React.useState<'none' | 'at-time' | '5-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'>('none');
+  const [alert, setAlert] = React.useState<'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'>('none');
   const [showAlertModal, setShowAlertModal] = React.useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
@@ -1045,7 +1045,8 @@ function TimeBlockLogEditorInner(
                     {alert === 'none' ? 'None' :
                      alert === 'at-time' ? 'At time of event' :
                      alert === '5-min' ? '5 minutes before' :
-                     alert === '15-min' ? '15 minutes before' :
+                     alert === '10-min' ? '10 minutes before' :
+                 alert === '15-min' ? '15 minutes before' :
                      alert === '30-min' ? '30 minutes before' :
                      alert === '1-hour' ? '1 hour before' :
                      alert === '2-hours' ? '2 hours before' :
@@ -1146,6 +1147,7 @@ function TimeBlockLogEditorInner(
                       { value: 'none', label: 'None' },
                       { value: 'at-time', label: 'At time of event' },
                       { value: '5-min', label: '5 minutes before' },
+                      { value: '10-min', label: '10 minutes before' },
                       { value: '15-min', label: '15 minutes before' },
                       { value: '30-min', label: '30 minutes before' },
                       { value: '1-hour', label: '1 hour before' },
