@@ -1069,8 +1069,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             snapToInterval={ITEM_SIZE}
             decelerationRate="fast"
             bounces={false}
-            // Center items precisely: use exact sidePadding (no extra compensation)
-            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
+            // Center items using header/footer components for symmetric spacing
+            ListHeaderComponent={<View style={{ width: Math.round(sidePadding) }} />}
             ListFooterComponent={<View style={{ width: Math.round(sidePadding) }} />}
             ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
