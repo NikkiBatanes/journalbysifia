@@ -423,7 +423,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Tutorial handlers
   const closeTutorial = useCallback(async () => {
     logger.debug('closeTutorial called - hiding tutorial and modal');
-    setShowTutorial(false);
+    // CRITICAL: Close modal FIRST, then tutorial to prevent flash
     setShowIntroModal(false);
     hasShownIntroRef.current = true;
     try {
@@ -431,6 +431,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch (error) {
       logger.warn('Failed to persist intro modal flag on closeTutorial', error as Error);
     }
+    // Close tutorial after a brief delay to ensure modal is hidden
+    setTimeout(() => {
+      setShowTutorial(false);
+    }, 50);
   }, []);
 
   const handleTapTutorialComplete = useCallback(() => {
@@ -885,7 +889,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal && !showTutorial} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={showIntroModal && !showTutorial && !hasShownIntroRef.current} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
