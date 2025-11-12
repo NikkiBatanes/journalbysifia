@@ -440,6 +440,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, []);
 
   const handleSwipeTutorialComplete = useCallback(() => {
+    // Ensure modal stays hidden
+    hasShownIntroRef.current = true;
+    setShowIntroModal(false);
+    
     // Award faith points first while tutorial is still visible
     awardFaithPoints();
     // Small delay to let faith points notification appear before hiding tutorial
@@ -450,6 +454,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [awardFaithPoints, closeTutorial]);
 
   const handleSkipTutorial = useCallback(() => {
+    // Ensure modal stays hidden
+    hasShownIntroRef.current = true;
+    setShowIntroModal(false);
+    
     // Award faith points first while tutorial is still visible
     awardFaithPoints();
     // Small delay to let faith points notification appear before hiding tutorial
@@ -922,21 +930,23 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
                 logger.debug('Button pressed - closing intro modal');
-                logger.debug('Persisting intro modal flag before toggling state');
-                // Mark as permanently shown synchronously so remounts won't flash modal
+                // CRITICAL: Set ref and close modal FIRST, before any other state changes
                 hasShownIntroRef.current = true;
+                setShowIntroModal(false);
+                
+                // Persist to storage
                 try {
                   await AsyncStorage.setItem(INTRO_SHOWN_KEY, 'true');
                 } catch (error) {
                   logger.warn('Failed to persist intro modal flag on Explore press', error as Error);
                 }
-                // Start tutorial first, then close modal (prevents flash)
-                setShowTutorial(true);
-                setTutorialStep(1);
-
-                // Close modal immediately after tutorial starts (no delay)
-                setShowIntroModal(false);
-                logger.debug('Intro modal closed, tutorial started');
+                
+                // Small delay to ensure modal is fully hidden before starting tutorial
+                setTimeout(() => {
+                  setShowTutorial(true);
+                  setTutorialStep(1);
+                  logger.debug('Tutorial started');
+                }, 100);
                 // Faith points will be awarded when user completes or skips tutorial
               }}
             >
