@@ -214,11 +214,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch {}
   };
 
-  // Carousel sizing: modern center-snap with spacing and narrower cards (responsive to orientation)
-  const ITEM_SPACING = 16;
-  const ITEM_WIDTH = Math.round(screenDimensions.width * 0.80); // slimmer card for better centering
+  // Carousel sizing: one item at a time, full width with minimal side padding
+  const ITEM_SPACING = 0; // no spacing between items for full-width single-item view
+  const SIDE_PADDING = 20; // minimal padding on sides
+  const ITEM_WIDTH = Math.round(screenDimensions.width - (SIDE_PADDING * 2));
   const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-  const sidePadding = Math.round((screenDimensions.width - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
+  const sidePadding = SIDE_PADDING;
 
   // Cleanup on unmount and handle orientation changes
   useEffect(() => {
@@ -689,6 +690,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     <View style={styles.itemSpacing} />
   ), []);
 
+  // Compensate for header/footer side padding so scale/opacity peak at true center
+  const adjustedX = Animated.subtract(scrollX, Math.round(sidePadding));
+
   // When user reaches the last card, start a delay then reveal the CTA.
   // Once revealed, keep it visible even if the user navigates away from the last card.
   useEffect(() => {
@@ -750,17 +754,17 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       index * (ITEM_WIDTH + ITEM_SPACING),
       (index + 1) * (ITEM_WIDTH + ITEM_SPACING),
     ];
-    const scale = scrollX.interpolate({
+    const scale = adjustedX.interpolate({
       inputRange,
       outputRange: [0.94, 1, 0.94],
       extrapolate: 'clamp',
     });
-    const opacity = scrollX.interpolate({
+    const opacity = adjustedX.interpolate({
       inputRange,
       outputRange: [0.85, 1, 0.85],
       extrapolate: 'clamp',
     });
-    const translateY = scrollX.interpolate({
+    const translateY = adjustedX.interpolate({
       inputRange,
       outputRange: [8, 0, 8],
       extrapolate: 'clamp',
@@ -1011,18 +1015,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           )}
         </View>
 
-        {/* Centering spacer calculated from header/footer and current card height */}
-        <View style={{
-          height: (() => {
-            if (expandedCards.size > 0) { return 16; }
-            const COLLAPSED = 400;
-            const currentId = carouselCards[currentIndex]?.id;
-            const measured = currentId ? (contentHeights[currentId] || 0) : 0;
-            const isExpanded = currentId ? expandedCards.has(currentId) : false;
-            const cardH = isExpanded ? Math.max(measured, COLLAPSED) : COLLAPSED;
-            return Math.max(16, (availableHeight - cardH) / 2);
-          })()
-        }} />
+        {/* Spacer between header and carousel */}
+        <View style={{ height: isLandscape ? 16 : 12 }} />
 
         {/* CAROUSEL CARDS */}
         <View>
@@ -1033,8 +1027,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             // bleed past ScrollView and safe-area paddings for true edge-to-edge
             marginLeft: -16 - insets.left,
             marginRight: -16 - insets.right,
-            // In landscape, add modest top margin to position carousel better
-            marginTop: isLandscape ? 20 : 0,
+            // Top spacing now handled by spacer above
+            marginTop: 0,
             marginBottom: isLandscape ? 10 : 20,
           },
         ]}>
@@ -1068,20 +1062,24 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             snapToInterval={ITEM_SIZE}
             decelerationRate="fast"
             bounces={false}
-            // Center items precisely: use exact sidePadding (no extra compensation)
-            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
+            // Center items precisely using explicit header/footer spacers
+            contentContainerStyle={undefined}
+            ListHeaderComponent={<View style={{ width: Math.round(sidePadding) }} />}
+            ListFooterComponent={<View style={{ width: Math.round(sidePadding) }} />}
             ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: true }
             )}
             scrollEventThrottle={16}
-            snapToOffsets={carouselCards.map((_, i) => i * ITEM_SIZE)}
             removeClippedSubviews={false}
             onViewableItemsChanged={onViewableItemsChanged}
             onMomentumScrollEnd={(e) => {
               const offsetX = e.nativeEvent.contentOffset.x;
-              const index = Math.round(offsetX / (ITEM_WIDTH + ITEM_SPACING));
+              const index = Math.min(
+                Math.max(0, Math.round(offsetX / (ITEM_WIDTH + ITEM_SPACING))),
+                Math.max(0, carouselCards.length - 1)
+              );
               const target = index * (ITEM_WIDTH + ITEM_SPACING);
               if (Math.abs(target - offsetX) > 1) {
                 flatListRef.current?.scrollToOffset({ offset: target, animated: true });
@@ -1423,7 +1421,8 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     // width now calculated dynamically via ITEM_WIDTH which uses screenDimensions
-    marginHorizontal: 10,
+    // Remove extra margins to keep step size equal to ITEM_WIDTH + ITEM_SPACING
+    marginHorizontal: 0,
   },
   cardContent: {
     borderRadius: 30,
