@@ -356,6 +356,14 @@ const OnboardingWelcomeScreen: React.FC = () => {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={OnboardingStyles.innerContainer}>
+        <View style={[
+          styles.contentWrapper,
+          {
+            maxWidth: isLandscape ? 700 : '100%',
+            alignSelf: 'center',
+            width: '100%',
+          },
+        ]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Image
@@ -438,6 +446,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
             Privacy Policy
           </ThemedText>
         </ThemedText>
+        </View>
       </View>
       </View>
     </OnboardingErrorBoundary>
@@ -448,6 +457,9 @@ const styles = StyleSheet.create({
   container: {
     ...OnboardingStyles.container,
     paddingHorizontal: 0,
+  },
+  contentWrapper: {
+    flex: 1,
   },
   scrollContent: OnboardingStyles.scrollContent,
   logoSection: {

@@ -168,11 +168,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             <View style={[styles.featureItem, styles.hiddenFeatureWithMargin]} />
 
             {/* Button */}
-            <View style={{
-              width: '100%',
-              maxWidth: screenDimensions.width > screenDimensions.height ? 400 : '100%',
-              alignSelf: 'center',
-            }}>
             <TouchableOpacity
               style={[OnboardingStyles.primaryButton, styles.startButton, isLoading && OnboardingStyles.buttonDisabled]}
               onPress={handleContinue}
@@ -189,7 +184,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
               <TouchableOpacity onPress={() => { triggerLightHaptic(); (navigation as any).navigate('Auth' as any, { screen: 'Login' }); }}>
                 <ThemedText weight="semiBold" style={styles.signInLink}>Login</ThemedText>
               </TouchableOpacity>
-            </View>
             </View>
           </View>
         </View>
