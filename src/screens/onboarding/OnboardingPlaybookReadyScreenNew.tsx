@@ -756,7 +756,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const renderCarouselCard = ({ item, index }: { item: PlaybookCard; index: number }) => {
     const isExpanded = expandedCards.has(item.id);
-    const COLLAPSED_HEIGHT = 400;
+    const COLLAPSED_HEIGHT = 480; // Increased from 400 for more content on iPhone
     const measured = contentHeights[item.id] || 0;
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
@@ -847,7 +847,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     key="truth"
                     truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                     summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                    expanded={isExpanded}
+                    expanded={isExpanded || shouldShowFullTruth}
                     style={styles.transparentBackground}
                     currentUser={{ displayName: onboardingData.name }}
                   />
