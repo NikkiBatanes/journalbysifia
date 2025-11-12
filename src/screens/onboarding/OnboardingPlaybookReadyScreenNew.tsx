@@ -216,14 +216,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Carousel sizing: one item at a time, full width with minimal side padding
   const ITEM_SPACING = 0; // no spacing between items for full-width single-item view
-  // Detect iPad/tablet (screen width > 768)
-  const isTablet = screenDimensions.width > 768;
-  const isLsForWidth = screenDimensions.width > screenDimensions.height;
-  // On tablets: narrower cards (60% landscape, 75% portrait), larger side padding
-  // On phones: full width with minimal padding
-  const SIDE_PADDING = isTablet ? (isLsForWidth ? screenDimensions.width * 0.20 : screenDimensions.width * 0.125) : 20;
+  const SIDE_PADDING = 20; // minimal padding on sides
   const ITEM_WIDTH = Math.round(screenDimensions.width - (SIDE_PADDING * 2));
   const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+  // The exact width we want the list to snap to (includes side padding)
+  const SNAP_TO = ITEM_WIDTH;
   const sidePadding = SIDE_PADDING;
 
   // Cleanup on unmount and handle orientation changes
@@ -746,8 +743,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const renderCarouselCard = ({ item, index }: { item: PlaybookCard; index: number }) => {
     const isExpanded = expandedCards.has(item.id);
-    // Taller cards on tablets for better proportions with narrower width
-    const COLLAPSED_HEIGHT = isTablet ? 500 : 400;
+    const COLLAPSED_HEIGHT = 400;
     const measured = contentHeights[item.id] || 0;
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
@@ -1038,10 +1034,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             horizontal
             showsHorizontalScrollIndicator={false}
             pagingEnabled={true}
+            snapToInterval={SNAP_TO}
             decelerationRate="fast"
             bounces={false}
-            // Use padding for side margins
-            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
+            // side padding is now done by the parent container → no extra here
             ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -1385,6 +1381,7 @@ const styles = StyleSheet.create({
     // keep content visually centered within screen width
     marginHorizontal: 0,
     alignItems: 'center',
+    justifyContent: 'center',
     // marginBottom now applied dynamically inline based on orientation
   },
   carouselContent: {
