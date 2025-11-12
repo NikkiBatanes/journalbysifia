@@ -423,18 +423,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Tutorial handlers
   const closeTutorial = useCallback(async () => {
     logger.debug('closeTutorial called - hiding tutorial and modal');
-    // CRITICAL: Close modal FIRST, then tutorial to prevent flash
-    setShowIntroModal(false);
+    // CRITICAL: Set ref FIRST to prevent any re-renders from showing modal
     hasShownIntroRef.current = true;
+    // Then close both modal and tutorial immediately
+    setShowIntroModal(false);
+    setShowTutorial(false);
     try {
       await AsyncStorage.setItem(INTRO_SHOWN_KEY, 'true');
     } catch (error) {
       logger.warn('Failed to persist intro modal flag on closeTutorial', error as Error);
     }
-    // Close tutorial after a brief delay to ensure modal is hidden
-    setTimeout(() => {
-      setShowTutorial(false);
-    }, 50);
   }, []);
 
   const handleTapTutorialComplete = useCallback(() => {
