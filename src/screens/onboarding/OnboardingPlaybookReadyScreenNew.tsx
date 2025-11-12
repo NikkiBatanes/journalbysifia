@@ -1071,6 +1071,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             bounces={false}
             // Center items precisely: use exact sidePadding (no extra compensation)
             contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
+            ListFooterComponent={<View style={{ width: Math.round(sidePadding) }} />}
             ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -1082,13 +1083,20 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             onViewableItemsChanged={onViewableItemsChanged}
             onMomentumScrollEnd={(e) => {
               const offsetX = e.nativeEvent.contentOffset.x;
-              const index = Math.round(offsetX / (ITEM_WIDTH + ITEM_SPACING));
-              const target = index * (ITEM_WIDTH + ITEM_SPACING);
+              const index = Math.min(
+                Math.max(0, Math.round(offsetX / ITEM_SIZE)),
+                carouselCards.length - 1
+              );
+              const target = index * ITEM_SIZE;
               if (Math.abs(target - offsetX) > 1) {
-                flatListRef.current?.scrollToOffset({ offset: target, animated: true });
+                try {
+                  flatListRef.current?.scrollToOffset({ offset: target, animated: true });
+                } catch (error) {
+                  logger.warn('Failed to snap to target offset', error as Error);
+                }
               }
             }}
-            getItemLayout={(_, index) => ({ length: ITEM_WIDTH + ITEM_SPACING, offset: (ITEM_WIDTH + ITEM_SPACING) * index, index })}
+            getItemLayout={(_, index) => ({ length: ITEM_SIZE, offset: ITEM_SIZE * index, index })}
             viewabilityConfig={{
               itemVisiblePercentThreshold: 50,
             }}
