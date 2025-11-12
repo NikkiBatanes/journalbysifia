@@ -288,7 +288,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       }
 
-      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
+      // Show success modal after cache invalidation completes
       setTimeout(() => {
         successModal.showSuccess({
           title: isEditSession ? 'Time Block Updated' : 'Time Block Saved',
@@ -296,7 +296,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
           showEditButton: true,
         });
         setHasSaved(true);
-      }, 500);
+      }, 100);
 
     } catch (error: any) {
       Logger.error('❌ SmartJournalingTimeBlockModal: SAVE FAILED', error as Error, { component: 'SmartJournalingTimeBlockModal' });

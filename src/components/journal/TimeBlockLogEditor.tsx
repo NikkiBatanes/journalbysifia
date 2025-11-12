@@ -71,6 +71,7 @@ interface TimeBlockLogEditorProps {
     description?: string;
     location?: string;
     all_day?: boolean;
+    alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
   };
 }
 
@@ -746,7 +747,7 @@ function TimeBlockLogEditorInner(
   const [notes, setNotes] = React.useState(existingTimeBlock?.description || '');
   const [location, setLocation] = React.useState(existingTimeBlock?.location || '');
   const [isAllDay, setIsAllDay] = React.useState(existingTimeBlock?.all_day || false);
-  const [alert, setAlert] = React.useState<'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'>('none');
+  const [alert, setAlert] = React.useState<'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'>(existingTimeBlock?.alert || 'none');
   const [showAlertModal, setShowAlertModal] = React.useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);

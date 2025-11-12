@@ -186,6 +186,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     location: block.location,
     isAllDay: block.all_day,
     calendarEventId: (block as any).calendar_event_id,
+    alert: block.alert || 'none', // Map alert field
     repeat: block.repeat_rule ? {
       frequency: (block.repeat_rule.frequency || 'never') as RepeatFrequency,
       endDate: block.repeat_until ? new Date(block.repeat_until) : undefined,
@@ -1284,7 +1285,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   </ThemedText>
                 </View>
               </View>
-              {(block.location || block.repeat.frequency !== 'never') && (
+              {(block.location || block.repeat.frequency !== 'never' || (block.alert && block.alert !== 'none')) && (
                 <View style={styles.metaInfoContainer}>
                   {block.location && (
                     <View style={styles.metaInfoRow}>
@@ -1300,6 +1301,23 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       <ThemedText style={styles.metaText}>
                         {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
                         {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
+                      </ThemedText>
+                    </View>
+                  )}
+                  {block.alert && block.alert !== 'none' && (
+                    <View style={styles.metaInfoRow}>
+                      <Ionicons name="notifications-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
+                      <ThemedText style={styles.metaText}>
+                        {block.alert === 'at-time' ? 'At time of event' :
+                         block.alert === '5-min' ? '5 min before' :
+                         block.alert === '10-min' ? '10 min before' :
+                         block.alert === '15-min' ? '15 min before' :
+                         block.alert === '30-min' ? '30 min before' :
+                         block.alert === '1-hour' ? '1 hour before' :
+                         block.alert === '2-hours' ? '2 hours before' :
+                         block.alert === '1-day' ? '1 day before' :
+                         block.alert === '2-days' ? '2 days before' :
+                         block.alert === '1-week' ? '1 week before' : ''}
                       </ThemedText>
                     </View>
                   )}
