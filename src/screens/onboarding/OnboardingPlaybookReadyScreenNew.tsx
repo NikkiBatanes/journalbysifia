@@ -128,7 +128,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     let isMounted = true;
     let hasChecked = false;
 
-    const checkIntroShown = async () => {
+    const initModal = async () => {
       if (hasChecked) {
         return;
       }
@@ -136,20 +136,25 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
       try {
         const storedValue = await AsyncStorage.getItem(INTRO_SHOWN_KEY);
-        if (storedValue === 'true') {
-          hasShownIntroRef.current = true;
+        const alreadyShown = storedValue === 'true';
+        
+        // CRITICAL: Initialize ref from storage on every mount
+        hasShownIntroRef.current = alreadyShown;
+
+        if (isMounted && !alreadyShown) {
+          logger.debug('First time showing modal');
+          setShowIntroModal(true);
         }
       } catch (error) {
         logger.warn('Failed to read intro modal persistence flag', error as Error);
-      }
-
-      if (isMounted && !hasShownIntroRef.current) {
-        logger.debug('First time showing modal');
-        setShowIntroModal(true);
+        // Default: show modal on error
+        if (isMounted) {
+          setShowIntroModal(true);
+        }
       }
     };
 
-    checkIntroShown();
+    initModal();
 
     return () => {
       isMounted = false;
@@ -863,7 +868,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal && !showTutorial && !hasShownIntroRef.current} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={showIntroModal && !showTutorial} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
@@ -1069,8 +1074,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             snapToInterval={ITEM_SIZE}
             decelerationRate="fast"
             bounces={false}
-            // Center items using header/footer components for symmetric spacing
-            ListHeaderComponent={<View style={{ width: Math.round(sidePadding) }} />}
+            // Center items precisely: use exact sidePadding (no extra compensation)
+            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
             ListFooterComponent={<View style={{ width: Math.round(sidePadding) }} />}
             ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
