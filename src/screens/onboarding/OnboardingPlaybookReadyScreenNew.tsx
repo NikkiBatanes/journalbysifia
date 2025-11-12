@@ -690,9 +690,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     <View style={styles.itemSpacing} />
   ), []);
 
-  // Compensate for header/footer side padding so scale/opacity peak at true center
-  const adjustedX = Animated.subtract(scrollX, Math.round(sidePadding));
-
   // When user reaches the last card, start a delay then reveal the CTA.
   // Once revealed, keep it visible even if the user navigates away from the last card.
   useEffect(() => {
@@ -749,26 +746,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
 
-    const inputRange = [
-      (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
-      index * (ITEM_WIDTH + ITEM_SPACING),
-      (index + 1) * (ITEM_WIDTH + ITEM_SPACING),
-    ];
-    const scale = adjustedX.interpolate({
-      inputRange,
-      outputRange: [0.94, 1, 0.94],
-      extrapolate: 'clamp',
-    });
-    const opacity = adjustedX.interpolate({
-      inputRange,
-      outputRange: [0.85, 1, 0.85],
-      extrapolate: 'clamp',
-    });
-    const translateY = adjustedX.interpolate({
-      inputRange,
-      outputRange: [8, 0, 8],
-      extrapolate: 'clamp',
-    });
+    // Animation removed for simpler one-item-at-a-time display
 
     // Avoid inline-style object directly in JSX to satisfy lint
     const cardDynamicStyle = { width: ITEM_WIDTH };
@@ -804,7 +782,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           </View>
         )}
 
-        <Animated.View
+        <View
           style={[
             styles.cardContent,
             // eslint-disable-next-line react-native/no-inline-styles
@@ -815,10 +793,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
               // Remove overflow hidden when expanded to prevent cropping
               overflow: isExpanded ? 'visible' : 'hidden',
-            },
-            {
-              transform: [{ scale }, { translateY }],
-              opacity,
             },
           ]}
         >
@@ -838,7 +812,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             : item.component}
 
           {/* Expand hint removed as requested */}
-        </Animated.View>
+        </View>
         { }
       </Wrapper>
     );
