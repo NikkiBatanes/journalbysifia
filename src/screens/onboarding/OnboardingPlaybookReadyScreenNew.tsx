@@ -1057,15 +1057,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
-            pagingEnabled={false}
-            snapToAlignment="center"
-            snapToInterval={ITEM_SIZE}
+            pagingEnabled={true}
             decelerationRate="fast"
             bounces={false}
-            // Center items precisely using explicit header/footer spacers
-            contentContainerStyle={undefined}
-            ListHeaderComponent={<View style={{ width: Math.round(sidePadding) }} />}
-            ListFooterComponent={<View style={{ width: Math.round(sidePadding) }} />}
+            // Use padding for side margins
+            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
             ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
