@@ -760,6 +760,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const measured = contentHeights[item.id] || 0;
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
+    const isAffirmationsCard = item.id === 'affirmations';
     
     // On iPad portrait, Truth in Love card shows full content without truncation
     const isIPad = windowWidth >= 768;
@@ -830,7 +831,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               // Exception: Truth card on iPad portrait shows full content
               height: (isExpanded || shouldShowFullTruth) ? 'auto' : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
-              backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
+              // Affirmations card gets darker background when expanded
+              backgroundColor: (isAffirmationsCard && isExpanded) 
+                ? 'rgba(0, 0, 0, 0.25)' 
+                : (item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)'),
               // Remove overflow hidden when expanded to prevent cropping
               overflow: (isExpanded || shouldShowFullTruth) ? 'visible' : 'hidden',
             },
