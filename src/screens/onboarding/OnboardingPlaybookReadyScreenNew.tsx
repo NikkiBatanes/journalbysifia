@@ -763,10 +763,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const measured = contentHeights[item.id] || 0;
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
+    const isAffirmationsCard = item.id === 'affirmations';
+    const isDirectChallengeCard = item.id === 'directChallenge';
     
-    // On iPad portrait, Truth in Love card shows full content without truncation
+    // On iPad portrait, these cards show full content without truncation (auto-expanded)
     const isIPad = windowWidth >= 768;
-    const shouldShowFullTruth = isTruthCard && isIPad && isPortrait;
+    const shouldShowFullContent = (isTruthCard || isAffirmationsCard || isDirectChallengeCard) && isIPad && isPortrait;
 
     const inputRange = [
       (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
@@ -793,8 +795,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const cardDynamicStyle = { width: ITEM_WIDTH };
 
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
-    // Truth card on iPad portrait is not tappable (shows full content)
-    const canToggle = (isTruthCard || isActionCard) && !shouldShowFullTruth;
+    // Cards on iPad portrait that show full content are not tappable
+    const canToggle = (isTruthCard || isActionCard) && !shouldShowFullContent;
     const Wrapper: React.ComponentType<any> = canToggle ? TouchableOpacity : View;
 
     return (
@@ -830,12 +832,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             // eslint-disable-next-line react-native/no-inline-styles
             {
               // Collapse by default; expand when toggled
-              // Exception: Truth card on iPad portrait shows full content
-              height: (isExpanded || shouldShowFullTruth) ? 'auto' : COLLAPSED_HEIGHT,
+              // Exception: Truth, Affirmations, Direct Challenge on iPad portrait show full content
+              height: (isExpanded || shouldShowFullContent) ? 'auto' : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
               // Remove overflow hidden when expanded to prevent cropping
-              overflow: (isExpanded || shouldShowFullTruth) ? 'visible' : 'hidden',
+              overflow: (isExpanded || shouldShowFullContent) ? 'visible' : 'hidden',
             },
             {
               transform: [{ scale }, { translateY }],
