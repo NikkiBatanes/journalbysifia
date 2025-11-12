@@ -229,7 +229,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             width: '100%',
             marginTop: isLandscape ? 64 : styles.buttonContainer.marginTop,
             marginBottom: isLandscape ? 32 : 0,
-          }
+          },
         ]}>
           {Platform.OS === 'ios' && (
             <TouchableOpacity

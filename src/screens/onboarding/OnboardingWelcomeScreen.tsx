@@ -321,7 +321,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   };
 
   const renderSlide = ({ item }: { item: Slide }) => (
-    <View style={[styles.slideContainer, { width: listWidth || screenSize.width }]}> 
+    <View style={[styles.slideContainer, { width: listWidth || screenSize.width }]}>
       {/* Slide Icon */}
       <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
         <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />

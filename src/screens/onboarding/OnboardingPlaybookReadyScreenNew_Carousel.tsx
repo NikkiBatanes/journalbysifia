@@ -416,7 +416,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Ensure modal stays hidden
     hasShownIntroRef.current = true;
     setShowIntroModal(false);
-    
+
     // Close tutorial immediately (no points)
     closeTutorial();
     setTutorialStep(1); // Reset for next time
@@ -426,7 +426,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Ensure modal stays hidden
     hasShownIntroRef.current = true;
     setShowIntroModal(false);
-    
+
     // Close tutorial immediately (no points)
     closeTutorial();
     setTutorialStep(1); // Reset for next time
@@ -740,7 +740,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const isActionCard = item.id === 'action';
     const isAffirmationsCard = item.id === 'affirmations';
     const isDirectChallengeCard = item.id === 'challenge';
-    
+
     // Smart expansion logic for all devices
     const isIPad = windowWidth >= 768;
     // Truth: initially expanded on iPad, but can be collapsed (use isExpanded state)
@@ -777,7 +777,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
     // Truth card on iPad is always tappable (initially expanded, can collapse)
     // Direct Challenge and Affirmations are tappable if content fits (can manually expand)
-    const canToggle = (isTruthCard || isActionCard) || 
+    const canToggle = (isTruthCard || isActionCard) ||
                       ((isDirectChallengeCard || isAffirmationsCard) && measured <= COLLAPSED_HEIGHT && measured > 0);
     const Wrapper: React.ComponentType<any> = canToggle ? TouchableOpacity : View;
 
@@ -853,13 +853,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0].index || 0;
       setCurrentIndex(newIndex);
-      
+
       // Get the current card
       const currentCard = carouselCards[newIndex];
-      
+
       // Auto-collapse all cards when scrolling to a new card
       setExpandedCards(new Set());
-      
+
       // Auto-expand Challenge card when user scrolls to it
       if (currentCard?.id === 'challenge') {
         setTimeout(() => {
@@ -910,7 +910,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 // CRITICAL: Set refs FIRST to prevent ANY re-render from showing modal
                 buttonPressedRef.current = true;
                 hasShownIntroRef.current = true;
-                
+
                 // Fade out modal smoothly
                 Animated.timing(modalOpacity, {
                   toValue: 0,
@@ -983,7 +983,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 />
               </AnimatedRe.View>
             </TouchableOpacity>
-            
+
             {/* DEV: Reset Intro Modal Button */}
             {__DEV__ && (
               <TouchableOpacity

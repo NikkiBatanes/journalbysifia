@@ -141,7 +141,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           {
             marginTop: isLandscape ? 64 : styles.buttonContainer.marginTop,
             marginBottom: isLandscape ? 32 : 0,
-          }
+          },
         ]}>
           {Platform.OS === 'ios' && (
             <TouchableOpacity

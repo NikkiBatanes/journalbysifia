@@ -3,8 +3,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
-  Dimensions,
   Platform,
   Animated,
   StatusBar,
@@ -17,7 +15,6 @@ import {
   Image,
   PanResponder,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
@@ -108,14 +105,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set()); // Used in line 688
   const [showUserInput, setShowUserInput] = useState(false);
-  
+
   // Animated values for smooth card transitions
   const cardAnimations = useRef<{ [key: string]: { translateY: Animated.Value; scale: Animated.Value; opacity: Animated.Value } }>({}).current;
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
   const [continueEnabled, setContinueEnabled] = useState(false);
   // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
-  const [footerH, setFooterH] = useState(156);
+  const [_footerH, setFooterH] = useState(156);
   // Track screen dimensions for orientation changes using hook
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
@@ -142,8 +139,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally run only on mount
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
-  const flatListRef = useRef<FlatList>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
   // Delayed & persistent devotional CTA visibility
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -180,8 +175,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   ).current;
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
-  const [headerH, setHeaderH] = useState(120);
-  const availableHeight = Math.max(0, windowHeight - headerH - footerH - insets.top - insets.bottom);
+  const [_headerH, setHeaderH] = useState(120);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
@@ -240,19 +234,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Carousel sizing: modern center-snap with spacing and narrower cards (responsive to orientation)
   // Memoize to recompute on window width changes
   const {
-    ITEM_SPACING,
     ITEM_WIDTH,
-    ITEM_SIZE,
-    sidePadding,
   } = React.useMemo(() => {
     const ITEM_SPACING = 16;
     const isIPad = windowWidth >= 768;
     // iPad: 70% width (10% narrower), iPhone: 80% width
     const widthRatio = isIPad ? 0.70 : 0.80;
-    const ITEM_WIDTH = Math.round(windowWidth * widthRatio);
-    const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-    const sidePadding = Math.round((windowWidth - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
-    return { ITEM_SPACING, ITEM_WIDTH, ITEM_SIZE, sidePadding };
+    const itemWidth = Math.round(windowWidth * widthRatio);
+    return { ITEM_SPACING, ITEM_WIDTH: itemWidth };
   }, [windowWidth]);
 
   // Cleanup on unmount and handle orientation changes
@@ -404,6 +393,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [getCompletedStepsCount]);
 
   // Award faith points function
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const awardFaithPoints = useCallback(async () => {
     try {
       // Award faith points to user's account during onboarding
@@ -685,7 +675,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   };
 
   const carouselCards = createCarouselCards();
-  
+
   // Initialize animated values for each card
   useEffect(() => {
     carouselCards.forEach((card, index) => {
@@ -699,7 +689,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       }
     });
   }, [carouselCards.length]);
-  
+
   // Reset animations when collapsing all cards
   useEffect(() => {
     if (expandedCardId === null) {
@@ -727,12 +717,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedCardId]);
-  
+
   // Smooth animation handler
   const animateCardTransition = (cardId: string, isExpanding: boolean) => {
     const cardIndex = carouselCards.findIndex(c => c.id === cardId);
-    
+
     if (isExpanding) {
       // Animate selected card to expanded position (top, where Challenge card initially is)
       Animated.spring(cardAnimations[cardId].translateY, {
@@ -741,20 +732,20 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         friction: 8,
         tension: 40,
       }).start();
-      
+
       Animated.spring(cardAnimations[cardId].scale, {
         toValue: 1,
         useNativeDriver: true,
         friction: 8,
       }).start();
-      
+
       // Animate other cards based on their position relative to tapped card
       carouselCards.forEach((card, index) => {
         if (card.id !== cardId) {
           // Cards above the tapped card slide down (disappear)
           const shouldSlideDown = index > cardIndex;
           const targetY = shouldSlideDown ? -600 : 600; // Slide up or down based on position
-          
+
           Animated.parallel([
             Animated.spring(cardAnimations[card.id].translateY, {
               toValue: targetY,
@@ -779,7 +770,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       // Collapse - return all cards to original stacked position
       carouselCards.forEach((card, index) => {
         const initialOffset = (carouselCards.length - index - 1) * 50;
-        
+
         Animated.parallel([
           Animated.spring(cardAnimations[card.id].translateY, {
             toValue: initialOffset,
@@ -802,10 +793,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     }
   };
 
-  // Stable ItemSeparator component to avoid react/no-unstable-nested-components warning
-  const ItemSeparator = React.useCallback(() => (
-    <View style={styles.itemSpacing} />
-  ), []);
 
   // Activate CTA after fixed delay
   useEffect(() => {
@@ -815,7 +802,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         continueTimerRef.current = null;
       }, 3000);
     }
-  }, []);
+  }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // Show devotional CTA after 3 seconds and animate (not dependent on card expansion)
   useEffect(() => {
@@ -867,6 +854,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderCarouselCard = ({ item, index }: { item: PlaybookCard; index: number }) => {
     const isExpanded = expandedCards.has(item.id);
     const COLLAPSED_HEIGHT = 400;
@@ -875,7 +863,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const isActionCard = item.id === 'action';
     const isAffirmationsCard = item.id === 'affirmations';
     const isDirectChallengeCard = item.id === 'challenge';
-    
+
     // Smart expansion logic for all devices
     const isIPad = windowWidth >= 768;
     // Truth: initially expanded on iPad, but can be collapsed (use isExpanded state)
@@ -885,26 +873,27 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const shouldSmartExpand = (isDirectChallengeCard || isAffirmationsCard) && measured > COLLAPSED_HEIGHT;
     const shouldShowFullContent = shouldShowFullAffirmations || shouldSmartExpand;
 
-    const inputRange = [
-      (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
-      index * (ITEM_WIDTH + ITEM_SPACING),
-      (index + 1) * (ITEM_WIDTH + ITEM_SPACING),
-    ];
-    const scale = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.94, 1, 0.94],
-      extrapolate: 'clamp',
-    });
-    const opacity = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.85, 1, 0.85],
-      extrapolate: 'clamp',
-    });
-    const translateY = scrollX.interpolate({
-      inputRange,
-      outputRange: [8, 0, 8],
-      extrapolate: 'clamp',
-    });
+    // Unused carousel animation code (function is disabled)
+    // const inputRange = [
+    //   (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
+    //   index * (ITEM_WIDTH + ITEM_SPACING),
+    //   (index + 1) * (ITEM_WIDTH + ITEM_SPACING),
+    // ];
+    // const scale = scrollX.interpolate({
+    //   inputRange,
+    //   outputRange: [0.94, 1, 0.94],
+    //   extrapolate: 'clamp',
+    // });
+    // const opacity = scrollX.interpolate({
+    //   inputRange,
+    //   outputRange: [0.85, 1, 0.85],
+    //   extrapolate: 'clamp',
+    // });
+    // const translateY = scrollX.interpolate({
+    //   inputRange,
+    //   outputRange: [8, 0, 8],
+    //   extrapolate: 'clamp',
+    // });
 
     // Avoid inline-style object directly in JSX to satisfy lint
     const cardDynamicStyle = { width: ITEM_WIDTH };
@@ -912,7 +901,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
     // Truth card on iPad is always tappable (initially expanded, can collapse)
     // Direct Challenge and Affirmations are tappable if content fits (can manually expand)
-    const canToggle = (isTruthCard || isActionCard) || 
+    const canToggle = (isTruthCard || isActionCard) ||
                       ((isDirectChallengeCard || isAffirmationsCard) && measured <= COLLAPSED_HEIGHT && measured > 0);
     const Wrapper: React.ComponentType<any> = canToggle ? TouchableOpacity : View;
 
@@ -956,10 +945,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               // Remove overflow hidden when expanded to prevent cropping
               overflow: (isExpanded || shouldShowFullContent) ? 'visible' : 'hidden',
             },
-            {
-              transform: [{ scale }, { translateY }],
-              opacity,
-            },
           ]}
         >
           {item.id === 'truth'
@@ -984,17 +969,18 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     );
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const onViewableItemsChanged = ({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0].index || 0;
       setCurrentIndex(newIndex);
-      
+
       // Get the current card
       const currentCard = carouselCards[newIndex];
-      
+
       // Auto-collapse all cards when scrolling to a new card
       setExpandedCards(new Set());
-      
+
       // Auto-expand Challenge card when user scrolls to it
       if (currentCard?.id === 'challenge') {
         setTimeout(() => {
@@ -1045,7 +1031,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 // CRITICAL: Set refs FIRST to prevent ANY re-render from showing modal
                 buttonPressedRef.current = true;
                 hasShownIntroRef.current = true;
-                
+
                 // Fade out modal smoothly
                 Animated.timing(modalOpacity, {
                   toValue: 0,
@@ -1167,8 +1153,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           <View style={styles.stackedCardsContainer}>
             {carouselCards.map((card, index) => {
               const isExpanded = expandedCardId === card.id;
-              const isAnyExpanded = expandedCardId !== null;
-              
+
               // Truth in Love has highest z-index (on top), others stack below
               const zIndexMap = {
                 truth: 5,      // Top card
@@ -1177,16 +1162,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 bible: 2,
                 challenge: 1,  // Bottom card
               };
-              
+
               const baseZIndex = zIndexMap[card.id as keyof typeof zIndexMap] || index;
-              
+
               // When a card is expanded, bring it to the very top
               const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
               // Standard dimensions for stacked cards
               const STACKED_CARD_HEIGHT = 400;
               const STACKED_CARD_WIDTH = ITEM_WIDTH;
-              
+
               // Background colors for each card
               const cardBackgrounds = {
                 truth: 'transparent',
@@ -1195,7 +1180,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 bible: 'transparent',
                 challenge: 'transparent',
               };
-              
+
               // Get animation values for this card
               const animValues = cardAnimations[card.id] || {
                 translateY: new Animated.Value((carouselCards.length - index - 1) * 50),
@@ -1208,7 +1193,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   key={card.id}
                   style={[
                     styles.stackedCard,
-                    { 
+                    {
                       zIndex: cardZIndex,
                       height: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                       maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
@@ -1238,7 +1223,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         }}
                         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, zIndex: 10 }}
                       />
-                      <ScrollView 
+                      <ScrollView
                         style={{ width: STACKED_CARD_WIDTH, maxHeight: isPortrait ? windowHeight - 200 : windowHeight - 150 }}
                         contentContainerStyle={{ paddingBottom: isPortrait ? 160 : 100 }}
                         showsVerticalScrollIndicator={false}
@@ -1341,13 +1326,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
         {/* Expandable Devotional Button (Dashboard style) - Outside ScrollView */}
         {devotionalVisible && (
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.floatingDevotionalContainer, 
-              { 
+              styles.floatingDevotionalContainer,
+              {
                 bottom: isPortrait ? 500 + insets.bottom : 200 + insets.bottom,
-                transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }]
-              }
+                transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }],
+              },
             ]}
             {...devotionalFabPanResponder.panHandlers}
           >
