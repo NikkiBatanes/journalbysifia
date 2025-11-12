@@ -14,6 +14,8 @@ import {
   UIManager,
   BackHandler,
   useWindowDimensions,
+  Image,
+  PanResponder,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -111,13 +113,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const cardAnimations = useRef<{ [key: string]: { translateY: Animated.Value; scale: Animated.Value; opacity: Animated.Value } }>({}).current;
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
+  const [continueEnabled, setContinueEnabled] = useState(false);
   // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
   const [footerH, setFooterH] = useState(156);
   // Track screen dimensions for orientation changes using hook
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
 
-  const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
 
   // Intro modal visibility (shows once per component mount, no persistence)
   const [showIntroModal, setShowIntroModal] = useState(false);
@@ -144,6 +146,38 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const scrollX = useRef(new Animated.Value(0)).current;
   // Delayed & persistent devotional CTA visibility
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Devotional button animation (match Dashboard)
+  const devotionalButtonWidth = useRef(new Animated.Value(56)).current;
+  const devotionalTextOpacity = useRef(new Animated.Value(0)).current;
+  const devotionalTextWidth = devotionalTextOpacity.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 180],
+  });
+  // Draggable FAB (match Dashboard)
+  const devotionalFabPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const devotionalFabPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_evt, gesture) => {
+        // Only activate dragging if moved more than 5 pixels
+        return Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        devotionalFabPan.setOffset({ x: (devotionalFabPan as any).x._value || 0, y: (devotionalFabPan as any).y._value || 0 });
+        devotionalFabPan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_evt, gesture) => {
+        devotionalFabPan.setValue({ x: gesture.dx, y: gesture.dy });
+      },
+      onPanResponderRelease: () => {
+        devotionalFabPan.flattenOffset();
+      },
+      onPanResponderTerminate: () => {
+        devotionalFabPan.flattenOffset();
+      },
+    })
+  ).current;
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
   const [headerH, setHeaderH] = useState(120);
@@ -239,6 +273,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Cleanup timers on unmount
     return () => {
       if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
+      if (continueTimerRef.current) {clearTimeout(continueTimerRef.current);}
       // Ensure any pending read haptic timers are cleared on unmount
       try {
         readHapticTimersRef.current.forEach(t => clearTimeout(t));
@@ -772,23 +807,39 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     <View style={styles.itemSpacing} />
   ), []);
 
-  // When user reaches the last card, start a delay then reveal the CTA.
-  // Once revealed, keep it visible even if the user navigates away from the last card.
+  // Activate CTA after fixed delay
   useEffect(() => {
-    const isLast = currentIndex === carouselCards.length - 1;
-
-    // Track if user has reached the last card
-    if (isLast) {
-      setHasReachedLastCard(true);
+    if (!continueTimerRef.current) {
+      continueTimerRef.current = setTimeout(() => {
+        setContinueEnabled(true);
+        continueTimerRef.current = null;
+      }, 3000);
     }
+  }, []);
 
-    if (isLast && !devotionalVisible && !devotionalTimerRef.current) {
+  // Show devotional CTA after 3 seconds and animate (not dependent on card expansion)
+  useEffect(() => {
+    if (!devotionalTimerRef.current) {
       devotionalTimerRef.current = setTimeout(() => {
         setDevotionalVisible(true);
         devotionalTimerRef.current = null;
-      }, 300); // Reduced from 1500ms to 300ms for faster appearance
+        // Start expand/collapse animation
+        setTimeout(() => {
+          Animated.parallel([
+            Animated.timing(devotionalButtonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
+            Animated.timing(devotionalTextOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
+          ]).start(() => {
+            setTimeout(() => {
+              Animated.parallel([
+                Animated.timing(devotionalTextOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
+                Animated.timing(devotionalButtonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
+              ]).start();
+            }, 2500);
+          });
+        }, 100);
+      }, 3000);
     }
-  }, [currentIndex, carouselCards.length, devotionalVisible]);
+  }, [devotionalButtonWidth, devotionalTextOpacity]);
 
   const toggleCardExpansion = (cardId: string) => {
     try { triggerLightHaptic(); } catch {}
@@ -1188,8 +1239,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, zIndex: 10 }}
                       />
                       <ScrollView 
-                        style={{ width: STACKED_CARD_WIDTH, maxHeight: windowHeight - 200 }}
-                        contentContainerStyle={{ paddingBottom: 160 }}
+                        style={{ width: STACKED_CARD_WIDTH, maxHeight: isPortrait ? windowHeight - 200 : windowHeight - 150 }}
+                        contentContainerStyle={{ paddingBottom: isPortrait ? 160 : 100 }}
                         showsVerticalScrollIndicator={false}
                         bounces={true}
                         nestedScrollEnabled={true}
@@ -1245,17 +1296,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           </View>
         </View>
 
-        {/* DEVOTIONAL BUTTON - show only on last card */}
-        {devotionalVisible && (currentIndex === Math.max(0, carouselCards.length - 1)) && (
-          <TouchableOpacity
-            style={[styles.devotionalButton, styles.centeredSelfContent, { width: ITEM_WIDTH }]}
-            onPress={handleCreateDevotional}
-            activeOpacity={0.8}
-          >
-            <ThemedText weight="semiBold" style={styles.devotionalButtonText}>Create a Devotional</ThemedText>
-          </TouchableOpacity>
-        )}
-
         </View>
 
         {/* Helper text moved back to footer to live with the CTA */}
@@ -1286,33 +1326,54 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <ThemedText style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
           )}
           {/**/}
-          {
-            (() => {
-              const isActive = hasReachedLastCard;
-              return (
-                <>
-                  <TouchableOpacity
-                    style={[styles.continueButton, !isActive && styles.continueButtonDisabled]}
-                    onPress={() => { if (!isActive) {return;} try { triggerLightHaptic(); } catch {} handleContinueJourney(); }}
-                    activeOpacity={isActive ? 0.8 : 1}
-                    disabled={!isActive}
-                  >
-                    <ThemedText weight="bold" style={styles.continueButtonText}>Continue My Journey</ThemedText>
-                  </TouchableOpacity>
-                  {/* Optional skip path for users who don't want to go through all cards now */}
-                  <TouchableOpacity
-                    onPress={() => { try { triggerLightHaptic(); } catch {} handleContinueJourney(); }}
-                    style={styles.skipButton}
-                    activeOpacity={0.7}
-                  >
-                    <ThemedText style={styles.skipButtonText}>Skip for now</ThemedText>
-                  </TouchableOpacity>
-                </>
-              );
-            })()
-          }
+          <>
+            <TouchableOpacity
+              style={[styles.continueButton, !continueEnabled && styles.continueButtonDisabled]}
+              onPress={() => { if (!continueEnabled) { return; } try { triggerLightHaptic(); } catch {} handleContinueJourney(); }}
+              activeOpacity={continueEnabled ? 0.8 : 1}
+              disabled={!continueEnabled}
+            >
+              <ThemedText weight="bold" style={styles.continueButtonText}>Continue My Journey</ThemedText>
+            </TouchableOpacity>
+          </>
           </View>
         </View>
+
+        {/* Expandable Devotional Button (Dashboard style) - Outside ScrollView */}
+        {devotionalVisible && (
+          <Animated.View 
+            style={[
+              styles.floatingDevotionalContainer, 
+              { 
+                bottom: isPortrait ? 500 + insets.bottom : 200 + insets.bottom,
+                transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }]
+              }
+            ]}
+            {...devotionalFabPanResponder.panHandlers}
+          >
+            <Animated.View style={[styles.expandableDevotionalButton, { width: devotionalButtonWidth }]}>
+              <TouchableOpacity
+                style={styles.expandableDevotionalTouchable}
+                onPress={handleCreateDevotional}
+                activeOpacity={0.8}
+              >
+                <View style={styles.devotionalIconContainer}>
+                  <Image
+                    source={require('../../../assets/icons/siFiaHeartWhiteTransparent.png')}
+                    style={styles.devotionalButtonIcon}
+                    resizeMode="contain"
+                    accessibilityLabel="siFia"
+                  />
+                </View>
+                <Animated.View style={{ opacity: devotionalTextOpacity, width: devotionalTextWidth }}>
+                  <ThemedText weight="semiBold" style={styles.devotionalExpandText} numberOfLines={1}>
+                    Create a Devotional
+                  </ThemedText>
+                </Animated.View>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        )}
 
         {/* DEVOTIONAL MODAL */}
         <DevotionalModal
@@ -1694,29 +1755,50 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 6,
   },
-  devotionalButton: {
+  floatingDevotionalContainer: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+  expandableDevotionalButton: {
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 28,
+    height: 56,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    alignSelf: 'flex-end',
+  },
+  expandableDevotionalTouchable: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    height: 56,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 0,
+    minWidth: 56,
   },
-  devotionalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
+  devotionalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  devotionalButtonIcon: {
+    width: 40,
+    height: 40,
+    alignSelf: 'center',
+    tintColor: Colors.alertCoral,
+  },
+  devotionalExpandText: {
+    color: Colors.anchorBlue,
+    fontSize: 14,
+    marginLeft: 8,
+    overflow: 'hidden',
   },
   footer: {
     paddingVertical: 12,
