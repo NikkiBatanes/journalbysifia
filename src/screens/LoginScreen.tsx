@@ -96,7 +96,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <View style={[styles.contentContainer, { width: contentWidth, alignSelf: 'center', marginTop: isLandscape ? 24 : 0 }]}>
+      <View style={[styles.contentContainer, { width: contentWidth }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
         {/* Logo */}
         <Image
           source={require('../../assets/icons/siFiaTransparent.png')}
@@ -136,10 +136,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         {/* Social Buttons */}
         <View style={[
           styles.buttonContainer,
-          {
-            marginTop: isLandscape ? 64 : styles.buttonContainer.marginTop,
-            marginBottom: isLandscape ? 32 : 0,
-          },
+          isLandscape ? styles.buttonContainerLandscape : null,
         ]}>
           {Platform.OS === 'ios' && (
             <TouchableOpacity
@@ -366,6 +363,18 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.bold,
     fontWeight: '600',
     textDecorationLine: 'none',
+  },
+  contentContainerPortrait: {
+    alignSelf: 'center',
+    marginTop: 0,
+  },
+  contentContainerLandscape: {
+    alignSelf: 'center',
+    marginTop: 24,
+  },
+  buttonContainerLandscape: {
+    marginTop: 64,
+    marginBottom: 32,
   },
   errorContainer: {
     flexDirection: 'row',

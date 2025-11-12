@@ -102,7 +102,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      <View style={[OnboardingStyles.innerContainer, { width: contentWidth, alignSelf: 'center' }]}>
+      <View style={[OnboardingStyles.innerContainer, { width: contentWidth }, styles.innerContainerCentered]}>
       <Animated.View
         style={[
           styles.content,
@@ -160,7 +160,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
             {/* Button */}
             <TouchableOpacity
-              style={[OnboardingStyles.primaryButton, styles.startButton, { width: '100%' }, isLoading && OnboardingStyles.buttonDisabled]}
+              style={[OnboardingStyles.primaryButton, styles.startButton, styles.startButtonFullWidth, isLoading && OnboardingStyles.buttonDisabled]}
               onPress={handleContinue}
               disabled={isLoading}
             >
@@ -311,7 +311,12 @@ const styles = StyleSheet.create({
     height: 0,
     marginBottom: 30,
   },
-
+  innerContainerCentered: {
+    alignSelf: 'center',
+  },
+  startButtonFullWidth: {
+    width: '100%',
+  },
 });
 
 export default withErrorBoundary(OnboardingTransformYourLifeScreen, 'OnboardingTransformYourLifeScreen');

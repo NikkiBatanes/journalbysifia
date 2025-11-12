@@ -334,7 +334,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
       <ThemedText style={styles.slideSubtitle}>{item.subtitle}</ThemedText>
 
       {/* Features List */}
-      <View style={{ width: contentWidth, alignSelf: 'center' }}>
+      <View style={[{ width: contentWidth }, styles.centeredContainer]}>
         <View style={styles.featuresList}>
           {item.features.map((feature, index) => (
             <View key={index} style={styles.featureItem}>
@@ -380,12 +380,12 @@ const OnboardingWelcomeScreen: React.FC = () => {
           snapToInterval={listWidth || screenSize.width}
           snapToAlignment="center"
           getItemLayout={(_, index) => ({ length: listWidth || screenSize.width, offset: (listWidth || screenSize.width) * index, index })}
-          contentContainerStyle={[styles.carouselContainer, { alignItems: 'center', paddingHorizontal: 0 }]}
+          contentContainerStyle={[styles.carouselContainer, styles.carouselContentContainer]}
         />
         </View>
 
         {/* Navigation Dots */}
-        <View style={[styles.dotsContainer, { width: contentWidth, alignSelf: 'center' }]}>
+        <View style={[styles.dotsContainer, { width: contentWidth }, styles.centeredContainer]}>
           {slides.map((_, index) => (
             <TouchableOpacity
               key={index}
@@ -402,9 +402,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Action Buttons */}
-        <View style={[styles.buttonSection, { width: contentWidth, alignSelf: 'center' }]}>
+        <View style={[styles.buttonSection, { width: contentWidth }, styles.centeredContainer]}>
           <TouchableOpacity
-            style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled, { alignSelf: 'center', width: '100%', maxWidth: contentWidth }]}
+            style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleCreateAccount}
             disabled={isLoading}
           >
@@ -414,7 +414,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.loginButton, isLoading && OnboardingStyles.buttonDisabled, { alignSelf: 'center', width: '100%', maxWidth: contentWidth }]}
+            style={[styles.loginButton, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleLogin}
             disabled={isLoading}
           >
@@ -425,7 +425,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Terms Text */}
-        <ThemedText style={[styles.termsText, { width: contentWidth, alignSelf: 'center' }]}>
+        <ThemedText style={[styles.termsText, { width: contentWidth }, styles.centeredContainer]}>
           By continuing, you agree to our{' '}
           <ThemedText
             style={styles.linkText}
@@ -557,6 +557,17 @@ const styles = StyleSheet.create({
   linkText: OnboardingStyles.linkText,
   iconMarginTop: {
     marginTop: 2,
+  },
+  centeredContainer: {
+    alignSelf: 'center',
+  },
+  carouselContentContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 0,
+  },
+  fullWidthButton: {
+    alignSelf: 'center',
+    width: '100%',
   },
 });
 

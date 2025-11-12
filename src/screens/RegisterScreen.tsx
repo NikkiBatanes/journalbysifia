@@ -184,7 +184,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <View style={[styles.contentContainer, { width: contentWidth, alignSelf: 'center', marginTop: isLandscape ? 24 : 0 }]}>
+      <View style={[styles.contentContainer, { width: contentWidth }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
         {/* Logo */}
         <Image
           source={require('../../assets/icons/siFiaTransparent.png')}
@@ -224,12 +224,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Social Buttons */}
         <View style={[
           styles.buttonContainer,
-          {
-            alignSelf: 'center',
-            width: '100%',
-            marginTop: isLandscape ? 64 : styles.buttonContainer.marginTop,
-            marginBottom: isLandscape ? 32 : 0,
-          },
+          styles.buttonContainerCentered,
+          isLandscape ? styles.buttonContainerLandscape : null,
         ]}>
           {Platform.OS === 'ios' && (
             <TouchableOpacity
@@ -539,6 +535,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.system.medium,
     textDecorationLine: 'underline',
+  },
+  contentContainerPortrait: {
+    alignSelf: 'center',
+    marginTop: 0,
+  },
+  contentContainerLandscape: {
+    alignSelf: 'center',
+    marginTop: 24,
+  },
+  buttonContainerCentered: {
+    alignSelf: 'center',
+    width: '100%',
+  },
+  buttonContainerLandscape: {
+    marginTop: 64,
+    marginBottom: 32,
   },
 });
 
