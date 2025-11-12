@@ -234,7 +234,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     sidePadding,
   } = React.useMemo(() => {
     const ITEM_SPACING = 16;
-    const ITEM_WIDTH = Math.round(windowWidth * 0.80); // slimmer card for better centering
+    const isIPad = windowWidth >= 768;
+    // iPad: 70% width (10% narrower), iPhone: 80% width
+    const widthRatio = isIPad ? 0.70 : 0.80;
+    const ITEM_WIDTH = Math.round(windowWidth * widthRatio);
     const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
     const sidePadding = Math.round((windowWidth - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
     return { ITEM_SPACING, ITEM_WIDTH, ITEM_SIZE, sidePadding };
@@ -756,11 +759,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const renderCarouselCard = ({ item, index }: { item: PlaybookCard; index: number }) => {
     const isExpanded = expandedCards.has(item.id);
-    const COLLAPSED_HEIGHT = 480; // Increased from 400 for more content on iPhone
+    const COLLAPSED_HEIGHT = 400;
     const measured = contentHeights[item.id] || 0;
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
-    const isAffirmationsCard = item.id === 'affirmations';
     
     // On iPad portrait, Truth in Love card shows full content without truncation
     const isIPad = windowWidth >= 768;
@@ -831,10 +833,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               // Exception: Truth card on iPad portrait shows full content
               height: (isExpanded || shouldShowFullTruth) ? 'auto' : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
-              // Affirmations card gets darker background when expanded
-              backgroundColor: (isAffirmationsCard && isExpanded) 
-                ? 'rgba(0, 0, 0, 0.25)' 
-                : (item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)'),
+              backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
               // Remove overflow hidden when expanded to prevent cropping
               overflow: (isExpanded || shouldShowFullTruth) ? 'visible' : 'hidden',
             },
@@ -851,7 +850,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     key="truth"
                     truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                     summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                    expanded={isExpanded || shouldShowFullTruth}
+                    expanded={isExpanded}
                     style={styles.transparentBackground}
                     currentUser={{ displayName: onboardingData.name }}
                   />
