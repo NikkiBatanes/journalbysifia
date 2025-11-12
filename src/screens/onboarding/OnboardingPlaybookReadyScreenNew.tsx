@@ -143,6 +143,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, []); // Intentionally run only on mount
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
   const flatListRef = useRef<FlatList>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   // Delayed & persistent devotional CTA visibility
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -710,10 +711,15 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     });
     setExpandedCards(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(cardId)) {
+      const wasExpanded = newSet.has(cardId);
+      if (wasExpanded) {
         newSet.delete(cardId);
       } else {
         newSet.add(cardId);
+        // Scroll to top when expanding to show full content
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }, 100);
       }
       return newSet;
     });
@@ -895,6 +901,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       <View style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollContainer}
           contentContainerStyle={[
             styles.scrollContent,
@@ -903,9 +910,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             {
               paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80),
               paddingTop: 0,
-              // In landscape, use flexGrow to allow centering without excess space
-              flexGrow: isLandscape ? 0 : 1,
-              justifyContent: isLandscape ? 'flex-start' : undefined,
+              // When cards are expanded, always use flexGrow:1 to make content scrollable
+              // In landscape with no expansion, use flexGrow:0 to prevent excess space
+              flexGrow: (isLandscape && expandedCards.size === 0) ? 0 : 1,
+              justifyContent: (isLandscape && expandedCards.size === 0) ? 'flex-start' : undefined,
             },
           ]}
           showsVerticalScrollIndicator={expandedCards.size > 0}
