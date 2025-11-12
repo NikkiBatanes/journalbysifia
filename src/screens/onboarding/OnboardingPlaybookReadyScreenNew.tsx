@@ -985,16 +985,41 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             marginBottom: isPortrait ? 6 : 4,
           },
         ]}>
-          <TouchableOpacity style={styles.playbookTitleRow} onPress={toggleUserInput} activeOpacity={0.8}>
-            <ThemedText weight="semiBold" style={styles.playbookLabel}>PLAYBOOK</ThemedText>
-            <AnimatedRe.View style={[styles.chevronIcon, chevronStyle]}>
-              <Ionicons
-                name={'chevron-down'}
-                size={16}
-                color={Colors.hopeWhite}
-              />
-            </AnimatedRe.View>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <TouchableOpacity style={styles.playbookTitleRow} onPress={toggleUserInput} activeOpacity={0.8}>
+              <ThemedText weight="semiBold" style={styles.playbookLabel}>PLAYBOOK</ThemedText>
+              <AnimatedRe.View style={[styles.chevronIcon, chevronStyle]}>
+                <Ionicons
+                  name={'chevron-down'}
+                  size={16}
+                  color={Colors.hopeWhite}
+                />
+              </AnimatedRe.View>
+            </TouchableOpacity>
+            
+            {/* DEV: Reset Intro Modal Button */}
+            {__DEV__ && (
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    await AsyncStorage.removeItem(INTRO_SHOWN_KEY);
+                    hasShownIntroRef.current = false;
+                    setShowIntroModal(true);
+                    logger.debug('Intro modal reset - will show again');
+                  } catch (error) {
+                    logger.warn('Failed to reset intro modal', error as Error);
+                  }
+                }}
+                style={{
+                  padding: 8,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 4,
+                }}
+              >
+                <ThemedText style={{ fontSize: 10, color: Colors.hopeWhite }}>Reset Intro</ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* User Input Display - Between PLAYBOOK and Title */}
           {showUserInput && (
