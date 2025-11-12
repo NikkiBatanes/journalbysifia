@@ -900,7 +900,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             styles.scrollContent,
             // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
             // eslint-disable-next-line react-native/no-inline-styles
-            { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
+            {
+              paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80),
+              paddingTop: 0,
+              // In landscape, use flexGrow to allow centering without excess space
+              flexGrow: isLandscape ? 0 : 1,
+              justifyContent: isLandscape ? 'flex-start' : undefined,
+            },
           ]}
           showsVerticalScrollIndicator={expandedCards.size > 0}
           scrollEnabled={expandedCards.size > 0}
@@ -991,8 +997,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
         {/* CAROUSEL CARDS */}
         <View style={[
-          isLandscape ? styles.flexStart : styles.centeredJustified,
-          { minHeight: isLandscape ? 400 : availableHeight },
+          styles.centeredJustified,
+          // In landscape, don't set height - let content flow naturally
+          !isLandscape && { height: availableHeight },
         ]}>
         <View style={[
           styles.carouselContainer,
