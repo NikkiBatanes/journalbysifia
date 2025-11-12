@@ -146,8 +146,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Delayed & persistent devotional CTA visibility
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Heights for sticky header and fixed footer to vertically center carousel area
-  const [headerH, setHeaderH] = useState(0);
-  const availableHeight = Math.max(0, screenDimensions.height - headerH - footerH);
+  // Initialize with estimated header height (title + progress + padding ~120px)
+  const [headerH, setHeaderH] = useState(120);
+  const availableHeight = Math.max(0, screenDimensions.height - headerH - footerH - insets.top - insets.bottom);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
