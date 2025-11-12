@@ -149,11 +149,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
   const [headerH, setHeaderH] = useState(120);
-  // Calculate available height with landscape cap to prevent carousel from being pushed down
-  const rawAvailableHeight = screenDimensions.height - headerH - footerH - insets.top - insets.bottom;
+  // Calculate available height - simpler approach for landscape
   const isLandscape = screenDimensions.width > screenDimensions.height;
-  // In landscape, cap to 70% of screen height to keep carousel centered
-  const availableHeight = Math.max(0, isLandscape ? Math.min(rawAvailableHeight, screenDimensions.height * 0.7) : rawAvailableHeight);
+  const availableHeight = Math.max(0, screenDimensions.height - headerH - footerH - insets.top - insets.bottom);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
@@ -994,8 +992,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* CAROUSEL CARDS */}
         <View style={[
           isLandscape ? styles.flexStart : styles.centeredJustified,
-          { height: availableHeight },
-        ] }>
+          { minHeight: isLandscape ? 400 : availableHeight },
+        ]}>
         <View style={[
           styles.carouselContainer,
           {
@@ -1003,8 +1001,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             // bleed past ScrollView and safe-area paddings for true edge-to-edge
             marginLeft: -16 - insets.left,
             marginRight: -16 - insets.right,
-            // Dynamic margin based on orientation
-            marginBottom: screenDimensions.height > screenDimensions.width ? 20 : 10,
+            // In landscape, add modest top margin to position carousel better
+            marginTop: isLandscape ? 20 : 0,
+            marginBottom: isLandscape ? 10 : 20,
           },
         ]}>
           {/* Dots outside the card but just above it when nothing is expanded */}
