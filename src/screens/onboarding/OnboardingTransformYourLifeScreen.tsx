@@ -13,6 +13,7 @@ import {
   Animated,
   StatusBar,
   Image,
+  Dimensions,
 } from 'react-native';
 import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -51,8 +52,23 @@ import ThemedText from '../../components/common/ThemedText';
 const OnboardingTransformYourLifeScreen: React.FC = () => {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
+  const [screenDimensions, setScreenDimensions] = useState(() => {
+    const { width, height } = Dimensions.get('window');
+    return { width, height };
+  });
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  // Track orientation changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenDimensions({ width: window.width, height: window.height });
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
 
   useEffect(() => {
     // Entrance animation
@@ -125,7 +141,13 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         </View>
 
         {/* Main Content */}
-        <View style={styles.mainContent}>
+        <View style={[
+          styles.mainContent,
+          {
+            maxWidth: screenDimensions.width > screenDimensions.height ? 600 : '100%',
+            alignSelf: 'center',
+          },
+        ]}>
           <View style={styles.textContainer}>
             <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, styles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</ThemedText>
           </View>
@@ -146,6 +168,11 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             <View style={[styles.featureItem, styles.hiddenFeatureWithMargin]} />
 
             {/* Button */}
+            <View style={{
+              width: '100%',
+              maxWidth: screenDimensions.width > screenDimensions.height ? 400 : '100%',
+              alignSelf: 'center',
+            }}>
             <TouchableOpacity
               style={[OnboardingStyles.primaryButton, styles.startButton, isLoading && OnboardingStyles.buttonDisabled]}
               onPress={handleContinue}
@@ -162,6 +189,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
               <TouchableOpacity onPress={() => { triggerLightHaptic(); (navigation as any).navigate('Auth' as any, { screen: 'Login' }); }}>
                 <ThemedText weight="semiBold" style={styles.signInLink}>Login</ThemedText>
               </TouchableOpacity>
+            </View>
             </View>
           </View>
         </View>

@@ -32,7 +32,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
-const { width } = Dimensions.get('window');
+// Dynamic dimensions for responsive layout (updated via state)
 
 interface Slide {
   id: number;
@@ -123,9 +123,24 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [screenDimensions, setScreenDimensions] = useState(() => {
+    const { width, height } = Dimensions.get('window');
+    return { width, height };
+  });
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const flatListRef = useRef<FlatList>(null);
+
+  // Track orientation changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenDimensions({ width: window.width, height: window.height });
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
 
   useEffect(() => {
     // Entrance animation
@@ -229,7 +244,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   // Unused manual navigation handlers removed to satisfy lint; carousel uses dots and auto-advance.
 
   const onScrollEnd = (event: any) => {
-    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / screenDimensions.width);
     setCurrentSlide(slideIndex);
   };
 
@@ -305,8 +320,13 @@ const OnboardingWelcomeScreen: React.FC = () => {
     }, 100); // Reduced from 500ms to 100ms to minimize overlap
   };
 
+  // Check if we're in landscape mode
+  const isLandscape = screenDimensions.width > screenDimensions.height;
+  const contentWidth = isLandscape ? Math.min(screenDimensions.width * 0.6, 600) : screenDimensions.width;
+
   const renderSlide = ({ item }: { item: Slide }) => (
-    <View style={[styles.slideContainer, { width }]}>
+    <View style={[styles.slideContainer, { width: screenDimensions.width }]}>
+      <View style={[styles.slideContent, { width: contentWidth, alignSelf: 'center' }]}>
       {/* Slide Icon */}
       <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
         <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
@@ -326,6 +346,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
             <ThemedText style={styles.featureText}>{feature}</ThemedText>
           </View>
         ))}
+      </View>
       </View>
     </View>
   );
@@ -355,7 +376,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onScrollEnd}
           decelerationRate="fast"
-          snapToInterval={width}
+          snapToInterval={screenDimensions.width}
           snapToAlignment="center"
           contentContainerStyle={styles.carouselContainer}
         />
@@ -378,7 +399,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Action Buttons */}
-        <View style={styles.buttonSection}>
+        <View style={[styles.buttonSection, { maxWidth: isLandscape ? 400 : '100%', alignSelf: 'center' }]}>
           <TouchableOpacity
             style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled]}
             onPress={handleCreateAccount}
@@ -449,6 +470,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 10,
     paddingBottom: 20,
+    justifyContent: 'flex-start',
+  },
+  slideContent: {
+    alignItems: 'center',
     justifyContent: 'flex-start',
   },
 
