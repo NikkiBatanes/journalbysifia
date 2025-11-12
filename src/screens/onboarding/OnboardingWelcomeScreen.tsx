@@ -124,6 +124,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
+  // Width of the actual FlatList viewport; defaults to screen, but measured on layout
+  const [listWidth, setListWidth] = useState(screenSize.width);
   const { isAuthenticated, user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -241,7 +243,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
   // Unused manual navigation handlers removed to satisfy lint; carousel uses dots and auto-advance.
 
   const onScrollEnd = (event: any) => {
-    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    const widthForPaging = listWidth || screenSize.width;
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / widthForPaging);
     setCurrentSlide(slideIndex);
   };
 
@@ -318,7 +321,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   };
 
   const renderSlide = ({ item }: { item: Slide }) => (
-    <View style={[styles.slideContainer, { width: contentWidth }]}>
+    <View style={[styles.slideContainer, { width: listWidth || screenSize.width }]}> 
       {/* Slide Icon */}
       <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
         <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
@@ -331,13 +334,15 @@ const OnboardingWelcomeScreen: React.FC = () => {
       <ThemedText style={styles.slideSubtitle}>{item.subtitle}</ThemedText>
 
       {/* Features List */}
-      <View style={styles.featuresList}>
-        {item.features.map((feature, index) => (
-          <View key={index} style={styles.featureItem}>
-            <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.iconMarginTop} />
-            <ThemedText style={styles.featureText}>{feature}</ThemedText>
-          </View>
-        ))}
+      <View style={{ width: contentWidth, alignSelf: 'center' }}>
+        <View style={styles.featuresList}>
+          {item.features.map((feature, index) => (
+            <View key={index} style={styles.featureItem}>
+              <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.iconMarginTop} />
+              <ThemedText style={styles.featureText}>{feature}</ThemedText>
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -357,7 +362,12 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Carousel */}
+        <View onLayout={({ nativeEvent }) => {
+          const w = Math.max(1, Math.floor(nativeEvent.layout.width));
+          if (w > 0 && w !== listWidth) { setListWidth(w); }
+        }}>
         <FlatList
+          key={`welcome-list-${listWidth}`}
           ref={flatListRef}
           data={slides}
           renderItem={renderSlide}
@@ -367,10 +377,12 @@ const OnboardingWelcomeScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onScrollEnd}
           decelerationRate="fast"
-          snapToInterval={contentWidth}
+          snapToInterval={listWidth || screenSize.width}
           snapToAlignment="center"
+          getItemLayout={(_, index) => ({ length: listWidth || screenSize.width, offset: (listWidth || screenSize.width) * index, index })}
           contentContainerStyle={[styles.carouselContainer, { alignItems: 'center', paddingHorizontal: 0 }]}
         />
+        </View>
 
         {/* Navigation Dots */}
         <View style={[styles.dotsContainer, { width: contentWidth, alignSelf: 'center' }]}>

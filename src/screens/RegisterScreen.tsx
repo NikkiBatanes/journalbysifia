@@ -12,7 +12,9 @@ import {
   StatusBar,
   Linking,
   Alert,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
@@ -50,10 +52,22 @@ const SocialButton: React.FC<SocialButtonProps> = ({
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading, user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const win = Dimensions.get('window');
+  const [screen, setScreen] = React.useState({ width: win.width, height: win.height });
+  const isLandscape = screen.width > screen.height;
+  const contentWidth = Math.min(isLandscape ? screen.width * 0.6 : screen.width * 0.92, 600);
   const [error, setError] = React.useState<string>('');
   const [activeProvider, setActiveProvider] = React.useState<null | 'apple' | 'google'>(null);
 
   // Set post-auth redirect for splash screen to handle navigation
+  React.useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setScreen({ width: window.width, height: window.height });
+    });
+    return () => sub?.remove();
+  }, []);
+
   React.useEffect(() => {
     if (user) {
 
@@ -170,7 +184,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <View style={styles.contentContainer}>
+      <View style={[styles.contentContainer, { width: contentWidth, alignSelf: 'center', marginTop: isLandscape ? 24 : 0 }]}>
         {/* Logo */}
         <Image
           source={require('../../assets/icons/siFiaTransparent.png')}
@@ -208,7 +222,15 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Social Buttons */}
-        <View style={styles.buttonContainer}>
+        <View style={[
+          styles.buttonContainer,
+          {
+            alignSelf: 'center',
+            width: '100%',
+            marginTop: isLandscape ? 64 : styles.buttonContainer.marginTop,
+            marginBottom: isLandscape ? 32 : 0,
+          }
+        ]}>
           {Platform.OS === 'ios' && (
             <TouchableOpacity
               style={styles.appleButton}
@@ -260,7 +282,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Terms and Privacy */}
-        <View style={styles.termsContainer}>
+        <View style={[styles.termsContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <ThemedText style={styles.termsText}>
             By continuing, you agree to our{' '}
             <ThemedText

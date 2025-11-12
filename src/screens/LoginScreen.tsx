@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   Image,
   StatusBar,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
@@ -23,10 +25,22 @@ interface Props {
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading } = useAuth();
+  const insets = useSafeAreaInsets();
+  const win = Dimensions.get('window');
+  const [screen, setScreen] = React.useState({ width: win.width, height: win.height });
+  const isLandscape = screen.width > screen.height;
+  const contentWidth = Math.min(isLandscape ? screen.width * 0.6 : screen.width * 0.92, 600);
   const [error, setError] = React.useState<string>('');
   const [activeProvider, setActiveProvider] = React.useState<null | 'apple' | 'google'>(null);
 
   // When global loading ends (success or error), clear local active provider
+  React.useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setScreen({ width: window.width, height: window.height });
+    });
+    return () => sub?.remove();
+  }, []);
+
   React.useEffect(() => {
     if (!loading && activeProvider) {
       setActiveProvider(null);
@@ -84,7 +98,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <View style={styles.contentContainer}>
+      <View style={[styles.contentContainer, { width: contentWidth, alignSelf: 'center', marginTop: isLandscape ? 24 : 0 }]}>
         {/* Logo */}
         <Image
           source={require('../../assets/icons/siFiaTransparent.png')}
@@ -122,7 +136,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Social Buttons */}
-        <View style={styles.buttonContainer}>
+        <View style={[
+          styles.buttonContainer,
+          {
+            marginTop: isLandscape ? 64 : styles.buttonContainer.marginTop,
+            marginBottom: isLandscape ? 32 : 0,
+          }
+        ]}>
           {Platform.OS === 'ios' && (
             <TouchableOpacity
               style={styles.appleButton}
@@ -164,14 +184,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <ThemedText weight="medium" style={styles.buttonText}>Continue with Email</ThemedText>
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Sign Up Link */}
-      <View style={styles.signUpContainer}>
-        <ThemedText style={styles.signUpText}>Not yet a member? </ThemedText>
-        <TouchableOpacity onPress={handleSignUp}>
-          <ThemedText weight="semiBold" style={styles.signUpLink}>Sign Up</ThemedText>
-        </TouchableOpacity>
+        {/* Sign Up Link (moved inside content like Register screen) */}
+        <View style={styles.loginContainer}>
+          <ThemedText style={styles.loginText}>Not yet a member? </ThemedText>
+          <TouchableOpacity onPress={handleSignUp}>
+            <ThemedText weight="semiBold" style={styles.loginLink}>Sign Up</ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -184,7 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   contentContainer: {
     flex: 1,
@@ -310,6 +329,26 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.medium,
     marginLeft: 12,
     fontWeight: '500',
+  },
+  // Match RegisterScreen link row styles
+  loginContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 0,
+  },
+  loginText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    fontFamily: Fonts.system.regular,
+  },
+  loginLink: {
+    color: Colors.alertCoral,
+    fontSize: 16,
+    fontFamily: Fonts.system.bold,
+    fontWeight: '600',
+    textDecorationLine: 'none',
   },
   signUpContainer: {
     flexDirection: 'row',
