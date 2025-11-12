@@ -766,12 +766,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const isAffirmationsCard = item.id === 'affirmations';
     const isDirectChallengeCard = item.id === 'challenge';
     
-    // On iPad portrait, these cards show full content without truncation (auto-expanded)
+    // Smart expansion logic for all devices
     const isIPad = windowWidth >= 768;
-    // Direct Challenge only expands if content exceeds collapsed height
+    // Truth and Affirmations: always full content on iPad portrait
     const shouldShowFullTruth = (isTruthCard || isAffirmationsCard) && isIPad && isPortrait;
-    const shouldExpandChallenge = isDirectChallengeCard && isIPad && isPortrait && measured > COLLAPSED_HEIGHT;
-    const shouldShowFullContent = shouldShowFullTruth || shouldExpandChallenge;
+    // Direct Challenge and Rise in Faith: auto-expand if content exceeds collapsed height (all devices)
+    const shouldSmartExpand = (isDirectChallengeCard || isAffirmationsCard) && measured > COLLAPSED_HEIGHT;
+    const shouldShowFullContent = shouldShowFullTruth || shouldSmartExpand;
 
     const inputRange = [
       (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
@@ -798,9 +799,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const cardDynamicStyle = { width: ITEM_WIDTH };
 
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
-    // Cards on iPad portrait that show full content are not tappable
-    // Direct Challenge on iPad portrait is tappable if content fits (can manually expand)
-    const canToggle = ((isTruthCard || isActionCard) && !shouldShowFullTruth) || (isDirectChallengeCard && isIPad && isPortrait && measured <= COLLAPSED_HEIGHT);
+    // Cards that auto-show full content are not tappable
+    // Direct Challenge and Affirmations are tappable if content fits (can manually expand)
+    const canToggle = ((isTruthCard || isActionCard) && !shouldShowFullTruth) || 
+                      ((isDirectChallengeCard || isAffirmationsCard) && measured <= COLLAPSED_HEIGHT && measured > 0);
     const Wrapper: React.ComponentType<any> = canToggle ? TouchableOpacity : View;
 
     return (
