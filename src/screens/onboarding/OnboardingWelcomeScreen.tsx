@@ -14,7 +14,7 @@ import {
   StatusBar,
   Image,
   Linking,
-  Dimensions,
+  useWindowDimensions,
   FlatList,
 } from 'react-native';
 
@@ -32,7 +32,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
-// Dynamic dimensions for responsive layout (updated via state)
+// Removed static width; use dynamic dimensions inside component for rotation support
 
 interface Slide {
   id: number;
@@ -123,24 +123,14 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [screenDimensions, setScreenDimensions] = useState(() => {
-    const { width, height } = Dimensions.get('window');
-    return { width, height };
-  });
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const flatListRef = useRef<FlatList>(null);
 
-  // Track orientation changes
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setScreenDimensions({ width: window.width, height: window.height });
-    });
-
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
+  // Responsive layout values
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isLandscape = screenWidth > screenHeight;
+  const contentMaxWidth = Math.min(900, Math.round(screenWidth * (isLandscape ? 0.68 : 0.9)));
 
   useEffect(() => {
     // Entrance animation
@@ -244,7 +234,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   // Unused manual navigation handlers removed to satisfy lint; carousel uses dots and auto-advance.
 
   const onScrollEnd = (event: any) => {
-    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / screenDimensions.width);
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
     setCurrentSlide(slideIndex);
   };
 
@@ -320,13 +310,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
     }, 100); // Reduced from 500ms to 100ms to minimize overlap
   };
 
-  // Check if we're in landscape mode
-  const isLandscape = screenDimensions.width > screenDimensions.height;
-  const contentWidth = isLandscape ? Math.min(screenDimensions.width * 0.6, 600) : screenDimensions.width;
-
   const renderSlide = ({ item }: { item: Slide }) => (
-    <View style={[styles.slideContainer, { width: screenDimensions.width }]}>
-      <View style={[styles.slideContent, { width: contentWidth, alignSelf: 'center' }]}>
+    <View style={[styles.slideContainer, { width: screenWidth }]}>
       {/* Slide Icon */}
       <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
         <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
@@ -347,7 +332,6 @@ const OnboardingWelcomeScreen: React.FC = () => {
           </View>
         ))}
       </View>
-      </View>
     </View>
   );
 
@@ -356,14 +340,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={OnboardingStyles.innerContainer}>
-        <View style={[
-          styles.contentWrapper,
-          {
-            maxWidth: isLandscape ? 700 : '100%',
-            alignSelf: 'center',
-            width: '100%',
-          },
-        ]}>
+        <View style={[styles.responsiveContainer, { maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' }]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Image
@@ -384,7 +361,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onScrollEnd}
           decelerationRate="fast"
-          snapToInterval={screenDimensions.width}
+          snapToInterval={screenWidth}
           snapToAlignment="center"
           contentContainerStyle={styles.carouselContainer}
         />
@@ -407,7 +384,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Action Buttons */}
-        <View style={[styles.buttonSection, { maxWidth: isLandscape ? 400 : '100%', alignSelf: 'center' }]}>
+        <View style={styles.buttonSection}>
           <TouchableOpacity
             style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled]}
             onPress={handleCreateAccount}
@@ -458,10 +435,10 @@ const styles = StyleSheet.create({
     ...OnboardingStyles.container,
     paddingHorizontal: 0,
   },
-  contentWrapper: {
-    flex: 1,
-  },
   scrollContent: OnboardingStyles.scrollContent,
+  responsiveContainer: {
+    // Width is applied dynamically via inline style
+  },
   logoSection: {
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,
@@ -482,10 +459,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 10,
     paddingBottom: 20,
-    justifyContent: 'flex-start',
-  },
-  slideContent: {
-    alignItems: 'center',
     justifyContent: 'flex-start',
   },
 

@@ -13,7 +13,7 @@ import {
   Animated,
   StatusBar,
   Image,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -52,23 +52,13 @@ import ThemedText from '../../components/common/ThemedText';
 const OnboardingTransformYourLifeScreen: React.FC = () => {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
-  const [screenDimensions, setScreenDimensions] = useState(() => {
-    const { width, height } = Dimensions.get('window');
-    return { width, height };
-  });
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  // Track orientation changes
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setScreenDimensions({ width: window.width, height: window.height });
-    });
-
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
+  // Responsive layout values
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isLandscape = screenWidth > screenHeight;
+  const contentMaxWidth = Math.min(900, Math.round(screenWidth * (isLandscape ? 0.68 : 0.9)));
 
   useEffect(() => {
     // Entrance animation
@@ -106,6 +96,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <View style={OnboardingStyles.innerContainer}>
+      <View style={[styles.responsiveContainer, { maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' }]}>
       <Animated.View
         style={[
           styles.content,
@@ -141,18 +132,12 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         </View>
 
         {/* Main Content */}
-        <View style={[
-          styles.mainContent,
-          {
-            maxWidth: screenDimensions.width > screenDimensions.height ? 600 : '100%',
-            alignSelf: 'center',
-          },
-        ]}>
-          <View style={styles.textContainer}>
+        <View style={styles.mainContent}>
+          <View style={[styles.textContainer, { maxWidth: contentMaxWidth }] }>
             <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, styles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</ThemedText>
           </View>
 
-          <View style={styles.textContainer}>
+          <View style={[styles.textContainer, { maxWidth: contentMaxWidth }] }>
             <ThemedText style={styles.mainText}>
             God has a way of meeting us right in the middle of our story, not when everything is perfect, but when our hearts are open.
             </ThemedText>
@@ -169,7 +154,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
             {/* Button */}
             <TouchableOpacity
-              style={[OnboardingStyles.primaryButton, styles.startButton, isLoading && OnboardingStyles.buttonDisabled]}
+              style={[OnboardingStyles.primaryButton, styles.startButton, isLoading && OnboardingStyles.buttonDisabled, { alignSelf: 'center', maxWidth: Math.min(520, Math.round(contentMaxWidth * 0.9)), width: '100%' }]}
               onPress={handleContinue}
               disabled={isLoading}
             >
@@ -190,6 +175,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
       </Animated.View>
       </View>
+      </View>
     </View>
   );
 };
@@ -197,6 +183,9 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: OnboardingStyles.container,
   content: OnboardingStyles.content,
+  responsiveContainer: {
+    // Width is applied dynamically via inline style
+  },
   logoSection: {
     ...OnboardingStyles.logoSection,
     marginBottom: OnboardingSpacing.md,
