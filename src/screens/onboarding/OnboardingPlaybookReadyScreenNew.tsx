@@ -55,6 +55,8 @@ interface PlaybookCard {
   backgroundColor?: string; // optional override for outer card background
 }
 
+const AUTO_EXPANDED_CARD_IDS = ['action', 'truth', 'affirmations', 'challenge'] as const;
+
 // Inner component that can access ActionStepsContext
 const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; specificChallenge: string; userInput: string }> = ({
   playbook, challengeCategory: _challengeCategory, specificChallenge: _specificChallenge, userInput,
@@ -101,7 +103,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action', 'truth', 'affirmations']));
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(() => new Set(AUTO_EXPANDED_CARD_IDS));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set()); // Used in line 688
   const [showUserInput, setShowUserInput] = useState(false);
@@ -764,7 +766,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
     const isAffirmationsCard = item.id === 'affirmations';
-    const isDirectChallengeCard = item.id === 'directChallenge';
+    const isDirectChallengeCard = item.id === 'challenge';
     
     // On iPad portrait, these cards show full content without truncation (auto-expanded)
     const isIPad = windowWidth >= 768;
@@ -852,9 +854,18 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     key="truth"
                     truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                     summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                    expanded={isExpanded}
+                    expanded={isExpanded || shouldShowFullContent}
                     style={styles.transparentBackground}
                     currentUser={{ displayName: onboardingData.name }}
+                  />
+                </View>
+              )
+            : item.id === 'challenge'
+            ? (
+                <View style={[styles.carouselCard]}>
+                  <DirectChallengeCard
+                    key="challenge"
+                    challenge={typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge.text}
                   />
                 </View>
               )
@@ -872,7 +883,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       const newIndex = viewableItems[0].index || 0;
       setCurrentIndex(newIndex);
       // Auto-collapse all cards when scrolling to a new card
-      setExpandedCards(new Set());
+      setExpandedCards(new Set(AUTO_EXPANDED_CARD_IDS));
     }
   };
 
