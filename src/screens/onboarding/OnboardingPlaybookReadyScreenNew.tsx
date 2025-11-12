@@ -1055,7 +1055,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             marginBottom: isPortrait ? 6 : 4,
           },
         ]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ maxWidth: 600, width: '100%', alignSelf: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             <TouchableOpacity style={styles.playbookTitleRow} onPress={toggleUserInput} activeOpacity={0.8}>
               <ThemedText weight="semiBold" style={styles.playbookLabel}>PLAYBOOK</ThemedText>
               <AnimatedRe.View style={[styles.chevronIcon, chevronStyle]}>
@@ -1093,6 +1094,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           </View>
 
           {/* Pagination dots removed for stacked cards view */}
+          </View>
         </View>
 
         {/* Gap below header */}
@@ -1275,6 +1277,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
             },
           ]}>
+          <View style={{ maxWidth: 600, width: '100%', alignSelf: 'center', paddingHorizontal: 16 }}>
           {/* Compute last card status to gate CTA */}
           {/**/}
           {(() => { return null; })()}
@@ -1308,6 +1311,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               );
             })()
           }
+          </View>
         </View>
 
         {/* DEVOTIONAL MODAL */}
@@ -1480,7 +1484,7 @@ const styles = StyleSheet.create({
   playbookTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     gap: 6,
     marginBottom: 0,
   },
@@ -1859,7 +1863,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     // Soft diffused top shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
