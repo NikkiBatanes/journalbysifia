@@ -108,13 +108,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
-  // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
-  const [footerH, setFooterH] = useState(156);
   // Track screen dimensions for orientation changes
   const [screenDimensions, setScreenDimensions] = useState(() => {
     const { width, height } = Dimensions.get('window');
     return { width, height };
   });
+  // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
+  // Use smaller estimate in landscape since content is more compact
+  const [footerH, setFooterH] = useState(screenDimensions.height > screenDimensions.width ? 156 : 120);
 
   // Tutorial state - only show after user explores playbook
   const [showTutorial, setShowTutorial] = useState(false);
@@ -148,7 +149,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
   const [headerH, setHeaderH] = useState(120);
-  const availableHeight = Math.max(0, screenDimensions.height - headerH - footerH - insets.top - insets.bottom);
+  // Calculate available height with landscape cap to prevent carousel from being pushed down
+  const rawAvailableHeight = screenDimensions.height - headerH - footerH - insets.top - insets.bottom;
+  const isLandscape = screenDimensions.width > screenDimensions.height;
+  // In landscape, cap to 70% of screen height to keep carousel centered
+  const availableHeight = Math.max(0, isLandscape ? Math.min(rawAvailableHeight, screenDimensions.height * 0.7) : rawAvailableHeight);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
@@ -988,7 +993,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
         {/* CAROUSEL CARDS */}
         <View style={[
-          styles.centeredJustified,
+          isLandscape ? styles.flexStart : styles.centeredJustified,
           { height: availableHeight },
         ] }>
         <View style={[
@@ -1656,6 +1661,9 @@ const styles = StyleSheet.create({
   },
   centeredJustified: {
     justifyContent: 'center',
+  },
+  flexStart: {
+    justifyContent: 'flex-start',
   },
   centeredSelfContent: {
     alignSelf: 'center',
