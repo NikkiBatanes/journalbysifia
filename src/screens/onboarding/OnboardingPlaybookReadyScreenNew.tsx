@@ -118,47 +118,17 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [tutorialStep, setTutorialStep] = useState(1);
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
 
-  // Persist intro modal visibility using ref + AsyncStorage
+  // Intro modal visibility (shows once per component mount, no persistence)
   const [showIntroModal, setShowIntroModal] = useState(false);
   const hasShownIntroRef = useRef(false);
-  const INTRO_SHOWN_KEY = 'onboarding_playbook_intro_shown_v2';
+  const buttonPressedRef = useRef(false); // Track if button was ever pressed
 
-  // Initialize modal visibility only once on mount (await storage before showing)
+  // Initialize modal visibility on mount (no AsyncStorage, shows every time)
   useEffect(() => {
-    let isMounted = true;
-    let hasChecked = false;
-
-    const initModal = async () => {
-      if (hasChecked) {
-        return;
-      }
-      hasChecked = true;
-
-      try {
-        const storedValue = await AsyncStorage.getItem(INTRO_SHOWN_KEY);
-        const alreadyShown = storedValue === 'true';
-        
-        // CRITICAL: Initialize ref from storage on every mount
-        hasShownIntroRef.current = alreadyShown;
-
-        if (isMounted && !alreadyShown) {
-          logger.debug('First time showing modal');
-          setShowIntroModal(true);
-        }
-      } catch (error) {
-        logger.warn('Failed to read intro modal persistence flag', error as Error);
-        // Default: show modal on error
-        if (isMounted) {
-          setShowIntroModal(true);
-        }
-      }
-    };
-
-    initModal();
-
-    return () => {
-      isMounted = false;
-    };
+    if (!hasShownIntroRef.current) {
+      logger.debug('Showing intro modal on mount');
+      setShowIntroModal(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally run only on mount
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
@@ -421,18 +391,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [user]);
 
   // Tutorial handlers
-  const closeTutorial = useCallback(async () => {
+  const closeTutorial = useCallback(() => {
     logger.debug('closeTutorial called - hiding tutorial and modal');
     // CRITICAL: Set ref FIRST to prevent any re-renders from showing modal
     hasShownIntroRef.current = true;
+    buttonPressedRef.current = true;
     // Then close both modal and tutorial immediately
     setShowIntroModal(false);
     setShowTutorial(false);
-    try {
-      await AsyncStorage.setItem(INTRO_SHOWN_KEY, 'true');
-    } catch (error) {
-      logger.warn('Failed to persist intro modal flag on closeTutorial', error as Error);
-    }
   }, []);
 
   const handleTapTutorialComplete = useCallback(() => {
@@ -895,7 +861,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal && !showTutorial && !hasShownIntroRef.current} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={showIntroModal && !showTutorial && !hasShownIntroRef.current && !buttonPressedRef.current} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
@@ -930,16 +896,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
                 logger.debug('Button pressed - closing intro modal');
-                // CRITICAL: Set ref and close modal FIRST, before any other state changes
+                // CRITICAL: Set refs FIRST to prevent ANY re-render from showing modal
+                buttonPressedRef.current = true;
                 hasShownIntroRef.current = true;
                 setShowIntroModal(false);
-                
-                // Persist to storage
-                try {
-                  await AsyncStorage.setItem(INTRO_SHOWN_KEY, 'true');
-                } catch (error) {
-                  logger.warn('Failed to persist intro modal flag on Explore press', error as Error);
-                }
                 
                 // Small delay to ensure modal is fully hidden before starting tutorial
                 setTimeout(() => {
@@ -947,7 +907,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   setTutorialStep(1);
                   logger.debug('Tutorial started');
                 }, 100);
-                // Faith points will be awarded when user completes or skips tutorial
               }}
             >
               <ThemedText weight="bold" style={styles.modalButtonText}>Explore My First Playbook</ThemedText>
@@ -1012,15 +971,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             {/* DEV: Reset Intro Modal Button */}
             {__DEV__ && (
               <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    await AsyncStorage.removeItem(INTRO_SHOWN_KEY);
-                    hasShownIntroRef.current = false;
-                    setShowIntroModal(true);
-                    logger.debug('Intro modal reset - will show again');
-                  } catch (error) {
-                    logger.warn('Failed to reset intro modal', error as Error);
-                  }
+                onPress={() => {
+                  hasShownIntroRef.current = false;
+                  buttonPressedRef.current = false;
+                  setShowIntroModal(true);
+                  logger.debug('Intro modal reset - will show again');
                 }}
                 style={{
                   padding: 8,
