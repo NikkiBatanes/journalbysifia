@@ -78,7 +78,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8, // Match TruthInLoveCard
+    marginTop: -6, // Nudge header up
+    marginBottom: 6,
   },
   icon: {
     marginRight: 8, // Match TruthInLoveCard's icon margin

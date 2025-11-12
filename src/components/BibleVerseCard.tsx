@@ -87,13 +87,14 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    paddingTop: 12,
+    paddingHorizontal: 24,
     backgroundColor: '#274673',
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8, // Match TruthInLoveCard
+    marginBottom: 6, // Slightly tighter to move title up
   },
   icon: {
     marginRight: 8, // Match TruthInLoveCard's icon margin
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
-    paddingTop: 20, // Space above the verse text
+    paddingTop: 8, // Reduce space to keep header higher
     paddingBottom: 5, // Space below the reference text
     width: '100%',
   },

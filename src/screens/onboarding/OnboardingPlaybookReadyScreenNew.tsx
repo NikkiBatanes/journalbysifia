@@ -44,7 +44,6 @@ import ActionStepsCard from '../../components/ActionStepsCard';
 import BibleVerseCard from '../../components/BibleVerseCard';
 import DirectChallengeCard from '../../components/DirectChallengeCard';
 import DevotionalModal from '../../components/DevotionalModal';
-import OnboardingTutorial from '../../components/tutorial/OnboardingTutorial';
 import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
@@ -107,6 +106,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set()); // Used in line 688
   const [showUserInput, setShowUserInput] = useState(false);
+  
+  // Animated values for smooth card transitions
+  const cardAnimations = useRef<{ [key: string]: { translateY: Animated.Value; scale: Animated.Value; opacity: Animated.Value } }>({}).current;
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
   // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
@@ -115,9 +117,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
 
-  // Tutorial state - only show after user explores playbook
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(1);
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
 
   // Intro modal visibility (shows once per component mount, no persistence)
@@ -399,40 +398,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     }
   }, [user]);
 
-  // Tutorial handlers
-  const closeTutorial = useCallback(() => {
-    logger.debug('closeTutorial called - hiding tutorial and modal');
-    // CRITICAL: Set ref FIRST to prevent any re-renders from showing modal
-    hasShownIntroRef.current = true;
-    buttonPressedRef.current = true;
-    // Then close both modal and tutorial immediately
-    setShowIntroModal(false);
-    setShowTutorial(false);
-  }, []);
-
-  const handleTapTutorialComplete = useCallback(() => {
-    setTutorialStep(2);
-  }, []);
-
-  const handleSwipeTutorialComplete = useCallback(() => {
-    // Ensure modal stays hidden
-    hasShownIntroRef.current = true;
-    setShowIntroModal(false);
-    
-    // Close tutorial immediately (no points)
-    closeTutorial();
-    setTutorialStep(1); // Reset for next time
-  }, [closeTutorial]);
-
-  const handleSkipTutorial = useCallback(() => {
-    // Ensure modal stays hidden
-    hasShownIntroRef.current = true;
-    setShowIntroModal(false);
-    
-    // Close tutorial immediately (no points)
-    closeTutorial();
-    setTutorialStep(1); // Reset for next time
-  }, [closeTutorial]);
 
   const handleContinueJourney = useCallback(() => {
     try {
@@ -685,6 +650,122 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   };
 
   const carouselCards = createCarouselCards();
+  
+  // Initialize animated values for each card
+  useEffect(() => {
+    carouselCards.forEach((card, index) => {
+      if (!cardAnimations[card.id]) {
+        const initialOffset = (carouselCards.length - index - 1) * 50;
+        cardAnimations[card.id] = {
+          translateY: new Animated.Value(initialOffset),
+          scale: new Animated.Value(1),
+          opacity: new Animated.Value(1),
+        };
+      }
+    });
+  }, [carouselCards.length]);
+  
+  // Reset animations when collapsing all cards
+  useEffect(() => {
+    if (expandedCardId === null) {
+      carouselCards.forEach((card, index) => {
+        const initialOffset = (carouselCards.length - index - 1) * 50;
+        if (cardAnimations[card.id]) {
+          Animated.parallel([
+            Animated.spring(cardAnimations[card.id].translateY, {
+              toValue: initialOffset,
+              useNativeDriver: true,
+              friction: 8,
+              tension: 40,
+            }),
+            Animated.timing(cardAnimations[card.id].opacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.spring(cardAnimations[card.id].scale, {
+              toValue: 1,
+              useNativeDriver: true,
+              friction: 8,
+            }),
+          ]).start();
+        }
+      });
+    }
+  }, [expandedCardId]);
+  
+  // Smooth animation handler
+  const animateCardTransition = (cardId: string, isExpanding: boolean) => {
+    const cardIndex = carouselCards.findIndex(c => c.id === cardId);
+    
+    if (isExpanding) {
+      // Animate selected card to expanded position (top, where Challenge card initially is)
+      Animated.spring(cardAnimations[cardId].translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 40,
+      }).start();
+      
+      Animated.spring(cardAnimations[cardId].scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 8,
+      }).start();
+      
+      // Animate other cards based on their position relative to tapped card
+      carouselCards.forEach((card, index) => {
+        if (card.id !== cardId) {
+          // Cards above the tapped card slide down (disappear)
+          const shouldSlideDown = index > cardIndex;
+          const targetY = shouldSlideDown ? -600 : 600; // Slide up or down based on position
+          
+          Animated.parallel([
+            Animated.spring(cardAnimations[card.id].translateY, {
+              toValue: targetY,
+              useNativeDriver: true,
+              friction: 8,
+              tension: 40,
+            }),
+            Animated.timing(cardAnimations[card.id].opacity, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.spring(cardAnimations[card.id].scale, {
+              toValue: 0.9,
+              useNativeDriver: true,
+              friction: 8,
+            }),
+          ]).start();
+        }
+      });
+    } else {
+      // Collapse - return all cards to original stacked position
+      carouselCards.forEach((card, index) => {
+        const initialOffset = (carouselCards.length - index - 1) * 50;
+        
+        Animated.parallel([
+          Animated.spring(cardAnimations[card.id].translateY, {
+            toValue: initialOffset,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40,
+          }),
+          Animated.timing(cardAnimations[card.id].opacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.spring(cardAnimations[card.id].scale, {
+            toValue: 1,
+            useNativeDriver: true,
+            friction: 8,
+          }),
+        ]).start();
+      });
+    }
+  };
 
   // Stable ItemSeparator component to avoid react/no-unstable-nested-components warning
   const ItemSeparator = React.useCallback(() => (
@@ -875,7 +956,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal && !showTutorial && !hasShownIntroRef.current && !buttonPressedRef.current} transparent animationType="none" statusBarTranslucent>
+      <Modal visible={showIntroModal && !hasShownIntroRef.current && !buttonPressedRef.current} transparent animationType="none" statusBarTranslucent>
         <Animated.View style={[styles.modalOverlay, { opacity: modalOpacity }]}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
@@ -920,11 +1001,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   duration: 200,
                   useNativeDriver: true,
                 }).start(() => {
-                  // After fade completes, hide modal and start tutorial
+                  // After fade completes, hide modal
                   setShowIntroModal(false);
-                  setShowTutorial(true);
-                  setTutorialStep(1);
-                  logger.debug('Tutorial started');
+                  hasShownIntroRef.current = true;
+                  buttonPressedRef.current = true;
                 });
               }}
             >
@@ -1017,7 +1097,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
         {/* Gap below header */}
         <View style={{ height: isPortrait ? 20 : 16 }} />
-
         {/* CAROUSEL CARDS */}
         <View>
         <View style={[
@@ -1050,14 +1129,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               
               // When a card is expanded, bring it to the very top
               const cardZIndex = isExpanded ? 9999 : baseZIndex;
-              
-              // Calculate offset - cards overlap with enough gap to show titles
-              const cardOffset = isAnyExpanded ? 0 : (carouselCards.length - index - 1) * 50;
-              
-              // When expanded, hide all other cards
-              if (isAnyExpanded && !isExpanded) {
-                return null;
-              }
 
               // Standard dimensions for stacked cards
               const STACKED_CARD_HEIGHT = 400;
@@ -1071,72 +1142,102 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 bible: 'transparent',
                 challenge: 'transparent',
               };
+              
+              // Get animation values for this card
+              const animValues = cardAnimations[card.id] || {
+                translateY: new Animated.Value((carouselCards.length - index - 1) * 50),
+                scale: new Animated.Value(1),
+                opacity: new Animated.Value(1),
+              };
 
               return (
-                <TouchableOpacity
+                <Animated.View
                   key={card.id}
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setExpandedCardId(isExpanded ? null : card.id);
-                  }}
                   style={[
                     styles.stackedCard,
                     { 
                       zIndex: cardZIndex,
-                      top: cardOffset,
                       height: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                       maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                       width: STACKED_CARD_WIDTH,
-                      overflow: isExpanded ? 'visible' : 'hidden',
+                      overflow: 'visible',
                       alignSelf: 'center',
                       backgroundColor: cardBackgrounds[card.id as keyof typeof cardBackgrounds] || 'transparent',
+                      transform: [
+                        { translateY: animValues.translateY },
+                        { scale: animValues.scale },
+                      ],
+                      opacity: animValues.opacity,
                     },
                     isExpanded && styles.stackedCardExpanded,
                   ]}
                 >
                   {/* Render the actual card component */}
                   {isExpanded ? (
-                    <ScrollView 
-                      style={{ width: STACKED_CARD_WIDTH, maxHeight: windowHeight - 200 }}
-                      showsVerticalScrollIndicator={true}
-                      bounces={true}
-                    >
-                      {card.id === 'truth' && playbook.truthInLove ? (
-                        // Render TruthInLoveCard directly with expanded state
-                        <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-                          <TruthInLoveCard
-                            truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
-                            summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                            expanded={isExpanded}
-                            style={styles.transparentBackground}
-                            currentUser={{ displayName: onboardingData.name }}
-                          />
-                        </View>
-                      ) : (
-                        card.component
-                      )}
-                    </ScrollView>
+                    <>
+                      {/* Tap to collapse - header only */}
+                      <TouchableOpacity
+                        activeOpacity={1}
+                        onPress={() => {
+                          try { triggerLightHaptic(); } catch {}
+                          setExpandedCardId(null);
+                          animateCardTransition(card.id, false);
+                        }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, zIndex: 10 }}
+                      />
+                      <ScrollView 
+                        style={{ width: STACKED_CARD_WIDTH, maxHeight: windowHeight - 200 }}
+                        contentContainerStyle={{ paddingBottom: 160 }}
+                        showsVerticalScrollIndicator={false}
+                        bounces={true}
+                        nestedScrollEnabled={true}
+                        scrollEnabled={true}
+                      >
+                        {card.id === 'truth' && playbook.truthInLove ? (
+                          // Render TruthInLoveCard directly with expanded state
+                          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                            <TruthInLoveCard
+                              truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
+                              summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
+                              expanded={isExpanded}
+                              style={styles.transparentBackground}
+                              currentUser={{ displayName: onboardingData.name }}
+                            />
+                          </View>
+                        ) : (
+                          card.component
+                        )}
+                      </ScrollView>
+                    </>
                   ) : (
-                    <View style={{ width: STACKED_CARD_WIDTH }}>
-                      {card.id === 'truth' && playbook.truthInLove ? (
-                        // Render TruthInLoveCard directly with expanded state
-                        <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-                          <TruthInLoveCard
-                            truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
-                            summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                            expanded={isExpanded}
-                            style={styles.transparentBackground}
-                            currentUser={{ displayName: onboardingData.name }}
-                          />
-                        </View>
-                      ) : (
-                        card.component
-                      )}
-                    </View>
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => {
+                        try { triggerLightHaptic(); } catch {}
+                        setExpandedCardId(card.id);
+                        animateCardTransition(card.id, true);
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      <View style={{ width: STACKED_CARD_WIDTH, height: STACKED_CARD_HEIGHT, overflow: 'hidden' }}>
+                        {card.id === 'truth' && playbook.truthInLove ? (
+                          // Render TruthInLoveCard directly with collapsed state (summary only)
+                          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                            <TruthInLoveCard
+                              truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
+                              summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
+                              expanded={false}
+                              style={styles.transparentBackground}
+                              currentUser={{ displayName: onboardingData.name }}
+                            />
+                          </View>
+                        ) : (
+                          card.component
+                        )}
+                      </View>
+                    </TouchableOpacity>
                   )}
-                </TouchableOpacity>
+                </Animated.View>
               );
             })}
           </View>
@@ -1216,15 +1317,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           playbookId={playbook.id}
           userInput={userInput}
           isOnboarding={true}
-        />
-
-        {/* TUTORIAL OVERLAY */}
-        <OnboardingTutorial
-          showTutorial={showTutorial}
-          tutorialStep={tutorialStep}
-          onTapTutorialComplete={handleTapTutorialComplete}
-          onSwipeTutorialComplete={handleSwipeTutorialComplete}
-          onSkipTutorial={handleSkipTutorial}
         />
       </View>
     </>
@@ -1757,14 +1849,20 @@ const styles = StyleSheet.create({
   stackedCardsContainer: {
     position: 'relative',
     paddingHorizontal: 16,
-    paddingTop: 80,
+    paddingTop: 20,
     paddingBottom: 40,
     minHeight: 600,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   stackedCard: {
     position: 'absolute',
     borderRadius: 16,
+    // Soft diffused top shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   stackedCardExpanded: {
     position: 'relative',
