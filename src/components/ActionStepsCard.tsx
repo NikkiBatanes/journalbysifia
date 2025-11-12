@@ -762,7 +762,7 @@ export default function ActionStepsCard({
           color={Colors.alertCoral}
           style={styles.icon}
         />
-        <ThemedText weight="semiBold" style={[
+        <ThemedText weight="bold" style={[
           styles.heading,
           textColor ? { color: textColor } : {},
         ]}>
@@ -1083,6 +1083,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    paddingLeft: 8,
   },
   icon: {
     marginRight: 8,

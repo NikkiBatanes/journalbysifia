@@ -102,8 +102,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action', 'truth', 'affirmations']));
-  // Stacked card view: track which card is expanded (null = all collapsed/stacked)
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null); // Start collapsed so Truth in Love shows summary
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set()); // Used in line 688
   const [showUserInput, setShowUserInput] = useState(false);
@@ -670,12 +668,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'challenge',
         type: 'Challenge',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-            <DirectChallengeCard
-              key="challenge"
-              challenge={challengeText}
-            />
-          </View>
+          // Inner card is now transparent; outer background will be alert coral
+          <DirectChallengeCard
+            key="challenge"
+            challenge={challengeText}
+          />
         ),
         backgroundColor: Colors.alertCoral,
       });
@@ -943,8 +940,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             // eslint-disable-next-line react-native/no-inline-styles
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
+          showsVerticalScrollIndicator={expandedCards.size > 0}
+          scrollEnabled={expandedCards.size > 0}
           bounces
           alwaysBounceVertical
           overScrollMode="always"
@@ -986,6 +983,25 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 />
               </AnimatedRe.View>
             </TouchableOpacity>
+            
+            {/* DEV: Reset Intro Modal Button */}
+            {__DEV__ && (
+              <TouchableOpacity
+                onPress={() => {
+                  hasShownIntroRef.current = false;
+                  buttonPressedRef.current = false;
+                  setShowIntroModal(true);
+                  logger.debug('Intro modal reset - will show again');
+                }}
+                style={{
+                  padding: 8,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 4,
+                }}
+              >
+                <ThemedText style={{ fontSize: 10, color: Colors.hopeWhite }}>Reset Intro</ThemedText>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* User Input Display - Between PLAYBOOK and Title */}
@@ -1012,11 +1028,32 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <ThemedText weight="medium" style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</ThemedText>
           </View>
 
-          {/* Pagination dots removed for stacked cards view */}
+          {/* Show dots here ONLY when a card is expanded (vertical scroll enabled). */}
+          {expandedCards.size > 0 && (
+            <View style={styles.dotsContainer}>
+              {carouselCards.map((_, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dot,
+                    currentIndex === index && styles.activeDot,
+                  ]}
+                  onPress={() => {
+                    try {
+                      flatListRef.current?.scrollToIndex({ index, animated: true });
+                      setCurrentIndex(index);
+                    } catch (error) {
+                      logger.warn('Failed to scroll to index in header dots', error as Error);
+                    }
+                  }}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Gap below header */}
-        <View style={{ height: isPortrait ? 20 : 16 }} />
+        <View style={{ height: isPortrait ? 44 : 40 }} />
 
         {/* CAROUSEL CARDS */}
         <View>
@@ -1031,115 +1068,72 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             marginBottom: isPortrait ? 20 : 10,
           },
         ]}>
-          {/* STACKED CARDS VIEW */}
-          <View style={styles.stackedCardsContainer}>
-            {carouselCards.map((card, index) => {
-              const isExpanded = expandedCardId === card.id;
-              const isAnyExpanded = expandedCardId !== null;
-              
-              // Truth in Love has highest z-index (on top), others stack below
-              const zIndexMap = {
-                truth: 5,      // Top card
-                action: 4,
-                affirmations: 3,
-                bible: 2,
-                challenge: 1,  // Bottom card
-              };
-              
-              const baseZIndex = zIndexMap[card.id as keyof typeof zIndexMap] || index;
-              
-              // When a card is expanded, bring it to the very top
-              const cardZIndex = isExpanded ? 9999 : baseZIndex;
-              
-              // Calculate offset - cards overlap with enough gap to show titles
-              const cardOffset = isAnyExpanded ? 0 : (carouselCards.length - index - 1) * 50;
-              
-              // When expanded, hide all other cards
-              if (isAnyExpanded && !isExpanded) {
-                return null;
-              }
-
-              // Standard dimensions for stacked cards
-              const STACKED_CARD_HEIGHT = 400;
-              const STACKED_CARD_WIDTH = ITEM_WIDTH;
-              
-              // Background colors for each card
-              const cardBackgrounds = {
-                truth: 'transparent',
-                action: 'transparent',
-                affirmations: 'transparent',
-                bible: 'transparent',
-                challenge: 'transparent',
-              };
-
-              return (
+          {/* Dots outside the card but just above it when nothing is expanded */}
+          {expandedCards.size === 0 && (
+            <View style={styles.overlayDotsContainer}>
+              {carouselCards.map((_, index) => (
                 <TouchableOpacity
-                  key={card.id}
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setExpandedCardId(isExpanded ? null : card.id);
-                  }}
+                  key={index}
                   style={[
-                    styles.stackedCard,
-                    { 
-                      zIndex: cardZIndex,
-                      top: cardOffset,
-                      height: isExpanded ? undefined : STACKED_CARD_HEIGHT,
-                      maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
-                      width: STACKED_CARD_WIDTH,
-                      overflow: isExpanded ? 'visible' : 'hidden',
-                      alignSelf: 'center',
-                      backgroundColor: cardBackgrounds[card.id as keyof typeof cardBackgrounds] || 'transparent',
-                    },
-                    isExpanded && styles.stackedCardExpanded,
+                    styles.dot,
+                    currentIndex === index && styles.activeDot,
                   ]}
-                >
-                  {/* Render the actual card component */}
-                  {isExpanded ? (
-                    <ScrollView 
-                      style={{ width: STACKED_CARD_WIDTH, maxHeight: windowHeight - 200 }}
-                      showsVerticalScrollIndicator={true}
-                      bounces={true}
-                    >
-                      {card.id === 'truth' && playbook.truthInLove ? (
-                        // Render TruthInLoveCard directly with expanded state
-                        <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-                          <TruthInLoveCard
-                            truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
-                            summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                            expanded={isExpanded}
-                            style={styles.transparentBackground}
-                            currentUser={{ displayName: onboardingData.name }}
-                          />
-                        </View>
-                      ) : (
-                        card.component
-                      )}
-                    </ScrollView>
-                  ) : (
-                    <View style={{ width: STACKED_CARD_WIDTH }}>
-                      {card.id === 'truth' && playbook.truthInLove ? (
-                        // Render TruthInLoveCard directly with expanded state
-                        <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-                          <TruthInLoveCard
-                            truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
-                            summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                            expanded={isExpanded}
-                            style={styles.transparentBackground}
-                            currentUser={{ displayName: onboardingData.name }}
-                          />
-                        </View>
-                      ) : (
-                        card.component
-                      )}
-                    </View>
-                  )}
-                </TouchableOpacity>
+                  onPress={() => {
+                    try {
+                      flatListRef.current?.scrollToIndex({ index, animated: true });
+                      setCurrentIndex(index);
+                    } catch (error) {
+                      logger.warn('Failed to scroll to index in overlay dots', error as Error);
+                    }
+                  }}
+                />
+              ))}
+            </View>
+          )}
+          <Animated.FlatList
+            ref={flatListRef}
+            data={carouselCards}
+            renderItem={renderCarouselCard}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled={false}
+            snapToAlignment="center"
+            snapToInterval={ITEM_SIZE}
+            decelerationRate="fast"
+            bounces={false}
+            // Center items precisely: use exact sidePadding (no extra compensation)
+            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
+            ListFooterComponent={<View style={{ width: Math.round(sidePadding) }} />}
+            ItemSeparatorComponent={ItemSeparator}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: true }
+            )}
+            scrollEventThrottle={16}
+            snapToOffsets={carouselCards.map((_, i) => i * ITEM_SIZE)}
+            removeClippedSubviews={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            onMomentumScrollEnd={(e) => {
+              const offsetX = e.nativeEvent.contentOffset.x;
+              const index = Math.min(
+                Math.max(0, Math.round(offsetX / ITEM_SIZE)),
+                carouselCards.length - 1
               );
-            })}
-          </View>
+              const target = index * ITEM_SIZE;
+              if (Math.abs(target - offsetX) > 1) {
+                try {
+                  flatListRef.current?.scrollToOffset({ offset: target, animated: true });
+                } catch (error) {
+                  logger.warn('Failed to snap to target offset', error as Error);
+                }
+              }
+            }}
+            getItemLayout={(_, index) => ({ length: ITEM_SIZE, offset: ITEM_SIZE * index, index })}
+            viewabilityConfig={{
+              itemVisiblePercentThreshold: 50,
+            }}
+          />
         </View>
 
         {/* DEVOTIONAL BUTTON - show only on last card */}
@@ -1486,7 +1480,6 @@ const styles = StyleSheet.create({
   affirmationsHeader: {
     padding: 16,
     paddingBottom: 10,
-    paddingLeft: 24,
     borderBottomWidth: 0,
     borderBottomColor: 'transparent',
     flexDirection: 'row',
@@ -1752,40 +1745,6 @@ const styles = StyleSheet.create({
   },
   cardContentDynamic: {
     // Dynamic styles will be applied inline for height, width, backgroundColor, transform, opacity
-  },
-  // Stacked Cards Styles
-  stackedCardsContainer: {
-    position: 'relative',
-    paddingHorizontal: 16,
-    paddingTop: 80,
-    paddingBottom: 40,
-    minHeight: 600,
-    justifyContent: 'center',
-  },
-  stackedCard: {
-    position: 'absolute',
-    borderRadius: 16,
-  },
-  stackedCardExpanded: {
-    position: 'relative',
-    minHeight: 400,
-    width: '100%',
-  },
-  stackedCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 12,
-    minHeight: 60,
-  },
-  stackedCardTitle: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
-    flex: 1,
-  },
-  stackedCardContent: {
-    padding: 16,
-    paddingTop: 0,
   },
 });
 

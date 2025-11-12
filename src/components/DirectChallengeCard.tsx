@@ -1,5 +1,5 @@
 import React from 'react';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet } from 'react-native';
 import { BorderRadii } from '../theme/styles';
 
@@ -25,10 +25,10 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <MaterialCommunityIcons
-          name="lightning-bolt"
+        <Ionicons
+          name="flash"
           size={24}
-          color={Colors.anchorBlue}
+          color={Colors.alertCoral}
           style={styles.icon}
         />
         <ThemedText weight="bold" style={styles.heading}>Rise in Faith</ThemedText>
@@ -69,7 +69,9 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'transparent',
     borderRadius: BorderRadii.cardXL,
-    padding: 24,
+    paddingTop: 0,
+    paddingBottom: 24,
+    paddingHorizontal: 0,
     width: '100%',
     alignSelf: 'stretch',
   },
