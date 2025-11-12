@@ -124,6 +124,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Only show intro modal once - use a module-level flag to persist across component remounts
   const [showIntroModal, setShowIntroModal] = useState(false);
+  // Local guard to prevent any brief flash after tutorial/points
+  const [introDismissed, setIntroDismissed] = useState(false);
 
   // Initialize modal visibility only once on mount
   useEffect(() => {
@@ -131,6 +133,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     logger.debug('Module flag value:', { hasShownPlaybookIntroModal });
     logger.debug('Current showIntroModal state:', { showIntroModal });
 
+    // Sync local dismissal with module flag
+    if (hasShownPlaybookIntroModal) {
+      setIntroDismissed(true);
+    }
     // Check if modal has been shown in this session
     if (!hasShownPlaybookIntroModal) {
       logger.debug('First time showing modal, setting flag');
@@ -150,7 +156,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
   const [headerH, setHeaderH] = useState(120);
-  // Calculate available height - simpler approach for landscape
+  // Calculate available height for centering math
   const isLandscape = screenDimensions.width > screenDimensions.height;
   const availableHeight = Math.max(0, screenDimensions.height - headerH - footerH - insets.top - insets.bottom);
   // Measured intrinsic heights for each card's content
@@ -399,6 +405,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     logger.debug('closeTutorial called - hiding tutorial and modal');
     setShowTutorial(false);
     setShowIntroModal(false);
+    setIntroDismissed(true);
     hasShownPlaybookIntroModal = true;
   }, []);
 
@@ -845,7 +852,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal && !showTutorial} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={showIntroModal && !showTutorial && !introDismissed} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
@@ -883,6 +890,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 logger.debug('Setting module flag to true');
                 // Mark as permanently shown
                 hasShownPlaybookIntroModal = true;
+                setIntroDismissed(true);
                 // Start tutorial first, then close modal (prevents flash)
                 setShowTutorial(true);
                 setTutorialStep(1);
@@ -1003,12 +1011,21 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           )}
         </View>
 
+        {/* Centering spacer calculated from header/footer and current card height */}
+        <View style={{
+          height: (() => {
+            if (expandedCards.size > 0) { return 16; }
+            const COLLAPSED = 400;
+            const currentId = carouselCards[currentIndex]?.id;
+            const measured = currentId ? (contentHeights[currentId] || 0) : 0;
+            const isExpanded = currentId ? expandedCards.has(currentId) : false;
+            const cardH = isExpanded ? Math.max(measured, COLLAPSED) : COLLAPSED;
+            return Math.max(16, (availableHeight - cardH) / 2);
+          })()
+        }} />
+
         {/* CAROUSEL CARDS */}
-        <View style={[
-          styles.centeredJustified,
-          // In landscape, don't set height - let content flow naturally
-          !isLandscape && { height: availableHeight },
-        ]}>
+        <View>
         <View style={[
           styles.carouselContainer,
           {
