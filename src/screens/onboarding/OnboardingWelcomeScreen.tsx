@@ -14,7 +14,7 @@ import {
   StatusBar,
   Image,
   Linking,
-  useWindowDimensions,
+  Dimensions,
   FlatList,
 } from 'react-native';
 
@@ -32,7 +32,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
-// Removed static width; use dynamic dimensions inside component for rotation support
+const { width } = Dimensions.get('window');
 
 interface Slide {
   id: number;
@@ -120,17 +120,16 @@ const extractNameFromEmail = (emailUsername: string): string => {
 
 const OnboardingWelcomeScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const win = Dimensions.get('window');
+  const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
+  const isLandscape = screenSize.width > screenSize.height;
+  const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
   const { isAuthenticated, user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const flatListRef = useRef<FlatList>(null);
-
-  // Responsive layout values
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const isLandscape = screenWidth > screenHeight;
-  const contentMaxWidth = Math.min(900, Math.round(screenWidth * (isLandscape ? 0.68 : 0.9)));
 
   useEffect(() => {
     // Entrance animation
@@ -147,6 +146,14 @@ const OnboardingWelcomeScreen: React.FC = () => {
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  // Listen to dimension changes to respond to rotation
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenSize({ width: window.width, height: window.height });
+    });
+    return () => sub?.remove();
+  }, []);
 
   // If we landed on Welcome but user is already authenticated and a post-auth redirect exists,
   // honor it immediately to avoid timing issues where Splash routed too early.
@@ -234,7 +241,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   // Unused manual navigation handlers removed to satisfy lint; carousel uses dots and auto-advance.
 
   const onScrollEnd = (event: any) => {
-    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
     setCurrentSlide(slideIndex);
   };
 
@@ -311,7 +318,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   };
 
   const renderSlide = ({ item }: { item: Slide }) => (
-    <View style={[styles.slideContainer, { width: screenWidth }]}>
+    <View style={[styles.slideContainer, { width: contentWidth }]}>
       {/* Slide Icon */}
       <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
         <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
@@ -340,7 +347,6 @@ const OnboardingWelcomeScreen: React.FC = () => {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={OnboardingStyles.innerContainer}>
-        <View style={[styles.responsiveContainer, { maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' }]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Image
@@ -361,13 +367,13 @@ const OnboardingWelcomeScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onScrollEnd}
           decelerationRate="fast"
-          snapToInterval={screenWidth}
+          snapToInterval={contentWidth}
           snapToAlignment="center"
-          contentContainerStyle={styles.carouselContainer}
+          contentContainerStyle={[styles.carouselContainer, { alignItems: 'center', paddingHorizontal: 0 }]}
         />
 
         {/* Navigation Dots */}
-        <View style={styles.dotsContainer}>
+        <View style={[styles.dotsContainer, { width: contentWidth, alignSelf: 'center' }]}>
           {slides.map((_, index) => (
             <TouchableOpacity
               key={index}
@@ -384,9 +390,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Action Buttons */}
-        <View style={styles.buttonSection}>
+        <View style={[styles.buttonSection, { width: contentWidth, alignSelf: 'center' }]}>
           <TouchableOpacity
-            style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled]}
+            style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled, { alignSelf: 'center', width: '100%', maxWidth: contentWidth }]}
             onPress={handleCreateAccount}
             disabled={isLoading}
           >
@@ -396,7 +402,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.loginButton, isLoading && OnboardingStyles.buttonDisabled]}
+            style={[styles.loginButton, isLoading && OnboardingStyles.buttonDisabled, { alignSelf: 'center', width: '100%', maxWidth: contentWidth }]}
             onPress={handleLogin}
             disabled={isLoading}
           >
@@ -407,7 +413,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Terms Text */}
-        <ThemedText style={styles.termsText}>
+        <ThemedText style={[styles.termsText, { width: contentWidth, alignSelf: 'center' }]}>
           By continuing, you agree to our{' '}
           <ThemedText
             style={styles.linkText}
@@ -423,7 +429,6 @@ const OnboardingWelcomeScreen: React.FC = () => {
             Privacy Policy
           </ThemedText>
         </ThemedText>
-        </View>
       </View>
       </View>
     </OnboardingErrorBoundary>
@@ -436,9 +441,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   scrollContent: OnboardingStyles.scrollContent,
-  responsiveContainer: {
-    // Width is applied dynamically via inline style
-  },
   logoSection: {
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,

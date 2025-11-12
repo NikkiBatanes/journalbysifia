@@ -13,7 +13,7 @@ import {
   Animated,
   StatusBar,
   Image,
-  useWindowDimensions,
+  Dimensions,
 } from 'react-native';
 import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -51,14 +51,13 @@ import ThemedText from '../../components/common/ThemedText';
 
 const OnboardingTransformYourLifeScreen: React.FC = () => {
   const navigation = useNavigation();
+  const win = Dimensions.get('window');
+  const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
+  const isLandscape = screenSize.width > screenSize.height;
+  const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-
-  // Responsive layout values
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const isLandscape = screenWidth > screenHeight;
-  const contentMaxWidth = Math.min(900, Math.round(screenWidth * (isLandscape ? 0.68 : 0.9)));
 
   useEffect(() => {
     // Entrance animation
@@ -75,6 +74,14 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  // Respond to orientation changes
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenSize({ width: window.width, height: window.height });
+    });
+    return () => sub?.remove();
+  }, []);
 
   const handleContinue = async () => {
     // Haptic feedback for primary action
@@ -95,8 +102,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      <View style={OnboardingStyles.innerContainer}>
-      <View style={[styles.responsiveContainer, { maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' }]}>
+      <View style={[OnboardingStyles.innerContainer, { width: contentWidth, alignSelf: 'center' }]}>
       <Animated.View
         style={[
           styles.content,
@@ -133,11 +139,11 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
         {/* Main Content */}
         <View style={styles.mainContent}>
-          <View style={[styles.textContainer, { maxWidth: contentMaxWidth }] }>
+          <View style={styles.textContainer}>
             <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, styles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</ThemedText>
           </View>
 
-          <View style={[styles.textContainer, { maxWidth: contentMaxWidth }] }>
+          <View style={styles.textContainer}>
             <ThemedText style={styles.mainText}>
             God has a way of meeting us right in the middle of our story, not when everything is perfect, but when our hearts are open.
             </ThemedText>
@@ -154,7 +160,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
             {/* Button */}
             <TouchableOpacity
-              style={[OnboardingStyles.primaryButton, styles.startButton, isLoading && OnboardingStyles.buttonDisabled, { alignSelf: 'center', maxWidth: Math.min(520, Math.round(contentMaxWidth * 0.9)), width: '100%' }]}
+              style={[OnboardingStyles.primaryButton, styles.startButton, { width: '100%' }, isLoading && OnboardingStyles.buttonDisabled]}
               onPress={handleContinue}
               disabled={isLoading}
             >
@@ -175,7 +181,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
       </Animated.View>
       </View>
-      </View>
     </View>
   );
 };
@@ -183,9 +188,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: OnboardingStyles.container,
   content: OnboardingStyles.content,
-  responsiveContainer: {
-    // Width is applied dynamically via inline style
-  },
   logoSection: {
     ...OnboardingStyles.logoSection,
     marginBottom: OnboardingSpacing.md,
