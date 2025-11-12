@@ -55,8 +55,6 @@ interface PlaybookCard {
   backgroundColor?: string; // optional override for outer card background
 }
 
-const AUTO_EXPANDED_CARD_IDS = ['action', 'truth', 'affirmations', 'challenge'] as const;
-
 // Inner component that can access ActionStepsContext
 const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; specificChallenge: string; userInput: string }> = ({
   playbook, challengeCategory: _challengeCategory, specificChallenge: _specificChallenge, userInput,
@@ -103,7 +101,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(() => new Set(AUTO_EXPANDED_CARD_IDS));
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action', 'truth', 'affirmations', 'challenge']));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set()); // Used in line 688
   const [showUserInput, setShowUserInput] = useState(false);
@@ -770,7 +768,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     
     // On iPad portrait, these cards show full content without truncation (auto-expanded)
     const isIPad = windowWidth >= 768;
-    const shouldShowFullContent = (isTruthCard || isAffirmationsCard || isDirectChallengeCard) && isIPad && isPortrait;
+    // Direct Challenge only expands if content exceeds collapsed height
+    const shouldShowFullTruth = (isTruthCard || isAffirmationsCard) && isIPad && isPortrait;
+    const shouldExpandChallenge = isDirectChallengeCard && isIPad && isPortrait && measured > COLLAPSED_HEIGHT;
+    const shouldShowFullContent = shouldShowFullTruth || shouldExpandChallenge;
 
     const inputRange = [
       (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
@@ -798,7 +799,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
     // Cards on iPad portrait that show full content are not tappable
-    const canToggle = (isTruthCard || isActionCard) && !shouldShowFullContent;
+    // Direct Challenge on iPad portrait is tappable if content fits (can manually expand)
+    const canToggle = ((isTruthCard || isActionCard) && !shouldShowFullTruth) || (isDirectChallengeCard && isIPad && isPortrait && measured <= COLLAPSED_HEIGHT);
     const Wrapper: React.ComponentType<any> = canToggle ? TouchableOpacity : View;
 
     return (
@@ -860,15 +862,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   />
                 </View>
               )
-            : item.id === 'challenge'
-            ? (
-                <View style={[styles.carouselCard]}>
-                  <DirectChallengeCard
-                    key="challenge"
-                    challenge={typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge.text}
-                  />
-                </View>
-              )
             : item.component}
 
           {/* Expand hint removed as requested */}
@@ -883,7 +876,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       const newIndex = viewableItems[0].index || 0;
       setCurrentIndex(newIndex);
       // Auto-collapse all cards when scrolling to a new card
-      setExpandedCards(new Set(AUTO_EXPANDED_CARD_IDS));
+      setExpandedCards(new Set());
     }
   };
 
