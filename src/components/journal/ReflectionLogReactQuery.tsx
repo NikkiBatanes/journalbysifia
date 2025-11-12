@@ -1247,13 +1247,13 @@ return (
               triggerLightHaptic();
               try {
                 await deleteMutation.mutateAsync(id);
-                
+
                 // Reset form state and close editor immediately after successful delete
                 resetForm();
                 setIsAdding(false);
                 setEditingId(null);
                 setSelectedEntry(null);
-                
+
                 await refetch();
 
               } catch (deleteError) {
