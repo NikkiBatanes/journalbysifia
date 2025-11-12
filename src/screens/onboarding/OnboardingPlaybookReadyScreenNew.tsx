@@ -108,7 +108,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
-  const [footerH, setFooterH] = useState(0);
+  // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
+  const [footerH, setFooterH] = useState(156);
   // Track screen dimensions for orientation changes
   const [screenDimensions, setScreenDimensions] = useState(() => {
     const { width, height } = Dimensions.get('window');
