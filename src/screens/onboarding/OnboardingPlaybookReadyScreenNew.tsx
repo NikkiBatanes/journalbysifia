@@ -214,13 +214,22 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch {}
   };
 
-  // Carousel sizing: one item at a time, full width with minimal side padding
-  const ITEM_SPACING = 0; // no spacing between items for full-width single-item view
-  const SIDE_PADDING = 20; // minimal padding on sides
-  const ITEM_WIDTH = Math.round(screenDimensions.width - (SIDE_PADDING * 2));
-  const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-  // The exact width we want the list to snap to (includes side padding)
-  const SNAP_TO = ITEM_WIDTH;
+  // ────────────────────── NEW CARD SIZING ──────────────────────
+  const CARD_MAX_WIDTH = 420;                     // max card width (iPad)
+  const CARD_MARGIN   = 16;                       // space between cards
+  const PEEK_WIDTH    = 80;                       // how much of the next card shows
+  const SIDE_PADDING  = 20;                       // left/right screen edge padding
+
+  const screenW = screenDimensions.width;
+  const CARD_WIDTH = Math.min(
+    screenW - SIDE_PADDING * 2 - PEEK_WIDTH,   // leave room for peek
+    CARD_MAX_WIDTH
+  );
+
+  // Distance the list must scroll to show the next card
+  const SNAP_TO = CARD_WIDTH + CARD_MARGIN;
+
+  // Keep old name for compatibility (optional)
   const sidePadding = SIDE_PADDING;
 
   // Cleanup on unmount and handle orientation changes
@@ -687,10 +696,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const carouselCards = createCarouselCards();
 
-  // Stable ItemSeparator component to avoid react/no-unstable-nested-components warning
-  const ItemSeparator = React.useCallback(() => (
-    <View style={styles.itemSpacing} />
-  ), []);
+  // No ItemSeparator – we use marginHorizontal on the card instead
 
   // When user reaches the last card, start a delay then reveal the CTA.
   // Once revealed, keep it visible even if the user navigates away from the last card.
@@ -751,7 +757,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Animation removed for simpler one-item-at-a-time display
 
     // Avoid inline-style object directly in JSX to satisfy lint
-    const cardDynamicStyle = { width: ITEM_WIDTH };
+    const cardDynamicStyle = { width: CARD_WIDTH };
 
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
     const canToggle = (isTruthCard || isActionCard);
@@ -759,7 +765,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
     return (
       <Wrapper
-        style={[styles.cardContainer, styles.centeredContent, cardDynamicStyle]}
+        style={[styles.cardContainer, cardDynamicStyle]}
         {...(canToggle ? {
           onPress: () => toggleCardExpansion(item.id),
           disabled: false,
@@ -780,7 +786,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             }}
           >
 
-            <View style={{ width: ITEM_WIDTH }}>{item.component}</View>
+            <View style={{ width: CARD_WIDTH }}>{item.component}</View>
           </View>
         )}
 
@@ -791,7 +797,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             {
               // Collapse by default; expand when toggled
               height: isExpanded ? 'auto' : COLLAPSED_HEIGHT,
-              width: ITEM_WIDTH,
+              width: CARD_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
               // Remove overflow hidden when expanded to prevent cropping
               overflow: isExpanded ? 'visible' : 'hidden',
@@ -1033,12 +1039,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
-            pagingEnabled={true}
+            pagingEnabled={false}
             snapToInterval={SNAP_TO}
             decelerationRate="fast"
             bounces={false}
-            // side padding is now done by the parent container → no extra here
-            ItemSeparatorComponent={ItemSeparator}
+            // Left padding = screen edge, right padding = edge + peek
+            contentContainerStyle={{
+              paddingLeft: SIDE_PADDING,
+              paddingRight: SIDE_PADDING + PEEK_WIDTH,
+            }}
+            // No ItemSeparator – gap is created by card margin
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: true }
@@ -1049,15 +1059,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             onMomentumScrollEnd={(e) => {
               const offsetX = e.nativeEvent.contentOffset.x;
               const index = Math.min(
-                Math.max(0, Math.round(offsetX / (ITEM_WIDTH + ITEM_SPACING))),
+                Math.max(0, Math.round(offsetX / SNAP_TO)),
                 Math.max(0, carouselCards.length - 1)
               );
-              const target = index * (ITEM_WIDTH + ITEM_SPACING);
+              const target = index * SNAP_TO;
               if (Math.abs(target - offsetX) > 1) {
                 flatListRef.current?.scrollToOffset({ offset: target, animated: true });
               }
             }}
-            getItemLayout={(_, index) => ({ length: ITEM_WIDTH + ITEM_SPACING, offset: (ITEM_WIDTH + ITEM_SPACING) * index, index })}
+            getItemLayout={(_, index) => ({
+              length: SNAP_TO,
+              offset: SNAP_TO * index,
+              index,
+            })}
             viewabilityConfig={{
               itemVisiblePercentThreshold: 50,
             }}
@@ -1067,7 +1081,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* DEVOTIONAL BUTTON - show only on last card */}
         {devotionalVisible && (currentIndex === Math.max(0, carouselCards.length - 1)) && (
           <TouchableOpacity
-            style={[styles.devotionalButton, styles.centeredSelfContent, { width: ITEM_WIDTH }]}
+            style={[styles.devotionalButton, styles.centeredSelfContent, { width: CARD_WIDTH }]}
             onPress={handleCreateDevotional}
             activeOpacity={0.8}
           >
@@ -1393,9 +1407,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardContainer: {
-    // width now calculated dynamically via ITEM_WIDTH which uses screenDimensions
-    // Remove extra margins to keep step size equal to ITEM_WIDTH + ITEM_SPACING
-    marginHorizontal: 0,
+    marginHorizontal: 8,   // creates 16px gap between cards (8 * 2)
+    alignItems: 'center',
   },
   cardContent: {
     borderRadius: 30,
@@ -1672,10 +1685,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginHorizontal: 0,
   },
-  itemSpacing: {
-    // Using literal to avoid out-of-scope constant in StyleSheet; matches ITEM_SPACING
-    width: 16,
-  },
+  // itemSpacing is no longer used
   cardContentDynamic: {
     // Dynamic styles will be applied inline for height, width, backgroundColor, transform, opacity
   },
