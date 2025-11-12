@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Dimensions,
   Platform,
   Animated,
   StatusBar,
@@ -15,7 +14,6 @@ import {
   BackHandler,
   useWindowDimensions,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
@@ -108,7 +106,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
   // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
-  const [footerH, setFooterH] = useState(156);
+  const [_footerH, setFooterH] = useState(156);
   // Track screen dimensions for orientation changes using hook
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
@@ -145,8 +143,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
-  const [headerH, setHeaderH] = useState(120);
-  const availableHeight = Math.max(0, windowHeight - headerH - footerH - insets.top - insets.bottom);
+  const [_headerH, setHeaderH] = useState(120);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
@@ -210,14 +207,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     ITEM_SIZE,
     sidePadding,
   } = React.useMemo(() => {
-    const ITEM_SPACING = 16;
+    const itemSpacing = 16;
     const isIPad = windowWidth >= 768;
     // iPad: 70% width (10% narrower), iPhone: 80% width
     const widthRatio = isIPad ? 0.70 : 0.80;
-    const ITEM_WIDTH = Math.round(windowWidth * widthRatio);
-    const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-    const sidePadding = Math.round((windowWidth - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
-    return { ITEM_SPACING, ITEM_WIDTH, ITEM_SIZE, sidePadding };
+    const itemWidth = Math.round(windowWidth * widthRatio);
+    const itemSize = itemWidth + itemSpacing;
+    const padding = Math.round((windowWidth - itemWidth) / 2); // center first/last (rounded to avoid half-pixel drift)
+    return { ITEM_SPACING: itemSpacing, ITEM_WIDTH: itemWidth, ITEM_SIZE: itemSize, sidePadding: padding };
   }, [windowWidth]);
 
   // Cleanup on unmount and handle orientation changes
@@ -368,6 +365,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [getCompletedStepsCount]);
 
   // Award faith points function
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const awardFaithPoints = useCallback(async () => {
     try {
       // Award faith points to user's account during onboarding

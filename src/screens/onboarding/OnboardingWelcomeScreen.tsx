@@ -32,7 +32,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
-const { width } = Dimensions.get('window');
+// const { height: _height } = Dimensions.get('window');
 
 interface Slide {
   id: number;

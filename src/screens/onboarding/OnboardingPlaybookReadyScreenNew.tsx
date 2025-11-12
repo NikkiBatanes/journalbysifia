@@ -688,6 +688,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         };
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carouselCards.length]);
 
   // Reset animations when collapsing all cards
@@ -802,7 +803,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         continueTimerRef.current = null;
       }, 3000);
     }
-  }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Show devotional CTA after 3 seconds and animate (not dependent on card expansion)
   useEffect(() => {

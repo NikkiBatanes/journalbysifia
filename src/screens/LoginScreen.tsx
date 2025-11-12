@@ -10,7 +10,6 @@ import {
   StatusBar,
   Dimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
@@ -25,7 +24,6 @@ interface Props {
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading } = useAuth();
-  const insets = useSafeAreaInsets();
   const win = Dimensions.get('window');
   const [screen, setScreen] = React.useState({ width: win.width, height: win.height });
   const isLandscape = screen.width > screen.height;
