@@ -108,14 +108,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalVisible, setDevotionalVisible] = useState(false);
+  // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
+  const [footerH, setFooterH] = useState(156);
   // Track screen dimensions for orientation changes
   const [screenDimensions, setScreenDimensions] = useState(() => {
     const { width, height } = Dimensions.get('window');
     return { width, height };
   });
-  // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
-  // Use smaller estimate in landscape since content is more compact
-  const [footerH, setFooterH] = useState(screenDimensions.height > screenDimensions.width ? 156 : 120);
 
   // Tutorial state - only show after user explores playbook
   const [showTutorial, setShowTutorial] = useState(false);
@@ -124,8 +123,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Only show intro modal once - use a module-level flag to persist across component remounts
   const [showIntroModal, setShowIntroModal] = useState(false);
-  // Local guard to prevent any brief flash after tutorial/points
-  const [introDismissed, setIntroDismissed] = useState(false);
 
   // Initialize modal visibility only once on mount
   useEffect(() => {
@@ -133,10 +130,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     logger.debug('Module flag value:', { hasShownPlaybookIntroModal });
     logger.debug('Current showIntroModal state:', { showIntroModal });
 
-    // Sync local dismissal with module flag
-    if (hasShownPlaybookIntroModal) {
-      setIntroDismissed(true);
-    }
     // Check if modal has been shown in this session
     if (!hasShownPlaybookIntroModal) {
       logger.debug('First time showing modal, setting flag');
@@ -149,15 +142,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, []); // Intentionally run only on mount
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
   const flatListRef = useRef<FlatList>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   // Delayed & persistent devotional CTA visibility
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
   const [headerH, setHeaderH] = useState(120);
-  // Calculate available height for centering math
-  const isLandscape = screenDimensions.width > screenDimensions.height;
   const availableHeight = Math.max(0, screenDimensions.height - headerH - footerH - insets.top - insets.bottom);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
@@ -214,23 +204,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch {}
   };
 
-  // ────────────────────── NEW CARD SIZING ──────────────────────
-  const CARD_MAX_WIDTH = 420;                     // max card width (iPad)
-  const CARD_MARGIN   = 16;                       // space between cards
-  const PEEK_WIDTH    = 80;                       // how much of the next card shows
-  const SIDE_PADDING  = 20;                       // left/right screen edge padding
-
-  const screenW = screenDimensions.width;
-  const CARD_WIDTH = Math.min(
-    screenW - SIDE_PADDING * 2 - PEEK_WIDTH,   // leave room for peek
-    CARD_MAX_WIDTH
-  );
-
-  // Distance the list must scroll to show the next card
-  const SNAP_TO = CARD_WIDTH + CARD_MARGIN;
-
-  // Keep old name for compatibility (optional)
-  const sidePadding = SIDE_PADDING;
+  // Carousel sizing: modern center-snap with spacing and narrower cards (responsive to orientation)
+  const ITEM_SPACING = 16;
+  const ITEM_WIDTH = Math.round(screenDimensions.width * 0.80); // slimmer card for better centering
+  const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+  const sidePadding = Math.round((screenDimensions.width - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
 
   // Cleanup on unmount and handle orientation changes
   useEffect(() => {
@@ -417,7 +395,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     logger.debug('closeTutorial called - hiding tutorial and modal');
     setShowTutorial(false);
     setShowIntroModal(false);
-    setIntroDismissed(true);
     hasShownPlaybookIntroModal = true;
   }, []);
 
@@ -696,7 +673,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const carouselCards = createCarouselCards();
 
-  // No ItemSeparator – we use marginHorizontal on the card instead
+  // Stable ItemSeparator component to avoid react/no-unstable-nested-components warning
+  const ItemSeparator = React.useCallback(() => (
+    <View style={styles.itemSpacing} />
+  ), []);
 
   // When user reaches the last card, start a delay then reveal the CTA.
   // Once revealed, keep it visible even if the user navigates away from the last card.
@@ -727,15 +707,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     });
     setExpandedCards(prev => {
       const newSet = new Set(prev);
-      const wasExpanded = newSet.has(cardId);
-      if (wasExpanded) {
+      if (newSet.has(cardId)) {
         newSet.delete(cardId);
       } else {
         newSet.add(cardId);
-        // Scroll to top when expanding to show full content
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }, 100);
       }
       return newSet;
     });
@@ -754,10 +729,29 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const isTruthCard = item.id === 'truth';
     const isActionCard = item.id === 'action';
 
-    // Animation removed for simpler one-item-at-a-time display
+    const inputRange = [
+      (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
+      index * (ITEM_WIDTH + ITEM_SPACING),
+      (index + 1) * (ITEM_WIDTH + ITEM_SPACING),
+    ];
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.94, 1, 0.94],
+      extrapolate: 'clamp',
+    });
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.85, 1, 0.85],
+      extrapolate: 'clamp',
+    });
+    const translateY = scrollX.interpolate({
+      inputRange,
+      outputRange: [8, 0, 8],
+      extrapolate: 'clamp',
+    });
 
     // Avoid inline-style object directly in JSX to satisfy lint
-    const cardDynamicStyle = { width: CARD_WIDTH };
+    const cardDynamicStyle = { width: ITEM_WIDTH };
 
     // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
     const canToggle = (isTruthCard || isActionCard);
@@ -765,7 +759,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
     return (
       <Wrapper
-        style={[styles.cardContainer, cardDynamicStyle]}
+        style={[styles.cardContainer, styles.centeredContent, cardDynamicStyle]}
         {...(canToggle ? {
           onPress: () => toggleCardExpansion(item.id),
           disabled: false,
@@ -786,21 +780,25 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             }}
           >
 
-            <View style={{ width: CARD_WIDTH }}>{item.component}</View>
+            <View style={{ width: ITEM_WIDTH }}>{item.component}</View>
           </View>
         )}
 
-        <View
+        <Animated.View
           style={[
             styles.cardContent,
             // eslint-disable-next-line react-native/no-inline-styles
             {
               // Collapse by default; expand when toggled
               height: isExpanded ? 'auto' : COLLAPSED_HEIGHT,
-              width: CARD_WIDTH,
+              width: ITEM_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
               // Remove overflow hidden when expanded to prevent cropping
               overflow: isExpanded ? 'visible' : 'hidden',
+            },
+            {
+              transform: [{ scale }, { translateY }],
+              opacity,
             },
           ]}
         >
@@ -820,7 +818,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             : item.component}
 
           {/* Expand hint removed as requested */}
-        </View>
+        </Animated.View>
         { }
       </Wrapper>
     );
@@ -838,7 +836,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal && !showTutorial && !introDismissed} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={showIntroModal && !showTutorial} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
@@ -876,7 +874,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 logger.debug('Setting module flag to true');
                 // Mark as permanently shown
                 hasShownPlaybookIntroModal = true;
-                setIntroDismissed(true);
                 // Start tutorial first, then close modal (prevents flash)
                 setShowTutorial(true);
                 setTutorialStep(1);
@@ -895,20 +892,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       <View style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
         <ScrollView
-          ref={scrollViewRef}
           style={styles.scrollContainer}
           contentContainerStyle={[
             styles.scrollContent,
             // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
             // eslint-disable-next-line react-native/no-inline-styles
-            {
-              paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80),
-              paddingTop: 0,
-              // When cards are expanded, always use flexGrow:1 to make content scrollable
-              // In landscape with no expansion, use flexGrow:0 to prevent excess space
-              flexGrow: (isLandscape && expandedCards.size === 0) ? 0 : 1,
-              justifyContent: (isLandscape && expandedCards.size === 0) ? 'flex-start' : undefined,
-            },
+            { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={expandedCards.size > 0}
           scrollEnabled={expandedCards.size > 0}
@@ -997,11 +986,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           )}
         </View>
 
-        {/* Spacer between header and carousel */}
-        <View style={{ height: isLandscape ? 16 : 12 }} />
-
         {/* CAROUSEL CARDS */}
-        <View>
+        <View style={[
+          styles.centeredJustified,
+          { height: availableHeight },
+        ] }>
         <View style={[
           styles.carouselContainer,
           {
@@ -1009,9 +998,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             // bleed past ScrollView and safe-area paddings for true edge-to-edge
             marginLeft: -16 - insets.left,
             marginRight: -16 - insets.right,
-            // Top spacing now handled by spacer above
-            marginTop: 0,
-            marginBottom: isLandscape ? 10 : 20,
+            // Dynamic margin based on orientation
+            marginBottom: screenDimensions.height > screenDimensions.width ? 20 : 10,
           },
         ]}>
           {/* Dots outside the card but just above it when nothing is expanded */}
@@ -1040,38 +1028,30 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             horizontal
             showsHorizontalScrollIndicator={false}
             pagingEnabled={false}
-            snapToInterval={SNAP_TO}
+            snapToAlignment="center"
+            snapToInterval={ITEM_SIZE}
             decelerationRate="fast"
             bounces={false}
-            // Left padding = screen edge, right padding = edge + peek
-            contentContainerStyle={{
-              paddingLeft: SIDE_PADDING,
-              paddingRight: SIDE_PADDING + PEEK_WIDTH,
-            }}
-            // No ItemSeparator – gap is created by card margin
+            // Center items precisely: use exact sidePadding (no extra compensation)
+            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
+            ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: true }
             )}
             scrollEventThrottle={16}
+            snapToOffsets={carouselCards.map((_, i) => i * ITEM_SIZE)}
             removeClippedSubviews={false}
             onViewableItemsChanged={onViewableItemsChanged}
             onMomentumScrollEnd={(e) => {
               const offsetX = e.nativeEvent.contentOffset.x;
-              const index = Math.min(
-                Math.max(0, Math.round(offsetX / SNAP_TO)),
-                Math.max(0, carouselCards.length - 1)
-              );
-              const target = index * SNAP_TO;
+              const index = Math.round(offsetX / (ITEM_WIDTH + ITEM_SPACING));
+              const target = index * (ITEM_WIDTH + ITEM_SPACING);
               if (Math.abs(target - offsetX) > 1) {
                 flatListRef.current?.scrollToOffset({ offset: target, animated: true });
               }
             }}
-            getItemLayout={(_, index) => ({
-              length: SNAP_TO,
-              offset: SNAP_TO * index,
-              index,
-            })}
+            getItemLayout={(_, index) => ({ length: ITEM_WIDTH + ITEM_SPACING, offset: (ITEM_WIDTH + ITEM_SPACING) * index, index })}
             viewabilityConfig={{
               itemVisiblePercentThreshold: 50,
             }}
@@ -1081,7 +1061,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* DEVOTIONAL BUTTON - show only on last card */}
         {devotionalVisible && (currentIndex === Math.max(0, carouselCards.length - 1)) && (
           <TouchableOpacity
-            style={[styles.devotionalButton, styles.centeredSelfContent, { width: CARD_WIDTH }]}
+            style={[styles.devotionalButton, styles.centeredSelfContent, { width: ITEM_WIDTH }]}
             onPress={handleCreateDevotional}
             activeOpacity={0.8}
           >
@@ -1392,11 +1372,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   carouselContainer: {
-    // Bleed blue to screen edges (margins applied inline with insets)
-    // Center the FlatList horizontally within the bleed
+    // keep content visually centered within screen width
+    marginHorizontal: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    // marginLeft, marginRight, marginBottom applied dynamically inline
+    // marginBottom now applied dynamically inline based on orientation
   },
   carouselContent: {
     paddingHorizontal: 16,
@@ -1407,8 +1386,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardContainer: {
-    marginHorizontal: 8,   // creates 16px gap between cards (8 * 2)
-    alignItems: 'center',
+    // width now calculated dynamically via ITEM_WIDTH which uses screenDimensions
+    marginHorizontal: 10,
   },
   cardContent: {
     borderRadius: 30,
@@ -1678,14 +1657,14 @@ const styles = StyleSheet.create({
   centeredJustified: {
     justifyContent: 'center',
   },
-  flexStart: {
-    justifyContent: 'flex-start',
-  },
   centeredSelfContent: {
     alignSelf: 'center',
     marginHorizontal: 0,
   },
-  // itemSpacing is no longer used
+  itemSpacing: {
+    // Using literal to avoid out-of-scope constant in StyleSheet; matches ITEM_SPACING
+    width: 16,
+  },
   cardContentDynamic: {
     // Dynamic styles will be applied inline for height, width, backgroundColor, transform, opacity
   },
