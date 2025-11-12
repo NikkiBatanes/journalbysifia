@@ -1202,6 +1202,10 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     gap: 16,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 700,
+    paddingHorizontal: 20, // match continueButtonContainer side padding
   },
   faithOption: {
     flexDirection: 'row',
@@ -1211,6 +1215,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignSelf: 'center',
+    width: '100%',
+    minHeight: 56,
   },
   selectedFaithOption: {
     borderColor: Colors.alertCoral,
@@ -1237,6 +1244,10 @@ const styles = StyleSheet.create({
   },
   challengeOptionsContainer: {
     gap: 16,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 700,
+    paddingHorizontal: 20, // match continueButtonContainer side padding
     // Align spacing with faith journey options
     // Remove extra bottom margin to keep uniform spacing across steps
   },
@@ -1248,6 +1259,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignSelf: 'center',
+    width: '100%',
+    minHeight: 56,
   },
   selectedChallengeOption: {
     borderColor: Colors.alertCoral,
@@ -1504,7 +1518,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     alignSelf: 'center',
     width: '100%',
-    maxWidth: 768,
+    maxWidth: 700,
   },
   noMarginBottom: {
     marginBottom: 0,
