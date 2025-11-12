@@ -13,7 +13,9 @@ import {
   LayoutAnimation,
   UIManager,
   BackHandler,
+  useWindowDimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
@@ -34,9 +36,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
  import { getPlaybook } from '../../services/apiIntegration';
-
-// Module-level flag to track if intro modal has been shown
-let hasShownPlaybookIntroModal = false;
 
 // Import individual card components for carousel
 import TruthInLoveCard from '../../components/TruthInLoveCard';
@@ -110,34 +109,51 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [devotionalVisible, setDevotionalVisible] = useState(false);
   // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
   const [footerH, setFooterH] = useState(156);
-  // Track screen dimensions for orientation changes
-  const [screenDimensions, setScreenDimensions] = useState(() => {
-    const { width, height } = Dimensions.get('window');
-    return { width, height };
-  });
+  // Track screen dimensions for orientation changes using hook
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isPortrait = windowHeight > windowWidth;
 
   // Tutorial state - only show after user explores playbook
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1);
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
 
-  // Only show intro modal once - use a module-level flag to persist across component remounts
+  // Persist intro modal visibility using ref + AsyncStorage
   const [showIntroModal, setShowIntroModal] = useState(false);
+  const hasShownIntroRef = useRef(false);
+  const INTRO_SHOWN_KEY = 'onboarding_playbook_intro_shown_v2';
 
-  // Initialize modal visibility only once on mount
+  // Initialize modal visibility only once on mount (await storage before showing)
   useEffect(() => {
-    logger.debug('Component mounted/re-rendered');
-    logger.debug('Module flag value:', { hasShownPlaybookIntroModal });
-    logger.debug('Current showIntroModal state:', { showIntroModal });
+    let isMounted = true;
+    let hasChecked = false;
 
-    // Check if modal has been shown in this session
-    if (!hasShownPlaybookIntroModal) {
-      logger.debug('First time showing modal, setting flag');
-      setShowIntroModal(true);
-      hasShownPlaybookIntroModal = true;
-    }
-    // Don't call setShowIntroModal(false) here - it causes unnecessary re-renders
-    // The modal will be hidden by the Explore button or tutorial completion
+    const checkIntroShown = async () => {
+      if (hasChecked) {
+        return;
+      }
+      hasChecked = true;
+
+      try {
+        const storedValue = await AsyncStorage.getItem(INTRO_SHOWN_KEY);
+        if (storedValue === 'true') {
+          hasShownIntroRef.current = true;
+        }
+      } catch (error) {
+        logger.warn('Failed to read intro modal persistence flag', error as Error);
+      }
+
+      if (isMounted && !hasShownIntroRef.current) {
+        logger.debug('First time showing modal');
+        setShowIntroModal(true);
+      }
+    };
+
+    checkIntroShown();
+
+    return () => {
+      isMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally run only on mount
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
@@ -148,7 +164,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
   const [headerH, setHeaderH] = useState(120);
-  const availableHeight = Math.max(0, screenDimensions.height - headerH - footerH - insets.top - insets.bottom);
+  const availableHeight = Math.max(0, windowHeight - headerH - footerH - insets.top - insets.bottom);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Removed expand hint animations as requested
@@ -205,10 +221,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   };
 
   // Carousel sizing: modern center-snap with spacing and narrower cards (responsive to orientation)
-  const ITEM_SPACING = 16;
-  const ITEM_WIDTH = Math.round(screenDimensions.width * 0.80); // slimmer card for better centering
-  const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-  const sidePadding = Math.round((screenDimensions.width - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
+  // Memoize to recompute on window width changes
+  const {
+    ITEM_SPACING,
+    ITEM_WIDTH,
+    ITEM_SIZE,
+    sidePadding,
+  } = React.useMemo(() => {
+    const ITEM_SPACING = 16;
+    const ITEM_WIDTH = Math.round(windowWidth * 0.80); // slimmer card for better centering
+    const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+    const sidePadding = Math.round((windowWidth - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
+    return { ITEM_SPACING, ITEM_WIDTH, ITEM_SIZE, sidePadding };
+  }, [windowWidth]);
 
   // Cleanup on unmount and handle orientation changes
   useEffect(() => {
@@ -217,13 +242,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
 
-    // Listen for dimension changes (orientation)
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setScreenDimensions({ width: window.width, height: window.height });
-    });
+    // Dimension changes now handled by useWindowDimensions hook
 
     return () => {
-      subscription?.remove();
+      // Cleanup handled by useWindowDimensions
     };
   }, []);
 
@@ -391,11 +413,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [user]);
 
   // Tutorial handlers
-  const closeTutorial = useCallback(() => {
+  const closeTutorial = useCallback(async () => {
     logger.debug('closeTutorial called - hiding tutorial and modal');
     setShowTutorial(false);
     setShowIntroModal(false);
-    hasShownPlaybookIntroModal = true;
+    hasShownIntroRef.current = true;
+    try {
+      await AsyncStorage.setItem(INTRO_SHOWN_KEY, 'true');
+    } catch (error) {
+      logger.warn('Failed to persist intro modal flag on closeTutorial', error as Error);
+    }
   }, []);
 
   const handleTapTutorialComplete = useCallback(() => {
@@ -836,7 +863,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   return (
     <>
       {/* Intro Modal */}
-      <Modal visible={showIntroModal && !showTutorial} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={showIntroModal && !showTutorial && !hasShownIntroRef.current} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Bursting Stars */}
@@ -868,12 +895,17 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <TouchableOpacity
               style={styles.modalButton}
               activeOpacity={0.9}
-              onPress={() => {
+              onPress={async () => {
                 try { triggerLightHaptic(); } catch {}
                 logger.debug('Button pressed - closing intro modal');
-                logger.debug('Setting module flag to true');
-                // Mark as permanently shown
-                hasShownPlaybookIntroModal = true;
+                logger.debug('Persisting intro modal flag before toggling state');
+                // Mark as permanently shown synchronously so remounts won't flash modal
+                hasShownIntroRef.current = true;
+                try {
+                  await AsyncStorage.setItem(INTRO_SHOWN_KEY, 'true');
+                } catch (error) {
+                  logger.warn('Failed to persist intro modal flag on Explore press', error as Error);
+                }
                 // Start tutorial first, then close modal (prevents flash)
                 setShowTutorial(true);
                 setTutorialStep(1);
@@ -928,7 +960,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             paddingLeft: 16 + insets.left,
             paddingRight: 16 + insets.right,
             // Dynamic margin based on orientation
-            marginBottom: screenDimensions.height > screenDimensions.width ? 6 : 4,
+            marginBottom: isPortrait ? 6 : 4,
           },
         ]}>
           <TouchableOpacity style={styles.playbookTitleRow} onPress={toggleUserInput} activeOpacity={0.8}>
@@ -945,8 +977,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {/* User Input Display - Between PLAYBOOK and Title */}
           {showUserInput && (
             <View style={[styles.userInputContainer, {
-              marginTop: screenDimensions.height > screenDimensions.width ? 8 : 4,
-              marginBottom: screenDimensions.height > screenDimensions.width ? 10 : 6,
+              marginTop: isPortrait ? 8 : 4,
+              marginBottom: isPortrait ? 10 : 6,
             }]}>
               <ThemedText weight="semiBold" style={styles.userInputLabel}>Your Challenge:</ThemedText>
               <ThemedText style={styles.userInputText}>{onboardingData.challengeDetails}</ThemedText>
@@ -977,8 +1009,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     currentIndex === index && styles.activeDot,
                   ]}
                   onPress={() => {
-                    flatListRef.current?.scrollToIndex({ index, animated: true });
-                    setCurrentIndex(index);
+                    try {
+                      flatListRef.current?.scrollToIndex({ index, animated: true });
+                      setCurrentIndex(index);
+                    } catch (error) {
+                      logger.warn('Failed to scroll to index in header dots', error as Error);
+                    }
                   }}
                 />
               ))}
@@ -987,10 +1023,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         </View>
 
         {/* CAROUSEL CARDS */}
-        <View style={[
-          styles.centeredJustified,
-          { height: availableHeight },
-        ] }>
+        <View>
         <View style={[
           styles.carouselContainer,
           {
@@ -999,7 +1032,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             marginLeft: -16 - insets.left,
             marginRight: -16 - insets.right,
             // Dynamic margin based on orientation
-            marginBottom: screenDimensions.height > screenDimensions.width ? 20 : 10,
+            marginBottom: isPortrait ? 20 : 10,
           },
         ]}>
           {/* Dots outside the card but just above it when nothing is expanded */}
@@ -1013,8 +1046,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     currentIndex === index && styles.activeDot,
                   ]}
                   onPress={() => {
-                    flatListRef.current?.scrollToIndex({ index, animated: true });
-                    setCurrentIndex(index);
+                    try {
+                      flatListRef.current?.scrollToIndex({ index, animated: true });
+                      setCurrentIndex(index);
+                    } catch (error) {
+                      logger.warn('Failed to scroll to index in overlay dots', error as Error);
+                    }
                   }}
                 />
               ))}
