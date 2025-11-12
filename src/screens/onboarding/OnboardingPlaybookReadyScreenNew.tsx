@@ -1378,11 +1378,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   carouselContainer: {
-    // keep content visually centered within screen width
-    marginHorizontal: 0,
+    // Bleed blue to screen edges (margins applied inline with insets)
+    // Center the FlatList horizontally within the bleed
     alignItems: 'center',
     justifyContent: 'center',
-    // marginBottom now applied dynamically inline based on orientation
+    // marginLeft, marginRight, marginBottom applied dynamically inline
   },
   carouselContent: {
     paddingHorizontal: 16,
