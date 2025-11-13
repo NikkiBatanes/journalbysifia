@@ -1055,44 +1055,26 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       </Modal>
       <View style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={[
-            styles.scrollContent,
-            // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
-            // eslint-disable-next-line react-native/no-inline-styles
-            { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-          bounces
-          alwaysBounceVertical
-          overScrollMode="always"
-          contentInsetAdjustmentBehavior="never"
-          // Keep a single sticky header (which now includes the pagination dots inside)
-          stickyHeaderIndices={[0]}
-          // Match bottom inset to footer height; dynamic with expansion
-          scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80) }}
-        >
-        {/* ONBOARDING-SPECIFIC HEADER REMOVED (moved to intro modal) */}
-
-        {/* PLAYBOOK HEADER WITH CHEVRON TOGGLE */}
+        
+        {/* PLAYBOOK HEADER - ABSOLUTELY POSITIONED ON TOP */}
         {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
             zIndex: 10000,
             elevation: 10000,
             backgroundColor: Colors.anchorBlue,
-            // Respect safe area so sticky header doesn't move under the status bar
+            // Respect safe area so header doesn't move under the status bar
             paddingTop: insets.top + 4,
-            // Make header background span edge-to-edge while keeping inner content aligned
-            marginLeft: -16 - insets.left,
-            marginRight: -16 - insets.right,
+            // Make header background span edge-to-edge
             paddingLeft: 16 + insets.left,
             paddingRight: 16 + insets.right,
-            // Dynamic margin based on orientation
-            marginBottom: isPortrait ? 6 : 4,
+            // Dynamic padding based on orientation
+            paddingBottom: isPortrait ? 6 : 4,
           },
         ]}>
 
@@ -1138,8 +1120,21 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           </View>
         </View>
 
-        {/* Gap below header */}
-        <View style={{ height: isPortrait ? 20 : 16 }} />
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // eslint-disable-next-line react-native/no-inline-styles
+            { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: _headerH + (isPortrait ? 20 : 16) },
+          ]}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
+          contentInsetAdjustmentBehavior="never"
+          scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80) }}
+        >
         {/* CAROUSEL CARDS */}
         <View>
         <View style={[
