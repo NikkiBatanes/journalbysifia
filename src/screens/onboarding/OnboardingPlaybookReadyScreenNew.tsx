@@ -1223,7 +1223,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         scrollEnabled={true}
                       >
                         <View
-                          onStartShouldSetResponder={() => true}
+                          onStartShouldSetResponder={(evt) => {
+                            // Only capture if it's a single touch (not a scroll gesture)
+                            return evt.nativeEvent.touches.length === 1;
+                          }}
+                          onMoveShouldSetResponder={(evt) => {
+                            // Don't capture if user is scrolling - check if movement is significant
+                            return false;
+                          }}
                           onResponderGrant={() => {
                             try { triggerLightHaptic(); } catch {}
                             setExpandedCardId(null);
@@ -1310,8 +1317,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {/* Compute last card status to gate CTA */}
           {/**/}
           {(() => { return null; })()}
-          {/* Helper text inside the footer, above the button (hidden when a card is expanded or on Direct Challenge slide) */}
-          {expandedCards.size === 0 && currentIndex !== carouselCards.findIndex(card => card.id === 'challenge') && (
+          {/* Helper text inside the footer, above the button (hidden when a card is expanded) */}
+          {!expandedCardId && (
             <ThemedText style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
           )}
           {/**/}
