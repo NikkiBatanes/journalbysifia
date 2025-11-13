@@ -1081,8 +1081,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
-            zIndex: 2,
-            elevation: 2,
+            zIndex: 10,
+            elevation: 10,
             backgroundColor: Colors.anchorBlue,
             // Respect safe area so sticky header doesn't move under the status bar
             paddingTop: insets.top + 4,
