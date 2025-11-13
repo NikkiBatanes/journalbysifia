@@ -116,6 +116,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Track screen dimensions for orientation changes using hook
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
+  const isTablet = windowWidth >= 768;
 
 
   // Intro modal visibility (shows once per component mount, no persistence)
@@ -1102,7 +1103,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               <AnimatedRe.View style={[styles.chevronIcon, chevronStyle]}>
                 <Ionicons
                   name={'chevron-down'}
-                  size={16}
+                  size={18}
                   color={Colors.hopeWhite}
                 />
               </AnimatedRe.View>
@@ -1171,8 +1172,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               // When a card is expanded, bring it to the very top
               const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
-              // Standard dimensions for stacked cards
-              const STACKED_CARD_HEIGHT = 400;
+              // Standard dimensions for stacked cards (slightly shorter on tablets)
+              const STACKED_CARD_HEIGHT = isTablet ? 330 : 400;
               const STACKED_CARD_WIDTH = ITEM_WIDTH;
 
               // Background colors for each card
@@ -1272,7 +1273,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       }}
                       style={{ flex: 1 }}
                     >
-                      <View style={{ width: STACKED_CARD_WIDTH, height: STACKED_CARD_HEIGHT, overflow: 'hidden' }}>
+                      <View style={{ width: STACKED_CARD_WIDTH, height: STACKED_CARD_HEIGHT, overflow: 'hidden', borderRadius: 30 }}>
                         {card.id === 'truth' && playbook.truthInLove ? (
                           // Render TruthInLoveCard directly with collapsed state (summary only)
                           <View style={[styles.carouselCard, styles.cardContainerLarge]}>
@@ -1322,8 +1323,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {/**/}
           {(() => { return null; })()}
           {/* Helper text inside the footer, above the button (hidden when a card is expanded or in landscape) */}
-          {!expandedCardId && (
-            <ThemedText style={[styles.bottomText, styles.bottomTextCentered, { display: isPortrait ? 'flex' as const : 'none' }]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
+          {expandedCards.size === 0 && isPortrait && (
+            <ThemedText style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
           )}
           {/**/}
           <>
@@ -1550,24 +1551,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     marginBottom: 0,
   },
   playbookLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.hopeWhite,
-    opacity: 0.7,
+    opacity: 0.8,
     fontWeight: '600',
+    letterSpacing: 0.8,
   },
   chevronIcon: {
-    marginLeft: 6,
+    marginLeft: 2,
   },
   playbookTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    marginTop: 16,
+    marginBottom: 10,
+    letterSpacing: 0.6,
+    textAlign: 'left',
+    alignSelf: 'flex-start',
   },
   progressContainer: {
     flexDirection: 'row',

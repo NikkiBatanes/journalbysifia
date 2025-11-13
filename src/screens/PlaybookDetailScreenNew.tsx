@@ -338,7 +338,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalButton, setShowDevotionalButton] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   // Stacked card animation state
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const cardAnimations = useRef<Record<string, { translateY: RNAnimated.Value; scale: RNAnimated.Value; opacity: RNAnimated.Value }>>({}).current;
@@ -358,6 +358,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     springAnimation: null as any,
   });
   const hasEverReachedLastCard = useRef(false);
+
+  // Collapse stacked cards whenever we leave stack view
+  useEffect(() => {
+    if (viewMode === 'document' && expandedCardId !== null) {
+      setExpandedCardId(null);
+    }
+  }, [viewMode, expandedCardId]);
 
   // 6. Shared value hooks - Animation values
   const nudgeY = useSharedValue(0);
@@ -1456,22 +1463,22 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               case 'affirmation':
                 return (
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-                    <View style={styles.affirmationsHeader}>
+                    <View style={styles.affirmationsHeaderStack}>
                       <MaterialCommunityIcons
                         name="format-quote-open"
                         size={24}
                         color={Colors.alertCoral}
-                        style={styles.quoteIcon}
+                        style={styles.quoteIconStack}
                       />
-                      <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
+                      <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Affirmations</ThemedText>
                     </View>
-                    <View style={styles.affirmationsList}>
+                    <View style={styles.affirmationsListStack}>
                       {(card.affirmations || []).map((affirmation, idx) => (
                         <View
                           key={affirmation.id || idx}
                           style={[
-                            styles.affirmationCard,
-                            idx === (card.affirmations || []).length - 1 && styles.lastAffirmationCard,
+                            styles.affirmationCardStack,
+                            idx === (card.affirmations || []).length - 1 && styles.lastAffirmationCardStack,
                           ]}
                         >
                           <View style={styles.affirmationContent}>
@@ -1774,56 +1781,6 @@ interface PlaybookDetailStyles {
   affirmationsCard: ViewStyle;
   bibleCard: ViewStyle;
   challengeCard: ViewStyle;
-  cardNavigation: ViewStyle;
-  navButtonDisabled: ViewStyle;
-  cardIndicator: ViewStyle;
-  cardIndicatorText: TextStyle;
-  affirmationsHeader: ViewStyle;
-  icon: ImageStyle;
-  affirmationsList: ViewStyle;
-  affirmationsTitle: TextStyle;
-  affirmationCardStyle: ViewStyle;
-  nonAffirmationCardStyle: ViewStyle;
-  headerLeftContainer: ViewStyle;
-  backButtonContainer: ViewStyle;
-  compactHeaderTitle: TextStyle;
-  playbookLabelContainer: ViewStyle;
-  playbookLabelText: TextStyle;
-  chevronIcon: ViewStyle;
-  profileButton: ViewStyle;
-  profileImage: ImageStyle;
-  initialAvatar: ViewStyle;
-  initialLetter: TextStyle;
-  headerProgressContainer: ViewStyle;
-  headerProgressRow: ViewStyle;
-  headerProgressBarBg: ViewStyle;
-  headerProgressBarFill: ViewStyle;
-  headerTasksText: TextStyle;
-  currentCardZIndex: ViewStyle;
-  cardOverlay: ViewStyle;
-  cardContentContainer: ViewStyle;
-  cardTouchableContainer: ViewStyle;
-  stackCardScrollBase: ViewStyle;
-  stackCardBgCoral: ViewStyle;
-  stackCardBgTransparent: ViewStyle;
-  expandedCardPadding: ViewStyle;
-  carouselCard: ViewStyle;
-  transparentBackground: ViewStyle;
-  cardContainerLarge: ViewStyle;
-  cardContainerMedium: ViewStyle;
-  cardContainerMinimal: ViewStyle;
-  quoteIcon: ImageStyle;
-  affirmationCard: ViewStyle;
-  lastAffirmationCard: ViewStyle;
-  affirmationContent: ViewStyle;
-  affirmationText: TextStyle;
-  readButtonWrapper: ViewStyle;
-  readButton: ViewStyle;
-  readIcon: ImageStyle;
-  readButtonText: TextStyle;
-  readButtonTextActive: TextStyle;
-  bibleVerseCard: ViewStyle;
-  docContentContainerInner: ViewStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -2346,22 +2303,25 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     padding: 24,
   },
   // Affirmations styles (stack view)
-  affirmationsHeader: {
+  affirmationsHeaderStack: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
     marginBottom: 8,
   },
-  quoteIcon: {
+  quoteIconStack: {
     marginRight: 8,
     transform: [{ scaleY: -1 }],
   },
-  affirmationCard: {
+  affirmationsListStack: {
+    marginTop: 0,
+  },
+  affirmationCardStack: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     marginBottom: 10,
   },
-  lastAffirmationCard: {
+  lastAffirmationCardStack: {
     marginBottom: 4,
   },
   affirmationContent: {
