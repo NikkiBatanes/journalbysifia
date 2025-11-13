@@ -1512,11 +1512,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                   width: STACKED_CARD_WIDTH,
                   overflow: 'visible',
-                  alignSelf: 'center',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
                   borderRadius: 28,
                   transform: [
                     { translateY: animValues.translateY },
