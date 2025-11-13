@@ -1363,7 +1363,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         {/* Absolute overlay for the interactive card stack so it can pass over header and status bar */}
         <Animated.View pointerEvents="box-none" style={[styles.cardOverlay, overlayTopAnimatedStyle]}>
           <GestureDetector gesture={panGesture}>
-            <View style={styles.mainContainer}>
+            <View style={[styles.mainContainer, viewMode === 'document' && { paddingHorizontal: 0 }]}>
               {viewMode === 'stack' ? (
                 renderStackCards()
               ) : (
