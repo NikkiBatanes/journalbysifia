@@ -1985,7 +1985,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   docContentContainer: {
     paddingTop: 0,
     paddingBottom: 32,
-    paddingHorizontal: 16,
     alignItems: 'center',
   },
   docContentContainerInner: {
@@ -1995,6 +1994,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   docCard: {
     width: '100%',
     alignSelf: 'center',
+    marginHorizontal: 16,
     marginBottom: 24,
     borderRadius: 28,
     backgroundColor: '#264674',
