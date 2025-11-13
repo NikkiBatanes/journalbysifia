@@ -1056,16 +1056,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       <View style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
         
-        {/* FIXED HEADER - Absolutely positioned to overlay content */}
+        {/* FIXED HEADER - Outside ScrollView */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-            elevation: 10,
+            zIndex: 1,
+            elevation: 1,
             backgroundColor: Colors.anchorBlue,
             paddingTop: insets.top + 4,
             paddingLeft: 16 + insets.left,
@@ -1150,18 +1146,18 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
               // Truth in Love has highest z-index (on top), others stack below
               const zIndexMap = {
-                truth: 5,      // Top card
-                action: 4,
-                affirmations: 3,
-                bible: 2,
-                challenge: 1,  // Bottom card
+                truth: 10,      // Top card
+                action: 9,
+                affirmations: 8,
+                bible: 7,
+                challenge: 6,  // Bottom card
               };
 
               const baseZIndex = zIndexMap[card.id as keyof typeof zIndexMap] || index;
 
-              // When a card is expanded, bring it above other cards but below header (z-index 10)
-              // This ensures expanded cards scroll UNDER the sticky header
-              const cardZIndex = isExpanded ? 8 : baseZIndex;
+              // When a card is expanded, bring it to the very top (above header z-index 1)
+              // This ensures all cards scroll ABOVE the header
+              const cardZIndex = isExpanded ? 100 : baseZIndex;
 
               // Standard dimensions for stacked cards
               const STACKED_CARD_HEIGHT = 400;
