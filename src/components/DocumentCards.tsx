@@ -29,6 +29,7 @@ interface DocumentCardsProps {
     firstName?: string;
     lastName?: string;
   };
+  maxCardWidth?: number;
 }
 
 const DocumentCards: React.FC<DocumentCardsProps> = ({
@@ -39,6 +40,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
   scrollEventThrottle = 16,
   onLastCardVisible,
   currentUser,
+  maxCardWidth,
 }) => {
   const { user } = useAuth();
 
@@ -76,7 +78,11 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
   return (
     <ScrollView
       style={propStyles.docContainer}
-      contentContainerStyle={[propStyles.docContentContainer, styles.contentContainer]}
+      contentContainerStyle={[
+        propStyles.docContentContainer,
+        styles.contentContainer,
+        maxCardWidth ? { maxWidth: maxCardWidth, alignSelf: 'center' } : undefined,
+      ]}
       onScroll={handleScroll}
       scrollEventThrottle={scrollEventThrottle}
       showsVerticalScrollIndicator={false}

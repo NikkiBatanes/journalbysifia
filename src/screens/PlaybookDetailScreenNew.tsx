@@ -1364,6 +1364,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
                     lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
                   } : undefined}
+                  maxCardWidth={maxCardWidth}
                 />
               )}
             </View>
@@ -1918,6 +1919,9 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   stackCardExpanded: {
     height: 'auto',
     minHeight: undefined,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   stackCardScrollContainer: {
     // maxHeight applied inline
