@@ -37,20 +37,28 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style }: 
 
       {hasStructuredFormat ? (
         <>
-          {/* Spiritual Section */}
-          <View style={styles.section}>
-            <ThemedText weight="bold" style={styles.sectionLabel}>Spiritual</ThemedText>
-            <ThemedText weight="semiBold" style={styles.sectionText}>
-              {spiritualText}
-            </ThemedText>
+          {/* 1. */}
+          <View style={styles.itemRow}>
+            <View style={styles.numberBadge}>
+              <ThemedText weight="bold" style={styles.numberText}>1</ThemedText>
+            </View>
+            <View style={styles.itemTextContainer}>
+              <ThemedText weight="medium" style={styles.sectionText}>
+                {spiritualText}
+              </ThemedText>
+            </View>
           </View>
 
-          {/* Tactical Section */}
-          <View style={styles.section}>
-            <ThemedText weight="bold" style={styles.sectionLabel}>Tactical</ThemedText>
-            <ThemedText weight="semiBold" style={styles.sectionText}>
-              {tacticalText}
-            </ThemedText>
+          {/* 2. */}
+          <View style={styles.itemRow}>
+            <View style={styles.numberBadge}>
+              <ThemedText weight="bold" style={styles.numberText}>2</ThemedText>
+            </View>
+            <View style={styles.itemTextContainer}>
+              <ThemedText weight="medium" style={styles.sectionText}>
+                {tacticalText}
+              </ThemedText>
+            </View>
           </View>
         </>
       ) : (
@@ -71,7 +79,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: BorderRadii.cardXL,
     paddingTop: 0,
-    paddingBottom: 24,
     paddingHorizontal: 0,
     width: '100%',
     alignSelf: 'stretch',
@@ -79,8 +86,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: -6, // Nudge header up
-    marginBottom: 6,
+    marginBottom: 8,
   },
   icon: {
     marginRight: 8, // Match TruthInLoveCard's icon margin
@@ -130,10 +136,36 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionText: {
-    fontSize: 17,
+    fontSize: 16,
     color: Colors.hopeWhite,
-    lineHeight: 25,
+    lineHeight: 22,
     textAlign: 'left',
-    paddingLeft: 8,
+  },
+  // Numbered layout (matches gratitude list feel)
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 18,
+    paddingRight: 8,
+  },
+  numberBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    marginLeft: 4,
+    marginRight: 12,
+  },
+  numberText: {
+    color: Colors.alertCoral,
+    fontSize: 14,
+  },
+  itemTextContainer: {
+    flex: 1,
+    minWidth: 0,
   },
 });

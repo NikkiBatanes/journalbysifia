@@ -514,7 +514,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'action',
         type: 'Action Steps',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerMedium]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
             <ActionStepsCard
               key="action"
               steps={playbook.actionSteps || []}
@@ -522,7 +522,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               playbookTitle={playbook.title}
               playbookId={playbook.id}
               navigation={navigation as any}
-              showExampleSubtasksInline={true}
+              showExampleSubtasksInline={false}
               preferPropSteps={false}
             />
           </View>
@@ -541,7 +541,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         component: (
           <View
             key="affirmations"
-            style={[styles.carouselCard, styles.cardContainerMinimal]}
+            style={[styles.carouselCard, styles.cardContainerLarge]}
           >
             <View style={styles.affirmationsHeader}>
               <MaterialCommunityIcons
@@ -639,12 +639,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'bible',
         type: 'Bible Verse',
         component: (
-          <BibleVerseCard
-            key="bible"
-            verse={playbook.bibleVerse}
-            style={[styles.carouselCard]}
-            backgroundColor="#274674"
-          />
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+            <BibleVerseCard
+              key="bible"
+              verse={playbook.bibleVerse}
+            />
+          </View>
         ),
         backgroundColor: undefined,
       });
@@ -1186,7 +1186,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
               // Get animation values for this card
               const animValues = cardAnimations[card.id] || {
-                translateY: new Animated.Value((carouselCards.length - index - 1) * 50),
+                translateY: new Animated.Value((carouselCards.length - index - 1) * 56),
                 scale: new Animated.Value(1),
                 opacity: new Animated.Value(1),
               };
@@ -1308,14 +1308,18 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {/* Compute last card status to gate CTA */}
           {/**/}
           {(() => { return null; })()}
-          {/* Helper text inside the footer, above the button (hidden when a card is expanded) */}
+          {/* Helper text inside the footer, above the button (hidden when a card is expanded or in landscape) */}
           {!expandedCardId && (
-            <ThemedText style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
+            <ThemedText style={[styles.bottomText, styles.bottomTextCentered, { display: isPortrait ? 'flex' as const : 'none' }]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
           )}
           {/**/}
           <>
             <TouchableOpacity
-              style={[styles.continueButton, !continueEnabled && styles.continueButtonDisabled]}
+              style={[
+                styles.continueButton,
+                { width: ITEM_WIDTH, alignSelf: 'center', marginTop: 16 },
+                !continueEnabled && styles.continueButtonDisabled,
+              ]}
               onPress={() => { if (!continueEnabled) { return; } try { triggerLightHaptic(); } catch {} handleContinueJourney(); }}
               activeOpacity={continueEnabled ? 0.8 : 1}
               disabled={!continueEnabled}
@@ -1628,14 +1632,10 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   affirmationsHeader: {
-    padding: 16,
-    paddingBottom: 10,
-    paddingLeft: 24,
-    borderBottomWidth: 0,
-    borderBottomColor: 'transparent',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
+    marginBottom: 8,
   },
   affirmationsTitle: {
     ...Typography.interBold,
@@ -1649,9 +1649,8 @@ const styles = StyleSheet.create({
     transform: [{ scaleY: -1 }],
   },
   affirmationsList: {
-    paddingTop: 14,
-    paddingHorizontal: 14,
-    paddingBottom: 6,
+    marginTop: 8,
+    gap: 8,
   },
   affirmationCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -1922,8 +1921,8 @@ const styles = StyleSheet.create({
   stackedCardsContainer: {
     position: 'relative',
     paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingTop: 28,
+    paddingBottom: 24,
     minHeight: 600,
     justifyContent: 'flex-start',
   },

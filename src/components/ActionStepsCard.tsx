@@ -1103,7 +1103,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-    paddingLeft: 8,
   },
   icon: {
     marginRight: 8,

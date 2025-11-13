@@ -52,6 +52,7 @@ import DocumentCards from '../components/DocumentCards';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import PlaybookHeader from '../components/PlaybookHeader';
 import ThemedText from '../components/common/ThemedText';
+import { usePlaybookStoreReactQuery } from '../store/usePlaybookStoreReactQuery';
 import DevotionalButton from '../components/DevotionalButton';
 import DevotionalModal from '../components/DevotionalModal';
 // Individual card components for stacked view
@@ -316,6 +317,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Use route params playbook if it's a full playbook, otherwise use fetched playbook
   const playbook = isFullPlaybook ? (routePlaybook as Playbook) : fetchedPlaybook;
 
+  // Read Aloud state for Affirmations (stack view)
+  const hasRead = usePlaybookStoreReactQuery(state => playbook?.id ? !!state.readAloudMap[playbook.id] : false);
+  const setReadAloud = usePlaybookStoreReactQuery(state => state.setReadAloud);
+
   // 2b. Advanced playbook hooks for prefetching and navigation
   const { prefetchForCurrentPlaybook } = useIntelligentPrefetching(userId || '');
 
@@ -524,11 +529,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   ];
   }, [playbook, actionSteps, user]);
 
+  // Vertical separation between stacked cards (document vs stack)
+  const STACK_OFFSET = 56;
+
   // Initialize animated values for each card
   useEffect(() => {
     cardData.forEach((card, index) => {
       if (!cardAnimations[card.id]) {
-        const initialOffset = (cardData.length - index - 1) * 50;
+        const initialOffset = (cardData.length - index - 1) * STACK_OFFSET;
         cardAnimations[card.id] = {
           translateY: new RNAnimated.Value(initialOffset),
           scale: new RNAnimated.Value(1),
@@ -543,7 +551,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   useEffect(() => {
     if (expandedCardId === null) {
       cardData.forEach((card, index) => {
-        const initialOffset = (cardData.length - index - 1) * 50;
+        const initialOffset = (cardData.length - index - 1) * STACK_OFFSET;
         if (cardAnimations[card.id]) {
           RNAnimated.parallel([
             RNAnimated.spring(cardAnimations[card.id].translateY, {
@@ -1403,7 +1411,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
           // Get animation values for this card
           const animValues = cardAnimations[card.id] || {
-            translateY: new RNAnimated.Value((cardData.length - index - 1) * 50),
+            translateY: new RNAnimated.Value((cardData.length - index - 1) * STACK_OFFSET),
             scale: new RNAnimated.Value(1),
             opacity: new RNAnimated.Value(1),
           };
@@ -1432,7 +1440,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               
               case 'action':
                 return (
-                  <View style={[styles.carouselCard, styles.cardContainerMedium]}>
+                  <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                     <ActionStepsCard
                       steps={card.steps || []}
                       style={styles.transparentBackground}
@@ -1447,7 +1455,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               
               case 'affirmation':
                 return (
-                  <View style={[styles.carouselCard, styles.cardContainerMinimal]}>
+                  <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                     <View style={styles.affirmationsHeader}>
                       <MaterialCommunityIcons
                         name="format-quote-open"
@@ -1467,22 +1475,38 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                           ]}
                         >
                           <View style={styles.affirmationContent}>
-                            <ThemedText style={styles.affirmationText}>
+                            <ThemedText weight="semiBold" style={styles.affirmationText}>
                               {affirmation.text}
                             </ThemedText>
                           </View>
                         </View>
                       ))}
                     </View>
+                    {/* Read Aloud button (stack view) */}
+                    {Array.isArray(card.affirmations) && card.affirmations.length > 0 && (
+                      <View style={styles.readButtonWrapper}>
+                        <TouchableOpacity
+                          onPress={() => { if (playbook?.id) { setReadAloud(playbook.id, true); } }}
+                          activeOpacity={0.8}
+                          style={styles.readButton}
+                          accessibilityRole="button"
+                          accessibilityLabel="Mark affirmations as read aloud"
+                        >
+                          <Ionicons name="book-outline" size={16} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={styles.readIcon} />
+                          <ThemedText weight="semiBold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 );
               
               case 'bible':
                 return (
-                  <BibleVerseCard
-                    verse={card.verse || { text: '', reference: '' }}
-                    style={[styles.carouselCard]}
-                  />
+                  <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                    <BibleVerseCard
+                      verse={card.verse || { text: '', reference: '' }}
+                    />
+                  </View>
                 );
               
               case 'challenge':
@@ -1783,6 +1807,23 @@ interface PlaybookDetailStyles {
   stackCardBgCoral: ViewStyle;
   stackCardBgTransparent: ViewStyle;
   expandedCardPadding: ViewStyle;
+  carouselCard: ViewStyle;
+  transparentBackground: ViewStyle;
+  cardContainerLarge: ViewStyle;
+  cardContainerMedium: ViewStyle;
+  cardContainerMinimal: ViewStyle;
+  quoteIcon: ImageStyle;
+  affirmationCard: ViewStyle;
+  lastAffirmationCard: ViewStyle;
+  affirmationContent: ViewStyle;
+  affirmationText: TextStyle;
+  readButtonWrapper: ViewStyle;
+  readButton: ViewStyle;
+  readIcon: ImageStyle;
+  readButtonText: TextStyle;
+  readButtonTextActive: TextStyle;
+  bibleVerseCard: ViewStyle;
+  docContentContainerInner: ViewStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -1856,25 +1897,19 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   compactHeaderContainer: {
     backgroundColor: Colors.anchorBlue,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  mainContainer: {
-    flex: 1,
-    paddingHorizontal: 10,
-    paddingTop: 0,
-  },
-  bottomButtonContainer: {
-    position: 'absolute',
-    bottom: 16,
-    left: 0,
     right: 0,
     alignItems: 'center',
     paddingHorizontal: 20,
     // Ensure this sits above the full-screen card overlay (which uses zIndex 9999)
     zIndex: 10000,
+  },
+  mainContainer: {
+    flex: 1,
+    paddingHorizontal: 10,
+  },
+  bottomButtonContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   bottomButtonExpanded: {
     marginTop: 20,
@@ -1998,6 +2033,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     borderRadius: 28,
     backgroundColor: '#264674',
     overflow: 'hidden',
+    padding: 24,
   },
   playbookInfoContainer: {
     marginBottom: 20,
@@ -2120,33 +2156,32 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   truthCard: {
     backgroundColor: '#264674',
     borderRadius: 28,
-    padding: 24,
     marginBottom: 16,
+    padding: 24,
   },
   actionCard: {
     backgroundColor: '#264674',
     borderRadius: 28,
-    padding: 24,
     marginBottom: 16,
+    padding: 24,
   },
   affirmationsCard: {
     backgroundColor: '#264674',
     borderRadius: 28,
-    padding: 24,
     marginBottom: 16,
+    padding: 24,
   },
   bibleCard: {
     backgroundColor: '#264674',
     borderRadius: 28,
-    padding: 24,
     marginBottom: 16,
+    padding: 24,
   },
   challengeCard: {
-    backgroundColor: Colors.alertCoral,
-    borderRadius: 24,
-    padding: 2,
-    width: '100%',
-    alignSelf: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: 28,
+    marginBottom: 0,
+    padding: 24,
   },
   cardNavigation: {
     flexDirection: 'row',
@@ -2282,6 +2317,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textTransform: 'none',
+    textAlign: 'left',
   },
   affirmationCardStyle: {
     backgroundColor: '#264674',
@@ -2303,35 +2339,22 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   cardContainerMedium: {
     backgroundColor: '#274674',
-    padding: 16,
+    padding: 24,
   },
   cardContainerMinimal: {
     backgroundColor: '#274674',
+    padding: 24,
   },
-  // Affirmations styles
+  // Affirmations styles (stack view)
   affirmationsHeader: {
-    padding: 16,
-    paddingBottom: 10,
-    paddingLeft: 24,
-    paddingTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-  },
-  affirmationsTitle: {
-    fontSize: 20,
-    color: Colors.hopeWhite,
-    textAlign: 'left',
-    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   quoteIcon: {
     marginRight: 8,
     transform: [{ scaleY: -1 }],
-  },
-  affirmationsList: {
-    paddingTop: 14,
-    paddingHorizontal: 14,
-    paddingBottom: 6,
   },
   affirmationCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -2349,11 +2372,44 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     color: Colors.hopeWhite,
     lineHeight: 24,
   },
+  // Read Aloud button (stack view Affirmations)
+  readButtonWrapper: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  readButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  readIcon: {
+    marginRight: 8,
+  },
+  readButtonText: {
+    color: Colors.hopeWhite,
+  },
+  readButtonTextActive: {
+    color: Colors.alertCoral,
+  },
+  bibleVerseCard: {
+    // No extra styles needed - docCard provides base styling
+  },
+  docContentContainerInner: {
+    maxWidth: 784,
+    alignSelf: 'center',
+  },
   // Stacked cards container
   stackedCardsContainer: {
     position: 'relative',
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 28,
+    paddingBottom: 24,
     alignItems: 'center',
     minHeight: 600,
     justifyContent: 'flex-start',

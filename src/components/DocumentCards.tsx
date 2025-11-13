@@ -104,12 +104,12 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       <View key="affirmation" style={[propStyles.docCard, propStyles.affirmationsCard, maxCardWidth ? { width: maxCardWidth } : undefined]}>
         <View style={styles.affirmationsHeaderDoc}>
           <MaterialCommunityIcons
-            name="format-quote-close"
+            name="format-quote-open"
             size={24}
             color={Colors.alertCoral}
             style={styles.affirmationsIcon}
           />
-          <ThemedText weight="bold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
+          <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
         </View>
         <View style={propStyles.affirmationsList}>
           {playbook.affirmations?.map((affirmation) => (
@@ -138,7 +138,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       />
       <View
         key="challenge"
-        style={[propStyles.docCard, propStyles.challengeCard, styles.challengeCardContainer, maxCardWidth ? { width: maxCardWidth } : undefined]}
+        style={[propStyles.docCard, styles.challengeCardContainer, maxCardWidth ? { width: maxCardWidth } : undefined]}
         onLayout={event => {
           challengeCardY.current = event.nativeEvent.layout.y;
           challengeCardHeight.current = event.nativeEvent.layout.height;
@@ -151,7 +151,6 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
               : playbook.directChallenge?.text ?? ''
           }
           challengeCTA={playbook.challengeCTA ?? ''}
-          style={{ paddingHorizontal: 16, paddingTop: 16 }}
         />
       </View>
     </ScrollView>
@@ -178,6 +177,7 @@ const styles = StyleSheet.create({
   },
   affirmationsIcon: {
     marginRight: 8,
+    transform: [{ scaleY: -1 }],
   },
   affirmationsTitle: {
     fontSize: 20,
