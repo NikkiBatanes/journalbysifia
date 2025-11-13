@@ -1,6 +1,6 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { BorderRadii } from '../theme/styles';
 
 import { Colors } from '../theme';
@@ -9,9 +9,10 @@ import ThemedText from './common/ThemedText';
 type DirectChallengeCardProps = {
   challenge: string;
   challengeCTA?: string;
+  style?: StyleProp<ViewStyle>;
 };
 
-export default function DirectChallengeCard({ challenge, challengeCTA }: DirectChallengeCardProps) {
+export default function DirectChallengeCard({ challenge, challengeCTA, style }: DirectChallengeCardProps) {
   // Parse SPIRITUAL and TACTICAL sections if they exist
   const spiritualMatch = challenge.match(/SPIRITUAL:\s*(.+?)(?=\n\s*TACTICAL)/is);
   const tacticalMatch = challenge.match(/TACTICAL[^:]*:\s*(.+?)$/is);
@@ -23,7 +24,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
   const tacticalText = tacticalMatch?.[1]?.trim().replace(/^TACTICAL[^:]*:\s*/gi, '');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.headerContainer}>
         <Ionicons
           name="flash"
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadii.cardXL,
     paddingTop: 0,
     paddingBottom: 24,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     width: '100%',
     alignSelf: 'stretch',
   },
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 20,
-    paddingLeft: 0,
+    paddingLeft: 8,
   },
   sectionLabel: {
     fontSize: 16,
@@ -133,6 +134,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 25,
     textAlign: 'left',
-    paddingLeft: 0,
+    paddingLeft: 8,
   },
 });

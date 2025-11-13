@@ -153,6 +153,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
               : playbook.directChallenge?.text ?? ''
           }
           challengeCTA={playbook.challengeCTA ?? ''}
+          style={{ paddingHorizontal: 16, paddingTop: 16 }}
         />
       </View>
     </ScrollView>
