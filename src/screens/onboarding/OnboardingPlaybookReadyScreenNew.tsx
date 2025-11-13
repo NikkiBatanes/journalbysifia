@@ -1063,15 +1063,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             zIndex: 10,
             elevation: 10,
             backgroundColor: Colors.anchorBlue,
-            // Respect safe area so sticky header doesn't move under the status bar
             paddingTop: insets.top + 4,
-            // Make header background span edge-to-edge while keeping inner content aligned
-            marginLeft: -16 - insets.left,
-            marginRight: -16 - insets.right,
             paddingLeft: 16 + insets.left,
             paddingRight: 16 + insets.right,
-            // Dynamic margin based on orientation
-            marginBottom: isPortrait ? 6 : 4,
+            paddingBottom: isPortrait ? 6 : 4,
           },
         ]}>
           <View style={{ maxWidth: 600, width: '100%', alignSelf: 'center' }}>
