@@ -726,11 +726,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const cardIndex = carouselCards.findIndex(c => c.id === cardId);
 
     if (isExpanding) {
-      // Keep the card at its current position when expanding (don't animate it)
-      // The card stays where it is, other cards slide away
-      const currentOffset = (carouselCards.length - cardIndex - 1) * 50;
+      // Animate selected card to expanded position (top, where Challenge card initially is)
       Animated.spring(cardAnimations[cardId].translateY, {
-        toValue: currentOffset,
+        toValue: 0,
         useNativeDriver: true,
         friction: 8,
         tension: 40,
@@ -1168,8 +1166,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
               const baseZIndex = zIndexMap[card.id as keyof typeof zIndexMap] || index;
 
-              // When a card is expanded, bring it to the very top (above header which is zIndex: 2)
-              const cardZIndex = isExpanded ? 9999 : baseZIndex + 10;
+              // When a card is expanded, bring it to the very top
+              const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
               // Standard dimensions for stacked cards
               const STACKED_CARD_HEIGHT = 400;
@@ -1923,8 +1921,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     paddingHorizontal: 16,
     paddingTop: 20,
-    zIndex: 10,
-    elevation: 10,
     paddingBottom: 40,
     minHeight: 600,
     justifyContent: 'flex-start',
