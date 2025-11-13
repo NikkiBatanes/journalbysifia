@@ -1187,7 +1187,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
               // Get animation values for this card
               const animValues = cardAnimations[card.id] || {
-                translateY: new Animated.Value((carouselCards.length - index - 1) * 56),
+                translateY: new Animated.Value((carouselCards.length - index - 1) * (isTablet ? 36 : 48)),
                 scale: new Animated.Value(1),
                 opacity: new Animated.Value(1),
               };
