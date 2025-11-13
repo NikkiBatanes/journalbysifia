@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
@@ -1445,15 +1446,33 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               
               case 'affirmation':
                 return (
-                  <View style={[styles.carouselCard, styles.cardContainerMedium]}>
-                    {(card.affirmations || []).map((affirmation, idx) => (
-                      <AffirmationCard
-                        key={affirmation.id || idx}
-                        id={affirmation.id}
-                        text={affirmation.text}
-                        completed={affirmation.completed}
+                  <View style={[styles.carouselCard, styles.cardContainerMinimal]}>
+                    <View style={styles.affirmationsHeader}>
+                      <MaterialCommunityIcons
+                        name="format-quote-open"
+                        size={24}
+                        color={Colors.alertCoral}
+                        style={styles.quoteIcon}
                       />
-                    ))}
+                      <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
+                    </View>
+                    <View style={styles.affirmationsList}>
+                      {(card.affirmations || []).map((affirmation, idx) => (
+                        <View
+                          key={affirmation.id || idx}
+                          style={[
+                            styles.affirmationCard,
+                            idx === (card.affirmations || []).length - 1 && styles.lastAffirmationCard,
+                          ]}
+                        >
+                          <View style={styles.affirmationContent}>
+                            <ThemedText style={styles.affirmationText}>
+                              {affirmation.text}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 );
               
@@ -1789,10 +1808,12 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     alignItems: 'center',
   },
   cardStackContainer: {
-    flex: 1,
     position: 'relative',
-    marginTop: 24,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    alignItems: 'center',
+    minHeight: 600,
+    justifyContent: 'flex-start',
   },
   swipeUpIndicatorContainer: {
     position: 'absolute',
@@ -1891,9 +1912,13 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   // Additional required styles
   stackCard: {
-    alignSelf: 'center',
-    backgroundColor: '#264674',
-    padding: 0,
+    position: 'absolute',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   stackCardExpanded: {
     height: 'auto',
@@ -2281,6 +2306,64 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   cardContainerMedium: {
     backgroundColor: '#274674',
     padding: 16,
+  },
+  cardContainerMinimal: {
+    backgroundColor: '#274674',
+  },
+  // Affirmations styles
+  affirmationsHeader: {
+    padding: 16,
+    paddingBottom: 10,
+    paddingLeft: 24,
+    paddingTop: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  affirmationsTitle: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    letterSpacing: 0.5,
+  },
+  quoteIcon: {
+    marginRight: 8,
+    transform: [{ scaleY: -1 }],
+  },
+  affirmationsList: {
+    paddingTop: 14,
+    paddingHorizontal: 14,
+    paddingBottom: 6,
+  },
+  affirmationCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  lastAffirmationCard: {
+    marginBottom: 4,
+  },
+  affirmationContent: {
+    padding: 14,
+  },
+  affirmationText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+  },
+  // Stacked cards container
+  stackedCardsContainer: {
+    position: 'relative',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    alignItems: 'center',
+    minHeight: 600,
+    justifyContent: 'flex-start',
+  },
+  stackedCardExpanded: {
+    position: 'relative',
+    minHeight: 400,
+    width: '100%',
   },
 });
 
