@@ -743,9 +743,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       // Animate other cards based on their position relative to tapped card
       carouselCards.forEach((card, index) => {
         if (card.id !== cardId) {
-          // Cards above the tapped card slide down (disappear)
-          const shouldSlideDown = index > cardIndex;
-          const targetY = shouldSlideDown ? -600 : 600; // Slide up or down based on position
+          // Cards are stacked with LOWER index = HIGHER z-index (visually on top)
+          // Cards with lower index (visually above) should slide UP (positive Y)
+          // Cards with higher index (visually below) should slide DOWN (negative Y)
+          const isVisuallyAbove = index < cardIndex;
+          const targetY = isVisuallyAbove ? 600 : -600; // Reversed from visual position
 
           Animated.parallel([
             Animated.spring(cardAnimations[card.id].translateY, {
