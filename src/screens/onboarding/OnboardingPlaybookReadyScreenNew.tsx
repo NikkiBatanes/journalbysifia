@@ -1166,8 +1166,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
               const baseZIndex = zIndexMap[card.id as keyof typeof zIndexMap] || index;
 
-              // When a card is expanded, bring it to the very top
-              const cardZIndex = isExpanded ? 9999 : baseZIndex;
+              // When a card is expanded, bring it to the very top (above header which is zIndex: 2)
+              const cardZIndex = isExpanded ? 9999 : baseZIndex + 10;
 
               // Standard dimensions for stacked cards
               const STACKED_CARD_HEIGHT = 400;
@@ -1921,6 +1921,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     paddingHorizontal: 16,
     paddingTop: 20,
+    zIndex: 10,
+    elevation: 10,
     paddingBottom: 40,
     minHeight: 600,
     justifyContent: 'flex-start',
