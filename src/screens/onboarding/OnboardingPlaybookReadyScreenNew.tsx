@@ -98,7 +98,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     }, [navigation])
   );
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [_currentIndex, setCurrentIndex] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action', 'truth', 'affirmations']));
   // Stacked card view: track which card is expanded (null = all collapsed/stacked)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null); // Start collapsed so Truth in Love shows summary
@@ -1222,23 +1222,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
                       >
-                        <View
-                          onStartShouldSetResponder={(evt) => {
-                            // Only capture if it's a single touch (not a scroll gesture)
-                            return evt.nativeEvent.touches.length === 1;
-                          }}
-                          onMoveShouldSetResponder={(evt) => {
-                            // Don't capture if user is scrolling - check if movement is significant
-                            return false;
-                          }}
-                          onResponderGrant={() => {
+                        <TouchableOpacity
+                          activeOpacity={1}
+                          onPress={() => {
                             try { triggerLightHaptic(); } catch {}
                             setExpandedCardId(null);
                             animateCardTransition(card.id, false);
-                          }}
-                          onResponderTerminationRequest={() => {
-                            // Allow child components (like SmartJournaling icons) to handle touches
-                            return true;
                           }}
                         >
                           {card.id === 'truth' && playbook.truthInLove ? (
@@ -1255,7 +1244,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                           ) : (
                             card.component
                           )}
-                        </View>
+                        </TouchableOpacity>
                       </ScrollView>
                     </>
                   ) : (
