@@ -813,15 +813,30 @@ export default function ActionStepsCard({
                     text: st.text.replace(/^Example:/i, '').trim(),
                   }));
               }
-              // If we want examples inline (onboarding), don't filter them out and also clear examples list to avoid duplication
-              if (showExampleSubtasksInline) {
-                examples = [];
-              }
-              const subtasks = (step.subTasks || []).filter((st) => {
+              
+              // If we want examples inline (onboarding), merge examples into subtasks
+              let subtasks = (step.subTasks || []).filter((st) => {
                 if (typeof st.text !== 'string') {return false;}
                 if (showExampleSubtasksInline) {return true;} // include everything inline
                 return !st.text.toLowerCase().startsWith('example:');
               });
+              
+              // If showExampleSubtasksInline and we have examples from database, add them as subtasks
+              if (showExampleSubtasksInline && examples.length > 0) {
+                const exampleSubtasks = examples.map((ex) => ({
+                  id: ex.id,
+                  text: `Example: ${ex.text}`,
+                  completed: false,
+                  isExample: true,
+                  is_example: true,
+                  example_interactive: false,
+                  detected_journal_type: 'none',
+                }));
+                subtasks = [...subtasks, ...exampleSubtasks];
+                examples = []; // Clear to avoid duplication below
+              } else if (showExampleSubtasksInline) {
+                examples = [];
+              }
 
               const stepAnim = completionAnim.current[step.id];
               const stepScale = stepAnim
