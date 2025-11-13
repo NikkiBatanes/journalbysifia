@@ -1983,17 +1983,17 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     flex: 1,
   },
   docContentContainer: {
-    paddingTop: 24,
+    paddingTop: 0,
     paddingBottom: 32,
-    alignItems: 'center',
     paddingHorizontal: 32,
-    width: '100%',
+    alignItems: 'center',
+  },
+  docContentContainerInner: {
     maxWidth: 784,
     alignSelf: 'center',
   },
   docCard: {
     width: '100%',
-    maxWidth: 720,
     alignSelf: 'center',
     marginBottom: 24,
     borderRadius: 28,
