@@ -2310,7 +2310,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     padding: 16,
     paddingBottom: 10,
     paddingLeft: 24,
-    paddingTop: 24,
+    paddingTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
