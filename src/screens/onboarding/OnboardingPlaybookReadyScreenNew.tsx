@@ -395,7 +395,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [getCompletedStepsCount]);
 
   // Award faith points function
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const awardFaithPoints = useCallback(async () => {
     try {
       // Award faith points to user's account during onboarding

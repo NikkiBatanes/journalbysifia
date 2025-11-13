@@ -130,7 +130,7 @@ const challengeOptions: Challenge[] = [
       { label: 'Work stress', template: "I'm constantly stressed about work and feel like I'm drowning in responsibilities. The pressure is affecting my peace and I need help finding balance and trusting God with my career." },
       { label: 'Financial worry', template: "I'm anxious about my financial situation and can't stop worrying about money. The stress is consuming me and I need to learn how to trust God as my provider." },
       { label: 'Health anxiety', template: "I'm struggling with anxiety about my health or a loved one's health. The fear and worry are overwhelming and I need peace and faith to trust God with our wellbeing." },
-      { label: 'General overwhelm', template: "I feel completely overwhelmed by everything in my life right now. The stress and anxiety are paralyzing and I need help finding peace and clarity in the chaos." },
+      { label: 'General overwhelm', template: 'I feel completely overwhelmed by everything in my life right now. The stress and anxiety are paralyzing and I need help finding peace and clarity in the chaos.' },
     ],
   },
   {
@@ -164,7 +164,7 @@ const challengeOptions: Challenge[] = [
     icon: 'card-outline',
     examples: [
       { label: 'Debt struggles', template: "I'm overwhelmed by debt and don't know how to get out of this financial hole. I need wisdom on managing money biblically and a plan to become debt-free." },
-      { label: 'Budgeting', template: "I struggle with budgeting and managing my finances wisely. Money seems to slip through my fingers and I need help developing better stewardship habits." },
+      { label: 'Budgeting', template: 'I struggle with budgeting and managing my finances wisely. Money seems to slip through my fingers and I need help developing better stewardship habits.' },
       { label: 'Generosity', template: "I want to be more generous but I'm held back by fear and scarcity mindset. I need help learning to trust God and give freely as He calls me to." },
       { label: 'Financial anxiety', template: "I'm constantly anxious about money and my financial future. The worry is consuming me and I need to learn contentment and trust in God's provision." },
     ],
@@ -175,8 +175,8 @@ const challengeOptions: Challenge[] = [
     description: 'Prayer life, Bible study, spiritual disciplines',
     icon: 'book-outline',
     examples: [
-      { label: 'Prayer struggles', template: "I struggle to maintain a consistent prayer life and often feel like my prayers are empty or unanswered. I want to develop a deeper, more meaningful connection with God through prayer." },
-      { label: 'Bible reading', template: "I want to read the Bible more consistently but struggle to make it a habit. I need help developing a sustainable Bible reading routine that brings life and understanding." },
+      { label: 'Prayer struggles', template: 'I struggle to maintain a consistent prayer life and often feel like my prayers are empty or unanswered. I want to develop a deeper, more meaningful connection with God through prayer.' },
+      { label: 'Bible reading', template: 'I want to read the Bible more consistently but struggle to make it a habit. I need help developing a sustainable Bible reading routine that brings life and understanding.' },
       { label: 'Spiritual dryness', template: "I'm experiencing spiritual dryness and feel distant from God. My faith feels stale and I desperately want to rekindle my passion and intimacy with Him." },
       { label: 'Growing closer to God', template: "I want to grow closer to God and deepen my relationship with Him, but I'm not sure how. I need guidance on spiritual disciplines and practices that will draw me nearer to His heart." },
     ],
@@ -399,10 +399,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
   const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
-  
+
   // Pulsing animation for hint icon to draw attention
   const hintIconScale = useRef(new Animated.Value(1)).current;
-  
+
   useEffect(() => {
     // Start pulsing animation when on details step and tooltip is not shown
     if (!showTooltip) {
@@ -421,7 +421,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ])
       );
       pulseAnimation.start();
-      
+
       return () => {
         pulseAnimation.stop();
         hintIconScale.setValue(1);

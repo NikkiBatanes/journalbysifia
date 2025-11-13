@@ -10,14 +10,13 @@ import {
   View,
   ViewStyle,
   TextStyle,
-  ImageStyle,
+  Animated as RNAnimated,
+  useWindowDimensions,
   ScrollView,
   LayoutAnimation,
   Platform,
   UIManager,
-  Animated as RNAnimated,
   Easing as RNEasing,
-  useWindowDimensions,
 } from 'react-native';
 
 // Navigation & Gestures
@@ -47,7 +46,6 @@ import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { triggerLightHaptic } from '../utils/haptics';
 
 // Components
-import DocumentCardView from '../components/DocumentCardView';
 import DocumentCards from '../components/DocumentCards';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import PlaybookHeader from '../components/PlaybookHeader';
@@ -60,7 +58,6 @@ import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
-import AffirmationCard from '../components/AffirmationCard';
 
 // Types & Context
 import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
@@ -1412,7 +1409,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       <View style={styles.cardStackContainer}>
         {cardData.map((card, index) => {
           const isExpanded = expandedCardId === card.id;
-          
+
           // Get z-index for this card
           const baseZIndex = zIndexMap[card.type as keyof typeof zIndexMap] || index;
           const cardZIndex = isExpanded ? 9999 : baseZIndex;
@@ -1445,7 +1442,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     />
                   </View>
                 );
-              
+
               case 'action':
                 return (
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
@@ -1460,7 +1457,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     />
                   </View>
                 );
-              
+
               case 'affirmation':
                 return (
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
@@ -1507,7 +1504,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     )}
                   </View>
                 );
-              
+
               case 'bible':
                 return (
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
@@ -1516,7 +1513,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     />
                   </View>
                 );
-              
+
               case 'challenge':
                 return (
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
@@ -1526,7 +1523,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     />
                   </View>
                 );
-              
+
               default:
                 return null;
             }
@@ -2401,10 +2398,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   bibleVerseCard: {
     // No extra styles needed - docCard provides base styling
-  },
-  docContentContainerInner: {
-    maxWidth: 784,
-    alignSelf: 'center',
   },
   // Stacked cards container
   stackedCardsContainer: {

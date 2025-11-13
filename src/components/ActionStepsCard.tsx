@@ -818,14 +818,14 @@ export default function ActionStepsCard({
                     text: st.text.replace(/^Example:/i, '').trim(),
                   }));
               }
-              
+
               // If we want examples inline (onboarding), merge examples into subtasks
               let subtasks = (step.subTasks || []).filter((st) => {
                 if (typeof st.text !== 'string') {return false;}
                 if (showExampleSubtasksInline) {return true;} // include everything inline
                 return !st.text.toLowerCase().startsWith('example:');
               });
-              
+
               // If showExampleSubtasksInline and we have examples from database, add them as subtasks
               if (showExampleSubtasksInline && examples.length > 0) {
                 const exampleSubtasks = examples.map((ex) => ({
