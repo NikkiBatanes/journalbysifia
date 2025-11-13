@@ -98,20 +98,18 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         key="action"
         steps={actionSteps || playbook.actionSteps || []}
         style={[propStyles.docCard, propStyles.actionCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
-        titleOverride="Rise in Faith"
-        iconOverride="lightning-bolt"
         playbookTitle={playbook.title}
         playbookId={playbook.id}
       />
       <View key="affirmation" style={[propStyles.docCard, propStyles.affirmationsCard, maxCardWidth ? { width: maxCardWidth } : undefined]}>
-        <View style={propStyles.affirmationsHeader}>
+        <View style={styles.affirmationsHeaderDoc}>
           <MaterialCommunityIcons
             name="format-quote-close"
             size={24}
             color={Colors.alertCoral}
-            style={[propStyles.icon, styles.quoteIcon]}
+            style={styles.affirmationsIcon}
           />
-          <ThemedText weight="bold" style={propStyles.affirmationsTitle}>Affirmations</ThemedText>
+          <ThemedText weight="bold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
         </View>
         <View style={propStyles.affirmationsList}>
           {playbook.affirmations?.map((affirmation) => (
@@ -172,6 +170,18 @@ const styles = StyleSheet.create({
   },
   challengeCardContainer: {
     marginBottom: 4,
+  },
+  affirmationsHeaderDoc: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  affirmationsIcon: {
+    marginRight: 8,
+  },
+  affirmationsTitle: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
   },
 });
 
