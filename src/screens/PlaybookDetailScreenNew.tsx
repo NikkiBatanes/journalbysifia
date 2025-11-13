@@ -1993,7 +1993,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     alignSelf: 'center',
   },
   docCard: {
-    width: '100%',
     alignSelf: 'center',
     marginBottom: 24,
     borderRadius: 28,
