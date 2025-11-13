@@ -91,17 +91,17 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         truth={playbook.truthInLove?.text}
         summary={playbook.truthInLove?.summary}
         expanded={true}
-        style={[propStyles.docCard, propStyles.truthCard]}
+        style={[propStyles.docCard, propStyles.truthCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
         currentUser={currentUser}
       />
       <ActionStepsCard
         key="action"
         steps={actionSteps || playbook.actionSteps || []}
-        style={[propStyles.docCard, propStyles.actionCard]}
+        style={[propStyles.docCard, propStyles.actionCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
         playbookTitle={playbook.title}
         playbookId={playbook.id}
       />
-      <View key="affirmation" style={[propStyles.docCard, propStyles.affirmationsCard]}>
+      <View key="affirmation" style={[propStyles.docCard, propStyles.affirmationsCard, maxCardWidth ? { width: maxCardWidth } : undefined]}>
         <View style={propStyles.affirmationsHeader}>
           <MaterialCommunityIcons
             name="format-quote-close"
@@ -134,11 +134,11 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       <BibleVerseCard
         key="bible"
         verse={playbook.bibleVerse}
-        style={[propStyles.docCard, propStyles.bibleCard, styles.bibleVerseCard]}
+        style={[propStyles.docCard, propStyles.bibleCard, styles.bibleVerseCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
       />
       <View
         key="challenge"
-        style={[propStyles.docCard, propStyles.challengeCard, styles.challengeCardContainer]}
+        style={[propStyles.docCard, propStyles.challengeCard, styles.challengeCardContainer, maxCardWidth ? { width: maxCardWidth } : undefined]}
         onLayout={event => {
           challengeCardY.current = event.nativeEvent.layout.y;
           challengeCardHeight.current = event.nativeEvent.layout.height;

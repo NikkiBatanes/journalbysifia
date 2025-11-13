@@ -1985,6 +1985,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   docContentContainer: {
     paddingTop: 0,
     paddingBottom: 32,
+    paddingHorizontal: 0,
     alignItems: 'center',
   },
   docContentContainerInner: {
