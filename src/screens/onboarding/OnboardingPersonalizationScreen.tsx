@@ -51,7 +51,7 @@ interface Challenge {
   title: string;
   description: string;
   icon: string;
-  examples?: string[];
+  examples?: Array<{ label: string; template: string }>;
 }
 
 interface AgeGroup {
@@ -114,56 +114,96 @@ const challengeOptions: Challenge[] = [
     title: 'Relationships & Family',
     description: 'Marriage, parenting, friendships, conflict resolution',
     icon: 'people-outline',
-    examples: ['Marriage struggles', 'Parenting challenges', 'Friendship conflicts', 'Family tensions'],
+    examples: [
+      { label: 'Marriage struggles', template: "I'm struggling with communication and connection in my marriage. We seem to be drifting apart and I need biblical guidance on how to rebuild intimacy and understanding." },
+      { label: 'Parenting challenges', template: "I'm overwhelmed with parenting and don't know how to balance discipline with grace. I need wisdom on raising my children in a godly way while managing my own frustrations." },
+      { label: 'Friendship conflicts', template: "I'm dealing with conflict in a close friendship and don't know how to address it. I want to handle this situation with love and truth, but I'm not sure where to start." },
+      { label: 'Family tensions', template: "There's ongoing tension in my family relationships that's causing me stress and pain. I need help navigating these difficult dynamics with wisdom and grace." },
+    ],
   },
   {
     id: 'anxiety',
     title: 'Anxiety & Stress',
     description: 'Worry, fear, overwhelm, mental health',
     icon: 'heart-circle-outline',
-    examples: ['Work stress', 'Financial worry', 'Health anxiety', 'General overwhelm'],
+    examples: [
+      { label: 'Work stress', template: "I'm constantly stressed about work and feel like I'm drowning in responsibilities. The pressure is affecting my peace and I need help finding balance and trusting God with my career." },
+      { label: 'Financial worry', template: "I'm anxious about my financial situation and can't stop worrying about money. The stress is consuming me and I need to learn how to trust God as my provider." },
+      { label: 'Health anxiety', template: "I'm struggling with anxiety about my health or a loved one's health. The fear and worry are overwhelming and I need peace and faith to trust God with our wellbeing." },
+      { label: 'General overwhelm', template: "I feel completely overwhelmed by everything in my life right now. The stress and anxiety are paralyzing and I need help finding peace and clarity in the chaos." },
+    ],
   },
   {
     id: 'purpose',
     title: 'Purpose & Direction',
     description: 'Career decisions, life calling, major transitions',
     icon: 'compass-outline',
-    examples: ['Career change', 'Life purpose', 'Major decisions', 'Feeling lost'],
+    examples: [
+      { label: 'Career change', template: "I'm considering a major career change but I'm unsure if it's the right move. I need godly wisdom and clarity about my professional direction and calling." },
+      { label: 'Life purpose', template: "I'm struggling to understand my life's purpose and feel lost about what God is calling me to do. I want to discover and walk in the unique plan He has for my life." },
+      { label: 'Major decisions', template: "I'm facing a major life decision and feel paralyzed by uncertainty. I need wisdom and discernment to make the right choice that honors God." },
+      { label: 'Feeling lost', template: "I feel lost and directionless in life right now. I'm not sure where I'm going or what I should be doing, and I need God's guidance to find my way." },
+    ],
   },
   {
     id: 'forgiveness',
     title: 'Forgiveness & Healing',
     description: 'Past hurts, trauma, letting go, emotional healing',
     icon: 'heart-circle-outline',
-    examples: ['Past trauma', 'Unforgiveness', 'Emotional wounds', 'Letting go'],
+    examples: [
+      { label: 'Past trauma', template: "I'm carrying pain from past trauma that continues to affect my present. I need healing and freedom from these wounds that keep holding me back." },
+      { label: 'Unforgiveness', template: "I'm struggling to forgive someone who deeply hurt me. The bitterness and resentment are eating away at me and I want to experience the freedom of forgiveness." },
+      { label: 'Emotional wounds', template: "I have deep emotional wounds from my past that I haven't fully healed from. I need God's healing touch and guidance on how to process and overcome this pain." },
+      { label: 'Letting go', template: "I'm having trouble letting go of past hurts and moving forward. The pain keeps pulling me back and I need help releasing it to God and finding peace." },
+    ],
   },
   {
     id: 'financial',
     title: 'Financial Stewardship',
     description: 'Money management, debt, generosity, contentment',
     icon: 'card-outline',
-    examples: ['Debt struggles', 'Budgeting', 'Generosity', 'Financial anxiety'],
+    examples: [
+      { label: 'Debt struggles', template: "I'm overwhelmed by debt and don't know how to get out of this financial hole. I need wisdom on managing money biblically and a plan to become debt-free." },
+      { label: 'Budgeting', template: "I struggle with budgeting and managing my finances wisely. Money seems to slip through my fingers and I need help developing better stewardship habits." },
+      { label: 'Generosity', template: "I want to be more generous but I'm held back by fear and scarcity mindset. I need help learning to trust God and give freely as He calls me to." },
+      { label: 'Financial anxiety', template: "I'm constantly anxious about money and my financial future. The worry is consuming me and I need to learn contentment and trust in God's provision." },
+    ],
   },
   {
     id: 'spiritual',
     title: 'Spiritual Growth',
     description: 'Prayer life, Bible study, spiritual disciplines',
     icon: 'book-outline',
-    examples: ['Prayer struggles', 'Bible reading', 'Spiritual dryness', 'Growing closer to God'],
+    examples: [
+      { label: 'Prayer struggles', template: "I struggle to maintain a consistent prayer life and often feel like my prayers are empty or unanswered. I want to develop a deeper, more meaningful connection with God through prayer." },
+      { label: 'Bible reading', template: "I want to read the Bible more consistently but struggle to make it a habit. I need help developing a sustainable Bible reading routine that brings life and understanding." },
+      { label: 'Spiritual dryness', template: "I'm experiencing spiritual dryness and feel distant from God. My faith feels stale and I desperately want to rekindle my passion and intimacy with Him." },
+      { label: 'Growing closer to God', template: "I want to grow closer to God and deepen my relationship with Him, but I'm not sure how. I need guidance on spiritual disciplines and practices that will draw me nearer to His heart." },
+    ],
   },
   {
     id: 'addiction',
     title: 'Addiction & Habits',
     description: 'Breaking bad habits, overcoming addictions',
     icon: 'refresh-outline',
-    examples: ['Social media addiction', 'Bad habits', 'Substance issues', 'Behavioral patterns'],
+    examples: [
+      { label: 'Social media addiction', template: "I'm addicted to social media and it's consuming too much of my time and mental energy. I want to break free from this habit and use my time more purposefully." },
+      { label: 'Bad habits', template: "I have bad habits that I keep falling back into no matter how hard I try to stop. I need God's strength and practical strategies to break these patterns for good." },
+      { label: 'Substance issues', template: "I'm struggling with substance use and need help breaking free from this addiction. I want to find freedom and healing through God's power and grace." },
+      { label: 'Behavioral patterns', template: "I'm stuck in unhealthy behavioral patterns that are hurting me and those around me. I need help identifying the root causes and developing new, godly habits." },
+    ],
   },
   {
     id: 'grief',
     title: 'Grief & Loss',
     description: 'Death, loss, major life changes, mourning',
     icon: 'flower-outline',
-    examples: ['Death of loved one', 'Job loss', 'Relationship end', 'Major life changes'],
+    examples: [
+      { label: 'Death of loved one', template: "I'm grieving the death of someone I love and the pain feels unbearable. I need comfort, hope, and guidance on how to navigate this loss while holding onto faith." },
+      { label: 'Job loss', template: "I recently lost my job and I'm struggling with feelings of failure, uncertainty, and fear about the future. I need God's provision and direction during this difficult transition." },
+      { label: 'Relationship end', template: "I'm grieving the end of a significant relationship and dealing with heartbreak and loss. I need healing and hope as I process this pain and move forward." },
+      { label: 'Major life changes', template: "I'm going through major life changes that feel overwhelming and disorienting. I need stability, peace, and God's guidance as I navigate this new season." },
+    ],
   },
 ];
 
@@ -791,9 +831,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           <TouchableOpacity
             key={index}
             style={styles.exampleTag}
-            onPress={() => { try { triggerLightHaptic(); } catch {} setChallengeDetails(example); }}
+            onPress={() => { try { triggerLightHaptic(); } catch {} setChallengeDetails(example.template); }}
           >
-            <ThemedText style={styles.exampleTagText}>{example}</ThemedText>
+            <ThemedText style={styles.exampleTagText}>{example.label}</ThemedText>
           </TouchableOpacity>
         ))}
       </View>
