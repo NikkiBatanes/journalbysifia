@@ -460,21 +460,24 @@ export const applyPersonaContext = (persona: Persona, userInput: string): string
 };
 
 export const enforcePersona = (response: string, _persona: Persona): string => {
-  // Check if response includes all required sections
+  // Check if response includes all required sections with more robust checking
   const requiredSections = [
-    'TRUTH IN LOVE',
-    'ACTION STEPS',
-    'AFFIRMATIONS',
-    'BIBLE VERSE',
-    'CHALLENGE',
+    { name: 'TRUTH IN LOVE', pattern: /TRUTH IN LOVE:/i },
+    { name: 'ACTION STEPS', pattern: /ACTION STEPS:/i },
+    { name: 'AFFIRMATIONS', pattern: /AFFIRMATIONS?:/i },
+    { name: 'BIBLE VERSE', pattern: /BIBLE VERSE:/i },
+    { name: 'CHALLENGE', pattern: /CHALLENGE:/i },
   ];
 
   let enforcedResponse = response;
 
-  // Ensure all required sections are present
+  // Ensure all required sections are present using regex patterns
   for (const section of requiredSections) {
-    if (!enforcedResponse.includes(section)) {
-      enforcedResponse += `\n\n${section}: [This section is missing. Please ensure all required sections are included.]`;
+    if (!section.pattern.test(enforcedResponse)) {
+      // Only add placeholder if section is truly missing
+      // This should rarely happen with the improved prompt
+      console.warn(`Missing section detected: ${section.name}`);
+      enforcedResponse += `\n\n${section.name}: [This section is missing. Please ensure all required sections are included.]`;
     }
   }
 
