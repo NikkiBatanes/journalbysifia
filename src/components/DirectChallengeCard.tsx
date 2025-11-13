@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadii.cardXL,
     paddingTop: 0,
     paddingBottom: 24,
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
     width: '100%',
     alignSelf: 'stretch',
   },
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 20,
-    paddingLeft: 8,
+    paddingLeft: 0,
   },
   sectionLabel: {
     fontSize: 16,
@@ -133,6 +133,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 25,
     textAlign: 'left',
-    paddingLeft: 8,
+    paddingLeft: 0,
   },
 });

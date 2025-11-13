@@ -2120,7 +2120,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   truthCard: {
     backgroundColor: '#264674',
     borderRadius: 28,
-    padding: 32,
+    padding: 24,
     marginBottom: 16,
   },
   actionCard: {

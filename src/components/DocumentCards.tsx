@@ -98,6 +98,8 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         key="action"
         steps={actionSteps || playbook.actionSteps || []}
         style={[propStyles.docCard, propStyles.actionCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
+        titleOverride="Rise in Faith"
+        iconOverride="lightning-bolt"
         playbookTitle={playbook.title}
         playbookId={playbook.id}
       />

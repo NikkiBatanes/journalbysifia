@@ -55,6 +55,9 @@ type ActionStepsCardProps = {
   showExampleSubtasksInline?: boolean;
   // Onboarding-only: force using prop steps to bypass context if it is out-of-sync
   preferPropSteps?: boolean;
+  // Optional overrides for header title and icon
+  titleOverride?: string;
+  iconOverride?: string;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -148,6 +151,8 @@ export default function ActionStepsCard({
   selectedDate,
   showExampleSubtasksInline = false,
   preferPropSteps = false,
+  titleOverride,
+  iconOverride,
 }: ActionStepsCardProps) {
   const { user } = useAuth();
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
@@ -757,7 +762,7 @@ export default function ActionStepsCard({
       <View style={style}>
       <View style={styles.headingContainer}>
         <MaterialCommunityIcons
-          name="format-list-checks"
+          name={iconOverride || 'format-list-checks'}
           size={24}
           color={Colors.alertCoral}
           style={styles.icon}
@@ -766,7 +771,7 @@ export default function ActionStepsCard({
           styles.heading,
           textColor ? { color: textColor } : {},
         ]}>
-          {steps.length} Action Steps
+          {titleOverride ? titleOverride : `${steps.length} Action Steps`}
         </ThemedText>
       </View>
 
