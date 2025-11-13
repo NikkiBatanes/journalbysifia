@@ -53,6 +53,12 @@ import PlaybookHeader from '../components/PlaybookHeader';
 import ThemedText from '../components/common/ThemedText';
 import DevotionalButton from '../components/DevotionalButton';
 import DevotionalModal from '../components/DevotionalModal';
+// Individual card components for stacked view
+import TruthInLoveCard from '../components/TruthInLoveCard';
+import ActionStepsCard from '../components/ActionStepsCard';
+import BibleVerseCard from '../components/BibleVerseCard';
+import DirectChallengeCard from '../components/DirectChallengeCard';
+import AffirmationCard from '../components/AffirmationCard';
 
 // Types & Context
 import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
@@ -1400,22 +1406,81 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             opacity: new RNAnimated.Value(1),
           };
 
-          const cardContent = (
-            <DocumentCardView
-              card={card}
-              styles={styles}
-              currentUser={user ? {
-                displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
-                firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
-                lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
-              } : undefined}
-              navigation={rootNavigation}
-              playbookTitle={playbook?.title}
-              playbookId={playbook?.id}
-              userInput={playbook?.userInput}
-              expanded={isExpanded}
-            />
-          );
+          // Render card content based on type - matching onboarding screen exactly
+          const renderCardContent = () => {
+            const currentUser = user ? {
+              displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+              firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+              lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+            } : undefined;
+
+            switch (card.type) {
+              case 'truth':
+                return (
+                  <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                    <TruthInLoveCard
+                      truth={card.truth || ''}
+                      summary={card.summary || ''}
+                      expanded={isExpanded}
+                      style={styles.transparentBackground}
+                      currentUser={currentUser}
+                    />
+                  </View>
+                );
+              
+              case 'action':
+                return (
+                  <View style={[styles.carouselCard, styles.cardContainerMedium]}>
+                    <ActionStepsCard
+                      steps={card.steps || []}
+                      style={styles.transparentBackground}
+                      playbookTitle={playbook?.title}
+                      playbookId={playbook?.id}
+                      navigation={rootNavigation}
+                      showExampleSubtasksInline={false}
+                      preferPropSteps={false}
+                    />
+                  </View>
+                );
+              
+              case 'affirmation':
+                return (
+                  <View style={[styles.carouselCard, styles.cardContainerMedium]}>
+                    {(card.affirmations || []).map((affirmation, idx) => (
+                      <AffirmationCard
+                        key={affirmation.id || idx}
+                        id={affirmation.id}
+                        text={affirmation.text}
+                        completed={affirmation.completed}
+                      />
+                    ))}
+                  </View>
+                );
+              
+              case 'bible':
+                return (
+                  <BibleVerseCard
+                    verse={card.verse || { text: '', reference: '' }}
+                    style={[styles.carouselCard]}
+                  />
+                );
+              
+              case 'challenge':
+                return (
+                  <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                    <DirectChallengeCard
+                      challenge={typeof card.challenge === 'string' ? card.challenge : card.challenge?.text || ''}
+                      challengeCTA={card.challengeCTA}
+                    />
+                  </View>
+                );
+              
+              default:
+                return null;
+            }
+          };
+
+          const cardContent = renderCardContent();
 
           return (
             <RNAnimated.View
@@ -2200,6 +2265,22 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   expandedCardPadding: {
     // paddingBottom applied inline based on orientation
+  },
+  // Styles for individual card components (matching onboarding screen)
+  carouselCard: {
+    borderRadius: 30,
+    minHeight: 400,
+  },
+  transparentBackground: {
+    backgroundColor: 'transparent',
+  },
+  cardContainerLarge: {
+    backgroundColor: '#274674',
+    padding: 24,
+  },
+  cardContainerMedium: {
+    backgroundColor: '#274674',
+    padding: 16,
   },
 });
 
