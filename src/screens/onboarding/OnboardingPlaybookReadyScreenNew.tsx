@@ -1214,16 +1214,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   {/* Render the actual card component */}
                   {isExpanded ? (
                     <>
-                      {/* Tap to collapse - header only */}
-                      <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={() => {
-                          try { triggerLightHaptic(); } catch {}
-                          setExpandedCardId(null);
-                          animateCardTransition(card.id, false);
-                        }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, zIndex: 10 }}
-                      />
                       <ScrollView
                         style={{ width: STACKED_CARD_WIDTH, maxHeight: isPortrait ? windowHeight - 200 : windowHeight - 150 }}
                         contentContainerStyle={{ paddingBottom: isPortrait ? 160 : 100 }}
@@ -1232,20 +1222,33 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
                       >
-                        {card.id === 'truth' && playbook.truthInLove ? (
-                          // Render TruthInLoveCard directly with expanded state
-                          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-                            <TruthInLoveCard
-                              truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
-                              summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                              expanded={isExpanded}
-                              style={styles.transparentBackground}
-                              currentUser={{ displayName: onboardingData.name }}
-                            />
-                          </View>
-                        ) : (
-                          card.component
-                        )}
+                        <View
+                          onStartShouldSetResponder={() => true}
+                          onResponderGrant={() => {
+                            try { triggerLightHaptic(); } catch {}
+                            setExpandedCardId(null);
+                            animateCardTransition(card.id, false);
+                          }}
+                          onResponderTerminationRequest={() => {
+                            // Allow child components (like SmartJournaling icons) to handle touches
+                            return true;
+                          }}
+                        >
+                          {card.id === 'truth' && playbook.truthInLove ? (
+                            // Render TruthInLoveCard directly with expanded state
+                            <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                              <TruthInLoveCard
+                                truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
+                                summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
+                                expanded={isExpanded}
+                                style={styles.transparentBackground}
+                                currentUser={{ displayName: onboardingData.name }}
+                              />
+                            </View>
+                          ) : (
+                            card.component
+                          )}
+                        </View>
                       </ScrollView>
                     </>
                   ) : (
