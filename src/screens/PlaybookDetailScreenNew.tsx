@@ -1781,6 +1781,29 @@ interface PlaybookDetailStyles {
   affirmationsCard: ViewStyle;
   bibleCard: ViewStyle;
   challengeCard: ViewStyle;
+  // Additional styles used but missing from interface
+  cardOverlay: ViewStyle;
+  carouselCard: ViewStyle;
+  cardContainerLarge: ViewStyle;
+  cardContainerMedium: ViewStyle;
+  cardContainerMinimal: ViewStyle;
+  transparentBackground: ViewStyle;
+  affirmationsHeaderStack: ViewStyle;
+  quoteIconStack: TextStyle;
+  affirmationsTitleStack: TextStyle;
+  affirmationsListStack: ViewStyle;
+  affirmationCardStack: ViewStyle;
+  lastAffirmationCardStack: ViewStyle;
+  affirmationContent: ViewStyle;
+  affirmationText: TextStyle;
+  readButtonWrapper: ViewStyle;
+  readButton: ViewStyle;
+  readIcon: TextStyle;
+  readButtonText: TextStyle;
+  readButtonTextActive: TextStyle;
+  bibleVerseCard: ViewStyle;
+  docContentContainerInner: ViewStyle;
+  stackedCardsContainer: ViewStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -2312,6 +2335,12 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   quoteIconStack: {
     marginRight: 8,
     transform: [{ scaleY: -1 }],
+  },
+  affirmationsTitleStack: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+    textAlign: 'left',
   },
   affirmationsListStack: {
     marginTop: 0,

@@ -39,7 +39,7 @@ import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBound
 // Import individual card components for carousel
 import TruthInLoveCard from '../../components/TruthInLoveCard';
 import ActionStepsCard from '../../components/ActionStepsCard';
-// AffirmationCard import removed as it's not used
+import AffirmationCard from '../../components/AffirmationCard';
 import BibleVerseCard from '../../components/BibleVerseCard';
 import DirectChallengeCard from '../../components/DirectChallengeCard';
 import DevotionalModal from '../../components/DevotionalModal';
@@ -122,6 +122,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Intro modal visibility (shows once per component mount, no persistence)
   const [showIntroModal, setShowIntroModal] = useState(false);
   const hasShownIntroRef = useRef(false);
+  const faithPointsAwardedRef = useRef(false);
   const buttonPressedRef = useRef(false); // Track if button was ever pressed
   const modalOpacity = useRef(new Animated.Value(0)).current; // For smooth fade transition
 
@@ -546,29 +547,37 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           >
             <View style={styles.affirmationsHeader}>
               <MaterialCommunityIcons
-                name="format-quote-open"
+                name="format-quote-close"
                 size={24}
                 color={Colors.alertCoral}
                 style={styles.quoteIcon}
               />
-              <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
+              <ThemedText
+                weight="semiBold"
+                style={[styles.affirmationsTitle, { color: Colors.hopeWhite, fontSize: 20, fontWeight: '700' }]}
+              >
+                Affirmations
+              </ThemedText>
             </View>
             <View style={styles.affirmationsList}>
-              {playbook.affirmations.map((affirmation: any, index: number) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.affirmationCard,
-                    index === playbook.affirmations.length - 1 && styles.lastAffirmationCard,
-                  ]}
-                >
-                  <View style={styles.affirmationContent}>
-                    <ThemedText style={styles.affirmationText}>
-                      {typeof affirmation === 'string' ? affirmation : affirmation?.text || ''}
-                    </ThemedText>
-                  </View>
-                </View>
-              ))}
+              {(playbook.affirmations || []).map((affirmation: any, index: number) => {
+                const normalized = typeof affirmation === 'string'
+                  ? { id: `affirmation-${index}`, text: affirmation, completed: false }
+                  : {
+                      id: affirmation?.id ?? `affirmation-${index}`,
+                      text: affirmation?.text ?? '',
+                      completed: Boolean(affirmation?.completed),
+                    };
+
+                return (
+                  <AffirmationCard
+                    key={normalized.id}
+                    id={normalized.id}
+                    text={normalized.text}
+                    completed={normalized.completed}
+                  />
+                );
+              })}
               {/* Read Aloud button with burst animation (matches dashboard) */}
               <View pointerEvents="box-none" style={styles.readButtonWrapper}>
                 {particles.length > 0 && (
@@ -1036,6 +1045,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 buttonPressedRef.current = true;
                 hasShownIntroRef.current = true;
 
+                if (!faithPointsAwardedRef.current) {
+                  faithPointsAwardedRef.current = true;
+                  awardFaithPoints().catch(err => logger.warn('awardFaithPoints failed on modal button', err as Error));
+                }
+
                 // Fade out modal smoothly
                 Animated.timing(modalOpacity, {
                   toValue: 0,
@@ -1286,7 +1300,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                             />
                           </View>
                         ) : (
-                          card.component
+                          <View style={{ width: '100%', height: '100%' }}>
+                            {card.component}
+                          </View>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -1656,15 +1672,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   affirmationsTitle: {
-    ...Typography.interBold,
     fontSize: 20,
     color: Colors.hopeWhite,
-    textAlign: 'left',
-    letterSpacing: 0.5,
+    fontWeight: '700',
   },
   quoteIcon: {
     marginRight: 8,
-    transform: [{ scaleY: -1 }],
+    transform: [{ scaleX: -1 }],
   },
   affirmationsList: {
     marginTop: 8,
