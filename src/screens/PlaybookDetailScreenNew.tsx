@@ -10,6 +10,7 @@ import {
   View,
   ViewStyle,
   TextStyle,
+  ImageStyle,
   Animated as RNAnimated,
   useWindowDimensions,
   ScrollView,
@@ -17,6 +18,8 @@ import {
   Platform,
   UIManager,
   Easing as RNEasing,
+  PanResponder,
+  Image,
 } from 'react-native';
 
 // Navigation & Gestures
@@ -51,7 +54,6 @@ import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import PlaybookHeader from '../components/PlaybookHeader';
 import ThemedText from '../components/common/ThemedText';
 import { usePlaybookStoreReactQuery } from '../store/usePlaybookStoreReactQuery';
-import DevotionalButton from '../components/DevotionalButton';
 import DevotionalModal from '../components/DevotionalModal';
 // Individual card components for stacked view
 import TruthInLoveCard from '../components/TruthInLoveCard';
@@ -334,8 +336,40 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
   const [showUserInput, setShowUserInput] = useState(false);
-  const [showDevotionalButton, setShowDevotionalButton] = useState(false);
+  const [devotionalVisible, setDevotionalVisible] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Devotional FAB animation (match onboarding)
+  const devotionalButtonWidth = useRef(new RNAnimated.Value(56)).current;
+  const devotionalTextOpacity = useRef(new RNAnimated.Value(0)).current;
+  const devotionalTextWidth = devotionalTextOpacity.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 180],
+  });
+  // Draggable FAB
+  const devotionalFabPan = useRef(new RNAnimated.ValueXY({ x: 0, y: 0 })).current;
+  const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const devotionalFabPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_evt, gesture) => {
+        return Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        devotionalFabPan.setOffset({ x: (devotionalFabPan as any).x._value || 0, y: (devotionalFabPan as any).y._value || 0 });
+        devotionalFabPan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_evt, gesture) => {
+        devotionalFabPan.setValue({ x: gesture.dx, y: gesture.dy });
+      },
+      onPanResponderRelease: () => {
+        devotionalFabPan.flattenOffset();
+      },
+      onPanResponderTerminate: () => {
+        devotionalFabPan.flattenOffset();
+      },
+    })
+  ).current;
 
   // Stacked card animation state
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -1050,27 +1084,46 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     };
   }, []);
 
-  // Show devotional button with delay when last card is reached in stack view
+  // Show devotional FAB after 3 seconds delay (both stack and document view)
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    if (hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack') {
-
-      timeoutId = setTimeout(() => {
-
-        setShowDevotionalButton(true);
-      }, 300); // 300ms delay
-    } else {
-
-      setShowDevotionalButton(false);
+    if (!devotionalTimerRef.current && !hasCreatedDevotional) {
+      devotionalTimerRef.current = setTimeout(() => {
+        setDevotionalVisible(true);
+        devotionalTimerRef.current = null;
+        // Start expand/collapse animation
+        setTimeout(() => {
+          RNAnimated.parallel([
+            RNAnimated.timing(devotionalButtonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
+            RNAnimated.timing(devotionalTextOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
+          ]).start(() => {
+            setTimeout(() => {
+              RNAnimated.parallel([
+                RNAnimated.timing(devotionalTextOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
+                RNAnimated.timing(devotionalButtonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
+              ]).start();
+            }, 2500);
+          });
+        }, 100);
+      }, 3000); // 3 second delay
     }
-
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+      if (devotionalTimerRef.current) {
+        clearTimeout(devotionalTimerRef.current);
+        devotionalTimerRef.current = null;
       }
     };
-  }, [hasReachedLastCard, hasCreatedDevotional, viewMode]);
+  }, [devotionalButtonWidth, devotionalTextOpacity, hasCreatedDevotional]);
+
+  // Handle devotional creation
+  const handleCreateDevotional = useCallback(() => {
+    triggerLightHaptic();
+    setShowDevotionalModal(true);
+  }, []);
+
+  // Hide FAB in document view until scrolled to bottom
+  const shouldShowFAB = devotionalVisible && !hasCreatedDevotional && (
+    viewMode === 'stack' || (viewMode === 'document' && hasReachedLastCard)
+  );
 
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
@@ -1684,8 +1737,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             </View>
           )}
 
-          <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
-            {isFromOnboarding ? (
+          {isFromOnboarding && (
+            <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
               <TouchableOpacity
                 style={styles.onboardingContinueButton}
                 onPress={() => {
@@ -1697,23 +1750,44 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 </ThemedText>
                 <Ionicons name="arrow-forward" size={20} color={Colors.hopeWhite} style={styles.arrowIcon} />
               </TouchableOpacity>
-            ) : (
-              ((viewMode === 'document' && hasReachedLastCard) ||
-                (viewMode === 'stack' && showDevotionalButton))
-                && !hasCreatedDevotional && (
-                <View style={styles.devotionalButtonWrapper}>
-                  <DevotionalButton
-                    onPress={() => {
-                      // Light haptic on create devotional
-                      triggerLightHaptic();
-                      setShowDevotionalModal(true);
-                    }}
-                    visible={true}
-                  />
-                </View>
-              )
-            )}
-          </View>
+            </View>
+          )}
+
+          {/* Draggable Devotional FAB */}
+          {shouldShowFAB && (
+            <RNAnimated.View
+              style={[
+                styles.floatingDevotionalContainer,
+                {
+                  bottom: isPortrait ? 100 + insets.bottom : 80 + insets.bottom,
+                  transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }],
+                },
+              ]}
+              {...devotionalFabPanResponder.panHandlers}
+            >
+              <RNAnimated.View style={[styles.expandableDevotionalButton, { width: devotionalButtonWidth }]}>
+                <TouchableOpacity
+                  style={styles.expandableDevotionalTouchable}
+                  onPress={handleCreateDevotional}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.devotionalIconContainer}>
+                    <Image
+                      source={require('../../../assets/icons/siFiaHeartWhiteTransparent.png')}
+                      style={styles.devotionalButtonIcon}
+                      resizeMode="contain"
+                      accessibilityLabel="siFia"
+                    />
+                  </View>
+                  <RNAnimated.View style={{ opacity: devotionalTextOpacity, width: devotionalTextWidth }}>
+                    <ThemedText weight="semiBold" style={styles.devotionalExpandText} numberOfLines={1}>
+                      Create a Devotional
+                    </ThemedText>
+                  </RNAnimated.View>
+                </TouchableOpacity>
+              </RNAnimated.View>
+            </RNAnimated.View>
+          )}
 
           <DevotionalModal
             visible={showDevotionalModal}
@@ -1814,6 +1888,13 @@ interface PlaybookDetailStyles {
   bibleVerseCard: ViewStyle;
   docContentContainerInner: ViewStyle;
   stackedCardsContainer: ViewStyle;
+  // Devotional FAB
+  floatingDevotionalContainer: ViewStyle;
+  expandableDevotionalButton: ViewStyle;
+  expandableDevotionalTouchable: ViewStyle;
+  devotionalIconContainer: ViewStyle;
+  devotionalButtonIcon: ImageStyle;
+  devotionalExpandText: TextStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -2413,6 +2494,52 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     position: 'relative',
     minHeight: 400,
     width: '100%',
+  },
+  // Devotional FAB styles
+  floatingDevotionalContainer: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+  expandableDevotionalButton: {
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 28,
+    height: 56,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    alignSelf: 'flex-end',
+  },
+  expandableDevotionalTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 0,
+    minWidth: 56,
+  },
+  devotionalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  devotionalButtonIcon: {
+    width: 40,
+    height: 40,
+    alignSelf: 'center' as const,
+    tintColor: Colors.alertCoral,
+  },
+  devotionalExpandText: {
+    color: Colors.anchorBlue,
+    fontSize: 14,
+    marginLeft: 8,
+    overflow: 'hidden',
   },
 });
 
