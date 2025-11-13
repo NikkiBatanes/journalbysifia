@@ -1153,7 +1153,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           },
         ]}>
           {/* STACKED CARDS VIEW */}
-          <View style={styles.stackedCardsContainer}>
+          <View style={[styles.stackedCardsContainer, { zIndex: 1 }]}>
             {carouselCards.map((card, index) => {
               const isExpanded = expandedCardId === card.id;
 
@@ -1168,8 +1168,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
               const baseZIndex = zIndexMap[card.id as keyof typeof zIndexMap] || index;
 
-              // When a card is expanded, bring it to the very top
-              const cardZIndex = isExpanded ? 9999 : baseZIndex;
+              // When a card is expanded, bring it above other cards but below header (z-index 10)
+              // This ensures expanded cards scroll UNDER the sticky header
+              const cardZIndex = isExpanded ? 8 : baseZIndex;
 
               // Standard dimensions for stacked cards
               const STACKED_CARD_HEIGHT = 400;
