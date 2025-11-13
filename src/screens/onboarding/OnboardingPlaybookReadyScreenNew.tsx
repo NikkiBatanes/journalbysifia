@@ -726,9 +726,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const cardIndex = carouselCards.findIndex(c => c.id === cardId);
 
     if (isExpanding) {
-      // Animate selected card to expanded position (top, where Challenge card initially is)
+      // Keep the card at its current position when expanding (don't animate it)
+      // The card stays where it is, other cards slide away
+      const currentOffset = (carouselCards.length - cardIndex - 1) * 50;
       Animated.spring(cardAnimations[cardId].translateY, {
-        toValue: 0,
+        toValue: currentOffset,
         useNativeDriver: true,
         friction: 8,
         tension: 40,
