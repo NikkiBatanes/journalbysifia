@@ -3,7 +3,7 @@
  * Multi-step personalization screen matching exact design
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -399,6 +399,37 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
   const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
+  
+  // Pulsing animation for hint icon to draw attention
+  const hintIconScale = useRef(new Animated.Value(1)).current;
+  
+  useEffect(() => {
+    // Start pulsing animation when on details step and tooltip is not shown
+    if (!showTooltip) {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(hintIconScale, {
+            toValue: 1.2,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(hintIconScale, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseAnimation.start();
+      
+      return () => {
+        pulseAnimation.stop();
+        hintIconScale.setValue(1);
+      };
+    } else {
+      hintIconScale.setValue(1);
+    }
+  }, [showTooltip, hintIconScale]);
   const onPressHint = useCallback(() => {
     try { triggerLightHaptic(); } catch {}
     setShowTooltip((prev) => {
@@ -888,11 +919,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
-              <MaterialCommunityIcons
-                name="information"
-                size={30}
-                color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
-              />
+              <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
+                <MaterialCommunityIcons
+                  name="information"
+                  size={30}
+                  color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+                />
+              </Animated.View>
             </TouchableOpacity>
           </View>
         </Animated.View>
