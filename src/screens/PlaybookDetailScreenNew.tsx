@@ -84,6 +84,7 @@ interface PlaybookScreenProps {
 type CardType = 'truth' | 'action' | 'affirmation' | 'bible' | 'challenge';
 
 interface CardData {
+  id: string;
   type: CardType;
   truth?: string;
   summary?: string;
@@ -241,12 +242,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const headerSpacingAdjustment = isTablet ? 24 : -40;
   const baseTopInset = Math.max(insets.top, 10);
   const overlayTop = baseTopInset + playbookHeaderHeight + headerSpacingAdjustment;
-  const [expandedTopY, setExpandedTopY] = useState(0);
-  const expandedContainerRef = useRef<View | null>(null);
+  const [_expandedTopY, _setExpandedTopY] = useState(0);
+  const _expandedContainerRef = useRef<View>(null);
 
   useEffect(() => {
-    setExpandedTopY(0);
-  }, [isLandscape, windowWidth, windowHeight]);
+    _setExpandedTopY(0);
+  }, [isLandscape, windowWidth, windowHeight, _setExpandedTopY]);
 
   // Animated collapse progress for smooth header transition (0 = expanded, 1 = collapsed)
   const collapseProgress = useSharedValue(0);
@@ -325,6 +326,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalButton, setShowDevotionalButton] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Stacked card animation state
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const cardAnimations = useRef<Record<string, { translateY: RNAnimated.Value; scale: RNAnimated.Value; opacity: RNAnimated.Value }>>({}).current;
 
   // 5. Ref hooks
   const isInitialRender = useRef(true);
@@ -369,7 +374,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const showPreviousCard = useSharedValue(false);
 
   // React state to track if previous card should be shown (for conditional rendering)
-  const [isPreviousCardVisible, setIsPreviousCardVisible] = useState(false);
+  const [_isPreviousCardVisible, _setIsPreviousCardVisible] = useState(false);
 
   // 8. Constants
   const SWIPE_THRESHOLD = 120;
@@ -382,7 +387,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     marginLeft: 4,
   }));
 
-  const animatedCardStyle = useAnimatedStyle(() => ({
+  const _animatedCardStyle = useAnimatedStyle(() => ({
     transform: [
       {
         translateY: translateY.value + nudgeY.value + bounceY.value,
@@ -392,7 +397,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   }));
 
   // Previous card animated style
-  const previousCardAnimatedStyle = useAnimatedStyle(() => ({
+  const _previousCardAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
       {
         translateY: previousCardTranslateY.value + translateY.value + nudgeY.value + bounceY.value,
@@ -461,6 +466,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
     return [
     {
+      id: 'truth',
       type: 'truth' as const,
       truth: replaceAllNamePlaceholders(
         playbook.truthInLove?.text ?? '',
@@ -475,16 +481,19 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       tappable: false,
     },
     {
+      id: 'action',
       type: 'action' as const,
       steps: finalActionSteps,
       tappable: false,
     },
     {
+      id: 'affirmation',
       type: 'affirmation' as const,
       affirmations: finalAffirmations,
       tappable: false,
     },
     {
+      id: 'bible',
       type: 'bible' as const,
       verse: {
         text: playbook.bibleVerse?.text ?? 'No verse text available',
@@ -493,6 +502,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       tappable: false,
     },
     {
+      id: 'challenge',
       type: 'challenge' as const,
       challenge: replaceAllNamePlaceholders(
         typeof playbook.directChallenge === 'string'
@@ -506,6 +516,126 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     },
   ];
   }, [playbook, actionSteps, user]);
+
+  // Initialize animated values for each card
+  useEffect(() => {
+    cardData.forEach((card, index) => {
+      if (!cardAnimations[card.id]) {
+        const initialOffset = (cardData.length - index - 1) * 50;
+        cardAnimations[card.id] = {
+          translateY: new RNAnimated.Value(initialOffset),
+          scale: new RNAnimated.Value(1),
+          opacity: new RNAnimated.Value(1),
+        };
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardData.length]);
+
+  // Reset animations when collapsing all cards
+  useEffect(() => {
+    if (expandedCardId === null) {
+      cardData.forEach((card, index) => {
+        const initialOffset = (cardData.length - index - 1) * 50;
+        if (cardAnimations[card.id]) {
+          RNAnimated.parallel([
+            RNAnimated.spring(cardAnimations[card.id].translateY, {
+              toValue: initialOffset,
+              useNativeDriver: true,
+              friction: 8,
+              tension: 40,
+            }),
+            RNAnimated.timing(cardAnimations[card.id].opacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            RNAnimated.spring(cardAnimations[card.id].scale, {
+              toValue: 1,
+              useNativeDriver: true,
+              friction: 8,
+            }),
+          ]).start();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedCardId]);
+
+  // Smooth animation handler for card transitions
+  const animateCardTransition = useCallback((cardId: string, isExpanding: boolean) => {
+    const cardIndex = cardData.findIndex(c => c.id === cardId);
+
+    if (isExpanding) {
+      // Animate selected card to expanded position (top)
+      RNAnimated.spring(cardAnimations[cardId].translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 40,
+      }).start();
+
+      RNAnimated.spring(cardAnimations[cardId].scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 8,
+      }).start();
+
+      // Animate other cards based on their position relative to tapped card
+      cardData.forEach((card, index) => {
+        if (card.id !== cardId) {
+          // Cards are stacked with LOWER index = HIGHER z-index (visually on top)
+          // Cards with lower index (visually above) should slide UP (positive Y)
+          // Cards with higher index (visually below) should slide DOWN (negative Y)
+          const isVisuallyAbove = index < cardIndex;
+          const targetY = isVisuallyAbove ? 600 : -600;
+
+          RNAnimated.parallel([
+            RNAnimated.spring(cardAnimations[card.id].translateY, {
+              toValue: targetY,
+              useNativeDriver: true,
+              friction: 8,
+              tension: 40,
+            }),
+            RNAnimated.timing(cardAnimations[card.id].opacity, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            RNAnimated.spring(cardAnimations[card.id].scale, {
+              toValue: 0.9,
+              useNativeDriver: true,
+              friction: 8,
+            }),
+          ]).start();
+        }
+      });
+    } else {
+      // Collapse - return all cards to original stacked position
+      cardData.forEach((card, index) => {
+        const initialOffset = (cardData.length - index - 1) * 50;
+
+        RNAnimated.parallel([
+          RNAnimated.spring(cardAnimations[card.id].translateY, {
+            toValue: initialOffset,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40,
+          }),
+          RNAnimated.timing(cardAnimations[card.id].opacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          RNAnimated.spring(cardAnimations[card.id].scale, {
+            toValue: 1,
+            useNativeDriver: true,
+            friction: 8,
+          }),
+        ]).start();
+      });
+    }
+  }, [cardData, cardAnimations]);
 
   // Navigation callbacks that depend on cardData
   const goToNextCard = useCallback(() => {
@@ -535,7 +665,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // ===== EXPANSION STATE (moved up so gestures can reference it) =====
   const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
-  const [contentHeights, setContentHeights] = useState<Record<number, number>>({});
+  const [_contentHeights, _setContentHeights] = useState<Record<number, number>>({});
   const [isScrolling, setIsScrolling] = useState(false);
 
   // Gesture handler hook (using modern Gesture API) - defined after navigation functions
@@ -581,18 +711,18 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             // Previous card stays in position relative to current card (no additional translateY)
             previousCardTranslateY.value = 0; // No additional offset, follows current card
             previousCardOpacity.value = Math.min(1, progress * 2);
-            runOnJS(setIsPreviousCardVisible)(true);
+            runOnJS(_setIsPreviousCardVisible)(true);
           } else {
             showPreviousCard.value = false;
             previousCardOpacity.value = 0;
-            runOnJS(setIsPreviousCardVisible)(false);
+            runOnJS(_setIsPreviousCardVisible)(false);
           }
         } else {
           // Swiping up or no previous card available - hide previous card
           showPreviousCard.value = false;
           previousCardOpacity.value = 0;
           previousCardTranslateY.value = 0;
-          runOnJS(setIsPreviousCardVisible)(false);
+          runOnJS(_setIsPreviousCardVisible)(false);
         }
 
         // Calculate fade and collapse based on scroll position
@@ -636,7 +766,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             // Hide previous card immediately before navigation
             showPreviousCard.value = false;
             previousCardOpacity.value = 0;
-            runOnJS(setIsPreviousCardVisible)(false);
+            runOnJS(_setIsPreviousCardVisible)(false);
 
             // Navigate to previous card if not on first card
             if (currentCardShared.value > 0) {
@@ -651,7 +781,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               previousCardTranslateY.value = 0;
               previousCardOpacity.value = 0;
               showPreviousCard.value = false;
-              runOnJS(setIsPreviousCardVisible)(false);
+              runOnJS(_setIsPreviousCardVisible)(false);
             }
           });
 
@@ -672,7 +802,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           previousCardTranslateY.value = withSpring(0, { damping: 15, stiffness: 300 });
           previousCardOpacity.value = withSpring(0, { damping: 15, stiffness: 300 });
           showPreviousCard.value = false;
-          runOnJS(setIsPreviousCardVisible)(false);
+          runOnJS(_setIsPreviousCardVisible)(false);
         }
       } else {
         translateY.value = withSpring(gestureStartY.value, { damping: 15, stiffness: 300 }, () => {
@@ -681,7 +811,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         previousCardTranslateY.value = withSpring(0, { damping: 15, stiffness: 300 });
         previousCardOpacity.value = withSpring(0, { damping: 15, stiffness: 300 });
         showPreviousCard.value = false;
-        runOnJS(setIsPreviousCardVisible)(false);
+        runOnJS(_setIsPreviousCardVisible)(false);
       }
 
       gestureState.value = { isSwiping: false };
@@ -1100,10 +1230,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // ===== HANDLER FUNCTIONS =====
 
-  const handleCardPress = (index: number) => {
+  const _handleCardPress = useCallback((cardIndex: number) => {
 
     // Block expansion for Affirmations and Bible Verse cards
-    const tappedType = cardData[index]?.type as CardType | undefined;
+    const tappedType = cardData[cardIndex]?.type as CardType | undefined;
     if (tappedType === 'affirmation' || tappedType === 'bible') {
 
       return;
@@ -1122,7 +1252,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
       });
       setExpandedCardIndex(prev => {
-        const newValue = prev === index ? null : index;
+        const newValue = prev === cardIndex ? null : cardIndex;
 
         return newValue;
       });
@@ -1130,7 +1260,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     }
 
     // In document view, do nothing on tap (no navigation to CardDetail)
-  };
+  }, [cardData, viewMode, isScrolling]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollYValue = event.nativeEvent.contentOffset.y;
@@ -1237,297 +1367,136 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   };
 
   const renderStackCards = () => {
-
     if (cardData.length === 0) {
-
       return null;
     }
 
-    const visibleCardCount = Math.min(5, cardData.length - currentCard);
+    // Standard dimensions for stacked cards
+    const STACKED_CARD_HEIGHT = 450;
+    const STACKED_CARD_WIDTH = maxCardWidth;
 
-    const renderCard = (cardIndex: number, stackIndex: number, _onToggleView: (mode: 'stack' | 'document') => void) => {
-      const card = cardData[cardIndex];
-      if (!card) {
-
-        return null;
-      }
-
-      const scaleY = 1 - stackIndex * 0.01;
-      const scaleX = 1 - stackIndex * 0.05;
-      const cardTranslateY = stackIndex * 12;
-      const zIndex = 100 - stackIndex;
-      const isLastCard = cardIndex === cardData.length - 1;
-      const isCurrentCard = cardIndex === currentCard;
-      const opacity = isLastCard && !isCurrentCard ? 1 : 1;
-      const isTopCard = stackIndex === 0;
-      const extraStyle = isTopCard ? animatedCardStyle : {};
-      const disableExpansionForType = card.type === 'affirmation' || card.type === 'bible';
-      const isExpanded = isTopCard && expandedCardIndex === cardIndex && !disableExpansionForType;
-      const measuredHeight = contentHeights[cardIndex] || 0;
-
-      // For now, allow all cards to expand for testing
-      // const needsExpansion = !disableExpansionForType && true; // Future: measuredHeight > COLLAPSED_HEIGHT + 50;
-
-      const cardContent = (
-        <DocumentCardView
-          card={card}
-          styles={styles}
-          currentUser={user ? {
-            displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
-            firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
-            lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
-          } : undefined}
-          navigation={rootNavigation}
-          playbookTitle={playbook?.title}
-          playbookId={playbook?.id}
-          userInput={playbook?.userInput}
-          expanded={card.type === 'bible' ? true : isExpanded}
-        />
-      );
-
-      return (
-        <View key={`${cardIndex}-${stackIndex}`}>
-          {/* Hidden measurement view to capture content height */}
-          {measuredHeight === 0 && (
-            <View
-              style={styles.hiddenMeasurement}
-              onLayout={({ nativeEvent }) => {
-                const h = nativeEvent.layout.height;
-
-                if (h > 0 && h !== measuredHeight) {
-                  setContentHeights(prev => {
-                    const newHeights = { ...prev, [cardIndex]: h };
-
-                    return newHeights;
-                  });
-                }
-              }}
-            >
-              <View style={{ width: maxCardWidth }}>{cardContent}</View>
-            </View>
-          )}
-
-          {isExpanded ? (
-            <View
-              ref={expandedContainerRef}
-              onLayout={() => {
-                // Measure absolute Y so we can compute available height precisely
-                try {
-                  requestAnimationFrame(() => {
-                    expandedContainerRef.current?.measureInWindow?.((x: number, y: number) => {
-                      if (typeof y === 'number' && Math.abs(y - expandedTopY) > 1) {
-                        setExpandedTopY(y);
-                      }
-                    });
-                  });
-                } catch {}
-              }}
-            >
-            {(() => {
-              const measuredTop = expandedTopY > 0 ? expandedTopY : overlayTop;
-              const availableHeight = Math.max(340, windowHeight - measuredTop - insets.bottom - 4);
-              const bottomExtra = insets.bottom + (isLandscape ? 340 : 240);
-
-              const expandedScrollViewStyle = {
-                height: availableHeight,
-                width: maxCardWidth,
-                borderRadius: 28,
-              };
-
-              const expandedContentStyle = {
-                borderRadius: 28,
-                minHeight: 450,
-                paddingBottom: bottomExtra,
-                backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
-              };
-
-              const expandedTouchableStyle = {
-                borderRadius: 28,
-                overflow: 'hidden' as const,
-                minHeight: 450,
-              };
-
-              return (
-            <ScrollView
-              style={[
-                styles.stackCardScrollContainer,
-                styles.stackCardScrollBase,
-                expandedScrollViewStyle,
-                cardIndex === cardData.length - 1 ? styles.stackCardBgCoral : styles.stackCardBgTransparent,
-              ]}
-              showsVerticalScrollIndicator={false}
-              bounces={true}
-              nestedScrollEnabled
-              contentInset={{ bottom: bottomExtra }}
-              contentInsetAdjustmentBehavior="never"
-              automaticallyAdjustContentInsets={false}
-              scrollIndicatorInsets={{ bottom: bottomExtra }}
-              onScrollBeginDrag={() => setIsScrolling(true)}
-              onScrollEndDrag={() => setIsScrolling(false)}
-              onMomentumScrollBegin={() => setIsScrolling(true)}
-              onMomentumScrollEnd={() => setIsScrolling(false)}
-              scrollEventThrottle={16}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={[
-                styles.cardContentContainer,
-                styles.expandedCardPadding,
-                expandedContentStyle,
-              ]}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  if (!isScrolling) {
-                    handleCardPress(cardIndex);
-                  }
-                }}
-                style={[
-                  styles.cardTouchableContainer,
-                  expandedTouchableStyle,
-                ]}
-              >
-                {cardContent}
-              </TouchableOpacity>
-            </ScrollView>
-              );
-            })()}
-            </View>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => {
-
-                if (isTopCard) {
-
-                  handleCardPress(cardIndex);
-                } else {
-
-                }
-              }}
-              onPressIn={() => {
-                if (isTopCard) {
-                  cardScale.value = withTiming(0.98, { duration: 100 });
-                }
-              }}
-              onPressOut={() => {
-                if (isTopCard) {
-                  cardScale.value = withTiming(1, { duration: 100 });
-                }
-              }}
-              style={[
-                styles.stackCard,
-                (() => {
-                  const collapsedCardStyle = {
-                    width: maxCardWidth,
-                    height: isExpanded ? ('auto' as const) : 450,
-                    minHeight: 450,
-                    maxHeight: isExpanded ? Math.max(300, windowHeight - (expandedTopY > 0 ? expandedTopY : overlayTop) - insets.bottom - 12) : 450,
-                    borderRadius: 28,
-                    overflow: 'hidden' as const,
-                  };
-                  return collapsedCardStyle;
-                })(),
-                isExpanded && styles.stackCardExpanded,
-                card.type === 'affirmation'
-                  ? [
-                      styles.affirmationCardStyle,
-                      {
-                        transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
-                        zIndex,
-                        opacity: !isTopCard ? opacity : 1,
-                        position: stackIndex === 0 ? 'relative' : 'absolute',
-                      },
-                    ]
-                  : [
-                      styles.nonAffirmationCardStyle,
-                      {
-                        transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
-                        zIndex,
-                        opacity: !isTopCard ? opacity : 1,
-                        position: stackIndex === 0 ? 'relative' : 'absolute',
-                      },
-                    ],
-                extraStyle,
-              ]}
-            >
-              {cardContent}
-            </TouchableOpacity>
-          )}
-        </View>
-      );
+    // Z-index mapping for cards (truth on top, challenge on bottom)
+    const zIndexMap = {
+      truth: 5,
+      action: 4,
+      affirmation: 3,
+      bible: 2,
+      challenge: 1,
     };
-
-    // Render previous card if available and swiping down
-    const previousCard = currentCard > 0 ? cardData[currentCard - 1] : null;
-
-    // Restore original fanning effect - render multiple back cards when not showing previous card
-    const backCards = !isPreviousCardVisible ? Array.from({ length: visibleCardCount - 1 }).map((_item, i, arr) => {
-      const stackIndex = arr.length - 1 - i + 1;
-      const cardIndex = currentCard + stackIndex;
-      return renderCard(cardIndex, stackIndex, (mode: 'stack' | 'document') => setViewMode(mode));
-    }) : [];
 
     return (
       <View style={styles.cardStackContainer}>
-        {/* Previous card - appears behind current card when swiping down */}
-        {previousCard && (
-          <Animated.View style={[previousCardAnimatedStyle, styles.cardWrapperStyle]}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.cardContentStyle}
-              onPress={() => {
-                // Optional: bring previous card to top by updating currentCard externally if supported.
-                // For now, ignore tap to avoid navigating to CardDetail.
-              }}
+        {cardData.map((card, index) => {
+          const isExpanded = expandedCardId === card.id;
+          
+          // Get z-index for this card
+          const baseZIndex = zIndexMap[card.type as keyof typeof zIndexMap] || index;
+          const cardZIndex = isExpanded ? 9999 : baseZIndex;
+
+          // Get animation values for this card
+          const animValues = cardAnimations[card.id] || {
+            translateY: new RNAnimated.Value((cardData.length - index - 1) * 50),
+            scale: new RNAnimated.Value(1),
+            opacity: new RNAnimated.Value(1),
+          };
+
+          const cardContent = (
+            <DocumentCardView
+              card={card}
+              styles={styles}
+              currentUser={user ? {
+                displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+                firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+                lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+              } : undefined}
+              navigation={rootNavigation}
+              playbookTitle={playbook?.title}
+              playbookId={playbook?.id}
+              userInput={playbook?.userInput}
+              expanded={isExpanded}
+            />
+          );
+
+          return (
+            <RNAnimated.View
+              key={card.id}
+              style={[
+                styles.stackCard,
+                {
+                  zIndex: cardZIndex,
+                  height: isExpanded ? undefined : STACKED_CARD_HEIGHT,
+                  maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
+                  width: STACKED_CARD_WIDTH,
+                  overflow: 'visible',
+                  alignSelf: 'center',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  borderRadius: 28,
+                  transform: [
+                    { translateY: animValues.translateY },
+                    { scale: animValues.scale },
+                  ],
+                  opacity: animValues.opacity,
+                },
+                isExpanded && styles.stackCardExpanded,
+              ]}
             >
-              <View
-                style={[
-                  styles.stackCard,
-                  (() => {
-                    const previousCardStyle = {
-                      width: maxCardWidth,
-                      height: 450,
-                      minHeight: 450,
-                      maxHeight: 450,
-                      borderRadius: 28,
-                      overflow: 'hidden' as const,
-                    };
-                    return previousCardStyle;
-                  })(),
-                  previousCard.type === 'affirmation'
-                    ? styles.affirmationCardStyle
-                    : styles.nonAffirmationCardStyle,
-                ]}
-              >
-                <DocumentCardView
-                  card={previousCard}
-                  styles={styles}
-                  currentUser={user ? {
-                    displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
-                    firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
-                    lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
-                  } : undefined}
-                  navigation={rootNavigation}
-                  playbookTitle={playbook?.title}
-                  playbookId={playbook?.id}
-                  userInput={playbook?.userInput}
-                />
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
-
-        {/* Back cards - only render when previous card is not visible */}
-        {backCards.length > 0 && (
-          <View>
-            {backCards}
-          </View>
-        )}
-
-        {/* Current card - appears on top */}
-        <Animated.View style={[animatedCardStyle, styles.cardWrapperStyle, styles.currentCardZIndex]}>
-          {renderCard(currentCard, 0, (mode: 'stack' | 'document') => setViewMode(mode))}
-        </Animated.View>
+              {isExpanded ? (
+                <ScrollView
+                  style={{
+                    width: STACKED_CARD_WIDTH,
+                    maxHeight: isLandscape ? windowHeight - 180 : windowHeight - 200,
+                    borderRadius: 28,
+                  }}
+                  contentContainerStyle={{
+                    paddingBottom: isLandscape ? 200 : 160,
+                    borderRadius: 28,
+                  }}
+                  showsVerticalScrollIndicator={false}
+                  bounces={true}
+                  nestedScrollEnabled={true}
+                  scrollEnabled={true}
+                  onScrollBeginDrag={() => setIsScrolling(true)}
+                  onScrollEndDrag={() => setIsScrolling(false)}
+                  onMomentumScrollBegin={() => setIsScrolling(true)}
+                  onMomentumScrollEnd={() => setIsScrolling(false)}
+                >
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => {
+                      if (!isScrolling) {
+                        try { triggerLightHaptic(); } catch {}
+                        setExpandedCardId(null);
+                        animateCardTransition(card.id, false);
+                      }
+                    }}
+                  >
+                    {cardContent}
+                  </TouchableOpacity>
+                </ScrollView>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setExpandedCardId(card.id);
+                    animateCardTransition(card.id, true);
+                  }}
+                  style={{
+                    width: STACKED_CARD_WIDTH,
+                    height: STACKED_CARD_HEIGHT,
+                    borderRadius: 28,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {cardContent}
+                </TouchableOpacity>
+              )}
+            </RNAnimated.View>
+          );
+        })}
       </View>
     );
   };
