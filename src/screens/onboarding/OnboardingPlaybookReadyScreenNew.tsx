@@ -1055,29 +1055,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       </Modal>
       <View style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={[
-            styles.scrollContent,
-            // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
-            // eslint-disable-next-line react-native/no-inline-styles
-            { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-          bounces
-          alwaysBounceVertical
-          overScrollMode="always"
-          contentInsetAdjustmentBehavior="never"
-          // Keep a single sticky header (which now includes the pagination dots inside)
-          stickyHeaderIndices={[0]}
-          // Match bottom inset to footer height; dynamic with expansion
-          scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80) }}
-        >
-        {/* ONBOARDING-SPECIFIC HEADER REMOVED (moved to intro modal) */}
-
-        {/* PLAYBOOK HEADER WITH CHEVRON TOGGLE */}
-        {/* eslint-disable react-native/no-inline-styles */}
+        
+        {/* FIXED HEADER - Outside ScrollView */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
@@ -1136,9 +1115,22 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {/* Pagination dots removed for stacked cards view */}
           </View>
         </View>
-
-        {/* Gap below header */}
-        <View style={{ height: isPortrait ? 20 : 16 }} />
+        
+        {/* ScrollView for cards - starts after fixed header */}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // eslint-disable-next-line react-native/no-inline-styles
+            { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: isPortrait ? 20 : 16 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
+          contentInsetAdjustmentBehavior="never"
+        >
         {/* CAROUSEL CARDS */}
         <View>
         <View style={[
