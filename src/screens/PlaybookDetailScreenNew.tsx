@@ -239,6 +239,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
+  const isPortrait = windowHeight > windowWidth;
   const isTablet = windowWidth >= 768;
   // Always constrain card width, even in landscape - never full screen
   const maxCardWidth = Math.min(windowWidth - 64, 720);
@@ -1558,15 +1559,27 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 <ScrollView
                   style={{
                     width: STACKED_CARD_WIDTH,
-                    maxHeight: isLandscape ? windowHeight - 180 : windowHeight - 200,
+                    // Allow content to scroll under footer; we'll add padding to clear it
+                    height: Math.max(1000, windowHeight - playbookHeaderHeight - insets.top - 100),
                     borderRadius: 28,
                   }}
                   contentContainerStyle={{
-                    paddingBottom: isLandscape ? 200 : 160,
-                    borderRadius: 28,
+                    paddingBottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
+                  }}
+                  contentInset={{
+                    top: 0,
+                    bottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
+                    left: 0,
+                    right: 0,
+                  }}
+                  scrollIndicatorInsets={{
+                    top: 0,
+                    bottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
                   }}
                   showsVerticalScrollIndicator={false}
                   bounces={true}
+                  alwaysBounceVertical={true}
+                  overScrollMode="always"
                   nestedScrollEnabled={true}
                   scrollEnabled={true}
                   onScrollBeginDrag={() => setIsScrolling(true)}
