@@ -1201,7 +1201,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       height: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                       maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                       width: STACKED_CARD_WIDTH,
-                      overflow: 'visible',
+                      overflow: isExpanded ? 'hidden' : 'visible',
                       alignSelf: 'center',
                       backgroundColor: cardBackgrounds[card.id as keyof typeof cardBackgrounds] || 'transparent',
                       transform: [
@@ -1217,10 +1217,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   {isExpanded ? (
                     <>
                       <ScrollView
-                        style={{ width: STACKED_CARD_WIDTH, maxHeight: isPortrait ? windowHeight - 200 : windowHeight - 180 }}
-                        contentContainerStyle={{ paddingBottom: isPortrait ? 160 : 200 }}
+                        style={{
+                          width: STACKED_CARD_WIDTH,
+                          // Allow content to scroll under footer; we'll add a spacer to clear it
+                          height: Math.max(260, windowHeight - _headerH - insets.top - 100),
+                          borderRadius: 30,
+                        }}
+                        contentContainerStyle={{ paddingBottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700) }}
+                        contentInset={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700), left: 0, right: 0 }}
+                        scrollIndicatorInsets={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700) }}
                         showsVerticalScrollIndicator={false}
-                        bounces={true}
+                        bounces
+                        alwaysBounceVertical
+                        overScrollMode="always"
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
                       >
@@ -1244,7 +1253,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                               />
                             </View>
                           ) : (
-                            card.component
+                            <>
+                              {card.component}
+                              {/* Spacer to ensure bottom content clears the fixed footer */}
+                              <View style={{ height: isPortrait ? 48 : (_footerH + insets.bottom + 400) }} />
+                            </>
                           )}
                         </TouchableOpacity>
                       </ScrollView>
