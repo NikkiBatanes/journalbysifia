@@ -81,7 +81,6 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       contentContainerStyle={[
         propStyles.docContentContainer,
         styles.contentContainer,
-        maxCardWidth ? { maxWidth: maxCardWidth, alignSelf: 'center' } : undefined,
       ]}
       onScroll={handleScroll}
       scrollEventThrottle={scrollEventThrottle}

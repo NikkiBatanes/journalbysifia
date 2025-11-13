@@ -428,7 +428,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   const overlayTopAnimatedStyle = useAnimatedStyle(() => ({
     top: viewMode === 'document'
-      ? interpolate(collapseProgress.value, [0, 1], [overlayTop, isTablet ? 24 : 10])
+      ? interpolate(collapseProgress.value, [0, 1], [baseTopInset + playbookHeaderHeight + 20, isTablet ? 24 : 10])
       : overlayTop,
   }));
 
