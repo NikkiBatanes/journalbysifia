@@ -1056,10 +1056,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       <View style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
         
-        {/* FIXED HEADER - Outside ScrollView */}
+        {/* FIXED HEADER - Absolutely positioned to overlay content */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
             zIndex: 10,
             elevation: 10,
             backgroundColor: Colors.anchorBlue,
