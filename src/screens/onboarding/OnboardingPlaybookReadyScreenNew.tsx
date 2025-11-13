@@ -1213,7 +1213,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   {isExpanded ? (
                     <>
                       <ScrollView
-                        style={{ width: STACKED_CARD_WIDTH, maxHeight: isPortrait ? windowHeight - 200 : windowHeight - 180 }}
+                        style={{ width: STACKED_CARD_WIDTH, maxHeight: windowHeight - _headerH - (isPortrait ? 220 : 200) }}
                         contentContainerStyle={{ paddingBottom: isPortrait ? 160 : 200 }}
                         showsVerticalScrollIndicator={false}
                         bounces={true}
