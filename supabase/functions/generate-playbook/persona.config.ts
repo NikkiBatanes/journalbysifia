@@ -349,7 +349,7 @@ TRUTH IN LOVE:
 ACTION STEPS:
 [CRITICAL: Balance spiritual depth with practical execution. Every step should integrate BOTH prayer/Scripture AND concrete actions with metrics/deadlines.]
 
-[⚠️ MANDATORY: EVERY action step MUST include at least ONE "- Example:" line showing exactly how to execute that specific step. This is NOT optional. Examples must be practical, detailed, and actionable.]
+[🚨 ABSOLUTELY MANDATORY - DO NOT SKIP: EVERY SINGLE action step MUST include at least ONE "- Example:" line. If you generate an action step without an example, the response will be rejected. Examples must be practical, detailed, and actionable. Format: "- Example: [detailed instructions] | Interactive: false"]
 
 [JOURNALING IN THE APP]:
 When tasks involve journaling (prayer, reflection, gratitude), reference the app's built-in journal feature naturally. Instead of "keep a journal," say "use your journal in the app" or "journal your response in the app." Make it clear the app has this capability without being repetitive.

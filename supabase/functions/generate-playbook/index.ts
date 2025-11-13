@@ -220,6 +220,14 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
     // Calculate total tasks (count all subtasks)
     playbook.totalTasks = playbook.actionSteps.reduce((total, step) => total + step.subTasks.length, 0);
+    
+    // Validate that each action step has at least one example
+    playbook.actionSteps.forEach((step, index) => {
+      if (!step.examples || step.examples.length === 0) {
+        console.warn(`⚠️ Action step ${index + 1} ("${step.title}") is missing examples. Adding placeholder.`);
+        step.examples = [`For "${step.title}": Set aside dedicated time this week to work through this step. Break it into smaller tasks, pray for guidance, and track your progress in the app.`];
+      }
+    });
   }
 
   // Parse Affirmations
