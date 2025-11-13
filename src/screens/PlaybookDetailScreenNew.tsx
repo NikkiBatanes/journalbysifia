@@ -1912,7 +1912,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 3,
   },
   stackCardExpanded: {
