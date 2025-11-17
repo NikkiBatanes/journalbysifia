@@ -220,14 +220,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
     logger.info('Sales offer cancelled - navigating to notification setup');
 
+    // CRITICAL: Capture current state values before any async operations
+    // This ensures we pass the correct tier/billing to trial screen
+    const currentSelectedTier = selectedTier;
+    const currentBilling = isAnnual ? 'annual' : 'monthly';
+    logger.debug('Captured state for navigation', { currentSelectedTier, currentBilling });
+
     // If we're in onboarding flow, skip dynamic pricing and go straight to Trial/Notifications
     const isOnboardingFlow = (routeParams as any)?.onboardingFlow === true;
     if (isOnboardingFlow) {
       if (canOfferTrial) {
         setTimeout(() => {
           (navigation as any).navigate('OnboardingTrialOffer', {
-            selectedTierId: selectedTier,
-            billing: isAnnual ? 'annual' : 'monthly',
+            selectedTierId: currentSelectedTier,
+            billing: currentBilling,
             onboardingFlow: true,
           });
         }, 50);
@@ -272,11 +278,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     // Always show trial if eligible for cancelled sales offer (regardless of upgrade/onboarding)
     logger.info('Sales offer cancelled - checking trial eligibility');
     if (canOfferTrial) {
-      logger.info('User eligible for trial - navigating to trial offer');
+      logger.info('User eligible for trial - navigating to trial offer', { 
+        selectedTierId: currentSelectedTier, 
+        billing: currentBilling 
+      });
       setTimeout(() => {
         (navigation as any).navigate('OnboardingTrialOffer', {
-          selectedTierId: selectedTier,
-          billing: isAnnual ? 'annual' : 'monthly',
+          selectedTierId: currentSelectedTier,
+          billing: currentBilling,
           skipNotificationPreference: routeParams?.skipNotificationPreference,
           // Always close both Trial and Sales Offer when user cancels Sales Offer
           closeAllOnDismiss: true,
@@ -620,8 +629,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           isSelected && styles.selectedCard,
           isFocused && styles.focusedCard,
         ]}
-        onPress={() => {
+        onPress={(e) => {
+          // Prevent event from bubbling up to parent handlers and prevent default
+          e?.preventDefault?.();
+          e?.stopPropagation?.();
           try { triggerLightHaptic(); } catch {}
+          logger.debug('Tier card tapped', { 
+            tierId: tier.id, 
+            previousTier: selectedTier,
+            isAnnual,
+            billing: isAnnual ? 'annual' : 'monthly'
+          });
           setSelectedTier(tier.id);
         }}
         activeOpacity={0.8}
@@ -1059,9 +1077,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 navigation.goBack();
               }
             } else if (canOfferTrial) {
+              // Capture current state before navigation
+              const currentSelectedTier = selectedTier;
+              const currentBilling = isAnnual ? 'annual' : 'monthly';
               navigation.navigate('OnboardingTrialOffer' as any, {
-                selectedTierId: selectedTier,
-                billing: isAnnual ? 'annual' : 'monthly',
+                selectedTierId: currentSelectedTier,
+                billing: currentBilling,
                 skipNotificationPreference: routeParams?.skipNotificationPreference,
                 closeAllOnDismiss: true,
               });
