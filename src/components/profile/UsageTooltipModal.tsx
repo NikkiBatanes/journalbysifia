@@ -40,18 +40,34 @@ interface Props {
 // If that day does not exist in the target month (e.g., 31), it renews on the last day of that month.
 function getNextAppleMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   const now = new Date();
+  // Set to start of today for accurate day comparison
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
   if (!subscriptionStartISO) {
     // Fallback: first day of the next month
     return new Date(now.getFullYear(), now.getMonth() + 1, 1);
   }
   const start = new Date(subscriptionStartISO);
   const targetDay = start.getDate();
-  const candidateMonth = now.getDate() < targetDay ? now.getMonth() : now.getMonth() + 1;
-  const candidateYear = candidateMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
-  const normalizedMonth = (candidateMonth + 12) % 12;
-  const lastDayOfMonth = new Date(candidateYear, normalizedMonth + 1, 0).getDate();
-  const day = Math.min(targetDay, lastDayOfMonth);
-  return new Date(candidateYear, normalizedMonth, day);
+
+  // Calculate the reset date for this month (at midnight)
+  const lastDayOfThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const resetDayThisMonth = Math.min(targetDay, lastDayOfThisMonth);
+  const resetDateThisMonth = new Date(now.getFullYear(), now.getMonth(), resetDayThisMonth);
+
+  // If the reset date for this month is today or in the future, use it
+  if (resetDateThisMonth >= today) {
+    return resetDateThisMonth;
+  }
+
+  // Calculate next month's reset date
+  const nextMonth = now.getMonth() + 1;
+  const nextYear = nextMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
+  const normalizedMonth = (nextMonth + 12) % 12;
+  const lastDayOfNextMonth = new Date(nextYear, normalizedMonth + 1, 0).getDate();
+  const day = Math.min(targetDay, lastDayOfNextMonth);
+
+  return new Date(nextYear, normalizedMonth, day);
 }
 
 const UsageTooltipModal: React.FC<Props> = ({

@@ -71,24 +71,44 @@ function getDaysUntilReset(resetDate: Date): number {
  */
 function getNextMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   const now = new Date();
+  // Set to start of today for accurate day comparison
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  console.log('🔍 [Reset Calculation] subscriptionStartISO:', subscriptionStartISO);
+  console.log('🔍 [Reset Calculation] Today:', today.toISOString());
+  
   if (!subscriptionStartISO) {
     // Fallback: first day of next month
+    console.log('⚠️ [Reset Calculation] No subscription start date, using fallback');
     return new Date(now.getFullYear(), now.getMonth() + 1, 1);
   }
   const start = new Date(subscriptionStartISO);
   const targetDay = start.getDate();
+  console.log('🔍 [Reset Calculation] Subscription start date:', start.toISOString());
+  console.log('🔍 [Reset Calculation] Target billing day:', targetDay);
 
-  // If today's date is before the billing day, next reset is this month
-  // Otherwise, it's next month
-  const candidateMonth = now.getDate() < targetDay ? now.getMonth() : now.getMonth() + 1;
-  const candidateYear = candidateMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
-  const normalizedMonth = (candidateMonth + 12) % 12;
+  // Calculate the reset date for this month (at midnight)
+  const lastDayOfThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const resetDayThisMonth = Math.min(targetDay, lastDayOfThisMonth);
+  const resetDateThisMonth = new Date(now.getFullYear(), now.getMonth(), resetDayThisMonth);
+  console.log('🔍 [Reset Calculation] This month reset would be:', resetDateThisMonth.toISOString());
 
-  // Find last day of candidate month
-  const lastDayOfMonth = new Date(candidateYear, normalizedMonth + 1, 0).getDate();
-  const day = Math.min(targetDay, lastDayOfMonth);
+  // If the reset date for this month is today or in the future, use it
+  if (resetDateThisMonth >= today) {
+    console.log('✅ [Reset Calculation] Using this month\'s reset date:', resetDateThisMonth.toISOString());
+    return resetDateThisMonth;
+  }
 
-  return new Date(candidateYear, normalizedMonth, day);
+  // Calculate next month's reset date
+  const nextMonth = now.getMonth() + 1;
+  const nextYear = nextMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
+  const normalizedMonth = (nextMonth + 12) % 12;
+  const lastDayOfNextMonth = new Date(nextYear, normalizedMonth + 1, 0).getDate();
+  const day = Math.min(targetDay, lastDayOfNextMonth);
+  const nextResetDate = new Date(nextYear, normalizedMonth, day);
+  console.log('✅ [Reset Calculation] Using next month\'s reset date:', nextResetDate.toISOString());
+
+  return nextResetDate;
 }
 
 /**
