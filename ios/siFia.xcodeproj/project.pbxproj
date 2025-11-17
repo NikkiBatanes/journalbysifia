@@ -30,6 +30,8 @@
 		882BD8642E3CA88200EB01BA /* libRNSound.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 882BD8632E3CA88200EB01BA /* libRNSound.a */; };
 		882BD8662E3CA8FB00EB01BA /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */; };
 		8862905A2E9F7B070002024B /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 886290592E9F7B070002024B /* StoreKit.framework */; };
+		88DC19622ECB8E1B0060E257 /* RCTPushNotificationBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 88DC19602ECB8E1B0060E257 /* RCTPushNotificationBridge.m */; };
+		88DC19632ECB8E1B0060E257 /* RCTPushNotificationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DC19612ECB8E1B0060E257 /* RCTPushNotificationBridge.swift */; };
 		9F72F288FABC4A0D87C03863 /* Lexend-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */; };
 		9FC146FE68FF4846B8380F3F /* EvilIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5DD6404215904366A8E904EB /* EvilIcons.ttf */; };
 		A54B2E1C950443E1B510C6B1 /* Poppins-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D2764BA199D4440A1D5D017 /* Poppins-Bold.ttf */; };
@@ -83,6 +85,10 @@
 		882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-SemiBold.ttf"; path = "../assets/fonts/Poppins/Poppins-SemiBold.ttf"; sourceTree = "<group>"; };
 		886290592E9F7B070002024B /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		88DC195F2ECB85910060E257 /* siFiaRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = siFiaRelease.entitlements; path = siFia/siFiaRelease.entitlements; sourceTree = "<group>"; };
+		88DC19602ECB8E1B0060E257 /* RCTPushNotificationBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTPushNotificationBridge.m; sourceTree = "<group>"; };
+		88DC19612ECB8E1B0060E257 /* RCTPushNotificationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCTPushNotificationBridge.swift; sourceTree = "<group>"; };
+		88DC19642ECB8E240060E257 /* siFia-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "siFia-Bridging-Header.h"; sourceTree = "<group>"; };
 		9597A569D46646D295EF6F5A /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialCommunityIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"; sourceTree = "<group>"; };
 		9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Medium.ttf"; path = "../assets/fonts/Poppins/Poppins-Medium.ttf"; sourceTree = "<group>"; };
 		B62E77873B8CF9FD8510DFED /* libPods-siFia.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-siFia.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -116,6 +122,7 @@
 		13B07FAE1A68108700A75B9A /* siFia */ = {
 			isa = PBXGroup;
 			children = (
+				88DC195F2ECB85910060E257 /* siFiaRelease.entitlements */,
 				881ACC642E681F9400D4F304 /* siFia.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
@@ -148,12 +155,15 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				88DC19602ECB8E1B0060E257 /* RCTPushNotificationBridge.m */,
+				88DC19612ECB8E1B0060E257 /* RCTPushNotificationBridge.swift */,
 				13B07FAE1A68108700A75B9A /* siFia */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
 				C21561F1421E4590872FA4C2 /* Resources */,
+				88DC19642ECB8E240060E257 /* siFia-Bridging-Header.h */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -251,7 +261,7 @@
 				LastUpgradeCheck = 1210;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						LastSwiftMigration = 1120;
+						LastSwiftMigration = 2610;
 					};
 				};
 			};
@@ -343,9 +353,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -382,9 +396,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -434,6 +452,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				88DC19622ECB8E1B0060E257 /* RCTPushNotificationBridge.m in Sources */,
+				88DC19632ECB8E1B0060E257 /* RCTPushNotificationBridge.swift in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -472,6 +492,7 @@
 				STRIP_INSTALLED_PRODUCT = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "siFia-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -486,7 +507,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = siFia/siFia.entitlements;
+				CODE_SIGN_ENTITLEMENTS = siFia/siFiaRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -510,6 +531,7 @@
 				STRIP_INSTALLED_PRODUCT = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "siFia-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
@@ -586,10 +608,7 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -659,10 +678,7 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;

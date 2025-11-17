@@ -1,33 +1,25 @@
-// Conditionally import push notification library
+import { Platform, Alert, Linking, AppState } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from './supabaseClient';
+import {
+  PushNotificationBridge,
+  addNotificationEventListener,
+  isNativeModuleAvailable,
+} from '../modules/PushNotificationBridge';
+
+// Conditionally import push notification library for Android
 let PushNotification: any = null;
-try {
-  PushNotification = require('react-native-push-notification');
-} catch (error) {
-  Logger.warn('[PushNotification] react-native-push-notification not available', {
+if (Platform.OS === 'android') {
+  try {
+    PushNotification = require('react-native-push-notification');
+  } catch (error) {
+    Logger.warn('[PushNotification] react-native-push-notification not available', {
       component: 'pushNotificationService',
       errorMessage: error instanceof Error ? error.message : String(error),
     });
-}
-import { Platform, Alert, Linking } from 'react-native';
-import { Logger } from '../utils/ProductionLogger';
-
-// Conditionally import PushNotificationIOS only on iOS
-let PushNotificationIOS: any = null;
-if (Platform.OS === 'ios') {
-  try {
-    PushNotificationIOS = require('@react-native-community/push-notification-ios');
-    // Verify the module has the required methods
-    if (!PushNotificationIOS || typeof PushNotificationIOS.checkPermissions !== 'function') {
-
-      PushNotificationIOS = null;
-    }
-  } catch (error) {
-
-    PushNotificationIOS = null;
   }
 }
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from './supabaseClient';
 
 export interface DeviceToken {
   userId: string;
@@ -50,160 +42,222 @@ export interface NotificationPayload {
 class PushNotificationService {
   private isInitialized = false;
   private deviceToken: string | null = null;
+  private eventListeners: Array<{ remove: () => void }> = [];
 
   async initialize(userId: string): Promise<void> {
-    if (this.isInitialized) {return;}
+    if (this.isInitialized) {
+      Logger.info('[PushNotification] Already initialized', {
+        component: 'pushNotificationService',
+      });
+      return;
+    }
 
     try {
-      // Skip initialization if PushNotification is not available
-      if (!PushNotification) {
-        Logger.warn('[PushNotification] Service not available, skipping initialization', {
-      component: 'pushNotificationService',
-    });
-        this.isInitialized = true;
-        return;
-      }
-
-      // Configure push notifications
-      PushNotification.configure({
-        // Called when token is generated (iOS and Android)
-        onRegister: async (token: any) => {
-
-          this.deviceToken = token.token;
-          await this.saveDeviceToken(userId, token.token);
-        },
-
-        // Called when a remote notification is received while app is in foreground
-        onNotification: (notification: any) => {
-
-          // Handle notification tap
-          if (notification.userInteraction) {
-            this.handleNotificationTap(notification);
-          }
-
-          // iOS: Call completion handler
-          if (Platform.OS === 'ios' && PushNotificationIOS) {
-            notification.finish(PushNotificationIOS.FetchResult.NoData);
-          }
-        },
-
-        // Called when user taps notification
-        onAction: () => {
-
-        },
-
-        // Called when registration fails (Android)
-        onRegistrationError: (err: any) => {
-          Logger.error('[PushNotification] Registration error', err as Error, {
-      component: 'pushNotificationService',
-    });
-        },
-
-        // IOS ONLY: Called when user permissions are granted/denied
-        permissions: {
-          alert: true,
-          badge: true,
-          sound: true,
-        },
-
-        // Should the initial notification be popped automatically
-        popInitialNotification: true,
-
-        // Request permissions on app start (iOS)
-        requestPermissions: Platform.OS === 'ios',
+      Logger.info('[PushNotification] Starting initialization', {
+        component: 'pushNotificationService',
+        platform: Platform.OS,
+        userId,
       });
 
-      // Create default notification channel (Android)
-      if (Platform.OS === 'android' && PushNotification) {
-        PushNotification.createChannel(
-          {
-            channelId: 'sifia-default',
-            channelName: 'siFia Notifications',
-            channelDescription: 'Default notification channel for siFia',
-            playSound: true,
-            soundName: 'default',
-            importance: 4, // High importance
-            vibrate: true,
-          },
-          (_created: any) => {} // Channel created callback
-        );
-
-        // Create high priority channel for critical notifications
-        PushNotification.createChannel(
-          {
-            channelId: 'sifia-critical',
-            channelName: 'siFia Critical',
-            channelDescription: 'Critical notifications (trial expiry, streak alerts)',
-            playSound: true,
-            soundName: 'default',
-            importance: 5, // Max importance
-            vibrate: true,
-          },
-          (_created: any) => {} // Critical channel created callback
-        );
+      if (Platform.OS === 'ios') {
+        await this.initializeIOS(userId);
+      } else if (Platform.OS === 'android') {
+        await this.initializeAndroid(userId);
       }
 
       this.isInitialized = true;
-
+      Logger.info('[PushNotification] Initialization complete', {
+        component: 'pushNotificationService',
+      });
     } catch (error) {
       Logger.error('[PushNotification] Initialization error', error as Error, {
-      component: 'pushNotificationService',
-    });
+        component: 'pushNotificationService',
+      });
       throw error;
     }
   }
 
+  private async initializeIOS(userId: string): Promise<void> {
+    if (!isNativeModuleAvailable()) {
+      Logger.warn('[PushNotification] Native module not available on iOS', {
+        component: 'pushNotificationService',
+      });
+      return;
+    }
+
+    // Listen for device token registration
+    const tokenListener = addNotificationEventListener(
+      'RemoteNotificationRegistered',
+      async (event: any) => {
+        Logger.info('[PushNotification] Device token received', {
+          component: 'pushNotificationService',
+          tokenLength: event.deviceToken?.length,
+        });
+        this.deviceToken = event.deviceToken;
+        await this.saveDeviceToken(userId, event.deviceToken);
+      }
+    );
+
+    if (tokenListener) {
+      this.eventListeners.push(tokenListener);
+    }
+
+    // Listen for registration failures
+    const errorListener = addNotificationEventListener(
+      'RemoteNotificationRegistrationFailed',
+      (event: any) => {
+        Logger.error(
+          '[PushNotification] Registration failed',
+          new Error(event.error),
+          {
+            component: 'pushNotificationService',
+          }
+        );
+      }
+    );
+
+    if (errorListener) {
+      this.eventListeners.push(errorListener);
+    }
+
+    // Listen for incoming notifications
+    const notificationListener = addNotificationEventListener(
+      'RemoteNotificationReceived',
+      (notification: any) => {
+        Logger.info('[PushNotification] Notification received', {
+          component: 'pushNotificationService',
+          notification,
+        });
+        this.handleNotificationTap(notification);
+      }
+    );
+
+    if (notificationListener) {
+      this.eventListeners.push(notificationListener);
+    }
+
+    Logger.info('[PushNotification] iOS event listeners registered', {
+      component: 'pushNotificationService',
+    });
+  }
+
+  private async initializeAndroid(userId: string): Promise<void> {
+    if (!PushNotification) {
+      Logger.warn('[PushNotification] Android module not available', {
+        component: 'pushNotificationService',
+      });
+      return;
+    }
+
+    // Configure push notifications for Android
+    PushNotification.configure({
+      onRegister: async (token: any) => {
+        this.deviceToken = token.token;
+        await this.saveDeviceToken(userId, token.token);
+      },
+      onNotification: (notification: any) => {
+        if (notification.userInteraction) {
+          this.handleNotificationTap(notification);
+        }
+      },
+      onRegistrationError: (err: any) => {
+        Logger.error('[PushNotification] Android registration error', err as Error, {
+          component: 'pushNotificationService',
+        });
+      },
+      permissions: {
+        alert: true,
+        badge: true,
+        sound: true,
+      },
+      popInitialNotification: true,
+      requestPermissions: true,
+    });
+
+    // Create notification channels
+    PushNotification.createChannel(
+      {
+        channelId: 'sifia-default',
+        channelName: 'siFia Notifications',
+        channelDescription: 'Default notification channel for siFia',
+        playSound: true,
+        soundName: 'default',
+        importance: 4,
+        vibrate: true,
+      },
+      () => {}
+    );
+
+    PushNotification.createChannel(
+      {
+        channelId: 'sifia-critical',
+        channelName: 'siFia Critical',
+        channelDescription: 'Critical notifications',
+        playSound: true,
+        soundName: 'default',
+        importance: 5,
+        vibrate: true,
+      },
+      () => {}
+    );
+  }
+
   async requestPermissions(): Promise<boolean> {
     try {
-      if (Platform.OS === 'ios' && PushNotificationIOS && typeof PushNotificationIOS.checkPermissions === 'function') {
-        // Check current permissions first
-        const current: any = await new Promise((resolve) =>
-          PushNotificationIOS.checkPermissions((p: any) => resolve(p))
-        );
+      if (Platform.OS === 'ios') {
+        if (!isNativeModuleAvailable()) {
+          Logger.warn('[PushNotification] Native module not available for permissions', {
+            component: 'pushNotificationService',
+          });
+          return true;
+        }
 
-        const alreadyGranted = !!(current?.alert || current?.badge || current?.sound);
-        if (alreadyGranted) {return true;}
+        // Check current permissions first
+        const current = await PushNotificationBridge.checkPermissions();
+        const alreadyGranted = current.alert || current.badge || current.sound;
+        
+        if (alreadyGranted) {
+          Logger.info('[PushNotification] Permissions already granted', {
+            component: 'pushNotificationService',
+            permissions: current,
+          });
+          return true;
+        }
 
         // Request permissions
-        if (typeof PushNotificationIOS.requestPermissions === 'function') {
-          const requested = await PushNotificationIOS.requestPermissions({
-            alert: true,
-            badge: true,
-            sound: true,
-          });
-
-          return !!(requested?.alert || requested?.badge || requested?.sound);
-        }
+        const granted = await PushNotificationBridge.requestPermissions();
+        Logger.info('[PushNotification] Permission request result', {
+          component: 'pushNotificationService',
+          granted,
+        });
+        return granted;
       }
-      // Android or fallback
-
+      
+      // Android - permissions handled by PushNotification library
       return true;
     } catch (error) {
       Logger.error('[PushNotification] Permission request error', error as Error, {
-      component: 'pushNotificationService',
-    });
+        component: 'pushNotificationService',
+      });
       return true; // Return true to not block onboarding
     }
   }
 
   async checkPermissions(): Promise<any> {
     try {
-      if (Platform.OS === 'ios' && PushNotificationIOS && typeof PushNotificationIOS.checkPermissions === 'function') {
-        return new Promise((resolve) => {
-          PushNotificationIOS.checkPermissions((permissions: any) => {
-            resolve(permissions);
-          });
-        });
-      } else {
-        // Android or iOS without PushNotificationIOS: Return default permissions
-
-        return { alert: true, badge: true, sound: true };
+      if (Platform.OS === 'ios') {
+        if (!isNativeModuleAvailable()) {
+          return { alert: true, badge: true, sound: true };
+        }
+        return await PushNotificationBridge.checkPermissions();
       }
+      // Android
+      return { alert: true, badge: true, sound: true };
     } catch (error) {
       Logger.warn('[PushNotification] Error checking permissions, using defaults', {
-      component: 'pushNotificationService',
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
+        component: 'pushNotificationService',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
       return { alert: true, badge: true, sound: true };
     }
   }
@@ -256,39 +310,52 @@ class PushNotificationService {
 
   async scheduleLocalNotification(payload: NotificationPayload, date?: Date): Promise<void> {
     try {
-      if (!PushNotification) {
-        Logger.warn('[PushNotification] Service not available, cannot schedule notification', {
-      component: 'pushNotificationService',
-    });
-        return;
-      }
+      if (Platform.OS === 'ios') {
+        if (!isNativeModuleAvailable()) {
+          Logger.warn('[PushNotification] Native module not available', {
+            component: 'pushNotificationService',
+          });
+          return;
+        }
 
-      PushNotification.localNotificationSchedule({
-        title: payload.title,
-        message: payload.message,
-        date: date || new Date(Date.now() + 1000), // Default to 1 second from now
-        playSound: true,
-        soundName: payload.sound || 'default',
-        badge: payload.badge,
-        userInfo: payload.data,
-        channelId: payload.priority === 'high' ? 'sifia-critical' : 'sifia-default',
-      });
+        await PushNotificationBridge.scheduleLocalNotification({
+          title: payload.title,
+          body: payload.message,
+          badge: payload.badge,
+          sound: payload.sound || 'default',
+          userInfo: payload.data,
+          fireDate: date ? date.getTime() : Date.now() + 1000,
+        });
+      } else if (Platform.OS === 'android' && PushNotification) {
+        PushNotification.localNotificationSchedule({
+          title: payload.title,
+          message: payload.message,
+          date: date || new Date(Date.now() + 1000),
+          playSound: true,
+          soundName: payload.sound || 'default',
+          badge: payload.badge,
+          userInfo: payload.data,
+          channelId: payload.priority === 'high' ? 'sifia-critical' : 'sifia-default',
+        });
+      }
     } catch (error) {
       Logger.error('[PushNotification] Error scheduling local notification', error as Error, {
-      component: 'pushNotificationService',
-    });
+        component: 'pushNotificationService',
+      });
     }
   }
 
   async cancelAllLocalNotifications(): Promise<void> {
-    if (PushNotification) {
+    if (Platform.OS === 'ios' && isNativeModuleAvailable()) {
+      PushNotificationBridge.cancelAllLocalNotifications();
+    } else if (Platform.OS === 'android' && PushNotification) {
       PushNotification.cancelAllLocalNotifications();
     }
   }
 
   async setBadgeNumber(number: number): Promise<void> {
-    if (Platform.OS === 'ios' && PushNotificationIOS) {
-      PushNotificationIOS.setApplicationIconBadgeNumber(number);
+    if (Platform.OS === 'ios' && isNativeModuleAvailable()) {
+      PushNotificationBridge.setBadgeNumber(number);
     }
   }
 

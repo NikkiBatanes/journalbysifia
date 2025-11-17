@@ -3,9 +3,10 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import GoogleSignIn
+import UserNotifications
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
   var window: UIWindow?
 
   var reactNativeDelegate: ReactNativeDelegate?
@@ -51,7 +52,103 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    // Register for push notifications
+    UNUserNotificationCenter.current().delegate = self
+    registerForPushNotifications(application)
+
     return true
+  }
+
+  // MARK: - Push Notification Registration
+  func registerForPushNotifications(_ application: UIApplication) {
+    UNUserNotificationCenter.current()
+      .requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        print("Push notification permission granted: \(granted)")
+        
+        guard granted else { 
+          print("Push notification permission denied")
+          return 
+        }
+        
+        DispatchQueue.main.async {
+          application.registerForRemoteNotifications()
+        }
+      }
+  }
+
+  // Called when APNs successfully registers the device
+  func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
+    let token = tokenParts.joined()
+    print("✅ Device Token: \(token)")
+    
+    // Send token to React Native via bridge
+    RCTPushNotificationBridge.shared?.didRegisterForRemoteNotifications(withDeviceToken: token)
+    
+    // Also post to NotificationCenter for legacy support
+    NotificationCenter.default.post(
+      name: NSNotification.Name("RemoteNotificationDeviceToken"),
+      object: nil,
+      userInfo: ["deviceToken": token]
+    )
+  }
+
+  // Called when APNs fails to register the device
+  func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    print("❌ Failed to register for remote notifications: \(error.localizedDescription)")
+    
+    // Send error to React Native via bridge
+    RCTPushNotificationBridge.shared?.didFailToRegisterForRemoteNotifications(withError: error.localizedDescription)
+  }
+
+  // MARK: - UNUserNotificationCenterDelegate
+  
+  // Handle notification when app is in foreground
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    print("📬 Received notification in foreground: \(notification.request.content.title)")
+    
+    // Send to React Native
+    let userInfo = notification.request.content.userInfo
+    RCTPushNotificationBridge.shared?.didReceiveRemoteNotification(userInfo)
+    
+    // Show notification even when app is in foreground
+    if #available(iOS 14.0, *) {
+      completionHandler([.banner, .sound, .badge])
+    } else {
+      completionHandler([.alert, .sound, .badge])
+    }
+  }
+
+  // Handle notification tap
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    let userInfo = response.notification.request.content.userInfo
+    print("📱 User tapped notification: \(userInfo)")
+    
+    // Send to React Native via bridge
+    RCTPushNotificationBridge.shared?.didReceiveRemoteNotification(userInfo)
+    
+    // Also send via NotificationCenter for legacy support
+    NotificationCenter.default.post(
+      name: NSNotification.Name("RemoteNotificationTapped"),
+      object: nil,
+      userInfo: userInfo
+    )
+    
+    completionHandler()
   }
 
   // Handle Google Sign-In redirect URLs
