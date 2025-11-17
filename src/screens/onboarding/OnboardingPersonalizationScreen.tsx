@@ -284,25 +284,39 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
       // Check for stored Apple name data first
       const checkAppleName = async () => {
-        // For OAuth users, ALWAYS show name collection step FIRST
-        // This ensures we get the name the user actually wants to use
         if (method === 'oauth') {
-          logger.debug('🔒 OAuth user detected - forcing name collection for better UX');
+          const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
+          const paramNameRaw = (route.params as any)?.name;
+          const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
+          const metadataName = (user?.user_metadata?.first_name || user?.user_metadata?.full_name || '').trim();
+          const resolvedName = paramName || metadataName;
 
-          // Start with empty name for OAuth users to force collection
-          setName('');
-          setShowNameStep(true); // ALWAYS show name step for OAuth
+          if (provider === 'apple') {
+            logger.debug('🍎 Apple OAuth detected - forcing name collection');
+            setName('');
+            setShowNameStep(true);
 
-          // Clear any stale Apple name data from previous sessions
-          // This prevents using cached data that might be from a different user
-          try {
-            await AsyncStorage.removeItem('apple_signin_name');
+            try {
+              await AsyncStorage.removeItem('apple_signin_name');
 
-          } catch (error) {
-            logger.error('Error clearing Apple name data:', error as Error);
+            } catch (error) {
+              logger.error('Error clearing Apple name data:', error as Error);
+            }
+
+            return;
           }
 
-          return; // Exit early - don't process email extraction
+          if (resolvedName) {
+            logger.debug('✅ OAuth user has existing name - skipping name step', { provider, resolvedName });
+            setName(resolvedName);
+            setShowNameStep(false);
+            return;
+          }
+
+          logger.debug('🔒 OAuth user missing name - showing name collection step', { provider });
+          setName('');
+          setShowNameStep(true);
+          return;
         }
 
         // For non-OAuth users (email/password), handle name extraction
