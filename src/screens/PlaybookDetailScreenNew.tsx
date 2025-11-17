@@ -1457,7 +1457,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                     <View style={styles.affirmationsHeaderStack}>
                       <MaterialCommunityIcons
-                        name="format-quote-open"
+                        name="format-quote-close"
                         size={24}
                         color={Colors.alertCoral}
                         style={styles.quoteIconStack}
@@ -2375,7 +2375,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   quoteIconStack: {
     marginRight: 8,
-    transform: [{ scaleY: -1 }],
+    transform: [{ scaleX: -1 }],
   },
   affirmationsTitleStack: {
     fontSize: 20,
