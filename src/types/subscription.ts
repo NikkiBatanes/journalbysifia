@@ -93,6 +93,14 @@ export interface FamilySubscriptionGroup {
   // Payment info
   platform?: PaymentPlatform;
   platform_subscription_id?: string;
+  platform_transaction_id?: string;
+  platform_receipt_data?: any;
+
+  // Billing
+  billing_cycle?: 'monthly' | 'annual';
+  subscription_start_date?: string;
+  subscription_end_date?: string;
+  next_billing_date?: string;
 
   status: SubscriptionStatus;
   metadata?: Record<string, any>;
@@ -102,17 +110,37 @@ export interface FamilySubscriptionGroup {
 
   // Computed properties
   members?: FamilyMember[];
+  usage_summary?: FamilyUsageSummary;
+  activity_log?: FamilyActivity[];
 }
 
 export interface FamilyMember {
+  id?: string;
   user_id: string;
+  family_group_id: string;
   role: FamilyRole;
   joined_at: string;
+  status: 'active' | 'removed' | 'suspended';
+  
+  // User profile data
+  email?: string;
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  
+  // Usage tracking
+  playbooks_used?: number;
+  devotionals_used?: number;
+  last_active?: string;
+  
   user_profile?: {
     id: string;
     email?: string;
     first_name?: string;
     last_name?: string;
+    full_name?: string;
+    avatar_url?: string;
   };
 }
 
@@ -247,4 +275,131 @@ export class FamilyLimitError extends SubscriptionError {
       { current_members, max_members }
     );
   }
+}
+
+// ===== FAMILY SUBSCRIPTION EXTENDED TYPES =====
+
+export interface FamilyInvitation {
+  id: string;
+  family_group_id: string;
+  invited_email: string;
+  invited_by_user_id: string;
+  invitation_code: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  accepted_by_user_id?: string;
+  expires_at: string;
+  accepted_at?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  
+  // Computed properties
+  is_expired?: boolean;
+  days_until_expiry?: number;
+  invited_by_name?: string;
+}
+
+export interface FamilyActivity {
+  id: string;
+  family_group_id: string;
+  user_id?: string;
+  activity_type: FamilyActivityType;
+  activity_description?: string;
+  affected_user_id?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  
+  // Computed properties
+  user_name?: string;
+  affected_user_name?: string;
+}
+
+export type FamilyActivityType =
+  | 'group_created'
+  | 'member_added'
+  | 'member_removed'
+  | 'member_suspended'
+  | 'invitation_sent'
+  | 'invitation_accepted'
+  | 'invitation_declined'
+  | 'invitation_cancelled'
+  | 'subscription_upgraded'
+  | 'subscription_downgraded'
+  | 'subscription_renewed'
+  | 'subscription_cancelled'
+  | 'payment_successful'
+  | 'payment_failed'
+  | 'admin_changed'
+  | 'group_name_changed'
+  | 'capacity_increased';
+
+export interface FamilyUsageAnalytics {
+  id: string;
+  family_group_id: string;
+  user_id: string;
+  period_start: string;
+  period_end: string;
+  playbooks_generated: number;
+  devotionals_generated: number;
+  smart_journal_entries: number;
+  active_days: number;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FamilyUsageSummary {
+  total_playbooks: number;
+  total_devotionals: number;
+  total_journal_entries: number;
+  active_members: number;
+  avg_playbooks_per_member: number;
+  avg_devotionals_per_member: number;
+  period_start?: string;
+  period_end?: string;
+}
+
+export interface FamilyMemberUsage {
+  userId: string;
+  fullName: string;
+  email?: string;
+  avatar_url?: string;
+  playbooks: number;
+  devotionals: number;
+  journal_entries: number;
+  active_days: number;
+  last_active?: string;
+  percentage_of_total?: number;
+}
+
+export interface CreateFamilyGroupOptions {
+  admin_user_id: string;
+  group_name: string;
+  platform_subscription_id?: string;
+  max_members?: number;
+  billing_cycle?: 'monthly' | 'annual';
+}
+
+export interface InviteFamilyMemberOptions {
+  family_group_id: string;
+  invited_email: string;
+  invited_by_user_id: string;
+  custom_message?: string;
+}
+
+export interface RemoveFamilyMemberOptions {
+  family_group_id: string;
+  user_id: string;
+  admin_user_id: string;
+  reason?: string;
+}
+
+export interface FamilySubscriptionCheck {
+  is_family_member: boolean;
+  is_family_admin: boolean;
+  family_group_id?: string;
+  can_invite_members: boolean;
+  can_remove_members: boolean;
+  remaining_slots: number;
+  total_slots: number;
 }

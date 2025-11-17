@@ -8,7 +8,11 @@ export interface FamilyGroup {
   group_name: string;
   max_members: number;
   current_members: number;
-  platform_subscription_id: string;
+  platform_subscription_id?: string;
+  billing_cycle?: 'monthly' | 'annual';
+  subscription_start_date?: string;
+  subscription_end_date?: string;
+  next_billing_date?: string;
   status: 'active' | 'cancelled' | 'expired';
   created_at: string;
   updated_at: string;
@@ -41,8 +45,9 @@ export interface FamilyInvitation {
 export interface CreateFamilyGroupOptions {
   group_name: string;
   admin_user_id: string;
-  platform_subscription_id: string;
+  platform_subscription_id?: string;
   max_members?: number;
+  billing_cycle?: 'monthly' | 'annual';
 }
 
 export interface InviteMemberOptions {
