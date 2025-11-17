@@ -391,28 +391,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // (Remove any other filteredPlaybooks declarations below this point)
 
   // Group playbooks by month/year (optimized)
-  const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[] = []) => {
+  const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[]) => {
+    const groups: Record<string, Playbook[]> = {};
+
     try {
-      const groups: { [key: string]: Playbook[] } = {};
-
-      // Early return for empty or invalid input
-      if (!Array.isArray(playbooksList) || playbooksList.length === 0) {
+      if (!Array.isArray(playbooksList)) {
         return [];
-      }
-
-      // Group playbooks by month/year
-      for (const pb of playbooksList) {
-        // Skip invalid items
-        if (!pb?.createdAt) {continue;}
-
-        const date = new Date(pb.createdAt);
-        if (isNaN(date.getTime())) {continue;}
-
-        const key = formatDate(date);
-        if (!groups[key]) {
-          groups[key] = [];
-        }
-        groups[key].push(pb);
       }
 
       // Helper function to get the most relevant date for sorting
@@ -426,25 +410,31 @@ const PlaybookListScreen = ({ navigation }: any) => {
         return new Date(pb.createdAt || 0).getTime();
       };
 
-      // Process in smaller chunks to avoid blocking
+      // First, sort all playbooks by date (newest first)
+      const sortedPlaybooks = [...playbooksList]
+        .filter(pb => pb?.createdAt) // Filter out playbooks without createdAt
+        .sort((a, b) => getSortDate(b) - getSortDate(a)); // Sort by most recent first
+
+      // Group the sorted playbooks by month/year
+      for (const pb of sortedPlaybooks) {
+        const date = new Date(pb.createdAt!);
+        const key = formatDate(date);
+        if (!groups[key]) {
+          groups[key] = [];
+        }
+        groups[key].push(pb);
+      }
+
+      // Convert to array of sections and sort them by the most recent playbook in each section
       return Object.entries(groups)
-        .map(([title, data]) => {
-          // Sort playbooks within each section
-          const sortedData = [...data].sort((a, b) => {
-            return getSortDate(b) - getSortDate(a);
-          });
-
-          return { title, data: sortedData };
-        })
-        .sort((a, b) => {
-          // Sort sections by the most recent date in each section
-          const getMostRecentDate = (items: Playbook[]) => {
-            if (!items.length) {return 0;}
-            return Math.max(...items.map(pb => getSortDate(pb)));
-          };
-
-          return getMostRecentDate(b.data) - getMostRecentDate(a.data);
-        });
+        .map(([title, data]) => ({
+          title,
+          data,
+          // Get the most recent date in this section for sorting
+          latestDate: Math.max(...data.map(pb => getSortDate(pb)))
+        }))
+        .sort((a, b) => b.latestDate - a.latestDate) // Sort sections by most recent first
+        .map(({ title, data }) => ({ title, data })); // Remove the temporary latestDate property
     } catch (err) {
       Logger.error('Error in groupPlaybooksByMonth', err as Error, { component: 'PlaybookListScreen' });
       return [];
@@ -710,11 +700,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
         {/* Rounded content area standardized via BlueSheet (matches Journal) */}
         <BlueSheet style={styles.contentSheet}>
 
-          {(isLoading && playbooks.length === 0) ? (
+          {isLoading ? (
             <View style={[styles.listContent, styles.pageInner]}>
               <PlaybookSkeleton />
             </View>
-          ) : sections.length === 0 ? (
+          ) : playbooks.length === 0 ? (
             <View style={[styles.containerEmpty]}>
               <View style={[styles.emptyStateContainer, styles.pageInner, styles.listContentPadding]}>
                 <View style={styles.emptyHeroContainer}>
