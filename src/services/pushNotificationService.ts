@@ -22,12 +22,12 @@ if (Platform.OS === 'android') {
 }
 
 export interface DeviceToken {
-  userId: string;
+  user_id: string;
   token: string;
   platform: 'ios' | 'android';
-  deviceId: string;
-  createdAt: string;
-  updatedAt: string;
+  device_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NotificationPayload {
@@ -63,6 +63,13 @@ class PushNotificationService {
         await this.initializeIOS(userId);
       } else if (Platform.OS === 'android') {
         await this.initializeAndroid(userId);
+      }
+
+      if (!this.deviceToken) {
+        const storedToken = await this.getStoredToken();
+        if (storedToken) {
+          await this.saveDeviceToken(userId, storedToken);
+        }
       }
 
       this.isInitialized = true;
@@ -265,12 +272,12 @@ class PushNotificationService {
   async saveDeviceToken(userId: string, token: string): Promise<void> {
     try {
       const deviceToken: DeviceToken = {
-        userId,
+        user_id: userId,
         token,
         platform: Platform.OS as 'ios' | 'android',
-        deviceId: await this.getDeviceId(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        device_id: await this.getDeviceId(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       // Save to local storage
