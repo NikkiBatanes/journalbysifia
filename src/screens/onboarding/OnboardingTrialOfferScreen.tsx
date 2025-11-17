@@ -716,24 +716,24 @@ Please check App Store Connect configuration or contact support.`;
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* CTA and Footer */}
-        <View style={styles.footerBlock}>
-          <TouchableOpacity
-            style={[styles.startTrialButton, (isStartingTrial || isClosing) && styles.disabledButton]}
-            onPress={handleStartTrial}
-            activeOpacity={0.9}
-            disabled={isStartingTrial || isClosing}
-          >
-            <ThemedText weight="bold" style={styles.startTrialButtonText}>
-              {isStartingTrial ? 'Starting Trial...' : 'Start your free 3‑day trial'}
-            </ThemedText>
-          </TouchableOpacity>
-          <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-            Try 3 days free. No pressure. Cancel anytime
-          </ThemedText>
-        </View>
         </ScrollView>
+      </View>
+
+      {/* CTA and Footer (sticky) */}
+      <View style={styles.footerBlock} pointerEvents="box-none">
+        <TouchableOpacity
+          style={[styles.startTrialButton, (isStartingTrial || isClosing) && styles.disabledButton]}
+          onPress={handleStartTrial}
+          activeOpacity={0.9}
+          disabled={isStartingTrial || isClosing}
+        >
+          <ThemedText weight="bold" style={styles.startTrialButtonText}>
+            {isStartingTrial ? 'Starting Trial...' : 'Start your free 3‑day trial'}
+          </ThemedText>
+        </TouchableOpacity>
+        <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+          Try 3 days free. No pressure. Cancel anytime
+        </ThemedText>
       </View>
 
       {/* Plan Selector Modal */}
