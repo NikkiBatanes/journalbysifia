@@ -8,6 +8,7 @@ import {
   Modal,
   StatusBar,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -29,6 +30,8 @@ const OnboardingTrialOfferScreen = () => {
   const route = useRoute<any>();
   const { user } = useAuth();
   const { currentFont } = useTheme();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   const fonts = useMemo(() => {
     const fontKey = currentFont || 'lexend';
@@ -604,14 +607,20 @@ Please check App Store Connect configuration or contact support.`;
       </View>
 
       <View style={styles.scrollContainer}>
-        {/* Main Content */}
-        <View style={styles.contentWrap}>
+        {/* Main Content (scrollable to avoid cut-off in landscape) */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: isLandscape ? 220 : 280 }]}
+          showsVerticalScrollIndicator={false}
+          bounces
+        >
+          <View style={styles.contentWrap}>
           {/* Intro Text */}
           <View style={styles.introSection}>
             <ThemedText weight="semiBold" style={styles.introTitle}>
               That's okay. Starting something new can feel uncertain.
             </ThemedText>
-            <ThemedText style={styles.introSubtitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
+            <ThemedText style={styles.introSubtitle}>
               Here's what you'll unlock during your free trial.
             </ThemedText>
           </View>
@@ -724,6 +733,7 @@ Please check App Store Connect configuration or contact support.`;
             Try 3 days free. No pressure. Cancel anytime
           </ThemedText>
         </View>
+        </ScrollView>
       </View>
 
       {/* Plan Selector Modal */}
@@ -891,6 +901,9 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: 720,
+  },
+  scrollContent: {
+    paddingTop: 0,
   },
   mainTitle: {
     fontSize: 24,
