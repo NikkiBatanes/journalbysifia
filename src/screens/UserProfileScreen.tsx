@@ -617,12 +617,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       });
       setReportBugModal(false);
       setBugReportText('');
-      Alert.alert('Thanks!', 'Your bug report was sent.');
+      try { triggerSuccessHaptic(); } catch {}
+      Alert.alert('Thanks!', 'Your bug report was sent successfully.');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit bug report. Please try again later.';
+      
       Logger.error('[ReportBug] Failed to submit bug report', error as Error, {
-  component: 'UserProfileScreen',
-});
-      Alert.alert('Error', 'Failed to submit bug report. Please try again later.');
+        component: 'UserProfileScreen',
+      });
+      
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -805,12 +809,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       });
       setFeatureModal(false);
       setFeatureText('');
-      Alert.alert('Thanks!', 'Your feature suggestion was sent.');
+      try { triggerSuccessHaptic(); } catch {}
+      Alert.alert('Thanks!', 'Your feature suggestion was sent successfully.');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit feature suggestion. Please try again later.';
+      
       Logger.error('[FeatureRequest] Failed to submit', error as Error, {
-  component: 'UserProfileScreen',
-});
-      Alert.alert('Error', 'Failed to submit feature suggestion. Please try again later.');
+        component: 'UserProfileScreen',
+      });
+      
+      Alert.alert('Error', errorMessage);
     }
   };
 
