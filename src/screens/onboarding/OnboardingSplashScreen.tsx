@@ -524,8 +524,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoImage: {
-    width: 140,
-    height: 140,
+    width: 160,
+    height: 160,
     overflow: 'hidden',
   },
 });
