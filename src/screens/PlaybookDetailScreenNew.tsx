@@ -349,10 +349,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const devotionalFabPanResponder = useRef(
     PanResponder.create({
+      // Do NOT capture on touch start; allow TouchableOpacity to receive taps
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_evt, gesture) => {
-        return Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5;
-      },
+      // Activate pan only after a small movement threshold
+      onMoveShouldSetPanResponder: (_evt, gesture) => (
+        Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5
+      ),
+      onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
         devotionalFabPan.setOffset({ x: (devotionalFabPan as any).x._value || 0, y: (devotionalFabPan as any).y._value || 0 });
         devotionalFabPan.setValue({ x: 0, y: 0 });
@@ -1549,10 +1552,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     {
                       width: STACKED_CARD_WIDTH,
                       // Allow content to scroll under footer; we'll add padding to clear it
-                      height: Math.max(1000, windowHeight - playbookHeaderHeight - insets.top - 100),
+                      maxHeight: windowHeight - playbookHeaderHeight - insets.top - 100,
                     },
                   ]}
                   contentContainerStyle={{
+                    ...styles.expandedScrollContent,
                     paddingBottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
                   }}
                   contentInset={{
@@ -1693,42 +1697,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             </View>
           )}
 
-          {/* Draggable Devotional FAB */}
-          {shouldShowFAB && (
-            <RNAnimated.View
-              style={[
-                styles.floatingDevotionalContainer,
-                {
-                  bottom: isPortrait ? 100 + insets.bottom : 80 + insets.bottom,
-                  transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }],
-                },
-              ]}
-              {...devotionalFabPanResponder.panHandlers}
-            >
-              <RNAnimated.View style={[styles.expandableDevotionalButton, { width: devotionalButtonWidth }]}>
-                <TouchableOpacity
-                  style={styles.expandableDevotionalTouchable}
-                  onPress={handleCreateDevotional}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.devotionalIconContainer}>
-                    <Image
-                      source={require('../../../assets/icons/siFiaHeartWhiteTransparent.png')}
-                      style={styles.devotionalButtonIcon}
-                      resizeMode="contain"
-                      accessibilityLabel="siFia"
-                    />
-                  </View>
-                  <RNAnimated.View style={{ opacity: devotionalTextOpacity, width: devotionalTextWidth }}>
-                    <ThemedText weight="semiBold" style={styles.devotionalExpandText} numberOfLines={1}>
-                      Create a Devotional
-                    </ThemedText>
-                  </RNAnimated.View>
-                </TouchableOpacity>
-              </RNAnimated.View>
-            </RNAnimated.View>
-          )}
-
           <DevotionalModal
             visible={showDevotionalModal}
             onClose={() => setShowDevotionalModal(false)}
@@ -1742,6 +1710,43 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             }}
           />
         </>
+      )}
+
+      {/* Draggable Devotional FAB - positioned at root level outside all scrollable content */}
+      {shouldShowFAB && (
+        <RNAnimated.View
+          style={[
+            styles.floatingDevotionalContainer,
+            {
+              bottom: insets.bottom + 24,
+              right: Math.max(20, insets.right + 20),
+              transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }],
+            },
+          ]}
+          {...devotionalFabPanResponder.panHandlers}
+        >
+          <RNAnimated.View style={[styles.expandableDevotionalButton, { width: devotionalButtonWidth }]}>
+            <TouchableOpacity
+              style={styles.expandableDevotionalTouchable}
+              onPress={handleCreateDevotional}
+              activeOpacity={0.8}
+            >
+              <View style={styles.devotionalIconContainer}>
+                <Image
+                  source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
+                  style={styles.devotionalButtonIcon}
+                  resizeMode="contain"
+                  accessibilityLabel="siFia"
+                />
+              </View>
+              <RNAnimated.View style={{ opacity: devotionalTextOpacity, width: devotionalTextWidth }}>
+                <ThemedText weight="semiBold" style={styles.devotionalExpandText} numberOfLines={1}>
+                  Create a Devotional
+                </ThemedText>
+              </RNAnimated.View>
+            </TouchableOpacity>
+          </RNAnimated.View>
+        </RNAnimated.View>
       )}
     </View>
   );
@@ -1838,6 +1843,7 @@ interface PlaybookDetailStyles {
   documentViewContainer: ViewStyle;
   stackCardVisible: ViewStyle;
   expandedScrollView: ViewStyle;
+  expandedScrollContent: ViewStyle;
   collapsedCardTouchable: ViewStyle;
 }
 
@@ -2436,7 +2442,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   stackedCardExpanded: {
     position: 'relative',
-    minHeight: 400,
     width: '100%',
   },
   // Devotional FAB styles
@@ -2444,8 +2449,8 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     position: 'absolute',
     bottom: 100,
     right: 20,
-    zIndex: 1000,
-    elevation: 1000,
+    zIndex: 10001,
+    elevation: 10001,
   },
   expandableDevotionalButton: {
     backgroundColor: Colors.hopeWhite,
@@ -2494,6 +2499,9 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   expandedScrollView: {
     borderRadius: 28,
+  },
+  expandedScrollContent: {
+    flexGrow: 1,
   },
   collapsedCardTouchable: {
     borderRadius: 28,

@@ -919,7 +919,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
     position: 'absolute',
     // bottom set dynamically in render using bottomClearance
     // right set dynamically to respect safe area
-    zIndex: 1000,
+    zIndex: 10001,
+    elevation: 10001,
   },
   expandableButton: {
     backgroundColor: Colors.hopeWhite,
