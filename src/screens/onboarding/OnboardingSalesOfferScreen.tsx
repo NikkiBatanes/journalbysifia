@@ -346,16 +346,40 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       try {
         const products = await paymentService.getAvailableProducts();
-        // Match BOTH tier AND billing period to ensure correct product selection
+        
+        // DEBUG: Log all available products to verify App Store Connect configuration
+        logger.debug('📦 All available products from App Store:', {
+          count: products.length,
+          products: products.map(p => ({
+            id: p.productId,
+            tier: p.tier,
+            price: p.localizedPrice,
+          })),
+        });
+        
+        // CRITICAL: Sales Offer Screen must EXCLUDE .freetrial products
+        // Match tier AND billing period AND ensure NO .freetrial suffix
         const targetProduct = products.find(p =>
           p.tier === selectedTier &&
-          p.productId.includes(billing)
+          p.productId.includes(billing) &&
+          !p.productId.includes('.freetrial')
         );
 
         if (targetProduct) {
           productId = targetProduct.productId;
-
+          logger.debug('✅ Found non-trial product for Sales Offer', { productId });
         } else {
+          // Log what we were looking for and what we found
+          logger.warn('❌ No non-trial product found!', {
+            lookingFor: {
+              tier: selectedTier,
+              billing,
+              pattern: `app.sifia.com.${selectedTier}.${billing}`,
+            },
+            matchingTier: products.filter(p => p.tier === selectedTier).map(p => p.productId),
+            matchingBilling: products.filter(p => p.productId.includes(billing)).map(p => p.productId),
+          });
+          
           // Construct product ID - NO trial suffix for sales offer (always paid)
           productId = `app.sifia.com.${selectedTier}.${billing}`;
           Logger.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`, {
