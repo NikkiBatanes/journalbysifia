@@ -864,11 +864,28 @@ export class AppleStoreKitService {
       component: 'AppleStoreKitService',
       action: 'error',
     });
+
+      const rawMessage = error instanceof Error ? error.message : undefined;
+
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to restore purchases',
+        message: this.getFriendlyRestoreErrorMessage(rawMessage),
       };
     }
+  }
+
+  private getFriendlyRestoreErrorMessage(rawMessage?: string): string {
+    if (!rawMessage) {
+      return 'We couldn\'t restore your purchases right now. Please try again shortly or contact support if the issue continues.';
+    }
+
+    const normalized = rawMessage.toLowerCase();
+
+    if (normalized.includes('getavailablepurchases')) {
+      return 'We couldn\'t reach the App Store to restore your purchases. Please try again in a moment.';
+    }
+
+    return 'We couldn\'t restore your purchases right now. Please try again shortly or contact support if the issue continues.';
   }
 
   /**
