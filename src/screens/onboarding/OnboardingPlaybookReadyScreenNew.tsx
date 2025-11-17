@@ -21,7 +21,6 @@ import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme';
-import { Typography } from '../../theme/typography';
 import { BorderRadii } from '../../theme/styles';
 import { notificationService } from '../../services/notificationService';
 import { faithPointsService } from '../../services/faithPointsService';
@@ -554,7 +553,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               />
               <ThemedText
                 weight="semiBold"
-                style={[styles.affirmationsTitle, { color: Colors.hopeWhite, fontSize: 20, fontWeight: '700' }]}
+                style={styles.affirmationsTitle}
               >
                 Affirmations
               </ThemedText>

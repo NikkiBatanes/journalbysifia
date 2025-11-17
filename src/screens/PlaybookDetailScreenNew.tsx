@@ -14,7 +14,6 @@ import {
   Animated as RNAnimated,
   useWindowDimensions,
   ScrollView,
-  LayoutAnimation,
   Platform,
   UIManager,
   Easing as RNEasing,
@@ -251,7 +250,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const baseTopInset = Math.max(insets.top, 10);
   const overlayTop = baseTopInset + playbookHeaderHeight + headerSpacingAdjustment;
   const [_expandedTopY, _setExpandedTopY] = useState(0);
-  const _expandedContainerRef = useRef<View>(null);
 
   useEffect(() => {
     _setExpandedTopY(0);
@@ -399,9 +397,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   }, [viewMode, expandedCardId]);
 
   // 6. Shared value hooks - Animation values
-  const nudgeY = useSharedValue(0);
   const bounceY = useSharedValue(0);
-  const cardScale = useSharedValue(1);
 
   const translateY = useSharedValue(0);
   const isTransitioning = useSharedValue(false);
@@ -437,32 +433,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
     marginLeft: 4,
   }));
-
-  const _animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: translateY.value + nudgeY.value + bounceY.value,
-      },
-      { scale: cardScale.value },
-    ],
-  }));
-
-  // Previous card animated style
-  const _previousCardAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: previousCardTranslateY.value + translateY.value + nudgeY.value + bounceY.value,
-      },
-    ],
-    opacity: previousCardOpacity.value,
-    position: 'absolute',
-    top: -470, // Position directly above current card (card height + margin)
-    left: 0,
-    right: 0,
-    zIndex: showPreviousCard.value ? 150 : -1, // Lower z-index to appear behind current card
-  }));
-
-  // Back cards animated style (removed unused variable)
 
   // Header collapse and overlay animated styles
   const headerCollapseStyle = useAnimatedStyle(() => ({
@@ -1303,38 +1273,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // ===== HANDLER FUNCTIONS =====
 
-  const _handleCardPress = useCallback((cardIndex: number) => {
-
-    // Block expansion for Affirmations and Bible Verse cards
-    const tappedType = cardData[cardIndex]?.type as CardType | undefined;
-    if (tappedType === 'affirmation' || tappedType === 'bible') {
-
-      return;
-    }
-
-    // In stack view, toggle expand/collapse of the tapped card in-place
-    if (viewMode === 'stack' && !isScrolling) {
-      // Light haptic on expand/collapse
-      triggerLightHaptic();
-
-      // Smooth expand/collapse animation
-      LayoutAnimation.configureNext({
-        duration: 400,
-        update: { type: LayoutAnimation.Types.easeInEaseOut },
-        create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-        delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-      });
-      setExpandedCardIndex(prev => {
-        const newValue = prev === cardIndex ? null : cardIndex;
-
-        return newValue;
-      });
-      return;
-    }
-
-    // In document view, do nothing on tap (no navigation to CardDetail)
-  }, [cardData, viewMode, isScrolling]);
-
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollYValue = event.nativeEvent.contentOffset.y;
     const shouldShowCompactHeader = scrollYValue > 100;
@@ -1414,7 +1352,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         {/* Absolute overlay for the interactive card stack so it can pass over header and status bar */}
         <Animated.View pointerEvents="box-none" style={[styles.cardOverlay, overlayTopAnimatedStyle]}>
           <GestureDetector gesture={panGesture}>
-            <View style={[styles.mainContainer, viewMode === 'document' && { paddingHorizontal: 0 }]}>
+            <View style={[styles.mainContainer, viewMode === 'document' && styles.documentViewContainer]}>
               {viewMode === 'stack' ? (
                 renderStackCards()
               ) : (
@@ -1589,13 +1527,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               key={card.id}
               style={[
                 styles.stackCard,
+                styles.stackCardVisible,
                 {
                   zIndex: cardZIndex,
                   height: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                   maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                   width: STACKED_CARD_WIDTH,
-                  overflow: 'visible',
-                  borderRadius: 28,
                   transform: [
                     { translateY: animValues.translateY },
                     { scale: animValues.scale },
@@ -1607,12 +1544,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             >
               {isExpanded ? (
                 <ScrollView
-                  style={{
-                    width: STACKED_CARD_WIDTH,
-                    // Allow content to scroll under footer; we'll add padding to clear it
-                    height: Math.max(1000, windowHeight - playbookHeaderHeight - insets.top - 100),
-                    borderRadius: 28,
-                  }}
+                  style={[
+                    styles.expandedScrollView,
+                    {
+                      width: STACKED_CARD_WIDTH,
+                      // Allow content to scroll under footer; we'll add padding to clear it
+                      height: Math.max(1000, windowHeight - playbookHeaderHeight - insets.top - 100),
+                    },
+                  ]}
                   contentContainerStyle={{
                     paddingBottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
                   }}
@@ -1658,12 +1597,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     setExpandedCardId(card.id);
                     animateCardTransition(card.id, true);
                   }}
-                  style={{
-                    width: STACKED_CARD_WIDTH,
-                    height: STACKED_CARD_HEIGHT,
-                    borderRadius: 28,
-                    overflow: 'hidden',
-                  }}
+                  style={[
+                    styles.collapsedCardTouchable,
+                    {
+                      width: STACKED_CARD_WIDTH,
+                      height: STACKED_CARD_HEIGHT,
+                    },
+                  ]}
                 >
                   {cardContent}
                 </TouchableOpacity>
@@ -1895,6 +1835,10 @@ interface PlaybookDetailStyles {
   devotionalIconContainer: ViewStyle;
   devotionalButtonIcon: ImageStyle;
   devotionalExpandText: TextStyle;
+  documentViewContainer: ViewStyle;
+  stackCardVisible: ViewStyle;
+  expandedScrollView: ViewStyle;
+  collapsedCardTouchable: ViewStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -2539,6 +2483,20 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     color: Colors.anchorBlue,
     fontSize: 14,
     marginLeft: 8,
+    overflow: 'hidden',
+  },
+  documentViewContainer: {
+    paddingHorizontal: 0,
+  },
+  stackCardVisible: {
+    overflow: 'visible',
+    borderRadius: 28,
+  },
+  expandedScrollView: {
+    borderRadius: 28,
+  },
+  collapsedCardTouchable: {
+    borderRadius: 28,
     overflow: 'hidden',
   },
 });
