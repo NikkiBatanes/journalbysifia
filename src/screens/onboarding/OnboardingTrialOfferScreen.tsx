@@ -609,8 +609,8 @@ Please check App Store Connect configuration or contact support.`;
       <View style={styles.scrollContainer}>
         {/* Main Content (scrollable to avoid cut-off in landscape) */}
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: isLandscape ? 220 : 280 }]}
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, isLandscape ? styles.scrollContentLandscape : styles.scrollContentPortrait]}
           showsVerticalScrollIndicator={false}
           bounces
         >
@@ -902,8 +902,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
     width: '100%',
     maxWidth: 720,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     paddingTop: 0,
+  },
+  scrollContentLandscape: {
+    paddingBottom: 220,
+  },
+  scrollContentPortrait: {
+    paddingBottom: 280,
   },
   mainTitle: {
     fontSize: 24,
