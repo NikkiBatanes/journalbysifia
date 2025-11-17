@@ -50,6 +50,7 @@ export class AppleStoreKitService {
   private purchaseErrorSubscription: any;
   private currentUserId: string | null = null;
   private pendingPurchaseResolvers: Map<string, { resolve: (value: PurchaseResult) => void; reject: (error: any) => void }> = new Map();
+  private purchaseInitiatedTimestamp: number | null = null; // Track when purchase flow started
 
   // Product IDs for subscription tiers
   // Two-Screen Strategy:
@@ -201,6 +202,15 @@ export class AppleStoreKitService {
       // Store userId for purchase update handler
       this.currentUserId = userId;
 
+      // CRITICAL: Record timestamp when purchase flow is initiated
+      // This will be used to validate purchase freshness and reject cached/stale purchases
+      this.purchaseInitiatedTimestamp = Date.now();
+      Logger.info('[StoreKit] 🛒 Purchase flow initiated', {
+        component: 'AppleStoreKitService',
+        productId,
+        timestamp: new Date(this.purchaseInitiatedTimestamp).toISOString(),
+      });
+
       // Create a promise that will be resolved by the purchase listener
       const purchasePromise = new Promise<PurchaseResult>((resolve, reject) => {
         this.pendingPurchaseResolvers.set(productId, { resolve, reject });
@@ -240,8 +250,19 @@ export class AppleStoreKitService {
       // Wait for the purchase listener to complete
       const result = await purchasePromise;
 
+      // Clear timestamp on success
+      this.purchaseInitiatedTimestamp = null;
+
       return result;
     } catch (error) {
+      // Clear timestamp on error
+      this.purchaseInitiatedTimestamp = null;
+
+      Logger.error('[StoreKit] Purchase failed', error as Error, {
+        component: 'AppleStoreKitService',
+        productId,
+      });
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -255,6 +276,54 @@ export class AppleStoreKitService {
    */
   private async handlePurchaseUpdate(purchase: ProductPurchase): Promise<void> {
     try {
+      Logger.info('[StoreKit] 🔍 Processing purchase update', {
+        component: 'AppleStoreKitService',
+        productId: purchase.productId,
+        transactionId: purchase.transactionId?.substring(0, 10) + '...',
+        transactionDate: purchase.transactionDate,
+      });
+
+      // CRITICAL: Validate purchase freshness to prevent cached/stale purchases
+      if (this.purchaseInitiatedTimestamp) {
+        const purchaseTime = new Date(purchase.transactionDate).getTime();
+        const timeSincePurchaseInitiated = Date.now() - this.purchaseInitiatedTimestamp;
+        const purchaseAge = Date.now() - purchaseTime;
+
+        Logger.info('[StoreKit] Purchase freshness check', {
+          component: 'AppleStoreKitService',
+          purchaseInitiatedAt: new Date(this.purchaseInitiatedTimestamp).toISOString(),
+          purchaseTransactionDate: new Date(purchaseTime).toISOString(),
+          timeSincePurchaseInitiated: `${Math.round(timeSincePurchaseInitiated / 1000)}s`,
+          purchaseAge: `${Math.round(purchaseAge / 1000)}s`,
+        });
+
+        // CRITICAL: Reject if purchase is older than 5 minutes from when we initiated the flow
+        // This prevents old cached purchases from being treated as new
+        if (purchaseAge > 5 * 60 * 1000) {
+          Logger.error('[StoreKit] ❌ REJECTING STALE PURCHASE - Transaction is older than 5 minutes', new Error('STALE_PURCHASE'), {
+            component: 'AppleStoreKitService',
+            purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
+            transactionDate: new Date(purchaseTime).toISOString(),
+          });
+
+          // Reject the pending purchase promise
+          const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
+          if (resolver) {
+            resolver.reject(new Error('STALE_PURCHASE_CACHE'));
+            this.pendingPurchaseResolvers.delete(purchase.productId);
+          }
+          return;
+        }
+
+        Logger.info('[StoreKit] ✅ Purchase freshness validated - proceeding', {
+          component: 'AppleStoreKitService',
+        });
+      } else {
+        Logger.warn('[StoreKit] ⚠️ No purchase timestamp - cannot validate freshness', {
+          component: 'AppleStoreKitService',
+        });
+      }
+
       // ENTERPRISE IMPROVEMENT: Server-side validation FIRST
       const serverValidation = await this.validateReceiptServerSide(
         purchase.transactionReceipt,
@@ -282,6 +351,14 @@ export class AppleStoreKitService {
 
       // Finish the transaction
       await finishTransaction({ purchase, isConsumable: false });
+
+      // CRITICAL: Clear purchase timestamp after successful validation
+      this.purchaseInitiatedTimestamp = null;
+
+      Logger.info('[StoreKit] ✅ Purchase validated and completed successfully', {
+        component: 'AppleStoreKitService',
+        transactionId: purchase.transactionId?.substring(0, 10) + '...',
+      });
 
       // Resolve the pending purchase promise
       const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
@@ -521,23 +598,60 @@ export class AppleStoreKitService {
    * ENTERPRISE: Check and sync subscription status with Apple
    * This is the core method for maintaining subscription state accuracy
    * Call this on app launch, app foreground, and periodically
+   * 
+   * CRITICAL: This should NOT be called during active purchase flows
+   * to prevent cached purchases from being treated as new purchases
    */
-  async checkAndSyncSubscriptionStatus(userId: string): Promise<void> {
+  async checkAndSyncSubscriptionStatus(userId: string, skipIfPurchaseInProgress = true): Promise<void> {
     try {
+      // CRITICAL: Don't sync if a purchase is currently in progress
+      // This prevents cached purchases from interfering with new purchase flows
+      if (skipIfPurchaseInProgress && this.purchaseInitiatedTimestamp) {
+        const timeSinceInitiated = Date.now() - this.purchaseInitiatedTimestamp;
+        if (timeSinceInitiated < 2 * 60 * 1000) { // Within 2 minutes
+          Logger.info('[StoreKit] ⏸️ Skipping sync - purchase in progress', {
+            component: 'AppleStoreKitService',
+            timeSinceInitiated: `${Math.round(timeSinceInitiated / 1000)}s`,
+          });
+          return;
+        }
+      }
 
       await this.initialize();
+
+      Logger.info('[StoreKit] 🔄 Checking subscription status with Apple', {
+        component: 'AppleStoreKitService',
+      });
 
       // Get all available purchases from Apple
       const availablePurchases = await RNIap.getAvailablePurchases();
 
-      if (availablePurchases.length === 0) {
+      Logger.info('[StoreKit] Available purchases from Apple', {
+        component: 'AppleStoreKitService',
+        count: availablePurchases.length,
+        purchases: availablePurchases.map(p => ({
+          productId: p.productId,
+          transactionDate: p.transactionDate,
+          transactionId: p.transactionId?.substring(0, 10) + '...',
+        })),
+      });
 
+      if (availablePurchases.length === 0) {
+        Logger.info('[StoreKit] No active purchases found', {
+          component: 'AppleStoreKitService',
+        });
         await this.handleNoActiveSubscription(userId);
         return;
       }
 
       // Get the most recent subscription purchase
       const latestPurchase = this.getMostRecentPurchase(availablePurchases);
+
+      Logger.info('[StoreKit] Latest purchase identified', {
+        component: 'AppleStoreKitService',
+        productId: latestPurchase.productId,
+        transactionDate: latestPurchase.transactionDate,
+      });
 
       // Determine subscription status
       const status = await this.determineSubscriptionStatus(latestPurchase);

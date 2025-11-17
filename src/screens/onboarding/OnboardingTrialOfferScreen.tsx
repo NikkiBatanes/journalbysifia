@@ -296,27 +296,13 @@ Please check App Store Connect configuration or contact support.`;
           const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
           const storeKitService = AppleStoreKitService.getInstance();
 
-          // CRITICAL FIX: Check if this is a cached purchase from previous attempt
-          const RNIap = await import('react-native-iap');
-          const availablePurchases = await RNIap.default.getAvailablePurchases();
-          const currentPurchase = availablePurchases?.find((p: any) =>
-            p.productId.includes(selectedTierId) &&
-            p.productId.includes(isAnnual ? 'annual' : 'monthly')
-          );
+          // NOTE: Stale purchase validation now handled in AppleStoreKitService.handlePurchaseUpdate
+          // The service automatically rejects purchases older than 5 minutes from initiation
+          // This ensures only fresh trial activations are processed
 
-          if (currentPurchase && currentPurchase.transactionDate) {
-            // Check if this purchase is recent (within last 2 minutes)
-            const purchaseTime = new Date(currentPurchase.transactionDate).getTime();
-            const now = Date.now();
-            const twoMinutesAgo = now - (2 * 60 * 1000);
-
-            if (purchaseTime < twoMinutesAgo) {
-              throw new Error('STALE_PURCHASE_CACHE');
-            }
-          }
-
-          await storeKitService.checkAndSyncSubscriptionStatus(user.id);
+          await storeKitService.checkAndSyncSubscriptionStatus(user.id, false);
         } catch (syncError) {
+          logger.error('Trial sync error', syncError as Error);
         }
 
         // Final step

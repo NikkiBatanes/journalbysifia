@@ -188,6 +188,8 @@ class PricingService {
 
   /**
    * Get user's location-based pricing
+   * Uses device locale (not GPS) - works without location permission
+   * Also checks timezone as fallback for Philippines detection
    */
   async getUserLocation(): Promise<string> {
     try {
@@ -202,20 +204,58 @@ class PricingService {
         locale = NativeModules.I18nManager?.localeIdentifier || '';
       }
 
+      Logger.info('[PricingService] Detected locale', { 
+        component: 'pricingService',
+        locale,
+        platform: Platform.OS,
+      });
+
       // Extract country code from locale (e.g., "en_PH" -> "PH", "en-PH" -> "PH")
       const countryMatch = locale.match(/[-_]([A-Z]{2})$/i);
       const countryCode = countryMatch ? countryMatch[1].toUpperCase() : '';
 
-      // Return country code if we have pricing for it, otherwise default to US
-      if (countryCode && this.locationPricing[countryCode]) {
+      Logger.info('[PricingService] Extracted country code', {
+        component: 'pricingService',
+        countryCode,
+        hasPricing: !!(countryCode && this.locationPricing[countryCode]),
+      });
 
+      // Return country code if we have pricing for it
+      if (countryCode && this.locationPricing[countryCode]) {
         return countryCode;
       }
 
+      // FALLBACK: Check timezone to detect Philippines
+      // Philippines uses Asia/Manila timezone (UTC+8)
+      try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        Logger.info('[PricingService] Checking timezone fallback', {
+          component: 'pricingService',
+          timezone,
+        });
+        
+        if (timezone === 'Asia/Manila') {
+          Logger.info('[PricingService] Detected Philippines via timezone - using PHP pricing', {
+            component: 'pricingService',
+          });
+          return 'PH';
+        }
+      } catch (tzError) {
+        Logger.warn('[PricingService] Timezone detection failed', {
+          component: 'pricingService',
+        });
+      }
+
+      // Default to US (USD pricing) for rest of world
+      // Only PH has special pricing, everyone else uses USD
+      Logger.info('[PricingService] No country code detected - defaulting to US (USD)', {
+        component: 'pricingService',
+      });
       return 'US';
     } catch (error) {
       Logger.error('[PricingService] Error getting user location', error as Error, { component: 'pricingService' });
-      return 'DEFAULT';
+      // On error, default to US (USD pricing)
+      return 'US';
     }
   }
 
@@ -226,21 +266,36 @@ class PricingService {
     const location = await this.getUserLocation();
     const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
 
+    Logger.info('[PricingService] Getting location-adjusted pricing', {
+      component: 'pricingService',
+      location,
+      currency: locationData.currency,
+      isDev: __DEV__,
+    });
+
     // Use explicit PH pricing when market is Philippines
     if (location === 'PH') {
-
+      Logger.info('[PricingService] Using PH pricing (detected Philippines)', {
+        component: 'pricingService',
+      });
       return this.phOverridePricing;
     }
 
     // FORCE Philippine pricing for development/testing
     if (__DEV__) {
-
+      Logger.info('[PricingService] Using PH pricing (dev mode)', {
+        component: 'pricingService',
+      });
       return this.phOverridePricing;
     }
 
     // DEFAULT to Philippine pricing (this is a Philippines-focused app)
     // Only use USD pricing if explicitly in a USD market
     if (location === 'US' || location === 'CA' || location === 'GB' || location === 'AU') {
+      Logger.info('[PricingService] Using USD pricing (detected USD market)', {
+        component: 'pricingService',
+        location,
+      });
       return this.baseUSDPricing.map(tier => ({
         ...tier,
         monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
@@ -251,6 +306,10 @@ class PricingService {
     }
 
     // Default to PHP pricing for all other markets
+    Logger.info('[PricingService] Using PH pricing (default fallback)', {
+      component: 'pricingService',
+      location,
+    });
     return this.phOverridePricing;
   }
 
@@ -260,18 +319,35 @@ class PricingService {
   async getCurrencyInfo(): Promise<LocationPricing> {
     const location = await this.getUserLocation();
 
+    Logger.info('[PricingService] Getting currency info', {
+      component: 'pricingService',
+      location,
+      isDev: __DEV__,
+    });
+
     // FORCE Philippine currency for development/testing (matches pricing override)
     if (__DEV__) {
+      Logger.info('[PricingService] Using PHP currency (dev mode)', {
+        component: 'pricingService',
+      });
       return this.locationPricing.PH;
     }
 
     // DEFAULT to Philippine currency (this is a Philippines-focused app)
     // Only use USD currency if explicitly in a USD market
     if (location === 'US' || location === 'CA' || location === 'GB' || location === 'AU') {
+      Logger.info('[PricingService] Using USD currency (detected USD market)', {
+        component: 'pricingService',
+        location,
+      });
       return this.locationPricing[location] || this.locationPricing.DEFAULT;
     }
 
     // Default to PHP currency for all other markets
+    Logger.info('[PricingService] Using PHP currency (default)', {
+      component: 'pricingService',
+      location,
+    });
     return this.locationPricing.PH;
   }
 

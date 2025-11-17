@@ -497,27 +497,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
               const storeKitService = AppleStoreKitService.getInstance();
 
-              // CRITICAL FIX: Check if this is a cached purchase from previous attempt
-              const RNIap = await import('react-native-iap');
-              const availablePurchases = await RNIap.default.getAvailablePurchases();
-              const currentPurchase = availablePurchases?.find((p: any) =>
-                p.productId.includes(selectedTier) &&
-                p.productId.includes(isAnnual ? 'annual' : 'monthly')
-              );
+              // NOTE: Stale purchase validation now handled in AppleStoreKitService.handlePurchaseUpdate
+              // No need to check here - the service will reject purchases older than 5 minutes
 
-              if (currentPurchase && currentPurchase.transactionDate) {
-                // Check if this purchase is recent (within last 2 minutes)
-                const purchaseTime = new Date(currentPurchase.transactionDate).getTime();
-                const now = Date.now();
-                const twoMinutesAgo = now - (2 * 60 * 1000);
-
-                if (purchaseTime < twoMinutesAgo) {
-                  logger.warn('⚠️ Found old cached purchase - ignoring and requiring fresh payment');
-                  throw new Error('STALE_PURCHASE_CACHE');
-                }
-              }
-
-              await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '');
+              await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '', false);
               logger.info('✅ Subscription synced with Apple');
 
               // Also refresh local state
