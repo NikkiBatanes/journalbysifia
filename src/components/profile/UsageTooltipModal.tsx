@@ -246,6 +246,7 @@ const UsageTooltipModal: React.FC<Props> = ({
         upgradeMode: true,
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
+        featureType: type === 'playbooks' || type === 'devotionals' ? type : undefined,
       });
     }, 100);
   };

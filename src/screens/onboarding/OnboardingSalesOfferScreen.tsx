@@ -24,6 +24,7 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { logger } from '../../utils/logger';
+import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
 
 // removed Dimensions width as unused
 
@@ -34,6 +35,7 @@ interface RouteParams {
   upgradeMode?: boolean;
   currentTier?: string;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
+  featureType?: 'playbooks' | 'devotionals'; // explicitly mark which feature triggered the upgrade
   // Navigation context flags
   source?: string; // e.g., 'planning_lock', 'copy_todos_lock', 'guided_prompts_lock', 'calendar_auto_sync'
   feature?: string; // e.g., 'future_planning', 'copy_todos', 'guided_prompts'
@@ -84,6 +86,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
   const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
+
+  // Detect if coming from devotional gating
+  // Use explicit featureType if provided, otherwise fall back to requestedDuration logic
+  const fromDevotionalGating = isUpgradeMode && (routeParams?.featureType === 'devotionals' || (!routeParams?.featureType && requestedDuration));
+
+  // Generate dynamic sales copy for playbook/devotional gating
+  const dynamicSalesCopy = React.useMemo(() => {
+    if (!isUpgradeMode || !subscription) {return null;}
+
+    // Use explicit featureType from route params if provided, otherwise infer from requestedDuration
+    const featureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
+    const isOnTrial = subscription.tier === 'free_trial';
+
+    return generateSalesCopy({
+      featureType,
+      currentTier: currentUserTier as SubscriptionTier,
+      remaining: 0, // Assuming they hit the limit
+      limit: featureType === 'playbooks'
+        ? (subscription.playbooks_limit || 0)
+        : (subscription.devotionals_limit || 0),
+      isOnTrial,
+      trialChosenTier: subscription.trial_chosen_tier as SubscriptionTier,
+      trialEndDate: subscription.trial_end_date,
+      subscriptionStartDate: subscription.subscription_start_date,
+      requestedDuration,
+    });
+  }, [isUpgradeMode, subscription, currentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType]);
 
   // Debug trial eligibility
   logger.debug('Trial eligibility debug', {
@@ -816,38 +845,42 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           {/* Main Content that should scroll under the sticky toggle */}
           <ThemedText weight="bold" style={styles.mainTitle}>
-            {isUpgradeMode
-              ? 'Keep walking—grace for the next step'
-              : fromPlanningLock
-                ? 'Upgrade to Plan Ahead'
-                : fromCopyTodosLock
-                  ? 'Unlock Copy To-Dos & More'
-                  : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                    ? 'Unlock Recurring Time Blocks'
-                    : fromCalendarAutoSync
-                      ? 'Unlock Calendar Auto-Sync'
-                      : fromGuidedPromptsLock
-                        ? 'Unlock Unlimited Guided Prompts'
-                        : fromSmartJournalingLock
-                          ? 'Upgrade to Unlock Smart Journaling'
-                          : "You've taken your first step!"}
+            {dynamicSalesCopy
+              ? dynamicSalesCopy.title
+              : isUpgradeMode
+                ? 'Keep walking—grace for the next step'
+                : fromPlanningLock
+                  ? 'Upgrade to Plan Ahead'
+                  : fromCopyTodosLock
+                    ? 'Unlock Copy To-Dos & More'
+                    : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                      ? 'Unlock Recurring Time Blocks'
+                      : fromCalendarAutoSync
+                        ? 'Unlock Calendar Auto-Sync'
+                        : fromGuidedPromptsLock
+                          ? 'Unlock Unlimited Guided Prompts'
+                          : fromSmartJournalingLock
+                            ? 'Upgrade to Unlock Smart Journaling'
+                            : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            {isUpgradeMode
-              ? 'Choose a plan that meets you where you are and helps you go deeper.'
-              : fromPlanningLock
-                ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
-                : fromCopyTodosLock
-                  ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features, playbooks, and devotionals.`
-                  : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                    ? 'Create recurring time blocks to build consistent rhythms. Also unlock generating playbooks and devotionals, calendar sync, and more powerful planning features.'
-                    : fromCalendarAutoSync
-                      ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
-                      : fromGuidedPromptsLock
-                        ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
-                        : fromSmartJournalingLock
-                          ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
-                          : 'Keep walking, one faithful step at a time.'}
+            {dynamicSalesCopy
+              ? dynamicSalesCopy.message
+              : isUpgradeMode
+                ? 'Choose a plan that meets you where you are and helps you go deeper.'
+                : fromPlanningLock
+                  ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
+                  : fromCopyTodosLock
+                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features, playbooks, and devotionals.`
+                    : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                      ? 'Create recurring time blocks to build consistent rhythms. Also unlock generating playbooks and devotionals, calendar sync, and more powerful planning features.'
+                      : fromCalendarAutoSync
+                        ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
+                        : fromGuidedPromptsLock
+                          ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
+                          : fromSmartJournalingLock
+                            ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
+                            : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}

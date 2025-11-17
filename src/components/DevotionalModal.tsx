@@ -13,32 +13,9 @@ import useDevotionalGating from '../hooks/useDevotionalGating';
 
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { generateSalesCopy } from '../utils/dynamicSalesCopy';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Apple monthly renewal helper: renews on the same calendar day each month.
-// If that day does not exist in the target month (e.g., 31), it renews on the last day of that month.
-function getNextAppleMonthlyResetDate(subscriptionStartISO?: string | null): Date {
-  const now = new Date();
-  if (!subscriptionStartISO) {
-    // Fallback: first day of the next month (legacy behavior)
-    return new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  }
-  const start = new Date(subscriptionStartISO);
-  const targetDay = start.getDate();
-
-  // Start from current month; if today's date is before the billing day, next reset is this month on targetDay (clamped).
-  // Otherwise, it's next month on targetDay (clamped).
-  const candidateMonth = now.getDate() < targetDay ? now.getMonth() : now.getMonth() + 1;
-  const candidateYear = candidateMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
-  const normalizedMonth = (candidateMonth + 12) % 12;
-
-  // Find last day of candidate month
-  const lastDayOfMonth = new Date(candidateYear, normalizedMonth + 1, 0).getDate();
-  const day = Math.min(targetDay, lastDayOfMonth);
-
-  return new Date(candidateYear, normalizedMonth, day);
-}
 
 interface DurationOption {
   days: number;
@@ -94,7 +71,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const { user } = useAuth();
   const navigation = useNavigation();
-  const { createDevotional, isCreating, error } = useDevotionalOperations(user?.id || '');
+  const { createDevotional, isCreating } = useDevotionalOperations(user?.id || '');
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
@@ -111,6 +88,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     devotionalsLimit: number;
     trialEndDate: string | null;
   } | null>(null);
+  const [creationError, setCreationError] = useState<Error | null>(null);
 
   // Feature gating
   const devotionalGating = useDevotionalGating();
@@ -174,7 +152,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   React.useEffect(() => {
 
-  }, [isCreating, error, isSuccess, selectedDuration]);
+  }, [isCreating, creationError, isSuccess, selectedDuration]);
   // Animation for the overlay (fade in/out)
   // Fade animation for backdrop dim
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -349,6 +327,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         currentTier: 'seeker',
         requestedDuration: days,
         skipNotificationPreference: true,
+        featureType: 'devotionals',
       });
       return;
     }
@@ -389,12 +368,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         currentTier: devotionalGating.tier,
         requestedDuration: days,
         skipNotificationPreference: true,
+        featureType: 'devotionals',
       });
       return;
     }
 
     try {
       setSelectedDuration(days);
+      setCreationError(null); // Reset error state
 
       if (onSelectDuration) {
         onSelectDuration(days);
@@ -449,6 +430,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }
       }
     } catch (err) {
+      setCreationError(err as Error);
       Logger.error('[DevotionalModal] Error creating devotional', err as Error, { component: 'DevotionalModal' });
       Logger.error('[DevotionalModal] Error details', undefined, {
         component: 'DevotionalModal',
@@ -638,12 +620,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         </>
       )}
     </View>
-  ) : error ? (
+  ) : creationError ? (
     <View style={styles.errorContainer}>
-      <ThemedText weight="semiBold" style={styles.errorText}>{error?.message || 'An error occurred'}</ThemedText>
+      <ThemedText weight="semiBold" style={styles.errorText}>{creationError?.message || 'An error occurred'}</ThemedText>
       <TouchableOpacity
         style={styles.retryButton}
-        onPress={() => handleClose()}
+        onPress={() => {
+          setCreationError(null);
+          handleClose();
+        }}
       >
         <ThemedText weight="semiBold" style={styles.retryButtonText}>Try Again</ThemedText>
       </TouchableOpacity>
@@ -703,6 +688,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                               upgradeMode: true,
                               currentTier: devotionalGating.tier,
                               requestedDuration: option.days,
+                              featureType: 'devotionals',
                             });
                           }}
                           size={20}
@@ -753,6 +739,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               navigation.navigate('OnboardingSalesOffer' as any, {
                 upgradeMode: true,
                 currentTier: devotionalGating.tier,
+                featureType: 'devotionals',
               });
             });
           }}
@@ -820,71 +807,60 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 <View style={styles.usageLimitHeader}>
                   <MaterialCommunityIcons name="book" size={32} color={Colors.alertCoral} />
                   <ThemedText weight="bold" style={styles.usageLimitTitle}>
-                    No Devotionals Remaining
+                    {(() => {
+                      const { isOnTrial, tier, trialChosenTier, devotionalsLimit, trialEndDate } = usageLimitModalData;
+                      const salesCopy = generateSalesCopy({
+                        featureType: 'devotionals',
+                        currentTier: (isOnTrial ? trialChosenTier : tier) as any,
+                        remaining: 0,
+                        limit: devotionalsLimit,
+                        isOnTrial,
+                        trialChosenTier: trialChosenTier as any,
+                        trialEndDate,
+                        subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
+                      });
+                      return salesCopy.title;
+                    })()}
                   </ThemedText>
                 </View>
 
                 <ThemedText weight="regular" style={styles.usageLimitMessage}>
                   {(() => {
-                    const { isOnTrial, trialChosenTier, devotionalsLimit, trialEndDate } = usageLimitModalData;
-                    const limit = devotionalsLimit;
-                    const limitText = limit === 1 ? '1 devotional' : `${limit} devotionals`;
-
-                    const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation' || trialChosenTier === 'family');
-                    const showUpgradeCta = !isUnlimitedTrial; // hide CTA for transformation/family trial
-
-                    if (isOnTrial) {
-                      // Trial user message - use captured data
-                      const tierName = trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1);
-
-                      // Get full tier limits
-                      const tierLimits: Record<string, number> = {
-                        spark: 8,
-                        growth: 20,
-                        transformation: -1,
-                        family: -1,
-                      };
-                      const fullLimit = tierLimits[trialChosenTier] || 8;
-                      const fullLimitText = fullLimit === -1
-                        ? 'unlimited devotionals'
-                        : fullLimit === 1
-                          ? '1 devotional'
-                          : `${fullLimit} devotionals`;
-
-                      // Calculate when subscription starts (trial end date)
-                      const trialEnd = trialEndDate ? new Date(trialEndDate) : new Date();
-                      const now = new Date();
-                      const daysUntilSubscriptionStarts = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-                      const dayText = daysUntilSubscriptionStarts === 1 ? 'day' : 'days';
-
-                      const subscriptionStartDate = trialEnd.toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      });
-                      const cta = showUpgradeCta ? '\n\nWant unlimited devotionals now?\nUpgrade to siFia Transformation Plan!' : '';
-                      return `You have used all ${limitText} available during your free trial.\n\nYour siFia ${tierName} Plan Subscription will start in ${daysUntilSubscriptionStarts} ${dayText} on ${subscriptionStartDate}, and you'll be able to generate ${fullLimitText}.${cta}`;
-                    } else {
-                      // Paid user message
-                      // Apple-style monthly: renew on same calendar day as subscription_start_date
-                      const subscriptionStartISO = devotionalGating.subscription?.subscription_start_date || null;
-                      const resetDate = getNextAppleMonthlyResetDate(subscriptionStartISO);
-                      const now = new Date();
-                      const daysUntilReset = Math.max(0, Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-                      const dayText = daysUntilReset === 1 ? 'day' : 'days';
-                      const resetDateStr = resetDate.toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      });
-                      // For paid limited tiers we keep the CTA
-                      return `You have used all ${limitText} for this month.\n\nYour devotionals will renew in ${daysUntilReset} ${dayText} on ${resetDateStr}, giving you ${limitText}.\n\nWant unlimited devotionals?\nUpgrade to siFia Transformation Plan!`;
-                    }
+                    const { isOnTrial, tier, trialChosenTier, devotionalsLimit, trialEndDate } = usageLimitModalData;
+                    const salesCopy = generateSalesCopy({
+                      featureType: 'devotionals',
+                      currentTier: (isOnTrial ? trialChosenTier : tier) as any,
+                      remaining: 0,
+                      limit: devotionalsLimit,
+                      isOnTrial,
+                      trialChosenTier: trialChosenTier as any,
+                      trialEndDate,
+                      subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
+                    });
+                    return salesCopy.message;
                   })()}
                 </ThemedText>
 
                 {(() => {
-                  const { isOnTrial, trialChosenTier } = usageLimitModalData || { isOnTrial: false, trialChosenTier: 'spark' };
+                  const { isOnTrial, tier, trialChosenTier, devotionalsLimit, trialEndDate } = usageLimitModalData || {
+                    isOnTrial: false,
+                    tier: 'spark',
+                    trialChosenTier: 'spark',
+                    devotionalsLimit: 0,
+                    trialEndDate: null,
+                  };
+
+                  const salesCopy = generateSalesCopy({
+                    featureType: 'devotionals',
+                    currentTier: (isOnTrial ? trialChosenTier : tier) as any,
+                    remaining: 0,
+                    limit: devotionalsLimit,
+                    isOnTrial,
+                    trialChosenTier: trialChosenTier as any,
+                    trialEndDate,
+                    subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
+                  });
+
                   const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation' || trialChosenTier === 'family');
                   if (isUnlimitedTrial) {
                     // Show a single dismiss button so the user can close the popup
@@ -898,7 +874,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                           }}
                         >
                           <ThemedText weight="semiBold" style={styles.cancelButtonText}>
-                            Got it
+                            {salesCopy.primaryCta}
                           </ThemedText>
                         </TouchableOpacity>
                       </View>
@@ -914,27 +890,30 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                       onClose();
                       navigation.navigate('OnboardingSalesOffer' as any, {
                         upgradeMode: true,
-                        currentTier: usageLimitModalData?.tier || 'spark',
-                        selectedTier: 'transformation',
+                        currentTier: tier || 'spark',
+                        selectedTier: salesCopy.recommendedTier,
                         skipNotificationPreference: true,
+                        featureType: 'devotionals', // Explicitly mark this as devotional upgrade
                       });
                     }}
                   >
                     <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
-                      Upgrade Now
+                      {salesCopy.primaryCta}
                     </ThemedText>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => {
-                      setShowUsageLimitModal(false);
-                      setUsageLimitModalData(null);
-                    }}
-                  >
-                    <ThemedText weight="semiBold" style={styles.cancelButtonText}>
-                      Maybe Later
-                    </ThemedText>
-                  </TouchableOpacity>
+                  {salesCopy.secondaryCta && (
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => {
+                        setShowUsageLimitModal(false);
+                        setUsageLimitModalData(null);
+                      }}
+                    >
+                      <ThemedText weight="semiBold" style={styles.cancelButtonText}>
+                        {salesCopy.secondaryCta}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  )}
                 </View>
                   );
                 })()}
