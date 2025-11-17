@@ -455,8 +455,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     },
   });
 
-  // Smart journaling gating for free-form reflections
-  const smartJournalingGating = useSmartJournalingGating();
+  // Smart journaling gating for free-form reflections (allow seekers to use blank entries)
+  const smartJournalingGating = useSmartJournalingGating({
+    feature: 'reflection',
+    allowSeekerFreeForm: true,
+  });
 
   const sortedGuidedPrompts = React.useMemo(() => {
     // Use new simplified API - free prompts first, then locked

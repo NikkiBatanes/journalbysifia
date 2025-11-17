@@ -5,35 +5,56 @@ import { useMemo } from 'react';
 import { useSubscription } from './useSubscription';
 import type { SubscriptionTier } from '../types/subscription';
 
+export type SmartJournalingFeature = 'general' | 'reflection' | 'gratitude' | 'prayer' | 'time_block';
+
+export interface SmartJournalingGatingOptions {
+  feature?: SmartJournalingFeature;
+  allowSeekerFreeForm?: boolean;
+  customMessage?: string;
+}
+
 export interface SmartJournalingGatingResult {
   isLocked: boolean;
   tier: SubscriptionTier;
   canUseFeature: boolean;
   upgradeMessage: string;
+  feature: SmartJournalingFeature;
 }
 
 /**
  * Hook for managing smart journaling feature access
- * Seeker accounts are locked out and must upgrade
+ * Seeker accounts are locked out and must upgrade unless explicitly allowed per feature
  */
-export function useSmartJournalingGating(): SmartJournalingGatingResult {
+export function useSmartJournalingGating(options: SmartJournalingGatingOptions = {}): SmartJournalingGatingResult {
   const { subscription } = useSubscription();
   const tier = subscription?.tier || 'seeker';
+  const {
+    feature = 'general',
+    allowSeekerFreeForm = false,
+    customMessage,
+  } = options;
 
   const result = useMemo(() => {
-    // Seeker accounts are locked
-    const isLocked = tier === 'seeker';
+    const seekerBypassesLock = allowSeekerFreeForm && feature === 'reflection';
+    const isLocked = tier === 'seeker' && !seekerBypassesLock;
     const canUseFeature = !isLocked;
+
+    const defaultMessages: Record<SmartJournalingFeature, string> = {
+      general: 'Upgrade to unlock Smart Journaling and track time blocks, gratitude, prayers, and reflections',
+      reflection: 'Upgrade to unlock guided prompts and premium journaling tools',
+      gratitude: 'Upgrade to unlock Smart Gratitude journaling with unlimited entries',
+      prayer: 'Upgrade to unlock Smart Prayer journaling and track answered prayers',
+      time_block: 'Upgrade to schedule time blocks and sync advanced journaling routines',
+    };
 
     return {
       isLocked,
       tier,
       canUseFeature,
-      upgradeMessage: isLocked
-        ? 'Upgrade to unlock Smart Journaling and track time blocks, gratitude, prayers, and reflections'
-        : '',
+      upgradeMessage: isLocked ? (customMessage || defaultMessages[feature] || defaultMessages.general) : '',
+      feature,
     };
-  }, [tier]);
+  }, [allowSeekerFreeForm, customMessage, feature, tier]);
 
   return result;
 }
