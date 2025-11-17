@@ -41,6 +41,19 @@ const OnboardingTrialOfferScreen = () => {
       semiBold: getFontFamily(fontKey, 'semiBold'),
       bold: getFontFamily(fontKey, 'bold'),
     };
+
+  // Intercept back/dismiss gestures and route them through our unified close logic
+  useEffect(() => {
+    const unsubscribe = (navigation as any)?.addListener?.('beforeRemove', (e: any) => {
+      // Prevent default back action to ensure proper routing on dismiss
+      try {
+        if (isClosing || isStartingTrial) {return;}
+        e?.preventDefault?.();
+        handleClose();
+      } catch {}
+    });
+    return () => { try { unsubscribe && unsubscribe(); } catch {} };
+  }, [navigation, isClosing, isStartingTrial]);
   }, [currentFont]);
 
   const styles = useMemo(() => createStyles(fonts), [fonts]);
