@@ -121,19 +121,19 @@ export interface FamilyMember {
   role: FamilyRole;
   joined_at: string;
   status: 'active' | 'removed' | 'suspended';
-  
+
   // User profile data
   email?: string;
   full_name?: string;
   first_name?: string;
   last_name?: string;
   avatar_url?: string;
-  
+
   // Usage tracking
   playbooks_used?: number;
   devotionals_used?: number;
   last_active?: string;
-  
+
   user_profile?: {
     id: string;
     email?: string;
@@ -292,7 +292,7 @@ export interface FamilyInvitation {
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
-  
+
   // Computed properties
   is_expired?: boolean;
   days_until_expiry?: number;
@@ -308,7 +308,7 @@ export interface FamilyActivity {
   affected_user_id?: string;
   metadata?: Record<string, any>;
   created_at: string;
-  
+
   // Computed properties
   user_name?: string;
   affected_user_name?: string;

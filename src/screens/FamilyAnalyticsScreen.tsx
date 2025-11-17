@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
@@ -23,7 +22,7 @@ import { Logger } from '../utils/ProductionLogger';
 
 /**
  * FamilyAnalyticsScreen
- * 
+ *
  * Enterprise-grade analytics dashboard for family subscriptions
  * Features:
  * - Usage trends and insights
@@ -64,7 +63,7 @@ const FamilyAnalyticsScreen: React.FC = () => {
     try {
       const data = await getFamilyUsageAnalytics();
       setAnalytics(data);
-      
+
       // Mock activity data - replace with actual API call
       setActivities([
         {
@@ -233,7 +232,7 @@ const FamilyAnalyticsScreen: React.FC = () => {
         {/* Engagement Insights */}
         <View style={styles.card}>
           <ThemedText style={styles.cardTitle}>Engagement Insights</ThemedText>
-          
+
           <View style={styles.insightItem}>
             <View style={styles.insightIcon}>
               <Ionicons name="star" size={20} color={Colors.faithGold} />
@@ -283,11 +282,11 @@ const FamilyAnalyticsScreen: React.FC = () => {
             <Ionicons name="bulb" size={24} color={Colors.faithGold} />
             <ThemedText style={styles.cardTitle}>Recommendations</ThemedText>
           </View>
-          
+
           {activeMembers < (familyGroup?.max_members || 5) && (
             <View style={styles.recommendationItem}>
               <ThemedText style={styles.recommendationText}>
-                You have {(familyGroup?.max_members || 5) - activeMembers} unused member slot(s). 
+                You have {(familyGroup?.max_members || 5) - activeMembers} unused member slot(s).
                 Invite more family members to maximize your subscription value!
               </ThemedText>
             </View>
@@ -296,7 +295,7 @@ const FamilyAnalyticsScreen: React.FC = () => {
           {avgPlaybooks < 5 && (
             <View style={styles.recommendationItem}>
               <ThemedText style={styles.recommendationText}>
-                Your family is averaging {avgPlaybooks.toFixed(1)} playbooks per member. 
+                Your family is averaging {avgPlaybooks.toFixed(1)} playbooks per member.
                 Encourage more engagement with personalized playbooks!
               </ThemedText>
             </View>
@@ -305,7 +304,7 @@ const FamilyAnalyticsScreen: React.FC = () => {
           {activeMembers === (familyGroup?.max_members || 5) && (
             <View style={styles.recommendationItem}>
               <ThemedText style={styles.recommendationText}>
-                Your family is at full capacity! Consider increasing your member limit if you 
+                Your family is at full capacity! Consider increasing your member limit if you
                 want to add more family members.
               </ThemedText>
             </View>

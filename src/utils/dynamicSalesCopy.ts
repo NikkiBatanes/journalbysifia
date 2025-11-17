@@ -73,10 +73,10 @@ function getNextMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   const now = new Date();
   // Set to start of today for accurate day comparison
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   console.log('🔍 [Reset Calculation] subscriptionStartISO:', subscriptionStartISO);
   console.log('🔍 [Reset Calculation] Today:', today.toISOString());
-  
+
   if (!subscriptionStartISO) {
     // Fallback: first day of next month
     console.log('⚠️ [Reset Calculation] No subscription start date, using fallback');

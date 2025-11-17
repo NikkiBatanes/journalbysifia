@@ -1,4 +1,4 @@
-import { Platform, Alert, Linking, AppState } from 'react-native';
+import { Platform } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabaseClient';
@@ -222,7 +222,7 @@ class PushNotificationService {
         // Check current permissions first
         const current = await PushNotificationBridge.checkPermissions();
         const alreadyGranted = current.alert || current.badge || current.sound;
-        
+
         if (alreadyGranted) {
           Logger.info('[PushNotification] Permissions already granted', {
             component: 'pushNotificationService',
@@ -239,7 +239,7 @@ class PushNotificationService {
         });
         return granted;
       }
-      
+
       // Android - permissions handled by PushNotification library
       return true;
     } catch (error) {

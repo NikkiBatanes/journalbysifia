@@ -6,7 +6,7 @@ import { PaymentPlatform } from '../types/subscription';
 
 /**
  * FamilyPaymentService
- * 
+ *
  * Enterprise-grade payment handling for family subscriptions
  * Integrates with Apple/Google payment platforms
  * Handles subscription creation, upgrades, and renewals
@@ -65,8 +65,8 @@ export class FamilyPaymentService {
 
       // Get product ID based on billing cycle
       const productIds = this.getFamilyProductIds();
-      const productId = options.billingCycle === 'monthly' 
-        ? productIds.monthly 
+      const productId = options.billingCycle === 'monthly'
+        ? productIds.monthly
         : productIds.annual;
 
       // Initiate platform payment
@@ -221,7 +221,7 @@ export class FamilyPaymentService {
       const startDate = new Date(subscription.subscription_start_date);
       const now = new Date();
       const cycleLength = billingCycle === 'monthly' ? 30 : 365;
-      
+
       // Calculate days elapsed in current cycle
       const daysElapsed = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const daysRemaining = Math.max(0, cycleLength - (daysElapsed % cycleLength));
@@ -229,10 +229,10 @@ export class FamilyPaymentService {
       // Calculate prorated amount
       const familyPrice = this.getFamilyPricing(billingCycle);
       const currentPrice = this.getCurrentTierPrice(currentTier, billingCycle);
-      
+
       const proratedRefund = (currentPrice * daysRemaining) / cycleLength;
       const proratedCharge = (familyPrice * daysRemaining) / cycleLength;
-      
+
       const netAmount = Math.max(0, proratedCharge - proratedRefund);
 
       Logger.info('Calculated proration', {
@@ -379,31 +379,19 @@ export class FamilyPaymentService {
   /**
    * Get family subscription status
    */
-  static async getFamilySubscriptionStatus(familyGroupId: string): Promise<{
+  static async getFamilySubscriptionStatus(_familyGroupId: string): Promise<{
     active: boolean;
     expiryDate?: string;
     autoRenew: boolean;
     billingCycle?: 'monthly' | 'annual';
   }> {
-    try {
-      // TODO: Implement status check with platform
-      // For now, return mock data
-      return {
-        active: true,
-        autoRenew: true,
-        billingCycle: 'annual',
-      };
-    } catch (error) {
-      Logger.error('Failed to get family subscription status', error as Error, {
-        component: 'FamilyPaymentService',
-        familyGroupId,
-      });
-
-      return {
-        active: false,
-        autoRenew: false,
-      };
-    }
+    // TODO: Implement status check with platform
+    // For now, return mock data
+    return {
+      active: true,
+      autoRenew: true,
+      billingCycle: 'annual',
+    };
   }
 }
 

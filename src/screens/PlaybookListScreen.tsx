@@ -431,7 +431,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           title,
           data,
           // Get the most recent date in this section for sorting
-          latestDate: Math.max(...data.map(pb => getSortDate(pb)))
+          latestDate: Math.max(...data.map(pb => getSortDate(pb))),
         }))
         .sort((a, b) => b.latestDate - a.latestDate) // Sort sections by most recent first
         .map(({ title, data }) => ({ title, data })); // Remove the temporary latestDate property

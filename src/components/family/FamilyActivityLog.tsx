@@ -5,7 +5,7 @@ import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 import { FamilyActivity, FamilyActivityType } from '../../types/subscription';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 
 interface FamilyActivityLogProps {
   activities: FamilyActivity[];
@@ -14,13 +14,13 @@ interface FamilyActivityLogProps {
 
 /**
  * FamilyActivityLog
- * 
+ *
  * Displays recent family subscription activities
  * Shows icons, descriptions, and timestamps
  */
-export const FamilyActivityLog: React.FC<FamilyActivityLogProps> = ({ 
-  activities, 
-  maxItems = 10 
+export const FamilyActivityLog: React.FC<FamilyActivityLogProps> = ({
+  activities,
+  maxItems = 10,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';

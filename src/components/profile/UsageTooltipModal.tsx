@@ -42,7 +42,7 @@ function getNextAppleMonthlyResetDate(subscriptionStartISO?: string | null): Dat
   const now = new Date();
   // Set to start of today for accurate day comparison
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   if (!subscriptionStartISO) {
     // Fallback: first day of the next month
     return new Date(now.getFullYear(), now.getMonth() + 1, 1);

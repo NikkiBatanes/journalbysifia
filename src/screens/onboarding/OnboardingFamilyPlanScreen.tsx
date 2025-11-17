@@ -1,25 +1,23 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
-import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
-import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../../components/common/ThemedText';
+import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 
 /**
  * OnboardingFamilyPlanScreen
- * 
+ *
  * Presents family subscription pricing and benefits
  * Allows user to select between monthly and annual billing
  * Navigates to family setup after selection
@@ -27,7 +25,6 @@ import ThemedText from '../../components/common/ThemedText';
 
 const OnboardingFamilyPlanScreen: React.FC = () => {
   const navigation = useNavigation();
-  const route = useRoute();
   const { currentFont } = useTheme();
   const { width } = useWindowDimensions();
   const fontKey = currentFont || 'lexend';
@@ -142,7 +139,7 @@ const OnboardingFamilyPlanScreen: React.FC = () => {
         {/* Features List */}
         <View style={styles.featuresSection}>
           <ThemedText style={styles.featuresTitle}>What's Included</ThemedText>
-          
+
           <View style={styles.featureItem}>
             <View style={styles.featureIcon}>
               <Ionicons name="checkmark-circle" size={24} color={Colors.anchorBlue} />
@@ -219,7 +216,7 @@ const OnboardingFamilyPlanScreen: React.FC = () => {
         {/* Comparison Section */}
         <View style={styles.comparisonSection}>
           <ThemedText style={styles.comparisonTitle}>Compare Plans</ThemedText>
-          
+
           <View style={styles.comparisonTable}>
             <View style={styles.comparisonRow}>
               <ThemedText style={styles.comparisonLabel}>Individual Plan</ThemedText>
@@ -248,7 +245,7 @@ const OnboardingFamilyPlanScreen: React.FC = () => {
         {/* FAQ Section */}
         <View style={styles.faqSection}>
           <ThemedText style={styles.faqTitle}>Frequently Asked Questions</ThemedText>
-          
+
           <View style={styles.faqItem}>
             <ThemedText style={styles.faqQuestion}>Can I add more than 5 members?</ThemedText>
             <ThemedText style={styles.faqAnswer}>
@@ -286,7 +283,7 @@ const OnboardingFamilyPlanScreen: React.FC = () => {
   );
 };
 
-const createStyles = (fonts: any, width: number) =>
+const createStyles = (fonts: any, _width: number) =>
   StyleSheet.create({
     container: {
       flex: 1,

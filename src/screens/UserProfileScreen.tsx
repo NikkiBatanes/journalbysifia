@@ -621,11 +621,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Thanks!', 'Your bug report was sent successfully.');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit bug report. Please try again later.';
-      
+
       Logger.error('[ReportBug] Failed to submit bug report', error as Error, {
         component: 'UserProfileScreen',
       });
-      
+
       Alert.alert('Error', errorMessage);
     }
   };
@@ -813,11 +813,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Thanks!', 'Your feature suggestion was sent successfully.');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit feature suggestion. Please try again later.';
-      
+
       Logger.error('[FeatureRequest] Failed to submit', error as Error, {
         component: 'UserProfileScreen',
       });
-      
+
       Alert.alert('Error', errorMessage);
     }
   };
@@ -1631,50 +1631,64 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const renderFamilyManagementSection = () => {
-    // Only show family management if user has family subscription or can create one
-    const canManageFamily = Boolean(familyGroup) || subscription?.tier === 'family';
-    const isAdmin = familyGroup?.admin_user_id === user?.id;
-
-    if (!canManageFamily) {return null;}
+    const isInFamily = Boolean(familyGroup);
+    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id;
+    const hasFamilyTier = subscription?.tier === 'family';
 
     return (
       <View>
         <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>FAMILY SUBSCRIPTION</Text>
         <View style={styles.menuContainer}>
-          {familyGroup ? (
+          {/* If user is family admin - show Manage Family ONLY */}
+          {isInFamily && isFamilyAdmin ? (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyAdminDashboard'); }}
+            >
+              <View style={styles.menuIconBox}>
+                <Ionicons name="people" size={18} color={Colors.anchorBlue} />
+              </View>
+              <Text style={[styles.menuText, font]}>Manage Family</Text>
+              <View style={styles.trialBadge}>
+                <Text style={[styles.trialBadgeText, font]}>
+                  {familyGroup.current_members}/{familyGroup.max_members}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+            </TouchableOpacity>
+          ) : isInFamily && !isFamilyAdmin ? (
+            /* If user is family member (not admin) - show Family Group */
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyAdminDashboard'); }}
+            >
+              <View style={styles.menuIconBox}>
+                <Ionicons name="people" size={18} color={Colors.anchorBlue} />
+              </View>
+              <Text style={[styles.menuText, font]}>Family Group</Text>
+              <View style={styles.trialBadge}>
+                <Text style={[styles.trialBadgeText, font]}>
+                  {familyGroup.current_members}/{familyGroup.max_members}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+            </TouchableOpacity>
+          ) : !isInFamily ? (
+            /* If user is NOT in family - show Join Family + Create (if tier=family) */
             <>
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyAdminDashboard'); }}
+                onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyInvitation'); }}
               >
                 <View style={styles.menuIconBox}>
-                  <Ionicons name="people" size={18} color={Colors.anchorBlue} />
+                  <Ionicons name="enter" size={18} color={Colors.anchorBlue} />
                 </View>
-                <Text style={[styles.menuText, font]}>
-                  {isAdmin ? 'Manage Family' : 'Family Group'}
-                </Text>
-                <View style={styles.trialBadge}>
-                  <Text style={[styles.trialBadgeText, font]}>
-                    {familyGroup.current_members}/{familyGroup.max_members}
-                  </Text>
-                </View>
+                <Text style={[styles.menuText, font]}>Join Family</Text>
                 <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
               </TouchableOpacity>
 
-              {isAdmin && (
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyInvitation'); }}
-                >
-                  <View style={styles.menuIconBox}>
-                    <Ionicons name="person-add" size={18} color={Colors.anchorBlue} />
-                  </View>
-                  <Text style={[styles.menuText, font]}>Invite Members</Text>
-                  <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
-                </TouchableOpacity>
-              )}
-            </>
-          ) : (
+              {/* Create Family - Only for users with family tier who haven't created group yet */}
+              {hasFamilyTier && (
             <TouchableOpacity
               style={styles.menuItem}
               onPress={async () => {
@@ -1718,7 +1732,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.menuText, font]}>Create Family Group</Text>
               <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
             </TouchableOpacity>
-          )}
+              )}
+            </>
+          ) : null}
         </View>
       </View>
     );

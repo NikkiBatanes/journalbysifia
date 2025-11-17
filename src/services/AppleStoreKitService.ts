@@ -598,7 +598,7 @@ export class AppleStoreKitService {
    * ENTERPRISE: Check and sync subscription status with Apple
    * This is the core method for maintaining subscription state accuracy
    * Call this on app launch, app foreground, and periodically
-   * 
+   *
    * CRITICAL: This should NOT be called during active purchase flows
    * to prevent cached purchases from being treated as new purchases
    */

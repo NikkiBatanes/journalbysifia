@@ -1,6 +1,8 @@
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { NewSubscriptionService } from './NewSubscriptionService';
+import { FamilyTrialService } from './FamilyTrialService';
+import { FamilyNotificationService } from './FamilyNotificationService';
 
 export interface FamilyGroup {
   id: string;
@@ -237,6 +239,31 @@ export class FamilySubscriptionService {
         throw new Error(`Failed to create invitation: ${error.message}`);
       }
 
+      // Send in-app notification if user exists
+      try {
+        // Get inviter name
+        const { data: inviterProfile } = await supabase
+          .from('user_profiles')
+          .select('full_name, email')
+          .eq('id', options.invited_by_user_id)
+          .single();
+
+        const inviterName = inviterProfile?.full_name || inviterProfile?.email || 'Someone';
+
+        await FamilyNotificationService.notifyFamilyInvitation(
+          options.invited_email,
+          inviterName,
+          invitationCode,
+          options.family_group_id,
+          familyGroup.group_name
+        );
+      } catch (notifError) {
+        // Don't fail invitation if notification fails
+        Logger.error('[FamilyService] Failed to send notification', notifError as Error, {
+          component: 'FamilySubscriptionService',
+        });
+      }
+
       return data;
     } catch (error) {
       Logger.error('[FamilyService] Failed to invite member', error as Error, {
@@ -280,19 +307,14 @@ export class FamilySubscriptionService {
         throw new Error('Family group is at maximum capacity');
       }
 
-      // Update user's subscription to join family
-      const { error: subscriptionError } = await supabase
-        .from('user_subscriptions_new')
-        .update({
-          tier: 'family',
-          family_group_id: invitation.family_group_id,
-          family_role: 'member',
-          status: 'active',
-        })
-        .eq('user_id', userId);
+      // Sync member limits based on family trial/paid status
+      const syncSuccess = await FamilyTrialService.syncMemberLimits(
+        userId,
+        invitation.family_group_id
+      );
 
-      if (subscriptionError) {
-        throw new Error(`Failed to update user subscription: ${subscriptionError.message}`);
+      if (!syncSuccess) {
+        throw new Error('Failed to sync member subscription limits');
       }
 
       // Update family group member count
@@ -319,6 +341,27 @@ export class FamilySubscriptionService {
         Logger.error('[FamilyService] Failed to update invitation status', updateError as Error, {
       component: 'FamilySubscriptionService',
     });
+      }
+
+      // Notify admin that member joined
+      try {
+        const { data: memberProfile } = await supabase
+          .from('user_profiles')
+          .select('full_name, email')
+          .eq('id', userId)
+          .single();
+
+        const memberName = memberProfile?.full_name || memberProfile?.email || 'A new member';
+
+        await FamilyNotificationService.notifyMemberJoined(
+          familyGroup.admin_user_id,
+          memberName,
+          invitation.family_group_id
+        );
+      } catch (notifError) {
+        Logger.error('[FamilyService] Failed to send member joined notification', notifError as Error, {
+          component: 'FamilySubscriptionService',
+        });
       }
 
       return true;

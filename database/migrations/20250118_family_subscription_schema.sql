@@ -7,7 +7,7 @@
 -- =====================================================
 CREATE TABLE IF NOT EXISTS family_subscription_groups (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  admin_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  admin_user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   group_name VARCHAR(255) NOT NULL,
   
   -- Capacity management
@@ -54,12 +54,12 @@ CREATE TABLE IF NOT EXISTS family_invitations (
   
   -- Invitation details
   invited_email VARCHAR(255) NOT NULL,
-  invited_by_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  invited_by_user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   invitation_code VARCHAR(8) NOT NULL UNIQUE,
   
   -- Status tracking
   status VARCHAR(50) NOT NULL DEFAULT 'pending', -- 'pending', 'accepted', 'declined', 'expired'
-  accepted_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  accepted_by_user_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   
   -- Expiration
   expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -87,12 +87,12 @@ CREATE TABLE IF NOT EXISTS family_activity_log (
   family_group_id UUID NOT NULL REFERENCES family_subscription_groups(id) ON DELETE CASCADE,
   
   -- Activity details
-  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   activity_type VARCHAR(100) NOT NULL, -- 'member_added', 'member_removed', 'invitation_sent', 'subscription_upgraded', etc.
   activity_description TEXT,
   
   -- Context
-  affected_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  affected_user_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   metadata JSONB DEFAULT '{}',
   
   -- Timestamp
@@ -110,7 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_family_activity_created ON family_activity_log(cr
 CREATE TABLE IF NOT EXISTS family_usage_analytics (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   family_group_id UUID NOT NULL REFERENCES family_subscription_groups(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   
   -- Usage metrics (monthly aggregation)
   period_start TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -205,6 +205,15 @@ ALTER TABLE family_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_activity_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_usage_analytics ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS family_groups_admin_full_access ON family_subscription_groups;
+DROP POLICY IF EXISTS family_groups_member_read_access ON family_subscription_groups;
+DROP POLICY IF EXISTS family_invitations_admin_access ON family_invitations;
+DROP POLICY IF EXISTS family_invitations_invitee_read ON family_invitations;
+DROP POLICY IF EXISTS family_activity_read_access ON family_activity_log;
+DROP POLICY IF EXISTS family_usage_admin_access ON family_usage_analytics;
+DROP POLICY IF EXISTS family_usage_member_own_access ON family_usage_analytics;
+
 -- Family Groups: Admin can view/edit their group, members can view
 CREATE POLICY family_groups_admin_full_access ON family_subscription_groups
   FOR ALL
@@ -233,7 +242,7 @@ CREATE POLICY family_invitations_admin_access ON family_invitations
 CREATE POLICY family_invitations_invitee_read ON family_invitations
   FOR SELECT
   USING (
-    invited_email = (SELECT email FROM auth.users WHERE id = auth.uid())
+    invited_email = (SELECT email FROM user_profiles WHERE id = auth.uid())
   );
 
 -- Family Activity Log: All family members can read
@@ -321,6 +330,33 @@ BEGIN
     AND period_start >= DATE_TRUNC('month', CURRENT_DATE);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =====================================================
+-- ADDITIONAL RLS POLICIES FOR USER_PROFILES ACCESS
+-- =====================================================
+
+-- Drop existing policy if it exists
+DROP POLICY IF EXISTS family_members_read_profiles ON user_profiles;
+
+-- Allow family members to read each other's profiles
+CREATE POLICY family_members_read_profiles ON user_profiles
+  FOR SELECT
+  USING (
+    -- User can read their own profile
+    id = auth.uid()
+    OR
+    -- User can read profiles of family members in their group
+    id IN (
+      SELECT user_id 
+      FROM user_subscriptions_new 
+      WHERE family_group_id IN (
+        SELECT family_group_id 
+        FROM user_subscriptions_new 
+        WHERE user_id = auth.uid() 
+        AND family_group_id IS NOT NULL
+      )
+    )
+  );
 
 -- =====================================================
 -- GRANTS

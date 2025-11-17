@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import { Logger } from '../utils/ProductionLogger';
 
 /**
  * FamilySettingsScreen
- * 
+ *
  * Enterprise-grade family subscription settings
  * Features:
  * - Group name management
@@ -189,7 +189,7 @@ const FamilySettingsScreen: React.FC = () => {
         {/* Group Information */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Group Information</ThemedText>
-          
+
           <View style={styles.settingItem}>
             <View style={styles.settingHeader}>
               <ThemedText style={styles.settingLabel}>Group Name</ThemedText>
@@ -251,7 +251,7 @@ const FamilySettingsScreen: React.FC = () => {
         {/* Billing */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Billing</ThemedText>
-          
+
           <TouchableOpacity style={styles.settingItem} onPress={handleChangeBillingCycle}>
             <View style={styles.settingRow}>
               <View style={styles.settingIcon}>
@@ -287,7 +287,7 @@ const FamilySettingsScreen: React.FC = () => {
         {/* Notifications */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Notifications</ThemedText>
-          
+
           <View style={styles.settingItem}>
             <View style={styles.settingRow}>
               <ThemedText style={styles.settingLabel}>Member Joined</ThemedText>
@@ -348,7 +348,7 @@ const FamilySettingsScreen: React.FC = () => {
         {/* Danger Zone */}
         <View style={styles.section}>
           <ThemedText style={[styles.sectionTitle, styles.dangerTitle]}>Danger Zone</ThemedText>
-          
+
           <TouchableOpacity
             style={[styles.settingItem, styles.dangerItem]}
             onPress={handleCancelSubscription}

@@ -204,7 +204,7 @@ class PricingService {
         locale = NativeModules.I18nManager?.localeIdentifier || '';
       }
 
-      Logger.info('[PricingService] Detected locale', { 
+      Logger.info('[PricingService] Detected locale', {
         component: 'pricingService',
         locale,
         platform: Platform.OS,
@@ -233,7 +233,7 @@ class PricingService {
           component: 'pricingService',
           timezone,
         });
-        
+
         if (timezone === 'Asia/Manila') {
           Logger.info('[PricingService] Detected Philippines via timezone - using PHP pricing', {
             component: 'pricingService',

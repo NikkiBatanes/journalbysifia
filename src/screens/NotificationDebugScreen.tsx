@@ -236,7 +236,7 @@ export default function NotificationDebugScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🔧 Actions</Text>
-        
+
         <TouchableOpacity style={styles.button} onPress={requestPermissions}>
           <Text style={styles.buttonText}>Request Permissions</Text>
         </TouchableOpacity>

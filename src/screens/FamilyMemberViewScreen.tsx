@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
@@ -21,7 +20,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 
 /**
  * FamilyMemberViewScreen
- * 
+ *
  * View for non-admin family members
  * Features:
  * - View family group info
@@ -50,7 +49,6 @@ const FamilyMemberViewScreen: React.FC = () => {
     loading,
     error,
     refreshFamilyData,
-    isAdmin,
     getFamilyUsageAnalytics,
   } = useFamilySubscription();
 

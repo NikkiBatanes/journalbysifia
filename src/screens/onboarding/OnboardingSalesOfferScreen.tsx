@@ -278,9 +278,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     // Always show trial if eligible for cancelled sales offer (regardless of upgrade/onboarding)
     logger.info('Sales offer cancelled - checking trial eligibility');
     if (canOfferTrial) {
-      logger.info('User eligible for trial - navigating to trial offer', { 
-        selectedTierId: currentSelectedTier, 
-        billing: currentBilling 
+      logger.info('User eligible for trial - navigating to trial offer', {
+        selectedTierId: currentSelectedTier,
+        billing: currentBilling,
       });
       setTimeout(() => {
         (navigation as any).navigate('OnboardingTrialOffer', {
@@ -355,7 +355,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       try {
         const products = await paymentService.getAvailableProducts();
-        
+
         // DEBUG: Log all available products to verify App Store Connect configuration
         logger.debug('📦 All available products from App Store:', {
           count: products.length,
@@ -365,7 +365,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             price: p.localizedPrice,
           })),
         });
-        
+
         // CRITICAL: Sales Offer Screen must EXCLUDE .freetrial products
         // Match tier AND billing period AND ensure NO .freetrial suffix
         const targetProduct = products.find(p =>
@@ -388,7 +388,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             matchingTier: products.filter(p => p.tier === selectedTier).map(p => p.productId),
             matchingBilling: products.filter(p => p.productId.includes(billing)).map(p => p.productId),
           });
-          
+
           // Construct product ID - NO trial suffix for sales offer (always paid)
           productId = `app.sifia.com.${selectedTier}.${billing}`;
           Logger.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`, {
@@ -634,11 +634,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           e?.preventDefault?.();
           e?.stopPropagation?.();
           try { triggerLightHaptic(); } catch {}
-          logger.debug('Tier card tapped', { 
-            tierId: tier.id, 
+          logger.debug('Tier card tapped', {
+            tierId: tier.id,
             previousTier: selectedTier,
             isAnnual,
-            billing: isAnnual ? 'annual' : 'monthly'
+            billing: isAnnual ? 'annual' : 'monthly',
           });
           setSelectedTier(tier.id);
         }}

@@ -22,7 +22,7 @@ export async function reportFeature(payload: FeatureRequestPayload) {
     if (!payload.message?.trim()) {
       throw new Error('Please describe the feature before submitting.');
     }
-    
+
     if (!payload.category?.trim()) {
       throw new Error('Please select a category for your feature request.');
     }
@@ -59,11 +59,11 @@ export async function reportFeature(payload: FeatureRequestPayload) {
       console.log('💡 Error.details:', error.details);
       console.log('💡 Error.hint:', error.hint);
       console.log('💡 Error stringified:', JSON.stringify(error));
-      
+
       // Extract meaningful error information
       const errorCode = error.code || 'UNKNOWN';
       const errorMessage = error.message || error.hint || error.details || 'Unknown database error';
-      
+
       // Log detailed error for debugging
       Logger.error('Feature request submission failed', new Error(errorMessage), {
         component: 'featureRequestService',
@@ -79,7 +79,7 @@ export async function reportFeature(payload: FeatureRequestPayload) {
           category: payload.category,
         },
       });
-      
+
       // Provide user-friendly error messages based on error code
       if (errorCode === '42P01') {
         throw new Error('Feature requests are currently unavailable. Please contact support.');
@@ -105,13 +105,13 @@ export async function reportFeature(payload: FeatureRequestPayload) {
     if (error instanceof Error) {
       throw error;
     }
-    
+
     // Otherwise, wrap it in a generic error
     Logger.error('Unexpected error in reportFeature', new Error(String(error)), {
       component: 'featureRequestService',
       errorType: typeof error,
     });
-    
+
     throw new Error('Failed to submit feature request. Please check your connection and try again.');
   }
 }

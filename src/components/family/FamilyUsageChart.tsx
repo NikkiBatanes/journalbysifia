@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
@@ -12,7 +12,7 @@ interface FamilyUsageChartProps {
 
 /**
  * FamilyUsageChart
- * 
+ *
  * Visualizes family member usage with horizontal bar chart
  * Shows percentage distribution and actual counts
  */

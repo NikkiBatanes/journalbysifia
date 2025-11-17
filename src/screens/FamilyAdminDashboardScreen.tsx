@@ -191,12 +191,13 @@ const FamilyAdminDashboardScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.anchorBlue} />
+            <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Family Dashboard</Text>
           <View style={styles.placeholder} />
@@ -366,10 +367,16 @@ const FamilyAdminDashboardScreen: React.FC = () => {
 const createStyles = (fonts: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   scrollView: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+    backgroundColor: Colors.anchorBlue,
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',
@@ -377,8 +384,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    backgroundColor: Colors.anchorBlue,
   },
   backButton: {
     padding: 8,
@@ -386,22 +392,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontFamily: fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   placeholder: {
     width: 40,
   },
   card: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlueLight,
     marginHorizontal: 20,
     marginVertical: 8,
     padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 24,
   },
   cardTitle: {
     fontSize: 18,
@@ -552,27 +553,29 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,
+    backgroundColor: Colors.anchorBlue,
   },
   errorTitle: {
     fontSize: 20,
     fontFamily: fonts.semiBold,
-    color: Colors.text,
+    color: Colors.hopeWhite,
     marginTop: 16,
     marginBottom: 8,
   },
   errorText: {
     fontSize: 16,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
     textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.anchorBlue,
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
   },
   errorBanner: {
     backgroundColor: Colors.error,

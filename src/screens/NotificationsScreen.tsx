@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -14,6 +15,8 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
+import { FamilyNotificationService } from '../services/FamilyNotificationService';
+import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { Logger } from '../utils/ProductionLogger';
 
 interface NotificationsScreenProps {
@@ -23,9 +26,11 @@ interface NotificationsScreenProps {
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
   const { badgeCount, fetchBadgeCount, clearBadge } = useNotificationBadge();
+  const { acceptInvitation } = useFamilySubscription();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [acceptingInvite, setAcceptingInvite] = useState<string | null>(null);
 
   // Fetch notifications
   const fetchNotifications = React.useCallback(async () => {
@@ -90,9 +95,50 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     fetchNotifications();
   }, [fetchNotifications]);
 
+  // Handle family invitation acceptance
+  const handleAcceptInvitation = async (notification: any) => {
+    const invitationCode = notification.data?.invitation_code;
+    if (!invitationCode) {
+      Alert.alert('Error', 'Invalid invitation code');
+      return;
+    }
+
+    setAcceptingInvite(notification.id);
+    try {
+      const success = await acceptInvitation(invitationCode);
+      if (success) {
+        // Mark notification as read
+        await FamilyNotificationService.markAsRead(notification.id);
+
+        // Remove from list
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+
+        Alert.alert(
+          'Welcome to the Family!',
+          'You have successfully joined the family subscription with unlimited access!',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('MainTabs'),
+            },
+          ]
+        );
+
+        await fetchBadgeCount();
+      }
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to accept invitation');
+    } finally {
+      setAcceptingInvite(null);
+    }
+  };
+
   // Get icon for notification type
   const getNotificationIcon = (type: string) => {
     const iconMap: Record<string, string> = {
+      family_invitation: 'people',
+      member_joined: 'person-add',
+      trial_converted: 'checkmark-circle',
       prayer_reminder: 'hand-right',
       devotional_reminder: 'book',
       journal_prompt: 'create',
@@ -195,40 +241,63 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             </ThemedText>
           </View>
         ) : (
-          notifications.map((notification, index) => (
-            <TouchableOpacity
-              key={notification.id || index}
-              style={styles.notificationCard}
-              onPress={() => handleNotificationTap(notification)}
-            >
+          notifications.map((notification, index) => {
+            const isFamilyInvitation = notification.notification_type === 'family_invitation';
+            const isAccepting = acceptingInvite === notification.id;
+
+            return (
               <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: `${getNotificationColor(notification.type)}20` },
-                ]}
+                key={notification.id || index}
+                style={styles.notificationCard}
               >
-                <Ionicons
-                  name={getNotificationIcon(notification.type)}
-                  size={24}
-                  color={getNotificationColor(notification.type)}
-                />
-              </View>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: `${getNotificationColor(notification.notification_type || notification.type)}20` },
+                  ]}
+                >
+                  <Ionicons
+                    name={getNotificationIcon(notification.notification_type || notification.type)}
+                    size={24}
+                    color={getNotificationColor(notification.notification_type || notification.type)}
+                  />
+                </View>
 
-              <View style={styles.notificationContent}>
-                <ThemedText weight="semiBold" style={styles.notificationTitle}>
-                  {notification.title}
-                </ThemedText>
-                <ThemedText style={styles.notificationMessage}>
-                  {notification.message}
-                </ThemedText>
-                <ThemedText style={styles.notificationTime}>
-                  {formatTimeAgo(notification.scheduled_for || notification.created_at)}
-                </ThemedText>
-              </View>
+                <View style={styles.notificationContent}>
+                  <ThemedText weight="semiBold" style={styles.notificationTitle}>
+                    {notification.title}
+                  </ThemedText>
+                  <ThemedText style={styles.notificationMessage}>
+                    {notification.message}
+                  </ThemedText>
+                  {isFamilyInvitation && notification.data?.invitation_code && (
+                    <ThemedText style={styles.invitationCode}>
+                      Code: {notification.data.invitation_code}
+                    </ThemedText>
+                  )}
+                  <ThemedText style={styles.notificationTime}>
+                    {formatTimeAgo(notification.scheduled_for || notification.created_at)}
+                  </ThemedText>
+                </View>
 
-              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          ))
+                {isFamilyInvitation ? (
+                  <TouchableOpacity
+                    style={[styles.acceptButton, isAccepting && styles.acceptButtonDisabled]}
+                    onPress={() => handleAcceptInvitation(notification)}
+                    disabled={isAccepting}
+                  >
+                    <ThemedText weight="semiBold" style={styles.acceptButtonText}>
+                      {isAccepting ? 'Joining...' : 'Accept'}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => handleNotificationTap(notification)}>
+                    <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
@@ -337,6 +406,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.alertCoral,
     opacity: 0.9,
+  },
+  invitationCode: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.faithGold,
+    fontFamily: 'monospace',
+    marginBottom: 4,
+  },
+  acceptButton: {
+    backgroundColor: Colors.growthGreen,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginLeft: 12,
+  },
+  acceptButtonDisabled: {
+    backgroundColor: Colors.textGray,
+    opacity: 0.6,
+  },
+  acceptButtonText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
   },
 });
 

@@ -51,14 +51,14 @@ const OnboardingTrialOfferScreen = () => {
   const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'annual'; // Use sales offer billing or default to annual
-  
-  logger.debug('Trial screen initialized with params', { 
-    selectedTierId: routeParams?.selectedTierId, 
+
+  logger.debug('Trial screen initialized with params', {
+    selectedTierId: routeParams?.selectedTierId,
     billing: routeParams?.billing,
     initialTierId,
-    initialBilling 
+    initialBilling,
   });
-  
+
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
@@ -191,12 +191,12 @@ const OnboardingTrialOfferScreen = () => {
       // This matches what's configured in App Store Connect
       const billing = isAnnual ? 'annual' : 'monthly';
       let productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
-      
-      logger.debug('Constructing trial product ID', { 
-        selectedTierId, 
-        billing, 
+
+      logger.debug('Constructing trial product ID', {
+        selectedTierId,
+        billing,
         productId,
-        isAnnual 
+        isAnnual,
       });
 
       // CRITICAL: Verify the .freetrial product exists in App Store Connect

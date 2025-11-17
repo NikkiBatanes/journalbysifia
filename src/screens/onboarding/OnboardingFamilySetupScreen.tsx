@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
@@ -24,7 +23,7 @@ import ThemedText from '../../components/common/ThemedText';
 
 /**
  * OnboardingFamilySetupScreen
- * 
+ *
  * Enterprise-grade family subscription setup during onboarding
  * Features:
  * - Group name configuration
@@ -82,7 +81,7 @@ const OnboardingFamilySetupScreen: React.FC = () => {
 
   // Validate email
   const isValidEmail = (email: string): boolean => {
-    if (!email) return true; // Empty is valid (optional)
+    if (!email) {return true;} // Empty is valid (optional)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
@@ -99,7 +98,7 @@ const OnboardingFamilySetupScreen: React.FC = () => {
 
   // Validate step 3
   const canProceedStep3 = useMemo(() => {
-    const validEmails = formData.initialInvites.filter(email => 
+    const validEmails = formData.initialInvites.filter(email =>
       email.trim() && isValidEmail(email)
     );
     return validEmails.length >= 0; // Can proceed with 0 invites
@@ -145,7 +144,7 @@ const OnboardingFamilySetupScreen: React.FC = () => {
       Logger.info('Family group created', { familyGroupId: familyGroup.id });
 
       // Send invitations
-      const validInvites = formData.initialInvites.filter(email => 
+      const validInvites = formData.initialInvites.filter(email =>
         email.trim() && isValidEmail(email)
       );
 
@@ -212,7 +211,7 @@ const OnboardingFamilySetupScreen: React.FC = () => {
             <View style={styles.iconContainer}>
               <Ionicons name="people" size={64} color={Colors.anchorBlue} />
             </View>
-            
+
             <ThemedText style={styles.stepTitle}>Name Your Family Group</ThemedText>
             <ThemedText style={styles.stepDescription}>
               Choose a name that represents your family. This will be visible to all members.
@@ -248,7 +247,7 @@ const OnboardingFamilySetupScreen: React.FC = () => {
             <View style={styles.iconContainer}>
               <Ionicons name="people-circle" size={64} color={Colors.anchorBlue} />
             </View>
-            
+
             <ThemedText style={styles.stepTitle}>Set Member Capacity</ThemedText>
             <ThemedText style={styles.stepDescription}>
               How many family members will use siFia? You can always adjust this later.
@@ -337,7 +336,7 @@ const OnboardingFamilySetupScreen: React.FC = () => {
             <View style={styles.iconContainer}>
               <Ionicons name="mail" size={64} color={Colors.anchorBlue} />
             </View>
-            
+
             <ThemedText style={styles.stepTitle}>Invite Family Members</ThemedText>
             <ThemedText style={styles.stepDescription}>
               Add email addresses to invite family members. They'll receive an invitation code to join.

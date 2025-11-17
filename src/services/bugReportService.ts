@@ -53,11 +53,11 @@ export async function reportBug(payload: BugReportPayload) {
       console.log('🐛 Error.details:', error.details);
       console.log('🐛 Error.hint:', error.hint);
       console.log('🐛 Error stringified:', JSON.stringify(error));
-      
+
       // Extract meaningful error information
       const errorCode = error.code || 'UNKNOWN';
       const errorMessage = error.message || error.hint || error.details || 'Unknown database error';
-      
+
       // Log detailed error for debugging
       Logger.error('Bug report submission failed', new Error(errorMessage), {
         component: 'bugReportService',
@@ -72,7 +72,7 @@ export async function reportBug(payload: BugReportPayload) {
           screen: payload.screen,
         },
       });
-      
+
       // Provide user-friendly error messages based on error code
       if (errorCode === '42P01') {
         throw new Error('Bug reporting is currently unavailable. Please contact support.');
@@ -98,13 +98,13 @@ export async function reportBug(payload: BugReportPayload) {
     if (error instanceof Error) {
       throw error;
     }
-    
+
     // Otherwise, wrap it in a generic error
     Logger.error('Unexpected error in reportBug', new Error(String(error)), {
       component: 'bugReportService',
       errorType: typeof error,
     });
-    
+
     throw new Error('Failed to submit bug report. Please check your connection and try again.');
   }
 }

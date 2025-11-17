@@ -5,7 +5,7 @@ import {
 } from '@react-navigation/native-stack';
 // Removed CommonActions import as we navigate directly to UserProfile
 
-import { Colors } from '../theme';
+// import { Colors } from '../theme/colors';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
@@ -345,22 +345,22 @@ export default function RootStackNavigator({
             name="FamilyAdminDashboard"
             component={require('../screens/FamilyAdminDashboardScreen').default as React.ComponentType}
             options={{
-              headerShown: true,
-              title: 'Family Management',
-              headerStyle: { backgroundColor: Colors.hopeWhite },
-              headerTitleStyle: { color: Colors.anchorBlue },
-              headerBackVisible: true,
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+              gestureDirection: 'vertical',
             }}
           />
           <Stack.Screen
             name="FamilyInvitation"
             component={require('../screens/FamilyInvitationScreen').default as React.ComponentType}
             options={{
-              headerShown: true,
-              title: 'Join Family',
-              headerStyle: { backgroundColor: Colors.hopeWhite },
-              headerTitleStyle: { color: Colors.anchorBlue },
-              headerBackVisible: true,
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+              gestureDirection: 'vertical',
             }}
           />
         </>
