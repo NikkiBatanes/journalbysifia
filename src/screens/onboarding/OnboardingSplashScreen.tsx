@@ -22,6 +22,7 @@ import { Colors } from '../../theme/colors';
 import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
 import { logger } from '../../utils/logger';
 import { onboardingService } from '../../services/onboardingService';
+import { getCurrentLocation } from '../../services/calendarSyncService';
 
 interface OnboardingSplashScreenProps {
   onComplete?: () => void;
@@ -373,6 +374,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
             name: displayName,
             registrationMethod: isOAuth ? 'oauth' : 'email',
           };
+
+          try {
+            await getCurrentLocation();
+          } catch (locationError) {
+            logger.warn('Location warmup before personalization failed', locationError as Error);
+          }
+
           logger.debug('👋 NEW USER - ROUTING TO PERSONALIZATION');
           logger.debug('📋 FLOW: Splash > Personalization (new account)');
           try {
