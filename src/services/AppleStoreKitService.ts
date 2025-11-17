@@ -12,6 +12,7 @@ import RNIap, {
   finishTransaction,
   purchaseUpdatedListener,
   purchaseErrorListener,
+  getAvailablePurchases,
 } from 'react-native-iap';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
@@ -106,10 +107,53 @@ export class AppleStoreKitService {
       // Set up purchase listeners
       this.setupPurchaseListeners();
 
+      // Clear any old cached transactions on startup
+      await this.clearOldTransactions();
+
       this.isInitialized = true;
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * Clear old cached transactions that are older than 5 minutes
+   * This prevents stale purchases from being processed on app restart
+   */
+  private async clearOldTransactions(): Promise<void> {
+    try {
+      const availablePurchases = await getAvailablePurchases();
+      
+      if (availablePurchases.length === 0) {
+        return;
+      }
+
+      Logger.info('[StoreKit] Checking for old cached transactions', {
+        component: 'AppleStoreKitService',
+        count: availablePurchases.length,
+      });
+
+      for (const purchase of availablePurchases) {
+        const purchaseTime = new Date(purchase.transactionDate).getTime();
+        const purchaseAge = Date.now() - purchaseTime;
+
+        // Clear transactions older than 5 minutes
+        if (purchaseAge > 5 * 60 * 1000) {
+          Logger.info('[StoreKit] 🧹 Clearing old cached transaction', {
+            component: 'AppleStoreKitService',
+            productId: purchase.productId,
+            purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
+            transactionDate: new Date(purchaseTime).toISOString(),
+          });
+
+          await finishTransaction({ purchase, isConsumable: false });
+        }
+      }
+    } catch (error) {
+      Logger.error('[StoreKit] Error clearing old transactions', error as Error, {
+        component: 'AppleStoreKitService',
+      });
     }
   }
 
@@ -284,10 +328,34 @@ export class AppleStoreKitService {
       });
 
       // CRITICAL: Validate purchase freshness to prevent cached/stale purchases
+      const purchaseTime = new Date(purchase.transactionDate).getTime();
+      const purchaseAge = Date.now() - purchaseTime;
+
+      // CRITICAL: Always reject transactions older than 5 minutes
+      // This prevents old cached purchases from being processed on app restart
+      if (purchaseAge > 5 * 60 * 1000) {
+        Logger.warn('[StoreKit] ⚠️ FINISHING STALE TRANSACTION - Transaction is older than 5 minutes', {
+          component: 'AppleStoreKitService',
+          purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
+          transactionDate: new Date(purchaseTime).toISOString(),
+          productId: purchase.productId,
+        });
+
+        // Finish the transaction to clear it from the queue
+        await finishTransaction({ purchase, isConsumable: false });
+
+        // Reject the pending purchase promise if one exists
+        const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
+        if (resolver) {
+          resolver.reject(new Error('STALE_PURCHASE_CACHE'));
+          this.pendingPurchaseResolvers.delete(purchase.productId);
+        }
+        return;
+      }
+
+      // If we have an active purchase flow, validate timing
       if (this.purchaseInitiatedTimestamp) {
-        const purchaseTime = new Date(purchase.transactionDate).getTime();
         const timeSincePurchaseInitiated = Date.now() - this.purchaseInitiatedTimestamp;
-        const purchaseAge = Date.now() - purchaseTime;
 
         Logger.info('[StoreKit] Purchase freshness check', {
           component: 'AppleStoreKitService',
@@ -297,30 +365,13 @@ export class AppleStoreKitService {
           purchaseAge: `${Math.round(purchaseAge / 1000)}s`,
         });
 
-        // CRITICAL: Reject if purchase is older than 5 minutes from when we initiated the flow
-        // This prevents old cached purchases from being treated as new
-        if (purchaseAge > 5 * 60 * 1000) {
-          Logger.error('[StoreKit] ❌ REJECTING STALE PURCHASE - Transaction is older than 5 minutes', new Error('STALE_PURCHASE'), {
-            component: 'AppleStoreKitService',
-            purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
-            transactionDate: new Date(purchaseTime).toISOString(),
-          });
-
-          // Reject the pending purchase promise
-          const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
-          if (resolver) {
-            resolver.reject(new Error('STALE_PURCHASE_CACHE'));
-            this.pendingPurchaseResolvers.delete(purchase.productId);
-          }
-          return;
-        }
-
         Logger.info('[StoreKit] ✅ Purchase freshness validated - proceeding', {
           component: 'AppleStoreKitService',
         });
       } else {
-        Logger.warn('[StoreKit] ⚠️ No purchase timestamp - cannot validate freshness', {
+        Logger.warn('[StoreKit] ⚠️ No active purchase flow - transaction may be from previous session', {
           component: 'AppleStoreKitService',
+          purchaseAge: `${Math.round(purchaseAge / 1000)}s`,
         });
       }
 
