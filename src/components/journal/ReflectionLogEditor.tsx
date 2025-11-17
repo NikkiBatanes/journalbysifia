@@ -1000,11 +1000,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
-        {/* Always show pencil icon for free-form mode */}
-        <TouchableOpacity
-          style={s.modeButton}
-          disabled={viewMode === 'free-form' && !selectedPrompt} // Disable when active
-          onPress={async () => {
+        {/* Show pencil toggle only when free-form switching is allowed */}
+        {source !== 'guided' && (
+          <TouchableOpacity
+            style={s.modeButton}
+            disabled={viewMode === 'free-form' && !selectedPrompt} // Disable when active
+            onPress={async () => {
             // Haptic for switching to free-form mode
             triggerLightHaptic();
 
@@ -1102,6 +1103,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             strokeWidth={1.5}
           />
         </TouchableOpacity>
+        )}
         {/* Delete icon - only visible in edit mode and when onDelete is provided */}
         {isEditing && onDelete && (
           <TouchableOpacity
