@@ -319,6 +319,10 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Show success modal
+        logger.info('Trial purchase successful - showing success modal', {
+          transactionId: result.transactionId,
+          selectedTier: selectedTierId,
+        });
         setPurchaseValidated(true); // Always show as validated for successful purchases
         setIsStartingTrial(false);
         setShowSuccessModal(true);
@@ -539,6 +543,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
 
   // ENTERPRISE IMPROVEMENT: Enhanced success modal continue handler
   const handleSuccessModalContinue = useCallback(() => {
+    logger.info('Success modal continue button pressed');
     setShowSuccessModal(false);
 
     // Use a more reliable navigation approach
@@ -547,16 +552,22 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     // Small delay to ensure modal is fully hidden
     setTimeout(() => {
       if (skipNotificationPreference) {
+        logger.info('Navigating back (skipNotificationPreference=true)');
         safeNavigate(() => navigation.goBack(), 'go_back_to_sales');
       } else {
-        // Navigate to notification setup - use replace to avoid stack issues
-        safeNavigate(() => {
-          (navigation as any).replace('OnboardingNotificationSetup', {
+        // Navigate to notification setup
+        logger.info('Navigating to OnboardingNotificationSetup');
+        try {
+          (navigation as any).navigate('OnboardingNotificationSetup', {
             userType: 'trial',
             fromTrial: true,
-            navigationGuarded: true,
+            onboardingFlow: true,
           });
-        }, 'navigate_to_notification');
+        } catch (navError) {
+          logger.error('Navigation error', navError as Error);
+          // Fallback: try going back
+          navigation.goBack();
+        }
       }
     }, 100);
   }, [route?.params?.skipNotificationPreference, navigation, safeNavigate]);

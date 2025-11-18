@@ -903,6 +903,17 @@ export class AppleStoreKitService {
       // Get current database status
       const currentSub = await NewSubscriptionService.getUserSubscription(userId);
 
+      // CRITICAL: If user is already on free_trial and this is a trial product, don't update
+      // This prevents overwriting the trial tier that was just set by startFreeTrial()
+      if (currentSub?.tier === 'free_trial' && status.isTrialProduct) {
+        Logger.info('[StoreKit] User already on free_trial with trial product - skipping sync', {
+          component: 'AppleStoreKitService',
+          currentTier: currentSub.tier,
+          statusTier: status.tier,
+        });
+        return;
+      }
+
       // Check if update is needed
       const needsUpdate =
         currentSub?.tier !== status.tier ||
