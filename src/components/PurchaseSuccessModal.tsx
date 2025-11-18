@@ -13,7 +13,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   Modal,
   StyleSheet,
   TouchableOpacity,
@@ -23,6 +22,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { useTheme } from '../theme/ThemeContext'; // Unused
 import { Colors } from '../theme';
+import ThemedText from './common/ThemedText';
 
 const { width } = Dimensions.get('window');
 
@@ -80,29 +80,98 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   }, [visible, fadeAnim, scaleAnim, checkmarkScale]);
 
   const getTierInfo = () => {
-    const tierMap: Record<string, { name: string; color: string; benefits: string[] }> = {
-      spark: {
-        name: 'Spark',
+    const planNames: Record<string, string> = {
+      seeker: 'Seeker',
+      spark: 'Spark',
+      growth: 'Growth',
+      transformation: 'Transformation',
+      family: 'Family',
+      free_trial: 'Free Trial',
+    };
+
+    const effectiveTierKey = isTrial ? tier : tier;
+    const baseName = planNames[effectiveTierKey] || effectiveTierKey;
+    const isFamily = effectiveTierKey === 'family';
+    const isUnlimited = effectiveTierKey === 'transformation' || effectiveTierKey === 'family';
+
+    const getPlanLimits = (key: string): { playbooks: number; devotionals: number } => {
+      switch (key) {
+        case 'spark':
+          return { playbooks: 8, devotionals: 8 };
+        case 'growth':
+          return { playbooks: 20, devotionals: 20 };
+        case 'transformation':
+        case 'family':
+          return { playbooks: -1, devotionals: -1 };
+        default:
+          return { playbooks: 0, devotionals: 0 };
+      }
+    };
+
+    const limits = getPlanLimits(effectiveTierKey);
+    const playbooksText = limits.playbooks === -1 ? 'unlimited playbooks' : `${limits.playbooks} playbooks`;
+    const devotionalsText = limits.devotionals === -1 ? 'unlimited devotionals' : `${limits.devotionals} devotionals`;
+
+    const renewalLine = limits.playbooks === 0 && limits.devotionals === 0
+      ? ''
+      : isFamily && isUnlimited
+        ? `Will renew to the ${baseName} plan with ${playbooksText} and ${devotionalsText} for your whole family if not cancelled.`
+        : `Will renew to the ${baseName} plan with ${playbooksText} and ${devotionalsText} if not cancelled.`;
+
+    if (isTrial) {
+      const benefits: string[] = [];
+
+      if (isFamily) {
+        benefits.push('3 days free access for your whole family');
+        benefits.push('Up to 5 family members are included in your Family plan');
+        benefits.push('Each family member can generate 2 Playbooks during the trial');
+        benefits.push('Each family member can generate 2 Devotionals during the trial');
+      } else {
+        benefits.push(`3 days free access to the ${baseName} plan`);
+        benefits.push('Generate 2 Playbooks during the trial');
+        benefits.push('Generate 2 Devotionals during the trial');
+      }
+
+      benefits.push('Cancel anytime');
+      benefits.push('No commitment');
+
+      if (renewalLine) {
+        benefits.push(renewalLine);
+      }
+
+      return {
+        name: `${baseName} Trial`,
+        color: Colors.alertCoral,
+        benefits,
+      };
+    }
+
+    if (effectiveTierKey === 'spark') {
+      return {
+        name: baseName,
         color: Colors.alertCoral,
         benefits: [
-          '3 Playbooks per month',
-          '3 Devotionals per month',
-          'Basic prayer tracking',
-          'Community access',
+          '8 Playbooks per month',
+          '8 Devotionals per month',
         ],
-      },
-      growth: {
-        name: 'Growth',
+      };
+    }
+
+    if (effectiveTierKey === 'growth') {
+      return {
+        name: baseName,
         color: Colors.alertCoral,
         benefits: [
-          '10 Playbooks per month',
-          '10 Devotionals per month',
-          'Advanced prayer tracking',
+          '20 Playbooks per month',
+          '20 Devotionals per month',
           'Priority support',
         ],
-      },
-      transformation: {
-        name: 'Transformation',
+      };
+    }
+
+    if (effectiveTierKey === 'transformation') {
+      return {
+        name: baseName,
         color: Colors.alertCoral,
         benefits: [
           'Unlimited Playbooks',
@@ -110,20 +179,17 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           'Premium features',
           'VIP support',
         ],
-      },
-      free_trial: {
-        name: 'Free Trial',
-        color: Colors.alertCoral,
-        benefits: [
-          '3 days free access',
-          'All Spark features',
-          'Cancel anytime',
-          'No commitment',
-        ],
-      },
-    };
+      };
+    }
 
-    return tierMap[tier] || tierMap.spark;
+    return {
+      name: baseName,
+      color: Colors.alertCoral,
+      benefits: [
+        'Cancel anytime',
+        'No commitment',
+      ],
+    };
   };
 
   const tierInfo = getTierInfo();
@@ -160,33 +226,37 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           </Animated.View>
 
           {/* Success Message */}
-          <Text style={[styles.title, { color: Colors.hopeWhite }]}>
+          <ThemedText style={[styles.title, { color: Colors.hopeWhite }]}
+          >
             {isTrial ? 'Trial Started!' : 'Purchase Successful!'}
-          </Text>
+          </ThemedText>
 
-          <Text style={[styles.subtitle, { color: Colors.hopeWhite }]}>
+          <ThemedText style={[styles.subtitle, { color: Colors.hopeWhite }]}
+          >
             Welcome to {tierInfo.name}
-          </Text>
+          </ThemedText>
 
           {/* Validation Badge */}
           {isValidated && (
             <View style={styles.validationBadge}>
               <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
-              <Text style={styles.validationText}>Verified by Apple</Text>
+              <ThemedText style={styles.validationText}>Verified by Apple</ThemedText>
             </View>
           )}
 
           {/* Benefits List */}
           <View style={styles.benefitsContainer}>
-            <Text style={[styles.benefitsTitle, { color: Colors.hopeWhite }]}>
+            <ThemedText style={[styles.benefitsTitle, { color: Colors.hopeWhite }]}
+            >
               What's Included:
-            </Text>
+            </ThemedText>
             {tierInfo.benefits.map((benefit, index) => (
               <View key={index} style={styles.benefitRow}>
                 <Ionicons name="checkmark-circle" size={20} color={tierInfo.color} />
-                <Text style={[styles.benefitText, { color: Colors.hopeWhite }]}>
+                <ThemedText style={[styles.benefitText, { color: Colors.hopeWhite }]}
+                >
                   {benefit}
-                </Text>
+                </ThemedText>
               </View>
             ))}
           </View>
@@ -195,9 +265,10 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           {isTrial && (
             <View style={[styles.trialNotice, { backgroundColor: Colors.anchorBlue }]}>
               <Ionicons name="information-circle" size={20} color="#FFD93D" />
-              <Text style={[styles.trialNoticeText, { color: Colors.hopeWhite }]}>
+              <ThemedText style={[styles.trialNoticeText, { color: Colors.hopeWhite }]}
+              >
                 Your trial starts now. Cancel anytime before it ends.
-              </Text>
+              </ThemedText>
             </View>
           )}
 
@@ -207,7 +278,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
             onPress={onContinue}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
             <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </Animated.View>

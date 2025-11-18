@@ -590,7 +590,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
       {/* ENTERPRISE IMPROVEMENT: Success Modal */}
       <PurchaseSuccessModal
         visible={showSuccessModal}
-        tier="free_trial"
+        tier={selectedTierId}
         isTrial={true}
         isValidated={purchaseValidated}
         onContinue={handleSuccessModalContinue}

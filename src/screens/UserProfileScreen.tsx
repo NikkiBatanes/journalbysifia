@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Logger } from '../utils/ProductionLogger';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -217,6 +218,27 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [profileForm, user]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      (async () => {
+        try {
+          const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
+          const storeKit = AppleStoreKitService.getInstance();
+          await storeKit.checkAndSyncSubscriptionStatus(user.id);
+        } catch (error) {
+          Logger.error('[UserProfileScreen] Failed to sync subscription status on focus', error as Error, {
+            component: 'UserProfileScreen',
+            action: 'sync_subscription_on_focus',
+          });
+        }
+      })();
+    }, [user?.id])
+  );
 
   // Modal states
   const [editProfileModal, setEditProfileModal] = useState(false);

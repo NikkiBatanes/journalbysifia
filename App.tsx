@@ -8,7 +8,7 @@ import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, StyleSheet, LogBox, Image } from 'react-native';
+import { View, StatusBar, StyleSheet, LogBox, Image, AppState, AppStateStatus } from 'react-native';
 
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 
@@ -120,6 +120,32 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     };
 
     syncSubscriptionStatus();
+  }, [isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      return;
+    }
+
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        (async () => {
+          try {
+            const { AppleStoreKitService } = await import('./src/services/AppleStoreKitService');
+            const storeKit = AppleStoreKitService.getInstance();
+            await storeKit.checkAndSyncSubscriptionStatus(user.id);
+          } catch (error) {
+            console.error('[App] Failed to sync subscription status on foreground:', error);
+          }
+        })();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
   }, [isAuthenticated, user?.id]);
 
   // Re-initialize notification setup when navigation ref changes
