@@ -22,6 +22,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
     playbooks: 20,
     devotionals: 20,
   });
+  const [billingCycle, setBillingCycleState] = useState<'monthly' | 'annual'>('monthly');
 
   // Load current tier on mount
   React.useEffect(() => {
@@ -30,7 +31,7 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
 
       const { data } = await supabase
         .from('user_subscriptions_new')
-        .select('tier, subscription_display_name, playbooks_limit, devotionals_limit, trial_chosen_tier')
+        .select('tier, subscription_display_name, playbooks_limit, devotionals_limit, trial_chosen_tier, billing_cycle')
         .eq('user_id', user.id)
         .single();
 
@@ -46,6 +47,8 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
           playbooks: data.playbooks_limit || 20,
           devotionals: data.devotionals_limit || 20,
         });
+
+        setBillingCycleState((data as any).billing_cycle === 'annual' ? 'annual' : 'monthly');
       }
     };
 
@@ -254,6 +257,37 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
       }
 
       Alert.alert('Success', `Changed to ${tierName}. ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setBillingCycle = async (cycle: 'monthly' | 'annual') => {
+    if (!user?.id) {
+      Alert.alert('Error', 'No user found');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          billing_cycle: cycle,
+        })
+        .eq('user_id', user.id);
+
+      if (error) {throw error;}
+
+      setBillingCycleState(cycle);
+
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 500);
+      }
+
+      Alert.alert('Success', `Billing cycle set to ${cycle === 'annual' ? 'Annual' : 'Monthly'}. ${onRefresh ? 'Refreshing...' : 'Pull down to refresh.'}`);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -506,6 +540,27 @@ export const TrialDebugMenu: React.FC<TrialDebugMenuProps> = ({ onRefresh }) => 
             >
               <Text style={styles.buttonText}>Family (Unlimited)</Text>
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Billing Cycle (Current Subscription):</Text>
+            <Text style={styles.helperText}>Current: {billingCycle === 'annual' ? 'Annual' : 'Monthly'}</Text>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setBillingCycle('monthly')}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>Set Monthly</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSmall]}
+                onPress={() => setBillingCycle('annual')}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>Set Annual</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </>
       )}
