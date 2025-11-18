@@ -124,7 +124,7 @@ export class AppleStoreKitService {
   private async clearOldTransactions(): Promise<void> {
     try {
       const availablePurchases = await getAvailablePurchases();
-      
+
       if (availablePurchases.length === 0) {
         return;
       }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -36,11 +36,7 @@ export default function NotificationDebugScreen() {
   });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadDebugInfo();
-  }, []);
-
-  const loadDebugInfo = async () => {
+  const loadDebugInfo = useCallback(async () => {
     setLoading(true);
     try {
       // Get stored device token
@@ -93,7 +89,11 @@ export default function NotificationDebugScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadDebugInfo();
+  }, [loadDebugInfo]);
 
   const testLocalNotification = async () => {
     try {

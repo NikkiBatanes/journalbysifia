@@ -1651,7 +1651,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.menuText, font]}>Manage Family</Text>
               <View style={styles.trialBadge}>
                 <Text style={[styles.trialBadgeText, font]}>
-                  {familyGroup.current_members}/{familyGroup.max_members}
+                  {familyGroup?.current_members ?? 0}/{familyGroup?.max_members ?? 0}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1668,7 +1668,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.menuText, font]}>Family Group</Text>
               <View style={styles.trialBadge}>
                 <Text style={[styles.trialBadgeText, font]}>
-                  {familyGroup.current_members}/{familyGroup.max_members}
+                  {familyGroup?.current_members ?? 0}/{familyGroup?.max_members ?? 0}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />

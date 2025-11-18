@@ -7,7 +7,6 @@ import {
   ScrollView,
   Modal,
   StatusBar,
-  Platform,
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
@@ -190,7 +189,7 @@ const OnboardingTrialOfferScreen = () => {
       // Use the .freetrial product ID based on selected tier and billing
       // This matches what's configured in App Store Connect
       const billing = isAnnual ? 'annual' : 'monthly';
-      let productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
+      const productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
 
       logger.debug('Constructing trial product ID', {
         selectedTierId,
@@ -207,38 +206,33 @@ const OnboardingTrialOfferScreen = () => {
         const trialProduct = availableProducts.find(p => p.productId === productId);
 
         if (!trialProduct) {
-          // Set UI state to show trial not available
           setTrialProductAvailable(false);
 
-          // TEMPORARY: For TestFlight testing, use fallback product
-          if (__DEV__ || Platform.OS === 'ios') {
-            const fallbackProductId = `app.sifia.com.${selectedTierId}.${billing}`;
-            const fallbackProduct = availableProducts.find(p => p.productId === fallbackProductId);
-
-            if (fallbackProduct) {
-              productId = fallbackProductId; // Use fallback for testing
-            } else {
-              const errorMessage = `Free trial not available.
+          const errorMessage = `Free trial product not available.
 
 🔍 DEBUGGING INFO:
 • Expected trial product: ${productId}
 • Available products: ${availableProducts.length}
 • Selected tier: ${selectedTierId}
 
-Please check App Store Connect configuration or contact support.`;
+Trial purchases require the .freetrial SKU. Please check App Store Connect configuration or create a new sandbox tester.`;
 
-              throw new Error(errorMessage);
+          logger.error(
+            'Trial product not found - blocking purchase',
+            undefined,
+            {
+              expectedProductId: productId,
+              availableProducts: availableProducts.map(p => p.productId),
             }
-          } else {
-            // Production: Block trial if product not found
-            throw new Error('Free trial not available. Please contact support or try again later.');
-          }
-        } else {
-          // Set UI state to show trial is available
-          setTrialProductAvailable(true);
+          );
+
+          throw new Error(errorMessage);
         }
+
+        // Set UI state to show trial is available
+        setTrialProductAvailable(true);
       } catch (productError) {
-        throw new Error('Unable to verify trial availability. Please try again later or contact support.');
+        throw new Error(productError instanceof Error ? productError.message : 'Unable to verify trial availability. Please try again later or contact support.');
       }
 
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
