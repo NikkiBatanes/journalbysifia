@@ -39,12 +39,63 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
     try {
       setLoading(true);
-      const [queuedNotifications, inAppNotifications] = await Promise.all([
+
+      const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+
+      const [queuedNotifications, inAppNotificationsRaw, familyInvitations] = await Promise.all([
         notificationManagementService.getPendingNotifications(user.id),
         FamilyNotificationService.getUnreadNotifications(user.id),
+        (async () => {
+          if (!userEmail) {return [] as any[];}
+
+          const { data, error } = await supabase
+            .from('family_invitations')
+            .select('*')
+            .eq('invited_email', userEmail)
+            .eq('status', 'pending');
+
+          if (error || !data) {return [] as any[];}
+
+          // Enrich invitations with inviter name/email
+          const enriched = await Promise.all(
+            data.map(async (invite: any) => {
+              let inviterName = 'Family admin';
+              try {
+                const { data: inviterProfile } = await supabase
+                  .from('user_profiles')
+                  .select('full_name, email')
+                  .eq('id', invite.invited_by_user_id)
+                  .single();
+
+                inviterName = inviterProfile?.full_name || inviterProfile?.email || inviterName;
+              } catch {
+                // Fallback to generic label
+              }
+
+              return {
+                id: invite.id,
+                notification_type: 'family_invitation',
+                title: 'Family Invitation',
+                message: `${inviterName} invited you to join a family subscription`,
+                data: {
+                  invitation_code: invite.invitation_code,
+                  family_group_id: invite.family_group_id,
+                },
+                created_at: invite.created_at,
+              };
+            })
+          );
+
+          return enriched;
+        })(),
       ]);
 
-      const mergedNotifications = [...inAppNotifications, ...queuedNotifications].sort((a, b) => {
+      // Exclude family_invitation from in-app notifications to avoid duplicates
+      const inAppNotifications = inAppNotificationsRaw.filter(
+        (n: any) => n.notification_type !== 'family_invitation'
+      );
+
+      const mergedNotifications = [...inAppNotifications, ...queuedNotifications, ...familyInvitations].sort((a, b) => {
         const aTime = new Date(getNotificationTimestamp(a)).getTime();
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
         return bTime - aTime;
@@ -106,7 +157,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Real-time subscription to notifications
+  // Real-time subscription to notifications, queue, and family invitations
   useEffect(() => {
     if (!user?.id) {return;}
 
@@ -163,6 +214,30 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       )
       .subscribe();
 
+    // Subscribe to family_invitations changes for this user (by email)
+    const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+    const familyInvitesSubscription = userEmail
+      ? supabase
+          .channel(`family_invitations_screen:${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'family_invitations',
+              filter: `invited_email=eq.${userEmail}`,
+            },
+            (payload) => {
+              Logger.debug('Real-time family invitation change in screen', {
+                component: 'NotificationsScreen',
+                event: payload.eventType,
+              });
+              fetchNotifications();
+            }
+          )
+          .subscribe()
+      : null;
+
     // Cleanup subscriptions
     return () => {
       Logger.debug('Cleaning up notification screen subscriptions', {
@@ -170,6 +245,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       });
       notificationsSubscription.unsubscribe();
       queueSubscription.unsubscribe();
+      familyInvitesSubscription?.unsubscribe();
     };
   }, [user?.id, fetchNotifications]);
 
@@ -208,6 +284,62 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to accept invitation');
     } finally {
       setAcceptingInvite(null);
+    }
+  };
+
+  // Handle family invitation decline
+  const handleDeclineInvitation = async (notification: any) => {
+    const invitationCode = notification.data?.invitation_code;
+    if (!invitationCode) {
+      Alert.alert('Error', 'Invalid invitation code');
+      return;
+    }
+
+    try {
+      const normalizedCode = String(invitationCode).trim().toUpperCase();
+
+      // Look up the invitation to find who sent it
+      const { data: invitation } = await supabase
+        .from('family_invitations')
+        .select('invited_by_user_id')
+        .eq('invitation_code', normalizedCode)
+        .single();
+
+      // Mark invitation as declined
+      await supabase
+        .from('family_invitations')
+        .update({ status: 'declined' })
+        .eq('invitation_code', normalizedCode);
+
+      // Mark in-app notification as read when applicable
+      if (notification.id) {
+        try {
+          await FamilyNotificationService.markAsRead(notification.id);
+        } catch {
+          // Non-fatal
+        }
+      }
+
+      // Remove from local list
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+
+      // Refresh badge count so bell updates immediately
+      await fetchBadgeCount();
+
+      // Notify inviter, if we could resolve them
+      if (invitation?.invited_by_user_id) {
+        const invitedName =
+          (user as any)?.user_metadata?.full_name ||
+          (user as any)?.email ||
+          'A member';
+
+        await FamilyNotificationService.notifyInvitationDeclined(
+          invitation.invited_by_user_id,
+          invitedName
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to decline invitation');
     }
   };
 
@@ -288,15 +420,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         )}
       </View>
 
-      {/* Badge Count */}
-      {badgeCount > 0 && (
-        <View style={styles.badgeContainer}>
-          <ThemedText weight="medium" style={styles.badgeText}>
-            {badgeCount} pending notification{badgeCount !== 1 ? 's' : ''}
-          </ThemedText>
-        </View>
-      )}
-
       {/* Notifications List */}
       <ScrollView
         style={styles.scrollView}
@@ -352,26 +475,32 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                   <ThemedText style={styles.notificationMessage}>
                     {notification.message}
                   </ThemedText>
-                  {isFamilyInvitation && notification.data?.invitation_code && (
-                    <ThemedText style={styles.invitationCode}>
-                      Code: {notification.data.invitation_code}
-                    </ThemedText>
-                  )}
                   <ThemedText style={styles.notificationTime}>
                     {formatTimeAgo(getNotificationTimestamp(notification))}
                   </ThemedText>
                 </View>
 
                 {isFamilyInvitation ? (
-                  <TouchableOpacity
-                    style={[styles.acceptButton, isAccepting && styles.acceptButtonDisabled]}
-                    onPress={() => handleAcceptInvitation(notification)}
-                    disabled={isAccepting}
-                  >
-                    <ThemedText weight="semiBold" style={styles.acceptButtonText}>
-                      {isAccepting ? 'Joining...' : 'Accept'}
-                    </ThemedText>
-                  </TouchableOpacity>
+                  <View style={styles.inviteActions}>
+                    <TouchableOpacity
+                      style={[styles.acceptButton, isAccepting && styles.acceptButtonDisabled]}
+                      onPress={() => handleAcceptInvitation(notification)}
+                      disabled={isAccepting}
+                    >
+                      <ThemedText weight="semiBold" style={styles.acceptButtonText}>
+                        {isAccepting ? 'Joining...' : 'Accept'}
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.declineButton}
+                      onPress={() => handleDeclineInvitation(notification)}
+                      disabled={isAccepting}
+                    >
+                      <ThemedText weight="semiBold" style={styles.declineButtonText}>
+                        Decline
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   <TouchableOpacity onPress={() => handleNotificationTap(notification)}>
                     <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
@@ -509,6 +638,23 @@ const styles = StyleSheet.create({
   },
   acceptButtonText: {
     fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  inviteActions: {
+    marginLeft: 12,
+    alignItems: 'flex-end',
+  },
+  declineButton: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    backgroundColor: 'transparent',
+  },
+  declineButtonText: {
+    fontSize: 13,
     color: Colors.hopeWhite,
   },
 });

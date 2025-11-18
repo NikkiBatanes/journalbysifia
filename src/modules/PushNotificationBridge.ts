@@ -7,6 +7,7 @@ import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
 interface PushNotificationBridgeInterface {
   requestPermissions: () => Promise<boolean>;
+  registerForRemoteNotifications: () => Promise<boolean>;
   checkPermissions: () => Promise<{
     alert: boolean;
     badge: boolean;
@@ -53,6 +54,21 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
       return await RCTPushNotificationBridge.requestPermissions();
     } catch (error) {
       console.error('[PushNotificationBridge] Error requesting permissions:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Force re-registration for remote notifications (to re-emit token event)
+   */
+  registerForRemoteNotifications: async (): Promise<boolean> => {
+    if (Platform.OS !== 'ios' || !RCTPushNotificationBridge) {
+      return true;
+    }
+    try {
+      return await RCTPushNotificationBridge.registerForRemoteNotifications();
+    } catch (error) {
+      console.error('[PushNotificationBridge] Error registering for remote notifications:', error);
       return false;
     }
   },

@@ -1,6 +1,7 @@
 import Foundation
 import React
 import UserNotifications
+import UIKit
 
 @objc(RCTPushNotificationBridge)
 class RCTPushNotificationBridge: RCTEventEmitter {
@@ -51,8 +52,21 @@ class RCTPushNotificationBridge: RCTEventEmitter {
       if let error = error {
         reject("PERMISSION_ERROR", error.localizedDescription, error)
       } else {
+        if granted {
+          DispatchQueue.main.async {
+            UIApplication.shared.registerForRemoteNotifications()
+          }
+        }
         resolve(granted)
       }
+    }
+  }
+
+  // Force re-registration for remote notifications (to re-emit token event)
+  @objc func registerForRemoteNotifications(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    DispatchQueue.main.async {
+      UIApplication.shared.registerForRemoteNotifications()
+      resolve(true)
     }
   }
   

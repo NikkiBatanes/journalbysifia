@@ -1,6 +1,7 @@
 import Foundation
 import React
 import UserNotifications
+import UIKit
 
 @objc(RCTPushNotificationBridge)
 class RCTPushNotificationBridge: RCTEventEmitter {
@@ -46,16 +47,29 @@ class RCTPushNotificationBridge: RCTEventEmitter {
   }
   
   // Request permissions from JavaScript
-  @objc func requestPermissions(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+  @objc public func requestPermissions(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
       if let error = error {
         reject("PERMISSION_ERROR", error.localizedDescription, error)
       } else {
+        if granted {
+          DispatchQueue.main.async {
+            UIApplication.shared.registerForRemoteNotifications()
+          }
+        }
         resolve(granted)
       }
     }
   }
-  
+
+  // Force re-registration for remote notifications (to re-emit token event)
+  @objc public func registerForRemoteNotifications(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    DispatchQueue.main.async {
+      UIApplication.shared.registerForRemoteNotifications()
+      resolve(true)
+    }
+  }
+
   // Check current permissions from JavaScript
   @objc func checkPermissions(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     UNUserNotificationCenter.current().getNotificationSettings { settings in

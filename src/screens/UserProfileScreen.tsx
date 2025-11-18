@@ -846,6 +846,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const FEATURE_CATEGORIES = ['UI/UX','New Content','Performance','Notifications','Integrations','Accessibility','Other'];
 
+  const handleOpenNotificationDebug = useCallback(() => {
+    if (!__DEV__) {return;}
+    try {
+      navigation.navigate('NotificationDebug');
+    } catch (error) {
+      Logger.error('[UserProfileScreen] Failed to open NotificationDebug', error as Error, {
+        component: 'UserProfileScreen',
+      });
+    }
+  }, [navigation]);
+
   const renderFeatureModal = () => (
     <Modal
       visible={featureModal}
@@ -1455,6 +1466,18 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.menuText, font]}>Report a Bug</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={handleOpenNotificationDebug}
+          >
+            <View style={styles.menuIconBox}>
+              <Ionicons name="notifications-outline" size={18} color={Colors.alertCoral} />
+            </View>
+            <Text style={[styles.menuText, font]}>Notification Debug (Dev)</Text>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

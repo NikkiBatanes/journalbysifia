@@ -27,11 +27,27 @@ export function useNotificationBadge() {
 
     try {
       setLoading(true);
-      const [pendingQueue, inAppUnread] = await Promise.all([
+
+      const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+
+      const [pendingQueue, inAppUnread, familyInvites] = await Promise.all([
         notificationManagementService.getPendingNotifications(user.id),
         FamilyNotificationService.getUnreadNotifications(user.id),
+        (async () => {
+          if (!userEmail) {return [] as any[];}
+
+          const { data, error } = await supabase
+            .from('family_invitations')
+            .select('id')
+            .eq('invited_email', userEmail)
+            .eq('status', 'pending');
+
+          if (error || !data) {return [] as any[];}
+          return data;
+        })(),
       ]);
-      const count = pendingQueue.length + inAppUnread.length;
+
+      const count = pendingQueue.length + inAppUnread.length + familyInvites.length;
 
       setBadgeCount(count);
 

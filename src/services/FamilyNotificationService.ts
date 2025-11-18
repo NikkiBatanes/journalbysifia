@@ -14,7 +14,7 @@ import { Logger } from '../utils/ProductionLogger';
 export interface FamilyNotification {
   id: string;
   user_id: string;
-  notification_type: 'family_invitation' | 'member_joined' | 'member_removed' | 'trial_converted';
+  notification_type: 'family_invitation' | 'member_joined' | 'member_removed' | 'trial_converted' | 'invitation_declined';
   title: string;
   message: string;
   data?: {
@@ -38,16 +38,21 @@ export class FamilyNotificationService {
     groupName: string
   ): Promise<boolean> {
     try {
-      // Find user by email
+      // Normalize email to avoid casing/whitespace issues
+      const normalizedEmail = invitedEmail.trim().toLowerCase();
+
+      // Find user by normalized email
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('id')
-        .eq('email', invitedEmail)
+        .select('id, email')
+        .eq('email', normalizedEmail)
         .single();
 
       if (profileError || !profile) {
         Logger.info('User not found for email, will send email invitation only', {
-          email: invitedEmail,
+          component: 'FamilyNotificationService',
+          invitedEmail,
+          normalizedEmail,
         });
         return false;
       }
@@ -77,14 +82,103 @@ export class FamilyNotificationService {
         return false;
       }
 
+      // Fire a remote push via Supabase edge function (best-effort)
+      try {
+        const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
+          body: {
+            user_id: profile.id,
+            type: 'family_invitation',
+            title: 'Family Invitation',
+            message: `${invitedByName} invited you to join "${groupName}" family subscription`,
+            data: {
+              family_group_id: familyGroupId,
+              invitation_code: invitationCode,
+            },
+            priority: 'high',
+          },
+        });
+
+        if (pushError) {
+          Logger.error('Failed to send family invitation push notification', pushError as Error, {
+            component: 'FamilyNotificationService',
+          });
+        }
+      } catch (pushError) {
+        Logger.error('Unexpected error sending family invitation push notification', pushError as Error, {
+          component: 'FamilyNotificationService',
+        });
+      }
+
       Logger.info('Family invitation notification sent', {
-        invitedEmail,
+        component: 'FamilyNotificationService',
+        invitedEmail: normalizedEmail,
         invitationCode,
+        userId: profile.id,
       });
 
       return true;
     } catch (error) {
       Logger.error('Failed to send family invitation notification', error as Error, {
+        component: 'FamilyNotificationService',
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Notify admin when an invitation is declined
+   */
+  static async notifyInvitationDeclined(
+    adminUserId: string,
+    invitedName: string
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: adminUserId,
+          notification_type: 'invitation_declined',
+          title: 'Family Invitation Declined',
+          message: `${invitedName} declined your family invitation.`,
+          data: {},
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        Logger.error('Failed to create invitation declined notification', error as Error, {
+          component: 'FamilyNotificationService',
+        });
+        return false;
+      }
+
+      // Best-effort push notification to admin
+      try {
+        const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
+          body: {
+            user_id: adminUserId,
+            type: 'invitation_declined',
+            title: 'Family Invitation Declined',
+            message: `${invitedName} declined your family invitation.`,
+            data: {},
+            priority: 'normal',
+          },
+        });
+
+        if (pushError) {
+          Logger.error('Failed to send invitation declined push notification', pushError as Error, {
+            component: 'FamilyNotificationService',
+          });
+        }
+      } catch (pushError) {
+        Logger.error('Unexpected error sending invitation declined push notification', pushError as Error, {
+          component: 'FamilyNotificationService',
+        });
+      }
+
+      return true;
+    } catch (error) {
+      Logger.error('Failed to send invitation declined notification', error as Error, {
         component: 'FamilyNotificationService',
       });
       return false;
