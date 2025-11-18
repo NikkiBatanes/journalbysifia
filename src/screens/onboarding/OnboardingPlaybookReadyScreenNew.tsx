@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
     maxWidth: 720,
   },
   mainTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -1580,7 +1580,7 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   playbookTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     marginTop: 16,

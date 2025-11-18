@@ -55,7 +55,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
 
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(false);
   const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' : 'growth';
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [showDynamicModal, setShowDynamicModal] = useState(false);
