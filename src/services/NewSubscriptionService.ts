@@ -208,6 +208,9 @@ export class NewSubscriptionService {
           playbooks_limit: limits.playbooks_limit,
           devotionals_limit: limits.devotionals_limit,
           smart_journaling_enabled: limits.smart_journaling_enabled,
+          playbooks_used: 0, // Reset usage when converting from trial to paid
+          devotionals_used: 0,
+          subscription_start_date: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
@@ -308,8 +311,9 @@ export class NewSubscriptionService {
     //   updateData.platform = platform;
     // }
 
-    // Reset usage counters when upgrading from seeker (onboarding playbook shouldn't count)
-    if (from_tier === 'seeker') {
+    // Reset usage counters when upgrading from seeker or converting from trial
+    // Onboarding and trial usage should not reduce the new paid plan's limits
+    if (from_tier === 'seeker' || isTrialConversion) {
       updateData.playbooks_used = 0;
       updateData.devotionals_used = 0;
     }

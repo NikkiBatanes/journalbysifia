@@ -466,8 +466,9 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   const today = new Date();
-  const reminderDate = addDays(today, 1); // remind one day before end
-  const endDate = addDays(today, 2); // 3-day trial counts start day, so +2
+  // Apple shows the paid subscription "starting" 3 days from today for a 3-day trial
+  const endDate = addDays(today, 3); // Trial ends / paid plan starts (matches Apple sheet)
+  const reminderDate = addDays(endDate, -1); // remind one day before end
 
   const timelineItems = [
     {

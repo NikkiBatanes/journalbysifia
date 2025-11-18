@@ -538,8 +538,9 @@ export class AppleStoreKitService {
 
       // Check if user is on trial - if so, convert to paid
       const currentSubscription = await NewSubscriptionService.getUserSubscription(userId);
+      const isTrialProduct = purchase.productId?.includes('freetrial');
 
-      if (currentSubscription.tier === 'free_trial') {
+      if (currentSubscription.tier === 'free_trial' && isTrialProduct) {
 
         // Trial purchases should stay as free_trial during trial period
         // Only convert when trial expires or user manually upgrades

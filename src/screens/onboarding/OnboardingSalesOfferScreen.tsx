@@ -25,6 +25,7 @@ import ThemedText from '../../components/common/ThemedText';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { logger } from '../../utils/logger';
 import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
+import { useNewSubscription } from '../../hooks/useNewSubscription';
 
 // removed Dimensions width as unused
 
@@ -54,6 +55,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const route = useRoute();
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
+  const { refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
 
   const [isAnnual, setIsAnnual] = useState(false);
   const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' : 'growth';
@@ -99,13 +101,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const featureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
     const isOnTrial = subscription.tier === 'free_trial';
 
+    // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
+    const playbooksUsed = subscription.playbooks_used || 0;
+    const devotionalsUsed = subscription.devotionals_used || 0;
+    const playbooksLimit = subscription.playbooks_limit || 0;
+    const devotionalsLimit = subscription.devotionals_limit || 0;
+
+    const remainingPlaybooks = playbooksLimit === -1 ? -1 : Math.max(0, playbooksLimit - playbooksUsed);
+    const remainingDevotionals = devotionalsLimit === -1 ? -1 : Math.max(0, devotionalsLimit - devotionalsUsed);
+
+    const remaining = featureType === 'playbooks'
+      ? (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks)
+      : (remainingDevotionals === -1 ? devotionalsLimit : remainingDevotionals);
+
+    const limit = featureType === 'playbooks'
+      ? playbooksLimit
+      : devotionalsLimit;
+
     return generateSalesCopy({
       featureType,
       currentTier: currentUserTier as SubscriptionTier,
-      remaining: 0, // Assuming they hit the limit
-      limit: featureType === 'playbooks'
-        ? (subscription.playbooks_limit || 0)
-        : (subscription.devotionals_limit || 0),
+      remaining,
+      limit,
       isOnTrial,
       trialChosenTier: subscription.trial_chosen_tier as SubscriptionTier,
       trialEndDate: subscription.trial_end_date,
@@ -415,6 +432,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             triggerSuccessHaptic();
             // Refresh subscription and close
             await devotionalGating.refreshSubscription();
+            try {
+              await refreshNewSubscription();
+            } catch {}
 
             // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
             if (!result.transactionId) {
@@ -515,6 +535,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               // Also refresh local state
               await devotionalGating.refreshSubscription();
               logger.info('✅ Local subscription state refreshed');
+
+              try {
+                await refreshNewSubscription();
+              } catch {}
 
               // Verify the subscription was actually updated
               const newTier = devotionalGating.tier;
