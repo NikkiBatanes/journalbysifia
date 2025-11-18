@@ -85,14 +85,37 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     try {
       setError(null);
 
-      await FamilySubscriptionService.createFamilyGroup({
+      const group = await FamilySubscriptionService.createFamilyGroup({
         group_name: groupName,
         admin_user_id: user.id,
         platform_subscription_id: platformSubscriptionId,
       });
 
-      // Refresh data after creation
-      await loadFamilyData();
+      // Optimistically update local state so UI reflects new family immediately
+      const adminMember: FamilyMember = {
+        id: user.id,
+        user_id: user.id,
+        family_group_id: group.id,
+        role: 'admin',
+        joined_at: (group as any)?.created_at || new Date().toISOString(),
+        status: 'active',
+        email: (user as any)?.email,
+        full_name: (user as any)?.user_metadata?.full_name,
+        avatar_url: (user as any)?.user_metadata?.avatar_url,
+      };
+
+      setFamilyGroup({
+        ...(group as any),
+        members: [adminMember],
+      });
+      setPendingInvitations([]);
+
+      // NOTE: We intentionally do NOT call loadFamilyData() immediately here.
+      // Supabase read replicas can briefly lag writes, which was causing
+      // getUserFamilyGroup() to return null right after creation, hiding
+      // "Manage Family" until the app was reloaded. We now trust the
+      // freshly returned `group` for immediate UI, and any manual refresh
+      // (pull-to-refresh or subsequent loads) will sync from the server.
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create family group';

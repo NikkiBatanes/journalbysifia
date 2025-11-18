@@ -1654,21 +1654,32 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderFamilyManagementSection = () => {
     // Enterprise-grade visibility guards
-    // Treat user as "in family" only when they have an active family group AND a family tier subscription
+    // Treat family trial as family-tier for UI purposes (e.g. "siFia Family Trial")
+    const isFamilyTrialSubscription =
+      subscription?.tier === 'free_trial' &&
+      (
+        (subscription as any)?.trial_chosen_tier === 'family' ||
+        ((subscription as any)?.subscription_display_name as string | undefined)?.toLowerCase().includes('family') ||
+        (subscription as any)?.is_trial === true
+      );
+
+    // Treat user as "in family" only when they have an active family group AND either a family tier or family trial subscription
     const isInFamily = Boolean(familyGroup) &&
                        familyGroup?.status === 'active' &&
-                       subscription?.tier === 'family';
-    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id &&
-                          (subscription as any)?.family_role === 'admin' &&
+                       (subscription?.tier === 'family' || isFamilyTrialSubscription);
+
+    // Treat user as family admin if they are the admin_user_id of an active group,
+    // even if subscription.family_role has not yet been refreshed client-side.
+    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id && 
                           familyGroup?.status === 'active' &&
-                          subscription?.tier === 'family';
-    const hasFamilyTier = subscription?.tier === 'family' &&
+                          (subscription?.tier === 'family' || isFamilyTrialSubscription);
+
+    const hasFamilyTier = (subscription?.tier === 'family' || isFamilyTrialSubscription) && 
                           subscription?.status === 'active' &&
                           !isInFamily; // Only show create option if not in family yet
-    const isFamilyMember = isInFamily &&
-                           !isFamilyAdmin &&
-                           (subscription as any)?.family_role === 'member' &&
-                           subscription?.tier === 'family';
+
+    const isFamilyMember = isInFamily && 
+                           !isFamilyAdmin;
 
     // Don't show section if user has no family-related status
     if (!isInFamily && !hasFamilyTier && !subscription) {
@@ -1741,7 +1752,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   const success = await createFamilyGroup(groupName, platformSubId);
 
                   if (success) {
-                    await refreshFamilyData();
+                    // FamilySubscription hook optimistically updates local state,
+                    // so Manage Family can appear immediately without a full reload.
                     Alert.alert(
                       'Family Group Created!',
                       'You can now invite up to 4 family members to join.',
