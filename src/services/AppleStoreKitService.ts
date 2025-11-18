@@ -910,6 +910,20 @@ export class AppleStoreKitService {
           component: 'AppleStoreKitService',
           currentTier: currentSub.tier,
           statusTier: status.tier,
+          trialChosenTier: (currentSub as any)?.trial_chosen_tier,
+        });
+        return;
+      }
+
+      // CRITICAL: If this is a trial product and user is NOT on free_trial yet,
+      // it means startFreeTrial() hasn't run yet or failed.
+      // In this case, we should NOT upgrade to the paid tier - skip sync and let startFreeTrial handle it
+      if (status.isTrialProduct && currentSub?.tier !== 'free_trial') {
+        Logger.info('[StoreKit] Trial product detected but user not on free_trial yet - skipping sync to let startFreeTrial handle it', {
+          component: 'AppleStoreKitService',
+          currentTier: currentSub?.tier,
+          statusTier: status.tier,
+          isTrialProduct: status.isTrialProduct,
         });
         return;
       }
@@ -926,14 +940,29 @@ export class AppleStoreKitService {
 
       // Update database
       if (status.status === 'free_trial') {
-        // User is in trial - upgrade to free_trial tier
+        // User is in trial - this should rarely happen since we skip above
+        // But if it does, preserve trial_chosen_tier
+        const trialChosenTier = (currentSub as any)?.trial_chosen_tier || status.tier;
+        
         await NewSubscriptionService.upgradeSubscription(userId, {
           target_tier: 'free_trial',
           platform: 'apple' as any,
           platform_subscription_id: purchase.transactionId,
         });
+        
+        // Preserve trial_chosen_tier after upgrade
+        await supabase
+          .from('user_subscriptions_new')
+          .update({ trial_chosen_tier: trialChosenTier })
+          .eq('user_id', userId);
+          
+        Logger.info('[StoreKit] Preserved trial_chosen_tier after sync', {
+          component: 'AppleStoreKitService',
+          trialChosenTier,
+        });
       } else {
         // User has paid subscription - upgrade to actual tier
+        // This happens when trial period ends and converts to paid
         await NewSubscriptionService.upgradeSubscription(userId, {
           target_tier: status.tier as any,
           platform: 'apple' as any,
