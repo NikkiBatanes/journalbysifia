@@ -67,7 +67,7 @@ export function useNotificationBadge() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   /**
    * Clear badge count

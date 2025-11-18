@@ -98,7 +98,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const {
     familyGroup,
     createFamilyGroup,
-    refreshFamilyData,
   } = useFamilySubscription();
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
@@ -1693,15 +1692,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     // Treat user as family admin if they are the admin_user_id of an active group,
     // even if subscription.family_role has not yet been refreshed client-side.
-    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id && 
+    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id &&
                           familyGroup?.status === 'active' &&
                           (subscription?.tier === 'family' || isFamilyTrialSubscription);
 
-    const hasFamilyTier = (subscription?.tier === 'family' || isFamilyTrialSubscription) && 
+    const hasFamilyTier = (subscription?.tier === 'family' || isFamilyTrialSubscription) &&
                           subscription?.status === 'active' &&
                           !isInFamily; // Only show create option if not in family yet
 
-    const isFamilyMember = isInFamily && 
+    const isFamilyMember = isInFamily &&
                            !isFamilyAdmin;
 
     // Don't show section if user has no family-related status

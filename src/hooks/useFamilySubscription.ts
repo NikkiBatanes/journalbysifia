@@ -69,7 +69,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   /**
    * Create a new family group
@@ -122,7 +122,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       setError(errorMessage);
       return false;
     }
-  }, [user?.id, loadFamilyData]);
+  }, [user]);
 
   /**
    * Invite a member to the family group
@@ -151,7 +151,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       setError(errorMessage);
       return false;
     }
-  }, [user?.id, familyGroup]);
+  }, [user, familyGroup]);
 
   /**
    * Remove a member from the family group
@@ -174,7 +174,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       setError(errorMessage);
       return false;
     }
-  }, [user?.id, familyGroup, loadFamilyData]);
+  }, [user, familyGroup, loadFamilyData]);
 
   /**
    * Accept a family invitation
@@ -197,7 +197,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       setError(errorMessage);
       return false;
     }
-  }, [user?.id, loadFamilyData]);
+  }, [user, loadFamilyData]);
 
   /**
    * Leave family group (member self-service)
@@ -224,7 +224,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       setError(errorMessage);
       return false;
     }
-  }, [user?.id, loadFamilyData]);
+  }, [user, loadFamilyData]);
 
   /**
    * Cancel a pending invitation
@@ -251,7 +251,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       setError(errorMessage);
       return false;
     }
-  }, [user?.id, familyGroup]);
+  }, [user, familyGroup]);
 
   /**
    * Refresh family data

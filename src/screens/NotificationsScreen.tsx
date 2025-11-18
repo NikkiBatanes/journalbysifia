@@ -26,7 +26,7 @@ interface NotificationsScreenProps {
 
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
-  const { badgeCount, fetchBadgeCount, clearBadge } = useNotificationBadge();
+  const { fetchBadgeCount, clearBadge } = useNotificationBadge();
   const { acceptInvitation } = useFamilySubscription();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,7 +109,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   // Refresh notifications
   const onRefresh = async () => {
@@ -247,7 +247,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       queueSubscription.unsubscribe();
       familyInvitesSubscription?.unsubscribe();
     };
-  }, [user?.id, fetchNotifications]);
+  }, [user, fetchNotifications]);
 
   // Handle family invitation acceptance
   const handleAcceptInvitation = async (notification: any) => {
