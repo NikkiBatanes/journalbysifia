@@ -16,6 +16,7 @@ import RNIap, {
 } from 'react-native-iap';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
+import { ENV } from '../config/environment';
 
 export interface StoreProduct {
   productId: string;
@@ -91,6 +92,10 @@ export class AppleStoreKitService {
       AppleStoreKitService.instance = new AppleStoreKitService();
     }
     return AppleStoreKitService.instance;
+  }
+
+  private isSandboxEnvironment(): boolean {
+    return __DEV__ || ENV.APP_ENV === 'development' || ENV.APP_ENV === 'sandbox';
   }
 
   /**
@@ -802,7 +807,7 @@ export class AppleStoreKitService {
 
       // In sandbox: 3 minutes = 180000 ms
       // In production: 3 days = 259200000 ms
-      const trialDurationMs = __DEV__ ? 180000 : 259200000;
+      const trialDurationMs = this.isSandboxEnvironment() ? 180000 : 259200000;
 
       const isInTrial = diffMs < trialDurationMs;
 

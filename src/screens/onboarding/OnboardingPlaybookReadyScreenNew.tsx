@@ -816,7 +816,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     }
   }, []);
 
-  // Show devotional CTA after 3 seconds and animate (not dependent on card expansion)
+  // Show devotional CTA after a short delay (not dependent on card expansion)
   useEffect(() => {
     if (!devotionalTimerRef.current) {
       devotionalTimerRef.current = setTimeout(() => {
@@ -836,7 +836,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             }, 2500);
           });
         }, 100);
-      }, 3000);
+      }, 5000);
     }
   }, [devotionalButtonWidth, devotionalTextOpacity]);
 
@@ -1134,7 +1134,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             </View>
           )}
 
-          <ThemedText weight="bold" style={styles.playbookTitle}>{playbook.title || 'Your Personalized Journey'}</ThemedText>
+          <ThemedText
+            weight="bold"
+            style={[styles.playbookTitle, showUserInput && styles.playbookTitleWithInput]}
+          >
+            {playbook.title || 'Your Personalized Journey'}
+          </ThemedText>
 
           <View style={styles.progressContainer}>
             <AnimatedProgressBar
@@ -1365,7 +1370,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             style={[
               styles.floatingDevotionalContainer,
               {
-                bottom: isPortrait ? 500 + insets.bottom : 200 + insets.bottom,
+                bottom: isPortrait ? 300 + insets.bottom : 140 + insets.bottom,
                 transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }],
               },
             ]}
@@ -1583,11 +1588,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    marginTop: 16,
+    marginTop: 4,
     marginBottom: 10,
     letterSpacing: 0.6,
     textAlign: 'left',
     alignSelf: 'flex-start',
+  },
+  playbookTitleWithInput: {
+    marginTop: 16,
   },
   progressContainer: {
     flexDirection: 'row',
