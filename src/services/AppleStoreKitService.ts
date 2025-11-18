@@ -949,19 +949,19 @@ export class AppleStoreKitService {
         // User is in trial - this should rarely happen since we skip above
         // But if it does, preserve trial_chosen_tier
         const trialChosenTier = (currentSub as any)?.trial_chosen_tier || status.tier;
-        
+
         await NewSubscriptionService.upgradeSubscription(userId, {
           target_tier: 'free_trial',
           platform: 'apple' as any,
           platform_subscription_id: purchase.transactionId,
         });
-        
+
         // Preserve trial_chosen_tier after upgrade
         await supabase
           .from('user_subscriptions_new')
           .update({ trial_chosen_tier: trialChosenTier })
           .eq('user_id', userId);
-          
+
         Logger.info('[StoreKit] Preserved trial_chosen_tier after sync', {
           component: 'AppleStoreKitService',
           trialChosenTier,

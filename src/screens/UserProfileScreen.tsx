@@ -1658,15 +1658,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     const isInFamily = Boolean(familyGroup) &&
                        familyGroup?.status === 'active' &&
                        subscription?.tier === 'family';
-    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id && 
+    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id &&
                           (subscription as any)?.family_role === 'admin' &&
                           familyGroup?.status === 'active' &&
                           subscription?.tier === 'family';
-    const hasFamilyTier = subscription?.tier === 'family' && 
+    const hasFamilyTier = subscription?.tier === 'family' &&
                           subscription?.status === 'active' &&
                           !isInFamily; // Only show create option if not in family yet
-    const isFamilyMember = isInFamily && 
-                           !isFamilyAdmin && 
+    const isFamilyMember = isInFamily &&
+                           !isFamilyAdmin &&
                            (subscription as any)?.family_role === 'member' &&
                            subscription?.tier === 'family';
 

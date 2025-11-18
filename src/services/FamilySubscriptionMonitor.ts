@@ -1,11 +1,10 @@
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { FamilyPaymentService } from './FamilyPaymentService';
-import { FamilyNotificationService } from './FamilyNotificationService';
 
 /**
  * FamilySubscriptionMonitor
- * 
+ *
  * Enterprise-grade monitoring service for family subscriptions
  * Handles payment failures, grace periods, and automatic cleanup
  */
@@ -22,7 +21,7 @@ export interface SubscriptionStatus {
 export class FamilySubscriptionMonitor {
   // Grace period: 7 days after payment failure
   private static GRACE_PERIOD_DAYS = 7;
-  
+
   // Maximum payment retry attempts
   private static MAX_PAYMENT_RETRIES = 3;
 

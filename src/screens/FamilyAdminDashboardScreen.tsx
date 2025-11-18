@@ -42,7 +42,6 @@ const FamilyAdminDashboardScreen: React.FC = () => {
   const {
     familyGroup,
     pendingInvitations,
-    loading,
     error,
     inviteMember,
     removeMember,

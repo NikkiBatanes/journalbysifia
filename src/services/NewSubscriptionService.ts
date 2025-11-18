@@ -363,7 +363,7 @@ export class NewSubscriptionService {
   static async cancelSubscription(userId: string): Promise<Subscription> {
     // Check if user is family admin before cancelling
     const currentSubscription = await this.getUserSubscription(userId);
-    const isFamilyAdmin = currentSubscription.tier === 'family' && 
+    const isFamilyAdmin = currentSubscription.tier === 'family' &&
                           currentSubscription.family_role === 'admin' &&
                           currentSubscription.family_group_id;
 

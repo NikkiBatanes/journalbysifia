@@ -326,7 +326,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
         });
         setPurchaseValidated(true); // Always show as validated for successful purchases
         setIsStartingTrial(false); // Hide loading modal
-        
+
         // Wait for loading modal to fully hide before showing success modal
         await new Promise(resolve => setTimeout(resolve, 300));
         setShowSuccessModal(true);

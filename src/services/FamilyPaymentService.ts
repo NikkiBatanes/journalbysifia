@@ -320,7 +320,7 @@ export class FamilyPaymentService {
 
       // Get family group and all members
       const familyGroup = await FamilySubscriptionService.getFamilyGroup(familyGroupId);
-      
+
       if (!familyGroup) {
         throw new Error('Family group not found');
       }
@@ -378,12 +378,6 @@ export class FamilyPaymentService {
       // Step 3: Send notifications to all affected members
       const notificationPromises = nonAdminMembers.map(async (memberId) => {
         try {
-          const { data: memberProfile } = await supabase
-            .from('user_profiles')
-            .select('email')
-            .eq('id', memberId)
-            .single();
-
           const message = reason === 'payment_failed'
             ? `The family subscription for "${familyGroup.group_name}" has been cancelled due to payment failure. Your account has been downgraded to Seeker tier.`
             : `The family subscription for "${familyGroup.group_name}" has been cancelled. Your account has been downgraded to Seeker tier.`;
