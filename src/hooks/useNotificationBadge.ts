@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { pushNotificationService } from '../services/pushNotificationService';
+import { FamilyNotificationService } from '../services/FamilyNotificationService';
+import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 
 /**
@@ -25,8 +27,11 @@ export function useNotificationBadge() {
 
     try {
       setLoading(true);
-      const pending = await notificationManagementService.getPendingNotifications(user.id);
-      const count = pending.length;
+      const [pendingQueue, inAppUnread] = await Promise.all([
+        notificationManagementService.getPendingNotifications(user.id),
+        FamilyNotificationService.getUnreadNotifications(user.id),
+      ]);
+      const count = pendingQueue.length + inAppUnread.length;
 
       setBadgeCount(count);
 
@@ -74,10 +79,77 @@ export function useNotificationBadge() {
     await pushNotificationService.setBadgeNumber(newCount);
   }, [badgeCount]);
 
-  // Fetch badge count on mount and when user changes
+  // Load badge count on mount and when user changes
   useEffect(() => {
     fetchBadgeCount();
   }, [fetchBadgeCount]);
+
+  // Real-time subscription to notifications table
+  useEffect(() => {
+    if (!user?.id) {return;}
+
+    Logger.debug('Setting up real-time notification subscription', {
+      component: 'useNotificationBadge',
+      userId: user.id,
+    });
+
+    // Subscribe to notifications table changes for this user
+    const notificationsSubscription = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          Logger.debug('Real-time notification change detected', {
+            component: 'useNotificationBadge',
+            event: payload.eventType,
+          });
+          // Refresh badge count when notifications change
+          fetchBadgeCount();
+        }
+      )
+      .subscribe((status) => {
+        Logger.debug('Notification subscription status', {
+          component: 'useNotificationBadge',
+          status,
+        });
+      });
+
+    // Subscribe to notification_queue table changes
+    const queueSubscription = supabase
+      .channel(`notification_queue:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notification_queue',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          Logger.debug('Real-time queue change detected', {
+            component: 'useNotificationBadge',
+            event: payload.eventType,
+          });
+          fetchBadgeCount();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      Logger.debug('Cleaning up notification subscriptions', {
+        component: 'useNotificationBadge',
+      });
+      notificationsSubscription.unsubscribe();
+      queueSubscription.unsubscribe();
+    };
+  }, [user?.id, fetchBadgeCount]);
 
   // Refresh badge count every 5 minutes
   useEffect(() => {

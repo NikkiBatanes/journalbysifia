@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -17,6 +17,7 @@ import { notificationManagementService } from '../services/notificationManagemen
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 import { FamilyNotificationService } from '../services/FamilyNotificationService';
 import { useFamilySubscription } from '../hooks/useFamilySubscription';
+import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 
 interface NotificationsScreenProps {
@@ -38,8 +39,18 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
     try {
       setLoading(true);
-      const pending = await notificationManagementService.getPendingNotifications(user.id);
-      setNotifications(pending);
+      const [queuedNotifications, inAppNotifications] = await Promise.all([
+        notificationManagementService.getPendingNotifications(user.id),
+        FamilyNotificationService.getUnreadNotifications(user.id),
+      ]);
+
+      const mergedNotifications = [...inAppNotifications, ...queuedNotifications].sort((a, b) => {
+        const aTime = new Date(getNotificationTimestamp(a)).getTime();
+        const bTime = new Date(getNotificationTimestamp(b)).getTime();
+        return bTime - aTime;
+      });
+
+      setNotifications(mergedNotifications);
     } catch (error) {
       Logger.error('Failed to fetch notifications', error as Error, {
         component: 'NotificationsScreen',
@@ -94,6 +105,73 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   React.useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  // Real-time subscription to notifications
+  useEffect(() => {
+    if (!user?.id) {return;}
+
+    Logger.debug('Setting up real-time notification subscription for screen', {
+      component: 'NotificationsScreen',
+      userId: user.id,
+    });
+
+    // Subscribe to notifications table changes
+    const notificationsSubscription = supabase
+      .channel(`notifications_screen:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          Logger.debug('Real-time notification change in screen', {
+            component: 'NotificationsScreen',
+            event: payload.eventType,
+          });
+          // Refresh notifications list when changes occur
+          fetchNotifications();
+        }
+      )
+      .subscribe((status) => {
+        Logger.debug('Notifications screen subscription status', {
+          component: 'NotificationsScreen',
+          status,
+        });
+      });
+
+    // Subscribe to notification_queue table changes
+    const queueSubscription = supabase
+      .channel(`queue_screen:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notification_queue',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          Logger.debug('Real-time queue change in screen', {
+            component: 'NotificationsScreen',
+            event: payload.eventType,
+          });
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions
+    return () => {
+      Logger.debug('Cleaning up notification screen subscriptions', {
+        component: 'NotificationsScreen',
+      });
+      notificationsSubscription.unsubscribe();
+      queueSubscription.unsubscribe();
+    };
+  }, [user?.id, fetchNotifications]);
 
   // Handle family invitation acceptance
   const handleAcceptInvitation = async (notification: any) => {
@@ -163,6 +241,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       return Colors.alertCoral;
     }
     return Colors.anchorBlue;
+  };
+
+  const getNotificationTimestamp = (notification: any): string => {
+    return notification.scheduled_for || notification.created_at || new Date(0).toISOString();
   };
 
   // Format time ago
@@ -276,7 +358,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                     </ThemedText>
                   )}
                   <ThemedText style={styles.notificationTime}>
-                    {formatTimeAgo(notification.scheduled_for || notification.created_at)}
+                    {formatTimeAgo(getNotificationTimestamp(notification))}
                   </ThemedText>
                 </View>
 

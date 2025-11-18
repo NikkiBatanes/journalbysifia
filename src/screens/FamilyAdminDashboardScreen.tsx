@@ -165,15 +165,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
     );
   }
 
-  if (loading && !familyGroup) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading family data...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Remove blocking loading state - let ScrollView handle refresh instead
 
   if (!familyGroup) {
     return (
@@ -205,7 +197,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
 
         {/* Family Group Info */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{familyGroup.group_name}</Text>
+          <Text style={styles.cardTitle}>Family Group</Text>
           <View style={styles.groupStats}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{familyGroup.current_members}</Text>
@@ -367,7 +359,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
 const createStyles = (fonts: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.anchorBlue, // Main background
   },
   scrollView: {
     flex: 1,
@@ -398,7 +390,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     width: 40,
   },
   card: {
-    backgroundColor: Colors.anchorBlueLight,
+    backgroundColor: '#274674', // Match Truth in Love card container
     marginHorizontal: 20,
     marginVertical: 8,
     padding: 20,
@@ -407,7 +399,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontFamily: fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 16,
   },
   cardHeader: {
@@ -427,17 +419,19 @@ const createStyles = (fonts: any) => StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontFamily: fonts.bold,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   statLabel: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: Colors.hopeWhite,
+    opacity: 0.3,
   },
   usageStats: {
     flexDirection: 'row',
@@ -449,17 +443,18 @@ const createStyles = (fonts: any) => StyleSheet.create({
   usageNumber: {
     fontSize: 20,
     fontFamily: fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   usageLabel: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
     marginTop: 4,
   },
   inviteButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.alertCoral,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -476,7 +471,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   memberInfo: {
     flexDirection: 'row',
@@ -487,7 +482,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.alertCoral,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -503,16 +498,18 @@ const createStyles = (fonts: any) => StyleSheet.create({
   memberName: {
     fontSize: 16,
     fontFamily: fonts.medium,
-    color: Colors.text,
+    color: Colors.hopeWhite,
   },
   memberRole: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
     marginTop: 2,
   },
   memberUsage: {
     fontSize: 12,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
     marginTop: 2,
   },
   removeButton: {
@@ -524,7 +521,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   invitationInfo: {
     flex: 1,
@@ -532,16 +529,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
   invitationEmail: {
     fontSize: 16,
     fontFamily: fonts.medium,
-    color: Colors.text,
+    color: Colors.hopeWhite,
   },
   invitationDate: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
     marginTop: 2,
   },
   invitationCode: {
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.alertCoral,
     marginTop: 2,
     fontFamily: 'monospace',
   },
@@ -609,12 +607,12 @@ const createStyles = (fonts: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontFamily: fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: '#274674',
   },
   modalSend: {
     fontSize: 16,
     fontFamily: fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: '#274674',
   },
   modalContent: {
     padding: 20,

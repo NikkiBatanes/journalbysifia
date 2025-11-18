@@ -358,8 +358,33 @@ export class NewSubscriptionService {
 
   /**
    * Cancel subscription (downgrade to seeker)
+   * Enterprise-grade: Handles family cancellation if user is family admin
    */
   static async cancelSubscription(userId: string): Promise<Subscription> {
+    // Check if user is family admin before cancelling
+    const currentSubscription = await this.getUserSubscription(userId);
+    const isFamilyAdmin = currentSubscription.tier === 'family' && 
+                          currentSubscription.family_role === 'admin' &&
+                          currentSubscription.family_group_id;
+
+    // If family admin, trigger family cancellation flow
+    if (isFamilyAdmin && currentSubscription.family_group_id) {
+      try {
+        const { FamilyPaymentService } = await import('./FamilyPaymentService');
+        await FamilyPaymentService.handleFamilyCancellation(
+          currentSubscription.family_group_id,
+          userId,
+          'admin_downgraded'
+        );
+      } catch (familyError) {
+        Logger.error('Failed to handle family cancellation during downgrade', familyError as Error, {
+          component: 'NewSubscriptionService',
+          userId,
+        });
+        // Continue with individual cancellation even if family cleanup fails
+      }
+    }
+
     const limits = this.getTierLimits('seeker');
 
     const { data, error } = await supabase
@@ -372,6 +397,8 @@ export class NewSubscriptionService {
         smart_journaling_enabled: limits.smart_journaling_enabled,
         playbooks_used: 0, // Reset usage
         devotionals_used: 0,
+        family_group_id: null,
+        family_role: null,
         subscription_end_date: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

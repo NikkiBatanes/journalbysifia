@@ -1653,9 +1653,27 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const renderFamilyManagementSection = () => {
-    const isInFamily = Boolean(familyGroup);
-    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id;
-    const hasFamilyTier = subscription?.tier === 'family';
+    // Enterprise-grade visibility guards
+    // Treat user as "in family" only when they have an active family group AND a family tier subscription
+    const isInFamily = Boolean(familyGroup) &&
+                       familyGroup?.status === 'active' &&
+                       subscription?.tier === 'family';
+    const isFamilyAdmin = familyGroup?.admin_user_id === user?.id && 
+                          (subscription as any)?.family_role === 'admin' &&
+                          familyGroup?.status === 'active' &&
+                          subscription?.tier === 'family';
+    const hasFamilyTier = subscription?.tier === 'family' && 
+                          subscription?.status === 'active' &&
+                          !isInFamily; // Only show create option if not in family yet
+    const isFamilyMember = isInFamily && 
+                           !isFamilyAdmin && 
+                           (subscription as any)?.family_role === 'member' &&
+                           subscription?.tier === 'family';
+
+    // Don't show section if user has no family-related status
+    if (!isInFamily && !hasFamilyTier && !subscription) {
+      return null;
+    }
 
     return (
       <View>
@@ -1678,8 +1696,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
             </TouchableOpacity>
-          ) : isInFamily && !isFamilyAdmin ? (
-            /* If user is family member (not admin) - show Family Group */
+          ) : isInFamily && isFamilyMember ? (
+            /* If user is family member (not admin) - show Manage Family */
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyAdminDashboard'); }}
@@ -1687,7 +1705,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.menuIconBox}>
                 <Ionicons name="people" size={18} color={Colors.anchorBlue} />
               </View>
-              <Text style={[styles.menuText, font]}>Family Group</Text>
+              <Text style={[styles.menuText, font]}>Manage Family</Text>
               <View style={styles.trialBadge}>
                 <Text style={[styles.trialBadgeText, font]}>
                   {familyGroup?.current_members ?? 0}/{familyGroup?.max_members ?? 0}

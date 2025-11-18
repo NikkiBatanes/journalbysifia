@@ -225,8 +225,33 @@ export class FamilyNotificationService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        Logger.error('Failed to get pending invitations', error as Error, {
+        // Gracefully handle missing table/column in dev environments
+        const errorCode = (error as any).code as string | undefined;
+        const errorMessage = (error as any).message as string | undefined;
+
+        if (
+          errorCode === '42P01' || // undefined_table
+          errorCode === 'PGRST204' ||
+          errorMessage?.includes('relation') ||
+          errorMessage?.includes('does not exist') ||
+          errorMessage?.includes('schema cache')
+        ) {
+          Logger.warn('Family notifications table/column not found - returning empty invitations list', {
+            component: 'FamilyNotificationService',
+            details: errorMessage,
+            errorCode,
+          });
+          return [];
+        }
+
+        Logger.error('Failed to get pending invitations', undefined, {
           component: 'FamilyNotificationService',
+          supabaseError: {
+            code: (error as any).code,
+            message: (error as any).message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          },
         });
         return [];
       }
@@ -234,6 +259,58 @@ export class FamilyNotificationService {
       return data || [];
     } catch (error) {
       Logger.error('Failed to fetch pending invitations', error as Error, {
+        component: 'FamilyNotificationService',
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Get all unread family notifications for user
+   */
+  static async getUnreadNotifications(userId: string): Promise<FamilyNotification[]> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        const errorCode = (error as any).code as string | undefined;
+        const errorMessage = (error as any).message as string | undefined;
+
+        if (
+          errorCode === '42P01' || // undefined_table
+          errorCode === 'PGRST204' ||
+          errorMessage?.includes('relation') ||
+          errorMessage?.includes('does not exist') ||
+          errorMessage?.includes('schema cache')
+        ) {
+          Logger.warn('Family notifications table/column not found - returning empty notifications list', {
+            component: 'FamilyNotificationService',
+            details: errorMessage,
+            errorCode,
+          });
+          return [];
+        }
+
+        Logger.error('Failed to get unread notifications', undefined, {
+          component: 'FamilyNotificationService',
+          supabaseError: {
+            code: (error as any).code,
+            message: (error as any).message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          },
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      Logger.error('Failed to fetch unread notifications', error as Error, {
         component: 'FamilyNotificationService',
       });
       return [];

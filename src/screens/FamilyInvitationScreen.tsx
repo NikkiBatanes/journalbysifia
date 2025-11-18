@@ -141,7 +141,7 @@ const FamilyInvitationScreen: React.FC = () => {
           <View style={styles.content}>
           {/* Icon */}
           <View style={styles.iconContainer}>
-            <Ionicons name="people" size={80} color={Colors.anchorBlue} />
+            <Ionicons name="people" size={80} color={Colors.hopeWhite} />
           </View>
 
           {/* Title and Description */}
@@ -203,7 +203,7 @@ const FamilyInvitationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   invitationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: '#274674',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.anchorBlue + '15',
+    backgroundColor: Colors.alertCoral,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -268,18 +268,19 @@ const styles = StyleSheet.create({
   invitationTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
+    color: Colors.hopeWhite,
     marginBottom: 4,
   },
   invitationMessage: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
     marginBottom: 4,
   },
   invitationCode: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.anchorBlue,
+    color: Colors.alertCoral,
     fontFamily: 'monospace',
   },
   content: {
@@ -294,13 +295,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
     fontSize: 16,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
@@ -313,30 +315,31 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
+    color: Colors.hopeWhite,
     marginBottom: 8,
     textAlign: 'center',
   },
   codeInput: {
     borderWidth: 2,
-    borderColor: Colors.anchorBlue,
+    borderColor: Colors.alertCoral,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 16,
     fontSize: 24,
     fontWeight: '600',
-    color: Colors.anchorBlue,
-    backgroundColor: Colors.lightGray,
+    color: Colors.hopeWhite,
+    backgroundColor: '#274674',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   inputHint: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
     textAlign: 'center',
     marginTop: 8,
   },
   acceptButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.alertCoral,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -354,19 +357,20 @@ const styles = StyleSheet.create({
   },
   helpSection: {
     width: '100%',
-    backgroundColor: Colors.lightGray,
+    backgroundColor: '#274674',
     borderRadius: 12,
     padding: 20,
   },
   helpTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 12,
   },
   helpText: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
     lineHeight: 20,
     marginBottom: 8,
   },

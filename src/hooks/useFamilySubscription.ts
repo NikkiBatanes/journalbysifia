@@ -14,6 +14,7 @@ export interface UseFamilySubscriptionResult {
   createFamilyGroup: (groupName: string, platformSubscriptionId: string) => Promise<boolean>;
   inviteMember: (email: string) => Promise<boolean>;
   removeMember: (userId: string) => Promise<boolean>;
+  leaveFamilyGroup: () => Promise<boolean>;
   acceptInvitation: (invitationCode: string) => Promise<boolean>;
   cancelInvitation: (invitationId: string) => Promise<boolean>;
   refreshFamilyData: () => Promise<void>;
@@ -176,6 +177,33 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
   }, [user?.id, loadFamilyData]);
 
   /**
+   * Leave family group (member self-service)
+   */
+  const leaveFamilyGroup = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) {
+      throw new Error('User must be authenticated');
+    }
+
+    try {
+      setError(null);
+
+      const result = await FamilySubscriptionService.leaveFamilyGroup(user.id);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to leave family group');
+      }
+
+      // Refresh data after leaving
+      await loadFamilyData();
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to leave family group';
+      setError(errorMessage);
+      return false;
+    }
+  }, [user?.id, loadFamilyData]);
+
+  /**
    * Cancel a pending invitation
    */
   const cancelInvitation = useCallback(async (invitationId: string): Promise<boolean> => {
@@ -245,6 +273,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     createFamilyGroup,
     inviteMember,
     removeMember,
+    leaveFamilyGroup,
     acceptInvitation,
     cancelInvitation,
     refreshFamilyData,

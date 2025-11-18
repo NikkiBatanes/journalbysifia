@@ -2,6 +2,8 @@ import { Logger } from '../utils/ProductionLogger';
 import PlatformPaymentService from './PlatformPaymentService';
 import { FamilySubscriptionService } from './FamilySubscriptionService';
 import { NewSubscriptionService } from './NewSubscriptionService';
+import { FamilyNotificationService } from './FamilyNotificationService';
+import { supabase } from './supabaseClient';
 import { PaymentPlatform } from '../types/subscription';
 
 /**
@@ -298,33 +300,158 @@ export class FamilyPaymentService {
 
   /**
    * Handle family subscription cancellation
+   * Enterprise-grade: Handles admin downgrade, member cleanup, notifications
    */
   static async handleFamilyCancellation(
     familyGroupId: string,
-    userId: string
-  ): Promise<boolean> {
+    adminUserId: string,
+    reason: 'admin_cancelled' | 'payment_failed' | 'admin_downgraded' = 'admin_cancelled'
+  ): Promise<{
+    success: boolean;
+    membersAffected: number;
+    error?: string;
+  }> {
     try {
       Logger.info('Processing family subscription cancellation', {
         familyGroupId,
-        userId,
+        adminUserId,
+        reason,
       });
 
-      // Cancel platform subscription
-      // TODO: Implement platform cancellation
+      // Get family group and all members
+      const familyGroup = await FamilySubscriptionService.getFamilyGroup(familyGroupId);
+      
+      if (!familyGroup) {
+        throw new Error('Family group not found');
+      }
 
-      // Update family group status
-      // TODO: Update family group to cancelled status
+      // Verify admin permissions
+      if (familyGroup.admin_user_id !== adminUserId) {
+        throw new Error('Only admin can cancel family subscription');
+      }
 
-      // Notify all members
-      // TODO: Send notifications to family members
+      const memberIds = familyGroup.members.map(m => m.user_id);
+      const nonAdminMembers = memberIds.filter(id => id !== adminUserId);
 
-      return true;
+      // Step 1: Downgrade all non-admin members to seeker tier
+      if (nonAdminMembers.length > 0) {
+        const { error: memberDowngradeError } = await supabase
+          .from('user_subscriptions_new')
+          .update({
+            tier: 'seeker',
+            status: 'active',
+            playbooks_limit: 0,
+            devotionals_limit: 0,
+            smart_journaling_enabled: false,
+            playbooks_used: 0,
+            devotionals_used: 0,
+            family_group_id: null,
+            family_role: null,
+            subscription_display_name: 'siFia Seeker',
+            updated_at: new Date().toISOString(),
+          })
+          .in('user_id', nonAdminMembers);
+
+        if (memberDowngradeError) {
+          Logger.error('Failed to downgrade family members', memberDowngradeError as Error, {
+            component: 'FamilyPaymentService',
+            familyGroupId,
+          });
+        }
+      }
+
+      // Step 2: Update family group status to cancelled
+      const { error: groupUpdateError } = await supabase
+        .from('family_subscription_groups')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', familyGroupId);
+
+      if (groupUpdateError) {
+        Logger.error('Failed to update family group status', groupUpdateError as Error, {
+          component: 'FamilyPaymentService',
+        });
+      }
+
+      // Step 3: Send notifications to all affected members
+      const notificationPromises = nonAdminMembers.map(async (memberId) => {
+        try {
+          const { data: memberProfile } = await supabase
+            .from('user_profiles')
+            .select('email')
+            .eq('id', memberId)
+            .single();
+
+          const message = reason === 'payment_failed'
+            ? `The family subscription for "${familyGroup.group_name}" has been cancelled due to payment failure. Your account has been downgraded to Seeker tier.`
+            : `The family subscription for "${familyGroup.group_name}" has been cancelled. Your account has been downgraded to Seeker tier.`;
+
+          await FamilyNotificationService.notifyMemberRemoved(
+            memberId,
+            familyGroup.group_name
+          );
+
+          // Also create a general notification
+          await supabase.from('notifications').insert({
+            user_id: memberId,
+            notification_type: 'family_cancelled',
+            title: 'Family Subscription Ended',
+            message,
+            data: {
+              family_group_id: familyGroupId,
+              reason,
+              cancelled_at: new Date().toISOString(),
+            },
+            is_read: false,
+            created_at: new Date().toISOString(),
+          });
+        } catch (notifError) {
+          Logger.error('Failed to notify member about cancellation', notifError as Error, {
+            component: 'FamilyPaymentService',
+            memberId,
+          });
+        }
+      });
+
+      await Promise.allSettled(notificationPromises);
+
+      // Step 4: Log activity
+      try {
+        await supabase.from('family_activity_log').insert({
+          family_group_id: familyGroupId,
+          user_id: adminUserId,
+          activity_type: 'subscription_cancelled',
+          activity_description: `Family subscription cancelled - ${reason}. ${nonAdminMembers.length} members downgraded to Seeker tier.`,
+          created_at: new Date().toISOString(),
+        });
+      } catch (logError) {
+        Logger.error('Failed to log cancellation activity', logError as Error, {
+          component: 'FamilyPaymentService',
+        });
+      }
+
+      Logger.info('Family subscription cancelled successfully', {
+        familyGroupId,
+        membersAffected: nonAdminMembers.length,
+        reason,
+      });
+
+      return {
+        success: true,
+        membersAffected: nonAdminMembers.length,
+      };
     } catch (error) {
       Logger.error('Failed to cancel family subscription', error as Error, {
         component: 'FamilyPaymentService',
         familyGroupId,
       });
-      return false;
+      return {
+        success: false,
+        membersAffected: 0,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 

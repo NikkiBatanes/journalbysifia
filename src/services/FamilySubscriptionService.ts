@@ -278,15 +278,29 @@ export class FamilySubscriptionService {
    */
   static async acceptInvitation(invitationCode: string, userId: string): Promise<boolean> {
     try {
+      const normalizedCode = invitationCode.trim().toUpperCase();
+
       // Get invitation details
       const { data: invitation, error: invitationError } = await supabase
         .from('family_invitations')
         .select('*')
-        .eq('invitation_code', invitationCode)
+        .eq('invitation_code', normalizedCode)
         .eq('status', 'pending')
         .single();
 
       if (invitationError || !invitation) {
+        Logger.error('[FamilyService] Invitation lookup failed', undefined, {
+          component: 'FamilySubscriptionService',
+          invitationCode: normalizedCode,
+          supabaseError: invitationError
+            ? {
+                code: (invitationError as any).code,
+                message: (invitationError as any).message,
+                details: (invitationError as any).details,
+                hint: (invitationError as any).hint,
+              }
+            : undefined,
+        });
         throw new Error('Invalid or expired invitation code');
       }
 
@@ -374,7 +388,7 @@ export class FamilySubscriptionService {
   }
 
   /**
-   * Remove member from family group
+   * Remove member from family group (admin action)
    */
   static async removeMember(familyGroupId: string, userId: string, adminUserId: string): Promise<boolean> {
     try {
@@ -395,9 +409,16 @@ export class FamilySubscriptionService {
         .from('user_subscriptions_new')
         .update({
           tier: 'seeker',
+          playbooks_limit: 0,
+          devotionals_limit: 0,
+          smart_journaling_enabled: false,
+          playbooks_used: 0,
+          devotionals_used: 0,
           family_group_id: null,
-          family_role: 'member',
+          family_role: null,
+          subscription_display_name: 'siFia Seeker',
           status: 'active',
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
@@ -410,6 +431,7 @@ export class FamilySubscriptionService {
         .from('family_subscription_groups')
         .update({
           current_members: Math.max(1, familyGroup.current_members - 1),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', familyGroupId);
 
@@ -419,12 +441,148 @@ export class FamilySubscriptionService {
     });
       }
 
+      // Notify removed member
+      try {
+        await FamilyNotificationService.notifyMemberRemoved(userId, familyGroup.group_name);
+      } catch (notifError) {
+        Logger.error('[FamilyService] Failed to notify removed member', notifError as Error, {
+          component: 'FamilySubscriptionService',
+        });
+      }
+
       return true;
     } catch (error) {
       Logger.error('[FamilyService] Failed to remove member', error as Error, {
       component: 'FamilySubscriptionService',
     });
       throw error;
+    }
+  }
+
+  /**
+   * Leave family group (member self-service)
+   * Enterprise-grade: Allows members to voluntarily leave family subscription
+   */
+  static async leaveFamilyGroup(userId: string): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    try {
+      Logger.info('[FamilyService] Member leaving family group', { userId });
+
+      // Get user's current subscription
+      const subscription = await NewSubscriptionService.getUserSubscription(userId);
+
+      if (!subscription.family_group_id) {
+        throw new Error('User is not part of a family group');
+      }
+
+      // Cannot leave if admin - must cancel family subscription instead
+      if (subscription.family_role === 'admin') {
+        throw new Error('Family admin cannot leave group. Please cancel the family subscription instead.');
+      }
+
+      const familyGroupId = subscription.family_group_id;
+
+      // Get family group details for notifications
+      const familyGroup = await this.getFamilyGroup(familyGroupId);
+
+      // Update user's subscription - downgrade to seeker
+      const { error: subscriptionError } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          tier: 'seeker',
+          playbooks_limit: 0,
+          devotionals_limit: 0,
+          smart_journaling_enabled: false,
+          playbooks_used: 0,
+          devotionals_used: 0,
+          family_group_id: null,
+          family_role: null,
+          subscription_display_name: 'siFia Seeker',
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+
+      if (subscriptionError) {
+        throw new Error(`Failed to update subscription: ${subscriptionError.message}`);
+      }
+
+      // Update family group member count
+      const { error: groupError } = await supabase
+        .from('family_subscription_groups')
+        .update({
+          current_members: Math.max(1, familyGroup.current_members - 1),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', familyGroupId);
+
+      if (groupError) {
+        Logger.error('[FamilyService] Failed to update member count', groupError as Error, {
+          component: 'FamilySubscriptionService',
+        });
+      }
+
+      // Notify admin that member left
+      try {
+        const { data: memberProfile } = await supabase
+          .from('user_profiles')
+          .select('full_name, email')
+          .eq('id', userId)
+          .single();
+
+        const memberName = memberProfile?.full_name || memberProfile?.email || 'A member';
+
+        await supabase.from('notifications').insert({
+          user_id: familyGroup.admin_user_id,
+          notification_type: 'member_left',
+          title: 'Member Left Family',
+          message: `${memberName} has left your family subscription "${familyGroup.group_name}".`,
+          data: {
+            family_group_id: familyGroupId,
+            left_user_id: userId,
+            left_at: new Date().toISOString(),
+          },
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+      } catch (notifError) {
+        Logger.error('[FamilyService] Failed to notify admin about member leaving', notifError as Error, {
+          component: 'FamilySubscriptionService',
+        });
+      }
+
+      // Log activity
+      try {
+        await supabase.from('family_activity_log').insert({
+          family_group_id: familyGroupId,
+          user_id: userId,
+          activity_type: 'member_left',
+          activity_description: 'Member voluntarily left the family subscription',
+          created_at: new Date().toISOString(),
+        });
+      } catch (logError) {
+        Logger.error('[FamilyService] Failed to log member leave activity', logError as Error, {
+          component: 'FamilySubscriptionService',
+        });
+      }
+
+      Logger.info('[FamilyService] Member successfully left family group', {
+        userId,
+        familyGroupId,
+      });
+
+      return { success: true };
+    } catch (error) {
+      Logger.error('[FamilyService] Failed to leave family group', error as Error, {
+        component: 'FamilySubscriptionService',
+        userId,
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
