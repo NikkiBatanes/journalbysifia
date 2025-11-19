@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
+import { notificationManagementService } from './notificationManagementService';
 
 /**
  * FamilyNotificationService
@@ -84,30 +85,20 @@ export class FamilyNotificationService {
 
       // Queue push notification for reliable delivery with retry support
       try {
-        const { error: queueError } = await supabase
-          .from('notification_queue')
-          .insert({
-            user_id: profile.id,
-            type: 'family_invitation',
-            title: 'Family Invitation',
-            message: `${invitedByName} invited you to join "${groupName}" family subscription`,
-            data: {
-              family_group_id: familyGroupId,
-              invitation_code: invitationCode,
-            },
-            scheduled_for: new Date().toISOString(), // Send immediately
-            priority: 'high',
-            status: 'pending',
-            attempts: 0,
-          });
-
-        if (queueError) {
-          Logger.error('Failed to queue family invitation push notification', queueError as Error, {
-            component: 'FamilyNotificationService',
-          });
-        }
+        await notificationManagementService.scheduleNotification({
+          user_id: profile.id,
+          type: 'family_invitation',
+          title: 'Family Invitation',
+          message: `${invitedByName} invited you to join "${groupName}" family subscription`,
+          data: {
+            family_group_id: familyGroupId,
+            invitation_code: invitationCode,
+          },
+          scheduled_for: new Date().toISOString(),
+          priority: 'high',
+        });
       } catch (queueError) {
-        Logger.error('Unexpected error queueing family invitation push notification', queueError as Error, {
+        Logger.error('Failed to queue family invitation push notification', queueError as Error, {
           component: 'FamilyNotificationService',
         });
       }
@@ -157,27 +148,17 @@ export class FamilyNotificationService {
 
       // Queue push notification for admin
       try {
-        const { error: queueError } = await supabase
-          .from('notification_queue')
-          .insert({
-            user_id: adminUserId,
-            type: 'invitation_declined',
-            title: 'Family Invitation Declined',
-            message: `${invitedName} declined your family invitation.`,
-            data: {},
-            scheduled_for: new Date().toISOString(),
-            priority: 'normal',
-            status: 'pending',
-            attempts: 0,
-          });
-
-        if (queueError) {
-          Logger.error('Failed to queue invitation declined push notification', queueError as Error, {
-            component: 'FamilyNotificationService',
-          });
-        }
+        await notificationManagementService.scheduleNotification({
+          user_id: adminUserId,
+          type: 'invitation_declined',
+          title: 'Family Invitation Declined',
+          message: `${invitedName} declined your family invitation.`,
+          data: {},
+          scheduled_for: new Date().toISOString(),
+          priority: 'normal',
+        });
       } catch (queueError) {
-        Logger.error('Unexpected error queueing invitation declined push notification', queueError as Error, {
+        Logger.error('Failed to queue invitation declined push notification', queueError as Error, {
           component: 'FamilyNotificationService',
         });
       }
@@ -223,29 +204,19 @@ export class FamilyNotificationService {
 
       // Queue push notification for admin
       try {
-        const { error: queueError } = await supabase
-          .from('notification_queue')
-          .insert({
-            user_id: adminUserId,
-            type: 'member_joined',
-            title: 'New Family Member 🎉',
-            message: `${memberName} has joined your family subscription`,
-            data: {
-              family_group_id: familyGroupId,
-            },
-            scheduled_for: new Date().toISOString(),
-            priority: 'normal',
-            status: 'pending',
-            attempts: 0,
-          });
-
-        if (queueError) {
-          Logger.error('Failed to queue member joined push notification', queueError as Error, {
-            component: 'FamilyNotificationService',
-          });
-        }
+        await notificationManagementService.scheduleNotification({
+          user_id: adminUserId,
+          type: 'member_joined',
+          title: 'New Family Member 🎉',
+          message: `${memberName} has joined your family subscription`,
+          data: {
+            family_group_id: familyGroupId,
+          },
+          scheduled_for: new Date().toISOString(),
+          priority: 'normal',
+        });
       } catch (queueError) {
-        Logger.error('Unexpected error queueing member joined push notification', queueError as Error, {
+        Logger.error('Failed to queue member joined push notification', queueError as Error, {
           component: 'FamilyNotificationService',
         });
       }
@@ -292,31 +263,21 @@ export class FamilyNotificationService {
 
       // Queue push notifications for all members
       try {
-        const pushNotifications = memberIds.map(userId => ({
-          user_id: userId,
-          type: 'trial_converted',
-          title: 'Family Subscription Activated 🎉',
-          message: 'Your family subscription is now active with unlimited access!',
-          data: {
-            family_group_id: familyGroupId,
-          },
-          scheduled_for: new Date().toISOString(),
-          priority: 'high',
-          status: 'pending',
-          attempts: 0,
-        }));
-
-        const { error: queueError } = await supabase
-          .from('notification_queue')
-          .insert(pushNotifications);
-
-        if (queueError) {
-          Logger.error('Failed to queue trial converted push notifications', queueError as Error, {
-            component: 'FamilyNotificationService',
+        for (const userId of memberIds) {
+          await notificationManagementService.scheduleNotification({
+            user_id: userId,
+            type: 'trial_converted',
+            title: 'Family Subscription Activated 🎉',
+            message: 'Your family subscription is now active with unlimited access!',
+            data: {
+              family_group_id: familyGroupId,
+            },
+            scheduled_for: new Date().toISOString(),
+            priority: 'high',
           });
         }
       } catch (queueError) {
-        Logger.error('Unexpected error queueing trial converted push notifications', queueError as Error, {
+        Logger.error('Failed to queue trial converted push notifications', queueError as Error, {
           component: 'FamilyNotificationService',
         });
       }
@@ -364,27 +325,17 @@ export class FamilyNotificationService {
 
       // Queue push notification for removed member
       try {
-        const { error: queueError } = await supabase
-          .from('notification_queue')
-          .insert({
-            user_id: userId,
-            type: 'member_removed',
-            title: 'Removed from Family',
-            message: `You have been removed from "${groupName}" family subscription`,
-            data: {},
-            scheduled_for: new Date().toISOString(),
-            priority: 'high',
-            status: 'pending',
-            attempts: 0,
-          });
-
-        if (queueError) {
-          Logger.error('Failed to queue member removed push notification', queueError as Error, {
-            component: 'FamilyNotificationService',
-          });
-        }
+        await notificationManagementService.scheduleNotification({
+          user_id: userId,
+          type: 'member_removed',
+          title: 'Removed from Family',
+          message: `You have been removed from "${groupName}" family subscription`,
+          data: {},
+          scheduled_for: new Date().toISOString(),
+          priority: 'high',
+        });
       } catch (queueError) {
-        Logger.error('Unexpected error queueing member removed push notification', queueError as Error, {
+        Logger.error('Failed to queue member removed push notification', queueError as Error, {
           component: 'FamilyNotificationService',
         });
       }
