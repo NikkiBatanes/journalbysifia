@@ -52,13 +52,8 @@ export const GUIDED_PROMPT_ACCESS_RULES: Record<SubscriptionTier, GuidedPromptAc
     usageMessage: 'Unlimited Guided Prompts',
     upgradeMessage: '',
   },
-  family: {
-    allowedPrompts: -1, // Unlimited
-    isLocked: false,
-    usageMessage: 'Unlimited Guided Prompts',
-    upgradeMessage: '',
-  },
-};
+  // POST-LAUNCH: family tier
+} as Record<SubscriptionTier, GuidedPromptAccessRules>;
 
 // Dynamic upgrade messages by context
 export const GUIDED_PROMPT_UPGRADE_MESSAGES = {
@@ -68,7 +63,7 @@ export const GUIDED_PROMPT_UPGRADE_MESSAGES = {
     spark: '',
     growth: '',
     transformation: '',
-    family: '',
+    // POST-LAUNCH: family: '',
   },
   inApp: {
     seeker: 'Unlock unlimited guided prompts to deepen your reflection practice',
@@ -76,7 +71,7 @@ export const GUIDED_PROMPT_UPGRADE_MESSAGES = {
     spark: '',
     growth: '',
     transformation: '',
-    family: '',
+    // POST-LAUNCH: family: '',
   },
 } as const;
 

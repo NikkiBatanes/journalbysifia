@@ -74,12 +74,12 @@ class TierRestrictionService {
       featureFlag: 'prioritySupport',
     },
 
-    // Family features
-    {
-      feature: 'family_sharing',
-      requiredTier: 'family',
-      usageType: 'familyMembers',
-    },
+    // POST-LAUNCH: Family features
+    // {
+    //   feature: 'family_sharing',
+    //   requiredTier: 'family',
+    //   usageType: 'familyMembers',
+    // },
 
     // Basic content generation
     {
@@ -266,9 +266,9 @@ class TierRestrictionService {
       'growth_annual': 3,
       'transformation': 4,
       'transformation_annual': 4,
-      'family': 5,
-      'family_annual': 5,
-    };
+      // POST-LAUNCH: 'family': 5,
+      // POST-LAUNCH: 'family_annual': 5,
+    } as Record<SubscriptionTier, number>;
 
     return (tierHierarchy[currentTier] || 0) >= (tierHierarchy[requiredTier] || 0);
   }
@@ -322,14 +322,14 @@ class TierRestrictionService {
    */
   private getNextTierWithUnlimitedAccess(usageType: string): SubscriptionTier {
     // Define which tiers provide unlimited access for each usage type
-    const unlimitedTiers: Record<string, SubscriptionTier> = {
+    const unlimitedTiers = {
       'playbooks': 'growth',
       'devotionals': 'growth',
       'exports': 'transformation',
       'apiCalls': 'transformation',
-      'familyMembers': 'family',
+      // POST-LAUNCH: 'familyMembers': 'family',
       'guidedPrompts': 'free_trial', // Unlimited guided prompts start at free trial
-    };
+    } as Record<string, SubscriptionTier>;
 
     return unlimitedTiers[usageType] || 'transformation';
   }
@@ -361,7 +361,7 @@ class TierRestrictionService {
       'unlimited_guided_prompts': 'Unlimited Guided Prompts',
     };
 
-    const tierNames: Record<SubscriptionTier, string> = {
+    const tierNames = {
       'seeker': 'siFia Seeker',
       'free_trial': 'Free Trial',
       'spark': 'siFia Spark',
@@ -370,9 +370,9 @@ class TierRestrictionService {
       'growth_annual': 'siFia Growth Annual',
       'transformation': 'siFia Transformation',
       'transformation_annual': 'siFia Transformation Annual',
-      'family': 'siFia Family',
-      'family_annual': 'siFia Family Annual',
-    };
+      // POST-LAUNCH: 'family': 'siFia Family',
+      // POST-LAUNCH: 'family_annual': 'siFia Family Annual',
+    } as Record<SubscriptionTier, string>;
 
     const featureName = featureNames[feature] || feature;
     const tierName = tierNames[requiredTier] || requiredTier;

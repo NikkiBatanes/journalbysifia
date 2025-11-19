@@ -32,14 +32,14 @@ export interface SalesCopyResult {
  * Get tier display name
  */
 function getTierDisplayName(tier: SubscriptionTier): string {
-  const tierNames: Record<SubscriptionTier, string> = {
+  const tierNames = {
     'seeker': 'Seeker',
     'free_trial': 'Trial',
     'spark': 'Spark',
     'growth': 'Growth',
     'transformation': 'Transformation',
-    'family': 'Family',
-  };
+    // POST-LAUNCH: 'family': 'Family',
+  } as Record<SubscriptionTier, string>;
   return tierNames[tier] || tier;
 }
 
@@ -47,14 +47,14 @@ function getTierDisplayName(tier: SubscriptionTier): string {
  * Get tier limits
  */
 function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals'): number {
-  const limits: Record<SubscriptionTier, { playbooks: number; devotionals: number }> = {
+  const limits = {
     'seeker': { playbooks: 0, devotionals: 0 },
     'free_trial': { playbooks: 2, devotionals: 2 },
     'spark': { playbooks: 8, devotionals: 8 },
     'growth': { playbooks: 20, devotionals: 20 },
     'transformation': { playbooks: -1, devotionals: -1 }, // unlimited
-    'family': { playbooks: -1, devotionals: -1 }, // unlimited
-  };
+    // POST-LAUNCH: 'family': { playbooks: -1, devotionals: -1 },
+  } as Record<SubscriptionTier, { playbooks: number; devotionals: number }>;
   return limits[tier][featureType];
 }
 
@@ -165,7 +165,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     const limitText = limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
 
     // Check if unlimited trial
-    const isUnlimitedTrial = effectiveTier === 'transformation' || effectiveTier === 'family';
+    const isUnlimitedTrial = effectiveTier === 'transformation'; // POST-LAUNCH: || effectiveTier === 'family'
 
     if (isUnlimitedTrial) {
       return {

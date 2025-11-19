@@ -44,9 +44,9 @@ export const normalizeTierInput = (tierLike: string | undefined | null): Subscri
     'premium': 'transformation',
     'premium_annual': 'transformation_annual',
 
-    // Family
-    'family': 'family',
-    'family_annual': 'family_annual',
+    // POST-LAUNCH: Family
+    // 'family': 'family',
+    // 'family_annual': 'family_annual',
 
     // Trial
     'free_trial': 'free_trial',
@@ -61,7 +61,7 @@ export const normalizeTierInput = (tierLike: string | undefined | null): Subscri
 };
 
 export const getTierDisplayName = (tier: SubscriptionTier): string => {
-  const tierMappings: Record<SubscriptionTier, string> = {
+  const tierMappings = {
     // Free tier
     'free_trial': 'Free Trial',
 
@@ -80,16 +80,16 @@ export const getTierDisplayName = (tier: SubscriptionTier): string => {
     'transformation': 'siFia Transformation',
     'transformation_annual': 'siFia Transformation',
 
-    // Family (top tier) - unlimited
-    'family': 'siFia Family',
-    'family_annual': 'siFia Family',
-  };
+    // POST-LAUNCH: Family (top tier) - unlimited
+    // 'family': 'siFia Family',
+    // 'family_annual': 'siFia Family',
+  } as Record<SubscriptionTier, string>;
 
   return tierMappings[tier] || 'Unknown Plan';
 };
 
 export const getTierShortName = (tier: SubscriptionTier): string => {
-  const shortMappings: Record<SubscriptionTier, string> = {
+  const shortMappings = {
     'free_trial': 'TRIAL',
     'seeker': 'SEEKER',
     'spark': 'SPARK',
@@ -98,9 +98,9 @@ export const getTierShortName = (tier: SubscriptionTier): string => {
     'growth_annual': 'GROWTH',
     'transformation': 'TRANSFORMATION',
     'transformation_annual': 'TRANSFORMATION',
-    'family': 'FAMILY',
-    'family_annual': 'FAMILY',
-  };
+    // POST-LAUNCH: 'family': 'FAMILY',
+    // POST-LAUNCH: 'family_annual': 'FAMILY',
+  } as Record<SubscriptionTier, string>;
 
   return shortMappings[tier] || 'UNKNOWN';
 };
