@@ -13,9 +13,6 @@ export interface NotificationPreferences {
   streak_alerts?: boolean;
   prayer_requests?: boolean;
   prayer_request_alerts?: boolean;
-  quiet_hours_enabled?: boolean;
-  quiet_hours_start?: string; // HH:MM format
-  quiet_hours_end?: string; // HH:MM format
   timezone?: string; // IANA timezone (e.g., 'Asia/Manila', 'America/New_York')
   created_at?: string;
   updated_at?: string;
@@ -96,8 +93,6 @@ class NotificationManagementService {
         streak_alerts: data.streak_alerts,
         prayer_requests: data.prayer_requests,
         prayer_request_alerts: data.prayer_request_alerts,
-        quiet_hours_start: data.quiet_hours_start,
-        quiet_hours_end: data.quiet_hours_end,
         timezone: data.timezone,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -131,8 +126,6 @@ class NotificationManagementService {
         streak_alerts: preferences.streak_alerts ?? true,
         milestone_celebrations: preferences.milestone_celebrations ?? true,
         trial_notifications: preferences.trial_notifications ?? true,
-        quiet_hours_start: preferences.quiet_hours_start ?? '22:00',
-        quiet_hours_end: preferences.quiet_hours_end ?? '07:00',
         timezone: preferences.timezone ?? 'UTC',
         updated_at: new Date().toISOString(),
       };
@@ -420,8 +413,6 @@ class NotificationManagementService {
           trial_notifications: true,
           streak_alerts: true,
           prayer_request_alerts: true,
-          quiet_hours_start: '22:00',
-          quiet_hours_end: '07:00',
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
 
