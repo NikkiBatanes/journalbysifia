@@ -8,10 +8,10 @@ require('dotenv').config();
 
 function loadConfig() {
   const config = {
-    authKeyPath: process.env.APNS_AUTH_KEY_PATH || './AuthKey_28HNT3LV73.p8',
-    keyId: process.env.APNS_KEY_ID || '28HNT3LV73',
+    authKeyPath: process.env.APNS_AUTH_KEY_PATH || './AuthKey_9BM4ASAP36.p8',
+    keyId: process.env.APNS_KEY_ID || '9BM4ASAP36',
     teamId: process.env.APPLE_TEAM_ID || 'L2AT73KSY8',
-    bundleId: process.env.APNS_BUNDLE_ID || 'com.sifiaopc.app',
+    bundleId: process.env.APNS_BUNDLE_ID || 'app.sifia.com',
     envName: process.env.APP_ENV || 'development',
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
