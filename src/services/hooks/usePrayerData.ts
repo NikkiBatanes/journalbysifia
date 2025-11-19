@@ -6,6 +6,7 @@ import { queryKeys } from '../queryKeys';
 import { faithPointsService } from '../faithPointsService';
 import { createRetryFunction } from '../../utils/retry';
 import { RETRY_CONFIGS } from '../../utils/retry';
+import { streakTrackingService } from '../streakTrackingService';
 
 // ===== QUERY HOOKS =====
 
@@ -231,8 +232,20 @@ export const useCreatePrayer = () => {
         );
       }
     },
-    onSuccess: (_data, _variables) => {
+    onSuccess: async (_data, variables) => {
       // Cache is automatically handled by React Query
+      
+      // Update prayer streak
+      if (variables.user_id) {
+        try {
+          await streakTrackingService.updateStreak(variables.user_id, 'prayer');
+        } catch (error) {
+          Logger.warn('Failed to update prayer streak', {
+            component: 'usePrayerData',
+            error: error as Error,
+          });
+        }
+      }
     },
     onSettled: (data, error, variables) => {
       // Always refetch after error or success
@@ -839,8 +852,20 @@ export const useCreateDevotionalPrayer = () => {
 
       return { previousDevotional, previousAllDevotional, previousEntries };
     },
-    onSuccess: (_data, _variables) => {
+    onSuccess: async (_data, variables) => {
       // Cache is automatically handled by React Query optimistic updates
+      
+      // Update prayer streak
+      if (variables.userId) {
+        try {
+          await streakTrackingService.updateStreak(variables.userId, 'prayer');
+        } catch (error) {
+          Logger.warn('Failed to update prayer streak for devotional', {
+            component: 'usePrayerData',
+            error: error as Error,
+          });
+        }
+      }
     },
     onError: (error, { userId, dateStr }, context) => {
       // Log the error for debugging

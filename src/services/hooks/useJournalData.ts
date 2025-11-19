@@ -7,6 +7,7 @@ import { queryKeys } from '../queryKeys';
 import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
 import { QueryConfig } from '../../types/api';
 import { faithPointsService } from '../faithPointsService';
+import { streakTrackingService } from '../streakTrackingService';
 
 // Hook for getting gratitude entries with enhanced retry logic
 export const useGratitudeData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
@@ -296,6 +297,16 @@ export const useCreateJournalEntry = () => {
           );
         } catch (error) {
           Logger.warn('Failed to award faith points for journal entry', {
+            component: 'useJournalData',
+            error: error as Error,
+          });
+        }
+
+        // Update journal streak
+        try {
+          await streakTrackingService.updateStreak(variables.user_id, 'journal');
+        } catch (error) {
+          Logger.warn('Failed to update journal streak', {
             component: 'useJournalData',
             error: error as Error,
           });
