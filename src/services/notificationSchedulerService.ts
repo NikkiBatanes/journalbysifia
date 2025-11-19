@@ -6,19 +6,16 @@ import { notificationBatchingService } from './notificationBatchingService';
 import { AppState, AppStateStatus } from 'react-native';
 
 export interface ScheduleOptions {
-  respectQuietHours?: boolean;
   priority?: 'low' | 'normal' | 'high' | 'critical';
   batchWithOthers?: boolean;
 }
 
 /**
  * Notification Scheduler Service
- * Handles intelligent scheduling, batching, and quiet hours enforcement
+ * Handles intelligent scheduling and batching
  */
 class NotificationSchedulerService {
   private readonly MAX_NOTIFICATIONS_PER_DAY = 3;
-  private readonly QUIET_HOURS_DEFAULT_START = '22:00';
-  private readonly QUIET_HOURS_DEFAULT_END = '07:00';
   private appState: AppStateStatus = 'active';
 
   constructor() {
@@ -45,7 +42,7 @@ class NotificationSchedulerService {
   }
 
   /**
-   * Schedule a notification with smart batching and quiet hours
+   * Schedule a notification with smart batching
    */
   async scheduleNotification(
     notification: NotificationQueueItem,
@@ -53,7 +50,6 @@ class NotificationSchedulerService {
   ): Promise<boolean> {
     try {
       const {
-        respectQuietHours = true,
         priority = 'normal',
         batchWithOthers = true,
       } = options;
@@ -108,16 +104,8 @@ class NotificationSchedulerService {
         }
       }
 
-      // Adjust scheduled time for quiet hours
-      let scheduledFor = notification.scheduled_for ? new Date(notification.scheduled_for) : new Date();
-
-      if (respectQuietHours && priority !== 'critical') {
-        scheduledFor = await this.adjustForQuietHours(
-          scheduledFor,
-          notification.user_id,
-          preferences
-        );
-      }
+      // Use scheduled time or current time
+      const scheduledFor = notification.scheduled_for ? new Date(notification.scheduled_for) : new Date();
 
       // Schedule the notification
       const finalNotification: NotificationQueueItem = {
@@ -204,85 +192,6 @@ class NotificationSchedulerService {
     }
   }
 
-  /**
-   * Adjust scheduled time to respect quiet hours
-   */
-  private async adjustForQuietHours(
-    scheduledFor: Date,
-    userId: string,
-    preferences: any
-  ): Promise<Date> {
-    try {
-      const quietStart = preferences?.quiet_hours_start || this.QUIET_HOURS_DEFAULT_START;
-      const quietEnd = preferences?.quiet_hours_end || this.QUIET_HOURS_DEFAULT_END;
-
-      const [startHour, startMin] = quietStart.split(':').map(Number);
-      const [endHour, endMin] = quietEnd.split(':').map(Number);
-
-      const scheduledHour = scheduledFor.getHours();
-      const scheduledMin = scheduledFor.getMinutes();
-
-      // Check if scheduled time falls within quiet hours
-      const isInQuietHours = this.isTimeInQuietHours(
-        scheduledHour,
-        scheduledMin,
-        startHour,
-        startMin,
-        endHour,
-        endMin
-      );
-
-      if (isInQuietHours) {
-        // Move to end of quiet hours
-        const adjusted = new Date(scheduledFor);
-        adjusted.setHours(endHour, endMin, 0, 0);
-
-        // If that's in the past, move to tomorrow
-        if (adjusted < new Date()) {
-          adjusted.setDate(adjusted.getDate() + 1);
-        }
-
-        Logger.info('Adjusted notification time for quiet hours', {
-          component: 'notificationSchedulerService',
-          original: scheduledFor.toISOString(),
-          adjusted: adjusted.toISOString(),
-        });
-
-        return adjusted;
-      }
-
-      return scheduledFor;
-    } catch (error) {
-      Logger.error('Error adjusting for quiet hours', error as Error, {
-        component: 'notificationSchedulerService',
-      });
-      return scheduledFor;
-    }
-  }
-
-  /**
-   * Check if a time falls within quiet hours
-   */
-  private isTimeInQuietHours(
-    hour: number,
-    min: number,
-    startHour: number,
-    startMin: number,
-    endHour: number,
-    endMin: number
-  ): boolean {
-    const timeInMinutes = hour * 60 + min;
-    const startInMinutes = startHour * 60 + startMin;
-    const endInMinutes = endHour * 60 + endMin;
-
-    if (startInMinutes < endInMinutes) {
-      // Normal case: e.g., 22:00 - 23:59
-      return timeInMinutes >= startInMinutes && timeInMinutes < endInMinutes;
-    } else {
-      // Overnight case: e.g., 22:00 - 07:00
-      return timeInMinutes >= startInMinutes || timeInMinutes < endInMinutes;
-    }
-  }
 
   /**
    * Try to batch notification with existing ones
@@ -347,7 +256,7 @@ class NotificationSchedulerService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'devotional_reminder',
-      title: 'Today\'s Devotional is Ready 📖',
+      title: 'Daily Devotional Ready 📖',
       message: 'Start your day with God\'s Word and wisdom.',
       data: {
         deep_link: 'sifia://devotionals/today',
@@ -358,7 +267,6 @@ class NotificationSchedulerService {
     };
 
     return await this.scheduleNotification(notification, {
-      respectQuietHours: true,
       priority: 'normal',
       batchWithOthers: true,
     });
@@ -391,7 +299,6 @@ class NotificationSchedulerService {
     };
 
     return await this.scheduleNotification(notification, {
-      respectQuietHours: true,
       priority: 'normal',
       batchWithOthers: true,
     });
@@ -420,7 +327,6 @@ class NotificationSchedulerService {
     };
 
     return await this.scheduleNotification(notification, {
-      respectQuietHours: false, // Critical notifications bypass quiet hours
       priority: 'critical',
       batchWithOthers: false,
     });
