@@ -367,14 +367,17 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <ThemedText weight="semiBold" style={styles.titleText}>TODAY'S SCRIPTURE</ThemedText>
-        <TouchableOpacity
-          onPress={handleShare}
-          style={styles.shareButton}
-          accessibilityRole="button"
-          accessibilityLabel="Share scripture"
-        >
-          <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
-        </TouchableOpacity>
+        {/* Share button temporarily disabled until native module is configured via Xcode */}
+        {false && (
+          <TouchableOpacity
+            onPress={handleShare}
+            style={styles.shareButton}
+            accessibilityRole="button"
+            accessibilityLabel="Share scripture"
+          >
+            <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        )}
       </View>
       {error ? (
         <View style={styles.errorContainer}>
