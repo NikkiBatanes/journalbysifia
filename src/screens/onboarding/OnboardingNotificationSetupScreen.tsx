@@ -144,6 +144,13 @@ const OnboardingNotificationSetupScreen = () => {
       enabled: effectiveUserType === 'trial',
       required: effectiveUserType === 'trial',
     },
+    {
+      id: 'prayer_request_alerts',
+      title: 'Prayer Request Alerts',
+      description: 'Get notified about prayer requests that need attention',
+      icon: 'notifications-outline',
+      enabled: true,
+    },
   ]);
 
   const handleToggleSetting = (id: string) => {
@@ -190,14 +197,14 @@ const OnboardingNotificationSetupScreen = () => {
               user_id: user.id,
               notification_type: 'user_preferences', // Required field
               prayer_reminders: enabledSettings.prayer_reminders || false,
-              playbook_steps: enabledSettings.playbooks || false, // Fixed: was playbook_actions
+              playbook_steps: enabledSettings.playbooks || false,
               devotional_reminders: enabledSettings.daily_devotional || false,
               journal_prompts: enabledSettings.journal_reminders || false,
               milestone_celebrations: enabledSettings.progress_updates || false,
               trial_notifications: enabledSettings.trial_reminders || false,
-              streak_alerts: enabledSettings.progress_updates || false, // Default to same as progress
-              prayer_requests: false, // Default off
-              prayer_request_alerts: false, // Default off
+              streak_alerts: enabledSettings.progress_updates || false,
+              prayer_requests: enabledSettings.prayer_request_alerts || false,
+              prayer_request_alerts: enabledSettings.prayer_request_alerts || false,
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             }, {

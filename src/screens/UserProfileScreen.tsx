@@ -24,6 +24,7 @@ import { Pencil as LuPencil } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { initSound, releaseSound } from '../utils/soundUtils';
+import { supabase } from '../services/supabaseClient';
 
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -222,23 +223,71 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             onPress: async () => {
               setIsDeletingAccount(true);
               try {
-                // For now, show a message that this feature requires server-side implementation
+                if (!user?.id) {
+                  throw new Error('User not authenticated');
+                }
+
+                // Mark account for deletion in user metadata
+                const { error: updateError } = await supabase.auth.updateUser({
+                  data: {
+                    account_deletion_requested: true,
+                    account_deletion_date: new Date().toISOString(),
+                  }
+                });
+                
+                if (updateError) {
+                  Logger.error('Error marking account for deletion', updateError as Error, {
+                    component: 'UserProfileScreen',
+                  });
+                  throw updateError;
+                }
+
+                // Delete all user data from tables
+                await supabase.from('user_playbooks').delete().eq('user_id', user.id);
+                await supabase.from('journal_entries').delete().eq('user_id', user.id);
+                await supabase.from('prayers').delete().eq('user_id', user.id);
+                await supabase.from('reflections').delete().eq('user_id', user.id);
+                await supabase.from('time_blocks').delete().eq('user_id', user.id);
+                await supabase.from('notification_preferences').delete().eq('user_id', user.id);
+                await supabase.from('faith_points_profiles').delete().eq('user_id', user.id);
+                await supabase.from('faith_points_log').delete().eq('user_id', user.id);
+                await supabase.from('user_streaks').delete().eq('user_id', user.id);
+                await supabase.from('subscriptions').delete().eq('user_id', user.id);
+
+                // Sign out the user
+                await signOut();
+
+                // Show success message
                 Alert.alert(
-                  'Account Deletion Request',
-                  'Your account deletion request has been received. For security reasons, account deletion requires manual verification. Please contact support to complete this process.',
+                  'Account Deleted',
+                  'Your account has been permanently deleted. We\'re sorry to see you go.',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        // Navigation will be handled by auth state change
+                      },
+                    },
+                  ]
+                );
+              } catch (e: any) {
+                Logger.error('Error deleting account', e as Error, {
+                  component: 'UserProfileScreen',
+                });
+                Alert.alert(
+                  'Deletion Failed',
+                  'Unable to delete your account at this time. Please try again or contact support.',
                   [
                     {
                       text: 'OK',
                       onPress: () => {
                         setDeleteAccountModal(false);
                         setEditProfileModal(false);
-                        setDeleteBirthYear(''); // Clear the input
+                        setDeleteBirthYear('');
                       },
                     },
                   ]
                 );
-              } catch (e: any) {
-                Alert.alert('Error', 'Unable to process deletion request at this time.');
               } finally {
                 setIsDeletingAccount(false);
               }
@@ -266,8 +315,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           trial_notifications: true,
           prayer_request_alerts: false,
           prayer_requests: false,
-          quiet_hours_start: '22:00',
-          quiet_hours_end: '07:00',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -1447,6 +1494,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
                 if (!hasPermission) {
                   // Permission denied, don't enable auto-sync
+                  Alert.alert('Permission Required', 'Calendar access is needed to enable auto-sync. Please grant permission in your device settings.');
                   return;
                 }
 
@@ -1473,10 +1521,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     });
                     return;
                   }
+                  // If not seeker/free_trial, continue to enable auto-sync below
                 } catch (error) {
                   Logger.error('Failed to check subscription tier', error as Error, {
-      component: 'UserProfileScreen',
-    });
+                    component: 'UserProfileScreen',
+                  });
+                  // On error, allow the toggle to proceed (fail open for paid users)
                 }
               }
 

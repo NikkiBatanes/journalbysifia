@@ -221,7 +221,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
               testID="playbookAffirmationsReadButton"
             >
               <Ionicons name="book-outline" size={18} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={readStyles.readIcon} />
-              <ThemedText weight="bold" style={[readStyles.readButtonText, hasRead && readStyles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
+              <ThemedText weight="bold" style={[readStyles.readButtonText, hasRead && readStyles.readButtonTextActive]}>{hasRead ? 'I\'ve read this aloud' : 'I\'ve read this aloud'}</ThemedText>
             </TouchableOpacity>
           </View>
         )}

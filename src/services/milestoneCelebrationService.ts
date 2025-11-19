@@ -88,7 +88,7 @@ class MilestoneCelebrationService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        respectQuietHours: false, // Celebrations are immediate
+         // Celebrations are immediate
         priority: 'high',
         batchWithOthers: false,
       });
@@ -138,7 +138,7 @@ class MilestoneCelebrationService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        respectQuietHours: false, // Celebrations are immediate
+         // Celebrations are immediate
         priority: 'high',
         batchWithOthers: false,
       });
@@ -188,7 +188,7 @@ class MilestoneCelebrationService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        respectQuietHours: false, // Celebrations are immediate
+         // Celebrations are immediate
         priority: 'high',
         batchWithOthers: false,
       });
@@ -236,7 +236,7 @@ class MilestoneCelebrationService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        respectQuietHours: false, // Celebrations are immediate
+         // Celebrations are immediate
         priority: 'high',
         batchWithOthers: false,
       });
