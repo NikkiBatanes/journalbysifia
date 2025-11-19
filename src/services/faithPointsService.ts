@@ -8,6 +8,7 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { notificationService } from './notificationService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from './faithPointsEvents';
+import { milestoneCelebrationService } from './milestoneCelebrationService';
 
 export interface FaithPointsProfile {
   userId: string;
@@ -392,6 +393,17 @@ export class FaithPointsService {
       } else {
 
       }
+
+      // Check for milestone celebrations (non-blocking)
+      milestoneCelebrationService.checkFaithPointsMilestone(
+        userId,
+        profile.totalPoints,
+        newTotalPoints
+      ).catch((milestoneError) => {
+        Logger.error('Failed to check faith points milestone', milestoneError as Error, {
+          component: 'faithPointsService',
+        });
+      });
 
       // Emit events for UI updates with delay to ensure database is updated
       // Only emit events if not suppressed to prevent duplicate UI updates
