@@ -302,9 +302,18 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         );
 
         await fetchBadgeCount();
+      } else {
+        Alert.alert('Error', 'Failed to accept invitation. Please try again.');
       }
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to accept invitation');
+      Logger.error('Failed to accept family invitation', error as Error, {
+        component: 'NotificationsScreen',
+        invitationCode,
+      });
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to accept invitation. Please try again or contact support.'
+      );
     } finally {
       setAcceptingInvite(null);
     }
@@ -360,9 +369,21 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           invitation.invited_by_user_id,
           invitedName
         );
+
+        Logger.info('Family invitation declined and inviter notified', {
+          component: 'NotificationsScreen',
+          inviterId: invitation.invited_by_user_id,
+          invitedName,
+        });
       }
+
+      Alert.alert('Invitation Declined', 'The invitation has been declined.');
     } catch (error) {
-      Alert.alert('Error', 'Failed to decline invitation');
+      Logger.error('Failed to decline family invitation', error as Error, {
+        component: 'NotificationsScreen',
+        invitationCode,
+      });
+      Alert.alert('Error', 'Failed to decline invitation. Please try again.');
     }
   };
 

@@ -321,6 +321,22 @@ export class FamilySubscriptionService {
         throw new Error('Family group is at maximum capacity');
       }
 
+      // Update user's subscription to link to family group
+      const { error: subscriptionError } = await supabase
+        .from('user_subscriptions')
+        .update({
+          family_group_id: invitation.family_group_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+
+      if (subscriptionError) {
+        Logger.error('[FamilyService] Failed to link user subscription to family', subscriptionError as Error, {
+          component: 'FamilySubscriptionService',
+        });
+        throw new Error('Failed to link your subscription to the family group');
+      }
+
       // Sync member limits based on family trial/paid status
       const syncSuccess = await FamilyTrialService.syncMemberLimits(
         userId,
@@ -328,7 +344,12 @@ export class FamilySubscriptionService {
       );
 
       if (!syncSuccess) {
-        throw new Error('Failed to sync member subscription limits');
+        Logger.warn('[FamilyService] Failed to sync member limits, but continuing', {
+          component: 'FamilySubscriptionService',
+          userId,
+          familyGroupId: invitation.family_group_id,
+        });
+        // Don't throw - this is non-critical
       }
 
       // Update family group member count
@@ -341,8 +362,8 @@ export class FamilySubscriptionService {
 
       if (groupError) {
         Logger.error('[FamilyService] Failed to update member count', groupError as Error, {
-      component: 'FamilySubscriptionService',
-    });
+          component: 'FamilySubscriptionService',
+        });
       }
 
       // Mark invitation as accepted
