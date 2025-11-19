@@ -115,39 +115,69 @@ export class FamilySubscriptionService {
         throw new Error(`Failed to get family group: ${groupError.message}`);
       }
 
-      // Get family members with user profile data
-      const { data: membersData, error: membersError } = await supabase
+      // Get family members from user_subscriptions_new
+      const { data: memberSubs, error: membersError } = await supabase
         .from('user_subscriptions_new')
-        .select(`
-          user_id,
-          family_role,
-          created_at,
-          user_profiles!inner(
-            email,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('user_id, family_role, created_at, status')
         .eq('family_group_id', groupId)
         .eq('status', 'active');
 
       if (membersError) {
         Logger.error('[FamilyService] Failed to get members', membersError as Error, {
-      component: 'FamilySubscriptionService',
-    });
+          component: 'FamilySubscriptionService',
+        });
       }
 
-      const members: FamilyMember[] = (membersData || []).map(member => ({
-        id: member.user_id,
-        user_id: member.user_id,
-        family_group_id: groupId,
-        role: member.family_role as 'admin' | 'member',
-        joined_at: member.created_at,
-        status: 'active' as const,
-        email: (member.user_profiles as any)?.[0]?.email || (member.user_profiles as any)?.email,
-        full_name: (member.user_profiles as any)?.[0]?.full_name || (member.user_profiles as any)?.full_name,
-        avatar_url: (member.user_profiles as any)?.[0]?.avatar_url || (member.user_profiles as any)?.avatar_url,
-      }));
+      const safeMemberSubs = memberSubs || [];
+      Logger.info('[FamilyService] Loaded family members', {
+        component: 'FamilySubscriptionService',
+        groupId,
+        memberCount: safeMemberSubs.length,
+        members: safeMemberSubs.map((m: any) => ({ userId: m.user_id, role: m.family_role })),
+      });
+
+      const memberIds = safeMemberSubs.map((m: any) => m.user_id).filter(Boolean);
+
+      // Fetch profiles for members in a separate query to avoid join issues
+      let profileMap: Record<string, { email?: string; full_name?: string; avatar_url?: string }> = {};
+
+      if (memberIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('id, email, full_name, avatar_url')
+          .in('id', memberIds);
+
+        if (profilesError) {
+          Logger.warn('[FamilyService] Failed to load member profiles', {
+            component: 'FamilySubscriptionService',
+          });
+        } else if (profiles) {
+          profileMap = profiles.reduce((acc: any, profile: any) => {
+            acc[profile.id] = {
+              email: profile.email,
+              full_name: profile.full_name,
+              avatar_url: profile.avatar_url,
+            };
+            return acc;
+          }, {} as Record<string, { email?: string; full_name?: string; avatar_url?: string }>);
+        }
+      }
+
+      const members: FamilyMember[] = safeMemberSubs.map((member: any) => {
+        const profile = profileMap[member.user_id] || {};
+
+        return {
+          id: member.user_id,
+          user_id: member.user_id,
+          family_group_id: groupId,
+          role: member.family_role as 'admin' | 'member',
+          joined_at: member.created_at,
+          status: 'active' as const,
+          email: profile.email,
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+        };
+      });
 
       return {
         ...groupData,
@@ -288,15 +318,32 @@ export class FamilySubscriptionService {
    */
   static async acceptInvitation(invitationCode: string, userId: string): Promise<boolean> {
     try {
+      Logger.info('[FamilyService] Starting accept invitation', {
+        component: 'FamilySubscriptionService',
+        invitationCode,
+        userId,
+      });
+
       const normalizedCode = invitationCode.trim().toUpperCase();
 
       // Get invitation details
+      Logger.info('[FamilyService] Looking up invitation', {
+        component: 'FamilySubscriptionService',
+        normalizedCode,
+      });
+
       const { data: invitation, error: invitationError } = await supabase
         .from('family_invitations')
         .select('*')
         .eq('invitation_code', normalizedCode)
         .eq('status', 'pending')
         .single();
+
+      Logger.info('[FamilyService] Invitation lookup complete', {
+        component: 'FamilySubscriptionService',
+        found: !!invitation,
+        hasError: !!invitationError,
+      });
 
       if (invitationError || !invitation) {
         Logger.error('[FamilyService] Invitation lookup failed', undefined, {
@@ -325,66 +372,66 @@ export class FamilySubscriptionService {
       }
 
       // Get family group to check capacity
-      const familyGroup = await this.getFamilyGroup(invitation.family_group_id);
+      let familyGroup;
+      try {
+        familyGroup = await this.getFamilyGroup(invitation.family_group_id);
+      } catch (groupError) {
+        Logger.warn('[FamilyService] Failed to load full family group, fetching basic info only', {
+          component: 'FamilySubscriptionService',
+        });
+        // Fallback: just get the group record without members
+        const { data: groupData, error: groupFetchError } = await supabase
+          .from('family_subscription_groups')
+          .select('*')
+          .eq('id', invitation.family_group_id)
+          .single();
+        
+        if (groupFetchError || !groupData) {
+          throw new Error('Family group not found');
+        }
+        familyGroup = { ...groupData, members: [] };
+      }
 
       if (familyGroup.current_members >= familyGroup.max_members) {
         throw new Error('Family group is at maximum capacity');
       }
 
-      // Update user's subscription to link to family group
-      // First check if user has a subscription row
-      const { error: checkError } = await supabase
-        .from('user_subscriptions')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
+      // Ensure the user has a subscription row in user_subscriptions_new
+      // NewSubscriptionService will create a default seeker subscription if none exists.
+      Logger.info('[FamilyService] Getting user subscription', {
+        component: 'FamilySubscriptionService',
+        userId,
+      });
 
-      if (checkError && checkError.code === 'PGRST116') {
-        // No subscription exists, create one
-        const { error: insertError } = await supabase
-          .from('user_subscriptions')
-          .insert({
-            user_id: userId,
-            family_group_id: invitation.family_group_id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-
-        if (insertError) {
-          Logger.error('[FamilyService] Failed to create user subscription', insertError as Error, {
-            component: 'FamilySubscriptionService',
-            errorCode: insertError.code,
-            errorMessage: insertError.message,
-            errorDetails: insertError.details,
-          });
-          throw new Error('Failed to create your subscription record');
-        }
-      } else {
-        // Update existing subscription
-        const { error: subscriptionError } = await supabase
-          .from('user_subscriptions')
-          .update({
-            family_group_id: invitation.family_group_id,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
-
-        if (subscriptionError) {
-          Logger.error('[FamilyService] Failed to link user subscription to family', subscriptionError as Error, {
-            component: 'FamilySubscriptionService',
-            errorCode: subscriptionError.code,
-            errorMessage: subscriptionError.message,
-            errorDetails: subscriptionError.details,
-          });
-          throw new Error('Failed to link your subscription to the family group');
-        }
+      try {
+        await NewSubscriptionService.getUserSubscription(userId);
+        Logger.info('[FamilyService] User subscription ready', {
+          component: 'FamilySubscriptionService',
+        });
+      } catch (subError) {
+        Logger.error('[FamilyService] Failed to initialize user subscription before joining family', subError as Error, {
+          component: 'FamilySubscriptionService',
+          userId,
+        });
+        throw new Error('Failed to prepare your subscription for family access');
       }
 
       // Sync member limits based on family trial/paid status
+      Logger.info('[FamilyService] Syncing member limits', {
+        component: 'FamilySubscriptionService',
+        userId,
+        familyGroupId: invitation.family_group_id,
+      });
+
       const syncSuccess = await FamilyTrialService.syncMemberLimits(
         userId,
         invitation.family_group_id
       );
+
+      Logger.info('[FamilyService] Member limits sync complete', {
+        component: 'FamilySubscriptionService',
+        success: syncSuccess,
+      });
 
       if (!syncSuccess) {
         Logger.warn('[FamilyService] Failed to sync member limits, but continuing', {
@@ -395,18 +442,47 @@ export class FamilySubscriptionService {
         // Don't throw - this is non-critical
       }
 
-      // Update family group member count
-      const { error: groupError } = await supabase
-        .from('family_subscription_groups')
-        .update({
-          current_members: familyGroup.current_members + 1,
-        })
-        .eq('id', invitation.family_group_id);
+      // Update family group member count - fetch current value first
+      Logger.info('[FamilyService] Incrementing member count', {
+        component: 'FamilySubscriptionService',
+        familyGroupId: invitation.family_group_id,
+      });
 
-      if (groupError) {
-        Logger.error('[FamilyService] Failed to update member count', groupError as Error, {
+      const { data: currentGroup, error: fetchError } = await supabase
+        .from('family_subscription_groups')
+        .select('current_members')
+        .eq('id', invitation.family_group_id)
+        .single();
+
+      if (fetchError || !currentGroup) {
+        Logger.error('[FamilyService] Failed to fetch current member count', fetchError as Error, {
           component: 'FamilySubscriptionService',
         });
+      } else {
+        const newCount = (currentGroup.current_members || 0) + 1;
+        Logger.info('[FamilyService] Updating member count', {
+          component: 'FamilySubscriptionService',
+          oldCount: currentGroup.current_members,
+          newCount,
+        });
+
+        const { error: updateCountError } = await supabase
+          .from('family_subscription_groups')
+          .update({
+            current_members: newCount,
+          })
+          .eq('id', invitation.family_group_id);
+
+        if (updateCountError) {
+          Logger.error('[FamilyService] Failed to update member count', updateCountError as Error, {
+            component: 'FamilySubscriptionService',
+          });
+        } else {
+          Logger.info('[FamilyService] Member count updated successfully', {
+            component: 'FamilySubscriptionService',
+            newCount,
+          });
+        }
       }
 
       // Mark invitation as accepted
@@ -422,6 +498,11 @@ export class FamilySubscriptionService {
       }
 
       // Notify admin that member joined
+      Logger.info('[FamilyService] Notifying admin', {
+        component: 'FamilySubscriptionService',
+        adminUserId: familyGroup.admin_user_id,
+      });
+
       try {
         const { data: memberProfile } = await supabase
           .from('user_profiles')
@@ -436,11 +517,20 @@ export class FamilySubscriptionService {
           memberName,
           invitation.family_group_id
         );
+
+        Logger.info('[FamilyService] Admin notified successfully', {
+          component: 'FamilySubscriptionService',
+        });
       } catch (notifError) {
         Logger.error('[FamilyService] Failed to send member joined notification', notifError as Error, {
           component: 'FamilySubscriptionService',
         });
       }
+
+      Logger.info('[FamilyService] Accept invitation completed successfully', {
+        component: 'FamilySubscriptionService',
+        userId,
+      });
 
       return true;
     } catch (error) {

@@ -194,8 +194,9 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
 
       await FamilySubscriptionService.acceptInvitation(invitationCode, user.id);
 
-      // Refresh data after accepting invitation
-      await loadFamilyData();
+      // Don't call loadFamilyData() here - it causes hanging because getFamilyGroup
+      // tries to load member profiles which may fail. The NotificationsScreen will
+      // handle navigation and the family data will load when user opens Family Dashboard.
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to accept invitation';
@@ -207,7 +208,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       });
       throw err; // Re-throw so NotificationsScreen can show the actual error
     }
-  }, [user, loadFamilyData]);
+  }, [user]);
 
   /**
    * Leave family group (member self-service)

@@ -157,6 +157,32 @@ export function useNotificationBadge() {
       )
       .subscribe();
 
+    // Subscribe to family_invitations table changes
+    const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+    let familyInvitesSubscription: any = null;
+    
+    if (userEmail) {
+      familyInvitesSubscription = supabase
+        .channel(`family_invitations:${userEmail}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'family_invitations',
+            filter: `invited_email=eq.${userEmail}`,
+          },
+          (payload) => {
+            Logger.debug('Real-time family invitation change detected', {
+              component: 'useNotificationBadge',
+              event: payload.eventType,
+            });
+            fetchBadgeCount();
+          }
+        )
+        .subscribe();
+    }
+
     // Cleanup subscriptions on unmount
     return () => {
       Logger.debug('Cleaning up notification subscriptions', {
@@ -164,6 +190,9 @@ export function useNotificationBadge() {
       });
       notificationsSubscription.unsubscribe();
       queueSubscription.unsubscribe();
+      if (familyInvitesSubscription) {
+        familyInvitesSubscription.unsubscribe();
+      }
     };
   }, [user?.id, fetchBadgeCount]);
 

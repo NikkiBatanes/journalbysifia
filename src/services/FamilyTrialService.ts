@@ -117,20 +117,64 @@ export class FamilyTrialService {
     familyGroupId: string
   ): Promise<boolean> {
     try {
-      // Get admin subscription to determine if trial or paid
-      const familyGroup = await FamilySubscriptionService.getFamilyGroup(familyGroupId);
+      Logger.info('[FamilyTrial] Starting sync member limits', {
+        component: 'FamilyTrialService',
+        userId,
+        familyGroupId,
+      });
 
-      if (!familyGroup) {
+      // Get family group admin directly without loading full member list
+      const { data: familyGroup, error: groupError } = await supabase
+        .from('family_subscription_groups')
+        .select('admin_user_id')
+        .eq('id', familyGroupId)
+        .single();
+
+      if (groupError || !familyGroup) {
         throw new Error('Family group not found');
       }
 
-      const adminSubscription = await NewSubscriptionService.getUserSubscription(
-        familyGroup.admin_user_id
-      );
+      Logger.info('[FamilyTrial] Fetching admin subscription directly from DB', {
+        component: 'FamilyTrialService',
+        adminUserId: familyGroup.admin_user_id,
+      });
 
-      // Determine limits based on admin's subscription status
-      const isTrial = adminSubscription.tier === 'free_trial' ||
-                     adminSubscription.is_trial === true;
+      // Fetch admin subscription directly to avoid any service layer issues
+      // Order by updated_at to get the most recent subscription if there are duplicates
+      const { data: adminSubData, error: adminSubError } = await supabase
+        .from('user_subscriptions_new')
+        .select('tier, subscription_display_name, playbooks_limit, devotionals_limit')
+        .eq('user_id', familyGroup.admin_user_id)
+        .eq('status', 'active')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      let adminSubscription = adminSubData;
+      if (adminSubError || !adminSubscription) {
+        Logger.warn('[FamilyTrial] Could not fetch admin subscription, assuming paid family', {
+          component: 'FamilyTrialService',
+          errorMessage: adminSubError?.message,
+        });
+        // Fallback: assume paid family (safer default - gives unlimited access)
+        adminSubscription = { 
+          tier: 'family',
+          subscription_display_name: 'siFia Family',
+          playbooks_limit: 999999,
+          devotionals_limit: 999999,
+        };
+      }
+
+      Logger.info('[FamilyTrial] Admin subscription fetched', {
+        component: 'FamilyTrialService',
+        tier: adminSubscription.tier,
+        displayName: adminSubscription.subscription_display_name,
+        playbooksLimit: adminSubscription.playbooks_limit,
+      });
+
+      // Determine if trial based on display name or limits
+      const isTrial = adminSubscription.subscription_display_name === 'siFia Family Trial' ||
+                     (adminSubscription.playbooks_limit && adminSubscription.playbooks_limit < 999999);
 
       const limits = isTrial
         ? {
@@ -147,6 +191,12 @@ export class FamilyTrialService {
           };
 
       // Update member subscription
+      Logger.info('[FamilyTrial] Updating member subscription', {
+        component: 'FamilyTrialService',
+        userId,
+        limits,
+      });
+
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
@@ -158,6 +208,11 @@ export class FamilyTrialService {
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
+
+      Logger.info('[FamilyTrial] Member subscription update complete', {
+        component: 'FamilyTrialService',
+        hasError: !!error,
+      });
 
       if (error) {
         throw new Error(`Failed to sync member limits: ${error.message}`);

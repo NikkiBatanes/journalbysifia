@@ -63,9 +63,9 @@ export class FamilyNotificationService {
         .from('notifications')
         .insert({
           user_id: profile.id,
-          notification_type: 'family_invitation',
+          type: 'family_invitation',
           title: 'Family Invitation',
-          message: `${invitedByName} invited you to join "${groupName}" family subscription`,
+          message: `${invitedByName} invited you to join a family subscription`,
           data: {
             family_group_id: familyGroupId,
             invitation_code: invitationCode,
@@ -89,7 +89,7 @@ export class FamilyNotificationService {
           user_id: profile.id,
           type: 'family_invitation',
           title: 'Family Invitation',
-          message: `${invitedByName} invited you to join "${groupName}" family subscription`,
+          message: `${invitedByName} invited you to join a family subscription`,
           data: {
             family_group_id: familyGroupId,
             invitation_code: invitationCode,
@@ -131,7 +131,7 @@ export class FamilyNotificationService {
         .from('notifications')
         .insert({
           user_id: adminUserId,
-          notification_type: 'invitation_declined',
+          type: 'invitation_declined',
           title: 'Family Invitation Declined',
           message: `${invitedName} declined your family invitation.`,
           data: {},
@@ -140,10 +140,16 @@ export class FamilyNotificationService {
         });
 
       if (error) {
-        Logger.error('Failed to create invitation declined notification', error as Error, {
+        Logger.error('Failed to create invitation declined notification', undefined, {
           component: 'FamilyNotificationService',
+          supabaseError: {
+            code: (error as any).code,
+            message: (error as any).message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          },
         });
-        return false;
+        return false; // Non-blocking: decline already processed in family_invitations
       }
 
       // Queue push notification for admin
@@ -185,7 +191,7 @@ export class FamilyNotificationService {
         .from('notifications')
         .insert({
           user_id: adminUserId,
-          notification_type: 'member_joined',
+          type: 'member_joined',
           title: 'New Family Member',
           message: `${memberName} has joined your family subscription`,
           data: {

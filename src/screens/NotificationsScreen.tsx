@@ -61,6 +61,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           const enriched = await Promise.all(
             data.map(async (invite: any) => {
               let inviterName = 'Family admin';
+              let inviterFullName = '';
               try {
                 const { data: inviterProfile } = await supabase
                   .from('user_profiles')
@@ -68,7 +69,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                   .eq('id', invite.invited_by_user_id)
                   .single();
 
-                inviterName = inviterProfile?.full_name || inviterProfile?.email || inviterName;
+                if (inviterProfile?.full_name) {
+                  inviterFullName = inviterProfile.full_name;
+                  inviterName = inviterProfile.full_name;
+                } else if (inviterProfile?.email) {
+                  inviterName = inviterProfile.email;
+                }
               } catch {
                 // Fallback to generic label
               }
@@ -77,7 +83,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                 id: invite.id,
                 notification_type: 'family_invitation',
                 title: 'Family Invitation',
-                message: `${inviterName} invited you to join a family subscription`,
+                message: inviterFullName 
+                  ? `${inviterFullName} invited you to join a family subscription`
+                  : `${inviterName} invited you to join a family subscription`,
                 data: {
                   invitation_code: invite.invitation_code,
                   family_group_id: invite.family_group_id,
@@ -353,7 +361,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('MainTabs'),
+            onPress: () => {
+              // Go back to previous screen (Dashboard)
+              navigation.goBack();
+            },
           },
         ]
       );
@@ -400,19 +411,41 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       }
 
       // Mark invitation as declined
-      const { error: declineError } = await supabase
+      const { data: declineResult, error: declineError } = await supabase
         .from('family_invitations')
         .update({ status: 'declined' })
         .eq('invitation_code', normalizedCode)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .select();
 
       if (declineError) {
-        Logger.error('Failed to decline invitation', declineError as Error, {
+        Logger.error('Failed to decline invitation', undefined, {
           component: 'NotificationsScreen',
+          supabaseError: {
+            code: (declineError as any).code,
+            message: (declineError as any).message,
+            details: (declineError as any).details,
+            hint: (declineError as any).hint,
+          },
         });
         Alert.alert('Error', 'Failed to decline invitation. Please try again.');
         return;
       }
+
+      if (!declineResult || declineResult.length === 0) {
+        Logger.error('Decline update returned no rows - invitation may not exist or already processed', undefined, {
+          component: 'NotificationsScreen',
+          invitationCode: normalizedCode,
+        });
+        Alert.alert('Error', 'Invitation not found or already processed.');
+        return;
+      }
+
+      Logger.info('Invitation declined successfully', {
+        component: 'NotificationsScreen',
+        invitationCode: normalizedCode,
+        updatedRows: declineResult.length,
+      });
 
       // Mark in-app notification as read
       if (notification.id) {

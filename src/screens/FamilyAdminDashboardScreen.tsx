@@ -10,8 +10,9 @@ import {
   TextInput,
   Alert,
   Modal,
+  RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
@@ -48,11 +49,13 @@ const FamilyAdminDashboardScreen: React.FC = () => {
     isAdmin,
     canInviteMembers,
     getFamilyUsageAnalytics,
+    refreshFamilyData,
   } = useFamilySubscription();
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [usageAnalytics, setUsageAnalytics] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadUsageAnalytics = useCallback(async () => {
     try {
@@ -68,6 +71,21 @@ const FamilyAdminDashboardScreen: React.FC = () => {
       loadUsageAnalytics();
     }
   }, [familyGroup, isAdmin, loadUsageAnalytics]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshFamilyData();
+    }, [refreshFamilyData])
+  );
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshFamilyData();
+    await loadUsageAnalytics();
+    setRefreshing(false);
+  }, [refreshFamilyData, loadUsageAnalytics]);
 
   const handleInviteMember = async () => {
     if (!inviteEmail.trim()) {
@@ -129,7 +147,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
             try {
               const success = await cancelInvitation(invitation.id);
               if (success) {
-                Alert.alert('Success', 'Invitation cancelled');
+                Alert.alert('Invite cancelled', 'The invitation has been cancelled.');
               }
             } catch (err) {
               Alert.alert('Error', err instanceof Error ? err.message : 'Failed to cancel invitation');
@@ -171,6 +189,13 @@ const FamilyAdminDashboardScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.anchorBlue}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -468,8 +493,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   memberInfo: {
     flexDirection: 'row',
