@@ -1,4 +1,4 @@
-# ✅ Push Notifications - Final Status Report
+# 📊 Push Notifications - Comprehensive Status Report
 
 ## 📋 Notification Inventory (Titles & Messages)
 
@@ -51,18 +51,24 @@
 
 ---
 
-**Date:** November 18, 2024, 1:10 AM UTC+8  
-**Status:** 🟢 **FULLY OPERATIONAL - READY FOR TESTING**
+**Date:** November 19, 2025, 2:45 AM UTC+8  
+**Status:** 🟠 **PARTIALLY OPERATIONAL - BACKEND AUTOMATION OK, APNS DELIVERY FAILING**
 
 ---
 
-## 🎉 EXCELLENT NEWS - EVERYTHING IS SET UP!
+## ⚠️ CURRENT REALITY - BACKEND OK, APPLE PUSH FAILING
 
-All critical components are verified and operational. Your push notification system is ready for device testing.
+- Backend queue, cron jobs, and Supabase edge functions are **running and processing rows**.
+- Device tokens are being stored for your user.
+- However, **Apple Push Notification Service (APNs) is returning errors** for iOS devices:
+  - `{"reason":"InvalidProviderToken"}`
+  - `{"reason":"BadDeviceToken"}`
+
+Until APNs configuration and device token environment are fixed, **no iOS push notifications will actually appear on the device**, even though the rest of the system is working.
 
 ---
 
-## ✅ Verified Components (100% Complete)
+## ✅ Verified Components (Backend & App Integration)
 
 ### 1. Native iOS Files ✅
 **Status:** ✅ **ADDED TO XCODE PROJECT**
@@ -86,7 +92,7 @@ $ grep "RCTPushNotificationBridge" ios/siFia.xcodeproj/project.pbxproj
 ---
 
 ### 2. Supabase Backend ✅
-**Status:** ✅ **FULLY CONFIGURED**
+**Status:** ✅ **AUTOMATION CONFIGURED AND EXECUTING**
 
 #### Edge Functions Deployed ✅
 ```
@@ -123,16 +129,16 @@ Based on your viewing of the migration file, the tables should be set up:
 
 ---
 
-### 4. iOS Configuration ✅
-**Status:** ✅ **PRODUCTION READY**
+### 4. iOS Configuration ✅/🟡
+**Status:** 🟡 **MIXED - ENTITLEMENTS OK, BUNDLE / ENVIRONMENT MISMATCH RISK**
 
 ```xml
-✅ Entitlements: aps-environment = "production"
-✅ Info.plist: UIBackgroundModes = ["remote-notification"]
-✅ Bundle ID: com.sifiaopc.app
+✅ Entitlements: aps-environment = "production" (per previous inspection)
+✅ Info.plist: UIBackgroundModes includes "remote-notification"
+🟡 Bundle ID in app code/docs was previously "com.sifiaopc.app" but the active Apple App ID and APNS_BUNDLE_ID are now "app.sifia.com".
 ```
 
-**Result:** ✅ iOS app is configured for production push notifications
+**Result:** iOS app is configured for push notifications, but **bundle ID alignment between Xcode, Apple Developer, and Supabase must be carefully verified**.
 
 ---
 
@@ -232,13 +238,15 @@ curl -X POST 'https://YOUR_PROJECT.supabase.co/functions/v1/send-push-notificati
 | **Native Bridge** | 🟢 Ready | Files in Xcode project |
 | **TypeScript Module** | 🟢 Ready | Imports working |
 | **Service Integration** | 🟢 Ready | Event listeners configured |
-| **Edge Functions** | 🟢 Deployed | v6 active (Nov 17) |
-| **APNS Token** | 🟢 Set | JWT configured |
-| **Database** | 🟢 Ready | Tables exist |
-| **iOS Config** | 🟢 Production | Entitlements correct |
-| **Xcode Project** | 🟢 Ready | Build files added |
+| **Edge Functions & Queue Cron** | 🟢 Deployed & Running | `process-notification-queue` and related jobs execute and move rows from `pending` to `sent` / `failed` |
+| **APNs Provider Token** | 🔴 Failing | APNs returns `InvalidProviderToken` for iOS delivery attempts; provider JWT / key / team / bundle require further validation |
+| **Device Tokens** | 🟢 Ready | iOS device tokens are stored in `device_tokens` for your user |
+| **Database** | 🟢 Ready | Notification tables and delivery logs exist |
+| **iOS Config** | 🟡 Mixed | Entitlements OK; bundle/environment alignment must be confirmed between Xcode and Apple Developer |
+| **Xcode Project** | 🟢 Ready | Native push bridge integrated |
 
-**Overall Health:** 🟢 **100% OPERATIONAL**
+**Overall Health:** 🟠 **PARTIALLY OPERATIONAL**  
+Backend automation and app wiring are healthy, but **external APNs delivery is currently failing**, so end‑user push experience is still 0% on iOS.
 
 ---
 
@@ -347,13 +355,21 @@ WHERE created_at > NOW() - INTERVAL '24 hours';
 
 ---
 
-## 🎉 Conclusion
+## 🎯 Conclusion (Honest Current Status)
 
-**Status:** 🟢 **FULLY OPERATIONAL**
+**Status:** 🟠 **PARTIALLY OPERATIONAL**
 
-**Confidence Level:** 🟢 **100%**
+- ✅ App and backend correctly register device tokens and enqueue notifications.
+- ✅ Cron + queue + edge functions are processing notifications and writing to `notification_delivery_log`.
+- ❌ APNs is rejecting iOS pushes with `InvalidProviderToken` and `BadDeviceToken`, so **no push notifications reach the device yet**.
 
-**Ready for:** ✅ Device Testing → ✅ TestFlight → ✅ Production
+**Confidence Level (Backend & App Wiring):** 🟢 **85–90%**  
+**Confidence Level (End‑user Push Delivery Today):** 🔴 **0% (for iOS)**
+
+**Ready for:**
+- ✅ Further backend monitoring and retry logic tests
+- ⚠️ Device testing focused on APNs error resolution (provider token & device token environment)
+- ❌ Not yet ready for production push notifications until APNs errors are resolved
 
 **Estimated Time to First Notification:** 5 minutes (build + test)
 

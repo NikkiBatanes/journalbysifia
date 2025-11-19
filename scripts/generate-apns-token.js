@@ -48,7 +48,7 @@ function generateToken(config) {
         kid: config.keyId,
         typ: 'JWT',
       },
-      expiresIn: '1h',
+      // Note: APNs tokens should NOT have 'exp' claim, so we don't use expiresIn
     }
   );
 }

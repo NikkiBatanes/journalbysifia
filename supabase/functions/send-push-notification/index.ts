@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 interface NotificationPayload {
+  notification_id?: string
   user_id: string
   type: string
   title: string
@@ -38,7 +39,7 @@ serve(async (req) => {
     );
 
     const payload: NotificationPayload = await req.json();
-    const { user_id, type, title, message, data, priority = 'normal' } = payload;
+    const { notification_id, user_id, type, title, message, data, priority = 'normal' } = payload;
 
     // Get user's device tokens and preferences
     const { data: deviceTokens, error: tokenError } = await supabase
@@ -110,20 +111,46 @@ serve(async (req) => {
         await supabase
           .from('notification_delivery_log')
           .insert({
+            notification_id,
             user_id,
             device_token_id: deviceToken.id,
             status: result.success ? 'delivered' : 'failed',
-            error_code: result.error?.code,
-            error_message: result.error?.message,
+            error_code: result.error ? 'APNS_ERROR' : null,
+            error_message: result.error?.message || null,
           });
+
+        // Track analytics if notification was successfully delivered
+        if (result.success && notification_id) {
+          try {
+            await supabase
+              .from('notification_analytics')
+              .insert({
+                user_id,
+                notification_id,
+                type,
+                sent_at: new Date().toISOString(),
+                deep_link: data?.deep_link || null,
+                metadata: {
+                  platform: deviceToken.platform,
+                  device_id: deviceToken.device_id,
+                  priority,
+                },
+                created_at: new Date().toISOString(),
+              });
+          } catch (analyticsError) {
+            // Non-fatal: log but don't fail the notification
+            console.error('Failed to track analytics:', analyticsError);
+          }
+        }
 
       } catch (error) {
         console.error(`Failed to send to device ${deviceToken.device_id}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         results.push({
           device_id: deviceToken.device_id,
           platform: deviceToken.platform,
           success: false,
-          error: error.message,
+          error: errorMessage,
         });
       }
     }
@@ -135,8 +162,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Push notification error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -153,13 +181,15 @@ async function sendPushNotification(message: PushMessage, platform: string) {
       return await sendFCM(message);
     }
   } catch (error) {
-    return { success: false, error: { message: error.message } };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, error: { message: errorMessage } };
   }
 }
 
 async function sendAPNS(message: PushMessage) {
   // Apple Push Notification Service
-  const apnsUrl = 'https://api.push.apple.com/3/device/' + message.to;
+  // Using sandbox host for development/testing with sandbox APNs key
+  const apnsUrl = 'https://api.sandbox.push.apple.com/3/device/' + message.to;
 
   const payload = {
     aps: {
@@ -250,16 +280,22 @@ function isNotificationTypeEnabled(type: string, preferences: any): boolean {
 function isInQuietHours(preferences: any): boolean {
   if (!preferences.quiet_hours_enabled) {return false;}
 
+  // Get user's timezone (default to UTC if not set)
+  const userTimezone = preferences.timezone || 'UTC';
+  
+  // Get current time in user's timezone
   const now = new Date();
-  const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+  const userTime = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
+  const currentTime = userTime.toTimeString().slice(0, 5); // HH:MM format
 
   const startTime = preferences.quiet_hours_start || '22:00';
   const endTime = preferences.quiet_hours_end || '07:00';
 
   if (startTime <= endTime) {
+    // Quiet hours within same day (e.g., 08:00 - 17:00)
     return currentTime >= startTime && currentTime <= endTime;
   } else {
-    // Quiet hours span midnight
+    // Quiet hours span midnight (e.g., 22:00 - 07:00)
     return currentTime >= startTime || currentTime <= endTime;
   }
 }

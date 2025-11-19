@@ -13,9 +13,10 @@ export interface NotificationPreferences {
   streak_alerts?: boolean;
   prayer_requests?: boolean;
   prayer_request_alerts?: boolean;
+  quiet_hours_enabled?: boolean;
   quiet_hours_start?: string; // HH:MM format
   quiet_hours_end?: string; // HH:MM format
-  timezone?: string;
+  timezone?: string; // IANA timezone (e.g., 'Asia/Manila', 'America/New_York')
   created_at?: string;
   updated_at?: string;
 }
@@ -378,7 +379,7 @@ class NotificationManagementService {
         .select('*')
         .eq('user_id', userId)
         .eq('status', 'pending')
-        .order('scheduled_for', { ascending: true });
+        .order('scheduled_for', { ascending: false });
 
       if (error) {
         Logger.error('Error fetching pending notifications', error as Error, {

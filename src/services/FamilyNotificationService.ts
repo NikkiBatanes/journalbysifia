@@ -82,10 +82,11 @@ export class FamilyNotificationService {
         return false;
       }
 
-      // Fire a remote push via Supabase edge function (best-effort)
+      // Queue push notification for reliable delivery with retry support
       try {
-        const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
-          body: {
+        const { error: queueError } = await supabase
+          .from('notification_queue')
+          .insert({
             user_id: profile.id,
             type: 'family_invitation',
             title: 'Family Invitation',
@@ -94,17 +95,19 @@ export class FamilyNotificationService {
               family_group_id: familyGroupId,
               invitation_code: invitationCode,
             },
+            scheduled_for: new Date().toISOString(), // Send immediately
             priority: 'high',
-          },
-        });
+            status: 'pending',
+            attempts: 0,
+          });
 
-        if (pushError) {
-          Logger.error('Failed to send family invitation push notification', pushError as Error, {
+        if (queueError) {
+          Logger.error('Failed to queue family invitation push notification', queueError as Error, {
             component: 'FamilyNotificationService',
           });
         }
-      } catch (pushError) {
-        Logger.error('Unexpected error sending family invitation push notification', pushError as Error, {
+      } catch (queueError) {
+        Logger.error('Unexpected error queueing family invitation push notification', queueError as Error, {
           component: 'FamilyNotificationService',
         });
       }
@@ -152,26 +155,29 @@ export class FamilyNotificationService {
         return false;
       }
 
-      // Best-effort push notification to admin
+      // Queue push notification for admin
       try {
-        const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
-          body: {
+        const { error: queueError } = await supabase
+          .from('notification_queue')
+          .insert({
             user_id: adminUserId,
             type: 'invitation_declined',
             title: 'Family Invitation Declined',
             message: `${invitedName} declined your family invitation.`,
             data: {},
+            scheduled_for: new Date().toISOString(),
             priority: 'normal',
-          },
-        });
+            status: 'pending',
+            attempts: 0,
+          });
 
-        if (pushError) {
-          Logger.error('Failed to send invitation declined push notification', pushError as Error, {
+        if (queueError) {
+          Logger.error('Failed to queue invitation declined push notification', queueError as Error, {
             component: 'FamilyNotificationService',
           });
         }
-      } catch (pushError) {
-        Logger.error('Unexpected error sending invitation declined push notification', pushError as Error, {
+      } catch (queueError) {
+        Logger.error('Unexpected error queueing invitation declined push notification', queueError as Error, {
           component: 'FamilyNotificationService',
         });
       }

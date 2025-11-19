@@ -16,6 +16,7 @@ import { useNotificationBadge } from '../hooks/useNotificationBadge';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 import { FamilyNotificationService } from '../services/FamilyNotificationService';
+import { notificationAnalyticsService } from '../services/notificationAnalyticsService';
 import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
@@ -95,10 +96,11 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         (n: any) => n.notification_type !== 'family_invitation'
       );
 
+      // Merge all notification sources and sort by timestamp (newest first)
       const mergedNotifications = [...inAppNotifications, ...queuedNotifications, ...familyInvitations].sort((a, b) => {
         const aTime = new Date(getNotificationTimestamp(a)).getTime();
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
-        return bTime - aTime;
+        return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
       });
 
       setNotifications(mergedNotifications);
@@ -122,6 +124,11 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   // Handle notification tap
   const handleNotificationTap = async (notification: any) => {
     try {
+      // Track analytics (tapped event)
+      if (notification.id) {
+        await notificationAnalyticsService.trackTapped(notification.id);
+      }
+
       // Navigate using deep link
       if (notification.data?.deep_link) {
         notificationDeepLinkService.navigate(notification.data.deep_link);
@@ -152,10 +159,26 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     }
   };
 
-  // Load notifications on mount
-  React.useEffect(() => {
+  // Fetch notifications on mount
+  useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  // Track opened analytics when notifications change
+  useEffect(() => {
+    const trackOpened = async () => {
+      if (notifications.length > 0) {
+        // Track opened for all unread notifications
+        for (const notification of notifications) {
+          if (notification.id && !notification.is_read) {
+            await notificationAnalyticsService.trackOpened(notification.id);
+          }
+        }
+      }
+    };
+
+    trackOpened();
+  }, [notifications]);
 
   // Real-time subscription to notifications, queue, and family invitations
   useEffect(() => {
@@ -376,7 +399,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   };
 
   const getNotificationTimestamp = (notification: any): string => {
-    return notification.scheduled_for || notification.created_at || new Date(0).toISOString();
+    // Prefer created_at (when notification was created) over scheduled_for (when it will be sent)
+    // For display purposes, we want to show when the notification actually happened
+    return notification.created_at || notification.scheduled_for || new Date(0).toISOString();
   };
 
   // Format time ago

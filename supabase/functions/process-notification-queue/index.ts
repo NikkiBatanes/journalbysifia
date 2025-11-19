@@ -12,10 +12,21 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    console.log('Environment check:', {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!serviceRoleKey,
+      serviceKeyPrefix: serviceRoleKey.substring(0, 20)
+    });
+    
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Get pending notifications that are due to be sent
     const { data: pendingNotifications, error: fetchError } = await supabase
@@ -27,6 +38,11 @@ serve(async (req) => {
       .order('priority', { ascending: false }) // Critical first
       .order('scheduled_for', { ascending: true }) // Oldest first
       .limit(50); // Process in batches
+
+    console.log('Query result:', {
+      count: pendingNotifications?.length ?? 0,
+      error: fetchError?.message
+    });
 
     if (fetchError) {
       throw new Error(`Failed to fetch notifications: ${fetchError.message}`);
@@ -53,6 +69,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            notification_id: notification.id,
             user_id: notification.user_id,
             type: notification.type,
             title: notification.title,
@@ -101,6 +118,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error(`Failed to process notification ${notification.id}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
 
         // Mark as failed if max attempts reached
         const newStatus = notification.attempts + 1 >= 3 ? 'failed' : 'pending';
@@ -109,7 +127,7 @@ serve(async (req) => {
           .from('notification_queue')
           .update({
             status: newStatus,
-            error_message: error.message,
+            error_message: errorMessage,
             updated_at: new Date().toISOString(),
           })
           .eq('id', notification.id);
@@ -117,7 +135,7 @@ serve(async (req) => {
         results.push({
           id: notification.id,
           success: false,
-          error: error.message,
+          error: errorMessage,
         });
       }
     }
@@ -133,8 +151,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Queue processing error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
