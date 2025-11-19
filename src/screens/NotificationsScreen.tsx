@@ -614,9 +614,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           </View>
         ) : (
           notifications.map((notification, index) => {
-            // POST-LAUNCH: Family invitation handling
-            const isFamilyInvitation = false; // notification.notification_type === 'family_invitation';
-            // POST-LAUNCH: const isAccepting = acceptingInvite === notification.id;
+            // POST-LAUNCH: Family invitation handling removed - restore from feature/family-subscription branch
 
             return (
               <View
@@ -648,32 +646,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                   </ThemedText>
                 </View>
 
-                {isFamilyInvitation ? (
-                  <View style={styles.inviteActions}>
-                    <TouchableOpacity
-                      style={[styles.acceptButton, isAccepting && styles.acceptButtonDisabled]}
-                      onPress={() => handleAcceptInvitation(notification)}
-                      disabled={isAccepting}
-                    >
-                      <ThemedText weight="semiBold" style={styles.acceptButtonText}>
-                        {isAccepting ? 'Joining...' : 'Accept'}
-                      </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.declineButton}
-                      onPress={() => handleDeclineInvitation(notification)}
-                      disabled={isAccepting}
-                    >
-                      <ThemedText weight="semiBold" style={styles.declineButtonText}>
-                        Decline
-                      </ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity onPress={() => handleNotificationTap(notification)}>
-                    <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={() => handleNotificationTap(notification)}>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+                </TouchableOpacity>
               </View>
             );
           })
