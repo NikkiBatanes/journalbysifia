@@ -173,7 +173,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                       />
                     </View>
                   </TouchableOpacity>
-                  {onExportPress && (
+                  {false && onExportPress && (
                     <>
                       <View style={styles.toggleDivider} />
                       <TouchableOpacity
