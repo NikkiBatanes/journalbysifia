@@ -75,9 +75,9 @@ const defaultStyles = {
     alignItems: 'center',
     paddingTop: 50,
     paddingHorizontal: 16,
-    paddingBottom: 0,
+    paddingBottom: 16,
     zIndex: 10,
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.hopeWhite,
   },
   headerLeft: {
     flex: 1,
@@ -213,6 +213,7 @@ const defaultStyles = {
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
+    marginTop: -16,
   },
   content: {
     flex: 1,
