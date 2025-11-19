@@ -5,6 +5,7 @@ import { Pencil as LuPencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../theme/ThemeContext';
 import UsageTooltipModal, { TooltipType } from './UsageTooltipModal';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 export interface ProfileStatsLite {
   faithPoints: number;
@@ -52,6 +53,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   const [tooltipType, setTooltipType] = useState<TooltipType | null>(null);
 
   const showTooltip = (type: TooltipType) => {
+    try { triggerLightHaptic(); } catch {}
     setTooltipType(type);
     setTooltipVisible(true);
   };
@@ -129,7 +131,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                 <View style={styles.pillsRow}>
                   <TouchableOpacity
                     style={styles.usagePill}
-                    onPress={() => showTooltip('playbooks')}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('playbooks'); }}
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
@@ -142,7 +144,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.usagePill}
-                    onPress={() => showTooltip('devotionals')}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('devotionals'); }}
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
@@ -156,7 +158,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   {/* Usage stats: Playbooks, Devotionals, Faith Points, Badges */}
                   <TouchableOpacity
                     style={styles.usagePill}
-                    onPress={() => showTooltip('faithPoints')}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('faithPoints'); }}
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
@@ -166,7 +168,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.usagePill}
-                    onPress={() => showTooltip('badges')}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('badges'); }}
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
