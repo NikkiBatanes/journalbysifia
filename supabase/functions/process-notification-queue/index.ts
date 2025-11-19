@@ -97,14 +97,27 @@ serve(async (req) => {
         } else {
           const errorText = await response.text();
 
-          // Mark as failed if max attempts reached
-          const newStatus = notification.attempts + 1 >= 3 ? 'failed' : 'pending';
+          // Exponential backoff: retry after 1min, 5min, 15min
+          const retryDelays = [1, 5, 15]; // minutes
+          const currentAttempt = notification.attempts + 1;
+          const maxAttempts = 3;
+
+          // Mark as failed if max attempts reached, otherwise schedule retry
+          const newStatus = currentAttempt >= maxAttempts ? 'failed' : 'pending';
+          
+          // Calculate next retry time with exponential backoff
+          let nextRetry = new Date().toISOString();
+          if (currentAttempt < maxAttempts && retryDelays[currentAttempt - 1]) {
+            const delayMinutes = retryDelays[currentAttempt - 1];
+            nextRetry = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
+          }
 
           await supabase
             .from('notification_queue')
             .update({
               status: newStatus,
               error_message: errorText,
+              scheduled_for: newStatus === 'pending' ? nextRetry : notification.scheduled_for,
               updated_at: new Date().toISOString(),
             })
             .eq('id', notification.id);
@@ -113,6 +126,7 @@ serve(async (req) => {
             id: notification.id,
             success: false,
             error: errorText,
+            next_retry: newStatus === 'pending' ? nextRetry : null,
           });
         }
 

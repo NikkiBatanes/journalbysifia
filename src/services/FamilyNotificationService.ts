@@ -221,6 +221,35 @@ export class FamilyNotificationService {
         return false;
       }
 
+      // Queue push notification for admin
+      try {
+        const { error: queueError } = await supabase
+          .from('notification_queue')
+          .insert({
+            user_id: adminUserId,
+            type: 'member_joined',
+            title: 'New Family Member 🎉',
+            message: `${memberName} has joined your family subscription`,
+            data: {
+              family_group_id: familyGroupId,
+            },
+            scheduled_for: new Date().toISOString(),
+            priority: 'normal',
+            status: 'pending',
+            attempts: 0,
+          });
+
+        if (queueError) {
+          Logger.error('Failed to queue member joined push notification', queueError as Error, {
+            component: 'FamilyNotificationService',
+          });
+        }
+      } catch (queueError) {
+        Logger.error('Unexpected error queueing member joined push notification', queueError as Error, {
+          component: 'FamilyNotificationService',
+        });
+      }
+
       return true;
     } catch (error) {
       Logger.error('Failed to send member joined notification', error as Error, {
@@ -259,6 +288,37 @@ export class FamilyNotificationService {
           component: 'FamilyNotificationService',
         });
         return false;
+      }
+
+      // Queue push notifications for all members
+      try {
+        const pushNotifications = memberIds.map(userId => ({
+          user_id: userId,
+          type: 'trial_converted',
+          title: 'Family Subscription Activated 🎉',
+          message: 'Your family subscription is now active with unlimited access!',
+          data: {
+            family_group_id: familyGroupId,
+          },
+          scheduled_for: new Date().toISOString(),
+          priority: 'high',
+          status: 'pending',
+          attempts: 0,
+        }));
+
+        const { error: queueError } = await supabase
+          .from('notification_queue')
+          .insert(pushNotifications);
+
+        if (queueError) {
+          Logger.error('Failed to queue trial converted push notifications', queueError as Error, {
+            component: 'FamilyNotificationService',
+          });
+        }
+      } catch (queueError) {
+        Logger.error('Unexpected error queueing trial converted push notifications', queueError as Error, {
+          component: 'FamilyNotificationService',
+        });
       }
 
       Logger.info('Trial converted notifications sent', {
@@ -300,6 +360,33 @@ export class FamilyNotificationService {
           component: 'FamilyNotificationService',
         });
         return false;
+      }
+
+      // Queue push notification for removed member
+      try {
+        const { error: queueError } = await supabase
+          .from('notification_queue')
+          .insert({
+            user_id: userId,
+            type: 'member_removed',
+            title: 'Removed from Family',
+            message: `You have been removed from "${groupName}" family subscription`,
+            data: {},
+            scheduled_for: new Date().toISOString(),
+            priority: 'high',
+            status: 'pending',
+            attempts: 0,
+          });
+
+        if (queueError) {
+          Logger.error('Failed to queue member removed push notification', queueError as Error, {
+            component: 'FamilyNotificationService',
+          });
+        }
+      } catch (queueError) {
+        Logger.error('Unexpected error queueing member removed push notification', queueError as Error, {
+          component: 'FamilyNotificationService',
+        });
       }
 
       return true;
