@@ -106,9 +106,9 @@ const createDefaultStyles = (fonts: any) => ({
     alignItems: 'center',
     paddingTop: 50,
     paddingHorizontal: 16,
-    paddingBottom: 0,
+    paddingBottom: 16,
     zIndex: 10,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   title: {
     fontSize: 18,

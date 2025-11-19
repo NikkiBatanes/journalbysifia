@@ -52,15 +52,6 @@ const defaultStyles = {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  headerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 260,
-    backgroundColor: Colors.hopeWhite,
-    zIndex: -1,
-  },
   backgroundContainer: {
     position: 'absolute',
     top: 0,
@@ -69,15 +60,6 @@ const defaultStyles = {
     bottom: 0,
     backgroundColor: Colors.anchorBlue,
     zIndex: -2,
-  },
-  keyboardOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.anchorBlue,
-    zIndex: -1,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -95,9 +77,9 @@ const defaultStyles = {
     alignItems: 'center',
     paddingTop: 50,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 16,
     zIndex: 10,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   headerLeft: {
     flex: 1,
@@ -233,7 +215,6 @@ const defaultStyles = {
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
-    marginTop: -12,
   },
   content: {
     flex: 1,
@@ -761,7 +742,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       )}
       <StatusBar hidden />
       <View style={s.backgroundContainer} />
-      <View style={s.keyboardOverlay} pointerEvents="none" />
 
       {/* Header - matching reflection editor structure */}
       <View style={s.header}>

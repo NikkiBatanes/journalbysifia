@@ -73,9 +73,9 @@ const defaultStyles = {
     alignItems: 'center',
     paddingTop: 50,
     paddingHorizontal: 16,
-    paddingBottom: 0,
+    paddingBottom: 16,
     zIndex: 10,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   modeToggle: {
     flexDirection: 'row',
