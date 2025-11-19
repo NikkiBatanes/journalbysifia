@@ -615,7 +615,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           </View>
         ) : (
           notifications.map((notification, index) => {
-            const isFamilyInvitation = notification.notification_type === 'family_invitation';
+            // POST-LAUNCH: Family invitation handling
+            const isFamilyInvitation = false; // notification.notification_type === 'family_invitation';
             const isAccepting = acceptingInvite === notification.id;
 
             return (
