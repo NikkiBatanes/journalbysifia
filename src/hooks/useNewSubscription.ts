@@ -64,7 +64,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const isSeeker = subscription?.tier === 'seeker';
   const isTrial = subscription?.tier === 'free_trial';
   const isPaid = subscription && !isSeeker && !isTrial;
-  const isUnlimited = subscription?.tier === 'transformation' || subscription?.tier === 'family';
+  const isUnlimited = subscription?.tier === 'transformation'; // POST-LAUNCH: || subscription?.tier === 'family'
   const showDashboardCounts = subscription?.limits?.show_dashboard_counts ?? false;
   const daysRemaining = subscription?.days_remaining ?? 0;
 

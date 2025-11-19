@@ -227,7 +227,7 @@ export const useUserState = () => {
       };
     }
 
-    const isUnlimited = subscription.tier === 'transformation' || subscription.tier === 'family';
+    const isUnlimited = subscription.tier === 'transformation'; // POST-LAUNCH: || subscription.tier === 'family'
 
     return {
       playbooks: {
@@ -244,16 +244,16 @@ export const useUserState = () => {
       calendarSyncEnabled: subscription.tier !== 'seeker',
       copyIncompleteTodosEnabled: subscription.tier !== 'seeker',
       answeredPrayerTrackingEnabled: subscription.tier !== 'seeker',
-      advancedAnalytics: subscription.tier === 'transformation' || subscription.tier === 'family',
-      prioritySupport: subscription.tier === 'transformation' || subscription.tier === 'family',
-      familyMembers: subscription.tier === 'family' ? 6 : 0,
+      advancedAnalytics: subscription.tier === 'transformation', // POST-LAUNCH: || subscription.tier === 'family'
+      prioritySupport: subscription.tier === 'transformation', // POST-LAUNCH: || subscription.tier === 'family'
+      familyMembers: 0, // POST-LAUNCH: subscription.tier === 'family' ? 6 : 0
     };
   }, [subscription]);
 
   const canUseFeature = useCallback((feature: 'playbooks' | 'devotionals' | 'exports') => {
     if (!subscription) {return false;}
 
-    const isUnlimited = subscription.tier === 'transformation' || subscription.tier === 'family';
+    const isUnlimited = subscription.tier === 'transformation'; // POST-LAUNCH: || subscription.tier === 'family'
 
     switch (feature) {
       case 'playbooks':
@@ -278,11 +278,11 @@ export const useUserState = () => {
       case 'calendarSync':
         return subscription.tier !== 'seeker';
       case 'advancedAnalytics':
-        return subscription.tier === 'transformation' || subscription.tier === 'family';
+        return subscription.tier === 'transformation'; // POST-LAUNCH: || subscription.tier === 'family'
       case 'prioritySupport':
-        return subscription.tier === 'transformation' || subscription.tier === 'family';
+        return subscription.tier === 'transformation'; // POST-LAUNCH: || subscription.tier === 'family'
       case 'familyMembers':
-        return subscription.tier === 'family';
+        return false; // POST-LAUNCH: subscription.tier === 'family'
       default:
         return false;
     }

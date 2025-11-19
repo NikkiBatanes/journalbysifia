@@ -14,7 +14,7 @@ export const GOOGLE_REPLACEMENT_MODES = {
 
 // Replacement mode strategy based on upgrade/downgrade
 export const getReplacementMode = (currentTier: SubscriptionTier, targetTier: SubscriptionTier): number => {
-  const hierarchy = ['spark', 'growth', 'transformation', 'family'];
+  const hierarchy = ['spark', 'growth', 'transformation']; // POST-LAUNCH: add 'family'
   const currentIndex = hierarchy.indexOf(currentTier);
   const targetIndex = hierarchy.indexOf(targetTier);
 
@@ -39,8 +39,8 @@ export const SUBSCRIPTION_SKUS = {
     growth_annual: 'app.sifia.com.growth.annual',
     transformation_monthly: 'app.sifia.com.transformation.monthly',
     transformation_annual: 'app.sifia.com.transformation.annual',
-    family_monthly: 'app.sifia.com.family.monthly',
-    family_annual: 'app.sifia.com.family.annual',
+    // POST-LAUNCH: family_monthly: 'app.sifia.com.family.monthly',
+    // POST-LAUNCH: family_annual: 'app.sifia.com.family.annual',
   },
   android: {
     spark_monthly: 'spark_monthly',
@@ -49,8 +49,8 @@ export const SUBSCRIPTION_SKUS = {
     growth_annual: 'growth_annual',
     transformation_monthly: 'transformation_monthly',
     transformation_annual: 'transformation_annual',
-    family_monthly: 'family_monthly',
-    family_annual: 'family_annual',
+    // POST-LAUNCH: family_monthly: 'family_monthly',
+    // POST-LAUNCH: family_annual: 'family_annual',
   },
 };
 
@@ -400,7 +400,7 @@ class PlatformSubscriptionService {
     if (sku.includes('spark')) {return 'spark';}
     if (sku.includes('growth')) {return 'growth';}
     if (sku.includes('transformation')) {return 'transformation';}
-    if (sku.includes('family')) {return 'family';}
+    // POST-LAUNCH: if (sku.includes('family')) {return 'family';}
     return 'spark'; // fallback
   }
 
@@ -423,7 +423,7 @@ class PlatformSubscriptionService {
    * Get tier hierarchy for upgrade validation
    */
   getTierHierarchy(): SubscriptionTier[] {
-    return ['spark', 'growth', 'transformation', 'family'];
+    return ['spark', 'growth', 'transformation']; // POST-LAUNCH: add 'family'
   }
 
   /**

@@ -722,8 +722,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </TouchableOpacity>
   )}
   {/* Usage Badges moved near footer and centered (hidden during onboarding) */}
-  {!isOnboarding && (((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'transformation') &&
-    ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'family')) && (
+  {!isOnboarding && ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'transformation') && (
+    // POST-LAUNCH: && ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'family')
     <View style={styles.badgeRow}>
       <View style={styles.tierBadgeContainer}>
         <ThemedText weight="semiBold" style={styles.tierBadgeText}>
@@ -861,7 +861,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
                   });
 
-                  const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation' || trialChosenTier === 'family');
+                  const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation');
                   if (isUnlimitedTrial) {
                     // Show a single dismiss button so the user can close the popup
                     return (
