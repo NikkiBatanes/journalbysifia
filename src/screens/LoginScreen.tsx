@@ -17,7 +17,6 @@ import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
 import ThemedText from '../components/common/ThemedText';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Props {
   navigation: any;
@@ -50,21 +49,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     triggerLightHaptic();
     setError('');
     setActiveProvider('google');
-    try {
-      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
-    } catch {}
     const { error: googleError } = await signInWithGoogle();
     if (googleError) {
       // Hide cancellation errors
       const msg = googleError.message?.toLowerCase?.() || '';
       if (msg.includes('cancel') || msg.includes('cancelled')) {
-        try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
         setActiveProvider(null);
         return;
       }
       triggerErrorHaptic();
       setError(googleError.message || 'Google login failed. Please try again.');
-      try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
       setActiveProvider(null);
     }
   };
@@ -73,21 +67,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     triggerLightHaptic();
     setError('');
     setActiveProvider('apple');
-    try {
-      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
-    } catch {}
     const { error: appleError } = await signInWithApple();
     if (appleError) {
       // Hide cancellation errors
       const msg = appleError.message?.toLowerCase?.() || '';
       if (msg.includes('cancel') || msg.includes('cancelled')) {
-        try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
         setActiveProvider(null);
         return;
       }
       triggerErrorHaptic();
       setError(appleError.message || 'Apple login failed. Please try again.');
-      try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
       setActiveProvider(null);
     }
   };

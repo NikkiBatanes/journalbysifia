@@ -579,6 +579,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Don't immediately set loading to false - let the auth state change handler do it
       // This prevents a race condition where loading becomes false before isAuthenticated becomes true
 
+      // Set redirect to MainTabs for existing users
+      try {
+        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
+      } catch {}
+
       return { error: null };
     } catch (error) {
       Logger.error('Sign in error', error as Error, {
@@ -1109,6 +1114,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       setAuthState(prev => ({ ...prev, loading: false }));
 
+      // Set redirect to MainTabs for existing users
+      try {
+        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
+      } catch {}
+
       return { error: null };
     } catch (error: any) {
       setAuthState(prev => ({ ...prev, loading: false }));
@@ -1218,6 +1228,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
 
       setAuthState(prev => ({ ...prev, loading: false }));
+
+      // Set redirect to MainTabs for existing users
+      try {
+        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
+      } catch {}
 
       return { error: null };
     } catch (error: any) {
