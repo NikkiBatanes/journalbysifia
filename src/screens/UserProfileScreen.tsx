@@ -1685,26 +1685,28 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         (subscription as any)?.is_trial === true
       );
 
+    const hasFamilySubscription = (subscription?.tier === 'family' || isFamilyTrialSubscription) &&
+                                  subscription?.status === 'active';
+
     // Treat user as "in family" only when they have an active family group AND either a family tier or family trial subscription
     const isInFamily = Boolean(familyGroup) &&
                        familyGroup?.status === 'active' &&
-                       (subscription?.tier === 'family' || isFamilyTrialSubscription);
+                       hasFamilySubscription;
 
     // Treat user as family admin if they are the admin_user_id of an active group,
     // even if subscription.family_role has not yet been refreshed client-side.
     const isFamilyAdmin = familyGroup?.admin_user_id === user?.id &&
                           familyGroup?.status === 'active' &&
-                          (subscription?.tier === 'family' || isFamilyTrialSubscription);
+                          hasFamilySubscription;
 
-    const hasFamilyTier = (subscription?.tier === 'family' || isFamilyTrialSubscription) &&
-                          subscription?.status === 'active' &&
+    const hasFamilyTier = hasFamilySubscription &&
                           !isInFamily; // Only show create option if not in family yet
 
     const isFamilyMember = isInFamily &&
                            !isFamilyAdmin;
 
     // Don't show section if user has no family-related status
-    if (!isInFamily && !hasFamilyTier && !subscription) {
+    if (!hasFamilySubscription && !isInFamily) {
       return null;
     }
 
@@ -1749,17 +1751,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           ) : !isInFamily ? (
             /* If user is NOT in family - show Join Family + Create (if tier=family) */
             <>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('FamilyInvitation'); }}
-              >
-                <View style={styles.menuIconBox}>
-                  <Ionicons name="enter" size={18} color={Colors.anchorBlue} />
-                </View>
-                <Text style={[styles.menuText, font]}>Join Family</Text>
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
-              </TouchableOpacity>
-
               {/* Create Family - Only for users with family tier who haven't created group yet */}
               {hasFamilyTier && (
             <TouchableOpacity

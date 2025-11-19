@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  RefreshControl,
   Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -46,7 +45,6 @@ const FamilyAdminDashboardScreen: React.FC = () => {
     inviteMember,
     removeMember,
     cancelInvitation,
-    refreshFamilyData,
     isAdmin,
     canInviteMembers,
     getFamilyUsageAnalytics,
@@ -55,7 +53,6 @@ const FamilyAdminDashboardScreen: React.FC = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [usageAnalytics, setUsageAnalytics] = useState<any>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const loadUsageAnalytics = useCallback(async () => {
     try {
@@ -71,15 +68,6 @@ const FamilyAdminDashboardScreen: React.FC = () => {
       loadUsageAnalytics();
     }
   }, [familyGroup, isAdmin, loadUsageAnalytics]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refreshFamilyData();
-    if (familyGroup && isAdmin) {
-      await loadUsageAnalytics();
-    }
-    setRefreshing(false);
-  };
 
   const handleInviteMember = async () => {
     if (!inviteEmail.trim()) {
@@ -183,7 +171,6 @@ const FamilyAdminDashboardScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -286,25 +273,36 @@ const FamilyAdminDashboardScreen: React.FC = () => {
         {pendingInvitations.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Pending Invitations</Text>
-            {pendingInvitations.map((invitation) => (
-              <View key={invitation.id} style={styles.invitationItem}>
-                <View style={styles.invitationInfo}>
-                  <Text style={styles.invitationEmail}>{invitation.invited_email}</Text>
-                  <Text style={styles.invitationDate}>
-                    Sent {new Date(invitation.created_at).toLocaleDateString()}
-                  </Text>
-                  <Text style={styles.invitationCode}>
-                    Code: {invitation.invitation_code}
-                  </Text>
+            {pendingInvitations.map((invitation) => {
+              const createdAt = new Date(invitation.created_at);
+              const today = new Date();
+              const isToday = createdAt.toDateString() === today.toDateString();
+              const formattedDate = createdAt.toLocaleDateString(undefined, {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              });
+
+              return (
+                <View key={invitation.id} style={styles.invitationItem}>
+                  <View style={styles.invitationInfo}>
+                    <Text style={styles.invitationEmail}>{invitation.invited_email}</Text>
+                    {!isToday && (
+                      <Text style={styles.invitationDate}>
+                        Sent {formattedDate}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => handleCancelInvitation(invitation)}
+                  >
+                    <Ionicons name="close-circle" size={24} color={Colors.alertCoral} />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => handleCancelInvitation(invitation)}
-                >
-                  <Ionicons name="close-circle" size={24} color={Colors.error} />
-                </TouchableOpacity>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -341,12 +339,13 @@ const FamilyAdminDashboardScreen: React.FC = () => {
               value={inviteEmail}
               onChangeText={setInviteEmail}
               placeholder="Enter email address"
+              placeholderTextColor="rgba(255,255,255,0.6)"
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
             />
             <Text style={styles.inviteNote}>
-              The invited person will receive an invitation code to join your family group.
+              The invited person will receive an in-app notification to join your family group.
             </Text>
           </View>
         </SafeAreaView>
@@ -519,8 +518,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   invitationInfo: {
     flex: 1,
@@ -588,7 +585,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -596,22 +593,20 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
   },
   modalCancel: {
     fontSize: 16,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
   },
   modalTitle: {
     fontSize: 18,
     fontFamily: fonts.semiBold,
-    color: '#274674',
+    color: Colors.hopeWhite,
   },
   modalSend: {
     fontSize: 16,
     fontFamily: fonts.semiBold,
-    color: '#274674',
+    color: Colors.hopeWhite,
   },
   modalContent: {
     padding: 20,
@@ -619,22 +614,25 @@ const createStyles = (fonts: any) => StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontFamily: fonts.medium,
-    color: Colors.text,
+    color: Colors.hopeWhite,
     marginBottom: 8,
   },
   emailInput: {
     borderWidth: 1,
-    borderColor: Colors.lightGray,
-    borderRadius: 8,
+    borderColor: Colors.hopeWhite,
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     marginBottom: 16,
+    color: Colors.hopeWhite,
+    backgroundColor: '#274674',
   },
   inviteNote: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
     lineHeight: 20,
+    opacity: 0.85,
   },
 });
 
