@@ -166,27 +166,31 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       }
 
       // Cancel pending queued notifications (except family-related types)
-      try {
-        // Get all pending queue items
-        const pendingItems = await notificationManagementService.getPendingNotifications(user.id);
+      // We need to fetch and filter manually since Supabase doesn't support NOT IN with arrays easily
+      const { data: queueItems } = await supabase
+        .from('notification_queue')
+        .select('id, type')
+        .eq('user_id', user.id)
+        .eq('status', 'pending');
 
-        // Filter out family-related types that shouldn't be cancelled
+      if (queueItems && queueItems.length > 0) {
         const familyTypes = ['family_invitation', 'member_joined', 'member_removed', 'trial_converted'];
-        const itemsToCancel = pendingItems.filter(item => !familyTypes.includes(item.type));
+        const itemsToCancel = queueItems
+          .filter(item => !familyTypes.includes(item.type))
+          .map(item => item.id);
 
-        // Cancel each non-family notification individually
-        for (const item of itemsToCancel) {
-          if (item.id) {
-            await supabase
-              .from('notification_queue')
-              .update({ status: 'cancelled' })
-              .eq('id', item.id);
+        if (itemsToCancel.length > 0) {
+          const { error: queueError } = await supabase
+            .from('notification_queue')
+            .update({ status: 'cancelled' })
+            .in('id', itemsToCancel);
+
+          if (queueError) {
+            Logger.error('Failed to cancel queued notifications during clear-all', queueError as Error, {
+              component: 'NotificationsScreen',
+            });
           }
         }
-      } catch (queueError) {
-        Logger.error('Failed to cancel queued notifications during clear-all', queueError as Error, {
-          component: 'NotificationsScreen',
-        });
       }
 
       // Refresh the notification list and badge count
