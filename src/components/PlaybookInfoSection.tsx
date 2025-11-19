@@ -1,7 +1,7 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle, Alert, Clipboard, Platform, Text } from 'react-native';
+import { View, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle, Alert, Clipboard, Platform, ActionSheetIOS } from 'react-native';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 
 import { Colors } from '../theme';
@@ -58,14 +58,36 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
         {showUserInput && playbook.userInput && (
           <TouchableOpacity
             style={styles.userInputCard}
-            onPress={() => {
-              if (onEditUserInput) {
-                triggerLightHaptic();
-                onEditUserInput();
+            onLongPress={() => {
+              triggerMediumHaptic();
+              if (Platform.OS === 'ios') {
+                const options = ['Copy', ...(onEditUserInput ? ['Edit'] : []), 'Cancel'];
+                const cancelButtonIndex = options.length - 1;
+                ActionSheetIOS.showActionSheetWithOptions(
+                  { options, cancelButtonIndex },
+                  (buttonIndex) => {
+                    if (buttonIndex === 0) {
+                      Clipboard.setString(playbook.userInput!);
+                      triggerLightHaptic();
+                      Alert.alert('Copied', 'User input copied to clipboard');
+                    } else if (buttonIndex === 1 && onEditUserInput) {
+                      triggerLightHaptic();
+                      onEditUserInput();
+                    }
+                  }
+                );
+              } else {
+                const buttons: any[] = [
+                  { text: 'Copy', onPress: () => { Clipboard.setString(playbook.userInput!); triggerLightHaptic(); Alert.alert('Copied', 'User input copied to clipboard'); } },
+                ];
+                if (onEditUserInput) {
+                  buttons.push({ text: 'Edit', onPress: () => { triggerLightHaptic(); onEditUserInput(); } });
+                }
+                buttons.push({ text: 'Cancel', style: 'cancel' });
+                Alert.alert('User Input', 'Choose an action', buttons);
               }
             }}
-            activeOpacity={0.7}
-            disabled={!onEditUserInput}
+            activeOpacity={0.9}
           >
             <ThemedText weight="regular" style={styles.userInputText}>
               {playbook.userInput}

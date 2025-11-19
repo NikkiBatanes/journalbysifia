@@ -550,6 +550,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           rightThreshold={40}
           friction={2}
           overshootRight={false}
+          enabled={true}
           containerStyle={styles.swipeableContainer}
         >
           <PlaybookCard
