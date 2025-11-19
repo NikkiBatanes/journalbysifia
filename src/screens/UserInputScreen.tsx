@@ -67,15 +67,20 @@ const UserInputScreen: React.FC = () => {
         // Check if we have initial text from route params (for editing)
         if (route.params?.initialText) {
           setUserInput(route.params.initialText);
-          // Focus input and position cursor at end after a short delay
-          setTimeout(() => {
+          // Focus input and position cursor at end with multiple attempts for reliability
+          const focusWithCursor = () => {
             if (inputRef.current) {
               inputRef.current.focus();
               // Position cursor at the end
               const textLength = route.params?.initialText?.length || 0;
               inputRef.current.setSelection(textLength, textLength);
             }
-          }, 300);
+          };
+          
+          // Try immediately
+          setTimeout(focusWithCursor, 100);
+          // Try again after animation
+          setTimeout(focusWithCursor, 500);
           return;
         }
         

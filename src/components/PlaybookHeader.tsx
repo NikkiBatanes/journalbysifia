@@ -103,60 +103,21 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
         <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
           <View style={styles.headerCenter}>
             {showUserInput && userInput && (
-              <View style={[styles.userInputCard, dynamicStyles.userInputCard]}>
-                <Text
-                  style={[styles.userInputText, dynamicStyles.userInputText]}
-                  selectable={true}
-                  onLongPress={() => {
-                    triggerMediumHaptic();
-                    // Show custom menu with Edit option
-                    if (Platform.OS === 'android') {
-                      // Android fallback with alert dialog
-                      const buttons: any[] = [
-                        {
-                          text: 'Copy',
-                          onPress: () => {
-                            Clipboard.setString(userInput);
-                            triggerLightHaptic();
-                            Alert.alert('Copied', 'User input copied to clipboard');
-                          },
-                        },
-                      ];
-                      
-                      if (onEditUserInput) {
-                        buttons.push({
-                          text: 'Edit',
-                          onPress: () => {
-                            triggerLightHaptic();
-                            onEditUserInput();
-                          },
-                        });
-                      }
-                      
-                      buttons.push({
-                        text: 'Cancel',
-                        style: 'cancel',
-                      });
-                      
-                      Alert.alert('User Input', 'Choose an action', buttons);
-                    }
-                  }}
-                >
+              <TouchableOpacity
+                style={[styles.userInputCard, dynamicStyles.userInputCard]}
+                onPress={() => {
+                  if (onEditUserInput) {
+                    triggerLightHaptic();
+                    onEditUserInput();
+                  }
+                }}
+                activeOpacity={0.7}
+                disabled={!onEditUserInput}
+              >
+                <ThemedText weight="regular" style={[styles.userInputText, dynamicStyles.userInputText]}>
                   {userInput}
-                </Text>
-                {Platform.OS === 'ios' && onEditUserInput && (
-                  <TouchableOpacity
-                    style={styles.editIconButton}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      onEditUserInput();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="pencil" size={16} color="rgba(255, 255, 255, 0.6)" />
-                  </TouchableOpacity>
-                )}
-              </View>
+                </ThemedText>
+              </TouchableOpacity>
             )}
 
             {titleLines.map((line, index) => (

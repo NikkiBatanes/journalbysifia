@@ -29,42 +29,6 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
   setViewMode,
   onEditUserInput,
 }) => {
-  const handleLongPress = () => {
-    if (!playbook.userInput) return;
-    
-    triggerMediumHaptic();
-    
-    // Android fallback with alert dialog
-    if (Platform.OS === 'android') {
-      const buttons: any[] = [
-        {
-          text: 'Copy',
-          onPress: () => {
-            Clipboard.setString(playbook.userInput!);
-            triggerLightHaptic();
-            Alert.alert('Copied', 'User input copied to clipboard');
-          },
-        },
-      ];
-      
-      if (onEditUserInput) {
-        buttons.push({
-          text: 'Edit',
-          onPress: () => {
-            triggerLightHaptic();
-            onEditUserInput();
-          },
-        });
-      }
-      
-      buttons.push({
-        text: 'Cancel',
-        style: 'cancel',
-      });
-      
-      Alert.alert('User Input', 'Choose an action', buttons);
-    }
-  };
   // Calculate completed tasks from actionSteps
   const completedTasks = playbook.actionSteps.filter(step => step.completed).length;
 
@@ -92,27 +56,21 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
         </TouchableOpacity>
         {/* User Input Card - Collapsible */}
         {showUserInput && playbook.userInput && (
-          <View style={styles.userInputCard}>
-            <Text
-              style={styles.userInputText}
-              selectable={true}
-              onLongPress={handleLongPress}
-            >
+          <TouchableOpacity
+            style={styles.userInputCard}
+            onPress={() => {
+              if (onEditUserInput) {
+                triggerLightHaptic();
+                onEditUserInput();
+              }
+            }}
+            activeOpacity={0.7}
+            disabled={!onEditUserInput}
+          >
+            <ThemedText weight="regular" style={styles.userInputText}>
               {playbook.userInput}
-            </Text>
-            {Platform.OS === 'ios' && onEditUserInput && (
-              <TouchableOpacity
-                style={styles.editIconButton}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onEditUserInput();
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="pencil" size={16} color="rgba(255, 255, 255, 0.6)" />
-              </TouchableOpacity>
-            )}
-          </View>
+            </ThemedText>
+          </TouchableOpacity>
         )}
         <ThemedText weight="bold" style={styles.playbookTitle}>
           {firstLine}
