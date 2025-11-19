@@ -28,7 +28,7 @@ export function useNotificationBadge() {
     try {
       setLoading(true);
 
-      const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+      // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
 
       const [pendingQueue, inAppUnread] = await Promise.all([
         notificationManagementService.getPendingNotifications(user.id),
@@ -150,7 +150,7 @@ export function useNotificationBadge() {
     // Subscribe to family_invitations table changes
     const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
     let familyInvitesSubscription: any = null;
-    
+
     if (userEmail) {
       familyInvitesSubscription = supabase
         .channel(`family_invitations:${userEmail}`)

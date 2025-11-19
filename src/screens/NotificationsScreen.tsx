@@ -3,9 +3,8 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
   RefreshControl,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -32,7 +31,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [acceptingInvite, setAcceptingInvite] = useState<string | null>(null);
+  // POST-LAUNCH: const [acceptingInvite, setAcceptingInvite] = useState<string | null>(null);
 
   // Fetch notifications
   const fetchNotifications = React.useCallback(async () => {
@@ -41,7 +40,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     try {
       setLoading(true);
 
-      const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+      // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
 
       const [queuedNotifications, inAppNotificationsRaw] = await Promise.all([
         // POST-LAUNCH: familyInvitations
@@ -86,7 +85,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                 id: invite.id,
                 notification_type: 'family_invitation',
                 title: 'Family Invitation',
-                message: inviterFullName 
+                message: inviterFullName
                   ? `${inviterFullName} invited you to join a family subscription`
                   : `${inviterName} invited you to join a family subscription`,
                 data: {
@@ -617,7 +616,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           notifications.map((notification, index) => {
             // POST-LAUNCH: Family invitation handling
             const isFamilyInvitation = false; // notification.notification_type === 'family_invitation';
-            const isAccepting = acceptingInvite === notification.id;
+            // POST-LAUNCH: const isAccepting = acceptingInvite === notification.id;
 
             return (
               <View

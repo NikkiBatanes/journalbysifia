@@ -232,7 +232,8 @@ export class NewSubscriptionService {
    * Upgrade subscription to paid tier
    */
   static async upgradeSubscription(userId: string, options: SubscriptionUpgradeOptions): Promise<Subscription> {
-    const { target_tier, discount_code, is_family_upgrade } = options;
+    const { target_tier, discount_code } = options;
+    // POST-LAUNCH: is_family_upgrade
 
     if (!target_tier) {
       throw new SubscriptionError('Target tier is required for upgrade', 'MISSING_TARGET_TIER');

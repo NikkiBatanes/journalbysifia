@@ -47,20 +47,20 @@ const US_MONTHLY: Record<Exclude<SubscriptionTier, `${string}_annual`>, PricingE
   spark: { amount: 799, currency: 'usd', interval: 'month' },
   growth: { amount: 1499, currency: 'usd', interval: 'month' },
   transformation: { amount: 2499, currency: 'usd', interval: 'month' },
-  family: { amount: 4499, currency: 'usd', interval: 'month' },
+  // POST-LAUNCH: family: { amount: 4499, currency: 'usd', interval: 'month' },
 };
 
-const US_ANNUAL: Record<Extract<SubscriptionTier, `${string}_annual`>, PricingEntry> = {
+const US_ANNUAL: Partial<Record<Extract<SubscriptionTier, `${string}_annual`>, PricingEntry>> = {
   spark_annual: { amount: 7999, currency: 'usd', interval: 'year' },
   growth_annual: { amount: 14999, currency: 'usd', interval: 'year' },
   transformation_annual: { amount: 24999, currency: 'usd', interval: 'year' },
-  family_annual: { amount: 44999, currency: 'usd', interval: 'year' },
+  // POST-LAUNCH: family_annual: { amount: 44999, currency: 'usd', interval: 'year' },
 };
 
-export const PRICING_US: Record<SubscriptionTier, PricingEntry> = {
+export const PRICING_US = {
   ...US_MONTHLY,
   ...US_ANNUAL,
-};
+} as Record<SubscriptionTier, PricingEntry>; // POST-LAUNCH: Add family tiers back
 
 // Baseline PH pricing (in cents) - aligns with amounts referenced in code comments
 const PH_MONTHLY: Record<Exclude<SubscriptionTier, `${string}_annual`>, PricingEntry> = {
@@ -69,18 +69,18 @@ const PH_MONTHLY: Record<Exclude<SubscriptionTier, `${string}_annual`>, PricingE
   spark: { amount: 19900, currency: 'php', interval: 'month' },
   growth: { amount: 39900, currency: 'php', interval: 'month' },
   transformation: { amount: 59900, currency: 'php', interval: 'month' },
-  family: { amount: 129000, currency: 'php', interval: 'month' },
+  // POST-LAUNCH: family: { amount: 129000, currency: 'php', interval: 'month' },
 };
 
 // Provide simple annual equivalents (12x monthly with ~17% off)
-const PH_ANNUAL: Record<Extract<SubscriptionTier, `${string}_annual`>, PricingEntry> = {
+const PH_ANNUAL: Partial<Record<Extract<SubscriptionTier, `${string}_annual`>, PricingEntry>> = {
   spark_annual: { amount: 199000, currency: 'php', interval: 'year' },
   growth_annual: { amount: 399000, currency: 'php', interval: 'year' },
   transformation_annual: { amount: 599000, currency: 'php', interval: 'year' },
-  family_annual: { amount: 1199000, currency: 'php', interval: 'year' },
+  // POST-LAUNCH: family_annual: { amount: 1199000, currency: 'php', interval: 'year' },
 };
 
-export const PRICING_PH: Record<SubscriptionTier, PricingEntry> = {
+export const PRICING_PH = {
   ...PH_MONTHLY,
   ...PH_ANNUAL,
-};
+} as Record<SubscriptionTier, PricingEntry>; // POST-LAUNCH: Add family tiers back
