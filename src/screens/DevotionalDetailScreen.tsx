@@ -792,24 +792,27 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               )}
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.exportButton}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              if (currentDay) {
-                pdfExportService.exportDevotionalPDF({
-                  title: devotional.title,
-                  duration: `${devotional.totalDays}-Day Devotional`,
-                  bibleVerse: currentDay.scripture,
-                  reflection: currentDay.reflection,
-                  prayer: currentDay.prayer,
-                  createdAt: devotional.createdAt,
-                });
-              }
-            }}
-          >
-            <Ionicons name="share-outline" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
+          {/* PDF Export temporarily disabled until native module is properly configured */}
+          {false && (
+            <TouchableOpacity
+              style={styles.exportButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                if (currentDay) {
+                  pdfExportService.exportDevotionalPDF({
+                    title: devotional.title,
+                    duration: `${devotional.totalDays}-Day Devotional`,
+                    bibleVerse: currentDay.scripture,
+                    reflection: currentDay.reflection,
+                    prayer: currentDay.prayer,
+                    createdAt: devotional.createdAt,
+                  });
+                }
+              }}
+            >
+              <Ionicons name="share-outline" size={24} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          )}
         </View>
       </GestureDetector>
 
