@@ -353,7 +353,8 @@ export default function RootStackNavigator({
             }}
           />
 
-          {/* Family Subscription Screens */}
+          {/* POST-LAUNCH: Family Subscription Screens */}
+          {/* 
           <Stack.Screen
             name="FamilyAdminDashboard"
             component={require('../screens/FamilyAdminDashboardScreen').default as React.ComponentType}
@@ -376,6 +377,7 @@ export default function RootStackNavigator({
               gestureDirection: 'vertical',
             }}
           />
+          */}
         </>
       )}
     </Stack.Navigator>

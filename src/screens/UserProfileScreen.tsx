@@ -55,7 +55,7 @@ import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { notificationManagementService, NotificationPreferences } from '../services/notificationManagementService';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
-import { useFamilySubscription } from '../hooks/useFamilySubscription';
+// POST-LAUNCH: import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { reportBug } from '../services/bugReportService';
 import { reportFeature } from '../services/featureRequestService';
 import InAppReview from 'react-native-in-app-review';
@@ -94,11 +94,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
 
-  // Family subscription hook
-  const {
-    familyGroup,
-    createFamilyGroup,
-  } = useFamilySubscription();
+  // POST-LAUNCH: Family subscription hook
+  // const {
+  //   familyGroup,
+  //   createFamilyGroup,
+  // } = useFamilySubscription();
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
@@ -1255,8 +1255,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             return 'siFia Growth';
           case 'transformation':
             return 'siFia Transformation';
-          case 'family':
-            return 'siFia Family';
+          // POST-LAUNCH: case 'family':
+          //   return 'siFia Family';
           case 'free_trial':
             {
               const chosen = (subscription as any)?.trial_chosen_tier || 'growth';
@@ -1674,7 +1674,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
-  const renderFamilyManagementSection = () => {
+  // POST-LAUNCH: Family Management Section
+  /* const renderFamilyManagementSection = () => {
     // Enterprise-grade visibility guards
     // Treat family trial as family-tier for UI purposes (e.g. "siFia Family Trial")
     const isFamilyTrialSubscription =
@@ -1803,7 +1804,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
     );
-  };
+  }; */
 
   const renderLogoutSection = () => (
     <View>
@@ -2516,7 +2517,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Badges removed from main container */}
           {renderMenuOptions()}
-          {renderFamilyManagementSection()}
+          {/* POST-LAUNCH: {renderFamilyManagementSection()} */}
           {renderAppBehaviorSection()}
           {renderCommunitySection()}
           {renderHelpSupportSection()}

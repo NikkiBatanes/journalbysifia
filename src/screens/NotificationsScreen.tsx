@@ -15,9 +15,9 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
-import { FamilyNotificationService } from '../services/FamilyNotificationService';
+// POST-LAUNCH: import { FamilyNotificationService } from '../services/FamilyNotificationService';
 import { notificationAnalyticsService } from '../services/notificationAnalyticsService';
-import { useFamilySubscription } from '../hooks/useFamilySubscription';
+// POST-LAUNCH: import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 
@@ -28,7 +28,7 @@ interface NotificationsScreenProps {
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
   const { fetchBadgeCount } = useNotificationBadge();
-  const { acceptInvitation } = useFamilySubscription();
+  // POST-LAUNCH: const { acceptInvitation } = useFamilySubscription();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,10 +43,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
 
-      const [queuedNotifications, inAppNotificationsRaw, familyInvitations] = await Promise.all([
+      const [queuedNotifications, inAppNotificationsRaw] = await Promise.all([
+        // POST-LAUNCH: familyInvitations
         notificationManagementService.getPendingNotifications(user.id),
-        FamilyNotificationService.getUnreadNotifications(user.id),
-        (async () => {
+        // POST-LAUNCH: FamilyNotificationService.getUnreadNotifications(user.id),
+        [] as any[], // Placeholder for family notifications
+        // POST-LAUNCH: Family invitations
+        /* (async () => {
           if (!userEmail) {return [] as any[];}
 
           const { data, error } = await supabase
@@ -96,7 +99,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           );
 
           return enriched;
-        })(),
+        })(), */
       ]);
 
       // Exclude family_invitation from in-app notifications to avoid duplicates
@@ -105,7 +108,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       );
 
       // Merge all notification sources and sort by timestamp (newest first)
-      const mergedNotifications = [...inAppNotifications, ...queuedNotifications, ...familyInvitations].sort((a, b) => {
+      // POST-LAUNCH: Add familyInvitations back
+      const mergedNotifications = [...inAppNotifications, ...queuedNotifications].sort((a, b) => {
         const aTime = new Date(getNotificationTimestamp(a)).getTime();
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
         return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
@@ -328,8 +332,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     };
   }, [user, fetchNotifications]);
 
-  // Handle family invitation acceptance
-  const handleAcceptInvitation = async (notification: any) => {
+  // POST-LAUNCH: Handle family invitation acceptance
+  /* const handleAcceptInvitation = async (notification: any) => {
     const invitationCode = notification.data?.invitation_code;
     if (!invitationCode) {
       Alert.alert('Error', 'Invalid invitation code');
@@ -380,10 +384,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     } finally {
       setAcceptingInvite(null);
     }
-  };
+  }; */
 
-  // Handle family invitation decline
-  const handleDeclineInvitation = async (notification: any) => {
+  // POST-LAUNCH: Handle family invitation decline
+  /* const handleDeclineInvitation = async (notification: any) => {
     const invitationCode = notification.data?.invitation_code;
     if (!invitationCode) {
       Alert.alert('Error', 'Invalid invitation code');
@@ -495,7 +499,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       });
       Alert.alert('Error', 'Failed to decline invitation. Please try again.');
     }
-  };
+  }; */
 
   // Get icon for notification type
   const getNotificationIcon = (type: string) => {

@@ -6,8 +6,8 @@ export type SubscriptionTier =
   | 'free_trial'       // 2/2 free for 3 days
   | 'spark'            // 8 playbooks/devotionals + smart journaling
   | 'growth'           // 20 playbooks/devotionals
-  | 'transformation'   // Unlimited (no dashboard counts)
-  | 'family';          // Unlimited for up to 5 members (1 admin + 4 additional)
+  | 'transformation';  // Unlimited (no dashboard counts)
+  // | 'family';       // POST-LAUNCH: Unlimited for up to 5 members (1 admin + 4 additional)
 
 export type SubscriptionStatus =
   | 'active'
@@ -21,15 +21,16 @@ export type PaymentPlatform =
   | 'google'
   | 'local_test';      // For local testing without app store
 
-export type FamilyRole =
-  | 'admin'
-  | 'member';
+// POST-LAUNCH: Family Role Types
+// export type FamilyRole =
+//   | 'admin'
+//   | 'member';
 
 export interface SubscriptionLimits {
   playbooks_limit: number;        // -1 for unlimited
   devotionals_limit: number;      // -1 for unlimited
   smart_journaling_enabled: boolean;
-  show_dashboard_counts: boolean; // false for transformation/family
+  show_dashboard_counts: boolean; // false for transformation
 }
 
 export interface Subscription {
@@ -54,9 +55,9 @@ export interface Subscription {
   platform_transaction_id?: string;
   platform_receipt_data?: any;
 
-  // Family subscription support
-  family_group_id?: string;
-  family_role?: FamilyRole;
+  // POST-LAUNCH: Family subscription support
+  // family_group_id?: string;
+  // family_role?: FamilyRole;
 
   // Usage limits and tracking
   playbooks_limit: number;
@@ -83,7 +84,8 @@ export interface Subscription {
   days_remaining?: number;
 }
 
-export interface FamilySubscriptionGroup {
+// POST-LAUNCH: Family Subscription Group Interface
+/* export interface FamilySubscriptionGroup {
   id: string;
   admin_user_id: string;
   group_name: string;
@@ -112,9 +114,10 @@ export interface FamilySubscriptionGroup {
   members?: FamilyMember[];
   usage_summary?: FamilyUsageSummary;
   activity_log?: FamilyActivity[];
-}
+} */
 
-export interface FamilyMember {
+// POST-LAUNCH: Family Member Interface
+/* export interface FamilyMember {
   id?: string;
   user_id: string;
   family_group_id: string;
@@ -142,7 +145,7 @@ export interface FamilyMember {
     full_name?: string;
     avatar_url?: string;
   };
-}
+} */
 
 export interface DiscountCode {
   id: string;
@@ -212,11 +215,12 @@ export interface TrialStartOptions {
   billing_cycle?: 'monthly' | 'annual'; // Billing preference for post-trial conversion
 }
 
-export interface FamilyInviteOptions {
+// POST-LAUNCH: Family Invite Options
+/* export interface FamilyInviteOptions {
   family_group_id: string;
   invitee_email: string;
   role?: FamilyRole;
-}
+} */
 
 // Utility type for subscription checks
 export interface SubscriptionCheck {
@@ -267,7 +271,8 @@ export class TrialExpiredError extends SubscriptionError {
   }
 }
 
-export class FamilyLimitError extends SubscriptionError {
+// POST-LAUNCH: Family Limit Error
+/* export class FamilyLimitError extends SubscriptionError {
   constructor(current_members: number, max_members: number) {
     super(
       `Family subscription limit reached: ${current_members}/${max_members}`,
@@ -275,9 +280,10 @@ export class FamilyLimitError extends SubscriptionError {
       { current_members, max_members }
     );
   }
-}
+} */
 
-// ===== FAMILY SUBSCRIPTION EXTENDED TYPES =====
+// ===== POST-LAUNCH: FAMILY SUBSCRIPTION EXTENDED TYPES =====
+/*
 
 export interface FamilyInvitation {
   id: string;
@@ -403,3 +409,4 @@ export interface FamilySubscriptionCheck {
   remaining_slots: number;
   total_slots: number;
 }
+*/

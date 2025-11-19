@@ -66,13 +66,14 @@ export class NewSubscriptionService {
           smart_journaling_enabled: true,
           show_dashboard_counts: false, // Hide counts for unlimited
         };
-      case 'family':
-        return {
-          playbooks_limit: 999999, // Effectively unlimited, but database-compatible
-          devotionals_limit: 999999, // Effectively unlimited, but database-compatible
-          smart_journaling_enabled: true,
-          show_dashboard_counts: false, // Hide counts for unlimited
-        };
+      // POST-LAUNCH: Family tier
+      // case 'family':
+      //   return {
+      //     playbooks_limit: 999999, // Effectively unlimited, but database-compatible
+      //     devotionals_limit: 999999, // Effectively unlimited, but database-compatible
+      //     smart_journaling_enabled: true,
+      //     show_dashboard_counts: false, // Hide counts for unlimited
+      //   };
       default:
         throw new SubscriptionError(`Unknown tier: ${tier}`, 'INVALID_TIER');
     }
@@ -318,12 +319,12 @@ export class NewSubscriptionService {
       updateData.devotionals_used = 0;
     }
 
-    // Handle family upgrade
-    if (is_family_upgrade && to_tier === 'family') {
+    // POST-LAUNCH: Handle family upgrade
+    /* if (is_family_upgrade && to_tier === 'family') {
       // Family upgrade logic will be implemented in Phase 4
       // Note: family_role column doesn't exist yet, skip for now
       // updateData.family_role = 'admin';
-    }
+    } */
 
     // Apply discount code if provided
     if (discount_code) {
@@ -358,11 +359,11 @@ export class NewSubscriptionService {
 
   /**
    * Cancel subscription (downgrade to seeker)
-   * Enterprise-grade: Handles family cancellation if user is family admin
+   * POST-LAUNCH: Handles family cancellation if user is family admin
    */
   static async cancelSubscription(userId: string): Promise<Subscription> {
-    // Check if user is family admin before cancelling
-    const currentSubscription = await this.getUserSubscription(userId);
+    // POST-LAUNCH: Check if user is family admin before cancelling
+    /* const currentSubscription = await this.getUserSubscription(userId);
     const isFamilyAdmin = currentSubscription.tier === 'family' &&
                           currentSubscription.family_role === 'admin' &&
                           currentSubscription.family_group_id;
@@ -383,7 +384,7 @@ export class NewSubscriptionService {
         });
         // Continue with individual cancellation even if family cleanup fails
       }
-    }
+    } */
 
     const limits = this.getTierLimits('seeker');
 
@@ -397,8 +398,8 @@ export class NewSubscriptionService {
         smart_journaling_enabled: limits.smart_journaling_enabled,
         playbooks_used: 0, // Reset usage
         devotionals_used: 0,
-        family_group_id: null,
-        family_role: null,
+        // POST-LAUNCH: family_group_id: null,
+        // POST-LAUNCH: family_role: null,
         subscription_end_date: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -557,7 +558,7 @@ export class NewSubscriptionService {
         valid_from: new Date().toISOString(),
         valid_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
         max_uses: 1,
-        applicable_tiers: ['spark', 'growth', 'transformation', 'family'],
+        applicable_tiers: ['spark', 'growth', 'transformation'], // POST-LAUNCH: add 'family'
         is_dynamic: true,
         generated_for_user_id: userId,
         trigger_event: triggerEvent,
@@ -625,8 +626,8 @@ export class NewSubscriptionService {
         return 'siFia Growth';
       case 'transformation':
         return 'siFia Transformation';
-      case 'family':
-        return 'siFia Family';
+      // POST-LAUNCH: case 'family':
+      //   return 'siFia Family';
       case 'free_trial':
         return 'siFia Trial';
       default:
@@ -673,12 +674,12 @@ export class NewSubscriptionService {
    * Check if upgrade path is valid
    */
   private static isValidUpgrade(from: SubscriptionTier, to: SubscriptionTier): boolean {
-    const tierHierarchy = ['seeker', 'free_trial', 'spark', 'growth', 'transformation', 'family'];
+    const tierHierarchy = ['seeker', 'free_trial', 'spark', 'growth', 'transformation']; // POST-LAUNCH: add 'family'
     const fromIndex = tierHierarchy.indexOf(from);
     const toIndex = tierHierarchy.indexOf(to);
 
-    // Can upgrade from any tier to family
-    if (to === 'family') {return true;}
+    // POST-LAUNCH: Can upgrade from any tier to family
+    // if (to === 'family') {return true;}
 
     // Can upgrade to higher tiers
     return toIndex > fromIndex;
@@ -704,7 +705,7 @@ export class NewSubscriptionService {
       can_export: true, // Will be checked separately
       playbooks_remaining: remaining,
       devotionals_remaining: -1, // Will be calculated separately
-      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation' && subscription.tier !== 'family',
+      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation', // POST-LAUNCH: && subscription.tier !== 'family'
       upgrade_message: !canGenerate
         ? this.getPlaybookLimitMessage(subscription, limits)
         : undefined,
@@ -726,7 +727,7 @@ export class NewSubscriptionService {
       can_export: true, // Will be checked separately
       playbooks_remaining: -1, // Will be calculated separately
       devotionals_remaining: remaining,
-      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation' && subscription.tier !== 'family',
+      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation', // POST-LAUNCH: && subscription.tier !== 'family'
       upgrade_message: !canGenerate
         ? this.getDevotionalLimitMessage(subscription, limits)
         : undefined,
