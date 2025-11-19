@@ -149,7 +149,12 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to invite member';
       setError(errorMessage);
-      return false;
+      Logger.error('Invite member failed in hook', err as Error, {
+        component: 'useFamilySubscription',
+        email,
+        familyGroupId: familyGroup.id,
+      });
+      throw err;
     }
   }, [user, familyGroup]);
 

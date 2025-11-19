@@ -89,7 +89,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
         Alert.alert('Success', 'Invitation sent successfully!');
       }
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to send invitation');
+      Alert.alert('Invite not sent', err instanceof Error ? err.message : 'Failed to send invitation');
     }
   };
 

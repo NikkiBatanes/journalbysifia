@@ -201,7 +201,7 @@ export class FamilySubscriptionService {
       const totalSlots = familyGroup.current_members + pendingCount;
 
       if (totalSlots >= familyGroup.max_members) {
-        throw new Error(`Family group is at maximum capacity (${familyGroup.current_members} members + ${pendingCount} pending invites = ${totalSlots}/${familyGroup.max_members})`);
+        throw new Error('This family group is already full. You cannot invite more members.');
       }
 
       // Check if user is already a member
