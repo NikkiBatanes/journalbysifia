@@ -255,29 +255,37 @@ const UsageTooltipModal: React.FC<Props> = ({
 
   const handleUpgrade = () => {
     triggerLightHaptic();
-    onClose();
     
     // Check if user has ever started a trial
     const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
     const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
     const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
     
-    // Navigate to trial screen if eligible, otherwise sales offer
+    // Close tooltip modal first
+    onClose();
+    
+    // Navigate after tooltip closes, with longer delay to ensure proper stacking
     setTimeout(() => {
-      if (canOfferTrial) {
-        // User is eligible for trial - show trial offer screen
-        (navigation as any).navigate('OnboardingTrialOffer', {
-          skipNotificationPreference: true,
-        });
-      } else {
-        // User has used trial or is on trial - show sales offer
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          upgradeMode: true,
-          currentTier: subscription?.tier || 'seeker',
-          skipNotificationPreference: true,
-          featureType: type === 'playbooks' || type === 'devotionals' ? type : undefined,
-        });
-      }
+      // Close the UserProfile modal by going back
+      (navigation as any).goBack();
+      
+      // Then navigate to the offer screen after profile modal closes
+      setTimeout(() => {
+        if (canOfferTrial) {
+          // User is eligible for trial - show trial offer screen
+          (navigation as any).navigate('OnboardingTrialOffer', {
+            skipNotificationPreference: true,
+          });
+        } else {
+          // User has used trial or is on trial - show sales offer
+          (navigation as any).navigate('OnboardingSalesOffer', {
+            upgradeMode: true,
+            currentTier: subscription?.tier || 'seeker',
+            skipNotificationPreference: true,
+            featureType: type === 'playbooks' || type === 'devotionals' ? type : undefined,
+          });
+        }
+      }, 300);
     }, 100);
   };
 
