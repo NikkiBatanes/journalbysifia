@@ -5,6 +5,7 @@ import { View, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-n
 
 import { Colors, Fonts } from '../theme';
 import ThemedText from './common/ThemedText';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface PlaybookHeaderProps {
   title: string;
@@ -28,6 +29,7 @@ interface PlaybookHeaderProps {
   userInputBorderColor?: string;
   userInputTextColor?: string;
   onProfilePress?: () => void;
+  onExportPress?: () => void;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -50,6 +52,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputBorderColor,
   userInputTextColor,
   onProfilePress,
+  onExportPress,
 }) => {
   // Split title at newlines to handle title and subtitle on separate lines
   const titleLines = title.split('\n').map(part => part.trim()).filter(part => part.length > 0);
@@ -170,6 +173,26 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                       />
                     </View>
                   </TouchableOpacity>
+                  {onExportPress && (
+                    <>
+                      <View style={styles.toggleDivider} />
+                      <TouchableOpacity
+                        style={styles.toggleBtn}
+                        onPress={() => {
+                          try { triggerLightHaptic(); } catch {}
+                          onExportPress();
+                        }}
+                      >
+                        <View style={styles.iconContainer}>
+                          <Ionicons
+                            name="share-outline"
+                            size={20}
+                            color={Colors.hopeWhite}
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               )}
             </View>

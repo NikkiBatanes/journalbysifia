@@ -46,6 +46,8 @@ type DevotionalDetailScreenProps = {
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
 import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDetailSkeleton';
+import { pdfExportService } from '../utils/pdfExportService';
+import { triggerLightHaptic } from '../utils/haptics';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
@@ -771,23 +773,43 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       {/* Header with gesture detector for swipe-to-dismiss */}
       <GestureDetector gesture={panGesture}>
         <View style={styles.headerContainer}>
-          <ThemedText weight="semiBold" style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
-            {extractCleanTitle(devotional.title, 'Devotional')}
-          </ThemedText>
-          <View style={styles.dayCounterContainer}>
-            <Ionicons name="calendar-clear-outline" size={14} color={Colors.hopeWhite} />
-            <ThemedText weight="medium" style={styles.dayCounterText}>
-              Day {currentDayIndex + 1} of {devotional.totalDays}
+          <View style={styles.headerLeft}>
+            <ThemedText weight="semiBold" style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+              {extractCleanTitle(devotional.title, 'Devotional')}
             </ThemedText>
-            {currentDay?.completed && (
-              <Ionicons
-                name="checkmark-circle"
-                size={14}
-                color={Colors.growthGreen}
-                style={styles.completedIcon}
-              />
-            )}
+            <View style={styles.dayCounterContainer}>
+              <Ionicons name="calendar-clear-outline" size={14} color={Colors.hopeWhite} />
+              <ThemedText weight="medium" style={styles.dayCounterText}>
+                Day {currentDayIndex + 1} of {devotional.totalDays}
+              </ThemedText>
+              {currentDay?.completed && (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={14}
+                  color={Colors.growthGreen}
+                  style={styles.completedIcon}
+                />
+              )}
+            </View>
           </View>
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              if (currentDay) {
+                pdfExportService.exportDevotionalPDF({
+                  title: devotional.title,
+                  duration: `${devotional.totalDays}-Day Devotional`,
+                  bibleVerse: currentDay.scripture,
+                  reflection: currentDay.reflection,
+                  prayer: currentDay.prayer,
+                  createdAt: devotional.createdAt,
+                });
+              }
+            }}
+          >
+            <Ionicons name="share-outline" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
         </View>
       </GestureDetector>
 
@@ -1150,10 +1172,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     zIndex: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.15)',
+  },
+  headerLeft: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   loadingContainer: {
     flex: 1,

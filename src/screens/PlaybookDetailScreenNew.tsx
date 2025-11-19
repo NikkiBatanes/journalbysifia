@@ -73,6 +73,7 @@ import { getPlaybook } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
+import { pdfExportService } from '../utils/pdfExportService';
 
 // Navigation types
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -1118,6 +1119,25 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     });
   }, [navigation, headerLeft, headerRight, user, isFromOnboarding]);
 
+  // PDF Export handler
+  const handleExportPDF = useCallback(() => {
+    if (!playbook) return;
+
+    pdfExportService.exportPlaybookPDF({
+      title: playbook.title,
+      truthInLove: typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text,
+      bibleVerse: playbook.bibleVerse,
+      actionSteps: playbook.actionSteps?.map(step => ({
+        title: step.title,
+        description: step.description || '',
+        subtasks: step.subTasks?.map((st: any) => st.title) || [],
+      })),
+      affirmations: playbook.affirmations?.map(a => a.text) || [],
+      directChallenge: typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text,
+      createdAt: playbook.createdAt,
+    });
+  }, [playbook]);
+
   // Debounced save function to prevent excessive calls
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSaveRef = useRef(false);
@@ -1326,6 +1346,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               showUserInput={showUserInput}
               userInput={currentPlaybook.userInput}
               showTitle={false}
+              onExportPress={handleExportPDF}
             />
           </View>
         ) : (
@@ -1347,6 +1368,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 showUserInput={showUserInput}
                 userInput={currentPlaybook.userInput}
                 showTitle={false}
+                onExportPress={handleExportPDF}
               />
             </View>
           </Animated.View>
