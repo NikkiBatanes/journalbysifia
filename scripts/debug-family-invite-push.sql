@@ -71,17 +71,10 @@ FROM notification_preferences
 WHERE user_id = '3ddd0e8f-c209-47df-bd97-520a6aaec277';
 
 -- 5. Check delivery logs for family invitations
-SELECT 
-  id,
-  user_id,
-  device_token_id,
-  status,
-  error_code,
-  error_message,
-  created_at
+-- Use SELECT * so this works even if schema is slightly different
+SELECT *
 FROM notification_delivery_log
 WHERE user_id = '3ddd0e8f-c209-47df-bd97-520a6aaec277'
-ORDER BY created_at DESC
 LIMIT 10;
 
 -- 6. Check if cron job is running
