@@ -80,17 +80,12 @@ const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference, da
 
       {/* Footer */}
       <View style={styles.footer}>
-        {date && (
-          <ThemedText weight="regular" style={styles.date}>
-            {date}
-          </ThemedText>
-        )}
         <View style={styles.divider} />
         <ThemedText weight="medium" style={styles.attribution}>
           Shared from siFia
         </ThemedText>
         <ThemedText weight="regular" style={styles.tagline}>
-          Your Faith Journey Companion
+          AI Discipleship in Your Pocket
         </ThemedText>
       </View>
 
