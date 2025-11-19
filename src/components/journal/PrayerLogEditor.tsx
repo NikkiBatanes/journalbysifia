@@ -77,7 +77,7 @@ const defaultStyles = {
     paddingHorizontal: 16,
     paddingBottom: 0,
     zIndex: 10,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'transparent',
   },
   headerLeft: {
     flex: 1,
