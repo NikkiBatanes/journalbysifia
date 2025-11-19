@@ -139,3 +139,4 @@ build/
 
 # Local bundler cache
 .bundle/
+*.p8
