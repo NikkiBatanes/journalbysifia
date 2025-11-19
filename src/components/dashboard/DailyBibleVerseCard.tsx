@@ -3,12 +3,13 @@
  * Displays a daily Bible verse from the user's playbooks/devotionals
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -19,6 +20,9 @@ import ThemedText from '../common/ThemedText';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BibleCopyrightModal } from '../BibleCopyrightModal';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ViewShot from 'react-native-view-shot';
+import ShareableCard from '../ShareableCard';
+import { socialShareService } from '../../utils/socialShareService';
 
 interface BibleVerse {
   id: string;
@@ -41,6 +45,8 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCopyright, setShowCopyright] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const viewShotRef = useRef<ViewShot>(null);
 
   // Notify parent when no verses available
   React.useEffect(() => {
@@ -334,9 +340,42 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
     return null;
   }
 
+  const handleShare = async () => {
+    try {
+      triggerLightHaptic();
+      setShowShareModal(true);
+      // Small delay to ensure modal is rendered
+      setTimeout(async () => {
+        if (viewShotRef.current && verse) {
+          await socialShareService.shareToSocial(viewShotRef.current, {
+            type: 'scripture',
+            text: verse.verse,
+            reference: `${verse.reference} (${verse.version || 'NASB'})`,
+          });
+          setShowShareModal(false);
+        }
+      }, 100);
+    } catch (error) {
+      Logger.error('[DailyBibleVerseCard] Share failed', error as Error, {
+        component: 'DailyBibleVerseCard',
+      });
+      setShowShareModal(false);
+    }
+  };
+
   return (
     <View style={styles.card}>
-      <ThemedText weight="semiBold" style={styles.titleText}>TODAY'S SCRIPTURE</ThemedText>
+      <View style={styles.headerRow}>
+        <ThemedText weight="semiBold" style={styles.titleText}>TODAY'S SCRIPTURE</ThemedText>
+        <TouchableOpacity
+          onPress={handleShare}
+          style={styles.shareButton}
+          accessibilityRole="button"
+          accessibilityLabel="Share scripture"
+        >
+          <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
+        </TouchableOpacity>
+      </View>
       {error ? (
         <View style={styles.errorContainer}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
@@ -386,6 +425,24 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
         onClose={() => setShowCopyright(false)}
         bibleVersion={verse?.version || 'NASB'}
       />
+      
+      {/* Share modal with shareable card */}
+      <Modal
+        visible={showShareModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <View style={styles.shareModalContainer}>
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
+            <ShareableCard
+              type="scripture"
+              text={verse?.verse || ''}
+              reference={`${verse?.reference} (${verse?.version || 'NASB'})`}
+            />
+          </ViewShot>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -402,10 +459,15 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     minHeight: 120,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   titleText: {
     fontSize: 12,
     color: Colors.hopeWhite,
-    textAlign: 'center',
     textTransform: 'uppercase',
 
     letterSpacing: 0.8,
@@ -492,6 +554,15 @@ const styles = StyleSheet.create({
   },
   verseContent: {
     flex: 1,
+  },
+  shareButton: {
+    padding: 8,
+  },
+  shareModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
