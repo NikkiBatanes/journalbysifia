@@ -10,6 +10,7 @@ import { Colors } from '../theme/colors';
 import { getFontFamily } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
 import { useScroll } from '../context/ScrollContext';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
@@ -39,6 +40,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Create dynamic styles with theme fonts
   const styles = useMemo(() => createStyles(fonts), [fonts]);
+  useScreenStatusBar('dark', Colors.hopeWhite);
   // Layout constants for week header spacing
   const WEEK_HPAD = 16; // use a single consistent padding on both sides
   // Get week start preference from user metadata

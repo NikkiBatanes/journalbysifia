@@ -26,6 +26,7 @@ import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { logger } from '../../utils/logger';
 import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
+import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
 
 // removed Dimensions width as unused
 
@@ -56,6 +57,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
   const { refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
+  
+  // Always show light status bar (white icons) on this screen
+  useScreenStatusBar('light', Colors.hopeWhite);
 
   const [isAnnual, setIsAnnual] = useState(false);
   const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' : 'growth';

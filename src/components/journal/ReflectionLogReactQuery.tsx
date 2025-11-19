@@ -956,7 +956,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       ) : (
         <View style={styles.freeFormPromptRow}>
           <View style={styles.freeFormPromptContainer}>
-            <ThemedText style={styles.freeFormPromptText}>FREE FORM</ThemedText>
+            <ThemedText style={styles.freeFormPromptText}>THOUGHTS</ThemedText>
           </View>
           <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}

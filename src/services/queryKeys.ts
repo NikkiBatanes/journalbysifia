@@ -127,6 +127,13 @@ export const queryKeys = {
     infinite: (userId: string, searchTerm: string, contentTypes: string[]) => ['search', 'infinite', userId, searchTerm, contentTypes] as const,
     recent: (userId: string) => ['search', 'recent', userId] as const,
   },
+
+  // Dashboard-related queries
+  dashboard: {
+    all: ['dashboard'] as const,
+    streaks: (userId: string) => ['dashboard', 'streaks', userId] as const,
+    insights: (userId: string) => ['dashboard', 'insights', userId] as const,
+  },
 } as const;
 
 /**

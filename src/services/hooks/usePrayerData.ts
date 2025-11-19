@@ -239,6 +239,11 @@ export const useCreatePrayer = () => {
       if (variables.user_id) {
         try {
           await streakTrackingService.updateStreak(variables.user_id, 'prayer');
+          
+          // Invalidate streak tracker to refresh UI
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.dashboard.streaks(variables.user_id),
+          });
         } catch (error) {
           Logger.warn('Failed to update prayer streak', {
             component: 'usePrayerData',
@@ -859,6 +864,11 @@ export const useCreateDevotionalPrayer = () => {
       if (variables.userId) {
         try {
           await streakTrackingService.updateStreak(variables.userId, 'prayer');
+          
+          // Invalidate streak tracker to refresh UI
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.dashboard.streaks(variables.userId),
+          });
         } catch (error) {
           Logger.warn('Failed to update prayer streak for devotional', {
             component: 'usePrayerData',
