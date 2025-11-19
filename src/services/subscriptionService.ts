@@ -44,7 +44,7 @@ function mapIntelligenceEnabled(tier: SubscriptionTier): boolean {
     case 'spark':
     case 'growth':
     case 'transformation':
-    case 'family':
+    // POST-LAUNCH: case 'family':
       return true;
     default:
       return false; // seeker, free_trial

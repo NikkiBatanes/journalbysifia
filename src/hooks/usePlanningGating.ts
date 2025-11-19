@@ -79,8 +79,8 @@ export const usePlanningGating = (
         return 'growth';
       case 'transformation':
         return 'transformation';
-      case 'family':
-        return 'family';
+      // POST-LAUNCH: case 'family':
+      //   return 'family';
       default:
         return 'seeker';
     }
