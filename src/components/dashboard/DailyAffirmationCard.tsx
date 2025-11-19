@@ -450,12 +450,12 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                 try { onReadPress?.(); } catch {}
               }}
               accessibilityRole="button"
-              accessibilityLabel={hasRead ? 'Read today\'s affirmation' : 'Read today\'s affirmation aloud'}
+              accessibilityLabel="I've read this aloud"
               accessibilityHint="Tap when you've read it aloud"
               testID="dailyAffirmationReadButton"
             >
               <Ionicons name="book-outline" size={18} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={styles.readIcon} />
-              <ThemedText weight="bold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
+              <ThemedText weight="bold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>I've read this aloud</ThemedText>
             </TouchableOpacity>
           </View>
         </>

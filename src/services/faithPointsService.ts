@@ -84,51 +84,51 @@ export class FaithPointsService {
   ];
 
   // Points awarded for different activities
-  // HIGHEST: Full devotional/playbook completion (3/3, 5/5, 7/7)
-  // MEDIUM: Daily activities, prayers, journal
-  // LOW: Generation, small actions
+  // HIGHEST: Full devotional/playbook completion (max +5)
+  // MEDIUM: Daily activities, prayers, journal (+2 to +3)
+  // LOW: Generation, small actions (+1)
   private readonly POINTS_SYSTEM = {
     // Generation (lowest tier)
-    affirmation_read_aloud: 2,
-    playbook_generated: 5, // Reduced from 8
-    devotional_generated: 5, // Reduced from 8
+    affirmation_read_aloud: 1,
+    playbook_generated: 2,
+    devotional_generated: 2,
 
     // Completion (HIGHEST tier - scales with length)
-    devotional_completed: 2, // Single day (1/3, 2/3) - very low
-    devotional_full_completed: 10, // Full completion (3/3, 5/5, 7/7)
-    playbook_completed: 10, // Full playbook completion (5/5, 6/6), matches devotional
+    devotional_completed: 1, // Single day (1/3, 2/3) - very low
+    devotional_full_completed: 5, // Full completion (3/3, 5/5, 7/7)
+    playbook_completed: 5, // Full playbook completion (5/5, 6/6), matches devotional
 
     // Daily activities (medium tier)
-    reflection_question_answered: 4, // Question to ponder
-    journal_entry: 3,
-    prayer_for_now: 5,
-    prayer_journal_acts: 5,
-    prayer_journal_open: 5,
-    prayer_devotional_prayed: 5,
-    prayer_list_prayed: 5,
-    prayer_list_request_added: 2,
-    prayer_answered: 5, // When marking prayer as answered (once per day)
+    reflection_question_answered: 2, // Question to ponder
+    journal_entry: 2,
+    prayer_for_now: 3,
+    prayer_journal_acts: 3,
+    prayer_journal_open: 3,
+    prayer_devotional_prayed: 3,
+    prayer_list_prayed: 3,
+    prayer_list_request_added: 1,
+    prayer_answered: 3, // When marking prayer as answered (once per day)
 
     // Action steps (low-medium tier)
     subtask_completed: 1,
-    action_step_completed: 3,
+    action_step_completed: 2,
 
     // Streaks and milestones
-    daily_streak: 5,
-    weekly_goal_met: 20,
-    content_shared: 15,
-    feedback_given: 8,
-    achievement_unlocked: 30,
+    daily_streak: 3,
+    weekly_goal_met: 10,
+    content_shared: 5,
+    feedback_given: 3,
+    achievement_unlocked: 10,
 
     // Streak bonuses
-    playbook_streak_3: 5,
-    playbook_streak_7: 10,
-    devotional_streak_3: 5,
-    devotional_streak_7: 10,
-    journal_streak_3: 5,
-    journal_streak_7: 10,
-    prayer_streak_3: 5,
-    prayer_streak_7: 10,
+    playbook_streak_3: 3,
+    playbook_streak_7: 5,
+    devotional_streak_3: 3,
+    devotional_streak_7: 5,
+    journal_streak_3: 3,
+    journal_streak_7: 5,
+    prayer_streak_3: 3,
+    prayer_streak_7: 5,
   };
 
   /**

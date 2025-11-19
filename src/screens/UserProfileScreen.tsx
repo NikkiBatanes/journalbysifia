@@ -31,7 +31,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
-import { TrialDebugMenu } from '../components/debug/TrialDebugMenu';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
@@ -820,17 +819,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const FEATURE_CATEGORIES = ['UI/UX','New Content','Performance','Notifications','Integrations','Accessibility','Other'];
 
-  const handleOpenNotificationDebug = useCallback(() => {
-    if (!__DEV__) {return;}
-    try {
-      navigation.navigate('NotificationDebug');
-    } catch (error) {
-      Logger.error('[UserProfileScreen] Failed to open NotificationDebug', error as Error, {
-        component: 'UserProfileScreen',
-      });
-    }
-  }, [navigation]);
-
   const renderFeatureModal = () => (
     <Modal
       visible={featureModal}
@@ -1440,18 +1428,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.menuText, font]}>Report a Bug</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
-        {__DEV__ && (
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleOpenNotificationDebug}
-          >
-            <View style={styles.menuIconBox}>
-              <Ionicons name="notifications-outline" size={18} color={Colors.alertCoral} />
-            </View>
-            <Text style={[styles.menuText, font]}>Notification Debug (Dev)</Text>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
@@ -2280,9 +2256,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           }
           showsVerticalScrollIndicator={false}
         >
-          {/* Debug Menu - DEV ONLY */}
-          {__DEV__ && <TrialDebugMenu onRefresh={onRefresh} />}
-
           {/* Badges removed from main container */}
           {renderMenuOptions()}
           {/* POST-LAUNCH: {renderFamilyManagementSection()} */}

@@ -1487,7 +1487,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         <TouchableOpacity
                           onPress={() => { if (playbook?.id) { setReadAloud(playbook.id, true); } }}
                           activeOpacity={0.8}
-                          style={styles.readButton}
+                          style={[styles.readButton, hasRead && styles.readButtonActive]}
                           accessibilityRole="button"
                           accessibilityLabel="I've read this aloud"
                         >
@@ -1827,6 +1827,7 @@ interface PlaybookDetailStyles {
   affirmationText: TextStyle;
   readButtonWrapper: ViewStyle;
   readButton: ViewStyle;
+  readButtonActive: ViewStyle;
   readIcon: TextStyle;
   readButtonText: TextStyle;
   readButtonTextActive: TextStyle;
@@ -2411,18 +2412,30 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  readButtonActive: {
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderColor: 'rgba(255, 59, 48, 0.2)',
   },
   readIcon: {
     marginRight: 8,
   },
   readButtonText: {
     color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   readButtonTextActive: {
     color: Colors.alertCoral,
