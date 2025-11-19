@@ -111,26 +111,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     birthDate: (user as any)?.user_metadata?.birth_date || '',
   });
 
-  // Helpers: Quiet Hours formatting and pickers
-  const formatTo12h = useCallback((time24?: string) => {
-    if (!time24) {return '';}
-    const [hStr, mStr] = time24.split(':');
-    let h = parseInt(hStr || '0', 10);
-    const m = parseInt(mStr || '0', 10);
-    const suffix = h >= 12 ? 'PM' : 'AM';
-    h = h % 12;
-    if (h === 0) {h = 12;}
-    const mm = m.toString().padStart(2, '0');
-    return `${h}:${mm} ${suffix}`;
-  }, []);
-
   // Notification preferences from the notification management service
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences | null>(null);
-
-  // Time picker states
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [timePickerType, setTimePickerType] = useState<'start' | 'end'>('start');
-  const [tempTime, setTempTime] = useState(new Date());
 
   // Optimistic toggle update for notification preferences
   const updatePref = useCallback(
@@ -153,58 +135,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     [notificationPrefs, user?.id]
   );
 
-  // Native time picker handler
-  const showNativeTimePicker = useCallback((type: 'start' | 'end') => {
-    if (!notificationPrefs) {return;}
-
-    const currentTime = type === 'start'
-      ? notificationPrefs.quiet_hours_start || '22:00'
-      : notificationPrefs.quiet_hours_end || '07:00';
-
-    const [hours, minutes] = currentTime.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-
-    setTempTime(date);
-    setTimePickerType(type);
-    setShowTimePicker(true);
-  }, [notificationPrefs]);
-
-  const handleTimeChange = useCallback(async (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false);
-    }
-
-    if (selectedDate && notificationPrefs && user?.id) {
-      const hours = selectedDate.getHours().toString().padStart(2, '0');
-      const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
-      const timeString = `${hours}:${minutes}`;
-
-      const field = timePickerType === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
-      const updated = { ...notificationPrefs, [field]: timeString };
-
-      Logger.info(`Saving quiet hours ${field}`, {
-        component: 'UserProfileScreen',
-        data: { field, timeString, updated },
-      });
-
-      const success = await notificationManagementService.updateNotificationPreferences(updated);
-      if (success) {
-        setNotificationPrefs(updated);
-        Logger.info(`Successfully saved quiet hours ${field}`, {
-          component: 'UserProfileScreen',
-          data: { field, timeString },
-        });
-        try { triggerLightHaptic(); } catch {}
-      } else {
-        Logger.error('Failed to save quiet hours', new Error('Update failed'), {
-          component: 'UserProfileScreen',
-          data: { field, timeString },
-        });
-        Alert.alert('Error', 'Failed to save quiet hours. Please try again.');
-      }
-    }
-  }, [notificationPrefs, user?.id, timePickerType]);
 
   // Don't use Google avatar - force use of custom avatar system
   const avatarUrl = undefined; // Always use initials instead of Google avatar
@@ -361,8 +291,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         trial_notifications: false,
         prayer_request_alerts: false,
         prayer_requests: false,
-        quiet_hours_start: '22:00',
-        quiet_hours_end: '07:00',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -2265,89 +2193,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.settingItemColumnNotification}>
-              <Text style={[styles.settingLabel, font]}>Quiet Hours</Text>
-              <Text style={[styles.settingHint, font]}>We'll pause notifications during these times.</Text>
-              <View style={styles.quietHoursContainer}>
-                <TouchableOpacity
-                  style={styles.timePickerRow}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-
-                    showNativeTimePicker('start');
-                  }}
-                >
-                  <Text style={[styles.timeLabel, font]}>Start</Text>
-                  <Text style={[styles.timeValue, font]}>
-                    {notificationPrefs?.quiet_hours_start ? formatTo12h(notificationPrefs.quiet_hours_start) : '10:00 PM'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.timePickerRow}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-
-                    showNativeTimePicker('end');
-                  }}
-                >
-                  <Text style={[styles.timeLabel, font]}>End</Text>
-                  <Text style={[styles.timeValue, font]}>
-                    {notificationPrefs?.quiet_hours_end ? formatTo12h(notificationPrefs.quiet_hours_end) : '7:00 AM'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
-      {showTimePicker && Platform.OS === 'ios' && (
-        <Modal
-          visible={showTimePicker}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowTimePicker(false)}
-        >
-          <View style={styles.timePickerModal}>
-            <View style={styles.timePickerContainer}>
-              <Text style={[styles.timePickerTitle, font]}>
-                {timePickerType === 'start' ? 'Select Start Time' : 'Select End Time'}
-              </Text>
-              <DateTimePicker
-                value={tempTime}
-                mode="time"
-                is24Hour={false}
-                display="spinner"
-                themeVariant="dark"
-                textColor={Colors.hopeWhite}
-                onChange={(event, selectedDate) => {
-                  if (selectedDate) {
-                    setTempTime(selectedDate);
-                  }
-                }}
-              />
-              <TouchableOpacity
-                style={styles.timePickerDoneButton}
-                onPress={async () => {
-                  try { triggerLightHaptic(); } catch {}
-                  await handleTimeChange({} as any, tempTime);
-                  setShowTimePicker(false);
-                }}
-              >
-                <Text style={[styles.timePickerDoneText, font]}>Done</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      )}
-      {showTimePicker && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={tempTime}
-          mode="time"
-          is24Hour={false}
-          display="default"
-          onChange={handleTimeChange}
-        />
-      )}
     </Modal>
   );
 

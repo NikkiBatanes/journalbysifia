@@ -198,8 +198,6 @@ const OnboardingNotificationSetupScreen = () => {
               streak_alerts: enabledSettings.progress_updates || false, // Default to same as progress
               prayer_requests: false, // Default off
               prayer_request_alerts: false, // Default off
-              quiet_hours_start: '22:00', // Default 10 PM
-              quiet_hours_end: '07:00', // Default 7 AM
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             }, {
