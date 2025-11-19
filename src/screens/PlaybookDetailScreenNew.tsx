@@ -1489,10 +1489,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                           activeOpacity={0.8}
                           style={styles.readButton}
                           accessibilityRole="button"
-                          accessibilityLabel="Mark affirmations as read aloud"
+                          accessibilityLabel="I've read this aloud"
                         >
                           <Ionicons name="book-outline" size={16} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={styles.readIcon} />
-                          <ThemedText weight="semiBold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
+                          <ThemedText weight="semiBold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>I've read this aloud</ThemedText>
                         </TouchableOpacity>
                       </View>
                     )}

@@ -290,12 +290,12 @@ const ReadAloudButtonDoc: React.FC<{
           setReadAloud(playbookId, nextIsRead);
         }}
         accessibilityRole="button"
-        accessibilityLabel={hasRead ? 'Read' : 'Read aloud'}
+        accessibilityLabel="I've read this aloud"
         accessibilityHint="Tap when you have read the affirmations aloud"
         testID="documentAffirmationsReadButton"
       >
         <Ionicons name="book-outline" size={18} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={readDocStyles.readIcon} />
-        <ThemedText weight="bold" style={[readDocStyles.readButtonText, hasRead && readDocStyles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
+        <ThemedText weight="bold" style={[readDocStyles.readButtonText, hasRead && readDocStyles.readButtonTextActive]}>I've read this aloud</ThemedText>
       </TouchableOpacity>
     </View>
   );
