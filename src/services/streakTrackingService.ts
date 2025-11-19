@@ -298,19 +298,19 @@ class StreakTrackingService {
           title: `Don't Break Your ${currentStreak}-Day Prayer Streak! 🔥`,
           message: 'You\'re on fire! Keep your spiritual momentum going.',
           deepLink: 'sifia://journal/prayer',
-          time: '20:00', // 8 PM
+          time: '19:00', // 7 PM - earlier to give users more time
         },
         devotional: {
           title: `Keep Your ${currentStreak}-Day Devotional Streak! 📖`,
           message: 'You\'re building a powerful habit. Don\'t stop now!',
           deepLink: 'sifia://devotionals/today',
-          time: '21:00', // 9 PM
+          time: '19:30', // 7:30 PM - earlier to give users more time
         },
         journal: {
           title: `Protect Your ${currentStreak}-Day Journaling Streak! ✍️`,
           message: 'You\'re building consistency. Keep going!',
           deepLink: 'sifia://journal',
-          time: '22:00', // 10 PM
+          time: '20:00', // 8 PM - earlier to give users more time
         },
       };
 
@@ -340,7 +340,6 @@ class StreakTrackingService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        respectQuietHours: true,
         priority: 'high',
         batchWithOthers: false, // Streak alerts are important, don't batch
       });
