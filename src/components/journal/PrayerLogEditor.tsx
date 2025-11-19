@@ -50,7 +50,7 @@ const defaultStyles = {
   // Main container styles (matching reflection editor)
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   backgroundContainer: {
     position: 'absolute',
