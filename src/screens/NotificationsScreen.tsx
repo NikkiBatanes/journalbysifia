@@ -595,7 +595,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                   <Ionicons
                     name={getNotificationIcon(notification.notification_type || notification.type)}
                     size={24}
-                    color={getNotificationColor(notification.notification_type || notification.type)}
+                    color={Colors.hopeWhite}
                   />
                 </View>
 
@@ -658,8 +658,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: Colors.anchorBlue,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.hopeWhite,
     width: '100%',
   },
   backButton: {

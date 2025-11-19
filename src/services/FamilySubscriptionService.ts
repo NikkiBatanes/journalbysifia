@@ -190,8 +190,18 @@ export class FamilySubscriptionService {
       // Check if family group exists and has space
       const familyGroup = await this.getFamilyGroup(options.family_group_id);
 
-      if (familyGroup.current_members >= familyGroup.max_members) {
-        throw new Error('Family group is at maximum capacity');
+      // Count pending invitations
+      const { data: pendingInvites } = await supabase
+        .from('family_invitations')
+        .select('id')
+        .eq('family_group_id', options.family_group_id)
+        .eq('status', 'pending');
+
+      const pendingCount = pendingInvites?.length || 0;
+      const totalSlots = familyGroup.current_members + pendingCount;
+
+      if (totalSlots >= familyGroup.max_members) {
+        throw new Error(`Family group is at maximum capacity (${familyGroup.current_members} members + ${pendingCount} pending invites = ${totalSlots}/${familyGroup.max_members})`);
       }
 
       // Check if user is already a member
@@ -322,19 +332,52 @@ export class FamilySubscriptionService {
       }
 
       // Update user's subscription to link to family group
-      const { error: subscriptionError } = await supabase
+      // First check if user has a subscription row
+      const { error: checkError } = await supabase
         .from('user_subscriptions')
-        .update({
-          family_group_id: invitation.family_group_id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-      if (subscriptionError) {
-        Logger.error('[FamilyService] Failed to link user subscription to family', subscriptionError as Error, {
-          component: 'FamilySubscriptionService',
-        });
-        throw new Error('Failed to link your subscription to the family group');
+      if (checkError && checkError.code === 'PGRST116') {
+        // No subscription exists, create one
+        const { error: insertError } = await supabase
+          .from('user_subscriptions')
+          .insert({
+            user_id: userId,
+            family_group_id: invitation.family_group_id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          Logger.error('[FamilyService] Failed to create user subscription', insertError as Error, {
+            component: 'FamilySubscriptionService',
+            errorCode: insertError.code,
+            errorMessage: insertError.message,
+            errorDetails: insertError.details,
+          });
+          throw new Error('Failed to create your subscription record');
+        }
+      } else {
+        // Update existing subscription
+        const { error: subscriptionError } = await supabase
+          .from('user_subscriptions')
+          .update({
+            family_group_id: invitation.family_group_id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
+
+        if (subscriptionError) {
+          Logger.error('[FamilyService] Failed to link user subscription to family', subscriptionError as Error, {
+            component: 'FamilySubscriptionService',
+            errorCode: subscriptionError.code,
+            errorMessage: subscriptionError.message,
+            errorDetails: subscriptionError.details,
+          });
+          throw new Error('Failed to link your subscription to the family group');
+        }
       }
 
       // Sync member limits based on family trial/paid status
