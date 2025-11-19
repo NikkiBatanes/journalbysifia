@@ -1493,8 +1493,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 const hasPermission = await requestCalendarPermissions();
 
                 if (!hasPermission) {
-                  // Permission denied, don't enable auto-sync
-                  Alert.alert('Permission Required', 'Calendar access is needed to enable auto-sync. Please grant permission in your device settings.');
+                  // Permission denied, don't enable auto-sync (system prompt already shown)
                   return;
                 }
 
