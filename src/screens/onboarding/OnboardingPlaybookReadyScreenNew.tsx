@@ -632,7 +632,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   accessibilityHint="Tap when you have read the affirmations aloud"
                 >
                   <Ionicons name="book-outline" size={16} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={styles.readIcon} />
-                  <ThemedText weight="semiBold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
+                  <ThemedText weight="semiBold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'I\'ve read this aloud' : 'I\'ve read this aloud'}</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
