@@ -326,29 +326,33 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
     setAcceptingInvite(notification.id);
     try {
-      const success = await acceptInvitation(invitationCode);
-      if (success) {
-        // Mark notification as read
-        await FamilyNotificationService.markAsRead(notification.id);
+      await acceptInvitation(invitationCode);
 
-        // Remove from list
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
-
-        Alert.alert(
-          'Welcome to the Family!',
-          'You have successfully joined the family subscription with unlimited access!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('MainTabs'),
-            },
-          ]
-        );
-
-        await fetchBadgeCount();
-      } else {
-        Alert.alert('Error', 'Failed to accept invitation. Please try again.');
+      // Mark notification as read
+      if (notification.id) {
+        try {
+          await FamilyNotificationService.markAsRead(notification.id);
+        } catch (markError) {
+          Logger.warn('Failed to mark notification as read after accept', {
+            component: 'NotificationsScreen',
+          });
+        }
       }
+
+      // Refresh the notification list and badge
+      await fetchNotifications();
+      await fetchBadgeCount();
+
+      Alert.alert(
+        'Welcome to the Family!',
+        'You have successfully joined the family subscription with unlimited access!',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('MainTabs'),
+          },
+        ]
+      );
     } catch (error) {
       Logger.error('Failed to accept family invitation', error as Error, {
         component: 'NotificationsScreen',
@@ -375,50 +379,75 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       const normalizedCode = String(invitationCode).trim().toUpperCase();
 
       // Look up the invitation to find who sent it
-      const { data: invitation } = await supabase
+      const { data: invitation, error: lookupError } = await supabase
         .from('family_invitations')
         .select('invited_by_user_id')
         .eq('invitation_code', normalizedCode)
+        .eq('status', 'pending')
         .single();
 
+      if (lookupError || !invitation) {
+        Logger.error('Failed to find invitation', lookupError as Error, {
+          component: 'NotificationsScreen',
+          invitationCode: normalizedCode,
+        });
+        Alert.alert('Error', 'Invitation not found or already processed.');
+        return;
+      }
+
       // Mark invitation as declined
-      await supabase
+      const { error: declineError } = await supabase
         .from('family_invitations')
         .update({ status: 'declined' })
-        .eq('invitation_code', normalizedCode);
+        .eq('invitation_code', normalizedCode)
+        .eq('status', 'pending');
 
-      // Mark in-app notification as read when applicable
+      if (declineError) {
+        Logger.error('Failed to decline invitation', declineError as Error, {
+          component: 'NotificationsScreen',
+        });
+        Alert.alert('Error', 'Failed to decline invitation. Please try again.');
+        return;
+      }
+
+      // Mark in-app notification as read
       if (notification.id) {
         try {
           await FamilyNotificationService.markAsRead(notification.id);
-        } catch {
-          // Non-fatal
+        } catch (markError) {
+          Logger.warn('Failed to mark notification as read after decline', {
+            component: 'NotificationsScreen',
+          });
         }
       }
 
-      // Remove from local list
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-
-      // Refresh badge count so bell updates immediately
+      // Refresh the notification list and badge
+      await fetchNotifications();
       await fetchBadgeCount();
 
-      // Notify inviter, if we could resolve them
-      if (invitation?.invited_by_user_id) {
+      // Notify inviter
+      if (invitation.invited_by_user_id) {
         const invitedName =
           (user as any)?.user_metadata?.full_name ||
           (user as any)?.email ||
           'A member';
 
-        await FamilyNotificationService.notifyInvitationDeclined(
-          invitation.invited_by_user_id,
-          invitedName
-        );
+        try {
+          await FamilyNotificationService.notifyInvitationDeclined(
+            invitation.invited_by_user_id,
+            invitedName
+          );
 
-        Logger.info('Family invitation declined and inviter notified', {
-          component: 'NotificationsScreen',
-          inviterId: invitation.invited_by_user_id,
-          invitedName,
-        });
+          Logger.info('Family invitation declined and inviter notified', {
+            component: 'NotificationsScreen',
+            inviterId: invitation.invited_by_user_id,
+            invitedName,
+          });
+        } catch (notifyError) {
+          Logger.warn('Failed to notify inviter of decline', {
+            component: 'NotificationsScreen',
+          });
+        }
       }
 
       Alert.alert('Invitation Declined', 'The invitation has been declined.');

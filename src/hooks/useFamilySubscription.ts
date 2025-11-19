@@ -195,7 +195,12 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to accept invitation';
       setError(errorMessage);
-      return false;
+      Logger.error('Accept invitation failed in hook', err as Error, {
+        component: 'useFamilySubscription',
+        invitationCode,
+        userId: user.id,
+      });
+      throw err; // Re-throw so NotificationsScreen can show the actual error
     }
   }, [user, loadFamilyData]);
 
