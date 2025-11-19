@@ -50,15 +50,16 @@ const defaultStyles = {
   // Main container styles (matching reflection editor)
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
   },
   backgroundContainer: {
     position: 'absolute',
-    top: '50%',
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
+    zIndex: -1,
   },
   keyboardAvoidingView: {
     flex: 1,
