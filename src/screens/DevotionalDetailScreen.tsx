@@ -8,10 +8,12 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   View,
   Animated,
   NativeModules,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,6 +39,7 @@ import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
 import ThemedText from '../components/common/ThemedText';
+import ThemedTextInput from '../components/common/ThemedTextInput';
 
 type DevotionalDetailScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'DevotionalDetail'>;
@@ -929,17 +932,22 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               subtitle="God's Word for today"
               variant="tintOnBlue"
             >
-              <ThemedText style={styles.scriptureText}>
-                {day.scripture?.text || ''}
-              </ThemedText>
+              {Platform.OS === 'ios' ? (
+                <ThemedTextInput
+                  value={day.scripture?.text || ''}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={styles.scriptureText}
+                />
+              ) : (
+                <ThemedText style={styles.scriptureText} selectable={true}>
+                  {day.scripture?.text || ''}
+                </ThemedText>
+              )}
               <View style={styles.scriptureReferenceContainer}>
-                <ThemedText weight="bold" style={styles.scriptureReference}>
-                  {day.scripture?.reference || ''}
-                  {day.scripture?.version && (
-                    <ThemedText weight="bold" style={styles.bibleVersion}>
-                      {' '}{day.scripture.version}
-                    </ThemedText>
-                  )}
+                <ThemedText weight="bold" style={styles.scriptureReference} selectable={true}>
+                  {day.scripture?.reference || ''}{day.scripture?.version ? ` ${day.scripture.version}` : ''}
                 </ThemedText>
                 {day.scripture?.version && (
                   <TouchableOpacity
@@ -967,9 +975,19 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               subtitle="Meditate on this"
               variant="tintOnBlue"
             >
-              <ThemedText style={styles.reflectionText}>
-                {day?.reflection || ''}
-              </ThemedText>
+              {Platform.OS === 'ios' ? (
+                <ThemedTextInput
+                  value={day?.reflection || ''}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={styles.reflectionText}
+                />
+              ) : (
+                <ThemedText style={styles.reflectionText} selectable={true}>
+                  {day?.reflection || ''}
+                </ThemedText>
+              )}
             </DevotionalSectionCard>
 
             {/* Questions Card */}
@@ -981,10 +999,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             >
               {day?.reflectionQuestions?.length ? (
                 day.reflectionQuestions.map((question: any, idx: number) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={question.id || idx}
                     style={styles.questionCardWrapper}
-                    activeOpacity={0.8}
                     onPress={() => {
                       // Light haptic on question tap
                       triggerLightHaptic();
@@ -1003,17 +1020,18 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                       });
                       setReflectionModalVisible(true);
                     }}
+                    delayLongPress={300}
                   >
                     <View style={styles.questionCardContainer}>
                   <ThemedText weight="bold" style={[
                     styles.questionCardNumber,
                     isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
                   ]}>{idx + 1}</ThemedText>
-                  <ThemedText style={styles.questionCardText}>
+                  <ThemedText style={styles.questionCardText} selectable={true}>
                     {question.text || 'Reflection question'}
                   </ThemedText>
                 </View>
-              </TouchableOpacity>
+              </Pressable>
                 ))
               ) : (
                 <ThemedText style={styles.questionCardText}>No questions for today.</ThemedText>
@@ -1028,11 +1046,23 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
-                <ThemedText style={styles.prayerText}>
-                  {rawPrayer && rawPrayer.trim().length > 0
-                    ? formattedPrayer
-                    : 'No prayer for today.'}
-                </ThemedText>
+                {Platform.OS === 'ios' ? (
+                  <ThemedTextInput
+                    value={rawPrayer && rawPrayer.trim().length > 0
+                      ? formattedPrayer
+                      : 'No prayer for today.'}
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    style={styles.prayerText}
+                  />
+                ) : (
+                  <ThemedText style={styles.prayerText} selectable={true}>
+                    {rawPrayer && rawPrayer.trim().length > 0
+                      ? formattedPrayer
+                      : 'No prayer for today.'}
+                  </ThemedText>
+                )}
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
                   {/* Heart burst layer above the button, anchored near its position */}
                   {heartParticles.length > 0 && (

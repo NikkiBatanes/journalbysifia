@@ -1,11 +1,12 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
 
 import { Colors } from '../theme';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import ThemedText from './common/ThemedText';
+import ThemedTextInput from './common/ThemedTextInput';
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -21,6 +22,7 @@ type TruthInLoveCardProps = {
   };
   playbookTitle?: string;
   userInput?: string;
+  showCloseButton?: boolean;
 };
 
 export default function TruthInLoveCard({
@@ -35,6 +37,7 @@ export default function TruthInLoveCard({
   currentUser,
   playbookTitle: _playbookTitle,
   userInput: _userInput,
+  showCloseButton = true,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
   // Use only parent-controlled expansion
@@ -84,32 +87,74 @@ export default function TruthInLoveCard({
             <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.heartIcon} />
             <ThemedText weight="bold" style={[styles.heading, { color: textColor }]}>Truth in Love</ThemedText>
           </View>
-          {/* Keep the info/insight button as a separate tap target */}
+          {/* Subtle close button when expanded */}
+          {isExpanded && showCloseButton !== false && (
+            <View style={styles.closeButtonContainer}>
+              <Ionicons 
+                name="close" 
+                size={18} 
+                color={textColor} 
+                style={styles.closeButton}
+              />
+            </View>
+          )}
         </View>
-        <ThemedText
-          weight="regular"
-          style={[styles.content, styles.contentWithMargin, { color: textColor }]}
-        >
-          <ThemedText weight="bold" style={[styles.summary, { color: textColor }]}>{processedSummary}</ThemedText>
-        </ThemedText>
+        {isExpanded && Platform.OS === 'ios' ? (
+          <ThemedTextInput
+            weight="bold"
+            value={processedSummary}
+            editable={false}
+            multiline={true}
+            scrollEnabled={false}
+            style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
+          />
+        ) : (
+          <ThemedText
+            weight="regular"
+            style={[styles.content, styles.contentWithMargin, { color: textColor }]}
+          >
+            <ThemedText weight="bold" style={[styles.summary, { color: textColor }]}>{processedSummary}</ThemedText>
+          </ThemedText>
+        )}
       </View>
 
       <View style={[styles.contentWrapper, debugStyle]}>
         <View style={styles.textContainer}>
           {isExpanded
-            ? truthParagraphs.map((paragraph, index) => (
-                <ThemedText
+            ? (Platform.OS === 'ios' ? (
+                <ThemedTextInput
                   weight="regular"
-                  style={[styles.truth, styles.truthParagraph, { color: textColor }]}
-                  key={`truth-paragraph-${index}`}
-                  textBreakStrategy="highQuality"
-                  allowFontScaling={true}
-                  adjustsFontSizeToFit={false}
-                >
-                  {paragraph}
-                </ThemedText>
+                  value={processedTruth}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={[styles.truth, { color: textColor }]}
+                />
+              ) : (
+                truthParagraphs.map((paragraph, index) => (
+                  <ThemedText
+                    weight="regular"
+                    style={[styles.truth, styles.truthParagraph, { color: textColor }]}
+                    key={`truth-paragraph-${index}`}
+                    textBreakStrategy="highQuality"
+                    allowFontScaling={true}
+                    adjustsFontSizeToFit={false}
+                  >
+                    {paragraph}
+                  </ThemedText>
+                ))
               ))
-            : (
+            : (Platform.OS === 'ios' ? (
+                <ThemedTextInput
+                  weight="regular"
+                  value={truthParagraphs.length > 0 ? truthParagraphs[0] : processedTruth}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  numberOfLines={numberOfLines}
+                  style={[styles.truth, { color: textColor }]}
+                />
+              ) : (
                 <ThemedText
                   weight="regular"
                   style={[styles.truth, { color: textColor }]}
@@ -121,7 +166,7 @@ export default function TruthInLoveCard({
                 >
                   {truthParagraphs.length > 0 ? truthParagraphs[0] : processedTruth}
                 </ThemedText>
-              )}
+              ))}
         </View>
       </View>
 
@@ -154,6 +199,7 @@ const styles = StyleSheet.create({
   headingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8, // Reduced from 20 to 8
   },
   heartIcon: {
@@ -206,7 +252,17 @@ const styles = StyleSheet.create({
   rowCenterFlex1: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+  },
+  closeButtonContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButton: {
+    opacity: 0.7,
   },
 
 });

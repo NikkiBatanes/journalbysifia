@@ -16,7 +16,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 
@@ -39,6 +39,7 @@ type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ma
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'UserInput'>>();
   const inputRef = useRef<TextInput | null>(null);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -59,10 +60,17 @@ const UserInputScreen: React.FC = () => {
   // Auto-save draft to prevent data loss
   const DRAFT_KEY = '@siFia:userInputDraft';
 
-  // Load saved draft on mount
+  // Load saved draft or initial text on mount
   useEffect(() => {
     const loadDraft = async () => {
       try {
+        // Check if we have initial text from route params (for editing)
+        if (route.params?.initialText) {
+          setUserInput(route.params.initialText);
+          return;
+        }
+        
+        // Otherwise load saved draft
         const draft = await AsyncStorage.getItem(DRAFT_KEY);
         if (draft && draft.trim()) {
           setUserInput(draft);
@@ -72,7 +80,7 @@ const UserInputScreen: React.FC = () => {
       }
     };
     loadDraft();
-  }, []);
+  }, [route.params?.initialText]);
 
   // Auto-save draft when user types (debounced)
   const saveDraftTimer = useRef<NodeJS.Timeout | null>(null);

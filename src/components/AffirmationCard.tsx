@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, TextStyle } from 'react-native';
+import { View, StyleSheet, TextStyle, Platform } from 'react-native';
 import { BorderRadii } from '../theme/styles';
 import ThemedText from './common/ThemedText';
+import ThemedTextInput from './common/ThemedTextInput';
 
 interface AffirmationCardProps {
   id: string;
@@ -9,12 +10,14 @@ interface AffirmationCardProps {
   completed: boolean;
   color?: string;
   containerStyle?: any;
+  enableSelection?: boolean;
 }
 
 const AffirmationCard: React.FC<AffirmationCardProps> = ({
   text,
   color = 'white',
   containerStyle = {},
+  enableSelection = false,
 }) => {
   const textStyle: TextStyle = {
     // Typography handled by ThemedText weight="semiBold"
@@ -28,7 +31,20 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
 
   return (
     <View style={[styles.card, containerStyle]}>
-      <ThemedText weight="semiBold" style={textStyle}>{text}</ThemedText>
+      {enableSelection && Platform.OS === 'ios' ? (
+        <ThemedTextInput
+          weight="semiBold"
+          value={text}
+          editable={false}
+          multiline={true}
+          scrollEnabled={false}
+          style={textStyle}
+        />
+      ) : (
+        <ThemedText weight="semiBold" style={textStyle} selectable={enableSelection}>
+          {text}
+        </ThemedText>
+      )}
     </View>
   );
 };

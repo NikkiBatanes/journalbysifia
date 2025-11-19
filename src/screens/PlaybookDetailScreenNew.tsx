@@ -7,6 +7,9 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
+  Pressable,
+  TouchableWithoutFeedback,
+  Platform,
   View,
   ViewStyle,
   TextStyle,
@@ -14,7 +17,6 @@ import {
   Animated as RNAnimated,
   useWindowDimensions,
   ScrollView,
-  Platform,
   UIManager,
   Easing as RNEasing,
   PanResponder,
@@ -52,6 +54,7 @@ import DocumentCards from '../components/DocumentCards';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import PlaybookHeader from '../components/PlaybookHeader';
 import ThemedText from '../components/common/ThemedText';
+import ThemedTextInput from '../components/common/ThemedTextInput';
 import { usePlaybookStoreReactQuery } from '../store/usePlaybookStoreReactQuery';
 import DevotionalModal from '../components/DevotionalModal';
 // Individual card components for stacked view
@@ -1347,6 +1350,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               userInput={currentPlaybook.userInput}
               showTitle={false}
               onExportPress={handleExportPDF}
+              onEditUserInput={() => {
+                navigation.navigate('UserInput', { initialText: currentPlaybook.userInput });
+              }}
             />
           </View>
         ) : (
@@ -1369,6 +1375,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 userInput={currentPlaybook.userInput}
                 showTitle={false}
                 onExportPress={handleExportPDF}
+                onEditUserInput={() => {
+                  navigation.navigate('UserInput', { initialText: currentPlaybook.userInput });
+                }}
               />
             </View>
           </Animated.View>
@@ -1470,6 +1479,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       navigation={rootNavigation}
                       showExampleSubtasksInline={false}
                       preferPropSteps={false}
+                      expanded={isExpanded}
                     />
                   </View>
                 );
@@ -1478,13 +1488,32 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 return (
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                     <View style={styles.affirmationsHeaderStack}>
-                      <MaterialCommunityIcons
-                        name="format-quote-close"
-                        size={24}
-                        color={Colors.alertCoral}
-                        style={styles.quoteIconStack}
-                      />
-                      <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Affirmations</ThemedText>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons
+                          name="format-quote-close"
+                          size={24}
+                          color={Colors.alertCoral}
+                          style={styles.quoteIconStack}
+                        />
+                        <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Affirmations</ThemedText>
+                      </View>
+                      {isExpanded && (
+                        <View style={{ 
+                          width: 28, 
+                          height: 28, 
+                          borderRadius: 14, 
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}>
+                          <Ionicons 
+                            name="close" 
+                            size={18} 
+                            color={Colors.hopeWhite} 
+                            style={{ opacity: 0.7 }}
+                          />
+                        </View>
+                      )}
                     </View>
                     <View style={styles.affirmationsListStack}>
                       {(card.affirmations || []).map((affirmation, idx) => (
@@ -1496,9 +1525,20 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                           ]}
                         >
                           <View style={styles.affirmationContent}>
-                            <ThemedText weight="semiBold" style={styles.affirmationText}>
-                              {affirmation.text}
-                            </ThemedText>
+                            {Platform.OS === 'ios' ? (
+                              <ThemedTextInput
+                                weight="semiBold"
+                                value={affirmation.text}
+                                editable={false}
+                                multiline={true}
+                                scrollEnabled={false}
+                                style={styles.affirmationText}
+                              />
+                            ) : (
+                              <ThemedText weight="semiBold" style={styles.affirmationText}>
+                                {affirmation.text}
+                              </ThemedText>
+                            )}
                           </View>
                         </View>
                       ))}
@@ -1526,6 +1566,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                     <BibleVerseCard
                       verse={card.verse || { text: '', reference: '' }}
+                      expanded={isExpanded}
                     />
                   </View>
                 );
@@ -1536,6 +1577,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     <DirectChallengeCard
                       challenge={typeof card.challenge === 'string' ? card.challenge : card.challenge?.text || ''}
                       challengeCTA={card.challengeCTA}
+                      style={styles.transparentBackground}
+                      expanded={isExpanded}
                     />
                   </View>
                 );
@@ -1611,8 +1654,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         animateCardTransition(card.id, false);
                       }
                     }}
+                    style={{ flex: 1 }}
                   >
-                    {cardContent}
+                    <View style={{ flex: 1 }}>
+                      {cardContent}
+                    </View>
                   </TouchableOpacity>
                 </ScrollView>
               ) : (
@@ -2393,7 +2439,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   affirmationsHeaderStack: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
   quoteIconStack: {

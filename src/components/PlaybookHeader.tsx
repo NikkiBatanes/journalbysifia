@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextStyle, Clipboard, Alert, Image, SafeAreaView, ActionSheetIOS, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
+import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 
 import { Colors, Fonts } from '../theme';
 import ThemedText from './common/ThemedText';
-import { triggerLightHaptic } from '../utils/haptics';
 
 interface PlaybookHeaderProps {
   title: string;
@@ -24,6 +24,7 @@ interface PlaybookHeaderProps {
   userInput?: string;
   backgroundColor?: string;
   textColor?: string;
+  onEditUserInput?: () => void;
   alignTasksLeft?: boolean;
   userInputBackgroundColor?: string;
   userInputBorderColor?: string;
@@ -47,6 +48,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInput,
   backgroundColor = Colors.anchorBlue,
   textColor = Colors.hopeWhite,
+  onEditUserInput,
   alignTasksLeft = false,
   userInputBackgroundColor,
   userInputBorderColor,
@@ -101,11 +103,71 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
         <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
           <View style={styles.headerCenter}>
             {showUserInput && userInput && (
-              <View style={[styles.userInputCard, dynamicStyles.userInputCard]}>
+              <TouchableOpacity
+                style={[styles.userInputCard, dynamicStyles.userInputCard]}
+                activeOpacity={0.9}
+                onLongPress={() => {
+                  triggerMediumHaptic();
+                  
+                  if (Platform.OS === 'ios') {
+                    // iOS Action Sheet
+                    const options = ['Copy', ...(onEditUserInput ? ['Edit'] : []), 'Cancel'];
+                    const cancelButtonIndex = options.length - 1;
+                    
+                    ActionSheetIOS.showActionSheetWithOptions(
+                      {
+                        options,
+                        cancelButtonIndex,
+                      },
+                      (buttonIndex) => {
+                        if (buttonIndex === 0) {
+                          // Copy
+                          Clipboard.setString(userInput);
+                          triggerLightHaptic();
+                          Alert.alert('Copied', 'User input copied to clipboard');
+                        } else if (buttonIndex === 1 && onEditUserInput) {
+                          // Edit
+                          triggerLightHaptic();
+                          onEditUserInput();
+                        }
+                      }
+                    );
+                  } else {
+                    // Android Alert Dialog
+                    const buttons: any[] = [
+                      {
+                        text: 'Copy',
+                        onPress: () => {
+                          Clipboard.setString(userInput);
+                          triggerLightHaptic();
+                          Alert.alert('Copied', 'User input copied to clipboard');
+                        },
+                      },
+                    ];
+                    
+                    if (onEditUserInput) {
+                      buttons.push({
+                        text: 'Edit',
+                        onPress: () => {
+                          triggerLightHaptic();
+                          onEditUserInput();
+                        },
+                      });
+                    }
+                    
+                    buttons.push({
+                      text: 'Cancel',
+                      style: 'cancel',
+                    });
+                    
+                    Alert.alert('User Input', 'Choose an action', buttons);
+                  }
+                }}
+              >
                 <ThemedText weight="regular" style={[styles.userInputText, dynamicStyles.userInputText]}>
                   {userInput}
                 </ThemedText>
-              </View>
+              </TouchableOpacity>
             )}
 
             {titleLines.map((line, index) => (

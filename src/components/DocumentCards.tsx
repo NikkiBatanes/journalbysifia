@@ -93,6 +93,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         expanded={true}
         style={[propStyles.docCard, propStyles.truthCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
         currentUser={currentUser}
+        showCloseButton={false}
       />
       <ActionStepsCard
         key="action"
@@ -118,6 +119,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
               id={affirmation.id}
               text={affirmation.text}
               completed={affirmation.completed}
+              enableSelection={true}
             />
           ))}
         </View>
@@ -135,6 +137,8 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         key="bible"
         verse={playbook.bibleVerse}
         style={[propStyles.docCard, propStyles.bibleCard, styles.bibleVerseCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
+        expanded={true}
+        showCloseButton={false}
       />
       <View
         key="challenge"
@@ -151,6 +155,8 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
               : playbook.directChallenge?.text ?? ''
           }
           challengeCTA={playbook.challengeCTA ?? ''}
+          expanded={true}
+          showCloseButton={false}
         />
       </View>
     </ScrollView>

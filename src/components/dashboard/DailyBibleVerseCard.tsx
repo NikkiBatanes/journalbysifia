@@ -361,6 +361,8 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   //   }
   // };
 
+  const isVersePressable = typeof onVersePress === 'function';
+
   return (
     <View style={styles.card}>
       <ThemedText weight="semiBold" style={styles.titleText}>TODAY'S SCRIPTURE</ThemedText>
@@ -372,40 +374,74 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity
-          onPress={handleVersePress}
-          style={styles.verseContent}
-          accessibilityRole="button"
-          accessibilityLabel="Open scripture"
-        >
-          <View style={styles.verseRow}>
-            <View style={styles.leftBar} />
-            <View style={styles.verseColumn}>
-              <ThemedText weight="medium" style={styles.verseText}>
-                {verse?.verse}
-              </ThemedText>
-              <View style={styles.referenceRow}>
-                <ThemedText weight="semiBold" style={styles.referenceText}>
-                  {verse?.reference}
-                  <ThemedText weight="semiBold" style={styles.versionText}>
-                    {' '}{verse?.version || 'NASB'}
+        <>
+          {isVersePressable ? (
+            <TouchableOpacity
+              onPress={handleVersePress}
+              style={styles.verseContent}
+              accessibilityRole="button"
+              accessibilityLabel="Open scripture"
+            >
+              <View style={styles.verseRow}>
+                <View style={styles.leftBar} />
+                <View style={styles.verseColumn}>
+                  <ThemedText weight="medium" style={styles.verseText}>
+                    {verse?.verse}
                   </ThemedText>
-                </ThemedText>
-                <TouchableOpacity
-                  style={styles.infoIcon}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setShowCopyright(true);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Bible translation information"
-                >
-                  <Ionicons name="information-circle-outline" size={18} color={Colors.alertCoral} />
-                </TouchableOpacity>
+                  <View style={styles.referenceRow}>
+                    <ThemedText weight="semiBold" style={styles.referenceText}>
+                      {verse?.reference}
+                      <ThemedText weight="semiBold" style={styles.versionText}>
+                        {' '}{verse?.version || 'NASB'}
+                      </ThemedText>
+                    </ThemedText>
+                    <TouchableOpacity
+                      style={styles.infoIcon}
+                      onPress={() => {
+                        try { triggerLightHaptic(); } catch {}
+                        setShowCopyright(true);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Bible translation information"
+                    >
+                      <Ionicons name="information-circle-outline" size={18} color={Colors.alertCoral} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.verseContent}>
+              <View style={styles.verseRow}>
+                <View style={styles.leftBar} />
+                <View style={styles.verseColumn}>
+                  <ThemedText weight="medium" style={styles.verseText}>
+                    {verse?.verse}
+                  </ThemedText>
+                  <View style={styles.referenceRow}>
+                    <ThemedText weight="semiBold" style={styles.referenceText}>
+                      {verse?.reference}
+                      <ThemedText weight="semiBold" style={styles.versionText}>
+                        {' '}{verse?.version || 'NASB'}
+                      </ThemedText>
+                    </ThemedText>
+                    <TouchableOpacity
+                      style={styles.infoIcon}
+                      onPress={() => {
+                        try { triggerLightHaptic(); } catch {}
+                        setShowCopyright(true);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Bible translation information"
+                    >
+                      <Ionicons name="information-circle-outline" size={18} color={Colors.alertCoral} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          )}
+        </>
       )}
       {/* Bible copyright modal */}
       <BibleCopyrightModal
@@ -442,6 +478,7 @@ const styles = StyleSheet.create({
 
     letterSpacing: 0.8,
     marginBottom: 14,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,

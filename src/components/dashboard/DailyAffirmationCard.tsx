@@ -335,8 +335,10 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
     onRefresh?.();
   };
 
+  const isAffirmationPressable = typeof onAffirmationPress === 'function';
+
   const handleAffirmationPress = (item: Affirmation) => {
-    if (!item) {return;}
+    if (!item || !isAffirmationPressable) {return;}
     try {
       onAffirmationPress?.(item);
     } catch (e) {
@@ -375,16 +377,26 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           ) : (
             <View style={styles.listContainer}>
               {affirmations.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => handleAffirmationPress(item)}
-                  activeOpacity={0.7}
-                  style={styles.affirmationItem}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Affirmation: ${item.content}`}
-                >
-                  <ThemedText style={styles.affirmationText}>{item.content}</ThemedText>
-                </TouchableOpacity>
+                isAffirmationPressable ? (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => handleAffirmationPress(item)}
+                    activeOpacity={0.7}
+                    style={styles.affirmationItem}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Affirmation: ${item.content}`}
+                  >
+                    <ThemedText style={styles.affirmationText}>{item.content}</ThemedText>
+                  </TouchableOpacity>
+                ) : (
+                  <View
+                    key={item.id}
+                    style={styles.affirmationItem}
+                    accessibilityRole="text"
+                  >
+                    <ThemedText style={styles.affirmationText}>{item.content}</ThemedText>
+                  </View>
+                )
               ))}
             </View>
           )}

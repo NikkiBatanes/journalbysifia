@@ -58,6 +58,8 @@ type ActionStepsCardProps = {
   // Optional overrides for header title and icon
   titleOverride?: string;
   iconOverride?: string;
+  expanded?: boolean;
+  showCloseButton?: boolean;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -153,6 +155,8 @@ export default function ActionStepsCard({
   preferPropSteps = false,
   titleOverride,
   iconOverride,
+  expanded = false,
+  showCloseButton = true,
 }: ActionStepsCardProps) {
   const { user } = useAuth();
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
@@ -761,18 +765,25 @@ export default function ActionStepsCard({
     <>
       <View style={style}>
       <View style={styles.headingContainer}>
-        <MaterialCommunityIcons
-          name={iconOverride || 'format-list-checks'}
-          size={24}
-          color={Colors.alertCoral}
-          style={styles.icon}
-        />
-        <ThemedText weight="bold" style={[
-          styles.heading,
-          textColor ? { color: textColor } : {},
-        ]}>
-          {titleOverride ? titleOverride : `${steps.length} Action Steps`}
-        </ThemedText>
+        <View style={styles.headingContent}>
+          <MaterialCommunityIcons
+            name={iconOverride || 'format-list-checks'}
+            size={24}
+            color={Colors.alertCoral}
+            style={styles.icon}
+          />
+          <ThemedText weight="bold" style={[
+            styles.heading,
+            textColor ? { color: textColor } : {},
+          ]}>
+            {titleOverride ? titleOverride : `${steps.length} Action Steps`}
+          </ThemedText>
+        </View>
+        {expanded && showCloseButton && (
+          <View style={styles.closeButtonContainer}>
+            <Ionicons name="close" size={18} color={textColor || Colors.hopeWhite} style={styles.closeButton} />
+          </View>
+        )}
       </View>
 
       <View>
@@ -1102,7 +1113,13 @@ const styles = StyleSheet.create({
   headingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  headingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   icon: {
     marginRight: 8,
@@ -1111,8 +1128,17 @@ const styles = StyleSheet.create({
     ...Typography.interBold,
     fontSize: 20,
     color: Colors.hopeWhite,
-    letterSpacing: 0.5,
-    textTransform: 'none',
+  },
+  closeButtonContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButton: {
+    opacity: 0.7,
   },
   stepsContainer: {
     width: '100%',
