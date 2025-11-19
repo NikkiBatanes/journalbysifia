@@ -296,6 +296,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Continue to navigation even if discount check fails
     }
 
+    // Check if we came from a specific screen (e.g., UserProfile) - prioritize returning there
+    if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
+      logger.info('Returning to user profile from feature gating');
+      setTimeout(() => {
+        navigation.goBack();
+      }, 50);
+      return;
+    }
+
     // Always show trial if eligible for cancelled sales offer (regardless of upgrade/onboarding)
     logger.info('Sales offer cancelled - checking trial eligibility');
     if (canOfferTrial) {
@@ -319,11 +328,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     } else {
       logger.info('No trial eligible - checking navigation context');
       setTimeout(() => {
-        // Check if we came from a specific screen (e.g., UserProfile)
-        if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
-          logger.debug('Returning to user profile');
-          navigation.goBack();
-        } else if (!routeParams?.skipNotificationPreference) {
+        if (!routeParams?.skipNotificationPreference) {
           // During onboarding flow, go to notification setup
           logger.debug('Onboarding flow - navigating to notification setup');
           (navigation as any).navigate('OnboardingNotificationSetup', {
