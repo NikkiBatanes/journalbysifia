@@ -27,9 +27,10 @@ SELECT
   priority,
   scheduled_for,
   attempts,
+  sent_at,
+  error_message,
   created_at,
-  last_attempt_at,
-  error_message
+  updated_at
 FROM notification_queue
 WHERE type = 'family_invitation'
   AND user_id = '3ddd0e8f-c209-47df-bd97-520a6aaec277'
@@ -40,45 +41,46 @@ LIMIT 5;
 SELECT 
   id,
   user_id,
-  device_token,
+  token,
   platform,
+  device_id,
   is_active,
   created_at,
-  last_used_at
-FROM user_devices
+  updated_at
+FROM device_tokens
 WHERE user_id = '3ddd0e8f-c209-47df-bd97-520a6aaec277'
   AND is_active = true;
 
 -- 4. Check notification preferences
 SELECT 
   user_id,
-  family_invitation_enabled,
-  push_enabled,
+  notification_type,
+  prayer_reminders,
+  playbook_steps,
+  devotional_reminders,
+  journal_prompts,
+  milestone_celebrations,
+  trial_notifications,
+  streak_alerts,
   quiet_hours_enabled,
   quiet_hours_start,
   quiet_hours_end,
-  timezone
+  timezone,
+  created_at
 FROM notification_preferences
 WHERE user_id = '3ddd0e8f-c209-47df-bd97-520a6aaec277';
 
 -- 5. Check delivery logs for family invitations
 SELECT 
   id,
-  notification_id,
   user_id,
-  device_id,
+  device_token_id,
   status,
-  platform,
-  created_at,
-  delivered_at,
-  error_message
+  error_code,
+  error_message,
+  created_at
 FROM notification_delivery_log
 WHERE user_id = '3ddd0e8f-c209-47df-bd97-520a6aaec277'
-  AND notification_id IN (
-    SELECT id FROM notification_queue 
-    WHERE type = 'family_invitation' 
-      AND user_id = '3ddd0e8f-c209-47df-bd97-520a6aaec277'
-  )
 ORDER BY created_at DESC
 LIMIT 10;
 
