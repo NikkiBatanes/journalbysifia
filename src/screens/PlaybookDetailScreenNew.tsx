@@ -2209,12 +2209,20 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    position: 'relative',
   },
   userInputText: {
     fontFamily: theme.fonts?.regular || 'System',
     fontSize: 14,
     color: Colors.hopeWhite,
     lineHeight: 20,
+    paddingRight: 32,
+  },
+  editIconButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4,
   },
   viewToggleContainer: {
     flexDirection: 'row',

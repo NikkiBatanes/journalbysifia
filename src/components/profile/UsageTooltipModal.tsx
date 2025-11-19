@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 export type TooltipType = 'playbooks' | 'devotionals' | 'faithPoints' | 'badges';
 
@@ -253,7 +254,7 @@ const UsageTooltipModal: React.FC<Props> = ({
   const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
 
   const handleUpgrade = () => {
-
+    triggerLightHaptic();
     onClose();
     
     // Check if user has ever started a trial
@@ -318,19 +319,19 @@ const UsageTooltipModal: React.FC<Props> = ({
               {/* Footer */}
               {showUpgradeButton ? (
                 <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
+                  <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade} activeOpacity={0.7}>
                     <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
                       Upgrade Now
                     </ThemedText>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
+                  <TouchableOpacity style={styles.secondaryButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
                     <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
                       Maybe Later
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <TouchableOpacity style={styles.closeButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
                   <ThemedText weight="semiBold" style={styles.closeButtonText}>
                     Got it!
                   </ThemedText>

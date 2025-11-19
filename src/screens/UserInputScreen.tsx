@@ -67,6 +67,15 @@ const UserInputScreen: React.FC = () => {
         // Check if we have initial text from route params (for editing)
         if (route.params?.initialText) {
           setUserInput(route.params.initialText);
+          // Focus input and position cursor at end after a short delay
+          setTimeout(() => {
+            if (inputRef.current) {
+              inputRef.current.focus();
+              // Position cursor at the end
+              const textLength = route.params?.initialText?.length || 0;
+              inputRef.current.setSelection(textLength, textLength);
+            }
+          }, 300);
           return;
         }
         

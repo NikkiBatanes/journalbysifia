@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextStyle, Clipboard, Alert, Image, SafeAreaView, ActionSheetIOS, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextStyle, Clipboard, Alert, Image, SafeAreaView, Platform, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
@@ -103,71 +103,60 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
         <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
           <View style={styles.headerCenter}>
             {showUserInput && userInput && (
-              <TouchableOpacity
-                style={[styles.userInputCard, dynamicStyles.userInputCard]}
-                activeOpacity={0.9}
-                onLongPress={() => {
-                  triggerMediumHaptic();
-                  
-                  if (Platform.OS === 'ios') {
-                    // iOS Action Sheet
-                    const options = ['Copy', ...(onEditUserInput ? ['Edit'] : []), 'Cancel'];
-                    const cancelButtonIndex = options.length - 1;
-                    
-                    ActionSheetIOS.showActionSheetWithOptions(
-                      {
-                        options,
-                        cancelButtonIndex,
-                      },
-                      (buttonIndex) => {
-                        if (buttonIndex === 0) {
-                          // Copy
-                          Clipboard.setString(userInput);
-                          triggerLightHaptic();
-                          Alert.alert('Copied', 'User input copied to clipboard');
-                        } else if (buttonIndex === 1 && onEditUserInput) {
-                          // Edit
-                          triggerLightHaptic();
-                          onEditUserInput();
-                        }
+              <View style={[styles.userInputCard, dynamicStyles.userInputCard]}>
+                <Text
+                  style={[styles.userInputText, dynamicStyles.userInputText]}
+                  selectable={true}
+                  onLongPress={() => {
+                    triggerMediumHaptic();
+                    // Show custom menu with Edit option
+                    if (Platform.OS === 'android') {
+                      // Android fallback with alert dialog
+                      const buttons: any[] = [
+                        {
+                          text: 'Copy',
+                          onPress: () => {
+                            Clipboard.setString(userInput);
+                            triggerLightHaptic();
+                            Alert.alert('Copied', 'User input copied to clipboard');
+                          },
+                        },
+                      ];
+                      
+                      if (onEditUserInput) {
+                        buttons.push({
+                          text: 'Edit',
+                          onPress: () => {
+                            triggerLightHaptic();
+                            onEditUserInput();
+                          },
+                        });
                       }
-                    );
-                  } else {
-                    // Android Alert Dialog
-                    const buttons: any[] = [
-                      {
-                        text: 'Copy',
-                        onPress: () => {
-                          Clipboard.setString(userInput);
-                          triggerLightHaptic();
-                          Alert.alert('Copied', 'User input copied to clipboard');
-                        },
-                      },
-                    ];
-                    
-                    if (onEditUserInput) {
+                      
                       buttons.push({
-                        text: 'Edit',
-                        onPress: () => {
-                          triggerLightHaptic();
-                          onEditUserInput();
-                        },
+                        text: 'Cancel',
+                        style: 'cancel',
                       });
+                      
+                      Alert.alert('User Input', 'Choose an action', buttons);
                     }
-                    
-                    buttons.push({
-                      text: 'Cancel',
-                      style: 'cancel',
-                    });
-                    
-                    Alert.alert('User Input', 'Choose an action', buttons);
-                  }
-                }}
-              >
-                <ThemedText weight="regular" style={[styles.userInputText, dynamicStyles.userInputText]}>
+                  }}
+                >
                   {userInput}
-                </ThemedText>
-              </TouchableOpacity>
+                </Text>
+                {Platform.OS === 'ios' && onEditUserInput && (
+                  <TouchableOpacity
+                    style={styles.editIconButton}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      onEditUserInput();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="pencil" size={16} color="rgba(255, 255, 255, 0.6)" />
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {titleLines.map((line, index) => (
@@ -418,12 +407,20 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 24,
     flexShrink: 1,
+    position: 'relative',
   },
   userInputText: {
     fontSize: 13,
     // fontFamily handled by ThemedText weight="regular"
     letterSpacing: 0.1,
     lineHeight: 18,
+    paddingRight: 32,
+  },
+  editIconButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4,
   },
   profileImage: {
     width: 32,

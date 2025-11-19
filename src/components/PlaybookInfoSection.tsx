@@ -1,7 +1,7 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle, Alert, Clipboard, ActionSheetIOS, Platform } from 'react-native';
+import { View, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle, Alert, Clipboard, Platform, Text } from 'react-native';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 
 import { Colors } from '../theme';
@@ -34,31 +34,8 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
     
     triggerMediumHaptic();
     
-    if (Platform.OS === 'ios') {
-      // iOS Action Sheet
-      const options = ['Copy', ...(onEditUserInput ? ['Edit'] : []), 'Cancel'];
-      const cancelButtonIndex = options.length - 1;
-      
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 0) {
-            // Copy
-            Clipboard.setString(playbook.userInput!);
-            triggerLightHaptic();
-            Alert.alert('Copied', 'User input copied to clipboard');
-          } else if (buttonIndex === 1 && onEditUserInput) {
-            // Edit
-            triggerLightHaptic();
-            onEditUserInput();
-          }
-        }
-      );
-    } else {
-      // Android Alert Dialog
+    // Android fallback with alert dialog
+    if (Platform.OS === 'android') {
       const buttons: any[] = [
         {
           text: 'Copy',
@@ -115,13 +92,27 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
         </TouchableOpacity>
         {/* User Input Card - Collapsible */}
         {showUserInput && playbook.userInput && (
-          <TouchableOpacity
-            style={styles.userInputCard}
-            activeOpacity={0.9}
-            onLongPress={handleLongPress}
-          >
-            <ThemedText weight="regular" style={styles.userInputText}>{playbook.userInput}</ThemedText>
-          </TouchableOpacity>
+          <View style={styles.userInputCard}>
+            <Text
+              style={styles.userInputText}
+              selectable={true}
+              onLongPress={handleLongPress}
+            >
+              {playbook.userInput}
+            </Text>
+            {Platform.OS === 'ios' && onEditUserInput && (
+              <TouchableOpacity
+                style={styles.editIconButton}
+                onPress={() => {
+                  triggerLightHaptic();
+                  onEditUserInput();
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pencil" size={16} color="rgba(255, 255, 255, 0.6)" />
+              </TouchableOpacity>
+            )}
+          </View>
         )}
         <ThemedText weight="bold" style={styles.playbookTitle}>
           {firstLine}
