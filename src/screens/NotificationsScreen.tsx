@@ -27,7 +27,7 @@ interface NotificationsScreenProps {
 
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
-  const { fetchBadgeCount, clearBadge } = useNotificationBadge();
+  const { fetchBadgeCount } = useNotificationBadge();
   const { acceptInvitation } = useFamilySubscription();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -146,37 +146,56 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     }
   };
 
-  // Clear all notifications
+  // Clear all notifications (except pending family invitations)
   const handleClearAll = async () => {
     if (!user?.id) {return;}
 
     try {
-      // Mark all in-app notifications as read for this user so they don't reappear on reload
-      const { error } = await supabase
+      // Mark all in-app notifications as read (except family_invitation type)
+      const { error: notifError } = await supabase
         .from('notifications')
         .update({ is_read: true })
         .eq('user_id', user.id)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .neq('notification_type', 'family_invitation');
 
-      if (error) {
-        Logger.error('Failed to mark notifications as read in Supabase', error as Error, {
+      if (notifError) {
+        Logger.error('Failed to mark notifications as read in Supabase', notifError as Error, {
           component: 'NotificationsScreen',
         });
       }
 
-      // Cancel any pending queued notifications so they no longer appear in the list
+      // Cancel pending queued notifications (except family-related types)
       try {
-        await notificationManagementService.cancelNotifications(user.id);
+        // Get all pending queue items
+        const pendingItems = await notificationManagementService.getPendingNotifications(user.id);
+
+        // Filter out family-related types that shouldn't be cancelled
+        const familyTypes = ['family_invitation', 'member_joined', 'member_removed', 'trial_converted'];
+        const itemsToCancel = pendingItems.filter(item => !familyTypes.includes(item.type));
+
+        // Cancel each non-family notification individually
+        for (const item of itemsToCancel) {
+          if (item.id) {
+            await supabase
+              .from('notification_queue')
+              .update({ status: 'cancelled' })
+              .eq('id', item.id);
+          }
+        }
       } catch (queueError) {
         Logger.error('Failed to cancel queued notifications during clear-all', queueError as Error, {
           component: 'NotificationsScreen',
         });
       }
 
-      // Clear local state and badge
-      await clearBadge();
-      setNotifications([]);
+      // Refresh the notification list and badge count
+      await fetchNotifications();
       await fetchBadgeCount();
+
+      Logger.info('Cleared all notifications except pending family invitations', {
+        component: 'NotificationsScreen',
+      });
     } catch (error) {
       Logger.error('Failed to clear notifications', error as Error, {
         component: 'NotificationsScreen',
@@ -479,16 +498,24 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
         </ThemedText>
-        {notifications.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={handleClearAll}
-          >
-            <ThemedText weight="medium" style={styles.clearText}>
-              Clear All
-            </ThemedText>
-          </TouchableOpacity>
-        )}
+        {(() => {
+          // Only show Clear All if there are non-family-invitation notifications
+          const hasClearableNotifications = notifications.some(
+            n => n.notification_type !== 'family_invitation' && n.type !== 'family_invitation'
+          );
+          return hasClearableNotifications ? (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearAll}
+            >
+              <ThemedText weight="medium" style={styles.clearText}>
+                Clear All
+              </ThemedText>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.clearButton} />
+          );
+        })()}
       </View>
 
       {/* Notifications List */}
