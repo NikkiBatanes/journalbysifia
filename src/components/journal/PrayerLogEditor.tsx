@@ -50,7 +50,16 @@ const defaultStyles = {
   // Main container styles (matching reflection editor)
   container: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 260,
     backgroundColor: Colors.hopeWhite,
+    zIndex: -1,
   },
   backgroundContainer: {
     position: 'absolute',
@@ -58,11 +67,12 @@ const defaultStyles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.hopeWhite,
-    zIndex: -1,
+    backgroundColor: Colors.anchorBlue,
+    zIndex: -2,
   },
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
   scrollContent: {
     flexGrow: 1,
@@ -76,7 +86,7 @@ const defaultStyles = {
     alignItems: 'center',
     paddingTop: 50,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 12,
     zIndex: 10,
     backgroundColor: Colors.hopeWhite,
   },
@@ -214,11 +224,12 @@ const defaultStyles = {
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
-    marginTop: -16,
+    marginTop: -12,
   },
   content: {
     flex: 1,
     padding: 24,
+    backgroundColor: Colors.anchorBlue,
   },
   metadataContainer: {
     marginTop: 32,
