@@ -241,8 +241,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   throw updateError;
                 }
 
-                // Delete all user data from tables
-                await supabase.from('user_playbooks').delete().eq('user_id', user.id);
+                // Delete all user data from tables (in order to respect foreign key constraints)
+                // First get all playbook IDs for this user
+                const { data: userPlaybooks } = await supabase
+                  .from('playbooks')
+                  .select('id')
+                  .eq('user_id', user.id);
+                
+                if (userPlaybooks && userPlaybooks.length > 0) {
+                  const playbookIds = userPlaybooks.map(p => p.id);
+                  await supabase.from('playbook_action_steps').delete().in('playbook_id', playbookIds);
+                  await supabase.from('playbook_affirmations').delete().in('playbook_id', playbookIds);
+                }
+                
+                await supabase.from('playbooks').delete().eq('user_id', user.id);
+                await supabase.from('devotionals').delete().eq('user_id', user.id);
                 await supabase.from('journal_entries').delete().eq('user_id', user.id);
                 await supabase.from('prayers').delete().eq('user_id', user.id);
                 await supabase.from('reflections').delete().eq('user_id', user.id);
@@ -252,6 +265,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 await supabase.from('faith_points_log').delete().eq('user_id', user.id);
                 await supabase.from('user_streaks').delete().eq('user_id', user.id);
                 await supabase.from('subscriptions').delete().eq('user_id', user.id);
+                await supabase.from('user_profiles').delete().eq('id', user.id);
+
+                // Delete the auth user (this will cascade delete remaining data)
+                const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(user.id);
+                if (deleteAuthError) {
+                  Logger.warn('Could not delete auth user via admin API, continuing with sign out', {
+                    component: 'UserProfileScreen',
+                    error: deleteAuthError,
+                  });
+                }
 
                 // Sign out the user
                 await signOut();
