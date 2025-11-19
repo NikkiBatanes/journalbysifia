@@ -173,8 +173,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                       />
                     </View>
                   </TouchableOpacity>
-                  {/* PDF Export temporarily disabled until native module is properly configured */}
-                  {false && onExportPress && (
+                  {onExportPress && (
                     <>
                       <View style={styles.toggleDivider} />
                       <TouchableOpacity

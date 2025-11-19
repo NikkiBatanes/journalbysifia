@@ -344,7 +344,6 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
     try {
       triggerLightHaptic();
       setShowShareModal(true);
-      // Small delay to ensure modal is rendered
       setTimeout(async () => {
         if (viewShotRef.current && verse) {
           await socialShareService.shareToSocial(viewShotRef.current, {
@@ -367,17 +366,14 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <ThemedText weight="semiBold" style={styles.titleText}>TODAY'S SCRIPTURE</ThemedText>
-        {/* Share button temporarily disabled until native module is configured via Xcode */}
-        {false && (
-          <TouchableOpacity
-            onPress={handleShare}
-            style={styles.shareButton}
-            accessibilityRole="button"
-            accessibilityLabel="Share scripture"
-          >
-            <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          onPress={handleShare}
+          style={styles.shareButton}
+          accessibilityRole="button"
+          accessibilityLabel="Share scripture"
+        >
+          <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
+        </TouchableOpacity>
       </View>
       {error ? (
         <View style={styles.errorContainer}>

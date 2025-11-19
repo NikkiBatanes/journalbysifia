@@ -792,8 +792,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               )}
             </View>
           </View>
-          {/* PDF Export temporarily disabled until native module is properly configured */}
-          {false && (
+          {(
             <TouchableOpacity
               style={styles.exportButton}
               onPress={() => {
