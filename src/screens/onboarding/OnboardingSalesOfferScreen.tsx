@@ -714,10 +714,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   processed.push('Access 1-day & 3-day devotionals');
                 } else if (tier.id === 'growth') {
                   processed.push('Access 1-day, 3-day & 5-day devotionals');
-                } else if (tier.id === 'transformation' || tier.id === 'family') {
+                } else if (tier.id === 'transformation') {
                   processed.push('Access all devotional durations (1-7 days)');
                 }
-                // No extra line for transformation/family as requested (no unlocked text)
+                // POST-LAUNCH: || tier.id === 'family'
+                // No extra line for transformation as requested (no unlocked text)
                 processed.push(...tier.features.slice(1));
               } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
                 processed.push('Unlimited playbooks each month');

@@ -82,19 +82,7 @@ class PricingService {
       annualOriginal: 299.88,
       annualPrice: 249.99,
     },
-    {
-      id: 'family',
-      name: 'Family',
-      duration: '12 months',
-      description: 'For the whole family\'s growth',
-      features: [
-        'Everything in Transformation',
-        'Up to 5 family member accounts',
-      ],
-      monthlyPrice: 44.99,
-      annualOriginal: 539.88,
-      annualPrice: 449.99,
-    },
+    // POST-LAUNCH: Family tier removed for MVP
   ];
 
   private locationPricing: { [key: string]: LocationPricing } = {
@@ -163,24 +151,7 @@ class PricingService {
       annualOriginal: 7188.00,
       annualPrice: 5990.00,
     },
-    {
-      id: 'family',
-      name: 'Family',
-      duration: '12 months',
-      description: 'For the whole family\'s growth',
-      features: [
-        'Everything in Transformation',
-        'Up to 5 family member accounts',
-        'Family devotionals & activities',
-        'Parental guidance resources',
-        'Journaling tools to capture your reflections',
-        'Calendar Sync to stay on track',
-        'Copy To-Dos to other dates for flexibility',
-      ],
-      monthlyPrice: 1290.00,
-      annualOriginal: 15480.00,
-      annualPrice: 11990.00,
-    },
+    // POST-LAUNCH: Family tier removed for MVP
   ];
 
   private userOptOutCount = 0; // legacy in-memory (guest fallback)

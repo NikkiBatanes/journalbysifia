@@ -336,12 +336,13 @@ const OnboardingNotificationSetupScreen = () => {
           subtitle: 'Enjoy unlimited access with gentle reminders to support your daily walk.',
           badge: 'Transformation Subscriber',
         };
-      case 'family':
-        return {
-          title: 'Welcome to siFia Family',
-          subtitle: 'Keep your family connected with notifications for unlimited resources.',
-          badge: 'Family Subscriber',
-        };
+      // POST-LAUNCH: Family tier removed
+      // case 'family':
+      //   return {
+      //     title: 'Welcome to siFia Family',
+      //     subtitle: 'Keep your family connected with notifications for unlimited resources.',
+      //     badge: 'Family Subscriber',
+      //   };
       case 'seeker':
       default:
         return {

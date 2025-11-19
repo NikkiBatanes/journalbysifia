@@ -370,7 +370,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
       case 'starter': return 'siFia Spark';
       case 'growth': return 'siFia Growth';
       case 'transformation': return 'siFia Transformation';
-      case 'family': return 'siFia Family';
+      // POST-LAUNCH: case 'family': return 'siFia Family';
       default: return tierName;
     }
   };
@@ -412,7 +412,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     };
   }, []);
 
-  const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'family');
+  const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'growth'); // POST-LAUNCH: fallback was 'family'
 
   // getCurrentPrice removed - defined but never called
 
@@ -474,7 +474,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia Family Plan free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.',
+      description: 'Try siFia free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
