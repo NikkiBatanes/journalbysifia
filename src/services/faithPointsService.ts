@@ -406,6 +406,12 @@ export class FaithPointsService {
           // Show badge notification
           notificationService.showBadgeNotification(badge);
           
+          // Emit badge unlock event for UI updates
+          faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
+            userId,
+            badge,
+          });
+          
           // Award bonus points for badge unlock
           await this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
             type: 'badge_unlocked',

@@ -33,4 +33,5 @@ export const FAITH_POINTS_EVENTS = {
   POINTS_UPDATED: 'points_updated',
   PROFILE_UPDATED: 'profile_updated',
   LEVEL_UP: 'level_up',
+  BADGE_UNLOCKED: 'badge_unlocked',
 } as const;

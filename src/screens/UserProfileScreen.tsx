@@ -1061,6 +1061,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     faithPointsEvents.on(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
     faithPointsEvents.on(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
+    faithPointsEvents.on(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, handlePointsUpdate);
 
     return () => {
       if (refreshTimeout) {
@@ -1068,6 +1069,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
       faithPointsEvents.off(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
       faithPointsEvents.off(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
+      faithPointsEvents.off(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, handlePointsUpdate);
     };
   }, [loadProfileData]);
 
