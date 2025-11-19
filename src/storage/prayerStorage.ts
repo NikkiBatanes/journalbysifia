@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
 import { supabase } from '../services/supabaseClient';
 import { toLocalDateString } from '../utils/date';
+import { streakTrackingService } from '../services/streakTrackingService';
 
 // Prayer types
 export type PrayerType = 'journal' | 'people' | 'devotional';
@@ -253,6 +254,14 @@ export const savePrayerEntry = async (
     });
       // Don't throw here - local save succeeded
     }
+
+    // Update prayer streak (non-blocking)
+    streakTrackingService.updateStreak(userId, 'prayer').catch((streakError) => {
+      Logger.error('Failed to update prayer streak', streakError as Error, {
+        component: 'prayerStorage',
+      });
+      // Non-fatal - don't block prayer save
+    });
 
     return newPrayer;
   } catch (error) {

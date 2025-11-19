@@ -4,6 +4,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import { DeviceEventEmitter } from 'react-native';
 import { Devotional, DevotionalCreationParams } from '../../interfaces/devotional';
 import { Playbook } from '../../interfaces/playbook';
+import { streakTrackingService } from '../streakTrackingService';
 
 export interface DevotionalApiEntry {
   id: string;
@@ -184,6 +185,13 @@ export class DevotionalApi {
     const completedDays = updatedDays.filter(day => day.completed).length;
     const progress = Math.round((completedDays / devotional.total_days) * 100);
     const allCompleted = completedDays === devotional.total_days;
+
+    // Update devotional streak (non-blocking)
+    streakTrackingService.updateStreak(devotional.user_id, 'devotional').catch((streakError) => {
+      Logger.error('Failed to update devotional streak', streakError as Error, {
+        component: 'DevotionalApi',
+      });
+    });
 
     // Update the devotional
     return this.updateDevotional(devotionalId, {

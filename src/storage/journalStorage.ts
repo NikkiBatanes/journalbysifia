@@ -11,6 +11,7 @@ import { supabase } from '../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { Logger } from '../utils/ProductionLogger';
+import { streakTrackingService } from '../services/streakTrackingService';
 
 // --- Debug Utilities ---
 export async function debugPrintSupabaseStorage() {
@@ -893,6 +894,13 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
         .single();
 
       if (insertError) {throw insertError;}
+
+      // Update journal streak (non-blocking)
+      streakTrackingService.updateStreak(userId, 'journal').catch((streakError) => {
+        Logger.error('Failed to update journal streak', streakError as Error, {
+          component: 'journalStorage',
+        });
+      });
 
       return newEntry;
 
