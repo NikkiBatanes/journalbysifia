@@ -148,7 +148,32 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
   // Clear all notifications
   const handleClearAll = async () => {
+    if (!user?.id) {return;}
+
     try {
+      // Mark all in-app notifications as read for this user so they don't reappear on reload
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) {
+        Logger.error('Failed to mark notifications as read in Supabase', error as Error, {
+          component: 'NotificationsScreen',
+        });
+      }
+
+      // Cancel any pending queued notifications so they no longer appear in the list
+      try {
+        await notificationManagementService.cancelNotifications(user.id);
+      } catch (queueError) {
+        Logger.error('Failed to cancel queued notifications during clear-all', queueError as Error, {
+          component: 'NotificationsScreen',
+        });
+      }
+
+      // Clear local state and badge
       await clearBadge();
       setNotifications([]);
       await fetchBadgeCount();

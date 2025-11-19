@@ -41,27 +41,38 @@ serve(async (req) => {
     const payload: NotificationPayload = await req.json();
     const { notification_id, user_id, type, title, message, data, priority = 'normal' } = payload;
 
-    // Rate limiting: Check how many notifications sent in last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: recentNotifications, error: rateLimitError } = await supabase
-      .from('notification_delivery_log')
-      .select('id')
-      .eq('user_id', user_id)
-      .gte('delivered_at', oneHourAgo);
+    // Some high-value, low-volume events should always deliver, even if the user
+    // hit the general rate limit (e.g. family invitations and membership changes).
+    const rateLimitExemptTypes = [
+      'family_invitation',
+      'member_joined',
+      'member_removed',
+      'trial_converted',
+    ];
 
-    if (!rateLimitError && recentNotifications && recentNotifications.length >= 10) {
-      console.warn(`Rate limit exceeded for user ${user_id}: ${recentNotifications.length} notifications in last hour`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          reason: 'Rate limit exceeded',
-          message: 'Maximum 10 notifications per hour. Please try again later.'
-        }),
-        { 
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    if (!rateLimitExemptTypes.includes(type)) {
+      // Rate limiting: Check how many notifications sent in last hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recentNotifications, error: rateLimitError } = await supabase
+        .from('notification_delivery_log')
+        .select('id')
+        .eq('user_id', user_id)
+        .gte('delivered_at', oneHourAgo);
+
+      if (!rateLimitError && recentNotifications && recentNotifications.length >= 10) {
+        console.warn(`Rate limit exceeded for user ${user_id}: ${recentNotifications.length} notifications in last hour`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            reason: 'Rate limit exceeded',
+            message: 'Maximum 10 notifications per hour. Please try again later.'
+          }),
+          { 
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
     }
 
     // Get user's device tokens and preferences
