@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { notificationManagementService, NotificationQueueItem } from './notificationManagementService';
 import { notificationAnalyticsService } from './notificationAnalyticsService';
+import { notificationBatchingService } from './notificationBatchingService';
 import { AppState, AppStateStatus } from 'react-native';
 
 export interface ScheduleOptions {
@@ -288,14 +289,40 @@ class NotificationSchedulerService {
    */
   private async batchWithExisting(notification: NotificationQueueItem): Promise<boolean> {
     try {
-      // For now, just skip the notification if we're over limit
-      // In Phase 4, we'll implement smart batching (combining multiple notifications)
-      Logger.info('Skipping notification due to daily limit', {
+      // Check if this notification type can be batched
+      if (!notificationBatchingService.canBatch(notification.type)) {
+        Logger.info('Notification type cannot be batched - skipping', {
+          component: 'notificationSchedulerService',
+          userId: notification.user_id,
+          type: notification.type,
+        });
+        return false;
+      }
+
+      // First, add this notification to the queue
+      await notificationManagementService.scheduleNotification(notification);
+
+      // Then attempt to batch with similar notifications
+      const batched = await notificationBatchingService.batchNotifications(
+        notification.user_id,
+        notification.type
+      );
+
+      if (batched) {
+        Logger.info('Successfully batched notification', {
+          component: 'notificationSchedulerService',
+          userId: notification.user_id,
+          type: notification.type,
+        });
+        return true;
+      }
+
+      Logger.info('Notification added to queue but not batched yet', {
         component: 'notificationSchedulerService',
         userId: notification.user_id,
         type: notification.type,
       });
-      return false;
+      return true;
     } catch (error) {
       Logger.error('Error batching notification', error as Error, {
         component: 'notificationSchedulerService',

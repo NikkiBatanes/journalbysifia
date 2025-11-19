@@ -116,6 +116,29 @@ serve(async (req) => {
       }
     }
 
+    // Check for batching opportunity (group similar notifications)
+    const shouldBatch = await checkForBatching(supabase, user_id, type);
+    if (shouldBatch && priority !== 'critical') {
+      // Mark this notification for batching instead of immediate send
+      await supabase
+        .from('notification_queue')
+        .insert({
+          user_id,
+          type,
+          title,
+          message,
+          data: data || {},
+          scheduled_for: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // Delay 5 minutes for batching
+          priority,
+          status: 'pending',
+        });
+
+      return new Response(
+        JSON.stringify({ success: true, batched: true, message: 'Notification queued for batching' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Send push notifications to all active devices
     const results = [];
     for (const deviceToken of deviceTokens) {
@@ -222,8 +245,15 @@ async function sendPushNotification(message: PushMessage, platform: string) {
 
 async function sendAPNS(message: PushMessage) {
   // Apple Push Notification Service
-  // Using sandbox host for development/testing with sandbox APNs key
-  const apnsUrl = 'https://api.sandbox.push.apple.com/3/device/' + message.to;
+  // Using production host for live notifications
+  // Switch to sandbox (api.sandbox.push.apple.com) for development/testing
+  const isProduction = Deno.env.get('APP_ENV') === 'production' || Deno.env.get('APNS_ENVIRONMENT') === 'production';
+  const apnsHost = isProduction 
+    ? 'https://api.push.apple.com/3/device/' 
+    : 'https://api.sandbox.push.apple.com/3/device/';
+  const apnsUrl = apnsHost + message.to;
+  
+  console.log(`Sending APNs notification to ${isProduction ? 'PRODUCTION' : 'SANDBOX'} environment`);
 
   const payload = {
     aps: {
@@ -352,4 +382,39 @@ async function scheduleForLater(supabase: any, payload: NotificationPayload, pre
       scheduled_for: scheduledTime.toISOString(),
       priority: payload.priority || 'normal',
     });
+}
+
+async function checkForBatching(supabase: any, userId: string, type: string): Promise<boolean> {
+  // Notification types that can be batched
+  const batchableTypes = [
+    'prayer_reminder',
+    'devotional_reminder',
+    'journal_prompt',
+    'playbook_step',
+    'streak_alert',
+    'reflection_question',
+  ];
+
+  if (!batchableTypes.includes(type)) {
+    return false;
+  }
+
+  // Check if there are similar pending notifications in the last 30 minutes
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  
+  const { data, error } = await supabase
+    .from('notification_queue')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('type', type)
+    .eq('status', 'pending')
+    .gte('created_at', thirtyMinutesAgo);
+
+  if (error) {
+    console.error('Error checking for batching:', error);
+    return false;
+  }
+
+  // If there's at least one similar notification, batch them
+  return data && data.length > 0;
 }

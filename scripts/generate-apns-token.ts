@@ -20,11 +20,11 @@ type Config = {
 
 function loadConfig(): Config {
   const config: Config = {
-    authKeyPath: process.env.APNS_AUTH_KEY_PATH || './AuthKey_28HNT3LV73.p8',
-    keyId: process.env.APNS_KEY_ID || '28HNT3LV73',
+    authKeyPath: process.env.APNS_AUTH_KEY_PATH || './AuthKey_9VP3G2X44C.p8',
+    keyId: process.env.APNS_KEY_ID || '9VP3G2X44C',
     teamId: process.env.APPLE_TEAM_ID || 'L2AT73KSY8',
     bundleId: process.env.APNS_BUNDLE_ID || 'com.sifiaopc.app',
-    envName: process.env.APP_ENV || 'development',
+    envName: process.env.APP_ENV || 'production',
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     secretName: process.env.APNS_SECRET_NAME || 'APNS_JWT_TOKEN',
