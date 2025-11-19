@@ -36,24 +36,22 @@ export interface PlanningAccessCheck {
 }
 
 // Lock visibility rules per tier
-export const LOCK_VISIBILITY_RULES: Record<SubscriptionTier, number[]> = {
+export const LOCK_VISIBILITY_RULES = {
   seeker: [1, 3, 5, 7],        // All durations locked
   free_trial: [5, 7],          // 5-day and 7-day locked
   spark: [5, 7],               // 5-day and 7-day locked
   growth: [7],                 // Only 7-day locked
   transformation: [],          // No locks
-  family: [],                   // No locks
-};
+} as Record<SubscriptionTier, number[]>;
 
 // Usage counter messages per tier
-export const USAGE_DISPLAY_RULES: Record<SubscriptionTier, string> = {
+export const USAGE_DISPLAY_RULES = {
   seeker: 'Upgrade to Create Devotionals',
   free_trial: '2 Devotionals Remaining',
   spark: '8 Devotionals Remaining',
   growth: '20 Devotionals Remaining',
   transformation: 'Unlimited Devotionals',
-  family: 'Unlimited Devotionals',
-};
+} as Record<SubscriptionTier, string>;
 
 // Dynamic upgrade messages by context
 export const UPGRADE_MESSAGES = {
@@ -63,7 +61,6 @@ export const UPGRADE_MESSAGES = {
     spark: "You've reached your Spark limit",
     growth: "You've reached your Growth limit",
     transformation: '',
-    family: '',
   },
   inApp: {
     seeker: 'Unlock devotionals to deepen your faith',
@@ -71,7 +68,6 @@ export const UPGRADE_MESSAGES = {
     spark: 'Upgrade to Growth for more devotionals',
     growth: 'Upgrade to Transformation for unlimited access',
     transformation: '',
-    family: '',
   },
 } as const;
 
@@ -103,7 +99,7 @@ export function getAllowedDurations(tier: SubscriptionTier): number[] {
  * Get usage display message for a tier
  */
 export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: number): string {
-  if (tier === 'transformation' || tier === 'family') {
+  if (tier === 'transformation') {
     return USAGE_DISPLAY_RULES[tier];
   }
 
@@ -189,7 +185,7 @@ export function tierHasLocks(tier: SubscriptionTier): boolean {
  * Get next upgrade tier that unlocks a duration
  */
 export function getUnlockTier(duration: number): SubscriptionTier | null {
-  const tiers: SubscriptionTier[] = ['seeker', 'free_trial', 'spark', 'growth', 'transformation', 'family'];
+  const tiers: SubscriptionTier[] = ['seeker', 'free_trial', 'spark', 'growth', 'transformation'];
 
   for (const tier of tiers) {
     if (!isDevotionalDurationLocked(tier, duration)) {
@@ -204,7 +200,7 @@ export function getUnlockTier(duration: number): SubscriptionTier | null {
  * Get tier hierarchy for upgrade suggestions
  */
 export function getTierHierarchy(): SubscriptionTier[] {
-  return ['seeker', 'free_trial', 'spark', 'growth', 'transformation', 'family'];
+  return ['seeker', 'free_trial', 'spark', 'growth', 'transformation'];
 }
 
 /**
@@ -226,24 +222,22 @@ export function getNextTier(currentTier: SubscriptionTier): SubscriptionTier | n
 // ==========================================
 
 // Planning lock rules per tier
-export const PLANNING_LOCK_RULES: Record<SubscriptionTier, boolean> = {
+export const PLANNING_LOCK_RULES = {
   seeker: true,           // Future planning locked
   free_trial: false,      // Future planning allowed
   spark: false,           // Future planning allowed
   growth: false,          // Future planning allowed
   transformation: false,  // Future planning allowed
-  family: false,          // Future planning allowed
-};
+} as Record<SubscriptionTier, boolean>;
 
 // Planning usage messages per tier
-export const PLANNING_USAGE_MESSAGES: Record<SubscriptionTier, string> = {
+export const PLANNING_USAGE_MESSAGES = {
   seeker: 'Future Planning Locked',
   free_trial: 'Future Planning Available',
   spark: 'Future Planning Available',
   growth: 'Future Planning Available',
   transformation: 'Future Planning Available',
-  family: 'Future Planning Available',
-};
+} as Record<SubscriptionTier, string>;
 
 // Planning upgrade messages by context
 export const PLANNING_UPGRADE_MESSAGES = {

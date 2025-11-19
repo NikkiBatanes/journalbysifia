@@ -184,7 +184,7 @@ export function useNotificationBadge() {
         familyInvitesSubscription.unsubscribe();
       }
     };
-  }, [user?.id, fetchBadgeCount]);
+  }, [user?.id, user, fetchBadgeCount]);
 
   // Refresh badge count every 5 minutes
   useEffect(() => {
