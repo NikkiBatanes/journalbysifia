@@ -103,7 +103,7 @@ class WeeklySummaryService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: false,
       });

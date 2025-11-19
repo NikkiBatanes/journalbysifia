@@ -14,14 +14,13 @@ interface ShareableCardProps {
   type: 'scripture' | 'affirmation';
   text: string;
   reference?: string; // For scripture
-  date?: string;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH;
 const CARD_HEIGHT = CARD_WIDTH * 1.777; // 16:9 ratio for stories
 
-const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference, date }) => {
+const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference }) => {
   return (
     <LinearGradient
       colors={['#1a3c6d', '#274673', '#1a3c6d']}
@@ -31,10 +30,10 @@ const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference, da
     >
       {/* Decorative pattern overlay */}
       <View style={styles.patternOverlay}>
-        <MaterialCommunityIcons 
-          name="dots-hexagon" 
-          size={200} 
-          color="rgba(255,255,255,0.03)" 
+        <MaterialCommunityIcons
+          name="dots-hexagon"
+          size={200}
+          color="rgba(255,255,255,0.03)"
           style={styles.patternIcon}
         />
       </View>
@@ -50,10 +49,10 @@ const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference, da
       {/* Main Content */}
       <View style={styles.content}>
         {/* Opening Quote */}
-        <MaterialCommunityIcons 
-          name="format-quote-open" 
-          size={48} 
-          color="rgba(255,255,255,0.3)" 
+        <MaterialCommunityIcons
+          name="format-quote-open"
+          size={48}
+          color="rgba(255,255,255,0.3)"
           style={styles.quoteIcon}
         />
 
@@ -70,10 +69,10 @@ const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference, da
         )}
 
         {/* Closing Quote */}
-        <MaterialCommunityIcons 
-          name="format-quote-close" 
-          size={48} 
-          color="rgba(255,255,255,0.3)" 
+        <MaterialCommunityIcons
+          name="format-quote-close"
+          size={48}
+          color="rgba(255,255,255,0.3)"
           style={styles.quoteIconClose}
         />
       </View>

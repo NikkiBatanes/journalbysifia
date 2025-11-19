@@ -235,12 +235,12 @@ export const useCreatePrayer = () => {
     },
     onSuccess: async (_data, variables) => {
       // Cache is automatically handled by React Query
-      
+
       // Update prayer streak
       if (variables.user_id) {
         try {
           await streakTrackingService.updateStreak(variables.user_id, 'prayer');
-          
+
           // Invalidate streak tracker to refresh UI
           queryClient.invalidateQueries({
             queryKey: queryKeys.dashboard.streaks(variables.user_id),
@@ -860,12 +860,12 @@ export const useCreateDevotionalPrayer = () => {
     },
     onSuccess: async (_data, variables) => {
       // Cache is automatically handled by React Query optimistic updates
-      
+
       // Update prayer streak
       if (variables.userId) {
         try {
           await streakTrackingService.updateStreak(variables.userId, 'prayer');
-          
+
           // Invalidate streak tracker to refresh UI
           queryClient.invalidateQueries({
             queryKey: queryKeys.dashboard.streaks(variables.userId),

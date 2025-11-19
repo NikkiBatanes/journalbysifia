@@ -305,7 +305,7 @@ export const useCreateJournalEntry = () => {
         // Update journal streak
         try {
           await streakTrackingService.updateStreak(variables.user_id, 'journal');
-          
+
           // Invalidate streak tracker to refresh UI
           queryClient.invalidateQueries({
             queryKey: queryKeys.dashboard.streaks(variables.user_id),

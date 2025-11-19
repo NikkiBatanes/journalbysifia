@@ -360,7 +360,7 @@ class NotificationBatchingService {
       data?.forEach((item: any) => {
         const originalCount = item.data?.original_count || 0;
         stats.notificationsSaved += Math.max(0, originalCount - 1);
-        
+
         const type = item.type.replace('batched_', '');
         stats.batchedByType[type] = (stats.batchedByType[type] || 0) + 1;
       });

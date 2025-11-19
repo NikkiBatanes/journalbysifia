@@ -57,7 +57,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
   const { refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
-  
+
   // Always show light status bar (white icons) on this screen
   useScreenStatusBar('light', Colors.hopeWhite);
 

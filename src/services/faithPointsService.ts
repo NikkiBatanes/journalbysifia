@@ -402,16 +402,16 @@ export class FaithPointsService {
             badgeId: badge.id,
             userId,
           });
-          
+
           // Show badge notification
           notificationService.showBadgeNotification(badge);
-          
+
           // Emit badge unlock event for UI updates
           faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
             userId,
             badge,
           });
-          
+
           // Award bonus points for badge unlock
           await this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
             type: 'badge_unlocked',
@@ -816,7 +816,7 @@ export class FaithPointsService {
       case 'first_playbook':
         // Award on first playbook generation
         return activity === 'playbook_generated';
-      
+
       case 'consistent_week':
         // Award when user has 7-day streak
         const { data: profile } = await supabase
@@ -825,19 +825,19 @@ export class FaithPointsService {
           .eq('user_id', userId)
           .single();
         return (profile?.current_streak || 0) >= 7;
-      
+
       case 'prayer_warrior':
         // Award after generating 10 devotionals
         return await this.getActivityCount(userId, 'devotional_generated') >= 10;
-      
+
       case 'growth_seeker':
         // Award after generating 25 playbooks
         return await this.getActivityCount(userId, 'playbook_generated') >= 25;
-      
+
       case 'journal_keeper':
         // Award after making 50 journal entries
         return await this.getActivityCount(userId, 'journal_entry') >= 50;
-      
+
       case 'streak_master':
         // Award when user achieves 30-day streak
         const { data: streakProfile } = await supabase
@@ -850,7 +850,7 @@ export class FaithPointsService {
           streakProfile?.longest_streak || 0
         );
         return maxStreak >= 30;
-      
+
       case 'faith_champion':
         // Award when user reaches level 5
         const { data: levelProfile } = await supabase
@@ -859,7 +859,7 @@ export class FaithPointsService {
           .eq('user_id', userId)
           .single();
         return (levelProfile?.current_level || 1) >= 5;
-      
+
       default:
         return true;
     }

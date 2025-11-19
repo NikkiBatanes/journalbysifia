@@ -44,7 +44,7 @@ class PDFExportService {
    */
   private generateDevotionalHTML(data: DevotionalPDFData): string {
     const { title, duration, bibleVerse, reflection, prayer, actionSteps, createdAt } = data;
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -222,7 +222,7 @@ class PDFExportService {
    */
   private generatePlaybookHTML(data: PlaybookPDFData): string {
     const { title, truthInLove, bibleVerse, actionSteps, affirmations, directChallenge, createdAt } = data;
-    
+
     return `
       <!DOCTYPE html>
       <html>

@@ -4,7 +4,6 @@
  */
 
 import { Platform, Alert } from 'react-native';
-import Share from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
 import { Logger } from './ProductionLogger';
 
@@ -28,7 +27,7 @@ class SocialShareService {
 
       const shareOptions = {
         title: content.type === 'scripture' ? "Today's Scripture" : "Today's Affirmation",
-        message: content.type === 'scripture' 
+        message: content.type === 'scripture'
           ? `"${content.text}"\n\n— ${content.reference}\n\nShared from siFia`
           : `${content.text}\n\nShared from siFia`,
         url: Platform.OS === 'ios' ? uri : `file://${uri}`,

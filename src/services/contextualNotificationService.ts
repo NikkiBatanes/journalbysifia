@@ -129,7 +129,7 @@ class ContextualNotificationService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });
@@ -188,7 +188,7 @@ class ContextualNotificationService {
       };
 
       const success = await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });
@@ -243,7 +243,7 @@ class ContextualNotificationService {
       };
 
       return await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });
@@ -288,7 +288,7 @@ class ContextualNotificationService {
       };
 
       return await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });
@@ -334,7 +334,7 @@ class ContextualNotificationService {
       };
 
       return await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });
@@ -382,7 +382,7 @@ class ContextualNotificationService {
       };
 
       return await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });
@@ -426,7 +426,7 @@ class ContextualNotificationService {
       };
 
       return await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });
@@ -472,7 +472,7 @@ class ContextualNotificationService {
       };
 
       return await notificationSchedulerService.scheduleNotification(notification, {
-        
+
         priority: 'normal',
         batchWithOthers: true,
       });

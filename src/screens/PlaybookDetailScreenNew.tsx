@@ -1121,7 +1121,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // PDF Export handler
   const handleExportPDF = useCallback(() => {
-    if (!playbook) return;
+    if (!playbook) {return;}
 
     pdfExportService.exportPlaybookPDF({
       title: playbook.title,

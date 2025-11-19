@@ -47,7 +47,6 @@ import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
 import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDetailSkeleton';
 import { pdfExportService } from '../utils/pdfExportService';
-import { triggerLightHaptic } from '../utils/haptics';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 

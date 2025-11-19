@@ -238,7 +238,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   });
                   throw new Error('User not authenticated');
                 }
-                
+
                 Logger.debug('[UserProfileScreen] Starting account deletion process', {
                   component: 'UserProfileScreen',
                   userId: user.id,
@@ -249,9 +249,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   data: {
                     account_deletion_requested: true,
                     account_deletion_date: new Date().toISOString(),
-                  }
+                  },
                 });
-                
+
                 if (updateError) {
                   Logger.error('Error marking account for deletion', updateError as Error, {
                     component: 'UserProfileScreen',
@@ -265,13 +265,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   .from('playbooks')
                   .select('id')
                   .eq('user_id', user.id);
-                
+
                 if (userPlaybooks && userPlaybooks.length > 0) {
                   const playbookIds = userPlaybooks.map(p => p.id);
                   await supabase.from('playbook_action_steps').delete().in('playbook_id', playbookIds);
                   await supabase.from('playbook_affirmations').delete().in('playbook_id', playbookIds);
                 }
-                
+
                 await supabase.from('playbooks').delete().eq('user_id', user.id);
                 await supabase.from('devotionals').delete().eq('user_id', user.id);
                 await supabase.from('journal_entries').delete().eq('user_id', user.id);
