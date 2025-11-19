@@ -198,11 +198,18 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [deleteBirthYear]);
 
   const handleConfirmDeleteAccount = useCallback(async () => {
+    Logger.debug('[UserProfileScreen] Delete account initiated', {
+      component: 'UserProfileScreen',
+      isValidBirthYear,
+      hasUser: !!user,
+    });
 
     try {
       try { triggerLightHaptic(); } catch {}
       if (!isValidBirthYear) {
-
+        Logger.warn('[UserProfileScreen] Invalid birth year', {
+          component: 'UserProfileScreen',
+        });
         Alert.alert('Enter valid year', 'Please enter your birth year (YYYY) to continue.');
         return;
       }
@@ -220,11 +227,22 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             text: 'Delete',
             style: 'destructive',
             onPress: async () => {
+              Logger.debug('[UserProfileScreen] User confirmed deletion', {
+                component: 'UserProfileScreen',
+              });
               setIsDeletingAccount(true);
               try {
                 if (!user?.id) {
+                  Logger.error('[UserProfileScreen] No user ID found', undefined, {
+                    component: 'UserProfileScreen',
+                  });
                   throw new Error('User not authenticated');
                 }
+                
+                Logger.debug('[UserProfileScreen] Starting account deletion process', {
+                  component: 'UserProfileScreen',
+                  userId: user.id,
+                });
 
                 // Mark account for deletion in user metadata
                 const { error: updateError } = await supabase.auth.updateUser({
@@ -277,9 +295,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 }
 
                 // Sign out the user
+                Logger.debug('[UserProfileScreen] Account deletion complete, signing out', {
+                  component: 'UserProfileScreen',
+                });
                 await signOut();
 
                 // Show success message
+                Logger.debug('[UserProfileScreen] Showing success message', {
+                  component: 'UserProfileScreen',
+                });
                 Alert.alert(
                   'Account Deleted',
                   'Your account has been permanently deleted. We\'re sorry to see you go.',
@@ -318,7 +342,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         ]
       );
     } catch {}
-  }, [isValidBirthYear]);
+  }, [isValidBirthYear, user, signOut]);
 
   const loadNotificationPreferences = useCallback(async () => {
     if (!user?.id) {return;}
