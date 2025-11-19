@@ -261,7 +261,7 @@ export class FaithPointsService {
       const newLevel = this.calculateLevel(newTotalPoints);
       const leveledUp = newLevel > currentLevel;
 
-      // Check for new badges
+      // Check for new badges (before updating profile to ensure accurate checks)
       const newBadges = await this.checkForNewBadges(userId, newTotalPoints, activity);
 
       // Update streak if daily activity
@@ -392,6 +392,27 @@ export class FaithPointsService {
         notificationService.showPointsNotification(pointsAwarded, activity, 'center');
       } else {
 
+      }
+
+      // Show badge unlock notifications
+      if (newBadges && newBadges.length > 0 && !_metadata?.suppressNotification) {
+        for (const badge of newBadges) {
+          Logger.debug(`[FaithPointsService] Badge unlocked: ${badge.name}`, {
+            component: 'faithPointsService',
+            badgeId: badge.id,
+            userId,
+          });
+          
+          // Show badge notification
+          notificationService.showBadgeNotification(badge);
+          
+          // Award bonus points for badge unlock
+          await this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
+            type: 'badge_unlocked',
+            badgeId: badge.id,
+            badgeName: badge.name,
+          });
+        }
       }
 
       // Check for milestone celebrations (non-blocking)
@@ -787,11 +808,52 @@ export class FaithPointsService {
     // Implement specific badge requirement checks
     switch (badge.id) {
       case 'first_playbook':
+        // Award on first playbook generation
         return activity === 'playbook_generated';
+      
+      case 'consistent_week':
+        // Award when user has 7-day streak
+        const { data: profile } = await supabase
+          .from('faith_points_profiles')
+          .select('current_streak')
+          .eq('user_id', userId)
+          .single();
+        return (profile?.current_streak || 0) >= 7;
+      
       case 'prayer_warrior':
+        // Award after generating 10 devotionals
         return await this.getActivityCount(userId, 'devotional_generated') >= 10;
+      
       case 'growth_seeker':
+        // Award after generating 25 playbooks
         return await this.getActivityCount(userId, 'playbook_generated') >= 25;
+      
+      case 'journal_keeper':
+        // Award after making 50 journal entries
+        return await this.getActivityCount(userId, 'journal_entry') >= 50;
+      
+      case 'streak_master':
+        // Award when user achieves 30-day streak
+        const { data: streakProfile } = await supabase
+          .from('faith_points_profiles')
+          .select('current_streak, longest_streak')
+          .eq('user_id', userId)
+          .single();
+        const maxStreak = Math.max(
+          streakProfile?.current_streak || 0,
+          streakProfile?.longest_streak || 0
+        );
+        return maxStreak >= 30;
+      
+      case 'faith_champion':
+        // Award when user reaches level 5
+        const { data: levelProfile } = await supabase
+          .from('faith_points_profiles')
+          .select('current_level')
+          .eq('user_id', userId)
+          .single();
+        return (levelProfile?.current_level || 1) >= 5;
+      
       default:
         return true;
     }
