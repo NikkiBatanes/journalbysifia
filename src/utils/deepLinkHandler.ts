@@ -23,57 +23,100 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
 
     // Handle both sifia:// scheme and https:// (Supabase might redirect through https first)
     if (url.startsWith('sifia://') || url.includes('reset-password')) {
-      // Normalize URL to sifia:// scheme if needed
-      let normalizedUrl = url;
-      if (url.startsWith('https://') || url.startsWith('http://')) {
-        // Extract the path and convert to sifia:// scheme
-        const urlMatch = url.match(/\/reset-password/);
-        if (urlMatch) {
-          normalizedUrl = url.replace(/^https?:\/\/[^/]+/, 'sifia:/');
-        }
-      }
-
-      console.log('[DeepLink] Normalized URL:', normalizedUrl);
-
-      const urlObj = new URL(normalizedUrl);
-      const host = urlObj.hostname || urlObj.pathname.split('/')[0].replace('/', '');
       const params: any = {};
-
-      // Extract query parameters
-      urlObj.searchParams.forEach((value, key) => {
-        params[key] = value;
-        console.log('[DeepLink] Query param:', key, '=', value.substring(0, 30) + '...');
-      });
-
-      // Extract hash parameters (Supabase sends tokens in hash fragment)
-      if (urlObj.hash) {
-        console.log('[DeepLink] Hash found:', urlObj.hash.substring(0, 50) + '...');
-        const hashParams = new URLSearchParams(urlObj.hash.substring(1));
-        hashParams.forEach((value, key) => {
-          params[key] = value;
-          console.log('[DeepLink] Hash param:', key, '=', value.substring(0, 20) + '...');
+      
+      // CRITICAL FIX: Extract tokens from hash fragment using regex
+      // Supabase sends: sifia://reset-password#access_token=xxx&refresh_token=yyy&type=recovery
+      // The URL API doesn't reliably parse hash fragments in custom schemes
+      
+      // Extract from hash fragment (after #)
+      const hashMatch = url.match(/#(.+)$/);
+      if (hashMatch) {
+        const hashString = hashMatch[1];
+        console.log('[DeepLink] Hash fragment found:', hashString.substring(0, 50) + '...');
+        
+        // Parse hash parameters manually
+        const hashPairs = hashString.split('&');
+        hashPairs.forEach(pair => {
+          const [key, value] = pair.split('=');
+          if (key && value) {
+            params[key] = decodeURIComponent(value);
+            console.log('[DeepLink] Hash param:', key, '=', value.substring(0, 20) + '...');
+          }
         });
       }
+      
+      // Also try URL API as fallback
+      try {
+        let normalizedUrl = url;
+        if (url.startsWith('https://') || url.startsWith('http://')) {
+          const urlMatch = url.match(/\/reset-password/);
+          if (urlMatch) {
+            normalizedUrl = url.replace(/^https?:\/\/[^/]+/, 'sifia:/');
+          }
+        }
 
-      // Also check if tokens are in the main URL (some formats)
+        console.log('[DeepLink] Normalized URL:', normalizedUrl);
+
+        const urlObj = new URL(normalizedUrl);
+        const host = urlObj.hostname || urlObj.pathname.split('/')[0].replace('/', '');
+
+        // Extract query parameters (if any)
+        urlObj.searchParams.forEach((value, key) => {
+          if (!params[key]) { // Don't override hash params
+            params[key] = value;
+            console.log('[DeepLink] Query param:', key, '=', value.substring(0, 30) + '...');
+          }
+        });
+
+        // Try URL API hash parsing as fallback
+        if (urlObj.hash && !params.access_token) {
+          console.log('[DeepLink] URL API hash found:', urlObj.hash.substring(0, 50) + '...');
+          const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+          hashParams.forEach((value, key) => {
+            if (!params[key]) {
+              params[key] = value;
+              console.log('[DeepLink] URL API hash param:', key, '=', value.substring(0, 20) + '...');
+            }
+          });
+        }
+      } catch (urlError) {
+        console.warn('[DeepLink] URL API parsing failed, using regex extraction only:', urlError);
+      }
+
+      // Final fallback: regex extraction from full URL string
       if (!params.access_token && url.includes('access_token=')) {
-        const tokenMatch = url.match(/access_token=([^&]+)/);
+        const tokenMatch = url.match(/access_token=([^&#]+)/);
         if (tokenMatch) {
-          params.access_token = tokenMatch[1];
-          console.log('[DeepLink] Extracted access_token from URL string');
+          params.access_token = decodeURIComponent(tokenMatch[1]);
+          console.log('[DeepLink] Extracted access_token from regex');
+        }
+      }
+      
+      if (!params.refresh_token && url.includes('refresh_token=')) {
+        const tokenMatch = url.match(/refresh_token=([^&#]+)/);
+        if (tokenMatch) {
+          params.refresh_token = decodeURIComponent(tokenMatch[1]);
+          console.log('[DeepLink] Extracted refresh_token from regex');
         }
       }
 
-      console.log('[DeepLink] ✅ Host:', host);
       console.log('[DeepLink] ✅ Has access_token:', !!params.access_token);
-      Logger.info('[DeepLink] Parsed params', { host, hasAccessToken: !!params.access_token });
+      console.log('[DeepLink] ✅ Has refresh_token:', !!params.refresh_token);
+      console.log('[DeepLink] ✅ Type:', params.type);
+      Logger.info('[DeepLink] Parsed params', { 
+        hasAccessToken: !!params.access_token,
+        hasRefreshToken: !!params.refresh_token,
+        type: params.type
+      });
 
       // Determine link type
-      if (host === 'reset-password' || url.includes('reset-password')) {
+      if (url.includes('reset-password')) {
         return {
           type: 'reset-password',
           accessToken: params.access_token,
           refreshToken: params.refresh_token,
+          recoveryType: params.type,
           ...params,
         };
       }

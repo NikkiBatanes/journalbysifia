@@ -16,7 +16,6 @@ import UserInputScreen from '../screens/UserInputScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import NotificationDebugScreen from '../screens/NotificationDebugScreen';
-import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 
 // New Onboarding screens
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
@@ -190,17 +189,6 @@ export default function RootStackNavigator({
         options={OnboardingAnimations.pushFromBottom}
       />
 
-      {/* Password Reset - Available at root level for deep linking */}
-      <Stack.Screen
-        name="GlobalResetPassword"
-        component={ResetPasswordScreen as React.ComponentType}
-        options={{
-          headerShown: false,
-          presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
-          gestureEnabled: true,
-        }}
-      />
 
       {/* Pre-auth screens */}
       {!isAuthenticated ? (

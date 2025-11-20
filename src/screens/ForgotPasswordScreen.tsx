@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   resetButtonText: {
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     fontSize: 18,
     fontFamily: Fonts.system.bold,
     fontWeight: '600',

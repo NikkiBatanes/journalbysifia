@@ -35,11 +35,17 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const { updatePassword } = useAuth();
 
-  // Get access token from route params (from deep link)
+  // Get access token and refresh token from route params (from deep link)
   const accessToken = route?.params?.access_token;
+  const refreshToken = route?.params?.refresh_token;
 
   useEffect(() => {
-    if (!accessToken) {
+    console.log('[ResetPassword] Screen mounted with tokens:', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+    });
+
+    if (!accessToken || !refreshToken) {
       Alert.alert(
         'Invalid Reset Link',
         'This password reset link is invalid or has expired. Please request a new one.',
@@ -51,7 +57,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
         ]
       );
     }
-  }, [accessToken, navigation]);
+  }, [accessToken, refreshToken, navigation]);
 
   const validatePassword = (passwordInput: string) => {
     if (passwordInput.length < 8) {
@@ -98,14 +104,18 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     setLoading(true);
 
     try {
-      const { error: updateError } = await updatePassword(password, accessToken);
+      console.log('[ResetPassword] Attempting to update password with tokens');
+      const { error: updateError } = await updatePassword(password, accessToken, refreshToken);
 
       if (updateError) {
+        console.error('[ResetPassword] Password update failed:', updateError);
         triggerErrorHaptic();
         setError(updateError.message || 'Failed to reset password. Please try again.');
         setLoading(false);
         return;
       }
+
+      console.log('[ResetPassword] Password updated successfully');
 
       triggerSuccessHaptic();
       Alert.alert(

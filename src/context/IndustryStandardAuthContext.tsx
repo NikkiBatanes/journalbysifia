@@ -29,7 +29,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => Promise<{ error: SupabaseAuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: SupabaseAuthError | null }>;
-  updatePassword: (newPassword: string, accessToken?: string) => Promise<{ error: SupabaseAuthError | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: SupabaseAuthError | null }>;
   updateProfile: (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
   updatePreferences: (preferences: any) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
   signInWithGoogle: () => Promise<{ error: SupabaseAuthError | null }>;
@@ -732,14 +732,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const resetPassword = async (email: string) => {
     try {
 
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        email.toLowerCase().trim(),
-        {
-          redirectTo: 'sifia://reset-password',
-          // Enterprise-grade email configuration
-          captchaToken: undefined, // Can be added for additional security
-        }
-      );
+      const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
+        redirectTo: 'https://sifia.app/reset-password.html',
+      });
 
       if (error) {
         Logger.error('Password reset failed', error as Error, {
@@ -764,44 +759,28 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     }
   };
 
-  const updatePassword = async (newPassword: string, accessToken?: string) => {
+  const updatePassword = async (newPassword: string) => {
     try {
+      // Regular password update for authenticated user
+      if (!authState.user) {
+        return {
+          error: {
+            message: 'User not authenticated',
+            status: 401,
+          } as SupabaseAuthError,
+        };
+      }
 
-      // If we have an access token (from reset link), use it
-      if (accessToken) {
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        Logger.error('Password update failed', error as Error, {
+          component: 'AuthContext',
+          action: 'update_password_authenticated',
         });
-
-        if (error) {
-          Logger.error('Password update failed', error as Error, {
-            component: 'AuthContext',
-            action: 'update_password_with_token',
-          });
-          return { error };
-        }
-      } else {
-        // Regular password update for authenticated user
-        if (!authState.user) {
-          return {
-            error: {
-              message: 'User not authenticated',
-              status: 401,
-            } as SupabaseAuthError,
-          };
-        }
-
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
-
-        if (error) {
-          Logger.error('Password update failed', error as Error, {
-            component: 'AuthContext',
-            action: 'update_password_authenticated',
-          });
-          return { error };
-        }
+        return { error };
       }
 
       return { error: null };
