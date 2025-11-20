@@ -224,9 +224,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = React.useState(routeParams?.name || '');
   const greetingName = React.useMemo(() => {
-    if (!name) {return '';} 
+    if (!name) {return '';}
     const trimmed = name.trim();
-    if (!trimmed) {return '';} 
+    if (!trimmed) {return '';}
     return trimmed.split(/\s+/)[0];
   }, [name]);
 

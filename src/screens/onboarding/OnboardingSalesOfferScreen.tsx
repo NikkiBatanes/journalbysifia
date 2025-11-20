@@ -168,7 +168,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleSuccessModalContinue = React.useCallback(() => {
     setShowSuccessModal(false);
     setLastPurchasedTier(null);
-    
+
     setTimeout(() => {
       if (isUpgradeMode) {
         // In upgrade mode, navigate back to the original context
