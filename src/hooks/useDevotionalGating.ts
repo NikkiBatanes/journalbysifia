@@ -1,8 +1,7 @@
 // useDevotionalGating - Enterprise hook for devotional feature gating logic
 // Provides comprehensive access control and usage tracking for devotionals
 
-import { useMemo, useCallback } from 'react';
-import { Logger } from '../utils/ProductionLogger';
+import { useMemo } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import subscriptionService from '../services/NewSubscriptionService';
 import {
@@ -13,13 +12,6 @@ import {
 } from '../utils/tierLockingRules';
 import { useQuery } from '@tanstack/react-query';
 import type { Subscription, SubscriptionTier } from '../types/subscription';
-
-interface DevotionalGatingState {
-  subscription: Subscription | null;
-  tier: SubscriptionTier;
-  loading: boolean;
-  error: string | null;
-}
 
 interface DevotionalUsageInfo {
   used: number;

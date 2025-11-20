@@ -8,7 +8,7 @@ import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, StyleSheet, LogBox, Image, AppState, AppStateStatus, Linking } from 'react-native';
+import { View, StatusBar, StyleSheet, LogBox, Image, AppState, AppStateStatus } from 'react-native';
 
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 

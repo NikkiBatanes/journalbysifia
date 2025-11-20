@@ -7,8 +7,6 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
-  Pressable,
-  TouchableWithoutFeedback,
   Platform,
   View,
   ViewStyle,

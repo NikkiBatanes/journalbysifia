@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextStyle, Clipboard, Alert, Image, SafeAreaView, Platform, ActionSheetIOS } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity, Clipboard, Alert, Image, SafeAreaView, Platform, ActionSheetIOS } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
