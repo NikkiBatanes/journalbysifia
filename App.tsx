@@ -8,7 +8,7 @@ import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, StyleSheet, LogBox, Image, AppState, AppStateStatus } from 'react-native';
+import { View, StatusBar, StyleSheet, LogBox, Image, AppState, AppStateStatus, Linking } from 'react-native';
 
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 
@@ -68,15 +68,123 @@ function App(): React.JSX.Element {
 
 import { useAuth } from './src/context/IndustryStandardAuthContext';
 import { useNotificationSetup } from './src/utils/notificationSetup';
+import { parseDeepLink, getInitialDeepLink, addDeepLinkListener } from './src/utils/deepLinkHandler';
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
 
-  const { isAuthenticated, bootstrapping, user } = useAuth();
+  const { isAuthenticated, bootstrapping, user, signOut } = useAuth();
   const navigationRef = React.useRef<NavigationContainerRef<any> | null>(null);
   const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(undefined);
 
+  // Linking configuration for deep links - MUST be before any early returns
+  // Only enable linking when authenticated to prevent interference with logout
+  const linking = React.useMemo(() => {
+    if (bootstrapping) {
+      return undefined;
+    }
+    
+    return {
+      prefixes: ['sifia://', 'https://sifia.app', 'http://sifia.app'],
+      config: {
+        screens: {
+          GlobalResetPassword: 'reset-password',
+          Auth: {
+            screens: {
+              ForgotPassword: 'forgot-password',
+              EmailLogin: 'login',
+              Register: 'register',
+            },
+          },
+        },
+      },
+    };
+  }, [bootstrapping]);
+
   // Initialize notification system (deep links, scheduling, badges)
   useNotificationSetup(user?.id, navigationRef.current);
+
+  // Handle deep links for password reset
+  useEffect(() => {
+    // Handle deep link while app is running
+    const handleDeepLink = (url: string) => {
+      console.log('[App] 🔗 Deep link received:', url);
+      console.log('[App] 📊 Current state - isAuthenticated:', isAuthenticated, 'bootstrapping:', bootstrapping);
+      
+      const params = parseDeepLink(url);
+      if (!params) {
+        console.log('[App] ❌ Failed to parse deep link');
+        return;
+      }
+
+      console.log('[App] ✅ Parsed deep link:', { type: params.type, hasToken: !!params.accessToken });
+
+      if (params.type === 'reset-password') {
+        if (!params.accessToken) {
+          console.error('[App] ❌ No access token in reset password link');
+          return;
+        }
+
+        console.log('[App] 🚀 Navigating to ResetPassword screen...');
+        
+        // Wait for navigation to be ready, then navigate
+        const navigateToReset = () => {
+          if (!navigationRef.current) {
+            console.log('[App] ⏳ Navigation not ready, retrying...');
+            setTimeout(navigateToReset, 100);
+            return;
+          }
+
+          try {
+            console.log('[App] 📍 Navigation ready, navigating now...');
+            
+            // Get current route to see where we are
+            const currentRoute = navigationRef.current.getCurrentRoute();
+            console.log('[App] 📍 Current route:', currentRoute?.name);
+            
+            // Navigate directly to root-level GlobalResetPassword screen
+            navigationRef.current.navigate('GlobalResetPassword', {
+              access_token: params.accessToken,
+              refresh_token: params.refreshToken,
+            });
+            console.log('[App] ✅ Navigation command sent to GlobalResetPassword');
+          } catch (error) {
+            console.error('[App] ❌ Navigation error:', error);
+          }
+        };
+
+        // Start navigation attempt after short delay
+        setTimeout(navigateToReset, 500);
+      }
+    };
+
+    // Handle initial deep link (app opened via link)
+    const handleInitialDeepLink = async () => {
+      // Wait for bootstrap to complete
+      if (bootstrapping) {
+        console.log('[App] ⏸️ Waiting for bootstrap to complete...');
+        setTimeout(handleInitialDeepLink, 200);
+        return;
+      }
+
+      console.log('[App] 🔍 Checking for initial deep link...');
+      const url = await getInitialDeepLink();
+      if (url) {
+        console.log('[App] 📧 Initial deep link found:', url);
+        handleDeepLink(url);
+      } else {
+        console.log('[App] ℹ️ No initial deep link');
+      }
+    };
+
+    handleInitialDeepLink();
+
+    // Listen for deep links while app is running
+    const subscription = addDeepLinkListener(handleDeepLink);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthenticated, bootstrapping, signOut]);
 
   const HIDE_NETWORK_ON = React.useMemo(() => new Set<string>([
     'OnboardingSplash',
@@ -175,6 +283,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
       ref={(ref) => {
         navigationRef.current = ref;
       }}
+      linking={linking as any}
       onReady={() => {
         try {
           const name = navigationRef.current?.getCurrentRoute()?.name;
@@ -213,7 +322,17 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
               <UserProvider>
                 <OnboardingProvider>
                   <PointsNotificationProvider>
-                    <LogoutContext.Provider value={{ onLogout: async () => {} }}>
+                    <LogoutContext.Provider
+                      value={{
+                        onLogout: async () => {
+                          try {
+                            await signOut();
+                          } catch (error) {
+                            console.warn('[App] LogoutContext signOut failed', error);
+                          }
+                        },
+                      }}
+                    >
                       <AuthStateMonitor>
                         <RootStackNavigator
                           isAuthenticated={isAuthenticated}

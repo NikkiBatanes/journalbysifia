@@ -123,7 +123,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>AppleSignIn</string>
+			<string>siFiaDeepLink</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>sifia</string>

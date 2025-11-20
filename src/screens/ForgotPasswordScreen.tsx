@@ -10,11 +10,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
+  StatusBar,
+  Image,
 } from 'react-native';
 
 import { Colors } from '../theme/colors';
+import { Fonts } from '../theme/fonts';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
+import { triggerLightHaptic, triggerErrorHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
 
@@ -33,14 +38,17 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleResetPassword = async () => {
+    triggerLightHaptic();
     setEmailError('');
 
     if (!email.trim()) {
+      triggerErrorHaptic();
       setEmailError('Email is required');
       return;
     }
 
     if (!validateEmail(email.trim())) {
+      triggerErrorHaptic();
       setEmailError('Please enter a valid email address');
       return;
     }
@@ -48,11 +56,13 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     const { error } = await resetPassword(email.trim().toLowerCase());
 
     if (error) {
+      triggerErrorHaptic();
       Alert.alert('Reset Failed', error.message || 'Please try again');
     } else {
+      triggerSuccessHaptic();
       Alert.alert(
-        'Reset Email Sent',
-        'Please check your email for password reset instructions.',
+        'Check Your Email',
+        'We\'ve sent password reset instructions to your email. Please check your inbox and follow the link to reset your password.',
         [
           {
             text: 'OK',
@@ -64,34 +74,39 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleBackToLogin = () => {
+    triggerLightHaptic();
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header - Centered without back button */}
-          <View style={styles.headerCentered}>
-            <ThemedText weight="semiBold" style={styles.headerTitle}>Reset Password</ThemedText>
+        {/* Header with Logo */}
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/icons/siFiaTransparent.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Content */}
+        <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="lock-closed-outline" size={60} color={Colors.alertCoral} />
           </View>
 
-          {/* Content */}
-          <View style={styles.content}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="lock-closed-outline" size={60} color={Colors.alertCoral} />
-            </View>
-
-            <ThemedText weight="bold" style={styles.title}>Forgot Password?</ThemedText>
-            <ThemedText style={styles.subtitle}>
-              Enter your email address and we'll send you instructions to reset your password.
-            </ThemedText>
+          <ThemedText weight="bold" style={styles.title}>Forgot Password?</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Enter your email address and we'll send you a secure link to reset your password.
+          </ThemedText>
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
@@ -122,9 +137,13 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleResetPassword}
               disabled={loading}
             >
-              <ThemedText weight="semiBold" style={styles.resetButtonText}>
-                {loading ? 'Sending...' : 'Send Reset Instructions'}
-              </ThemedText>
+              {loading ? (
+                <ActivityIndicator color={Colors.anchorBlue} />
+              ) : (
+                <ThemedText weight="bold" style={styles.resetButtonText}>
+                  Send Reset Link
+                </ThemedText>
+              )}
             </TouchableOpacity>
 
             {/* Back to Login */}
@@ -136,7 +155,6 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
   );
 };
 
@@ -145,27 +163,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
   scrollContainer: {
     flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
   },
-  headerCentered: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+  header: {
+    marginBottom: 10,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: 'flex-start',
+    marginTop: 0,
+    marginBottom: 10,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 40,
+    paddingTop: 20,
   },
   iconContainer: {
     alignItems: 'center',
@@ -174,12 +190,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    fontFamily: Fonts.system.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 15,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: Fonts.system.regular,
     color: Colors.holyGlow,
     textAlign: 'center',
     lineHeight: 24,
@@ -187,12 +205,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 25,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -213,11 +225,13 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 16,
+    fontFamily: Fonts.system.regular,
     color: Colors.hopeWhite,
   },
   errorText: {
     color: Colors.alertCoral,
     fontSize: 14,
+    fontFamily: Fonts.system.regular,
     marginTop: 5,
   },
   resetButton: {
@@ -227,25 +241,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   disabledButton: {
     opacity: 0.6,
   },
   resetButtonText: {
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     fontSize: 18,
+    fontFamily: Fonts.system.bold,
     fontWeight: '600',
   },
   backToLoginButton: {
     alignItems: 'center',
     paddingVertical: 15,
+    marginTop: 'auto',
   },
   backToLoginText: {
     fontSize: 16,
+    fontFamily: Fonts.system.regular,
     color: Colors.holyGlow,
   },
   linkText: {
     color: Colors.alertCoral,
+    fontFamily: Fonts.system.bold,
     fontWeight: '600',
   },
 });

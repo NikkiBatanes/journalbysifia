@@ -667,6 +667,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signOut = async () => {
     try {
+      console.log('[AuthContext] 🚪 Starting logout...');
       setIsLoggingOut(true);
 
       // Provider info available for debugging if needed
@@ -675,7 +676,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       try {
         await GoogleSignin.revokeAccess();
         await GoogleSignin.signOut();
-
+        console.log('[AuthContext] ✅ Google session cleared');
       } catch (googleError) {
         Logger.warn('Google revoke/sign-out warning (continuing)', {
           component: 'AuthContext',
@@ -687,12 +688,17 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Always attempt Supabase sign-out regardless of provider cleanup result
       let sbError: SupabaseAuthError | null = null;
       try {
+        console.log('[AuthContext] 🔐 Calling Supabase signOut...');
         const { error } = await supabase.auth.signOut();
         if (error) {
           sbError = error as SupabaseAuthError;
+          console.error('[AuthContext] ❌ Supabase signOut error:', error);
+        } else {
+          console.log('[AuthContext] ✅ Supabase signOut successful');
         }
       } catch (e: any) {
         sbError = e as SupabaseAuthError;
+        console.error('[AuthContext] ❌ Supabase signOut exception:', e);
       }
 
       if (sbError) {
@@ -703,6 +709,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
 
       // Clear auth state regardless to avoid stale UI; onAuthStateChange will confirm
+      console.log('[AuthContext] 🧹 Clearing auth state...');
       setAuthState({
         user: null,
         session: null,
@@ -711,7 +718,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         isAuthenticated: false,
       });
       setIsLoggingOut(false);
+      console.log('[AuthContext] ✅ Logout complete');
     } catch (error) {
+      console.error('[AuthContext] ❌ Logout failed:', error);
       setIsLoggingOut(false);
       Logger.error('Logout failed', error as Error, {
         component: 'AuthContext',
