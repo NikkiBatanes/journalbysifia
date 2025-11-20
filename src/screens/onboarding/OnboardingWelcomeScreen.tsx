@@ -84,7 +84,7 @@ const slides: Slide[] = [
     ],
     icon: 'create-outline',
     color: Colors.alertCoral,
-    iconSize: 62,
+    iconSize: 54,
     useLucidePencil: true,
   },
 ];
@@ -330,9 +330,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
         {item.useLucidePencil ? (
           <LucidePencil
             size={item.iconSize || 60}
-            color={Colors.hopeWhite}
-            fill={Colors.hopeWhite}
-            strokeWidth={1.25}
+            color={Colors.alertCoral}
+            strokeWidth={1.75}
           />
         ) : (
           <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
