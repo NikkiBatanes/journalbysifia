@@ -48,7 +48,7 @@ serve(async (req) => {
 
     // Update Supabase secret
     const supabaseProjectRef = Deno.env.get('SUPABASE_PROJECT_REF') || 'aesmrjinczhknchlrsmt';
-    const supabaseAccessToken = Deno.env.get('SUPABASE_ACCESS_TOKEN');
+    const supabaseAccessToken = Deno.env.get('MGMT_ACCESS_TOKEN');
 
     if (supabaseAccessToken) {
       // Update via Supabase Management API
@@ -77,7 +77,7 @@ serve(async (req) => {
 
       console.log('Supabase secret updated successfully');
     } else {
-      console.warn('SUPABASE_ACCESS_TOKEN not set - token generated but not auto-deployed');
+      console.warn('MGMT_ACCESS_TOKEN not set - token generated but not auto-deployed');
     }
 
     return new Response(

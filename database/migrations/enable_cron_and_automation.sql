@@ -24,13 +24,17 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 -- 3. Create cron job to process notification queue
 -- =====================================================
 -- Runs every minute to send pending notifications
+-- First, unschedule if exists
+SELECT cron.unschedule('process-notification-queue') 
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'process-notification-queue');
+
 SELECT cron.schedule(
   'process-notification-queue',
   '* * * * *', -- Every minute
   $$
   SELECT net.http_post(
-    url:='https://YOUR_SUPABASE_PROJECT_URL.supabase.co/functions/v1/process-notification-queue',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
+    url:='https://aesmrjinczhknchlrsmt.supabase.co/functions/v1/process-notification-queue',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODc2NjE5MywiZXhwIjoyMDY0MzQyMTkzfQ.SZhJG_nBXLMmn7NCWaS8u1hxN8WU_I5xuxnjDtz4JO0"}'::jsonb,
     body:='{}'::jsonb
   ) AS request_id;
   $$
@@ -40,13 +44,17 @@ SELECT cron.schedule(
 -- 4. Create cron job to generate daily notifications
 -- =====================================================
 -- Runs at 6:00 AM daily to generate personalized notifications
+-- First, unschedule if exists
+SELECT cron.unschedule('generate-daily-notifications') 
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'generate-daily-notifications');
+
 SELECT cron.schedule(
   'generate-daily-notifications',
   '0 6 * * *', -- 6 AM daily
   $$
   SELECT net.http_post(
-    url:='https://YOUR_SUPABASE_PROJECT_URL.supabase.co/functions/v1/generate-personalized-notifications',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
+    url:='https://aesmrjinczhknchlrsmt.supabase.co/functions/v1/generate-personalized-notifications',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODc2NjE5MywiZXhwIjoyMDY0MzQyMTkzfQ.SZhJG_nBXLMmn7NCWaS8u1hxN8WU_I5xuxnjDtz4JO0"}'::jsonb,
     body:='{"action": "daily_batch"}'::jsonb
   ) AS request_id;
   $$
@@ -56,13 +64,17 @@ SELECT cron.schedule(
 -- 5. Create cron job to check notification triggers
 -- =====================================================
 -- Runs every hour to check for streak alerts, challenges, etc.
+-- First, unschedule if exists
+SELECT cron.unschedule('check-notification-triggers') 
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'check-notification-triggers');
+
 SELECT cron.schedule(
   'check-notification-triggers',
   '0 * * * *', -- Every hour
   $$
   SELECT net.http_post(
-    url:='https://YOUR_SUPABASE_PROJECT_URL.supabase.co/functions/v1/generate-personalized-notifications',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
+    url:='https://aesmrjinczhknchlrsmt.supabase.co/functions/v1/generate-personalized-notifications',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODc2NjE5MywiZXhwIjoyMDY0MzQyMTkzfQ.SZhJG_nBXLMmn7NCWaS8u1hxN8WU_I5xuxnjDtz4JO0"}'::jsonb,
     body:='{"action": "check_triggers"}'::jsonb
   ) AS request_id;
   $$
