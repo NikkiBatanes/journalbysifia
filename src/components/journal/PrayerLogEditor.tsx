@@ -105,6 +105,12 @@ const defaultStyles = {
   },
 
   // FAB styles
+  fabWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
   fabContainer: {
     position: 'absolute',
     bottom: 20,
@@ -871,37 +877,39 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
               )}
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
 
-        {/* Right Action Buttons */}
-        <View style={[s.fabContainer, s.fabDefaultPosition]}>
-          <View style={s.fabRow}>
-            {/* Cancel FAB */}
-            <TouchableOpacity
-              style={[s.fab, s.cancelFab]}
-              onPress={onCancel}
-            >
-              <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
-            </TouchableOpacity>
+          {/* Right Action Buttons */}
+          <View style={s.fabWrapper}>
+            <View style={[s.fabContainer, s.fabDefaultPosition]}>
+              <View style={s.fabRow}>
+              {/* Cancel FAB */}
+              <TouchableOpacity
+                style={[s.fab, s.cancelFab]}
+                onPress={onCancel}
+              >
+                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+              </TouchableOpacity>
 
-            {/* Save FAB */}
-            <TouchableOpacity
-              style={[
-                s.fab,
-                s.saveFab,
-                (!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
-              ]}
-              disabled={!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading}
-              onPress={handleSave}
-            >
-              {isLoading ? (
-                <ActivityIndicator size={20} color={Colors.hopeWhite} />
-              ) : (
-                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
-              )}
-            </TouchableOpacity>
+              {/* Save FAB */}
+              <TouchableOpacity
+                style={[
+                  s.fab,
+                  s.saveFab,
+                  (!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
+                ]}
+                disabled={!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading}
+                onPress={handleSave}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                )}
+              </TouchableOpacity>
+            </View>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
 
     </View>
   );

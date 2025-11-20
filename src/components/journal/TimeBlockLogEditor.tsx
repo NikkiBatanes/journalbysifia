@@ -344,8 +344,6 @@ const createDefaultStyles = (fonts: any) => ({
     bottom: 0,
     left: 0,
     right: 0,
-    top: 0,
-    pointerEvents: 'box-none',
   },
   fab: {
     width: 44,
@@ -902,10 +900,16 @@ function TimeBlockLogEditorInner(
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         enabled={Platform.OS === 'ios'}>
 
         <View style={s.contentCard}>
-          <ScrollView style={s.content} contentContainerStyle={s.scrollContent} scrollEnabled={true}>
+          <ScrollView 
+            style={s.content} 
+            contentContainerStyle={s.scrollContent} 
+            scrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
               <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
@@ -1375,6 +1379,39 @@ function TimeBlockLogEditorInner(
             </View>
           </ScrollView>
         </View>
+
+        {/* Floating Action Buttons - Standard Layout */}
+        <View style={s.fabWrapper}>
+          {/* Right Action Buttons */}
+          <View style={[s.fabContainer, s.rightFabContainer, s.fabDefaultPosition]}>
+            <View style={s.fabRow}>
+              {/* Cancel FAB */}
+              <TouchableOpacity
+                style={[s.fab, s.cancelFab]}
+                onPress={onCancel}
+              >
+                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+              </TouchableOpacity>
+
+              {/* Save FAB */}
+              <TouchableOpacity
+                style={[
+                  s.fab,
+                  s.saveFab,
+                  (!title.trim() || isLoading) && s.fabDisabled,
+                ]}
+                disabled={!title.trim() || isLoading}
+                onPress={handleSave}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </KeyboardAvoidingView>
 
       {/* Start Time Picker Modal */}
@@ -1475,39 +1512,6 @@ function TimeBlockLogEditorInner(
           </View>
         </View>
       </Modal>
-
-      {/* Floating Action Buttons - Standard Layout */}
-      <View style={s.fabWrapper}>
-        {/* Right Action Buttons */}
-        <View style={[s.fabContainer, s.rightFabContainer, s.fabDefaultPosition]}>
-          <View style={s.fabRow}>
-            {/* Cancel FAB */}
-            <TouchableOpacity
-              style={[s.fab, s.cancelFab]}
-              onPress={onCancel}
-            >
-              <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
-            </TouchableOpacity>
-
-            {/* Save FAB */}
-            <TouchableOpacity
-              style={[
-                s.fab,
-                s.saveFab,
-                (!title.trim() || isLoading) && s.fabDisabled,
-              ]}
-              disabled={!title.trim() || isLoading}
-              onPress={handleSave}
-            >
-              {isLoading ? (
-                <ActivityIndicator size={20} color={Colors.hopeWhite} />
-              ) : (
-                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
 
     </View>
   );

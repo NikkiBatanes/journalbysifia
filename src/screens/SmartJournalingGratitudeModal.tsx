@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, Keyboard } from 'react-native';
+import { Modal, View, StyleSheet, Alert, Keyboard } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import GratitudeLogEditor, { GratitudeLogEditorRef } from '../components/journal/GratitudeLogEditor';
@@ -365,7 +365,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       <Modal
         visible={visible}
         animationType="slide"
-        transparent
+        transparent={false}
         onRequestClose={() => {
           Keyboard.dismiss();
           // Small delay to ensure keyboard is fully dismissed before closing
@@ -374,11 +374,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           }, 10);
         }}
       >
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
           {/* TEST BUTTON - Remove after debugging */}
 
           <GratitudeLogEditor
@@ -410,15 +405,14 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             isLoading={createMutation.isPending || updateMutation.isPending}
             styles={reflectionLogStyles}
           />
-        </KeyboardAvoidingView>
 
-        {/* New success modal system - completely isolated and robust */}
-        <NewSuccessModal
+          {/* New success modal system - completely isolated and robust */}
+          <NewSuccessModal
           visible={successModal.isVisible}
           config={successModal.config}
           onDone={successModal.handleDone}
           onEdit={successModal.handleEdit}
-        />
+          />
       </Modal>
     </>
   );

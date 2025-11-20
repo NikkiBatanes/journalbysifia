@@ -402,10 +402,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       <Modal
         visible={visible}
         animationType="slide"
-        presentationStyle="fullScreen"
+        transparent={false}
         onRequestClose={handleCancel}
       >
-          <View style={styles.container}>
             <ReflectionLogEditor
               ref={reflectionEditorRef}
               onSave={saveReflection}
@@ -451,7 +450,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             onDone={successModal.handleDone}
             onEdit={successModal.handleEdit}
           />
-          </View>
       </Modal>
 
       {/* Loading overlay removed to preserve metadata visibility during save */}

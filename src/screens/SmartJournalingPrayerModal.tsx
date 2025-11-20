@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { StyleSheet, Modal, View, Alert } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import PrayerLogEditor, { PrayerLogEditorRef } from '../components/journal/PrayerLogEditor';
@@ -485,13 +485,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       <Modal
         visible={visible}
         animationType="slide"
-        presentationStyle="fullScreen"
+        transparent={false}
         onRequestClose={onCancel}
       >
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
           <PrayerLogEditor
             ref={prayerEditorRef}
             onSave={savePrayer}
@@ -524,7 +520,6 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             onDone={successModal.handleDone}
             onEdit={successModal.handleEdit}
           />
-        </KeyboardAvoidingView>
       </Modal>
     </>
   );

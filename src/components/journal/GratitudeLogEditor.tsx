@@ -357,8 +357,10 @@ const defaultStyles = {
   },
   // FAB styles (matching reflection editor)
   fabWrapper: {
-    position: 'relative',
-    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   fabContainer: {
     position: 'absolute',
@@ -820,42 +822,42 @@ const GratitudeLogEditorInner = (
             )}
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
 
-      {/* Floating Action Buttons - matching reflection editor */}
-      <View style={s.fabWrapper}>
-        {/* Right Action Buttons */}
-        <View style={[s.fabContainer, s.fabDefaultPosition]}>
-          <View style={s.fabRow}>
-            {/* Cancel FAB */}
-            <TouchableOpacity
-              style={[s.fab, s.cancelFab]}
-              onPress={onCancel}
-            >
-              <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-            </TouchableOpacity>
+        {/* Floating Action Buttons - matching reflection editor */}
+        <View style={s.fabWrapper}>
+          {/* Right Action Buttons */}
+          <View style={[s.fabContainer, s.fabDefaultPosition]}>
+            <View style={s.fabRow}>
+              {/* Cancel FAB */}
+              <TouchableOpacity
+                style={[s.fab, s.cancelFab]}
+                onPress={onCancel}
+              >
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
 
-            {/* Save FAB */}
-            <TouchableOpacity
-              style={[
-                s.fab,
-                s.saveFab,
-                (!isFormValid || isLoading) && s.fabDisabled,
-              ]}
-              disabled={!isFormValid || isLoading}
-              onPress={() => {
-                handleSave();
-              }}
-            >
-              {isLoading ? (
-                <ActivityIndicator size={20} color={Colors.hopeWhite} />
-              ) : (
-                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
-              )}
-            </TouchableOpacity>
+              {/* Save FAB */}
+              <TouchableOpacity
+                style={[
+                  s.fab,
+                  s.saveFab,
+                  (!isFormValid || isLoading) && s.fabDisabled,
+                ]}
+                disabled={!isFormValid || isLoading}
+                onPress={() => {
+                  handleSave();
+                }}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
 
     </View>
   );
