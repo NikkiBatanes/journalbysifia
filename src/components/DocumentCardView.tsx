@@ -56,21 +56,23 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
   const setReadAloud = usePlaybookStoreReactQuery(state => state.setReadAloud);
   const readCooldownRef = useRef<number>(0);
   const readAwardedRef = useRef<boolean>(false);
+  const hasInitializedReadFromFaithPointsRef = useRef<boolean>(false);
   const [particles, setParticles] = useState<{ id: number; progress: Animated.Value; dx: number; dy: number; size: number; rotate: number; color: string; delay: number;}[]>([]);
   const particleIdRef = useRef(0);
 
   const showReadButton = useMemo(() => card.type === 'affirmation' && (card.affirmations?.length || 0) > 0, [card]);
 
-  // Fallback: if points were already awarded for this playbook today, mark as read in store
+  // Fallback: if points were already awarded for this playbook today, mark as read in store (run once on initial load)
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        if (user?.id && playbookId && !hasRead) {
+        if (!hasInitializedReadFromFaithPointsRef.current && user?.id && playbookId && !hasRead) {
           const already = await faithPointsService.hasActivityTodayForPlaybook(user.id, 'affirmation_read_aloud', playbookId);
           if (mounted && already) {
             setReadAloud(playbookId, true);
           }
+          hasInitializedReadFromFaithPointsRef.current = true;
         }
       } catch (e) {}
     })();

@@ -19,6 +19,7 @@ import {
   Easing as RNEasing,
   PanResponder,
   Image,
+  NativeModules,
 } from 'react-native';
 
 // Navigation & Gestures
@@ -45,7 +46,7 @@ import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useTheme } from '../theme/ThemeContext';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
-import { triggerLightHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 // Components
 import DocumentCards from '../components/DocumentCards';
@@ -373,6 +374,79 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       },
     })
   ).current;
+
+  // Burst animation + haptics for stacked Declarations read-aloud button (mirrors dashboard declarations behavior)
+  const [affirmationParticles, setAffirmationParticles] = useState<{
+    id: number;
+    progress: RNAnimated.Value;
+    dx: number;
+    dy: number;
+    size: number;
+    rotate: number;
+    color: string;
+    delay: number;
+  }[]>([]);
+  const affirmationParticleIdRef = useRef(0);
+  const stackReadHapticTimersRef = useRef<number[]>([]);
+  const stackReadCooldownRef = useRef(0);
+
+  const startStackReadBurstHaptics = useCallback(() => {
+    try {
+      stackReadHapticTimersRef.current.forEach(id => clearTimeout(id));
+      stackReadHapticTimersRef.current = [];
+      const schedule = [0, 250, 500, 750];
+      schedule.forEach(delay => {
+        const id = setTimeout(() => {
+          try {
+            const { RNHapticFeedback } = NativeModules as any;
+            if (!RNHapticFeedback) { return; }
+
+            const Haptic = require('react-native-haptic-feedback');
+            const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+            if (typeof triggerFn === 'function') {
+              triggerFn('impactLight', {
+                enableVibrateFallback: false,
+                ignoreAndroidSystemSettings: false,
+              });
+            }
+          } catch {}
+        }, delay) as unknown as number;
+        stackReadHapticTimersRef.current.push(id);
+      });
+    } catch {}
+  }, []);
+
+  const startAffirmationBurst = useCallback(() => {
+    const NUM = 10;
+    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
+    const newParticles = Array.from({ length: NUM }).map((_, i) => {
+      const id = affirmationParticleIdRef.current++;
+      return {
+        id,
+        progress: new RNAnimated.Value(0),
+        dx: (Math.random() * 80 - 40),
+        dy: 70 + Math.random() * 70,
+        size: 10 + Math.random() * 10,
+        rotate: Math.random() * 60 - 30,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: i * 35,
+      };
+    });
+
+    setAffirmationParticles(prev => [...prev, ...newParticles]);
+    newParticles.forEach(p => {
+      RNAnimated.timing(p.progress, {
+        toValue: 1,
+        duration: 900,
+        delay: p.delay,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    setTimeout(() => {
+      setAffirmationParticles(prev => prev.filter(h => !newParticles.find(n => n.id === h.id)));
+    }, 1200);
+  }, []);
 
   // Stacked card animation state
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -1529,8 +1603,45 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     {/* Read Aloud button (stack view) */}
                     {Array.isArray(card.affirmations) && card.affirmations.length > 0 && (
                       <View style={styles.readButtonWrapper}>
+                        {affirmationParticles.length > 0 && (
+                          <View pointerEvents="none" style={styles.stackReadBurstLayer}>
+                            {affirmationParticles.map(p => {
+                              const translateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -p.dy] });
+                              const translateX = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
+                              const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
+                              const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
+                              return (
+                                <RNAnimated.View
+                                  key={p.id}
+                                  style={[styles.stackReadParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}
+                                >
+                                  <Ionicons name="book" size={p.size} color={p.color} />
+                                </RNAnimated.View>
+                              );
+                            })}
+                          </View>
+                        )}
                         <TouchableOpacity
-                          onPress={() => { if (playbook?.id) { setReadAloud(playbook.id, true); } }}
+                          onPress={() => {
+                            const now = Date.now();
+                            if (now - stackReadCooldownRef.current < 800) { return; }
+                            stackReadCooldownRef.current = now;
+
+                            if (!playbook?.id) { return; }
+
+                            const nextIsRead = !hasRead;
+                            if (nextIsRead) {
+                              // celebratory haptics + burst when marking as read (match dashboard declarations)
+                              try { triggerSuccessHaptic(); } catch {}
+                              startStackReadBurstHaptics();
+                              startAffirmationBurst();
+                            } else {
+                              // subtle haptic when unmarking
+                              try { triggerLightHaptic(); } catch {}
+                            }
+
+                            setReadAloud(playbook.id, nextIsRead);
+                          }}
                           activeOpacity={0.8}
                           style={[styles.readButton, hasRead && styles.readButtonActive]}
                           accessibilityRole="button"
@@ -1915,6 +2026,8 @@ interface PlaybookDetailStyles {
   readIcon: TextStyle;
   readButtonText: TextStyle;
   readButtonTextActive: TextStyle;
+  stackReadBurstLayer: ViewStyle;
+  stackReadParticle: ViewStyle;
   bibleVerseCard: ViewStyle;
   docContentContainerInner: ViewStyle;
   stackedCardsContainer: ViewStyle;
@@ -2499,6 +2612,19 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   readButtonWrapper: {
     marginTop: 12,
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  stackReadBurstLayer: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    width: 140,
+    height: 120,
+  },
+  stackReadParticle: {
+    position: 'absolute',
+    bottom: 0,
+    left: '50%',
   },
   readButton: {
     flexDirection: 'row',

@@ -434,6 +434,8 @@ Use Scripture to speak truth over **my** mindset, emotions, and actions. The ton
 
 Ensure the third decree calls **me** to align my thoughts, words, and choices with God’s truth, showing how I can actively walk out what Scripture declares.]
 
+⚠️ LANGUAGE RESTRICTION: Do NOT use the word "divine" or phrases like "divine purpose", "divine health", etc. Keep language grounded in Scripture without that vocabulary.
+
 BIBLE VERSE:
 [🚨 CRITICAL: Provide the COMPLETE verse text. Do NOT truncate or use ellipsis (...). If the verse is long, include the FULL text. If context is needed, include 2-4 consecutive verses. This must match the "Scripture Declaration" verse above exactly so the declarations stay tied to the same passage.]
 
