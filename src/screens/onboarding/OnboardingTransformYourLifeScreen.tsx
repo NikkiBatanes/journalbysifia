@@ -127,12 +127,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
               autoPlay
               loop
               style={styles.animation}
-              colorFilters={[
-                {
-                  keypath: '*',
-                  color: Colors.hopeWhite, // Replace with your desired color
-                },
-              ]}
             />
           </View>
         </View>
@@ -188,17 +182,18 @@ const styles = StyleSheet.create({
   },
   animationContainer: {
     width: '100%',
-    aspectRatio: 1.5, // Wider aspect ratio for waves
-    maxHeight: 250, // Slightly taller to fit all waves
+    aspectRatio: 1.2, // Allow more vertical space for the illustration
+    maxHeight: 320, // Increase height so the figure appears larger
     marginTop: OnboardingSpacing.sm,
     marginBottom: OnboardingSpacing.md,
     alignSelf: 'center',
     overflow: 'visible', // Ensure no clipping of the waves
   },
   animation: {
-    width: '100%',
-    height: '100%',
+    width: '115%',
+    height: '115%',
     alignSelf: 'center',
+    transform: [{ scale: 1.05 }],
   },
   logoImage: {
     width: 120,
