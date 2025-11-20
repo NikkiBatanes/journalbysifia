@@ -51,8 +51,9 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
     queryKey: ['subscription', user?.id || ''],
     queryFn: () => subscriptionService.getUserSubscription(user?.id || ''),
     enabled: !!user?.id,
-    staleTime: 30 * 1000, // 30 seconds - shorter for faster updates
+    staleTime: 0, // Always consider stale to ensure immediate updates after payment
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: 'always', // Always refetch on mount to get latest state
   });
 
   // IMPORTANT: For trials, use trial_chosen_tier for gating (not 'free_trial')

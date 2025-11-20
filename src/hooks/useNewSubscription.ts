@@ -56,8 +56,9 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     queryKey: ['subscription', userId],
     queryFn: () => NewSubscriptionService.getUserSubscription(userId),
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always consider stale to ensure immediate updates after payment
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: 'always', // Always refetch on mount to get latest state
   });
 
   // Computed properties

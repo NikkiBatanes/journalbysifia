@@ -44,8 +44,9 @@ export const useCalendarGating = (): CalendarGatingState => {
     queryKey: ['subscription', user?.id || ''],
     queryFn: () => NewSubscriptionService.getUserSubscription(user?.id || ''),
     enabled: !!user?.id,
-    staleTime: 30 * 1000, // 30 seconds - shorter than useNewSubscription for faster updates
+    staleTime: 0, // Always consider stale to ensure immediate updates after payment
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: 'always', // Always refetch on mount to get latest state
   });
 
   // Get current tier from subscription, with fallback

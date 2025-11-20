@@ -759,7 +759,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           // If data doesn't match, invalidate React Query cache
           if (directData?.tier !== subscription?.tier && subscription?.tier) {
-            queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
+            queryClient.invalidateQueries({
+              queryKey: ['subscription', user.id],
+              refetchType: 'active', // Force immediate refetch
+            });
           }
         } catch (error) {
           Logger.error('Direct subscription fetch failed', error as Error, {
@@ -1243,7 +1246,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       const userId = user?.id;
       // Invalidate key dashboard queries (subscription, usage, analytics, playbooks, devotionals, intelligence)
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['subscription', userId] }),
+        queryClient.invalidateQueries({
+          queryKey: ['subscription', userId],
+          refetchType: 'active', // Force immediate refetch
+        }),
         queryClient.invalidateQueries({ queryKey: ['usage', userId] }),
         queryClient.invalidateQueries({ queryKey: ['subscription-analytics', userId] }),
         queryClient.invalidateQueries({ queryKey: ['intelligence-recommendations', userId] }),

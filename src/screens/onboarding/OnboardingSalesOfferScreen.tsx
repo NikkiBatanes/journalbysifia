@@ -455,13 +455,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
             logger.debug('Invalidating subscription cache for immediate UI update');
-            await queryClient.invalidateQueries({ queryKey: ['subscription', user?.id] });
+            await queryClient.invalidateQueries({
+              queryKey: ['subscription', user?.id],
+              refetchType: 'active', // Force immediate refetch of active queries
+            });
 
-            // Refresh subscription state
-            await devotionalGating.refreshSubscription();
-            try {
-              await refreshNewSubscription();
-            } catch {}
+            // Refresh subscription state - wait for both to complete
+            await Promise.all([
+              devotionalGating.refreshSubscription(),
+              refreshNewSubscription().catch(() => {}),
+            ]);
+
+            // Give React Query time to propagate the updates
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Wait a moment for UI to update
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -553,15 +559,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               // CRITICAL: Invalidate subscription cache to trigger UI updates
               logger.debug('Invalidating subscription cache for immediate UI update');
-              await queryClient.invalidateQueries({ queryKey: ['subscription', user?.id] });
+              await queryClient.invalidateQueries({
+                queryKey: ['subscription', user?.id],
+                refetchType: 'active', // Force immediate refetch of active queries
+              });
 
-              // Also refresh local state
-              await devotionalGating.refreshSubscription();
+              // Also refresh local state - wait for both to complete
+              await Promise.all([
+                devotionalGating.refreshSubscription(),
+                refreshNewSubscription().catch(() => {}),
+              ]);
               logger.info('✅ Local subscription state refreshed');
 
-              try {
-                await refreshNewSubscription();
-              } catch {}
+              // Give React Query time to propagate the updates
+              await new Promise(resolve => setTimeout(resolve, 100));
 
               // Verify the subscription was actually updated
               const newTier = devotionalGating.tier;

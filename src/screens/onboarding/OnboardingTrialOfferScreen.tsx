@@ -315,7 +315,13 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
 
           // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
           logger.debug('Invalidating subscription cache for immediate UI update after trial start');
-          await queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
+          await queryClient.invalidateQueries({
+            queryKey: ['subscription', user.id],
+            refetchType: 'active', // Force immediate refetch of active queries
+          });
+
+          // Give React Query time to propagate the updates
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (syncError) {
           logger.error('Trial sync error', syncError as Error);
         }
