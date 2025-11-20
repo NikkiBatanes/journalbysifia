@@ -27,6 +27,7 @@ import { logger } from '../../utils/logger';
 import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
+import { useQueryClient } from '@tanstack/react-query';
 
 // removed Dimensions width as unused
 
@@ -57,6 +58,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const { user } = useAuth();
   const devotionalGating = useDevotionalGating();
   const { refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
+  const queryClient = useQueryClient();
 
   // Always show light status bar (white icons) on this screen
   useScreenStatusBar('light', Colors.hopeWhite);
@@ -439,12 +441,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           if (result.success) {
             setLoadingStep('validating');
             triggerSuccessHaptic();
-            // Refresh subscription and close
-            await devotionalGating.refreshSubscription();
-            try {
-              await refreshNewSubscription();
-            } catch {}
-
+            
             // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
             if (!result.transactionId) {
               logger.error('❌ Upgrade missing transaction ID - possible stale state');
@@ -456,9 +453,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               transactionId: result.transactionId?.substring(0, 10) + '...',
             });
 
+            // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
+            logger.debug('Invalidating subscription cache for immediate UI update');
+            await queryClient.invalidateQueries({ queryKey: ['subscription', user?.id] });
+            
+            // Refresh subscription state
+            await devotionalGating.refreshSubscription();
+            try {
+              await refreshNewSubscription();
+            } catch {}
+
+            // Wait a moment for UI to update
+            await new Promise(resolve => setTimeout(resolve, 300));
+
             // Navigate back to the original context instead of just going back
             const source = routeParams?.source;
-            if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt') {
+            if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
               // Go back multiple times to return to TimeBlock screen
               navigation.goBack();
               setTimeout(() => navigation.goBack(), 100);
@@ -540,6 +550,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '', false);
               logger.info('✅ Subscription synced with Apple');
+
+              // CRITICAL: Invalidate subscription cache to trigger UI updates
+              logger.debug('Invalidating subscription cache for immediate UI update');
+              await queryClient.invalidateQueries({ queryKey: ['subscription', user?.id] });
 
               // Also refresh local state
               await devotionalGating.refreshSubscription();

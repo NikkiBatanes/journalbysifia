@@ -741,13 +741,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const initialStackOffset = (carouselCards.length - cardIndex - 1) * (isTablet ? 36 : 48);
 
     if (isExpanding) {
-      // Animate selected card to expanded position (top, where Challenge card initially is)
-      const anchoredYOffset = cardId === 'challenge'
-        ? Math.max(initialStackOffset, isTablet ? 60 : 80)
-        : 0;
-
+      // Animate selected card to expanded position at top (Y=0)
       Animated.spring(cardAnimations[cardId].translateY, {
-        toValue: anchoredYOffset,
+        toValue: 0,
         useNativeDriver: true,
         friction: 8,
         tension: 40,

@@ -465,10 +465,14 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
     // Update scroll direction
     scrollDirection.current = isScrollingUp ? 'up' : 'down';
-    lastScrollY.current = y;
-
-    // Update header animation
-    scrollY.setValue(y);
+    
+    // Update header animation - only if scroll change is reasonable
+    // Ignore sudden jumps > 200px (likely from layout changes when syncing)
+    const scrollDiff = Math.abs(y - (lastScrollY.current || 0));
+    if (scrollDiff < 200) {
+      scrollY.setValue(y);
+      lastScrollY.current = y;
+    }
 
     // Update header collapsed state
     const shouldBeCollapsed = y > 40;

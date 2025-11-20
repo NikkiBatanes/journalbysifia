@@ -37,6 +37,7 @@ export interface TimeBlockData {
   notes?: string;
   isAllDay: boolean;
   calendarEventId?: string;
+  alarmMinutes?: number; // Minutes before event to trigger alarm (null/undefined = no alarm)
   repeat: {
     frequency: 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly';
     endDate?: Date;
@@ -169,6 +170,14 @@ export const updateTimeBlockInCalendar = async (
       calendarId,
       allDay: timeBlock.isAllDay,
     };
+    
+    // Add alarm/reminder if user has set one
+    if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes > 0) {
+      eventDetails.alarms = [{
+        date: -timeBlock.alarmMinutes, // Negative value means minutes before event
+      }];
+    }
+    
     if (recurrence) {
       eventDetails.recurrence = recurrence;
     }
@@ -360,6 +369,14 @@ export const syncTimeBlockToCalendar = async (
       calendarId,
       allDay: timeBlock.isAllDay,
     };
+    
+    // Add alarm/reminder if user has set one
+    if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes > 0) {
+      eventDetails.alarms = [{
+        date: -timeBlock.alarmMinutes, // Negative value means minutes before event
+      }];
+    }
+    
     if (recurrence) {
       eventDetails.recurrence = recurrence;
     }
@@ -498,9 +515,26 @@ export const removeTimeBlockFromCalendar = async (
         // Do NOT delete the entire series when single-instance deletion isn't supported.
         return { success: false, error: 'GRANULAR_SINGLE_DELETE_UNSUPPORTED' };
       }
+    } else if (options?.type === 'all') {
+      // Remove ALL instances of recurring event (entire series)
+      // For recurring events, we need to pass futureEvents: true to delete the entire series
+      try {
+        await (RNCalendarEvents as any).removeEvent(realEventId, {
+          futureEvents: true,
+        });
+        Logger.info('🗓️ Successfully removed all recurring event instances', {
+          component: 'calendarSyncService',
+        });
+      } catch (e) {
+        Logger.warn('🗓️ Recurring series removal with options failed, trying simple removal', {
+          component: 'calendarSyncService',
+          errorMessage: e instanceof Error ? e.message : String(e),
+        });
+        // Fallback: try simple removal
+        await RNCalendarEvents.removeEvent(realEventId);
+      }
     } else {
-      // Default: remove this single event/series
-
+      // Default: remove single non-recurring event
       await RNCalendarEvents.removeEvent(realEventId);
     }
 

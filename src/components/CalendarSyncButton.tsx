@@ -3,7 +3,7 @@
  * Shows sync status and handles calendar integration with feature gating
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import {
   View,
@@ -63,6 +63,11 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
 
   // Prevent duplicate sync calls
   const syncInProgress = useRef(false);
+
+  // Update sync status when calendarEventId prop changes
+  useEffect(() => {
+    setSyncStatus(calendarEventId ? 'synced' : 'unsynced');
+  }, [calendarEventId]);
 
   const handleSync = async () => {
     // Prevent duplicate calls
@@ -180,47 +185,128 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   const handleUnsync = async () => {
     if (!calendarEventId) {return;}
 
-    Alert.alert(
-      'Remove from Calendar',
-      'This will remove the time block from your device calendar.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoading(true);
+    const isRecurring = timeBlock.repeat?.frequency && timeBlock.repeat.frequency !== 'never';
 
-            try {
-              console.log('[CalendarSyncButton] Removing calendar event:', calendarEventId);
-              const result = await removeTimeBlockFromCalendar(calendarEventId);
-              console.log('[CalendarSyncButton] Remove result:', result);
+    if (isRecurring) {
+      // For recurring events, ask if user wants to remove all instances or just this one
+      Alert.alert(
+        'Remove Recurring Event',
+        'This is a recurring event. What would you like to remove?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Just This Event',
+            onPress: async () => {
+              setIsLoading(true);
+              try {
+                console.log('[CalendarSyncButton] Removing single instance:', calendarEventId);
+                const result = await removeTimeBlockFromCalendar(calendarEventId, { 
+                  type: 'single',
+                  date: timeBlock.startTime,
+                });
+                console.log('[CalendarSyncButton] Remove result:', result);
 
-              if (result.success) {
-                console.log('[CalendarSyncButton] Successfully removed, calling onSyncComplete(null)');
-                setSyncStatus('unsynced');
-                await onSyncComplete(null);
-                triggerSelectionHaptic();
-                Alert.alert('Success', 'Time block removed from calendar.');
-              } else {
-                console.error('[CalendarSyncButton] Remove failed:', result.error);
-                Alert.alert(
-                  'Remove Failed',
-                  result.error || 'Failed to remove from calendar.',
-                  [{ text: 'OK' }]
-                );
+                if (result.success) {
+                  console.log('[CalendarSyncButton] Successfully removed single instance (series still synced)');
+                  // Don't clear calendar_event_id for single instance removal - the series is still synced
+                  triggerSelectionHaptic();
+                  Alert.alert('Success', 'This event removed from calendar. Other recurring events remain synced.');
+                } else {
+                  console.error('[CalendarSyncButton] Remove failed:', result.error);
+                  Alert.alert(
+                    'Remove Failed',
+                    result.error || 'Failed to remove from calendar.',
+                    [{ text: 'OK' }]
+                  );
+                }
+              } catch (error) {
+                console.error('[CalendarSyncButton] Exception during remove:', error);
+                Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
+                Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
+              } finally {
+                setIsLoading(false);
               }
-            } catch (error) {
-              console.error('[CalendarSyncButton] Exception during remove:', error);
-              Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
-              Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
-            } finally {
-              setIsLoading(false);
-            }
+            },
           },
-        },
-      ]
-    );
+          {
+            text: 'All Events',
+            style: 'destructive',
+            onPress: async () => {
+              setIsLoading(true);
+              try {
+                console.log('[CalendarSyncButton] Removing all instances:', calendarEventId);
+                const result = await removeTimeBlockFromCalendar(calendarEventId, { type: 'all' });
+                console.log('[CalendarSyncButton] Remove result:', result);
+
+                if (result.success) {
+                  console.log('[CalendarSyncButton] Successfully removed all instances, calling onSyncComplete(null)');
+                  setSyncStatus('unsynced');
+                  await onSyncComplete(null);
+                  triggerSelectionHaptic();
+                  Alert.alert('Success', 'All recurring events removed from calendar.');
+                } else {
+                  console.error('[CalendarSyncButton] Remove failed:', result.error);
+                  Alert.alert(
+                    'Remove Failed',
+                    result.error || 'Failed to remove from calendar.',
+                    [{ text: 'OK' }]
+                  );
+                }
+              } catch (error) {
+                console.error('[CalendarSyncButton] Exception during remove:', error);
+                Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
+                Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
+              } finally {
+                setIsLoading(false);
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // For non-recurring events, show simple confirmation
+      Alert.alert(
+        'Remove from Calendar',
+        'This will remove the time block from your device calendar.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              setIsLoading(true);
+
+              try {
+                console.log('[CalendarSyncButton] Removing calendar event:', calendarEventId);
+                const result = await removeTimeBlockFromCalendar(calendarEventId);
+                console.log('[CalendarSyncButton] Remove result:', result);
+
+                if (result.success) {
+                  console.log('[CalendarSyncButton] Successfully removed, calling onSyncComplete(null)');
+                  setSyncStatus('unsynced');
+                  await onSyncComplete(null);
+                  triggerSelectionHaptic();
+                  Alert.alert('Success', 'Time block removed from calendar.');
+                } else {
+                  console.error('[CalendarSyncButton] Remove failed:', result.error);
+                  Alert.alert(
+                    'Remove Failed',
+                    result.error || 'Failed to remove from calendar.',
+                    [{ text: 'OK' }]
+                  );
+                }
+              } catch (error) {
+                console.error('[CalendarSyncButton] Exception during remove:', error);
+                Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
+                Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
+              } finally {
+                setIsLoading(false);
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   const getButtonStyle = () => {

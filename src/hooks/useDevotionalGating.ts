@@ -1,17 +1,18 @@
 // useDevotionalGating - Enterprise hook for devotional feature gating logic
 // Provides comprehensive access control and usage tracking for devotionals
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { subscriptionService } from '../services/subscriptionService';
-import type { SubscriptionTier, Subscription } from '../types/subscription';
+import subscriptionService from '../services/NewSubscriptionService';
 import {
   checkDevotionalAccess,
   getUsageDisplayMessage,
   getUpgradeMessage,
   type DevotionalAccessCheck,
 } from '../utils/tierLockingRules';
+import { useQuery } from '@tanstack/react-query';
+import type { Subscription, SubscriptionTier } from '../types/subscription';
 
 interface DevotionalGatingState {
   subscription: Subscription | null;
@@ -52,65 +53,32 @@ interface DevotionalGatingResult {
 
 export const useDevotionalGating = (): DevotionalGatingResult => {
   const { user } = useAuth();
-  const [state, setState] = useState<DevotionalGatingState>({
-    subscription: null,
-    tier: 'seeker',
-    loading: true,
-    error: null,
+
+  // Use React Query to watch subscription changes - this makes the hook reactive
+  const { data: subscription, isLoading, error, refetch } = useQuery({
+    queryKey: ['subscription', user?.id || ''],
+    queryFn: () => subscriptionService.getUserSubscription(user?.id || ''),
+    enabled: !!user?.id,
+    staleTime: 30 * 1000, // 30 seconds - shorter for faster updates
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Load subscription data
-  const loadSubscription = useCallback(async () => {
-    if (!user?.id) {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'No user found',
-        tier: 'seeker',
-        subscription: null,
-      }));
-      return;
-    }
-
-    try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-
-      const subscription = await subscriptionService.getUserSubscription(user.id);
-
-      // IMPORTANT: For trials, use trial_chosen_tier for gating (not 'free_trial')
-      // This ensures Growth Trial gets Growth tier's feature unlocks (5-day devotionals)
-      // while still having trial limits (2/2)
-      const effectiveTier = subscription.tier === 'free_trial' && (subscription as any).trial_chosen_tier
-        ? (subscription as any).trial_chosen_tier
-        : subscription.tier;
-
-      setState({
-        subscription,
-        tier: effectiveTier, // Use chosen tier for gating
-        loading: false,
-        error: null,
-      });
-
-    } catch (error) {
-      Logger.error('[useDevotionalGating] Failed to load subscription', error as Error, { component: 'useDevotionalGating' });
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: (error as Error).message || 'Failed to load subscription',
-        tier: 'seeker',
-        subscription: null,
-      }));
-    }
-  }, [user?.id]);
-
-  // Load subscription on mount and user change
-  useEffect(() => {
-    loadSubscription();
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // IMPORTANT: For trials, use trial_chosen_tier for gating (not 'free_trial')
+  // This ensures Growth Trial gets Growth tier's feature unlocks (5-day devotionals)
+  // while still having trial limits (2/2)
+  const tier = useMemo(() => {
+    if (!subscription) {return 'seeker';}
+    
+    const effectiveTier = subscription.tier === 'free_trial' && (subscription as any).trial_chosen_tier
+      ? (subscription as any).trial_chosen_tier
+      : subscription.tier;
+    
+    return effectiveTier;
+  }, [subscription]);
 
   // Calculate usage information
   const usageInfo = useMemo((): DevotionalUsageInfo => {
-    if (!state.subscription) {
+    if (!subscription) {
       return {
         used: 0,
         limit: 0,
@@ -119,7 +87,6 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
       };
     }
 
-    const { subscription } = state;
     const used = subscription.devotionals_used || 0;
     const limit = subscription.devotionals_limit === -1 ? 'Unlimited' : subscription.devotionals_limit;
 
@@ -139,11 +106,11 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
       remaining,
       displayMessage,
     };
-  }, [state]);
+  }, [subscription]);
 
   // Access checking function
   const checkAccess = (duration: number, context: 'onboarding' | 'inApp' = 'inApp'): DevotionalAccessCheck => {
-    return checkDevotionalAccess(state.tier, duration, context);
+    return checkDevotionalAccess(tier, duration, context);
   };
 
   // Simple access checks
@@ -159,24 +126,24 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
 
   // Messaging functions
   const getUsageMessage = (remaining?: number): string => {
-    return getUsageDisplayMessage(state.tier, remaining);
+    return getUsageDisplayMessage(tier, remaining);
   };
 
   const getUpgradeMessageForContext = (context: 'onboarding' | 'inApp' = 'inApp'): string => {
-    return getUpgradeMessage(state.tier, context);
+    return getUpgradeMessage(tier, context);
   };
 
   // Refresh function
   const refreshSubscription = async (): Promise<void> => {
-    await loadSubscription();
+    await refetch();
   };
 
   return {
     // State
-    subscription: state.subscription,
-    tier: state.tier,
-    loading: state.loading,
-    error: state.error,
+    subscription: subscription || null,
+    tier,
+    loading: isLoading,
+    error: error ? (error as Error).message : null,
 
     // Access checking
     checkAccess,

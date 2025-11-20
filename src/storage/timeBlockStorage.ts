@@ -26,6 +26,7 @@ export interface TimeBlockEntry {
   repeat?: any; // JSON object for repeat rules
   repeat_until?: string;
   notes?: string;
+  alarm_minutes?: number; // Minutes before event to trigger alarm (e.g., 15, 30, 60, null for no alarm)
   version: number;
   created_at?: string;
   updated_at?: string;

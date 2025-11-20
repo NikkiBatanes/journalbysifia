@@ -915,7 +915,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             {/* Day Title - Moved below progress bar */}
             <View style={styles.dayTitleContainer}>
               <ThemedText weight="semiBold" style={styles.dayNumber}>Day {index + 1}</ThemedText>
-              <ThemedText weight="bold" style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
+              <ThemedText weight="bold" style={styles.dayTitle}>
                 {devotional.totalDays === 1 ? (
                   extractCleanTitle(devotional.title, 'Devotional')
                 ) : (
@@ -1379,7 +1379,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     width: '100%',
   },
   questionCardNumber: {
@@ -1396,6 +1396,7 @@ const styles = StyleSheet.create({
   },
   questionCardText: {
     flex: 1,
+    flexShrink: 1,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,

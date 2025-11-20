@@ -53,6 +53,7 @@ interface TimeBlockItem {
   isAllDay: boolean;
   calendarEventId?: string; // For calendar sync
   alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'; // Alert/reminder
+  alarmMinutes?: number;
   repeat: {
     frequency: RepeatFrequency;
     endDate?: Date;
@@ -76,6 +77,24 @@ const formatDuration = (start: Date, end: Date): string => {
 
 const formatTime = (date: Date): string => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+// Helper function to convert alert string to minutes for calendar alarm
+const alertToMinutes = (alert: string): number | undefined => {
+  switch (alert) {
+    case 'at-time': return 0;
+    case '5-min': return 5;
+    case '10-min': return 10;
+    case '15-min': return 15;
+    case '30-min': return 30;
+    case '1-hour': return 60;
+    case '2-hours': return 120;
+    case '1-day': return 1440;
+    case '2-days': return 2880;
+    case '1-week': return 10080;
+    case 'none':
+    default: return undefined;
+  }
 };
 
 // Helper function to format repeat text
@@ -187,6 +206,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     isAllDay: block.all_day,
     calendarEventId: (block as any).calendar_event_id,
     alert: block.alert || 'none', // Map alert field
+    alarmMinutes: (block as any).alarm_minutes ?? alertToMinutes(block.alert || 'none'),
     repeat: block.repeat_rule ? {
       frequency: (block.repeat_rule.frequency || 'never') as RepeatFrequency,
       endDate: block.repeat_until ? new Date(block.repeat_until) : undefined,
@@ -735,6 +755,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   location: newBlock.location.trim(),
                   notes: newBlock.notes.trim(),
                   isAllDay: newBlock.isAllDay,
+                  alarmMinutes: alertToMinutes(newBlock.alert),
                   repeat: { frequency: 'never' as const },
                   calendarEventId: undefined,
                 };
@@ -804,6 +825,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           location: newBlock.location.trim() || undefined,
           all_day: newBlock.isAllDay,
           alert: newBlock.alert || 'none',
+          alarm_minutes: alertToMinutes(newBlock.alert), // TODO: Uncomment after running database migration
           // Repeat fields (only if user can use repeat)
           repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
             frequency: newBlock.repeat.frequency,
@@ -841,6 +863,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               location: newBlock.location.trim(),
               notes: newBlock.notes.trim(),
               isAllDay: newBlock.isAllDay,
+              alarmMinutes: alertToMinutes(newBlock.alert),
               repeat: calendarRepeat,
               calendarEventId: existingBlock?.calendarEventId || updateResult.calendar_event_id,
             };
@@ -906,6 +929,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           location: newBlock.location.trim() || undefined,
           all_day: newBlock.isAllDay,
           alert: newBlock.alert || 'none',
+          alarm_minutes: alertToMinutes(newBlock.alert), // TODO: Uncomment after running database migration
           // Repeat fields (only if user can use repeat)
           repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
             frequency: newBlock.repeat.frequency,
@@ -936,6 +960,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               location: newBlock.location.trim(),
               notes: newBlock.notes.trim(),
               isAllDay: newBlock.isAllDay,
+              alarmMinutes: alertToMinutes(newBlock.alert),
               repeat: calendarRepeat,
               calendarEventId: undefined, // No existing event ID for new time blocks
             };
@@ -1222,10 +1247,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
                       await updateMutation.mutateAsync({
                         id: persistId,
-                        updates: { calendar_event_id: eventId || undefined },
+                        updates: { calendar_event_id: (eventId || null) as string | undefined }, // Cast to satisfy TypeScript, null clears the field
                       });
 
-                      // Optimistically patch cache for current date so UI stays green
+                      // Optimistically patch cache for current date so UI stays updated
                       // Don't invalidate immediately - let the mutation's onSuccess handle it
                       // to avoid race condition where refetch happens before DB update completes
                       try {
@@ -1234,7 +1259,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                           if (!Array.isArray(old)) { return old; }
                           return old.map((tb) => {
                             if (tb.id === block.id || tb.id === persistId) {
-                              return { ...tb, calendar_event_id: eventId || undefined };
+                              return { ...tb, calendar_event_id: eventId || null }; // Use null to clear
                             }
                             return tb;
                           });
@@ -2157,6 +2182,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 onPress={() => {
                   triggerLightHaptic();
                   setIsAdding(false);
+                  setEditId(null);
+                  // Scroll to top when canceling, same as when saving
+                  try { scrollToTop(true); } catch {}
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel adding time block"
@@ -2466,6 +2494,7 @@ const styles = StyleSheet.create({
   detailsColumn: {
     flex: 1,
     paddingLeft: 12,
+    paddingRight: 12,
     paddingVertical: 0,
     justifyContent: 'center',
     minHeight: 0,
@@ -2525,7 +2554,7 @@ const styles = StyleSheet.create({
   },
   metaInfoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     minHeight: 20,
   },
   metaIcon: {
@@ -2536,8 +2565,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.tertiaryText,
     flex: 1,
+    flexShrink: 1,
+    flexWrap: 'wrap',
     lineHeight: 16,
     marginTop: 0,
+    paddingRight: 4,
   },
   notesContainer: {
     width: '100%',

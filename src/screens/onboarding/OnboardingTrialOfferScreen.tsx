@@ -23,11 +23,13 @@ import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { getFontFamily } from '../../theme/fonts';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
 import { logger } from '../../utils/logger';
+import { useQueryClient } from '@tanstack/react-query';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { currentFont } = useTheme();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
@@ -310,6 +312,10 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
           // This ensures only fresh trial activations are processed
 
           await storeKitService.checkAndSyncSubscriptionStatus(user.id, false);
+          
+          // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
+          logger.debug('Invalidating subscription cache for immediate UI update after trial start');
+          await queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
         } catch (syncError) {
           logger.error('Trial sync error', syncError as Error);
         }

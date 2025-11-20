@@ -3,11 +3,13 @@
  * Controls access to calendar sync and repeat features based on subscription tier
  */
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { analytics } from '../utils/analytics';
+import { useQuery } from '@tanstack/react-query';
+import NewSubscriptionService from '../services/NewSubscriptionService';
 
 export interface CalendarGatingState {
   // Calendar sync permissions
@@ -36,37 +38,31 @@ export interface CalendarGatingState {
 export const useCalendarGating = (): CalendarGatingState => {
   const { user, updatePreferences } = useAuth();
   const navigation = useNavigation();
-  const [currentTier, setCurrentTier] = useState<string>('seeker');
 
-  useEffect(() => {
-    const loadTier = async () => {
-      if (!user?.id) {
-        setCurrentTier('seeker');
-        return;
-      }
+  // Use React Query to watch subscription changes - this makes the hook reactive
+  const { data: subscription } = useQuery({
+    queryKey: ['subscription', user?.id || ''],
+    queryFn: () => NewSubscriptionService.getUserSubscription(user?.id || ''),
+    enabled: !!user?.id,
+    staleTime: 30 * 1000, // 30 seconds - shorter than useNewSubscription for faster updates
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-      try {
-        // Use the same service that UserProfile uses to get accurate tier
-        const { NewSubscriptionService } = await import('../services/NewSubscriptionService');
-        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+  // Get current tier from subscription, with fallback
+  const currentTier = useMemo(() => {
+    if (subscription?.tier) {
+      return subscription.tier;
+    }
 
-        setCurrentTier(subscriptionData.tier || 'seeker');
-      } catch (error) {
-        Logger.error('🔍 useCalendarGating - Failed to get subscription', error as Error, { component: 'useCalendarGating' });
+    // Fallback to user object properties
+    const userTier = (user as any)?.subscription?.tier
+      || (user as any)?.app_metadata?.subscription_tier
+      || (user as any)?.user_metadata?.subscription_tier
+      || (user as any)?.tier
+      || 'seeker';
 
-        // Fallback to user object properties
-        const userTier = (user as any)?.subscription?.tier
-          || (user as any)?.app_metadata?.subscription_tier
-          || (user as any)?.user_metadata?.subscription_tier
-          || (user as any)?.tier
-          || 'seeker';
-
-        setCurrentTier(userTier);
-      }
-    };
-
-    loadTier();
-  }, [user]);
+    return userTier;
+  }, [subscription, user]);
 
   const isSeeker = currentTier === 'seeker';
 

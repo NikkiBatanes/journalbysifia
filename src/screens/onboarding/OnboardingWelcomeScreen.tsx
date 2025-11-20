@@ -195,8 +195,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
           // For Apple users, force name collection to avoid private relay names
           displayName = '';
         } else if (provider === 'google') {
-          // For Google users, use the Google-provided name from user_metadata
-          displayName = user?.user_metadata?.first_name || user?.user_metadata?.full_name || '';
+          // For Google users, extract first name from full_name
+          const fullName = user?.user_metadata?.full_name || user?.user_metadata?.first_name || '';
+          displayName = fullName.split(' ')[0] || fullName;
         } else {
           // For email users, extract from email or metadata
           displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
@@ -268,7 +269,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
         if (provider === 'apple') {
           displayName = ''; // Force collection for Apple
         } else if (provider === 'google') {
-          displayName = user?.user_metadata?.first_name || user?.user_metadata?.full_name || '';
+          const fullName = user?.user_metadata?.full_name || user?.user_metadata?.first_name || '';
+          displayName = fullName.split(' ')[0] || fullName;
         } else {
           displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
         }
@@ -304,7 +306,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
         if (provider === 'apple') {
           displayName = ''; // Force collection for Apple
         } else if (provider === 'google') {
-          displayName = user?.user_metadata?.first_name || user?.user_metadata?.full_name || '';
+          const fullName = user?.user_metadata?.full_name || user?.user_metadata?.first_name || '';
+          displayName = fullName.split(' ')[0] || fullName;
         } else {
           displayName = user?.user_metadata?.first_name || extractNameFromEmail(user?.email?.split('@')[0] || '') || '';
         }

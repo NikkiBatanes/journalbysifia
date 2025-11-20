@@ -141,7 +141,7 @@ const OnboardingNotificationSetupScreen = () => {
       title: 'Trial Reminders',
       description: 'Important updates about your trial status',
       icon: 'time-outline',
-      enabled: effectiveUserType === 'trial',
+      enabled: true,
       required: effectiveUserType === 'trial',
     },
     {
