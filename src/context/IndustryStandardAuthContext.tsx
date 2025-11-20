@@ -607,7 +607,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // This prevents a race condition where loading becomes false before isAuthenticated becomes true
 
       // ENTERPRISE-GRADE CHECK: Verify onboarding status before routing
-      // This ensures unregistered users (who have auth but no profile/incomplete onboarding) 
+      // This ensures unregistered users (who have auth but no profile/incomplete onboarding)
       // are routed to personalization, not dashboard
       try {
         const userId = data.user?.id;
@@ -646,10 +646,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           // User has completed onboarding - route to MainTabs with bypass flag
           Logger.debug('[signIn] User has completed onboarding - routing to MainTabs');
 
-          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ 
-            target: 'MainTabs', 
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+            target: 'MainTabs',
             params: {},
-            is_login_flow: true // Bypass onboarding checks for completed users
+            is_login_flow: true, // Bypass onboarding checks for completed users
           }));
         }
       } catch (checkError) {
@@ -1226,10 +1226,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           // User has completed onboarding - route to MainTabs with bypass flag
           Logger.debug('[Google signIn] User has completed onboarding - routing to MainTabs');
 
-          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ 
-            target: 'MainTabs', 
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+            target: 'MainTabs',
             params: {},
-            is_login_flow: true // Bypass onboarding checks for completed users
+            is_login_flow: true, // Bypass onboarding checks for completed users
           }));
         }
       } catch (checkError) {
@@ -1398,10 +1398,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           // User has completed onboarding - route to MainTabs with bypass flag
           Logger.debug('[Apple signIn] User has completed onboarding - routing to MainTabs');
 
-          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ 
-            target: 'MainTabs', 
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+            target: 'MainTabs',
             params: {},
-            is_login_flow: true // Bypass onboarding checks for completed users
+            is_login_flow: true, // Bypass onboarding checks for completed users
           }));
         }
       } catch (checkError) {

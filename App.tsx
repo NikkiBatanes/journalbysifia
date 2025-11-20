@@ -81,7 +81,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     if (bootstrapping) {
       return undefined;
     }
-    
+
     return {
       prefixes: ['sifia://', 'https://sifia.app', 'http://sifia.app'],
       config: {

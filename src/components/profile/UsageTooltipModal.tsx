@@ -255,20 +255,20 @@ const UsageTooltipModal: React.FC<Props> = ({
 
   const handleUpgrade = () => {
     triggerLightHaptic();
-    
+
     // Check if user has ever started a trial
     const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
     const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
     const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
-    
+
     // Close tooltip modal first
     onClose();
-    
+
     // Navigate after tooltip closes, with longer delay to ensure proper stacking
     setTimeout(() => {
       // Close the UserProfile modal by going back
       (navigation as any).goBack();
-      
+
       // Then navigate to the offer screen after profile modal closes
       setTimeout(() => {
         if (canOfferTrial) {

@@ -837,7 +837,7 @@ export default function ActionStepsCard({
                 if (showExampleSubtasksInline) {return true;} // include everything inline
                 return !st.text.toLowerCase().startsWith('example:');
               });
-              
+
               // Debug logging for subtask filtering
               if (originalSubtasks.length !== subtasks.length) {
                 console.log(`🔍 ActionStepsCard: Step "${step.title}" - Filtered ${originalSubtasks.length} → ${subtasks.length} subtasks`, {

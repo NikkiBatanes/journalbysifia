@@ -41,10 +41,10 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         </View>
         {expanded && showCloseButton && (
           <View style={styles.closeButtonContainer}>
-            <Icon 
-              name="close" 
-              size={18} 
-              color={textColor} 
+            <Icon
+              name="close"
+              size={18}
+              color={textColor}
               style={styles.closeButton}
             />
           </View>

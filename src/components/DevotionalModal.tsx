@@ -194,12 +194,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     // 5 day: 5000ms per step (30s total)
     // 7 day: 6000ms per step (36s total)
     const getStepDuration = () => {
-      if (!selectedDuration) return 3000;
-      if (selectedDuration >= 7) return 6000;
-      if (selectedDuration >= 5) return 5000;
+      if (!selectedDuration) {return 3000;}
+      if (selectedDuration >= 7) {return 6000;}
+      if (selectedDuration >= 5) {return 5000;}
       return 3000;
     };
-    
+
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => {
         const nextStep = prev + 1;

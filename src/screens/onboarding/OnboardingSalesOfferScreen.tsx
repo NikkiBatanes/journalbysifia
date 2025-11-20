@@ -441,7 +441,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           if (result.success) {
             setLoadingStep('validating');
             triggerSuccessHaptic();
-            
+
             // CRITICAL: Verify this is a genuine new purchase, not cached/stale state
             if (!result.transactionId) {
               logger.error('❌ Upgrade missing transaction ID - possible stale state');
@@ -456,7 +456,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
             logger.debug('Invalidating subscription cache for immediate UI update');
             await queryClient.invalidateQueries({ queryKey: ['subscription', user?.id] });
-            
+
             // Refresh subscription state
             await devotionalGating.refreshSubscription();
             try {

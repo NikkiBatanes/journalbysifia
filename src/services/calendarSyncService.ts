@@ -170,14 +170,14 @@ export const updateTimeBlockInCalendar = async (
       calendarId,
       allDay: timeBlock.isAllDay,
     };
-    
+
     // Add alarm/reminder if user has set one
     if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes > 0) {
       eventDetails.alarms = [{
         date: -timeBlock.alarmMinutes, // Negative value means minutes before event
       }];
     }
-    
+
     if (recurrence) {
       eventDetails.recurrence = recurrence;
     }
@@ -369,14 +369,14 @@ export const syncTimeBlockToCalendar = async (
       calendarId,
       allDay: timeBlock.isAllDay,
     };
-    
+
     // Add alarm/reminder if user has set one
     if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes > 0) {
       eventDetails.alarms = [{
         date: -timeBlock.alarmMinutes, // Negative value means minutes before event
       }];
     }
-    
+
     if (recurrence) {
       eventDetails.recurrence = recurrence;
     }

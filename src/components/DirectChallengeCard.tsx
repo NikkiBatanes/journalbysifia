@@ -40,10 +40,10 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
         </View>
         {expanded && showCloseButton && (
           <View style={styles.closeButtonContainer}>
-            <Ionicons 
-              name="close" 
-              size={18} 
-              color={Colors.hopeWhite} 
+            <Ionicons
+              name="close"
+              size={18}
+              color={Colors.hopeWhite}
               style={styles.closeButton}
             />
           </View>

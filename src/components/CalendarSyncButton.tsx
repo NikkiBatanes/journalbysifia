@@ -200,7 +200,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
               setIsLoading(true);
               try {
                 console.log('[CalendarSyncButton] Removing single instance:', calendarEventId);
-                const result = await removeTimeBlockFromCalendar(calendarEventId, { 
+                const result = await removeTimeBlockFromCalendar(calendarEventId, {
                   type: 'single',
                   date: timeBlock.startTime,
                 });

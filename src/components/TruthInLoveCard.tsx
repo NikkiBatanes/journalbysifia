@@ -90,10 +90,10 @@ export default function TruthInLoveCard({
           {/* Subtle close button when expanded */}
           {isExpanded && showCloseButton !== false && (
             <View style={styles.closeButtonContainer}>
-              <Ionicons 
-                name="close" 
-                size={18} 
-                color={textColor} 
+              <Ionicons
+                name="close"
+                size={18}
+                color={textColor}
                 style={styles.closeButton}
               />
             </View>

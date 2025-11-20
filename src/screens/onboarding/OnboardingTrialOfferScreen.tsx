@@ -312,7 +312,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
           // This ensures only fresh trial activations are processed
 
           await storeKitService.checkAndSyncSubscriptionStatus(user.id, false);
-          
+
           // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
           logger.debug('Invalidating subscription cache for immediate UI update after trial start');
           await queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });

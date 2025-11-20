@@ -76,14 +76,14 @@ const UserInputScreen: React.FC = () => {
               inputRef.current.setSelection(textLength, textLength);
             }
           };
-          
+
           // Try immediately
           setTimeout(focusWithCursor, 100);
           // Try again after animation
           setTimeout(focusWithCursor, 500);
           return;
         }
-        
+
         // Otherwise load saved draft
         const draft = await AsyncStorage.getItem(DRAFT_KEY);
         if (draft && draft.trim()) {

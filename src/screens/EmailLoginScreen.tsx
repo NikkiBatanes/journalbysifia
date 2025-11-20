@@ -55,9 +55,9 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
     if (signInError) {
       // Map common auth errors to a friendly inline message
       const raw = (signInError.message || '').toLowerCase();
-      
+
       let message = 'Incorrect email or password';
-      
+
       if (raw.includes('too many') || raw.includes('rate limit')) {
         message = 'Too many attempts. Please wait and try again.';
       } else if (raw.includes('invalid') || raw.includes('not found') || raw.includes('user not found')) {

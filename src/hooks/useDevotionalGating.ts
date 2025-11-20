@@ -68,11 +68,11 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
   // while still having trial limits (2/2)
   const tier = useMemo(() => {
     if (!subscription) {return 'seeker';}
-    
+
     const effectiveTier = subscription.tier === 'free_trial' && (subscription as any).trial_chosen_tier
       ? (subscription as any).trial_chosen_tier
       : subscription.tier;
-    
+
     return effectiveTier;
   }, [subscription]);
 

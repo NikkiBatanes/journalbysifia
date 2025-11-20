@@ -465,7 +465,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
     // Update scroll direction
     scrollDirection.current = isScrollingUp ? 'up' : 'down';
-    
+
     // Update header animation - only if scroll change is reasonable
     // Ignore sudden jumps > 200px (likely from layout changes when syncing)
     const scrollDiff = Math.abs(y - (lastScrollY.current || 0));

@@ -904,9 +904,9 @@ function TimeBlockLogEditorInner(
         enabled={Platform.OS === 'ios'}>
 
         <View style={s.contentCard}>
-          <ScrollView 
-            style={s.content} 
-            contentContainerStyle={s.scrollContent} 
+          <ScrollView
+            style={s.content}
+            contentContainerStyle={s.scrollContent}
             scrollEnabled={true}
             keyboardShouldPersistTaps="handled"
           >
