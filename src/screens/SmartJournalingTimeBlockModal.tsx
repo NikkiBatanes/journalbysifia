@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { StyleSheet, Modal, View, Alert } from 'react-native';
+import { Modal, Alert } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
-import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -362,12 +361,5 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.anchorBlue,
-  },
-});
 
 export default withErrorBoundary(SmartJournalingTimeBlockModal, 'SmartJournalingTimeBlockModal');

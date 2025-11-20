@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
-import { NotificationQueueItem } from './notificationManagementService';
 
 /**
  * Notification Batching Service
@@ -124,7 +123,7 @@ class NotificationBatchingService {
   private generateBatchedMessage(
     type: string,
     count: number,
-    notifications: BatchableNotification[]
+    _notifications: BatchableNotification[]
   ): { type: string; title: string; message: string; data: any } {
     switch (type) {
       case 'prayer_reminder':

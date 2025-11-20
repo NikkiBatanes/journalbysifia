@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { toLocalDateString } from '../utils/date';
-import { Modal, StyleSheet, Alert, View, DeviceEventEmitter } from 'react-native';
+import { Modal, Alert, Keyboard, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import ReflectionLogEditor, { ReflectionLogEditorRef } from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
-import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -248,6 +247,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             await AsyncStorage.setItem(storageKey, JSON.stringify(list));
           }
           // Emit global event so dashboard can remove the prompt immediately
+          Keyboard.dismiss();
           DeviceEventEmitter.emit('guided_reflection_completed', { question: q, date: dateStrKey });
         } catch (e) {
           Logger.warn('Failed to persist guided completion', {
@@ -456,35 +456,5 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.anchorBlue,
-  },
-  loadingOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    backgroundColor: Colors.hopeWhite,
-    padding: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: Colors.anchorBlue,
-    fontWeight: '500',
-  },
-});
 
 export default withErrorBoundary(SmartJournalingReflectionModal, 'SmartJournalingReflectionModal');

@@ -4,7 +4,7 @@
  */
 
 import { Platform, Alert } from 'react-native';
-import ViewShot from 'react-native-view-shot';
+import Share from 'react-native-share';
 import { Logger } from './ProductionLogger';
 
 export interface ShareContent {

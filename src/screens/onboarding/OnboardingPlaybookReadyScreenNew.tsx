@@ -738,7 +738,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Smooth animation handler
   const animateCardTransition = (cardId: string, isExpanding: boolean) => {
     const cardIndex = carouselCards.findIndex(c => c.id === cardId);
-    const initialStackOffset = (carouselCards.length - cardIndex - 1) * (isTablet ? 36 : 48);
 
     if (isExpanding) {
       // Animate selected card to expanded position at top (Y=0)

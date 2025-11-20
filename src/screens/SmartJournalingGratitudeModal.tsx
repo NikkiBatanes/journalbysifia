@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { Modal, View, StyleSheet, Alert, Keyboard } from 'react-native';
+import { Modal, Alert, Keyboard } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import GratitudeLogEditor, { GratitudeLogEditorRef } from '../components/journal/GratitudeLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
-import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -417,12 +416,5 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.anchorBlue,
-  },
-});
 
 export default withErrorBoundary(SmartJournalingGratitudeModal, 'SmartJournalingGratitudeModal');
