@@ -23,6 +23,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { useTheme } from '../theme/ThemeContext'; // Unused
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
+import { triggerLightHaptic } from '../utils/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -91,6 +92,8 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     const effectiveTierKey = isTrial ? tier : tier;
     const baseName = planNames[effectiveTierKey] || effectiveTierKey;
+    // Add "siFia" prefix for non-trial purchases
+    const displayName = isTrial ? baseName : `siFia ${baseName}`;
     const isFamily = effectiveTierKey === 'family';
     const isUnlimited = effectiveTierKey === 'transformation' || effectiveTierKey === 'family';
 
@@ -140,7 +143,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       }
 
       return {
-        name: `${baseName} Trial`,
+        name: `${displayName} Trial`,
         color: Colors.alertCoral,
         benefits,
       };
@@ -148,7 +151,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     if (effectiveTierKey === 'spark') {
       return {
-        name: baseName,
+        name: displayName,
         color: Colors.alertCoral,
         benefits: [
           '8 Playbooks per month',
@@ -159,7 +162,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     if (effectiveTierKey === 'growth') {
       return {
-        name: baseName,
+        name: displayName,
         color: Colors.alertCoral,
         benefits: [
           '20 Playbooks per month',
@@ -171,7 +174,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     if (effectiveTierKey === 'transformation') {
       return {
-        name: baseName,
+        name: displayName,
         color: Colors.alertCoral,
         benefits: [
           'Unlimited Playbooks',
@@ -183,7 +186,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     }
 
     return {
-      name: baseName,
+      name: displayName,
       color: Colors.alertCoral,
       benefits: [
         'Cancel anytime',
@@ -275,7 +278,10 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           {/* Continue Button */}
           <TouchableOpacity
             style={[styles.continueButton, { backgroundColor: tierInfo.color }]}
-            onPress={onContinue}
+            onPress={() => {
+              triggerLightHaptic();
+              onContinue();
+            }}
             activeOpacity={0.8}
           >
             <ThemedText style={styles.continueButtonText}>Continue</ThemedText>

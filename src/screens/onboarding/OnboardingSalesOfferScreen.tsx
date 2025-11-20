@@ -23,6 +23,7 @@ import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
+import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
 import { logger } from '../../utils/logger';
 import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
@@ -66,6 +67,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [isAnnual, setIsAnnual] = useState(false);
   const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' : 'growth';
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
+  const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
   const [showDynamicModal, setShowDynamicModal] = useState(false);
   const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -73,6 +75,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [purchaseValidated, setPurchaseValidated] = useState(false);
+  const [cachedProducts, setCachedProducts] = useState<any[]>([]);
+  const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -159,6 +165,50 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   }, [user?.id]);
 
   // Load location-adjusted pricing and currency
+  const handleSuccessModalContinue = React.useCallback(() => {
+    setShowSuccessModal(false);
+    setLastPurchasedTier(null);
+    
+    setTimeout(() => {
+      if (isUpgradeMode) {
+        // In upgrade mode, navigate back to the original context
+        const source = routeParams?.source;
+        if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
+          // Go back multiple times to return to TimeBlock screen
+          navigation.goBack();
+          setTimeout(() => navigation.goBack(), 100);
+        } else {
+          navigation.goBack();
+        }
+      } else {
+        // In onboarding mode, navigate to notification setup
+        (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
+      }
+    }, 100);
+  }, [navigation, isUpgradeMode, routeParams?.source]);
+
+  // Pre-fetch available products on mount to avoid delays during purchase
+  useEffect(() => {
+    let isMounted = true;
+    const fetchProducts = async () => {
+      try {
+        const paymentService = PlatformPaymentService.getInstance();
+        await paymentService.initialize();
+        const products = await paymentService.getAvailableProducts();
+        if (isMounted) {
+          setCachedProducts(products);
+          logger.debug('✅ Products pre-cached', { count: products.length });
+        }
+      } catch (error) {
+        logger.error('Failed to pre-cache products', error as Error);
+      }
+    };
+    fetchProducts();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
     const loadPricing = async () => {
@@ -194,7 +244,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // Default selection:
           // - If user requested a 7-day devotional, prefer 'transformation' tier, then any tier that unlocks the request
           // - Else prefer POPULAR, then 'growth', then first available
-          if (tiers.length > 0) {
+          if (!hasManualTierSelection && tiers.length > 0) {
             let chosen: PricingTier | undefined;
             if (requestedDuration === 7) {
               chosen = tiers.find(t => t.id === 'transformation')
@@ -213,15 +263,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         Logger.error('Failed to load pricing', e as Error, { component: 'OnboardingSalesOfferScreen' });
       }
     };
+
     loadPricing();
     return () => {
       isMounted = false;
     };
-  }, [isUpgradeMode, currentUserTier, requestedDuration]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, requestedDuration]);
 
   // Ensure 7-day requests always highlight Transformation when tiers already cached
   useEffect(() => {
-    if (requestedDuration === 7 && pricingTiers.length > 0) {
+    if (!hasManualTierSelection && requestedDuration === 7 && pricingTiers.length > 0) {
       const transformationTier = pricingTiers.find(t => t.id === 'transformation');
       const fallbackTier = pricingTiers.find(t => !isDevotionalDurationLocked(t.id as SubscriptionTier, requestedDuration));
       const target = transformationTier || fallbackTier;
@@ -229,7 +280,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         setSelectedTier(target.id);
       }
     }
-  }, [requestedDuration, pricingTiers, selectedTier]);
+  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
@@ -352,9 +403,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       return;
     }
 
+    // Safety timeout to prevent infinite loading
+    const safetyTimeout = setTimeout(() => {
+      logger.error('⚠️ Purchase timeout - resetting state');
+      setIsPurchasing(false);
+      setLoadingStep('processing');
+      Alert.alert('Timeout', 'Purchase took too long. Please try again.');
+    }, 30000); // 30 second timeout
+
     try {
-      setIsPurchasing(true);
       triggerLightHaptic();
+      const purchaseTier = selectedTier;
 
       logger.debug('handleUnlockPlan called', {
         isUpgradeMode,
@@ -381,58 +440,58 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         isUpgradeMode,
       });
 
-      try {
-        const products = await paymentService.getAvailableProducts();
+      // Use cached products if available, otherwise fetch
+      const products = cachedProducts.length > 0 ? cachedProducts : await paymentService.getAvailableProducts();
 
-        // DEBUG: Log all available products to verify App Store Connect configuration
-        logger.debug('📦 All available products from App Store:', {
-          count: products.length,
-          products: products.map(p => ({
-            id: p.productId,
-            tier: p.tier,
-            price: p.localizedPrice,
-          })),
+      // DEBUG: Log all available products to verify App Store Connect configuration
+      logger.debug('📦 Using products for purchase:', {
+        count: products.length,
+        cached: cachedProducts.length > 0,
+        products: products.map(p => ({
+          id: p.productId,
+          tier: p.tier,
+          price: p.localizedPrice,
+        })),
+      });
+
+      // CRITICAL: Sales Offer Screen must EXCLUDE .freetrial products
+      // Match tier AND billing period AND ensure NO .freetrial suffix
+      const targetProduct = products.find(p =>
+        p.tier === selectedTier &&
+        p.productId.includes(billing) &&
+        !p.productId.includes('.freetrial')
+      );
+
+      if (targetProduct) {
+        productId = targetProduct.productId;
+        logger.debug('✅ Found non-trial product for Sales Offer', { productId });
+      } else {
+        // Log what we were looking for and what we found
+        logger.warn('❌ No non-trial product found!', {
+          lookingFor: {
+            tier: selectedTier,
+            billing,
+            pattern: `app.sifia.com.${selectedTier}.${billing}`,
+          },
+          matchingTier: products.filter(p => p.tier === selectedTier).map(p => p.productId),
+          matchingBilling: products.filter(p => p.productId.includes(billing)).map(p => p.productId),
         });
 
-        // CRITICAL: Sales Offer Screen must EXCLUDE .freetrial products
-        // Match tier AND billing period AND ensure NO .freetrial suffix
-        const targetProduct = products.find(p =>
-          p.tier === selectedTier &&
-          p.productId.includes(billing) &&
-          !p.productId.includes('.freetrial')
-        );
-
-        if (targetProduct) {
-          productId = targetProduct.productId;
-          logger.debug('✅ Found non-trial product for Sales Offer', { productId });
-        } else {
-          // Log what we were looking for and what we found
-          logger.warn('❌ No non-trial product found!', {
-            lookingFor: {
-              tier: selectedTier,
-              billing,
-              pattern: `app.sifia.com.${selectedTier}.${billing}`,
-            },
-            matchingTier: products.filter(p => p.tier === selectedTier).map(p => p.productId),
-            matchingBilling: products.filter(p => p.productId.includes(billing)).map(p => p.productId),
-          });
-
-          // Construct product ID - NO trial suffix for sales offer (always paid)
-          productId = `app.sifia.com.${selectedTier}.${billing}`;
-          Logger.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`, {
-        component: 'OnboardingSalesOfferScreen',
-      });
-        }
-      } catch (error) {
-        // Fallback: construct product ID - NO trial suffix for sales offer
+        // Construct product ID - NO trial suffix for sales offer (always paid)
         productId = `app.sifia.com.${selectedTier}.${billing}`;
-        Logger.warn(`[OnboardingSalesOffer] ⚠️ Failed to get products, using constructed ID: ${productId}`, {
+        Logger.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`, {
         component: 'OnboardingSalesOfferScreen',
       });
       }
 
+      // NOW show loading modal right before Apple sheet
+      setIsPurchasing(true);
+      setShowSuccessModal(false);
+      setPurchaseValidated(false);
+      setLoadingStep('processing');
+
       if (isUpgradeMode) {
-        // In upgrade mode, purchase and go back to previous screen
+        // In upgrade mode, purchase and show success modal before going back
 
         try {
           setIsPurchasing(true);
@@ -472,15 +531,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Wait a moment for UI to update
             await new Promise(resolve => setTimeout(resolve, 300));
 
-            // Navigate back to the original context instead of just going back
-            const source = routeParams?.source;
-            if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
-              // Go back multiple times to return to TimeBlock screen
-              navigation.goBack();
-              setTimeout(() => navigation.goBack(), 100);
-            } else {
-              navigation.goBack();
-            }
+            // Show success modal before navigating back
+            setLoadingStep('completing');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            setPurchaseValidated(true);
+            setLastPurchasedTier(purchaseTier);
+            setIsPurchasing(false); // Hide loading modal
+            await new Promise(resolve => setTimeout(resolve, 200)); // Wait for loading modal to hide
+            setShowSuccessModal(true);
+            // Navigation will happen when user dismisses the success modal via handleSuccessModalContinue
           } else {
             throw new Error(result.error || 'Purchase failed');
           }
@@ -597,22 +656,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 await devotionalGating.refreshSubscription();
                 logger.debug('Second refresh - tier', { tier: devotionalGating.tier });
-              }
-            } catch (refreshError) {
-              logger.error('Failed to refresh subscription', refreshError as Error);
-              // Continue to navigation even if refresh fails
             }
-
-            // ALWAYS navigate after successful purchase, even if refresh failed
-            logger.debug('Navigating to OnboardingNotificationSetup');
-            setTimeout(() => {
-              (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
-            }, 100);
-          } else {
-            logger.debug('❌ Purchase not successful, throwing error');
-            throw new Error(result.error || 'Purchase failed');
+          } catch (refreshError) {
+            logger.error('Failed to refresh subscription', refreshError as Error);
+            // Continue to navigation even if refresh fails
           }
-        } catch (purchaseError: any) {
+
+          setLoadingStep('completing');
+          await new Promise(resolve => setTimeout(resolve, 300));
+          setPurchaseValidated(true);
+          setLastPurchasedTier(purchaseTier);
+          setShowSuccessModal(true);
+        } else {
+          logger.debug('❌ Purchase not successful, throwing error');
+          throw new Error(result.error || 'Purchase failed');
+        }
+      } catch (purchaseError: any) {
           logger.error('Purchase failed:', purchaseError);
 
           // Check if user cancelled (multiple ways to detect)
@@ -644,6 +703,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         [{ text: 'OK' }]
       );
     } finally {
+      clearTimeout(safetyTimeout);
       setIsPurchasing(false);
     }
   };
@@ -699,6 +759,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             billing: isAnnual ? 'annual' : 'monthly',
           });
           setSelectedTier(tier.id);
+          setHasManualTierSelection(true);
         }}
         activeOpacity={0.8}
       >
@@ -883,6 +944,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       <PurchaseLoadingModal
         visible={isPurchasing}
         step={loadingStep}
+      />
+
+      <PurchaseSuccessModal
+        visible={showSuccessModal}
+        tier={lastPurchasedTier || selectedTier}
+        isTrial={false}
+        isValidated={purchaseValidated}
+        onContinue={handleSuccessModalContinue}
       />
 
       {/* Header */}

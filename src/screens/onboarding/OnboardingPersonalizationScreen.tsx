@@ -213,6 +213,7 @@ import { logger } from '../../utils/logger';
 const OnboardingPersonalizationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const routeParams = route.params as { name?: string } | undefined;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   // Determine if we need to show name input step based on registration method
@@ -221,7 +222,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Start at step 1 (name input for OAuth, age group for email)
   const [currentStep, setCurrentStep] = useState(1);
-  const [name, setName] = useState('');
+  const [name, setName] = React.useState(routeParams?.name || '');
+  const greetingName = React.useMemo(() => {
+    if (!name) {return '';} 
+    const trimmed = name.trim();
+    if (!trimmed) {return '';} 
+    return trimmed.split(/\s+/)[0];
+  }, [name]);
 
   // Check for force navigation flag after successful auth
   React.useEffect(() => {
@@ -1002,8 +1009,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Condense header further when keyboard is visible on details step to free vertical space
         (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) && styles.noMarginBottom,
       ]}>
-        {name ? (
-          <ThemedText weight="bold" style={styles.userGreeting}>Hi, {name}.</ThemedText>
+        {greetingName ? (
+          <ThemedText weight="bold" style={styles.userGreeting}>Hi, {greetingName}.</ThemedText>
         ) : null}
         <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
         <ThemedText style={OnboardingStyles.subtitle}>

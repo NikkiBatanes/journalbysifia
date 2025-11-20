@@ -715,6 +715,13 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     }
   };
 
+  const handleSavePress = () => {
+    Keyboard.dismiss();
+    setTimeout(() => {
+      handleSave();
+    }, 50);
+  };
+
   const onCancel = async () => {
     try {
       // Save draft before canceling (only if user made changes)
@@ -898,7 +905,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   (!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
                 ]}
                 disabled={!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading}
-                onPress={handleSave}
+                onPress={handleSavePress}
               >
                 {isLoading ? (
                   <ActivityIndicator size={20} color={Colors.hopeWhite} />

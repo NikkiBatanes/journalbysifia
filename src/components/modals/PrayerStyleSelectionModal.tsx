@@ -189,7 +189,10 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </ThemedText>
 
           <TouchableOpacity
-            onPress={onSave}
+            onPress={() => {
+              Keyboard.dismiss();
+              setTimeout(() => onSave(), 50);
+            }}
             disabled={!prayerText.trim() || isSaving}
             accessibilityRole="button"
             accessibilityLabel="Save Prayer"

@@ -1166,11 +1166,26 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         }).join(''));
         const googleUser = JSON.parse(jsonPayload);
 
+        // Split full name into first and last name
+        let firstName = '';
+        let lastName = '';
+        if (googleUser.given_name && googleUser.family_name) {
+          // Google provides separate first and last names
+          firstName = googleUser.given_name;
+          lastName = googleUser.family_name;
+        } else if (googleUser.name) {
+          // Split the full name (e.g., "BNGC INC" -> first: "BNGC", last: "INC")
+          const nameParts = googleUser.name.trim().split(/\s+/);
+          firstName = nameParts[0] || '';
+          lastName = nameParts.slice(1).join(' ') || '';
+        }
+
         // Update user metadata with Google name and clear avatar URLs
         await supabase.auth.updateUser({
           data: {
             ...currentUser.data.user.user_metadata,
-            first_name: googleUser.given_name || googleUser.name?.split(' ')[0] || '',
+            first_name: firstName,
+            last_name: lastName,
             full_name: googleUser.name || '',
             // Clear avatar URLs to use our custom avatar system
             avatar_url: undefined,
