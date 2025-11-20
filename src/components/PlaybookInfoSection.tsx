@@ -69,7 +69,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
                     if (buttonIndex === 0) {
                       Clipboard.setString(playbook.userInput!);
                       triggerLightHaptic();
-                      Alert.alert('Copied', 'User input copied to clipboard');
+                      Alert.alert('Copied', 'Your text has been copied to the clipboard.');
                     } else if (buttonIndex === 1 && onEditUserInput) {
                       triggerLightHaptic();
                       onEditUserInput();
@@ -78,7 +78,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
                 );
               } else {
                 const buttons: any[] = [
-                  { text: 'Copy', onPress: () => { Clipboard.setString(playbook.userInput!); triggerLightHaptic(); Alert.alert('Copied', 'User input copied to clipboard'); } },
+                  { text: 'Copy', onPress: () => { Clipboard.setString(playbook.userInput!); triggerLightHaptic(); Alert.alert('Copied', 'Your text has been copied to the clipboard.'); } },
                 ];
                 if (onEditUserInput) {
                   buttons.push({ text: 'Edit', onPress: () => { triggerLightHaptic(); onEditUserInput(); } });

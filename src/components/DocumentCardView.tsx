@@ -67,12 +67,14 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     let mounted = true;
     (async () => {
       try {
-        if (!hasInitializedReadFromFaithPointsRef.current && user?.id && playbookId && !hasRead) {
+        if (hasInitializedReadFromFaithPointsRef.current) { return; }
+        hasInitializedReadFromFaithPointsRef.current = true;
+
+        if (user?.id && playbookId && !hasRead) {
           const already = await faithPointsService.hasActivityTodayForPlaybook(user.id, 'affirmation_read_aloud', playbookId);
           if (mounted && already) {
             setReadAloud(playbookId, true);
           }
-          hasInitializedReadFromFaithPointsRef.current = true;
         }
       } catch (e) {}
     })();

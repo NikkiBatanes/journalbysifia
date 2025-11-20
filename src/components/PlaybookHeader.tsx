@@ -116,7 +116,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                         if (buttonIndex === 0) {
                           Clipboard.setString(userInput);
                           triggerLightHaptic();
-                          Alert.alert('Copied', 'User input copied to clipboard');
+                          Alert.alert('Copied', 'Your text has been copied to the clipboard.');
                         } else if (buttonIndex === 1 && onEditUserInput) {
                           triggerLightHaptic();
                           onEditUserInput();
@@ -125,7 +125,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                     );
                   } else {
                     const buttons: any[] = [
-                      { text: 'Copy', onPress: () => { Clipboard.setString(userInput); triggerLightHaptic(); Alert.alert('Copied', 'User input copied to clipboard'); } },
+                      { text: 'Copy', onPress: () => { Clipboard.setString(userInput); triggerLightHaptic(); Alert.alert('Copied', 'Your text has been copied to the clipboard.'); } },
                     ];
                     if (onEditUserInput) {
                       buttons.push({ text: 'Edit', onPress: () => { triggerLightHaptic(); onEditUserInput(); } });
