@@ -831,11 +831,21 @@ export default function ActionStepsCard({
               }
 
               // If we want examples inline (onboarding), merge examples into subtasks
-              let subtasks = (step.subTasks || []).filter((st) => {
+              const originalSubtasks = step.subTasks || [];
+              let subtasks = originalSubtasks.filter((st) => {
                 if (typeof st.text !== 'string') {return false;}
                 if (showExampleSubtasksInline) {return true;} // include everything inline
                 return !st.text.toLowerCase().startsWith('example:');
               });
+              
+              // Debug logging for subtask filtering
+              if (originalSubtasks.length !== subtasks.length) {
+                console.log(`🔍 ActionStepsCard: Step "${step.title}" - Filtered ${originalSubtasks.length} → ${subtasks.length} subtasks`, {
+                  original: originalSubtasks.map(st => st.text || st),
+                  filtered: subtasks.map(st => st.text),
+                  showExampleSubtasksInline,
+                });
+              }
 
               // If showExampleSubtasksInline and we have examples from database, add them as subtasks
               if (showExampleSubtasksInline && examples.length > 0) {

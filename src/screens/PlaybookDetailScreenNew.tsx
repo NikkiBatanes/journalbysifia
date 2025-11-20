@@ -1464,6 +1464,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       expanded={isExpanded}
                       style={styles.transparentBackground}
                       currentUser={currentUser}
+                      showCloseButton={false}
                     />
                   </View>
                 );
@@ -1480,6 +1481,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       showExampleSubtasksInline={false}
                       preferPropSteps={false}
                       expanded={isExpanded}
+                      showCloseButton={false}
                     />
                   </View>
                 );
@@ -1497,23 +1499,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         />
                         <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Affirmations</ThemedText>
                       </View>
-                      {isExpanded && (
-                        <View style={{ 
-                          width: 28, 
-                          height: 28, 
-                          borderRadius: 14, 
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)', 
-                          alignItems: 'center', 
-                          justifyContent: 'center' 
-                        }}>
-                          <Ionicons 
-                            name="close" 
-                            size={18} 
-                            color={Colors.hopeWhite} 
-                            style={{ opacity: 0.7 }}
-                          />
-                        </View>
-                      )}
                     </View>
                     <View style={styles.affirmationsListStack}>
                       {(card.affirmations || []).map((affirmation, idx) => (
@@ -1567,6 +1552,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     <BibleVerseCard
                       verse={card.verse || { text: '', reference: '' }}
                       expanded={isExpanded}
+                      showCloseButton={false}
                     />
                   </View>
                 );
@@ -1579,6 +1565,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       challengeCTA={card.challengeCTA}
                       style={styles.transparentBackground}
                       expanded={isExpanded}
+                      showCloseButton={false}
                     />
                   </View>
                 );
@@ -1611,15 +1598,45 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               ]}
             >
               {isExpanded ? (
-                <ScrollView
-                  style={[
-                    styles.expandedScrollView,
-                    {
-                      width: STACKED_CARD_WIDTH,
-                      // Allow content to scroll under footer; we'll add padding to clear it
-                      maxHeight: windowHeight - playbookHeaderHeight - insets.top - 100,
-                    },
-                  ]}
+                <>
+                  {/* Sticky close button - only visible when expanded */}
+                  <TouchableOpacity
+                    style={{
+                      position: 'absolute',
+                      top: 16,
+                      right: 16,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10000,
+                      elevation: 10000,
+                    }}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      setExpandedCardId(null);
+                      animateCardTransition(card.id, false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={20}
+                      color={Colors.hopeWhite}
+                      style={{ opacity: 0.9 }}
+                    />
+                  </TouchableOpacity>
+                  <ScrollView
+                    style={[
+                      styles.expandedScrollView,
+                      {
+                        width: STACKED_CARD_WIDTH,
+                        // Allow content to scroll under footer; we'll add padding to clear it
+                        maxHeight: windowHeight - playbookHeaderHeight - insets.top - 100,
+                      },
+                    ]}
                   contentContainerStyle={{
                     ...styles.expandedScrollContent,
                     paddingBottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
@@ -1661,6 +1678,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     </View>
                   </TouchableOpacity>
                 </ScrollView>
+                </>
               ) : (
                 <TouchableOpacity
                   activeOpacity={1}

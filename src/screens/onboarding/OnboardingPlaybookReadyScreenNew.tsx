@@ -482,6 +482,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               expanded={false}
               style={styles.transparentBackground}
               currentUser={{ displayName: onboardingData.name }}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -499,15 +500,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
     if (playbook.actionSteps && playbook.actionSteps.length > 0) {
       try {
-        // Debug: log subtask counts for steps 3-5 (0-based indices 2-4)
-        const dbg = (playbook.actionSteps || []).slice(0, 5).map((s: any, i: number) => ({
+        // Debug: log subtask counts for all steps with full subtask details
+        const dbg = (playbook.actionSteps || []).map((s: any, i: number) => ({
           stepIndex: i,
           id: s?.id,
           title: s?.title,
           subTasksCount: Array.isArray(s?.subTasks) ? s.subTasks.length : 0,
-          lastSubtaskText: Array.isArray(s?.subTasks) && s.subTasks.length > 0 ? (s.subTasks[s.subTasks.length - 1]?.text) : undefined,
+          subTasksArray: s?.subTasks || [],
+          allSubtaskTexts: Array.isArray(s?.subTasks) ? s.subTasks.map((st: any) => st?.text || st) : [],
         }));
-        logger.debug('Action steps pre-render debug (first 5 steps):', dbg);
+        logger.debug('🔍 ONBOARDING Action steps FULL debug:', { actionStepsDebug: dbg });
       } catch (e) {
         logger.warn('Debug logging failed:', e as Error);
       }
@@ -525,6 +527,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               navigation={navigation as any}
               showExampleSubtasksInline={false}
               preferPropSteps={false}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -652,6 +655,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <BibleVerseCard
               key="bible"
               verse={playbook.bibleVerse}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -673,6 +677,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <DirectChallengeCard
               key="challenge"
               challenge={challengeText}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -1235,6 +1240,35 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   {/* Render the actual card component */}
                   {isExpanded ? (
                     <>
+                      {/* Sticky close button - only visible when expanded */}
+                      <TouchableOpacity
+                        style={{
+                          position: 'absolute',
+                          top: 16,
+                          right: 16,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 10000,
+                          elevation: 10000,
+                        }}
+                        onPress={() => {
+                          try { triggerLightHaptic(); } catch {}
+                          setExpandedCardId(null);
+                          animateCardTransition(card.id, false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name="close"
+                          size={20}
+                          color={Colors.hopeWhite}
+                          style={{ opacity: 0.9 }}
+                        />
+                      </TouchableOpacity>
                       <ScrollView
                         style={{
                           width: STACKED_CARD_WIDTH,
@@ -1269,6 +1303,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                                 expanded={isExpanded}
                                 style={styles.transparentBackground}
                                 currentUser={{ displayName: onboardingData.name }}
+                                showCloseButton={false}
                               />
                             </View>
                           ) : (
