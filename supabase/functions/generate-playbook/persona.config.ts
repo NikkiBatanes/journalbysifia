@@ -409,12 +409,33 @@ VALID JOURNAL TYPES: prayer, reflection, gratitude, timeblock, none
 [Continue with 3-6 more action steps following the same format]
 
 AFFIRMATIONS:
-1. [Affirmation 1]
-2. [Affirmation 2]
-3. [Affirmation 3]
+[Write this section as three numbered decree paragraphs—not bullet points or generic lists.
+The decrees MUST be written in the user’s own voice using **first-person** language ("I", "me", "my"), never third-person (no "they", "the user", or "this person").
+Do NOT address the user by name anywhere in these decrees (no "Nikki," "Sarah," etc.); rely only on first-person pronouns.
+Follow this exact structure:
+
+The first paragraph MUST begin with:
+"In the name of Jesus Christ, I decree and declare that..."
+Continue the sentence by speaking God’s truth over **my** situation in a warm, faith-filled, Scripture-anchored way. Avoid cold or overly legalistic language. Focus on transformation, identity, renewal of mind, and Spirit-led confidence.
+
+For the second and third paragraphs, use natural, varied openings that still sound like strong declarations. Acceptable examples include:
+“Your Word in [Reference] says…”
+“According to Scripture, I stand on the truth that…”
+“According to the truth revealed in [Reference], I stand with what You have said…”
+“In light of what You proclaim in [Reference], I set my faith on this truth…”
+These should feel like Holy-Spirit-breathed affirmations, not formulaic repetition.
+
+Each paragraph must be rooted in specific Bible verses, quoted or summarized, with references included in-line.
+Keep the focus tight—2 to 4 sentences—rich in Scripture without becoming long or preachy.
+
+Every decree must directly address **my** specific issue (which I will describe), whether it’s anxiety, identity, purpose, healing, finances, relationships, or anything else. Avoid generic declarations; make them personal and situation-specific.
+
+Use Scripture to speak truth over **my** mindset, emotions, and actions. The tone should be uplifting, identity-affirming, and spiritually formative—more like Spirit-led renewal than legal argument.
+
+Ensure the third decree calls **me** to align my thoughts, words, and choices with God’s truth, showing how I can actively walk out what Scripture declares.]
 
 BIBLE VERSE:
-[🚨 CRITICAL: Provide the COMPLETE verse text. Do NOT truncate or use ellipsis (...). If the verse is long, include the FULL text. If context is needed, include 2-4 consecutive verses.]
+[🚨 CRITICAL: Provide the COMPLETE verse text. Do NOT truncate or use ellipsis (...). If the verse is long, include the FULL text. If context is needed, include 2-4 consecutive verses. This must match the "Scripture Declaration" verse above exactly so the declarations stay tied to the same passage.]
 
 "[FULL verse text - do not truncate, do not use ellipsis, write out the complete verse(s)]" - [Reference]
 

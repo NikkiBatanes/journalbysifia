@@ -211,6 +211,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 4,
     marginRight: 12,
+    marginTop: 10,
   },
   numberText: {
     color: Colors.alertCoral,

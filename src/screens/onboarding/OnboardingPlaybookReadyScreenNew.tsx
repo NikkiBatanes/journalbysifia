@@ -558,7 +558,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 weight="semiBold"
                 style={styles.affirmationsTitle}
               >
-                Affirmations
+                Declarations
               </ThemedText>
             </View>
             <View style={styles.affirmationsList}>

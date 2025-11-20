@@ -556,7 +556,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 color={Colors.alertCoral}
                 style={styles.quoteIcon}
               />
-              <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
+              <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Declarations</ThemedText>
             </View>
             <View style={styles.affirmationsList}>
               {playbook.affirmations.map((affirmation: any, index: number) => (
@@ -568,7 +568,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   ]}
                 >
                   <View style={styles.affirmationContent}>
-                    <ThemedText style={styles.affirmationText}>
+                    <ThemedText weight="medium" style={styles.affirmationText}>
                       {typeof affirmation === 'string' ? affirmation : affirmation?.text || ''}
                     </ThemedText>
                   </View>

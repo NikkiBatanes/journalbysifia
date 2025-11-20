@@ -142,7 +142,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
             color={Colors.alertCoral}
             style={[propStyles.icon, styles.affirmationIcon]}
           />
-          <ThemedText weight="semiBold" style={propStyles.affirmationsTitle}>Affirmations</ThemedText>
+          <ThemedText weight="semiBold" style={propStyles.affirmationsTitle}>Declarations</ThemedText>
         </View>
         <View style={propStyles.affirmationsList}>
           {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
@@ -161,7 +161,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
                 />
               ))
           ) : (
-            <ThemedText weight="regular" style={propStyles.noAffirmationsText}>No affirmations</ThemedText>
+            <ThemedText weight="regular" style={propStyles.noAffirmationsText}>No declarations</ThemedText>
           )}
         </View>
 

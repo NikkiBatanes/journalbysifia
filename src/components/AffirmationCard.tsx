@@ -33,7 +33,7 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
     <View style={[styles.card, containerStyle]}>
       {enableSelection && Platform.OS === 'ios' ? (
         <ThemedTextInput
-          weight="semiBold"
+          weight="medium"
           value={text}
           editable={false}
           multiline={true}
@@ -41,7 +41,7 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
           style={textStyle}
         />
       ) : (
-        <ThemedText weight="semiBold" style={textStyle} selectable={enableSelection}>
+        <ThemedText weight="medium" style={textStyle} selectable={enableSelection}>
           {text}
         </ThemedText>
       )}

@@ -1495,7 +1495,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                           color={Colors.alertCoral}
                           style={styles.quoteIconStack}
                         />
-                        <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Affirmations</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Declarations</ThemedText>
                       </View>
                     </View>
                     <View style={styles.affirmationsListStack}>
@@ -1510,7 +1510,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                           <View style={styles.affirmationContent}>
                             {Platform.OS === 'ios' ? (
                               <ThemedTextInput
-                                weight="semiBold"
+                                weight="medium"
                                 value={affirmation.text}
                                 editable={false}
                                 multiline={true}
@@ -1518,7 +1518,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                                 style={styles.affirmationText}
                               />
                             ) : (
-                              <ThemedText weight="semiBold" style={styles.affirmationText}>
+                              <ThemedText weight="medium" style={styles.affirmationText}>
                                 {affirmation.text}
                               </ThemedText>
                             )}

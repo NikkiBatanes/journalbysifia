@@ -346,7 +346,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
     }
   };
 
-  const titleCopy = affirmations.length > 1 ? "TODAY'S AFFIRMATIONS" : "TODAY'S AFFIRMATION";
+  const titleCopy = affirmations.length > 1 ? "TODAY'S DECLARATIONS" : "TODAY'S DECLARATION";
 
   if (loading) {
     return <DashboardAffirmationSkeleton />;
@@ -373,7 +373,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           {affirmations.length === 0 ? (
             // This branch will rarely be hit because we return null when no affirmations and no error.
             // Kept for safety in case of future changes.
-            <ThemedText style={styles.errorText}>No affirmations found. Create a playbook to get started.</ThemedText>
+            <ThemedText style={styles.errorText}>No declarations found. Create a playbook to get started.</ThemedText>
           ) : (
             <View style={styles.listContainer}>
               {affirmations.map((item) => (
@@ -386,7 +386,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                     accessibilityRole="button"
                     accessibilityLabel={`Affirmation: ${item.content}`}
                   >
-                    <ThemedText style={styles.affirmationText}>{item.content}</ThemedText>
+                    <ThemedText weight="medium" style={styles.affirmationText}>{item.content}</ThemedText>
                   </TouchableOpacity>
                 ) : (
                   <View
@@ -394,7 +394,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                     style={styles.affirmationItem}
                     accessibilityRole="text"
                   >
-                    <ThemedText style={styles.affirmationText}>{item.content}</ThemedText>
+                    <ThemedText weight="medium" style={styles.affirmationText}>{item.content}</ThemedText>
                   </View>
                 )
               ))}

@@ -110,7 +110,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
             color={Colors.alertCoral}
             style={styles.affirmationsIcon}
           />
-          <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
+          <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Declarations</ThemedText>
         </View>
         <View style={propStyles.affirmationsList}>
           {playbook.affirmations?.map((affirmation) => (
