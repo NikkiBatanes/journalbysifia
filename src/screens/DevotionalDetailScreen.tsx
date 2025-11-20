@@ -1336,6 +1336,8 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: Colors.hopeWhite,
     lineHeight: 28,
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   scrollView: {
     flex: 1,
@@ -1380,7 +1382,7 @@ const styles = StyleSheet.create({
     padding: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    width: '100%',
+    flex: 1,
   },
   questionCardNumber: {
     color: Colors.hopeWhite,
@@ -1397,6 +1399,7 @@ const styles = StyleSheet.create({
   questionCardText: {
     flex: 1,
     flexShrink: 1,
+    flexWrap: 'wrap',
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,

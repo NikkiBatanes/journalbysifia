@@ -189,6 +189,17 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   // Step advancement and progress bar animation while creating (cap at 95%)
   React.useEffect(() => {
     if (!isCreating || isSuccess) { return; }
+    // Adjust step interval based on devotional duration
+    // 1-3 day: 3000ms per step (18s total)
+    // 5 day: 5000ms per step (30s total)
+    // 7 day: 6000ms per step (36s total)
+    const getStepDuration = () => {
+      if (!selectedDuration) return 3000;
+      if (selectedDuration >= 7) return 6000;
+      if (selectedDuration >= 5) return 5000;
+      return 3000;
+    };
+    
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => {
         const nextStep = prev + 1;
@@ -206,9 +217,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }
         return isLast ? prev : nextStep;
       });
-    }, 3000);
+    }, getStepDuration());
     return () => clearInterval(stepInterval);
-  }, [isCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic]);
+  }, [isCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]);
 
   const measureContent = () => {
     if (contentRef.current) {
