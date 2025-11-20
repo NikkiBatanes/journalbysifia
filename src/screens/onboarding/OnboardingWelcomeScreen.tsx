@@ -6,6 +6,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Pencil as LucidePencil } from 'lucide-react-native';
 import {
   View,
   StyleSheet,
@@ -42,6 +43,7 @@ interface Slide {
   icon: string;
   color: string;
   iconSize?: number;
+  useLucidePencil?: boolean;
 }
 
 const slides: Slide[] = [
@@ -55,7 +57,7 @@ const slides: Slide[] = [
       'Encouragement that lasts beyond Sunday',
     ],
     icon: 'book-outline',
-    color: '#FF6B6B',
+    color: Colors.alertCoral,
     iconSize: 62,
   },
   {
@@ -68,7 +70,7 @@ const slides: Slide[] = [
       'Reminders that keep your spirit steady',
     ],
     icon: 'map-outline',
-    color: '#4ECDC4',
+    color: Colors.alertCoral,
     iconSize: 62,
   },
   {
@@ -81,8 +83,9 @@ const slides: Slide[] = [
       'A clear picture of your growth over time',
     ],
     icon: 'create-outline',
-    color: '#45B7D1',
+    color: Colors.alertCoral,
     iconSize: 62,
+    useLucidePencil: true,
   },
 ];
 
@@ -323,8 +326,17 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const renderSlide = ({ item }: { item: Slide }) => (
     <View style={[styles.slideContainer, { width: listWidth || screenSize.width }]}>
       {/* Slide Icon */}
-      <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
-        <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
+      <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
+        {item.useLucidePencil ? (
+          <LucidePencil
+            size={item.iconSize || 60}
+            color={Colors.hopeWhite}
+            fill={Colors.hopeWhite}
+            strokeWidth={1.25}
+          />
+        ) : (
+          <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
+        )}
       </View>
 
       {/* Slide Title */}

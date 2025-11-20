@@ -55,14 +55,14 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
     if (signInError) {
       // Map common auth errors to a friendly inline message
       const raw = (signInError.message || '').toLowerCase();
-      const isRateLimit = raw.includes('too many') || raw.includes('rate limit');
-      const message = isRateLimit
-        ? 'Too many attempts. Please wait a moment and try again.'
-        : 'Incorrect email or password. Please try again.';
-
-      // Note: We intentionally avoid checking user_profiles here because many
-      // valid users may not have a profile row yet (or RLS may block reads).
-      // Supabase does not expose account-existence via public APIs for security.
+      
+      let message = 'Incorrect email or password';
+      
+      if (raw.includes('too many') || raw.includes('rate limit')) {
+        message = 'Too many attempts. Please wait and try again.';
+      } else if (raw.includes('invalid') || raw.includes('not found') || raw.includes('user not found')) {
+        message = 'No account found. Please register.';
+      }
 
       triggerErrorHaptic();
       setError(message);

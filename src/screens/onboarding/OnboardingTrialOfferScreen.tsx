@@ -481,9 +481,9 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     },
     {
       id: 2,
-      title: `${formatMD(reminderDate)} - Email Reminder`,
-      description: 'We\'ll remind you before your trial ends, \nso you can decide with peace.',
-      icon: 'mail',
+      title: `${formatMD(reminderDate)} - Notification Reminder`,
+      description: 'We\'ll send a gentle push notification before your trial ends \nso you can decide with peace.',
+      icon: 'notifications',
       iconColor: Colors.alertCoral,
       isCompleted: false,
     },

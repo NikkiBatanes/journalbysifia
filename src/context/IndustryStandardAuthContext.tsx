@@ -311,7 +311,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                                      identity.provider === 'google' || identity.provider === 'apple');
 
                 if (isSocialAuth) {
+                  // Check if login flow flag is already set (from signInWithGoogle/signInWithApple)
+                  const existingRedirectRaw = await AsyncStorage.getItem('post_auth_redirect');
+                  const existingRedirect = existingRedirectRaw ? JSON.parse(existingRedirectRaw) : null;
+                  const isLoginFlow = existingRedirect?.is_login_flow === true;
 
+                  if (isLoginFlow) {
+                    // This is a login flow - preserve the is_login_flow flag
+                    // Don't overwrite the redirect that signInWithGoogle/signInWithApple already set
+                    Logger.debug('[AuthContext] Social login flow detected, preserving redirect with is_login_flow flag');
+                    // CRITICAL: Return early to prevent overwriting the redirect below
+                    return;
+                  }
+
+                  // This is NOT a login flow (probably first-time social signup)
                   // For social auth, check if this user already had an account before this sign-in
                   // We can detect this by checking if user profile existed before this session
                   const { data: existingProfile, error: profileError } = await supabase
@@ -341,11 +354,14 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                         params: {},
                       }));
                     } else {
-                      // User exists but didn't complete onboarding - they should sign in instead of going through onboarding again
+                      // User exists but didn't complete onboarding - send to personalization
 
                       await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                        target: 'OnboardingWelcome', // This will allow them to sign in properly
-                        params: { showSignInPrompt: true },
+                        target: 'OnboardingPersonalization',
+                        params: {
+                          name: '',
+                          registrationMethod: 'oauth',
+                        },
                       }));
                     }
                   } else {
@@ -377,8 +393,22 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     }
                   }
                 } else {
-                  // Regular email/password auth - use existing logic
+                  // Regular email/password auth - check if login flow flag is already set
+                  // If it is, don't overwrite it (signIn already set it with is_login_flow: true)
+                  const existingRedirectRaw = await AsyncStorage.getItem('post_auth_redirect');
+                  const existingRedirect = existingRedirectRaw ? JSON.parse(existingRedirectRaw) : null;
+                  const isLoginFlow = existingRedirect?.is_login_flow === true;
 
+                  if (isLoginFlow) {
+                    // This is a login flow - preserve the is_login_flow flag
+                    // Don't overwrite the redirect that signIn already set
+                    Logger.debug('[AuthContext] Login flow detected, preserving redirect with is_login_flow flag');
+                    // CRITICAL: Return early to prevent overwriting the redirect below
+                    return;
+                  }
+
+                  // This is NOT a login flow (probably signup or session restoration)
+                  // Use existing logic to determine redirect based on onboarding status
                   const { data: profile, error: profileError } = await supabase
                     .from('user_profiles')
                     .select('onboarding_completed')
@@ -407,14 +437,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   } else {
                     // User needs to complete onboarding - continue with personalization
 
-                    // Pass registrationMethod to ensure OAuth users get proper name collection
-                    const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
-                    const isOAuth = provider === 'apple' || provider === 'google';
                     await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                       target: 'OnboardingPersonalization',
                       params: {
-                        name: '', // Always empty for OAuth to force collection
-                        registrationMethod: isOAuth ? 'oauth' : 'email',
+                        name: '',
+                        registrationMethod: 'email',
                       },
                     }));
                   }
@@ -565,7 +592,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       setAuthState(prev => ({ ...prev, loading: true }));
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
       });
@@ -579,10 +606,66 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Don't immediately set loading to false - let the auth state change handler do it
       // This prevents a race condition where loading becomes false before isAuthenticated becomes true
 
-      // Set redirect to MainTabs for existing users
+      // ENTERPRISE-GRADE CHECK: Verify onboarding status before routing
+      // This ensures unregistered users (who have auth but no profile/incomplete onboarding) 
+      // are routed to personalization, not dashboard
       try {
-        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
-      } catch {}
+        const userId = data.user?.id;
+        if (!userId) {
+          Logger.error('No user ID after successful sign in', undefined, {
+            component: 'AuthContext',
+            action: 'sign_in_no_user_id',
+          });
+          throw new Error('No user ID returned');
+        }
+
+        // Check user profile and onboarding status
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('id', userId)
+          .single();
+
+        // If profile doesn't exist or onboarding is not completed, route to personalization
+        if (profileError || !profile || profile.onboarding_completed !== true) {
+          Logger.debug('[signIn] User has not completed onboarding - routing to personalization', {
+            hasProfile: !!profile,
+            onboardingCompleted: profile?.onboarding_completed,
+            profileError: profileError?.message,
+          });
+
+          // Route to personalization for unregistered/incomplete users
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+            target: 'OnboardingPersonalization',
+            params: {
+              name: '',
+              registrationMethod: 'email',
+            },
+          }));
+        } else {
+          // User has completed onboarding - route to MainTabs with bypass flag
+          Logger.debug('[signIn] User has completed onboarding - routing to MainTabs');
+
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ 
+            target: 'MainTabs', 
+            params: {},
+            is_login_flow: true // Bypass onboarding checks for completed users
+          }));
+        }
+      } catch (checkError) {
+        Logger.error('Error checking onboarding status during sign in', checkError as Error, {
+          component: 'AuthContext',
+          action: 'sign_in_check_onboarding',
+        });
+        // On error, default to personalization for safety
+        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+          target: 'OnboardingPersonalization',
+          params: {
+            name: '',
+            registrationMethod: 'email',
+          },
+        }));
+      }
 
       return { error: null };
     } catch (error) {
@@ -1102,10 +1185,67 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       setAuthState(prev => ({ ...prev, loading: false }));
 
-      // Set redirect to MainTabs for existing users
+      // ENTERPRISE-GRADE CHECK: Verify onboarding status before routing
+      // This ensures unregistered Google users are routed to personalization, not dashboard
       try {
-        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
-      } catch {}
+        const { data: currentUser } = await supabase.auth.getUser();
+        const userId = currentUser.user?.id;
+
+        if (!userId) {
+          Logger.error('No user ID after successful Google sign in', undefined, {
+            component: 'AuthContext',
+            action: 'google_sign_in_no_user_id',
+          });
+          throw new Error('No user ID returned');
+        }
+
+        // Check user profile and onboarding status
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('id', userId)
+          .single();
+
+        // If profile doesn't exist or onboarding is not completed, route to personalization
+        if (profileError || !profile || profile.onboarding_completed !== true) {
+          Logger.debug('[Google signIn] User has not completed onboarding - routing to personalization', {
+            hasProfile: !!profile,
+            onboardingCompleted: profile?.onboarding_completed,
+            profileError: profileError?.message,
+          });
+
+          // Route to personalization for unregistered/incomplete users
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+            target: 'OnboardingPersonalization',
+            params: {
+              name: '',
+              registrationMethod: 'oauth',
+            },
+          }));
+        } else {
+          // User has completed onboarding - route to MainTabs with bypass flag
+          Logger.debug('[Google signIn] User has completed onboarding - routing to MainTabs');
+
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ 
+            target: 'MainTabs', 
+            params: {},
+            is_login_flow: true // Bypass onboarding checks for completed users
+          }));
+        }
+      } catch (checkError) {
+        Logger.error('Error checking onboarding status during Google sign in', checkError as Error, {
+          component: 'AuthContext',
+          action: 'google_sign_in_check_onboarding',
+        });
+        // On error, default to personalization for safety
+        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+          target: 'OnboardingPersonalization',
+          params: {
+            name: '',
+            registrationMethod: 'oauth',
+          },
+        }));
+      }
 
       return { error: null };
     } catch (error: any) {
@@ -1217,10 +1357,67 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       setAuthState(prev => ({ ...prev, loading: false }));
 
-      // Set redirect to MainTabs for existing users
+      // ENTERPRISE-GRADE CHECK: Verify onboarding status before routing
+      // This ensures unregistered Apple users are routed to personalization, not dashboard
       try {
-        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ target: 'MainTabs', params: {} }));
-      } catch {}
+        const { data: currentUser } = await supabase.auth.getUser();
+        const userId = currentUser.user?.id;
+
+        if (!userId) {
+          Logger.error('No user ID after successful Apple sign in', undefined, {
+            component: 'AuthContext',
+            action: 'apple_sign_in_no_user_id',
+          });
+          throw new Error('No user ID returned');
+        }
+
+        // Check user profile and onboarding status
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('id', userId)
+          .single();
+
+        // If profile doesn't exist or onboarding is not completed, route to personalization
+        if (profileError || !profile || profile.onboarding_completed !== true) {
+          Logger.debug('[Apple signIn] User has not completed onboarding - routing to personalization', {
+            hasProfile: !!profile,
+            onboardingCompleted: profile?.onboarding_completed,
+            profileError: profileError?.message,
+          });
+
+          // Route to personalization for unregistered/incomplete users
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+            target: 'OnboardingPersonalization',
+            params: {
+              name: '',
+              registrationMethod: 'oauth',
+            },
+          }));
+        } else {
+          // User has completed onboarding - route to MainTabs with bypass flag
+          Logger.debug('[Apple signIn] User has completed onboarding - routing to MainTabs');
+
+          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({ 
+            target: 'MainTabs', 
+            params: {},
+            is_login_flow: true // Bypass onboarding checks for completed users
+          }));
+        }
+      } catch (checkError) {
+        Logger.error('Error checking onboarding status during Apple sign in', checkError as Error, {
+          component: 'AuthContext',
+          action: 'apple_sign_in_check_onboarding',
+        });
+        // On error, default to personalization for safety
+        await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
+          target: 'OnboardingPersonalization',
+          params: {
+            name: '',
+            registrationMethod: 'oauth',
+          },
+        }));
+      }
 
       return { error: null };
     } catch (error: any) {

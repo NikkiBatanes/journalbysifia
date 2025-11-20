@@ -90,6 +90,21 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const redirect = JSON.parse(redirectRaw);
           const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
+          const isLoginFlow = redirect?.is_login_flow === true;
+
+          // CRITICAL: If this is a login flow, bypass all onboarding checks and go straight to target
+          if (user && target && isLoginFlow) {
+            logger.debug(`🔐 LOGIN FLOW DETECTED → Bypassing onboarding checks, navigating to ${target}`);
+            try {
+              navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+            } catch (navErr) {
+              logger.warn('reset failed, falling back to navigate:', navErr as Error);
+              navigation.navigate(target as any, params);
+            }
+            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+            hasNavigatedRef.current = true;
+            return true;
+          }
 
           const onboardingRoutes = new Set([
             'TransformJourney',
@@ -194,6 +209,22 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const redirect = JSON.parse(redirectRaw);
           const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
+          const isLoginFlow = redirect?.is_login_flow === true;
+
+          // CRITICAL: If this is a login flow, bypass all onboarding checks and go straight to target
+          if (effectiveUser && target && isLoginFlow) {
+            logger.debug(`🔐 LOGIN FLOW DETECTED (post-user) → Bypassing onboarding checks, navigating to ${target}`);
+            try {
+              navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+            } catch (navErr) {
+              logger.warn('reset failed, falling back to navigate:', navErr as Error);
+              navigation.navigate(target as any, params);
+            }
+            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+            hasNavigatedRef.current = true;
+            return true;
+          }
+
           const onboardingRoutes = new Set([
             'TransformJourney',
             'OnboardingPersonalization',

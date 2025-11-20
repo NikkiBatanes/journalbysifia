@@ -169,13 +169,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
               </ThemedText>
             </TouchableOpacity>
 
-            {/* Sign in link */}
-            <View style={styles.signInRow}>
-              <ThemedText style={styles.signInText}>Already a member? </ThemedText>
-              <TouchableOpacity onPress={() => { triggerLightHaptic(); (navigation as any).navigate('Auth' as any, { screen: 'Login' }); }}>
-                <ThemedText weight="semiBold" style={styles.signInLink}>Login</ThemedText>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
 
