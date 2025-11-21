@@ -4,7 +4,7 @@
  */
 
 import { Platform, Alert } from 'react-native';
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import * as RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Share from 'react-native-share';
 import { Logger } from './ProductionLogger';
 
@@ -447,6 +447,18 @@ class PDFExportService {
    */
   async exportDevotionalPDF(data: DevotionalPDFData): Promise<void> {
     try {
+      // Guard against missing native module
+      if (!RNHTMLtoPDF || typeof (RNHTMLtoPDF as any).convert !== 'function') {
+        Logger.error('[PDFExportService] RNHTMLtoPDF module is not available', new Error('RNHTMLtoPDF undefined'), {
+          component: 'pdfExportService',
+        });
+        Alert.alert(
+          'Export Unavailable',
+          'PDF export is not available in this build of siFia. Please update the app or contact support.'
+        );
+        return;
+      }
+
       const html = this.generateDevotionalHTML(data);
       const fileName = `siFia_Devotional_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
 
@@ -456,7 +468,7 @@ class PDFExportService {
         directory: Platform.OS === 'ios' ? 'Documents' : 'Downloads',
       };
 
-      const file = await RNHTMLtoPDF.convert(options);
+      const file = await (RNHTMLtoPDF as any).convert(options);
 
       if (file.filePath) {
         await Share.open({
@@ -483,6 +495,18 @@ class PDFExportService {
    */
   async exportPlaybookPDF(data: PlaybookPDFData): Promise<void> {
     try {
+      // Guard against missing native module
+      if (!RNHTMLtoPDF || typeof (RNHTMLtoPDF as any).convert !== 'function') {
+        Logger.error('[PDFExportService] RNHTMLtoPDF module is not available', new Error('RNHTMLtoPDF undefined'), {
+          component: 'pdfExportService',
+        });
+        Alert.alert(
+          'Export Unavailable',
+          'PDF export is not available in this build of siFia. Please update the app or contact support.'
+        );
+        return;
+      }
+
       const html = this.generatePlaybookHTML(data);
       const fileName = `siFia_Playbook_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
 

@@ -597,25 +597,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           logger.onboarding.stepCompleted('onboarding_completion', 1, { userId: user.id });
           try {
             // Use the onboarding service to properly complete onboarding
+            // This now handles BOTH onboarding_progress AND user_profiles tables
             await onboardingService.completeOnboarding(user.id);
-
-            // Also update user_profiles for consistency - with better error handling
-            try {
-              const { error } = await supabase
-                .from('user_profiles')
-                .update({ onboarding_completed: true })
-                .eq('id', user.id);
-
-              if (error) {
-                logger.error('Error updating user profile onboarding status:', error as Error);
-                // Don't throw - continue with the flow even if this fails
-              } else {
-                logger.onboarding.stepCompleted('Onboarding marked as completed in both tables');
-              }
-            } catch (profileError) {
-              logger.error('Error updating user profile (continuing anyway):', profileError as Error);
-              // Continue with the flow even if profile update fails
-            }
+            logger.onboarding.stepCompleted('Onboarding marked as completed in both tables');
 
             // IMPORTANT: Save the collected name to user metadata so backend can access it
             if (name && name.trim().length > 0) {

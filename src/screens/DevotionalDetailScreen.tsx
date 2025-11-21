@@ -799,7 +799,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               )}
             </View>
           </View>
-          {false && (
+          {currentDay && (
             <TouchableOpacity
               style={styles.exportButton}
               onPress={() => {

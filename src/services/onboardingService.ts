@@ -479,10 +479,12 @@ export class OnboardingService {
 
   /**
    * Complete onboarding process
+   * Updates BOTH onboarding_progress AND user_profiles to ensure all login methods work
    */
   async completeOnboarding(userId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      // 1. Update onboarding_progress table
+      const { error: progressError } = await this.supabase
         .from('onboarding_progress')
         .update({
           is_completed: true,
@@ -492,19 +494,50 @@ export class OnboardingService {
         })
         .eq('user_id', userId);
 
-      if (error) {
-        Logger.error('[OnboardingService] Error completing onboarding', error as Error, {
-      component: 'onboardingService',
-      action: 'onboarding',
-    });
-        throw error;
+      if (progressError) {
+        Logger.error('[OnboardingService] Error updating onboarding_progress', progressError as Error, {
+          component: 'onboardingService',
+          action: 'complete_onboarding',
+          userId,
+        });
+        throw progressError;
       }
+
+      // 2. Update user_profiles.onboarding_completed (PRIMARY source of truth for login routing)
+      // Use upsert to handle cases where profile doesn't exist yet (e.g., social login)
+      const { error: profileError } = await this.supabase
+        .from('user_profiles')
+        .upsert(
+          { 
+            id: userId, 
+            onboarding_completed: true,
+            updated_at: new Date().toISOString(),
+          },
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false, // Always update if exists
+          }
+        );
+
+      if (profileError) {
+        Logger.error('[OnboardingService] Error updating user_profiles.onboarding_completed', profileError as Error, {
+          component: 'onboardingService',
+          action: 'complete_onboarding',
+          userId,
+        });
+        throw profileError;
+      }
+
+      Logger.debug('[OnboardingService] Onboarding completed successfully for user', {
+        component: 'onboardingService',
+        userId,
+      });
 
     } catch (error) {
       Logger.error('[OnboardingService] Error in completeOnboarding', error as Error, {
-      component: 'onboardingService',
-      action: 'onboarding',
-    });
+        component: 'onboardingService',
+        action: 'onboarding',
+      });
       throw error;
     }
   }
