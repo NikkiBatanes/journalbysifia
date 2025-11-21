@@ -27,6 +27,8 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
   // Default translation/version for onboarding and playbook views
   const [showCopyright, setShowCopyright] = useState(false);
   const bibleVersion = (verse as any)?.version || 'NASB';
+  const cleanReference = (verse.reference || '').trim();
+  const referenceIncludesVersion = cleanReference.toUpperCase().includes(bibleVersion.toUpperCase());
   return (
     <View style={[styles.container, style, { backgroundColor }]}>
       <View style={styles.headerContainer}>
@@ -73,8 +75,8 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         )}
         <View style={styles.scriptureReferenceContainer}>
           <ThemedText weight="bold" style={styles.scriptureReference}>
-            {(verse.reference || '')}
-            {(
+            {cleanReference}
+            {!referenceIncludesVersion && (
               <ThemedText weight="bold" style={styles.bibleVersion}>
                 {' '}{bibleVersion}
               </ThemedText>

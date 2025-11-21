@@ -885,7 +885,7 @@ export default function ActionStepsCard({
                 // Handle array format (legacy)
                 examples = (step as any).examples.map((ex: string, i: number) => ({
                   id: `ex-${i}`,
-                  text: ex,
+                  text: ex.replace(/^"+|"+$/g, ''),
                 }));
               } else {
                 // Fallback: extract from sub-tasks that start with legacy "Example:"
@@ -918,7 +918,8 @@ export default function ActionStepsCard({
               if (showExampleSubtasksInline && examples.length > 0) {
                 const exampleSubtasks = examples.map((ex) => ({
                   id: ex.id,
-                  text: `Suggestion: ${ex.text}`,
+                  // Ensure any lingering quotes are stripped from example text
+                  text: `Suggestion: ${ex.text.replace(/^"+|"+$/g, '')}`,
                   completed: false,
                   isExample: true,
                   is_example: true,
@@ -1699,7 +1700,7 @@ const styles = StyleSheet.create({
   smartTooltip: {
     position: 'absolute',
     top: 60,
-    right: 16,
+    left: 16,
     maxWidth: 280,
     backgroundColor: Colors.alertCoral,
     borderRadius: 12,

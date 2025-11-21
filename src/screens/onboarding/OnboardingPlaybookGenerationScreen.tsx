@@ -650,7 +650,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               {/* Logo (no aura here) */}
               <View style={styles.logoContainer}>
                 <Image
-                  source={require('../../../assets/images/siFiaAppIcon.png')}
+                  source={require('../../../assets/icons/siFiaTransparent.png')}
                   style={styles.logo}
                   resizeMode="contain"
                 />
@@ -836,8 +836,8 @@ const styles = StyleSheet.create({
     borderRadius: 140,
   },
   logoContainer: {
-    width: 88,
-    height: 88,
+    width: 120,
+    height: 120,
     marginBottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
@@ -846,7 +846,6 @@ const styles = StyleSheet.create({
   logo: {
     width: '100%',
     height: '100%',
-    borderRadius: 16,
   },
   progressBarContainer: {
     width: '80%',

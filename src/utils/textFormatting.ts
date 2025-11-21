@@ -35,6 +35,8 @@ export const formatBibleVerse = (verse: string): string => {
 
   // Remove any remaining escaped quotes or special characters
   formatted = formatted
+    // Strip leading/trailing straight double quotes
+    .replace(/^"+|"+$/g, '')
     .replace(/"/g, '"')  // Convert escaped quotes to regular quotes
     .replace(/[\u201C\u201D]/g, '"')  // Replace smart quotes with straight quotes
     .replace(/[\u2018\u2019]/g, "'")  // Replace smart single quotes
