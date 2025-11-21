@@ -5,8 +5,8 @@
 
 import { Platform, Alert } from 'react-native';
 import Share from 'react-native-share';
+import { generatePDF } from 'react-native-html-to-pdf';
 import { Logger } from './ProductionLogger';
-import { supabase } from '../services/supabaseClient';
 
 export interface DevotionalPDFData {
   title: string;
@@ -465,69 +465,47 @@ class PDFExportService {
   }
 
   /**
-   * Export devotional as PDF using server-side generation
-   * More reliable than native modules, works on all platforms
+   * Export devotional as PDF using native iOS/Android PDF generation
+   * Uses react-native-html-to-pdf for native rendering
    */
   async exportDevotionalPDF(data: DevotionalPDFData): Promise<void> {
     try {
       const html = this.generateDevotionalHTML(data);
-      const fileName = `siFia_Devotional_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+      const fileName = `siFia_Devotional_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
 
-      Logger.debug('[PDFExportService] Generating PDF', {
+      Logger.debug('[PDFExportService] Generating PDF with native renderer', {
         component: 'pdfExportService',
         fileName,
         htmlLength: html.length,
-        dataKeys: Object.keys(data),
       });
 
-      // Call Supabase Edge Function to generate PDF
-      const { data: pdfResponse, error } = await supabase.functions.invoke('generate-pdf', {
-        body: {
-          html,
-          filename: fileName,
-        },
-      });
+      // Use native PDF generation (iOS/Android)
+      const options = {
+        html,
+        fileName,
+        directory: 'Documents',
+        width: 595, // A4 width in points
+        height: 842, // A4 height in points
+        padding: 20,
+        bgColor: '#FFFFFF',
+      };
 
-      if (error) {
-        Logger.error('[PDFExportService] Edge Function error', error as Error, {
-          component: 'pdfExportService',
-        });
-        throw new Error(`PDF generation failed: ${error.message}`);
-      }
-
-      Logger.debug('[PDFExportService] PDF response received', {
-        component: 'pdfExportService',
-        responseType: typeof pdfResponse,
-        isArrayBuffer: pdfResponse instanceof ArrayBuffer,
-        isUint8Array: pdfResponse instanceof Uint8Array,
-        length: pdfResponse?.length || pdfResponse?.byteLength || 0,
-      });
-
-      // Convert ArrayBuffer to base64 for sharing
-      const uint8Array = new Uint8Array(pdfResponse);
+      const file = await generatePDF(options);
       
-      Logger.debug('[PDFExportService] Converting to base64', {
+      Logger.debug('[PDFExportService] PDF generated successfully', {
         component: 'pdfExportService',
-        uint8ArrayLength: uint8Array.length,
+        filePath: file.filePath,
       });
 
-      const binaryString = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
-      const base64Data = `data:application/pdf;base64,${btoa(binaryString)}`;
-
-      Logger.debug('[PDFExportService] Sharing PDF', {
-        component: 'pdfExportService',
-        base64Length: base64Data.length,
-      });
-
-      // Share the PDF using base64 data URL
+      // Share the PDF file
       await Share.open({
-        url: base64Data,
+        url: `file://${file.filePath}`,
         type: 'application/pdf',
         title: 'Share Devotional',
-        filename: fileName,
+        filename: `${fileName}.pdf`,
       });
 
-      Logger.debug('[PDFExportService] Devotional PDF exported successfully', {
+      Logger.debug('[PDFExportService] Devotional PDF shared successfully', {
         component: 'pdfExportService',
         fileName,
       });
@@ -540,39 +518,45 @@ class PDFExportService {
   }
 
   /**
-   * Export playbook as PDF using server-side generation
+   * Export playbook as PDF using native iOS/Android PDF generation
    */
   async exportPlaybookPDF(data: PlaybookPDFData): Promise<void> {
     try {
       const html = this.generatePlaybookHTML(data);
-      const fileName = `siFia_Playbook_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+      const fileName = `siFia_Playbook_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
 
-      // Call Supabase Edge Function to generate PDF
-      const { data: pdfResponse, error } = await supabase.functions.invoke('generate-pdf', {
-        body: {
-          html,
-          filename: fileName,
-        },
+      Logger.debug('[PDFExportService] Generating playbook PDF with native renderer', {
+        component: 'pdfExportService',
+        fileName,
       });
 
-      if (error) {
-        throw new Error(`PDF generation failed: ${error.message}`);
-      }
+      // Use native PDF generation (iOS/Android)
+      const options = {
+        html,
+        fileName,
+        directory: 'Documents',
+        width: 595, // A4 width in points
+        height: 842, // A4 height in points
+        padding: 20,
+        bgColor: '#FFFFFF',
+      };
 
-      // Convert ArrayBuffer to base64 for sharing
-      const uint8Array = new Uint8Array(pdfResponse);
-      const binaryString = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
-      const base64Data = `data:application/pdf;base64,${btoa(binaryString)}`;
+      const file = await generatePDF(options);
+      
+      Logger.debug('[PDFExportService] Playbook PDF generated successfully', {
+        component: 'pdfExportService',
+        filePath: file.filePath,
+      });
 
-      // Share the PDF
+      // Share the PDF file
       await Share.open({
-        url: base64Data,
+        url: `file://${file.filePath}`,
         type: 'application/pdf',
         title: 'Share Playbook',
-        filename: fileName,
+        filename: `${fileName}.pdf`,
       });
 
-      Logger.debug('[PDFExportService] Playbook PDF exported successfully', {
+      Logger.debug('[PDFExportService] Playbook PDF shared successfully', {
         component: 'pdfExportService',
         fileName,
       });
