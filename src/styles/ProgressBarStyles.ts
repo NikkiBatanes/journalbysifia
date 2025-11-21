@@ -35,7 +35,7 @@ export const progressBarStyles = StyleSheet.create({
     elevation: 2,
   },
   textContainer: {
-    width: 60, // Fixed width for text container
+    width: 72, // Slightly wider to fit "0/10 Steps" on one line
     alignItems: 'flex-end',
     marginLeft: 'auto', // Push to the far right
   },
@@ -43,6 +43,7 @@ export const progressBarStyles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'right',
-    minWidth: 60, // Ensure minimum width for text
+    minWidth: 72, // Ensure minimum width for text
+    flexShrink: 0, // Do not shrink, avoid wrapping
   },
 });

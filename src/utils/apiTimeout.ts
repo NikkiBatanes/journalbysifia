@@ -109,9 +109,9 @@ export async function withTimeoutAndRetry<T>(
  * These are safe defaults that won't break existing functionality
  */
 export const TIMEOUT_CONFIGS = {
-  // AI generation can take time, so we're generous
+  // AI generation can take time, especially for full playbooks with many action steps
   AI_GENERATION: {
-    timeoutMs: 60000, // 60 seconds
+    timeoutMs: 90000, // 90 seconds
     operationName: 'AI Generation',
     retryOnTimeout: false, // Don't retry AI generation on timeout
   },

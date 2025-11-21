@@ -60,7 +60,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
             <View style={styles.itemTextContainer}>
               {expanded && Platform.OS === 'ios' ? (
                 <ThemedTextInput
-                  weight="medium"
+                  weight="regular"
                   value={spiritualText}
                   editable={false}
                   multiline={true}
@@ -68,7 +68,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
                   style={styles.sectionText}
                 />
               ) : (
-                <ThemedText weight="medium" style={styles.sectionText}>
+                <ThemedText weight="regular" style={styles.sectionText}>
                   {spiritualText}
                 </ThemedText>
               )}
@@ -83,7 +83,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
             <View style={styles.itemTextContainer}>
               {expanded && Platform.OS === 'ios' ? (
                 <ThemedTextInput
-                  weight="medium"
+                  weight="regular"
                   value={tacticalText}
                   editable={false}
                   multiline={true}
@@ -91,7 +91,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
                   style={styles.sectionText}
                 />
               ) : (
-                <ThemedText weight="medium" style={styles.sectionText}>
+                <ThemedText weight="regular" style={styles.sectionText}>
                   {tacticalText}
                 </ThemedText>
               )}
@@ -101,7 +101,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
       ) : (
         expanded && Platform.OS === 'ios' ? (
           <ThemedTextInput
-            weight="semiBold"
+            weight="regular"
             value={challenge}
             editable={false}
             multiline={true}
@@ -109,14 +109,14 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
             style={styles.text}
           />
         ) : (
-          <ThemedText weight="semiBold" style={styles.text}>
+          <ThemedText weight="regular" style={styles.text}>
             {challenge}
           </ThemedText>
         )
       )}
 
       {challengeCTA && (
-        <ThemedText weight="semiBold" style={styles.cta}>{challengeCTA}</ThemedText>
+        <ThemedText weight="regular" style={styles.cta}>{challengeCTA}</ThemedText>
       )}
     </View>
   );

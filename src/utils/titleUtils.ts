@@ -5,8 +5,9 @@
 /**
  * Maximum length for devotional titles
  * Titles longer than this will be truncated
+ * Increased to better use two lines in the UI.
  */
-export const MAX_TITLE_LENGTH = 32;
+export const MAX_TITLE_LENGTH = 60;
 
 /**
  * Extracts and cleans a devotional title from potentially prefixed formats

@@ -776,7 +776,12 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       <GestureDetector gesture={panGesture}>
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
-            <ThemedText weight="semiBold" style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            <ThemedText
+              weight="semiBold"
+              style={styles.headerTitle}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
               {extractCleanTitle(devotional.title, 'Devotional')}
             </ThemedText>
             <View style={styles.dayCounterContainer}>
@@ -915,7 +920,12 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             {/* Day Title - Moved below progress bar */}
             <View style={styles.dayTitleContainer}>
               <ThemedText weight="semiBold" style={styles.dayNumber}>Day {index + 1}</ThemedText>
-              <ThemedText weight="bold" style={styles.dayTitle}>
+              <ThemedText
+                weight="bold"
+                style={styles.dayTitle}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
                 {devotional.totalDays === 1 ? (
                   extractCleanTitle(devotional.title, 'Devotional')
                 ) : (

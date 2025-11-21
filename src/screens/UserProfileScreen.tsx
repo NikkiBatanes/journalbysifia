@@ -1118,15 +1118,19 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       const first = (profileForm as any).firstName?.trim() || '';
       const last = (profileForm as any).lastName?.trim() || '';
       const full = [first, last].filter(Boolean).join(' ').trim();
-      const birthYear = String((profileForm as any).birthYear || '').trim();
+      const birthDateStr = String((profileForm as any).birthDate || '').trim();
 
-      // Validate birth year if provided
-      if (birthYear) {
-        const now = new Date().getFullYear();
-        const yr = parseInt(birthYear, 10);
-        const valid = /^(19|20)\d{2}$/.test(birthYear) && yr >= 1900 && yr <= now;
-        if (!valid) {
-          Alert.alert('Invalid birth year', 'Please enter a valid 4-digit birth year (e.g., 1995).');
+      // Validate birth date if provided
+      if (birthDateStr) {
+        const parsed = new Date(birthDateStr);
+        if (isNaN(parsed.getTime())) {
+          Alert.alert('Invalid birth date', 'Please select a valid birth date.');
+          return;
+        }
+        const year = parsed.getFullYear();
+        const nowYear = new Date().getFullYear();
+        if (year < 1900 || year > nowYear) {
+          Alert.alert('Invalid birth date', 'Please select a birth date between 1900 and the current year.');
           return;
         }
       }
@@ -1136,11 +1140,28 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         full_name: full || undefined,
         first_name: first || undefined,
         last_name: last || undefined,
-        birth_year: birthYear || undefined,
+        // Store full birth date in auth user_metadata for UI reads
+        birth_date: birthDateStr || undefined,
       });
 
       if (result?.success === false) {
         throw new Error(result?.error?.message || 'Failed to update profile');
+      }
+
+      // Also sync full birth date to user_profiles.date_of_birth for server-side logic
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
+        if (accessToken && birthDateStr) {
+          await userApi.updateProfile(accessToken, { dateOfBirth: birthDateStr } as any);
+        }
+      } catch (e) {
+        // Non-fatal: log but do not block the user from saving profile
+        Logger.warn('[UserProfile] Failed to sync birth date to user_profiles', {
+          component: 'UserProfileScreen',
+          action: 'sync_birth_date_profile',
+          details: e instanceof Error ? e.message : String(e),
+        } as any);
       }
 
       // Close modal

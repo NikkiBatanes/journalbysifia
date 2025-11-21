@@ -3,6 +3,7 @@ import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { Pencil } from 'lucide-react-native';
 import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter } from 'react-native';
 
@@ -810,9 +811,9 @@ export default function ActionStepsCard({
       <View style={style}>
       <View style={styles.headingContainer}>
         <View style={styles.headingContent}>
-          <MaterialCommunityIcons
-            name={iconOverride || 'format-list-checks'}
-            size={24}
+          <FontAwesome6
+            name={iconOverride || 'list-check'}
+            size={20}
             color={Colors.alertCoral}
             style={styles.icon}
           />
@@ -1266,6 +1267,7 @@ const styles = StyleSheet.create({
     ...Typography.interBold,
     fontSize: 20,
     color: Colors.hopeWhite,
+    marginLeft: 4,
   },
   infoButtonInline: {
     marginLeft: 8,

@@ -322,6 +322,7 @@ interface RequestBody {
   userId?: string;
   dateOfBirth?: string;  // ISO date string from user profile
   ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
+  bibleVersion?: string; // User's preferred Bible translation (default: NASB)
 }
 
 serve(async (req: Request) => {
@@ -342,7 +343,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion } = requestBody;
 
   // Extract user ID from authorization header for rate limiting
   const authHeader = req.headers.get('authorization');
@@ -477,6 +478,10 @@ ${recentTitlesContext}`;
     if (ageContext) {
       contextualPrompt += `\n\n## USER AGE CONTEXT\nThe user is a ${ageContext}. Please tailor the language, examples, and action steps to be age-appropriate and relevant to their life stage. Consider typical challenges, responsibilities, and experiences for this age group.`;
     }
+
+    // Add Bible version preference
+    const preferredBibleVersion = bibleVersion || 'NASB';
+    contextualPrompt += `\n\n## BIBLE VERSION PREFERENCE\nThe user prefers the ${preferredBibleVersion} translation. Use this translation for ALL Bible verses in the playbook (Truth in Love, Action Steps, Declarations, Bible Verse section, and Challenge).`;
 
     // Call OpenAI API with circuit breaker + retry logic
     console.log('[Generate-Playbook] Calling OpenAI API with circuit breaker + retry logic...');

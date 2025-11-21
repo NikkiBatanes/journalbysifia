@@ -83,7 +83,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
                 </View>
               </View>
               <View style={progressBarStyles.textContainer}>
-                <ThemedText style={progressBarStyles.text}>
+                <ThemedText style={progressBarStyles.text} numberOfLines={1}>
                   {completed}/{total} Steps
                 </ThemedText>
               </View>
