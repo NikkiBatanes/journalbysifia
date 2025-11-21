@@ -40,10 +40,32 @@ export interface PlaybookPDFData {
 
 class PDFExportService {
   /**
+   * Escape HTML special characters to prevent broken HTML
+   */
+  private escapeHtml(text: string): string {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+      .replace(/\n/g, '<br>'); // Preserve line breaks
+  }
+
+  /**
    * Generate HTML template for devotional PDF
    */
   private generateDevotionalHTML(data: DevotionalPDFData): string {
     const { title, duration, bibleVerse, reflection, prayer, actionSteps, createdAt } = data;
+    
+    // Escape all text content to prevent HTML injection/breaking
+    const safeTitle = this.escapeHtml(title);
+    const safeDuration = this.escapeHtml(duration);
+    const safeReflection = this.escapeHtml(reflection || '');
+    const safePrayer = this.escapeHtml(prayer || '');
+    const safeVerseText = this.escapeHtml(bibleVerse?.text || '');
+    const safeVerseRef = this.escapeHtml(bibleVerse?.reference || '');
 
     return `
       <!DOCTYPE html>
@@ -171,8 +193,8 @@ class PDFExportService {
         <body>
           <div class="header">
             <div class="logo">siFia</div>
-            <h1>${title}</h1>
-            <div class="duration">${duration}</div>
+            <h1>${safeTitle}</h1>
+            <div class="duration">${safeDuration}</div>
             ${createdAt ? `<div class="date">Created: ${new Date(createdAt).toLocaleDateString()}</div>` : ''}
           </div>
 
@@ -180,23 +202,23 @@ class PDFExportService {
             <div class="section">
               <div class="section-title">Today's Verse</div>
               <div class="verse-box">
-                <div class="verse-text">"${bibleVerse.text}"</div>
-                <div class="verse-reference">— ${bibleVerse.reference}</div>
+                <div class="verse-text">"${safeVerseText}"</div>
+                <div class="verse-reference">— ${safeVerseRef}</div>
               </div>
             </div>
           ` : ''}
 
-          ${reflection ? `
+          ${safeReflection ? `
             <div class="section">
               <div class="section-title">Reflection</div>
-              <div class="content-text">${reflection}</div>
+              <div class="content-text">${safeReflection}</div>
             </div>
           ` : ''}
 
-          ${prayer ? `
+          ${safePrayer ? `
             <div class="section">
               <div class="section-title">Prayer</div>
-              <div class="content-text">${prayer}</div>
+              <div class="content-text">${safePrayer}</div>
             </div>
           ` : ''}
 

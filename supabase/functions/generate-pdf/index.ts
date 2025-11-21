@@ -26,6 +26,10 @@ serve(async (req) => {
       );
     }
 
+    // Log HTML length for debugging
+    console.log('[PDF] Received HTML length:', html.length);
+    console.log('[PDF] First 200 chars:', html.substring(0, 200));
+
     // Use Deno's built-in fetch to call a PDF generation service
     // For now, we'll use a simple HTML-to-PDF conversion approach
     // In production, you can use Puppeteer or a dedicated PDF service
