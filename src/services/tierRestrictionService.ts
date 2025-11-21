@@ -288,7 +288,19 @@ class TierRestrictionService {
       // POST-LAUNCH: 'family_annual': 5,
     } as Record<SubscriptionTier, number>;
 
-    return (tierHierarchy[currentTier] || 0) >= (tierHierarchy[requiredTier] || 0);
+    const currentLevel = tierHierarchy[currentTier] || 0;
+    const requiredLevel = tierHierarchy[requiredTier] || 0;
+    const hasAccess = currentLevel >= requiredLevel;
+    
+    console.log('[TierRestriction] hasTierAccess check:', {
+      currentTier,
+      requiredTier,
+      currentLevel,
+      requiredLevel,
+      hasAccess,
+    });
+
+    return hasAccess;
   }
 
   /**
