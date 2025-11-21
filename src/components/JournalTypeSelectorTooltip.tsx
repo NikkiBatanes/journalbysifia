@@ -134,7 +134,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   };
 
   const handleShare = async () => {
-    if (!subtaskText) return;
+    if (!subtaskText) {return;}
     try {
       triggerLightHaptic();
       await Share.share({
@@ -146,7 +146,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
     }
   };
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <Modal

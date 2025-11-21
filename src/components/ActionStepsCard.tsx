@@ -139,11 +139,11 @@ export default function ActionStepsCard({
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [_isGuidedPromptActive, _setIsGuidedPromptActive] = useState(false);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
-  
+
   // Unified Journal Type Selector Tooltip State
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipSubtask, setTooltipSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
-  
+
   // Smart Journaling Helper Tooltip State
   const [showSmartTooltip, setShowSmartTooltip] = useState(false);
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
@@ -558,11 +558,11 @@ export default function ActionStepsCard({
   }, []);
 
   const handleJournalTypeSelect = React.useCallback((journalType: JournalType) => {
-    if (!tooltipSubtask) return;
-    
+    if (!tooltipSubtask) {return;}
+
     // Close tooltip
     setTooltipVisible(false);
-    
+
     // Open corresponding modal with subtask info
     setTimeout(() => {
       onJournalTypePress(journalType, tooltipSubtask.subTask, tooltipSubtask.stepInfo);

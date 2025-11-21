@@ -119,6 +119,12 @@ Then gently but firmly address the heart - where do we struggle with this truth?
 
 Close with hope and practical next steps, always pointing to Jesus.
 
+🚨 CRITICAL - DO NOT INCLUDE QUESTIONS IN THE REFLECTION:
+- NEVER write "Reflect on the following questions..." or "Consider these questions..." in the reflection
+- NEVER list numbered questions (1. 2. 3.) within the reflection text
+- Questions belong ONLY in the separate REFLECTION QUESTIONS section below
+- The reflection should be complete and standalone without referencing questions
+
 🚨 STORY REQUIREMENTS - ABSOLUTELY CRITICAL:
 - Use ONLY REAL, DOCUMENTED stories - NO fictional or hypothetical examples
 - Biblical stories: Use actual accounts from Scripture with accurate details
@@ -217,6 +223,12 @@ NEVER use phrases like "Consider the story of..." - just tell the story naturall
 Use only REAL, DOCUMENTED stories from Scripture or church history.
 Write like you're having a heart-to-heart conversation with a friend.
 Minimum 400 words, target 500-600 words. Prioritize DEPTH and IMPACT.
+
+🚨 CRITICAL - DO NOT INCLUDE QUESTIONS IN THE REFLECTION:
+- NEVER write "Reflect on the following questions..." or "Consider these questions..." or "Use these questions..."
+- NEVER list numbered questions (1. 2. 3.) within the reflection text
+- Questions belong ONLY in the separate REFLECTION QUESTIONS section below
+- The reflection should be complete and standalone without referencing questions
 
 REFLECTION QUESTIONS:
 1. [Question 1]

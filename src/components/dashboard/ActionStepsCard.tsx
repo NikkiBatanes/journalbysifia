@@ -12,10 +12,10 @@ import {
   FlatList,
   Animated,
   DeviceEventEmitter,
-  Alert
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Pencil, AlertCircle } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/IndustryStandardAuthContext';

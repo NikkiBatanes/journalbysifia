@@ -683,6 +683,17 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         const reflectionMatch = dayContent.match(/(?:DAILY REFLECTION|REFLECTION):\s*([\s\S]*?)(?=(?:REFLECTION QUESTIONS|QUESTIONS|PRAYER):|$)/i);
         if (reflectionMatch) {
           reflection = cleanMarkdown(reflectionMatch[1]).trim();
+          
+          // CRITICAL: Remove inline questions that AI mistakenly includes in reflection
+          // Pattern 1: "Reflect on the following questions..." followed by numbered list
+          reflection = reflection.replace(/Reflect on the following questions[^:]*?:\s*\d+\.\s*[\s\S]*$/i, '').trim();
+          // Pattern 2: "Consider these questions..." followed by numbered list
+          reflection = reflection.replace(/Consider these questions[^:]*?:\s*\d+\.\s*[\s\S]*$/i, '').trim();
+          // Pattern 3: "Use these questions..." followed by numbered list
+          reflection = reflection.replace(/Use these questions[^:]*?:\s*\d+\.\s*[\s\S]*$/i, '').trim();
+          // Pattern 4: Any trailing numbered list (1. 2. 3.) at the end of reflection
+          reflection = reflection.replace(/\n\s*\d+\.\s+[^\n]+\s*\d+\.\s+[^\n]+\s*\d+\.\s+[^\n]+\s*$/i, '').trim();
+          
           // Format into paragraphs if not already
           if (!/\n{2,}/.test(reflection)) {
             const sentences = reflection.split(/(?<=[.!?])\s+/);
@@ -711,7 +722,29 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
               text: cleanMarkdown(q.replace(/^\d+\.\s*/, '')).trim(),
             }));
         }
+        
+        // FALLBACK: If no proper REFLECTION QUESTIONS section, try to extract inline questions from reflection
+        if (reflectionQuestions.length === 0 && reflectionMatch) {
+          const reflectionText = reflectionMatch[1];
+          // Look for inline questions pattern: "Reflect on..." or "Consider..." followed by numbered list
+          const inlineQuestionsMatch = reflectionText.match(/(?:Reflect on the following questions|Consider these questions|Use these questions)[^:]*?:\s*([\s\S]*?)$/i);
+          if (inlineQuestionsMatch) {
+            const inlineQuestionsRaw = inlineQuestionsMatch[1];
+            reflectionQuestions = inlineQuestionsRaw
+              .split(/\n|(?=\d+\.)/)
+              .map(q => q.trim())
+              .filter(q => q && q.match(/^\d+\./))
+              .map((q, i) => ({
+                id: `q${i + 1}`,
+                text: cleanMarkdown(q.replace(/^\d+\.\s*/, '')).trim(),
+              }));
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Extracted ${reflectionQuestions.length} inline questions from reflection`);
+          }
+        }
+        
+        // Only use fallback questions if we still have none
         if (reflectionQuestions.length === 0) {
+          console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Using fallback questions`);
           reflectionQuestions = [
             { id: 'q1', text: 'What stood out to you today?' },
             { id: 'q2', text: 'How can you apply this to your life?' },

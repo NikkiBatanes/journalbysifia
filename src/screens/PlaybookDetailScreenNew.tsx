@@ -1606,14 +1606,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         {affirmationParticles.length > 0 && (
                           <View pointerEvents="none" style={styles.stackReadBurstLayer}>
                             {affirmationParticles.map(p => {
-                              const translateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -p.dy] });
-                              const translateX = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
-                              const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
-                              const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
+                              const particleTranslateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -p.dy] });
+                              const particleTranslateX = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
+                              const particleScale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
+                              const particleOpacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
                               return (
                                 <RNAnimated.View
                                   key={p.id}
-                                  style={[styles.stackReadParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}
+                                  style={[styles.stackReadParticle, { opacity: particleOpacity, transform: [{ translateX: particleTranslateX }, { translateY: particleTranslateY }, { scale: particleScale }, { rotate: `${p.rotate}deg` }] }]}
                                 >
                                   <Ionicons name="book" size={p.size} color={p.color} />
                                 </RNAnimated.View>
