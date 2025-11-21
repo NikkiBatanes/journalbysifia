@@ -213,37 +213,6 @@ const ShareButton = ({ onPress, styles }: { onPress: () => void; styles: any }) 
   </TouchableOpacity>
 );
 
-const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: any; styles: any }) => (
-  <TouchableOpacity
-    onPress={() => {
-
-      // Light haptic on avatar tap
-      triggerLightHaptic();
-      try {
-        navigation.navigate('UserProfileModal');
-      } catch (navigationError) {
-
-      }
-    }}
-    style={styles.profileButton}
-    activeOpacity={0.7}
-  >
-    {/* Always show initial avatar like dashboard - alert coral with letter */}
-    <View style={styles.initialAvatar}>
-      <ThemedText weight="semiBold" style={styles.initialLetter}>{(() => {
-        const meta: any = (user as any)?.user_metadata || {};
-        const displayName =
-          (user as any)?.displayName ||
-          meta.full_name ||
-          [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
-          (user as any)?.email ||
-          'User';
-        return (displayName || 'U').trim().charAt(0).toUpperCase();
-      })()}</ThemedText>
-    </View>
-  </TouchableOpacity>
-);
-
 const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation }) => {
   const theme = useTheme();
   const styles = createStyles(theme);

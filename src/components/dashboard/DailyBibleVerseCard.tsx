@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { Typography } from '../../theme/typography';
 import { formatBibleVerse } from '../../utils/textFormatting';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';

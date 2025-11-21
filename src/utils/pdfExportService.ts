@@ -3,7 +3,6 @@
  * Generates PDF documents for devotionals and playbooks with consistent layout
  */
 
-import { Platform } from 'react-native';
 import Share from 'react-native-share';
 import { generatePDF } from 'react-native-html-to-pdf';
 import { Logger } from './ProductionLogger';
@@ -54,7 +53,7 @@ class PDFExportService {
    * Clean markdown formatting from text
    */
   private cleanMarkdown(text: string): string {
-    if (!text) return '';
+    if (!text) {return '';}
     return text
       .replace(/\*\*|__/g, '') // Remove bold
       .replace(/\*|_/g, '')     // Remove italic
@@ -66,7 +65,7 @@ class PDFExportService {
    * Escape HTML special characters to prevent broken HTML
    */
   private escapeHtml(text: string): string {
-    if (!text) return '';
+    if (!text) {return '';}
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -81,7 +80,7 @@ class PDFExportService {
    */
   private generateDevotionalHTML(data: DevotionalPDFData): string {
     const { title, duration, dayTitle, dayLabel, bibleVerse, reflection, questionsToPonder, prayer, actionSteps, createdAt } = data;
-    
+
     // Escape all text content to prevent HTML injection/breaking
     const safeTitle = this.escapeHtml(title);
     const safeDuration = this.escapeHtml(duration);
@@ -524,7 +523,7 @@ class PDFExportService {
       const processedExamples = (step.examples || []).map(ex =>
         this.escapeHtml(this.cleanMarkdown(ex || '')),
       );
-      
+
       return {
         title: this.escapeHtml(this.cleanMarkdown(step.title || '')),
         description: this.escapeHtml(this.cleanMarkdown(step.description || '')),
@@ -1058,7 +1057,7 @@ class PDFExportService {
       };
 
       const file = await generatePDF(options);
-      
+
       Logger.debug('[PDFExportService] PDF generated successfully', {
         component: 'pdfExportService',
         filePath: file.filePath,
@@ -1112,7 +1111,7 @@ class PDFExportService {
       };
 
       const file = await generatePDF(options);
-      
+
       Logger.debug('[PDFExportService] Playbook PDF generated successfully', {
         component: 'pdfExportService',
         filePath: file.filePath,
