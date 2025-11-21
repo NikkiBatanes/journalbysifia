@@ -81,13 +81,18 @@ async function generatePDFFromHTML(html: string): Promise<Uint8Array> {
     
     // Set content and wait for it to load
     await page.setContent(html, {
-      waitUntil: 'networkidle0',
+      waitUntil: ['load', 'domcontentloaded'],
     });
     
-    // Generate PDF
+    // Wait a bit for fonts and styles to fully render
+    await page.waitForTimeout(1000);
+    
+    // Generate PDF with proper settings
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
+      preferCSSPageSize: false,
+      displayHeaderFooter: false,
       margin: {
         top: '20px',
         right: '20px',
