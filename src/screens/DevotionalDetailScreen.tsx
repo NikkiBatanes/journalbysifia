@@ -63,6 +63,22 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // Feature access for PDF export
   const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
+  
+  // Debug: Log subscription and export access for Growth trial users
+  useEffect(() => {
+    if (user?.id) {
+      import('../services/NewSubscriptionService').then(({ NewSubscriptionService }) => {
+        NewSubscriptionService.getUserSubscription(user.id).then(sub => {
+          console.log('[DevotionalDetail] Subscription Debug:', {
+            tier: sub.tier,
+            trial_chosen_tier: (sub as any).trial_chosen_tier,
+            hasExportAccess: pdfExportAccess.hasAccess,
+            accessResult: pdfExportAccess.accessResult,
+          });
+        });
+      });
+    }
+  }, [user?.id, pdfExportAccess.hasAccess]);
 
   // React Query hooks for devotional data
   // Clean and validate devotional ID from route params to avoid simulator-only issues

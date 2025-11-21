@@ -150,6 +150,17 @@ class TierRestrictionService {
         ? subscription.trial_chosen_tier
         : currentTier;
       
+      // Debug logging for trial users
+      if (currentTier === 'free_trial') {
+        console.log('[TierRestriction] Trial User Debug:', {
+          feature,
+          currentTier,
+          trial_chosen_tier: subscription?.trial_chosen_tier,
+          effectiveTier,
+          userId: userId.substring(0, 8) + '...',
+        });
+      }
+      
       const limits = subscriptionService.getSubscriptionLimits(currentTier);
 
       // Find restriction for this feature
