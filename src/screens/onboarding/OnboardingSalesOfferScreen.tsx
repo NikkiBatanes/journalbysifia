@@ -88,7 +88,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
   const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
-  const fromSmartJournalingLock = !isUpgradeMode && routeParams?.source === 'smart_journaling_lock' && routeParams?.feature === 'smart_journaling' && currentUserTier === 'seeker';
+  const fromSmartJournalingLock = !isUpgradeMode && routeParams?.source === 'smart_journaling_lock' && routeParams?.feature === 'smart_journaling';
+  const fromExportRestriction = !isUpgradeMode && (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
   const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
   const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
   const fromCalendarAutoSync = !isUpgradeMode && routeParams?.source === 'calendar_auto_sync';
@@ -104,6 +105,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Detect if coming from devotional gating
   // Use explicit featureType if provided, otherwise fall back to requestedDuration logic
   const fromDevotionalGating = isUpgradeMode && (routeParams?.featureType === 'devotionals' || (!routeParams?.featureType && requestedDuration));
+
+  // Detect if coming from Growth+ only features (smart journaling or export)
+  const fromGrowthOnlyFeature = fromSmartJournalingLock || fromExportRestriction;
+  const growthOnlyFeatureName = fromExportRestriction 
+    ? (routeParams?.feature === 'export_pdf' ? 'PDF Export' : 'Word Export')
+    : 'Smart Journaling';
 
   // Generate dynamic sales copy for playbook/devotional gating
   const dynamicSalesCopy = React.useMemo(() => {
@@ -224,6 +231,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // In onboarding mode, show all tiers
           tiers = await pricingService.getLocationAdjustedPricing();
           logger.debug('All tiers loaded', { count: tiers.length });
+        }
+
+        // Filter out Spark tier if coming from Growth+ only features
+        if (fromGrowthOnlyFeature) {
+          tiers = tiers.filter(t => t.id !== 'spark');
+          logger.debug('Filtered out Spark tier for Growth+ feature', { 
+            feature: growthOnlyFeatureName,
+            remainingTiers: tiers.map(t => t.id) 
+          });
         }
 
         const currency = await pricingService.getCurrencyInfo();
@@ -964,6 +980,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       {/* Body content: sticky toggle header + scrollable content */}
       <View style={styles.content}>
+        {/* Custom messaging for Growth+ only features */}
+        {(fromExportRestriction || fromSmartJournalingLock) && (
+          <View style={styles.featureMessageContainer}>
+            <ThemedText weight="semiBold" style={styles.featureMessageTitle}>
+              {fromExportRestriction ? 'Export Your Content' : 'Smart Journaling'}
+            </ThemedText>
+            <ThemedText style={styles.featureMessageText}>
+              {fromExportRestriction 
+                ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
+                : 'Unlock Smart Journaling to track time blocks, gratitude, prayers, and reflections. Available with Growth or Transformation plans.'}
+            </ThemedText>
+          </View>
+        )}
+
         {/* Pricing Cards - Scrollable with sticky toggle */}
         <ScrollView
           style={styles.pricingScroll}
@@ -1652,7 +1682,25 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   scrollContentPadding: {
-    paddingBottom: 60,
+    paddingBottom: 80,
+  },
+  featureMessageContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  featureMessageTitle: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  featureMessageText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 20,
   },
   // Copy todos stats styles
   statsSection: {
