@@ -384,6 +384,18 @@ class TierRestrictionService {
     const featureName = featureNames[feature] || feature;
     const tierName = tierNames[requiredTier] || requiredTier;
 
+    // Special handling for export features - emphasize Growth/Transformation only
+    const isExportFeature = feature === 'export_pdf' || feature === 'export_docx';
+    
+    if (isExportFeature) {
+      return {
+        title: `Unlock ${featureName}`,
+        message: `Export your playbooks and devotionals as ${feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`,
+        cta: 'Upgrade to Growth',
+        recommendedTier: requiredTier,
+      };
+    }
+
     // For Growth tier features, mention both Growth and Transformation since both have access
     const isGrowthTierFeature = requiredTier === 'growth' || requiredTier === 'growth_annual';
     const tierMessage = isGrowthTierFeature 
