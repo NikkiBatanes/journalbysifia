@@ -195,7 +195,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         // Don't lose user's input - navigate back with the original text
         Alert.alert(
           'Generation Failed',
-          'We couldn\'t generate your playbook. Your text has been preserved - please try again.',
+          'We couldn\'t generate your playbook. Your text has been preserved. Please try again.',
           [
             {
               text: 'OK',

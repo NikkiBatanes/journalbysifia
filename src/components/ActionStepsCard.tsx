@@ -1712,6 +1712,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     marginBottom: 4,
+    textAlign: 'center',
   },
   tooltipTitle: {
     color: 'rgba(255,255,255,0.95)',
@@ -1750,7 +1751,7 @@ const styles = StyleSheet.create({
   },
   tooltipCaret: {
     position: 'absolute',
-    right: 130,
+    right: 70,
     top: -6,
     width: 12,
     height: 12,
