@@ -22,7 +22,6 @@ interface SubTask {
   id: string;
   text: string;
   completed: boolean;
-  detected_journal_type?: string;
   is_example?: boolean;
   example_interactive?: boolean;
   orderIndex?: number;
@@ -162,27 +161,11 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
         if (/^-\s*Sub-task:/i.test(trimmedLine)) {
           const subTaskText = trimmedLine.replace(/^-\s*Sub-task:\s*/i, '').trim();
 
-          // Extract journal type(s) if present
-          let journalTypes = ['none']; // default to none instead of reflection
-          let cleanSubTaskText = subTaskText;
-
-          const journalMatch = subTaskText.match(/(.+?)\s*\|\s*Journal:\s*([a-z_,\s]+)/i);
-          if (journalMatch) {
-            cleanSubTaskText = journalMatch[1].trim();
-            const journalTypeString = journalMatch[2].trim();
-            // Handle multiple types separated by commas
-            journalTypes = journalTypeString.split(',').map(type => type.trim()).filter(type => type.length > 0);
-          }
-
-          // Use the first journal type for the main field (for backward compatibility)
-          const primaryJournalType = journalTypes[0] || 'none';
-
-          if (cleanSubTaskText) {
+          if (subTaskText) {
             subTasks.push({
               id: generateUUID(),
-              text: cleanSubTaskText,
+              text: subTaskText,
               completed: false,
-              detected_journal_type: primaryJournalType,
               is_example: false,
               example_interactive: false,
               orderIndex: subTasks.length,

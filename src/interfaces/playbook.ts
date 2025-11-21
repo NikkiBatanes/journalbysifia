@@ -7,7 +7,6 @@ export interface SubTask {
   id: string;
   text: string;
   completed: boolean;
-  detected_journal_type?: string; // AI-detected journal type
   is_example?: boolean; // Whether this subtask is an example
   example_interactive?: boolean; // Whether the example can be interacted with
   orderIndex?: number; // For ordering subtasks

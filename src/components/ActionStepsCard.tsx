@@ -14,6 +14,7 @@ import SmartJournalingReflectionModal from '../screens/SmartJournalingReflection
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
+import JournalTypeSelectorTooltip, { JournalType } from './JournalTypeSelectorTooltip';
 import { toLocalDateString } from '../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import ThemedText from './common/ThemedText';
@@ -68,37 +69,8 @@ import { useReflectionBySubtask } from '../services/hooks/useReflectionData';
 import { ReflectionApi } from '../services/api/reflectionApi';
 import { faithPointsService } from '../services/faithPointsService';
 
-// Smart Journaling Helper Functions
-const getJournalTypeIcon = (journalType?: string): string => {
-  switch (journalType) {
-    case 'prayer': return 'hands-pray';
-    case 'reflection': return 'head-lightbulb';
-    case 'gratitude': return 'heart';
-    case 'timeblock': return 'clock';
-    case 'none': return '';
-    default: return '';
-  }
-};
-
-const getJournalTypeColor = (journalType?: string): string => {
-  switch (journalType) {
-    case 'prayer': return Colors.prayerPurple; // Spiritual connection
-    case 'reflection': return Colors.reflectionBlue; // Wisdom and depth
-    case 'gratitude': return Colors.gratitudeRed; // Love and warmth
-    case 'timeblock': return Colors.timeblockGreen; // Growth and management
-    case 'none': return 'transparent';
-    default: return 'transparent';
-  }
-};
-
-// Removed unused shouldShowJournalIcon function - always showing subtasks
-
-const parseJournalTypes = (journalType?: string): string[] => {
-  if (!journalType || journalType === 'none') {
-    return [];
-  }
-  return journalType.split(',').map(type => type.trim()).filter(type => type && type !== 'none');
-};
+// Smart Journaling - Unified Icon System
+// All subtasks now show a single pencil icon that opens a tooltip selector
 
 const cleanMarkdown = (text: string | undefined): string => {
   if (!text) {return '';}
@@ -165,6 +137,10 @@ export default function ActionStepsCard({
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [_isGuidedPromptActive, _setIsGuidedPromptActive] = useState(false);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
+  
+  // Unified Journal Type Selector Tooltip State
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipSubtask, setTooltipSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
 
   const completionAnim = React.useRef<Record<string, Animated.Value>>({});
 
@@ -393,7 +369,7 @@ export default function ActionStepsCard({
           }
         }
 
-        const openedFromGuidedPrompt = !stepInfo && !subTask.detected_journal_type;
+        const openedFromGuidedPrompt = !stepInfo;
         _setIsGuidedPromptActive(openedFromGuidedPrompt);
         setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
@@ -560,6 +536,32 @@ export default function ActionStepsCard({
     const navService = SmartJournalingNavigation.create(navigation);
     navService.navigateToJournaling(journalType as any);
   }, [navigation, user?.id, queryClient]);
+
+  // Long-press Handler - Show tooltip when subtask is long-pressed (iMessage-style)
+  const handlePencilIconPress = React.useCallback((subTask: SubTask, stepInfo: { stepNumber: number; stepTitle: string; stepId?: string }) => {
+    // Medium haptic for long-press confirmation (like iMessage)
+    triggerLightHaptic();
+    setTooltipSubtask({ subTask, stepInfo });
+    setTooltipVisible(true);
+  }, []);
+
+  const handleTooltipClose = React.useCallback(() => {
+    setTooltipVisible(false);
+    setTimeout(() => setTooltipSubtask(null), 300); // Clear after animation
+  }, []);
+
+  const handleJournalTypeSelect = React.useCallback((journalType: JournalType) => {
+    if (!tooltipSubtask) return;
+    
+    // Close tooltip
+    setTooltipVisible(false);
+    
+    // Open corresponding modal with subtask info
+    setTimeout(() => {
+      onJournalTypePress(journalType, tooltipSubtask.subTask, tooltipSubtask.stepInfo);
+      setTooltipSubtask(null);
+    }, 200); // Small delay for smooth transition
+  }, [tooltipSubtask, onJournalTypePress]);
 
   // Modal handlers
   const handleReflectionSave = React.useCallback(async (_entry: any) => {
@@ -935,36 +937,24 @@ export default function ActionStepsCard({
                               </View>
                             </TouchableOpacity>
                             <View style={styles.subTaskContent}>
-                              <ThemedText
-                                style={[
-                                  dynamicStyles.subTaskText,
-                                  subTask.completed && styles.completedText,
-                                ]}
+                              {/* Long-press subtask text to show journal type selector (iMessage-style) */}
+                              <TouchableOpacity
+                                style={styles.subTaskTextContainer}
+                                onLongPress={() => {
+                                  handlePencilIconPress(subTask, { stepNumber: index + 1, stepTitle: step.title, stepId: step.id });
+                                }}
+                                delayLongPress={400}
+                                activeOpacity={0.8}
                               >
-                                {subTask.text}
-                              </ThemedText>
-                              {subTask.detected_journal_type && subTask.detected_journal_type !== 'none' && (
-                                <View style={styles.journalTypesContainer}>
-                                  {parseJournalTypes(subTask.detected_journal_type).map((journalType, typeIndex) => (
-                                    <TouchableOpacity
-                                      key={`${journalType}-${typeIndex}`}
-                                      style={[
-                                        styles.journalTypeIndicator,
-                                        typeIndex > 0 && styles.journalTypeIndicatorSpaced,
-                                      ]}
-                                      onPress={() => onJournalTypePress(journalType, subTask, { stepNumber: index + 1, stepTitle: step.title, stepId: step.id })}
-                                      activeOpacity={0.7}
-                                    >
-                                      <MaterialCommunityIcons
-                                        name={getJournalTypeIcon(journalType)}
-                                        size={16}
-                                        color={getJournalTypeColor(journalType)}
-                                        style={styles.journalIcon}
-                                      />
-                                    </TouchableOpacity>
-                                  ))}
-                                </View>
-                              )}
+                                <ThemedText
+                                  style={[
+                                    dynamicStyles.subTaskText,
+                                    subTask.completed && styles.completedText,
+                                  ]}
+                                >
+                                  {subTask.text}
+                                </ThemedText>
+                              </TouchableOpacity>
                             </View>
                           </View>
                         );
@@ -989,12 +979,27 @@ export default function ActionStepsCard({
                         />
                       </View>
                       {examples.map((example: { id: string; text: string }) => (
-                        <ThemedText
+                        <TouchableOpacity
                           key={example.id}
-                          style={dynamicStyles.exampleText}
+                          activeOpacity={0.8}
+                          onLongPress={() => {
+                            // Treat example text as a synthetic subtask for journaling
+                            const syntheticSubTask: SubTask = {
+                              id: example.id,
+                              text: example.text,
+                              completed: false,
+                            };
+                            handlePencilIconPress(syntheticSubTask, {
+                              stepNumber: index + 1,
+                              stepTitle: step.title,
+                              stepId: step.id,
+                            });
+                          }}
                         >
-                          {example.text}
-                        </ThemedText>
+                          <ThemedText style={dynamicStyles.exampleText}>
+                            {example.text}
+                          </ThemedText>
+                        </TouchableOpacity>
                       ))}
                     </View>
                   )}
@@ -1089,6 +1094,14 @@ export default function ActionStepsCard({
           }}
         />
       )}
+
+      {/* Unified Journal Type Selector Tooltip */}
+      <JournalTypeSelectorTooltip
+        visible={tooltipVisible}
+        onSelect={handleJournalTypeSelect}
+        onClose={handleTooltipClose}
+        subtaskText={tooltipSubtask?.subTask?.text}
+      />
     </>
   );
 }
@@ -1212,7 +1225,7 @@ const styles = StyleSheet.create({
   subTaskButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 16,
     width: '100%',
   },
   checkboxContainer: {
@@ -1258,6 +1271,10 @@ const styles = StyleSheet.create({
   },
   journalIcon: {
     // Icon styling handled by MaterialCommunityIcons
+  },
+  subTaskTextContainer: {
+    flex: 1,
+    paddingRight: 12,
   },
   exampleText: {
     color: 'rgba(255,255,255,0.7)',

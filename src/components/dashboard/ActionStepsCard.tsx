@@ -28,7 +28,6 @@ interface SubTask {
   id: string;
   text: string;
   completed: boolean;
-  detected_journal_type?: string;
   is_example?: boolean;
   example_interactive?: boolean;
 }
@@ -192,7 +191,6 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
             id,
             text,
             completed,
-            detected_journal_type,
             is_example,
             example_interactive,
             order_index
@@ -220,7 +218,6 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
           id: subTask.id,
           text: subTask.text || '',
           completed: subTask.completed || false,
-          detected_journal_type: subTask.detected_journal_type,
           is_example: subTask.is_example,
           example_interactive: subTask.example_interactive,
         }));

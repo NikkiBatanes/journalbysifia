@@ -375,7 +375,6 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
             // Handle both string and object formats for subtasks
             const subTaskText = typeof subTask === 'string' ? subTask : subTask.text;
             const subTaskId = typeof subTask === 'object' && subTask.id ? subTask.id : ensureValidUUID(generateUUID());
-            const detectedJournalType = typeof subTask === 'object' ? subTask.detected_journal_type : null;
             const isExample = typeof subTask === 'object' ? subTask.is_example : false;
             const exampleInteractive = typeof subTask === 'object' ? subTask.example_interactive : false;
 
@@ -385,7 +384,6 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
               text: subTaskText,
               completed: typeof subTask === 'object' ? subTask.completed : false,
               order_index: subIndex,
-              detected_journal_type: detectedJournalType,
               is_example: isExample,
               example_interactive: exampleInteractive,
             };
@@ -830,7 +828,6 @@ export async function getPlaybook(
           id: subTask.id,
           text: subTask.text,
           completed: subTask.completed || false,
-          detected_journal_type: subTask.detected_journal_type || undefined,
         }));
 
       return {

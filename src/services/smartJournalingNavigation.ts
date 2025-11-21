@@ -12,7 +12,6 @@ export type SubTask = {
   id: string;
   text: string;
   completed: boolean;
-  detected_journal_type?: string;
   is_example?: boolean;
   example_interactive?: boolean;
 };
