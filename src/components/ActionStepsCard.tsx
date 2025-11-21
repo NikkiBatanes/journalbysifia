@@ -1747,7 +1747,7 @@ const styles = StyleSheet.create({
   },
   tooltipCaret: {
     position: 'absolute',
-    right: 110,
+    right: 130,
     top: -6,
     width: 12,
     height: 12,
