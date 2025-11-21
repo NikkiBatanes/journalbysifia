@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.15)',
   },
@@ -1225,8 +1225,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   exportButton: {
+    position: 'absolute',
+    right: 16,
     padding: 8,
-    marginLeft: 8,
   },
   loadingContainer: {
     flex: 1,

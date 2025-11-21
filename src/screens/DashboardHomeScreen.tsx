@@ -26,6 +26,7 @@ import {
   Modal,
   PanResponder,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
@@ -84,6 +85,7 @@ interface DashboardHomeScreenProps {
 }
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
 
   // Fonts: derive theme font for TextInput usage (placeholders inherit TextInput font)
   const { currentFont } = useTheme();
@@ -101,7 +103,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       justifyContent: 'flex-end',
       alignItems: 'center',
       paddingHorizontal: 20,
-      paddingTop: 60,
+      paddingTop: insets.top,
       paddingBottom: 0,
       backgroundColor: Colors.hopeWhite,
     },

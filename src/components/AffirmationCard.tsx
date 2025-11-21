@@ -53,7 +53,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: BorderRadii.cardLarge,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
+    justifyContent: 'center',
     marginBottom: 12,
     width: '100%',
     minHeight: 80, // Ensure minimum height for visibility

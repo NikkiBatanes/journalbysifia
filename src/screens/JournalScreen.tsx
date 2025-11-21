@@ -2,6 +2,7 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
 import { adjustDayIndexForWeekStart } from '../utils/weekStartUtils';
@@ -27,6 +28,7 @@ export type JournalScreenRef = {
 
 const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, ref) => {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
 
@@ -38,8 +40,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     fontBold: getFontFamily(fontKey, 'bold'),
   }), [fontKey]);
 
-  // Create dynamic styles with theme fonts
-  const styles = useMemo(() => createStyles(fonts), [fonts]);
+  // Create dynamic styles with theme fonts and insets
+  const styles = useMemo(() => createStyles(fonts, insets), [fonts, insets]);
   useScreenStatusBar('dark', Colors.hopeWhite);
   // Layout constants for week header spacing
   const WEEK_HPAD = 16; // use a single consistent padding on both sides
@@ -241,12 +243,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Animation state
   const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
   const weekOpacity = scrollY.interpolate({
-    inputRange: [0, 40],
+    inputRange: [0, 60],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
   const weekHeight = scrollY.interpolate({
-    inputRange: [0, 40],
+    inputRange: [0, 60],
     outputRange: [44, 0],
     extrapolate: 'clamp',
   });
@@ -711,7 +713,7 @@ const createStyles = (fonts: {
   fontMedium: string;
   fontSemiBold: string;
   fontBold: string;
-}) => StyleSheet.create({
+}, insets: { top: number; bottom: number; left: number; right: number }) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
@@ -766,7 +768,7 @@ const createStyles = (fonts: {
   },
   header: {
     backgroundColor: Colors.hopeWhite,
-    paddingTop: 60,
+    paddingTop: insets.top,
     paddingBottom: 12,
   },
   headerContent: {
