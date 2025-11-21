@@ -10,12 +10,20 @@ import { Logger } from './ProductionLogger';
 
 export interface DevotionalPDFData {
   title: string;
+  /** Overall devotional title (e.g. "Finding Strength in God") */
   duration: string;
+  /** Optional day title (e.g. "When You Feel Overwhelmed") */
+  dayTitle?: string;
+  /** Optional label like "Day 2 of 5" */
+  dayLabel?: string;
   bibleVerse?: {
     text: string;
     reference: string;
+    version?: string;
   };
   reflection?: string;
+  /** Reflection questions for the day, rendered as 'Questions to Ponder' */
+  questionsToPonder?: string[];
   prayer?: string;
   actionSteps?: string[];
   createdAt?: string;
@@ -57,15 +65,52 @@ class PDFExportService {
    * Generate HTML template for devotional PDF
    */
   private generateDevotionalHTML(data: DevotionalPDFData): string {
-    const { title, duration, bibleVerse, reflection, prayer, actionSteps, createdAt } = data;
+    const { title, duration, dayTitle, dayLabel, bibleVerse, reflection, questionsToPonder, prayer, actionSteps, createdAt } = data;
     
     // Escape all text content to prevent HTML injection/breaking
     const safeTitle = this.escapeHtml(title);
     const safeDuration = this.escapeHtml(duration);
+
+    // Determine if we should show Day X of Y block (skip for 1-day devotionals)
+    const shouldShowDaySection = !!dayLabel && !/of\s*1\b/i.test(dayLabel);
+
+    const safeDayTitle = this.escapeHtml(dayTitle || '');
+    const safeDayLabel = this.escapeHtml(dayLabel || '');
     const safeReflection = this.escapeHtml(reflection || '');
-    const safePrayer = this.escapeHtml(prayer || '');
+    const safeQuestions = (questionsToPonder || [])
+      .map(q => q?.trim())
+      .filter(Boolean)
+      .map(q => this.escapeHtml(q as string));
+
+    // Format prayer in three clear parts:
+    // Heavenly Father.
+    //
+    // [body]
+    //
+    // In Jesus name, amen
+    let formattedPrayer = (prayer || '').trim();
+
+    if (formattedPrayer) {
+      // Collapse excessive whitespace
+      formattedPrayer = formattedPrayer.replace(/\s+/g, ' ');
+
+      // Normalize opening
+      formattedPrayer = formattedPrayer.replace(
+        /^Heavenly Father[.,]?\s*/i,
+        'Heavenly Father.\n\n',
+      );
+
+      // Normalize closing
+      formattedPrayer = formattedPrayer.replace(
+        /\s*In Jesus[’']?\s*name[,]?\s*amen\.?\s*$/i,
+        '\n\nIn Jesus\' name, amen',
+      );
+    }
+
+    const safePrayer = this.escapeHtml(formattedPrayer);
     const safeVerseText = this.escapeHtml(bibleVerse?.text || '');
     const safeVerseRef = this.escapeHtml(bibleVerse?.reference || '');
+    const safeVerseVersion = this.escapeHtml((bibleVerse as any)?.version || '');
 
     return `
       <!DOCTYPE html>
@@ -74,7 +119,7 @@ class PDFExportService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Arvo:ital,wght@0,400;0,700;1,400;1,700&display=swap');
             
             * {
               margin: 0;
@@ -83,107 +128,128 @@ class PDFExportService {
             }
             
             body {
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+              font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
               font-size: 15px;
               line-height: 1.7;
               color: #1a1a1a;
-              padding: 50px 40px;
+              padding: 40px 40px 50px 40px;
               background: #ffffff;
             }
-            
+
+            .page-meta {
+              text-align: right;
+              font-size: 12px;
+              color: #274673;
+              margin-bottom: 8px;
+              font-weight: 600;
+            }
+
             .header {
               text-align: center;
-              margin-bottom: 40px;
-              padding-bottom: 30px;
-              border-bottom: 3px solid #274673;
+              margin-bottom: 28px;
+              padding: 18px 20px 20px 20px;
               background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-              padding: 30px 20px;
               border-radius: 12px;
             }
             
             .logo-container {
-              margin-bottom: 20px;
+              margin-bottom: 12px;
             }
             
-            .logo {
-              font-size: 32px;
-              font-weight: 700;
-              color: #274673;
-              letter-spacing: -0.5px;
-              margin-bottom: 8px;
+            .logo-image {
+              max-width: 96px;
+              height: auto;
+              margin-bottom: 10px;
             }
             
             .tagline {
               font-size: 12px;
               color: #64748b;
               font-weight: 500;
-              text-transform: uppercase;
-              letter-spacing: 1px;
+              font-family: 'Arvo', 'Lexend', serif;
             }
             
             h1 {
-              font-size: 32px;
-              color: #0f172a;
-              margin: 20px 0 12px 0;
+              font-size: 26px;
+              color: #274673;
+              margin: 14px 0 4px 0;
               font-weight: 700;
               line-height: 1.3;
             }
-            
-            .duration {
-              display: inline-block;
-              background: #274673;
-              color: white;
-              padding: 8px 20px;
-              border-radius: 20px;
-              font-size: 13px;
-              font-weight: 600;
-              margin-top: 10px;
+
+            .day-label {
+              font-size: 14px;
+              font-weight: 700;
+              color: #FF6B6B; /* alert coral */
+              margin-bottom: 4px;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+            }
+
+            .day-title {
+              font-size: 21px;
+              font-weight: 700;
+              color: #274673;
+              margin-bottom: 10px;
+            }
+
+            .day-divider {
+              height: 1px;
+              background: #e2e8f0;
+              border-radius: 999px;
+              margin-top: 2px;
+              margin-bottom: 14px;
             }
             
-            .date {
-              font-size: 12px;
-              color: #94a3b8;
-              margin-top: 12px;
-              font-weight: 500;
+            .duration {
+              margin-top: 4px;
+              font-size: 14px;
+              font-weight: 600;
+              color: #274673;
             }
             
             .section {
-              margin-bottom: 35px;
-              page-break-inside: avoid;
+              margin-bottom: 18px;
             }
             
             .section-title {
-              font-size: 20px;
-              font-weight: 700;
+              font-size: 16px;
+              font-weight: 600;
               color: #274673;
-              margin-bottom: 16px;
-              padding-bottom: 10px;
-              border-bottom: 2px solid #e2e8f0;
-              display: flex;
-              align-items: center;
+              margin-bottom: 8px;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
             }
-            
-            .section-title:before {
-              content: '';
-              width: 4px;
-              height: 24px;
-              background: #274673;
-              margin-right: 12px;
-              border-radius: 2px;
+
+            .scripture-title {
+              /* normal section title, no bar here */
             }
             
             .verse-box {
-              background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 100%);
-              border-left: 5px solid #274673;
-              padding: 24px;
-              margin: 20px 0;
+              background: #ffffff;
+              padding: 18px 20px;
+              margin: 10px 0 14px 0;
               border-radius: 8px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+              box-shadow: none;
+              display: flex;
+              align-items: stretch;
+              gap: 16px;
+            }
+
+            .verse-bar {
+              width: 4px;
+              border-radius: 999px;
+              background: #FF6B6B; /* alert coral */
+            }
+
+            .verse-content {
+              flex: 1;
             }
             
             .verse-text {
-              font-size: 17px;
+              font-size: 13px;
               font-style: italic;
+              font-family: 'Arvo', 'Lexend', serif;
               color: #1e293b;
               margin-bottom: 14px;
               line-height: 1.9;
@@ -191,7 +257,7 @@ class PDFExportService {
             }
             
             .verse-reference {
-              font-size: 14px;
+              font-size: 12px;
               font-weight: 700;
               color: #274673;
               text-align: right;
@@ -199,11 +265,50 @@ class PDFExportService {
             }
             
             .content-text {
-              font-size: 15px;
+              font-size: 11px;
               color: #334155;
               line-height: 1.9;
               margin-bottom: 16px;
               text-align: justify;
+            }
+
+            .prayer-text {
+              font-family: 'Arvo', 'Lexend', serif;
+              font-style: italic;
+            }
+
+            .questions-list {
+              list-style: none;
+              padding-left: 0;
+              margin-top: 4px;
+            }
+
+            .questions-list li {
+              margin-bottom: 10px;
+              display: flex;
+              align-items: flex-start;
+              gap: 10px;
+            }
+
+            .question-badge {
+              width: 20px;
+              height: 20px;
+              border-radius: 999px;
+              background: #FF6B6B; /* alert coral */
+              color: #ffffff;
+              font-size: 11px;
+              font-weight: 700;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+
+            .question-text {
+              font-size: 11px;
+              color: #334155;
+              line-height: 1.8;
+              flex: 1;
             }
             
             .action-steps {
@@ -256,28 +361,40 @@ class PDFExportService {
             
             .footer-text {
               font-size: 12px;
-              color: #94a3b8;
+              color: #9ca3af; /* gray */
               font-weight: 500;
             }
           </style>
         </head>
         <body>
+          ${createdAt ? `<div class="page-meta">${new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` : ''}
+
           <div class="header">
             <div class="logo-container">
-              <div class="logo">siFia</div>
-              <div class="tagline">Your Faith Journey Companion</div>
+              <img src="https://sifia.app/images/sifia-logo-blue.png" class="logo-image" />
             </div>
             <h1>${safeTitle}</h1>
-            <div class="duration">${safeDuration}</div>
-            ${createdAt ? `<div class="date">Created on ${new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` : ''}
+            <div class="duration">A ${safeDuration} Series</div>
           </div>
+
+          ${shouldShowDaySection && (safeDayLabel || safeDayTitle) ? `
+            <div class="section" style="margin-top: 4px;">
+              ${safeDayLabel ? `<div class="day-label">${safeDayLabel}</div>` : ''}
+              ${safeDayTitle ? `<div class="day-title">${safeDayTitle}</div>` : ''}
+              <div class="day-divider"></div>
+            </div>
+          ` : ''}
 
           ${bibleVerse ? `
             <div class="section">
-              <div class="section-title">Today's Verse</div>
+              <div class="day-divider"></div>
+              <div class="section-title scripture-title">Today's Scripture</div>
               <div class="verse-box">
-                <div class="verse-text">"${safeVerseText}"</div>
-                <div class="verse-reference">— ${safeVerseRef}</div>
+                <div class="verse-bar"></div>
+                <div class="verse-content">
+                  <div class="verse-text">"${safeVerseText}"</div>
+                  <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
+                </div>
               </div>
             </div>
           ` : ''}
@@ -289,10 +406,26 @@ class PDFExportService {
             </div>
           ` : ''}
 
+          ${safeQuestions.length ? `
+            <div class="section">
+              <div class="section-title">Questions to Ponder</div>
+              <ul class="questions-list">
+                ${safeQuestions
+                  .map((q, index) => `
+                    <li>
+                      <span class="question-badge">${index + 1}</span>
+                      <span class="question-text">${q}</span>
+                    </li>
+                  `)
+                  .join('')}
+              </ul>
+            </div>
+          ` : ''}
+
           ${safePrayer ? `
             <div class="section">
               <div class="section-title">Prayer</div>
-              <div class="content-text">${safePrayer}</div>
+              <div class="content-text prayer-text">${safePrayer}</div>
             </div>
           ` : ''}
 
@@ -306,8 +439,8 @@ class PDFExportService {
           ` : ''}
 
           <div class="footer">
-            <div class="footer-logo">siFia</div>
-            <div class="footer-text">Your Faith Journey Companion</div>
+            <div class="footer-text">Where technology serves the heart of discipleship.</div>
+            <div class="footer-logo">© siFia</div>
           </div>
         </body>
       </html>
@@ -542,7 +675,7 @@ class PDFExportService {
             
             .footer-text {
               font-size: 12px;
-              color: #94a3b8;
+              color: #9ca3af; /* gray */
               font-weight: 500;
             }
           </style>
@@ -551,7 +684,7 @@ class PDFExportService {
           <div class="header">
             <div class="logo-container">
               <div class="logo">siFia</div>
-              <div class="tagline">Your Faith Journey Companion</div>
+              <div class="tagline">Where technology serves the heart of discipleship.</div>
             </div>
             <h1>${title}</h1>
             ${createdAt ? `<div class="date">Created on ${new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` : ''}

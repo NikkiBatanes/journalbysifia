@@ -808,8 +808,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   pdfExportService.exportDevotionalPDF({
                     title: devotional.title,
                     duration: `${devotional.totalDays}-Day Devotional`,
+                    dayTitle: currentDay.title,
+                    dayLabel: `Day ${currentDayIndex + 1} of ${devotional.totalDays}`,
                     bibleVerse: currentDay.scripture,
                     reflection: currentDay.reflection,
+                    questionsToPonder: currentDay.reflectionQuestions?.map(q => q.text).filter(Boolean),
                     prayer: currentDay.prayer,
                     createdAt: devotional.createdAt,
                   });
