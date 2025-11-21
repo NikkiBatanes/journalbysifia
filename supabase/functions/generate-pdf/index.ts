@@ -68,41 +68,53 @@ serve(async (req) => {
 });
 
 /**
- * Generate PDF from HTML using PDFShift API
- * Reliable cloud-based PDF generation service
+ * Generate PDF from HTML using free cloud services
+ * Uses services that don't require API keys
  */
 async function generatePDFFromHTML(html: string): Promise<Uint8Array> {
-  // Try multiple PDF services in order of preference
-  const services = [
-    {
-      name: 'api2pdf',
-      url: 'https://v2.api2pdf.com/chrome/html',
+  // Use PDFCrowd free API (no key needed for basic usage)
+  try {
+    console.log('[PDF] Trying PDFCrowd...');
+    
+    const response = await fetch('https://api.pdfcrowd.com/convert/24.04/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        src: html,
+        width: '210mm',
+        height: '297mm',
+        margin_top: '20px',
+        margin_right: '20px',
+        margin_bottom: '20px',
+        margin_left: '20px',
+        print_backgrounds: 'true',
+      }).toString(),
+    });
+
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      const result = new Uint8Array(arrayBuffer);
+      console.log('[PDF] PDFCrowd succeeded, buffer length:', result.length);
+      return result;
+    }
+    
+    console.error('[PDF] PDFCrowd failed:', response.status, await response.text());
+  } catch (error) {
+    console.error('[PDF] PDFCrowd exception:', error);
+  }
+
+  // Fallback: Try html-pdf-node API
+  try {
+    console.log('[PDF] Trying html-pdf-node...');
+    
+    const response = await fetch('https://yakpdf.p.rapidapi.com/pdf', {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: {
-        html,
-        options: {
-          printBackground: true,
-          format: 'A4',
-          margin: {
-            top: '20px',
-            right: '20px',
-            bottom: '20px',
-            left: '20px',
-          },
-        },
-      },
-    },
-    {
-      name: 'html2pdf.app',
-      url: 'https://html2pdf.app/api/v1/generate',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: {
-        html,
-        engine: 'chrome',
+      body: JSON.stringify({
         pdf: {
           format: 'A4',
           printBackground: true,
@@ -113,42 +125,23 @@ async function generatePDFFromHTML(html: string): Promise<Uint8Array> {
             left: '20px',
           },
         },
-      },
-    },
-  ];
+        source: {
+          html,
+        },
+      }),
+    });
 
-  let lastError: Error | null = null;
-
-  for (const service of services) {
-    try {
-      console.log(`[PDF] Trying ${service.name}...`);
-      
-      const response = await fetch(service.url, {
-        method: 'POST',
-        headers: service.headers,
-        body: JSON.stringify(service.body),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[PDF] ${service.name} failed:`, response.status, errorText);
-        lastError = new Error(`${service.name} error: ${response.status} - ${errorText}`);
-        continue;
-      }
-
+    if (response.ok) {
       const arrayBuffer = await response.arrayBuffer();
       const result = new Uint8Array(arrayBuffer);
-      
-      console.log(`[PDF] ${service.name} succeeded, buffer length:`, result.length);
-      
+      console.log('[PDF] html-pdf-node succeeded, buffer length:', result.length);
       return result;
-    } catch (error) {
-      console.error(`[PDF] ${service.name} exception:`, error);
-      lastError = error as Error;
-      continue;
     }
+    
+    console.error('[PDF] html-pdf-node failed:', response.status, await response.text());
+  } catch (error) {
+    console.error('[PDF] html-pdf-node exception:', error);
   }
 
-  // If all services failed, throw the last error
-  throw lastError || new Error('All PDF generation services failed');
+  throw new Error('All PDF generation services failed. Please try again later.');
 }
