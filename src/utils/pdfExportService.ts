@@ -4,11 +4,9 @@
  */
 
 import { Platform, Alert } from 'react-native';
-// Use require to ensure the native module loads correctly at runtime
-
-const RNHTMLtoPDF: any = require('react-native-html-to-pdf');
 import Share from 'react-native-share';
 import { Logger } from './ProductionLogger';
+import { supabase } from '../services/supabaseClient';
 
 export interface DevotionalPDFData {
   title: string;
@@ -445,45 +443,43 @@ class PDFExportService {
   }
 
   /**
-   * Export devotional as PDF
+   * Export devotional as PDF using server-side generation
+   * More reliable than native modules, works on all platforms
    */
   async exportDevotionalPDF(data: DevotionalPDFData): Promise<void> {
     try {
-      // Guard against missing native module
-      if (!RNHTMLtoPDF || typeof (RNHTMLtoPDF as any).convert !== 'function') {
-        Logger.error('[PDFExportService] RNHTMLtoPDF module is not available', new Error('RNHTMLtoPDF undefined'), {
-          component: 'pdfExportService',
-        });
-        Alert.alert(
-          'Export Unavailable',
-          'PDF export is not available in this build of siFia. Please update the app or contact support.'
-        );
-        return;
-      }
-
       const html = this.generateDevotionalHTML(data);
-      const fileName = `siFia_Devotional_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
+      const fileName = `siFia_Devotional_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
 
-      const options = {
-        html,
-        fileName,
-        directory: Platform.OS === 'ios' ? 'Documents' : 'Downloads',
-      };
+      // Call Supabase Edge Function to generate PDF
+      const { data: pdfResponse, error } = await supabase.functions.invoke('generate-pdf', {
+        body: {
+          html,
+          filename: fileName,
+        },
+      });
 
-      const file = await (RNHTMLtoPDF as any).convert(options);
-
-      if (file.filePath) {
-        await Share.open({
-          url: Platform.OS === 'ios' ? `file://${file.filePath}` : `file://${file.filePath}`,
-          type: 'application/pdf',
-          title: 'Share Devotional',
-        });
-
-        Logger.debug('[PDFExportService] Devotional PDF exported successfully', {
-          component: 'pdfExportService',
-          fileName,
-        });
+      if (error) {
+        throw new Error(`PDF generation failed: ${error.message}`);
       }
+
+      // Convert ArrayBuffer to base64 for sharing
+      const uint8Array = new Uint8Array(pdfResponse);
+      const binaryString = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+      const base64Data = `data:application/pdf;base64,${btoa(binaryString)}`;
+
+      // Share the PDF using base64 data URL
+      await Share.open({
+        url: base64Data,
+        type: 'application/pdf',
+        title: 'Share Devotional',
+        filename: fileName,
+      });
+
+      Logger.debug('[PDFExportService] Devotional PDF exported successfully', {
+        component: 'pdfExportService',
+        fileName,
+      });
     } catch (error) {
       Logger.error('[PDFExportService] Failed to export devotional PDF', error as Error, {
         component: 'pdfExportService',
@@ -493,45 +489,42 @@ class PDFExportService {
   }
 
   /**
-   * Export playbook as PDF
+   * Export playbook as PDF using server-side generation
    */
   async exportPlaybookPDF(data: PlaybookPDFData): Promise<void> {
     try {
-      // Guard against missing native module
-      if (!RNHTMLtoPDF || typeof (RNHTMLtoPDF as any).convert !== 'function') {
-        Logger.error('[PDFExportService] RNHTMLtoPDF module is not available', new Error('RNHTMLtoPDF undefined'), {
-          component: 'pdfExportService',
-        });
-        Alert.alert(
-          'Export Unavailable',
-          'PDF export is not available in this build of siFia. Please update the app or contact support.'
-        );
-        return;
-      }
-
       const html = this.generatePlaybookHTML(data);
-      const fileName = `siFia_Playbook_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
+      const fileName = `siFia_Playbook_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
 
-      const options = {
-        html,
-        fileName,
-        directory: Platform.OS === 'ios' ? 'Documents' : 'Downloads',
-      };
+      // Call Supabase Edge Function to generate PDF
+      const { data: pdfResponse, error } = await supabase.functions.invoke('generate-pdf', {
+        body: {
+          html,
+          filename: fileName,
+        },
+      });
 
-      const file = await RNHTMLtoPDF.convert(options);
-
-      if (file.filePath) {
-        await Share.open({
-          url: Platform.OS === 'ios' ? `file://${file.filePath}` : `file://${file.filePath}`,
-          type: 'application/pdf',
-          title: 'Share Playbook',
-        });
-
-        Logger.debug('[PDFExportService] Playbook PDF exported successfully', {
-          component: 'pdfExportService',
-          fileName,
-        });
+      if (error) {
+        throw new Error(`PDF generation failed: ${error.message}`);
       }
+
+      // Convert ArrayBuffer to base64 for sharing
+      const uint8Array = new Uint8Array(pdfResponse);
+      const binaryString = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+      const base64Data = `data:application/pdf;base64,${btoa(binaryString)}`;
+
+      // Share the PDF
+      await Share.open({
+        url: base64Data,
+        type: 'application/pdf',
+        title: 'Share Playbook',
+        filename: fileName,
+      });
+
+      Logger.debug('[PDFExportService] Playbook PDF exported successfully', {
+        component: 'pdfExportService',
+        fileName,
+      });
     } catch (error) {
       Logger.error('[PDFExportService] Failed to export playbook PDF', error as Error, {
         component: 'pdfExportService',
