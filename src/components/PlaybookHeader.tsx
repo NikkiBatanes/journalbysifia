@@ -166,87 +166,88 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
               styles.progressRow,
               alignTasksLeft && styles.progressRowLeftAligned,
             ]}>
-              <View style={[styles.progressBarBg, dynamicStyles.progressBarBg]}>
-                <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
-              </View>
-              <ThemedText weight="semiBold" style={[styles.progressText, dynamicStyles.progressText]}>
-                {completedTasks}/{totalTasks} Steps
-              </ThemedText>
-
-              {showToggle && onToggleView && (
-                <View style={styles.toggleRow}>
-                  <TouchableOpacity
-                    style={styles.toggleBtn}
-                    onPress={() => onToggleView('stack')}
-                  >
-                    <View style={[
-                      styles.iconContainer,
-                      viewMode === 'stack' && styles.iconContainerActive,
-                    ]}>
-                      <Ionicons
-                        name="albums"
-                        size={20}
-                        color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey}
-                        style={styles.rotatedIcon}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                  <View style={styles.toggleDivider} />
-                  <TouchableOpacity
-                    style={styles.toggleBtn}
-                    onPress={() => onToggleView('document')}
-                  >
-                    <View style={[
-                      styles.iconContainer,
-                      viewMode === 'document' && styles.iconContainerActive,
-                    ]}>
-                      <MaterialCommunityIcons
-                        name="view-agenda"
-                        size={20}
-                        color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                  {false && onExportPress && (
-                    <>
-                      <View style={styles.toggleDivider} />
-                      <TouchableOpacity
-                        style={styles.toggleBtn}
-                        onPress={() => {
-                          try { triggerLightHaptic(); } catch {}
-                          onExportPress();
-                        }}
-                      >
-                        <View style={styles.iconContainer}>
-                          <Ionicons
-                            name="share-outline"
-                            size={20}
-                            color={Colors.hopeWhite}
-                          />
-                        </View>
-                      </TouchableOpacity>
-                    </>
-                  )}
+              <View style={styles.progressLeft}>
+                <View style={[styles.progressBarBg, dynamicStyles.progressBarBg]}>
+                  <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
                 </View>
+                <ThemedText weight="semiBold" style={[styles.progressText, dynamicStyles.progressText]}>
+                  {completedTasks}/{totalTasks} Steps
+                </ThemedText>
+
+                {showToggle && onToggleView && (
+                  <View style={styles.toggleRow}>
+                    <TouchableOpacity
+                      style={styles.toggleBtn}
+                      onPress={() => onToggleView('stack')}
+                    >
+                      <View style={[
+                        styles.iconContainer,
+                        viewMode === 'stack' && styles.iconContainerActive,
+                      ]}>
+                        <Ionicons
+                          name="albums"
+                          size={20}
+                          color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey}
+                          style={styles.rotatedIcon}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                    <View style={styles.toggleDivider} />
+                    <TouchableOpacity
+                      style={styles.toggleBtn}
+                      onPress={() => onToggleView('document')}
+                    >
+                      <View style={[
+                        styles.iconContainer,
+                        viewMode === 'document' && styles.iconContainerActive,
+                      ]}>
+                        <MaterialCommunityIcons
+                          name="view-agenda"
+                          size={20}
+                          color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {onExportPress && (
+                <TouchableOpacity
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    onExportPress();
+                  }}
+                  activeOpacity={0.8}
+                  style={styles.exportIconButton}
+                >
+                  <Ionicons
+                    name="share-outline"
+                    size={18}
+                    color={Colors.hopeWhite}
+                  />
+                </TouchableOpacity>
               )}
             </View>
           </View>
 
-          {showProfileImage && (
+          {(showProfileImage) && (
             <View style={styles.headerRight}>
-              <TouchableOpacity onPress={onProfilePress} activeOpacity={0.7}>
-                {profileImageUri ? (
-                  <Image
-                    source={{ uri: profileImageUri }}
-                    style={styles.profileImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.profileImage, styles.defaultProfileImage]}>
-                    <Ionicons name="person" size={20} color="#fff" />
-                  </View>
-                )}
-              </TouchableOpacity>
+              {showProfileImage && (
+                <TouchableOpacity onPress={onProfilePress} activeOpacity={0.7}>
+                  {profileImageUri ? (
+                    <Image
+                      source={{ uri: profileImageUri }}
+                      style={styles.profileImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.profileImage, styles.defaultProfileImage]}>
+                      <Ionicons name="person" size={20} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -295,6 +296,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
+  exportIconButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -333,6 +338,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     width: '100%',
     justifyContent: 'space-between',
+  },
+  progressLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   progressRowLeftAligned: {
     justifyContent: 'flex-start',

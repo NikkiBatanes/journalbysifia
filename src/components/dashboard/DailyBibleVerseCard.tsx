@@ -11,6 +11,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
+import { Typography } from '../../theme/typography';
+import { formatBibleVerse } from '../../utils/textFormatting';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -386,7 +388,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                 <View style={styles.leftBar} />
                 <View style={styles.verseColumn}>
                   <ThemedText weight="medium" style={styles.verseText}>
-                    {verse?.verse}
+                    {verse ? formatBibleVerse(verse.verse) : ''}
                   </ThemedText>
                   <View style={styles.referenceRow}>
                     <ThemedText weight="semiBold" style={styles.referenceText}>
@@ -416,7 +418,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                 <View style={styles.leftBar} />
                 <View style={styles.verseColumn}>
                   <ThemedText weight="medium" style={styles.verseText}>
-                    {verse?.verse}
+                    {verse ? formatBibleVerse(verse.verse) : ''}
                   </ThemedText>
                   <View style={styles.referenceRow}>
                     <ThemedText weight="semiBold" style={styles.referenceText}>

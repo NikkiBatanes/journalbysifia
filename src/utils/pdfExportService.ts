@@ -3,7 +3,7 @@
  * Generates PDF documents for devotionals and playbooks with consistent layout
  */
 
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import Share from 'react-native-share';
 import { generatePDF } from 'react-native-html-to-pdf';
 import { Logger } from './ProductionLogger';
@@ -32,14 +32,17 @@ export interface DevotionalPDFData {
 export interface PlaybookPDFData {
   title: string;
   truthInLove?: string;
+  truthInLoveSummary?: string;
   bibleVerse?: {
     text: string;
     reference: string;
+    version?: string;
   };
   actionSteps?: Array<{
     title: string;
     description: string;
-    subtasks?: string[];
+    subtasks?: Array<string | { text?: string; title?: string }>;
+    examples?: string[];
   }>;
   affirmations?: string[];
   directChallenge?: string;
@@ -47,6 +50,18 @@ export interface PlaybookPDFData {
 }
 
 class PDFExportService {
+  /**
+   * Clean markdown formatting from text
+   */
+  private cleanMarkdown(text: string): string {
+    if (!text) return '';
+    return text
+      .replace(/\*\*|__/g, '') // Remove bold
+      .replace(/\*|_/g, '')     // Remove italic
+      .replace(/~~/g, '')        // Remove strikethrough
+      .trim();
+  }
+
   /**
    * Escape HTML special characters to prevent broken HTML
    */
@@ -108,9 +123,20 @@ class PDFExportService {
     }
 
     const safePrayer = this.escapeHtml(formattedPrayer);
-    const safeVerseText = this.escapeHtml(bibleVerse?.text || '');
-    const safeVerseRef = this.escapeHtml(bibleVerse?.reference || '');
-    const safeVerseVersion = this.escapeHtml((bibleVerse as any)?.version || '');
+
+    const rawVerseText = bibleVerse?.text || '';
+    const rawVerseRef = bibleVerse?.reference || '';
+    const rawVerseVersion: string = (bibleVerse as any)?.version || '';
+
+    const referenceIncludesVersion = rawVerseVersion
+      ? rawVerseRef.toUpperCase().includes(rawVerseVersion.toUpperCase())
+      : false;
+
+    const safeVerseText = this.escapeHtml(rawVerseText);
+    const safeVerseRef = this.escapeHtml(rawVerseRef);
+    const safeVerseVersion = !rawVerseVersion || referenceIncludesVersion
+      ? ''
+      : this.escapeHtml(rawVerseVersion);
 
     return `
       <!DOCTYPE html>
@@ -216,9 +242,25 @@ class PDFExportService {
               font-size: 16px;
               font-weight: 600;
               color: #274673;
-              margin-bottom: 8px;
+              margin-bottom: 4px;
               text-transform: uppercase;
               letter-spacing: 0.04em;
+            }
+
+            .truth-summary {
+              font-size: 15px;
+              font-weight: 600; /* semi-bold */
+              color: #274673; /* anchor blue */
+              line-height: 1.6;
+              margin-bottom: 10px;
+            }
+
+            .day-divider {
+              height: 1px;
+              background: #e2e8f0;
+              border-radius: 999px;
+              margin-top: 2px;
+              margin-bottom: 14px;
             }
 
             .scripture-title {
@@ -361,7 +403,7 @@ class PDFExportService {
             
             .footer-text {
               font-size: 12px;
-              color: #9ca3af; /* gray */
+              color: #6b7280;
               font-weight: 500;
             }
           </style>
@@ -392,7 +434,7 @@ class PDFExportService {
               <div class="verse-box">
                 <div class="verse-bar"></div>
                 <div class="verse-content">
-                  <div class="verse-text">"${safeVerseText}"</div>
+                  <div class="verse-text">${safeVerseText}</div>
                   <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
                 </div>
               </div>
@@ -451,7 +493,82 @@ class PDFExportService {
    * Generate HTML template for playbook PDF
    */
   private generatePlaybookHTML(data: PlaybookPDFData): string {
-    const { title, truthInLove, bibleVerse, actionSteps, affirmations, directChallenge, createdAt } = data;
+    const { title, truthInLove, truthInLoveSummary, bibleVerse, actionSteps, affirmations, directChallenge, createdAt } = data;
+
+    const safeTitle = this.escapeHtml(this.cleanMarkdown(title));
+    const safeTruthInLove = this.escapeHtml(this.cleanMarkdown(truthInLove || ''));
+    const safeTruthInLoveSummary = this.escapeHtml(this.cleanMarkdown(truthInLoveSummary || ''));
+
+    const rawPlaybookVerseText = bibleVerse?.text || '';
+    const rawPlaybookVerseRef = bibleVerse?.reference || '';
+    const rawPlaybookVerseVersion: string = (bibleVerse as any)?.version || '';
+
+    const playbookRefIncludesVersion = rawPlaybookVerseVersion
+      ? rawPlaybookVerseRef.toUpperCase().includes(rawPlaybookVerseVersion.toUpperCase())
+      : false;
+
+    const safeVerseText = this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseText));
+    const safeVerseRef = this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseRef));
+    const safeVerseVersion = !rawPlaybookVerseVersion || playbookRefIncludesVersion
+      ? ''
+      : this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseVersion));
+
+    const safeActionSteps = (actionSteps || []).map(step => {
+      const processedSubtasks = (step.subtasks || []).map(sub => {
+        const text = typeof sub === 'string' ? sub : (sub.text || sub.title || '');
+        return {
+          text: this.escapeHtml(this.cleanMarkdown(text)),
+        };
+      });
+
+      const processedExamples = (step.examples || []).map(ex =>
+        this.escapeHtml(this.cleanMarkdown(ex || '')),
+      );
+      
+      return {
+        title: this.escapeHtml(this.cleanMarkdown(step.title || '')),
+        description: this.escapeHtml(this.cleanMarkdown(step.description || '')),
+        subtasks: processedSubtasks,
+        examples: processedExamples,
+      };
+    });
+
+    const safeAffirmations = (affirmations || [])
+      .map(a => a?.trim())
+      .filter(Boolean)
+      .map(a => this.escapeHtml(this.cleanMarkdown(a as string)));
+
+    // Normalize challenge labels: replace "Spiritual:" / "Tactical:" with numbered labels 1. / 2.
+    let normalizedChallenge = this.cleanMarkdown((directChallenge || '').trim());
+    if (normalizedChallenge) {
+      // Handle variations: "Spiritual:", "Spiritual", "**Spiritual:**", etc.
+      normalizedChallenge = normalizedChallenge
+        .replace(/Spiritual\s*:?/gi, '1.')
+        .replace(/Tactical\s*:?/gi, '2.');
+    }
+
+    // Try to extract up to two numbered challenge items: "1. ... 2. ..."
+    const challengeItems: string[] = [];
+    if (normalizedChallenge) {
+      // 1st item: capture everything after "1." up to (but not including) "2." or end of string
+      const firstMatch = normalizedChallenge.match(/1\.\s*([\s\S]*?)(?=2\.\s|$)/);
+      if (firstMatch && firstMatch[1]) {
+        challengeItems.push(firstMatch[1].trim());
+      }
+
+      // 2nd item: capture everything after "2." to the end
+      const secondMatch = normalizedChallenge.match(/2\.\s*([\s\S]*)$/);
+      if (secondMatch && secondMatch[1]) {
+        challengeItems.push(secondMatch[1].trim());
+      }
+    }
+
+    const safeChallengeItems = challengeItems.map(item => {
+      // Remove deadline text like "(48-72 hour deadline):"
+      const cleaned = item.replace(/\([^)]*deadline[^)]*\)\s*:?/gi, '').trim();
+      return this.escapeHtml(cleaned);
+    });
+    const safeDirectChallenge = this.escapeHtml(normalizedChallenge);
 
     return `
       <!DOCTYPE html>
@@ -460,7 +577,7 @@ class PDFExportService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Arvo:ital,wght@0,400;0,700;1,400;1,700&display=swap');
             
             * {
               margin: 0;
@@ -469,96 +586,101 @@ class PDFExportService {
             }
             
             body {
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+              font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
               font-size: 15px;
               line-height: 1.7;
               color: #1a1a1a;
-              padding: 50px 40px;
+              padding: 40px 40px 50px 40px;
               background: #ffffff;
             }
-            
+
+            .page-meta {
+              text-align: right;
+              font-size: 12px;
+              color: #274673;
+              margin-bottom: 8px;
+              font-weight: 600;
+            }
+
             .header {
               text-align: center;
-              margin-bottom: 40px;
-              padding-bottom: 30px;
-              border-bottom: 3px solid #274673;
+              margin-bottom: 28px;
+              padding: 18px 20px 20px 20px;
               background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-              padding: 30px 20px;
               border-radius: 12px;
             }
             
             .logo-container {
-              margin-bottom: 20px;
+              margin-bottom: 12px;
             }
             
-            .logo {
-              font-size: 32px;
-              font-weight: 700;
-              color: #274673;
-              letter-spacing: -0.5px;
-              margin-bottom: 8px;
-            }
-            
-            .tagline {
-              font-size: 12px;
-              color: #64748b;
-              font-weight: 500;
-              text-transform: uppercase;
-              letter-spacing: 1px;
+            .logo-image {
+              max-width: 96px;
+              height: auto;
+              margin-bottom: 10px;
             }
             
             h1 {
-              font-size: 32px;
-              color: #0f172a;
-              margin: 20px 0 12px 0;
+              font-size: 26px;
+              color: #274673;
+              margin: 14px 0 4px 0;
               font-weight: 700;
               line-height: 1.3;
             }
-            
+
             .date {
               font-size: 12px;
               color: #94a3b8;
-              margin-top: 12px;
+              margin-top: 8px;
               font-weight: 500;
             }
             
             .section {
-              margin-bottom: 35px;
-              page-break-inside: avoid;
+              margin-bottom: 18px;
             }
             
             .section-title {
-              font-size: 20px;
-              font-weight: 700;
+              font-size: 16px;
+              font-weight: 600;
               color: #274673;
-              margin-bottom: 16px;
-              padding-bottom: 10px;
-              border-bottom: 2px solid #e2e8f0;
-              display: flex;
-              align-items: center;
+              margin-bottom: 8px;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
             }
-            
-            .section-title:before {
-              content: '';
-              width: 4px;
-              height: 24px;
-              background: #274673;
-              margin-right: 12px;
-              border-radius: 2px;
+
+            .truth-summary {
+              font-size: 16px;
+              font-weight: 600;
+              color: #FF6B6B; /* alert coral */
+              line-height: 1.6;
+              margin-bottom: 12px;
             }
             
             .verse-box {
-              background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 100%);
-              border-left: 5px solid #274673;
-              padding: 24px;
-              margin: 20px 0;
+              background: #ffffff;
+              padding: 18px 20px;
+              margin: 10px 0 14px 0;
               border-radius: 8px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+              box-shadow: none;
+              display: flex;
+              align-items: stretch;
+              gap: 16px;
             }
-            
+
+            .verse-bar {
+              width: 4px;
+              border-radius: 999px;
+              background: #FF6B6B; /* alert coral */
+            }
+
+            .verse-content {
+              flex: 1;
+            }
+
             .verse-text {
-              font-size: 17px;
+              font-size: 13px;
               font-style: italic;
+              font-family: 'Arvo', 'Lexend', serif;
               color: #1e293b;
               margin-bottom: 14px;
               line-height: 1.9;
@@ -566,7 +688,7 @@ class PDFExportService {
             }
             
             .verse-reference {
-              font-size: 14px;
+              font-size: 12px;
               font-weight: 700;
               color: #274673;
               text-align: right;
@@ -574,7 +696,7 @@ class PDFExportService {
             }
             
             .content-text {
-              font-size: 15px;
+              font-size: 11px;
               color: #334155;
               line-height: 1.9;
               margin-bottom: 16px;
@@ -582,51 +704,125 @@ class PDFExportService {
             }
             
             .action-step {
-              margin-bottom: 20px;
-              padding: 20px;
-              background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-              border-radius: 10px;
-              border-left: 4px solid #274673;
-              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+              margin-bottom: 12px;
+              padding: 14px;
+              background: rgba(39, 70, 115, 0.04);
+              border-radius: 12px;
+              position: relative;
             }
             
-            .action-step-title {
-              font-size: 17px;
-              font-weight: 700;
-              color: #274673;
+            .action-step-header {
+              display: flex;
+              align-items: center;
               margin-bottom: 10px;
             }
             
+            .action-step-number {
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              background: #FF6B6B;
+              color: white;
+              font-size: 13px;
+              font-weight: 700;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              margin-right: 10px;
+            }
+            
+            .action-step-title {
+              font-size: 14px;
+              font-weight: 600;
+              color: #274673;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              flex: 1;
+            }
+            
             .action-step-description {
-              font-size: 15px;
+              font-size: 11px;
               color: #475569;
-              margin-bottom: 12px;
+              margin-bottom: 8px;
               line-height: 1.7;
             }
             
             .subtasks {
               list-style: none;
               padding-left: 0;
-              margin-top: 10px;
+              margin-top: 8px;
             }
             
             .subtasks li {
-              padding: 8px 8px 8px 30px;
+              padding: 8px 8px 8px 36px;
               margin-bottom: 8px;
               position: relative;
-              background: #f1f5f9;
-              border-radius: 6px;
-              font-size: 14px;
+              font-size: 11px;
               color: #475569;
+              line-height: 1.6;
             }
             
             .subtasks li:before {
-              content: '✓';
+              content: '';
               position: absolute;
-              left: 10px;
+              left: 8px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 18px;
+              height: 18px;
+              border: 2px solid #cbd5e1;
+              border-radius: 50%;
+              background: white;
+            }
+
+            .subtask-example {
+              font-style: italic;
+              opacity: 0.8;
+            }
+
+            .examples-section {
+              margin-top: 12px;
+              padding: 12px;
+              background: rgba(39, 70, 115, 0.03);
+              border-radius: 8px;
+              border-left: 3px solid #274673;
+            }
+
+            .examples-header {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              margin-bottom: 8px;
+              font-size: 11px;
+              font-weight: 600;
               color: #274673;
-              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+
+            .examples-icon {
               font-size: 14px;
+            }
+
+            .examples-list {
+              list-style: none;
+              padding-left: 0;
+              margin: 0;
+            }
+
+            .examples-list li {
+              padding: 6px 0;
+              font-size: 11px;
+              color: #475569;
+              line-height: 1.6;
+              font-style: italic;
+            }
+
+            .examples-list li:before {
+              content: '';
+              margin-right: 0;
+              font-size: 0;
             }
             
             .affirmations {
@@ -635,33 +831,65 @@ class PDFExportService {
             }
             
             .affirmations li {
-              background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 100%);
-              padding: 18px 20px;
-              margin-bottom: 10px;
-              border-radius: 6px;
-              border-left: 3px solid #FF6B6B;
-              font-size: 14px;
-              color: #333;
+              background: rgba(255, 107, 107, 0.04);
+              padding: 12px 14px;
+              margin-bottom: 8px;
+              border-radius: 8px;
+              font-size: 11px;
+              color: #334155;
+              line-height: 1.7;
             }
+
             .challenge-box {
               background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
-              border: 2px solid #FF6B6B;
-              padding: 24px;
-              border-radius: 10px;
-              margin: 20px 0;
-              box-shadow: 0 2px 8px rgba(255, 107, 107, 0.1);
+              padding: 0;
+              border-radius: 8px;
+              margin: 18px 0;
             }
-            
-            .challenge-title {
-              font-size: 18px;
-              font-weight: 700;
-              color: #FF6B6B;
+
+            .challenge-content {
+              padding: 20px;
+            }
+
+            .challenge-list {
+              list-style: none;
+              padding-left: 0;
+              margin: 0;
+            }
+
+            .challenge-list li {
+              display: flex;
+              align-items: flex-start;
+              gap: 10px;
               margin-bottom: 12px;
+              padding: 0;
+              margin-left: 0;
             }
-            
+
+            .challenge-badge {
+              width: 20px;
+              height: 20px;
+              border-radius: 999px;
+              background: #FF6B6B; /* alert coral */
+              color: #ffffff;
+              font-size: 11px;
+              font-weight: 700;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+
+            .challenge-text {
+              font-size: 11px;
+              color: #334155;
+              line-height: 1.8;
+              flex: 1;
+            }
+
             .footer {
-              margin-top: 50px;
-              padding-top: 25px;
+              margin-top: 40px;
+              padding-top: 20px;
               border-top: 2px solid #e2e8f0;
               text-align: center;
             }
@@ -675,76 +903,124 @@ class PDFExportService {
             
             .footer-text {
               font-size: 12px;
-              color: #9ca3af; /* gray */
+              color: #6b7280;
               font-weight: 500;
             }
           </style>
         </head>
         <body>
+          ${createdAt ? `<div class="page-meta">${new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` : ''}
+
           <div class="header">
             <div class="logo-container">
-              <div class="logo">siFia</div>
-              <div class="tagline">Where technology serves the heart of discipleship.</div>
+              <img src="https://sifia.app/images/sifia-logo-blue.png" class="logo-image" />
             </div>
-            <h1>${title}</h1>
-            ${createdAt ? `<div class="date">Created on ${new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` : ''}
+            <h1>${safeTitle}</h1>
           </div>
 
           ${truthInLove ? `
             <div class="section">
               <div class="section-title">Truth in Love</div>
-              <div class="content-text">${truthInLove}</div>
-            </div>
-          ` : ''}
-
-          ${bibleVerse ? `
-            <div class="section">
-              <div class="section-title">Scripture Foundation</div>
-              <div class="verse-box">
-                <div class="verse-text">"${bibleVerse.text}"</div>
-                <div class="verse-reference">— ${bibleVerse.reference}</div>
-              </div>
+              ${safeTruthInLoveSummary ? `<div class="truth-summary">${safeTruthInLoveSummary}</div>` : ''}
+              <div class="content-text">${safeTruthInLove}</div>
             </div>
           ` : ''}
 
           ${actionSteps && actionSteps.length > 0 ? `
             <div class="section">
               <div class="section-title">Action Steps</div>
-              ${actionSteps.map(step => `
-                <div class="action-step">
-                  <div class="action-step-title">${step.title}</div>
-                  <div class="action-step-description">${step.description}</div>
-                  ${step.subtasks && step.subtasks.length > 0 ? `
-                    <ul class="subtasks">
-                      ${step.subtasks.map(subtask => `<li>${subtask}</li>`).join('')}
-                    </ul>
-                  ` : ''}
-                </div>
-              `).join('')}
+              ${safeActionSteps
+                .map(
+                  (step, index) => `
+                    <div class="action-step">
+                      <div class="action-step-header">
+                        <div class="action-step-number">${index + 1}</div>
+                        <div class="action-step-title">${step.title}</div>
+                      </div>
+                      <div class="action-step-description">${step.description}</div>
+                      ${step.subtasks && step.subtasks.length > 0
+                        ? `
+                            <ul class="subtasks">
+                              ${step.subtasks
+                                .map(subtask => `<li>${subtask.text}</li>`)
+                                .join('')}
+                            </ul>
+                          `
+                        : ''}
+
+                      ${step.examples && step.examples.length > 0
+                        ? `
+                            <div class="examples-section">
+                              <ul class="examples-list">
+                                ${step.examples
+                                  .map(example => `<li>${example}</li>`)
+                                  .join('')}
+                              </ul>
+                            </div>
+                          `
+                        : ''}
+                    </div>
+                  `,
+                )
+                .join('')}
             </div>
           ` : ''}
 
           ${affirmations && affirmations.length > 0 ? `
             <div class="section">
-              <div class="section-title">Affirmations</div>
+              <div class="section-title">Declarations</div>
               <ul class="affirmations">
-                ${affirmations.map(affirmation => `<li>${affirmation}</li>`).join('')}
+                ${safeAffirmations.map(affirmation => `<li>${affirmation}</li>`).join('')}
               </ul>
             </div>
           ` : ''}
 
-          ${directChallenge ? `
+          ${bibleVerse ? `
             <div class="section">
+              <div class="day-divider"></div>
+              <div class="section-title">Bible Verse</div>
+              <div class="verse-box">
+                <div class="verse-bar"></div>
+                <div class="verse-content">
+                  <div class="verse-text">${safeVerseText}</div>
+                  <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${safeChallengeItems.length ? `
+            <div class="section">
+              <div class="section-title">RISE IN FAITH</div>
               <div class="challenge-box">
-                <div class="challenge-title">Your Challenge</div>
-                <div class="content-text">${directChallenge}</div>
+                <div class="challenge-content">
+                  <ul class="challenge-list">
+                    ${safeChallengeItems
+                      .map((item, index) => `
+                        <li>
+                          <span class="challenge-badge">${index + 1}</span>
+                          <span class="challenge-text">${item}</span>
+                        </li>
+                      `)
+                      .join('')}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ` : safeDirectChallenge ? `
+            <div class="section">
+              <div class="section-title">RISE IN FAITH</div>
+              <div class="challenge-box">
+                <div class="challenge-content">
+                  <div class="content-text">${safeDirectChallenge}</div>
+                </div>
               </div>
             </div>
           ` : ''}
 
           <div class="footer">
-            <div class="footer-logo">siFia</div>
-            <div class="footer-text">Your Faith Journey Companion</div>
+            <div class="footer-text">Where technology serves the heart of discipleship.</div>
+            <div class="footer-logo">© siFia</div>
           </div>
         </body>
       </html>
@@ -858,7 +1134,6 @@ class PDFExportService {
       Logger.error('[PDFExportService] Failed to export playbook PDF', error as Error, {
         component: 'pdfExportService',
       });
-      Alert.alert('Export Failed', 'Unable to export playbook as PDF. Please try again.');
     }
   }
 }

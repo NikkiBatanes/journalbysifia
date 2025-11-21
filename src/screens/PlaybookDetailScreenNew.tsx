@@ -203,6 +203,16 @@ const HeaderLeftInner = ({ showUserInput, setShowUserInput, chevronStyle, showCo
   );
 };
 
+const ShareButton = ({ onPress, styles }: { onPress: () => void; styles: any }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={styles.shareButton}
+    activeOpacity={0.7}
+  >
+    <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
+  </TouchableOpacity>
+);
+
 const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: any; styles: any }) => (
   <TouchableOpacity
     onPress={() => {
@@ -942,11 +952,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     />
   ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress, isFromOnboarding, styles]);
 
-  // Header right component
-  const headerRight = React.useCallback(() => (
-    <ProfileButton user={user} navigation={navigation} styles={styles} />
-  ), [user, navigation, styles]);
-
   // ===== EFFECT HOOKS =====
 
   // Debug logging effect
@@ -1174,6 +1179,51 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     viewMode === 'stack' || (viewMode === 'document' && hasReachedLastCard)
   );
 
+  // PDF Export handler
+  const handleExportPDF = useCallback(() => {
+    if (!playbook) {return;}
+
+    pdfExportService.exportPlaybookPDF({
+      title: playbook.title,
+      truthInLove: typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text,
+      truthInLoveSummary: typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove?.summary,
+      bibleVerse: playbook.bibleVerse,
+      actionSteps: playbook.actionSteps?.map(step => {
+        // Derive examples similar to ActionStepsCard
+        let examples: string[] = [];
+
+        const rawExamples: any = (step as any).examples;
+        if (rawExamples && typeof rawExamples === 'string') {
+          const exampleMatches = rawExamples
+            .split(/Example:\s*/i)
+            .filter((text: string) => text.trim().length > 0);
+          examples = exampleMatches.map((ex: string) => ex.trim());
+        } else if (Array.isArray(rawExamples)) {
+          examples = rawExamples.map((ex: string) => ex.replace(/^"+|"+$/g, '').trim());
+        } else if (step.subTasks && step.subTasks.length > 0) {
+          examples = step.subTasks
+            .filter((st: any) => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:'))
+            .map((st: any) => st.text.replace(/^Example:/i, '').trim());
+        }
+
+        return {
+          title: step.title,
+          description: step.description || '',
+          subtasks: step.subTasks?.map((st: any) => st.text || st.title || st) || [],
+          examples,
+        };
+      }),
+      affirmations: playbook.affirmations?.map(a => a.text) || [],
+      directChallenge: typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text,
+      createdAt: playbook.createdAt,
+    });
+  }, [playbook]);
+
+  // Header right component
+  const headerRight = React.useCallback(() => (
+    <ShareButton onPress={handleExportPDF} styles={styles} />
+  ), [handleExportPDF, styles]);
+
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
 
@@ -1193,25 +1243,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       },
     });
   }, [navigation, headerLeft, headerRight, user, isFromOnboarding]);
-
-  // PDF Export handler
-  const handleExportPDF = useCallback(() => {
-    if (!playbook) {return;}
-
-    pdfExportService.exportPlaybookPDF({
-      title: playbook.title,
-      truthInLove: typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text,
-      bibleVerse: playbook.bibleVerse,
-      actionSteps: playbook.actionSteps?.map(step => ({
-        title: step.title,
-        description: step.description || '',
-        subtasks: step.subTasks?.map((st: any) => st.title) || [],
-      })),
-      affirmations: playbook.affirmations?.map(a => a.text) || [],
-      directChallenge: typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text,
-      createdAt: playbook.createdAt,
-    });
-  }, [playbook]);
 
   // Debounced save function to prevent excessive calls
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -2477,6 +2508,13 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   chevronIcon: {
     marginLeft: 4,
+  },
+  shareButton: {
+    marginRight: 16,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    zIndex: 4000,
   },
   profileButton: {
     marginRight: 16,

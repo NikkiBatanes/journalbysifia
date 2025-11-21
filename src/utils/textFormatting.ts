@@ -48,5 +48,10 @@ export const formatBibleVerse = (verse: string): string => {
     .replace(/\s+([.,!?;:])/g, '$1')  // Remove space before punctuation
     .replace(/([.,!?;:])([^\s])/g, '$1 $2');  // Add space after punctuation if missing
 
+  // Remove trailing " () artifact and any trailing quote with empty parens
+  formatted = formatted
+    .replace(/"\s*\(\)\s*$/g, '')  // Remove " () at end
+    .replace(/\(\)\s*$/g, '');      // Remove () at end if quote was already removed
+
   return formatted;
 };
