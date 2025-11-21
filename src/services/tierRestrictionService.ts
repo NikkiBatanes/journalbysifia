@@ -384,10 +384,20 @@ class TierRestrictionService {
     const featureName = featureNames[feature] || feature;
     const tierName = tierNames[requiredTier] || requiredTier;
 
+    // For Growth tier features, mention both Growth and Transformation since both have access
+    const isGrowthTierFeature = requiredTier === 'growth' || requiredTier === 'growth_annual';
+    const tierMessage = isGrowthTierFeature 
+      ? 'Growth or Transformation plans'
+      : `${tierName} and higher plans`;
+
+    const ctaText = isGrowthTierFeature
+      ? 'Upgrade to Growth'
+      : `Upgrade to ${tierName}`;
+
     return {
       title: `Unlock ${featureName}`,
-      message: `${featureName} is available with ${tierName} and higher plans. Upgrade to continue your spiritual growth journey.`,
-      cta: `Upgrade to ${tierName}`,
+      message: `${featureName} is available with ${tierMessage}. Upgrade to continue your spiritual growth journey.`,
+      cta: ctaText,
       recommendedTier: requiredTier,
     };
   }
