@@ -177,7 +177,7 @@ class TierRestrictionService {
           hasAccess: false,
           reason: 'tier_restriction',
           requiredTier: restriction.requiredTier,
-          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier, effectiveTier),
+          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier),
         };
       }
 
@@ -187,7 +187,7 @@ class TierRestrictionService {
           hasAccess: false,
           reason: 'feature_disabled',
           requiredTier: restriction.requiredTier,
-          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier, effectiveTier),
+          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier),
         };
       }
 
@@ -368,7 +368,7 @@ class TierRestrictionService {
   /**
    * Generate upgrade prompt for a feature
    */
-  private generateUpgradePrompt(feature: string, requiredTier: SubscriptionTier, currentTier?: SubscriptionTier): {
+  private generateUpgradePrompt(feature: string, requiredTier: SubscriptionTier): {
     title: string;
     message: string;
     cta: string;
@@ -408,9 +408,6 @@ class TierRestrictionService {
     const featureName = featureNames[feature] || feature;
     const tierName = tierNames[requiredTier] || requiredTier;
 
-    // Check if user is on a paid tier (Spark) - they're upgrading, not starting
-    const isPaidTier = currentTier === 'spark' || currentTier === 'spark_annual';
-
     // Special handling for export features - emphasize Growth/Transformation only
     const isExportFeature = feature === 'export_pdf' || feature === 'export_docx';
     
@@ -418,7 +415,7 @@ class TierRestrictionService {
       return {
         title: `Unlock ${featureName}`,
         message: `Export your playbooks and devotionals as ${feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`,
-        cta: isPaidTier ? 'Upgrade' : 'Upgrade to Growth',
+        cta: 'Upgrade to Growth',
         recommendedTier: requiredTier,
       };
     }
@@ -430,8 +427,8 @@ class TierRestrictionService {
       : `${tierName} and higher plans`;
 
     const ctaText = isGrowthTierFeature
-      ? (isPaidTier ? 'Upgrade' : 'Upgrade to Growth')
-      : (isPaidTier ? 'Upgrade' : `Upgrade to ${tierName}`)
+      ? 'Upgrade to Growth'
+      : `Upgrade to ${tierName}`;
 
     return {
       title: `Unlock ${featureName}`,

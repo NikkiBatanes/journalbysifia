@@ -1200,7 +1200,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           disabled={isPurchasing}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing ? 'Processing...' : (isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ? 'Upgrade to Repeat Options' : fromCalendarAutoSync ? 'Upgrade to Auto-Sync' : 'Continue My Journey'))}
+            {isPurchasing 
+              ? 'Processing...' 
+              : fromExportRestriction
+                ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
+                : fromSmartJournalingLock
+                  ? 'Upgrade to Smart Journaling'
+                  : isUpgradeMode 
+                    ? 'Upgrade and Continue' 
+                    : fromPlanningLock 
+                      ? 'Start Planning Ahead' 
+                      : fromCopyTodosLock 
+                        ? 'Upgrade to Copy To-Dos' 
+                        : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) 
+                          ? 'Upgrade to Repeat Options' 
+                          : fromCalendarAutoSync 
+                            ? 'Upgrade to Auto-Sync' 
+                            : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
