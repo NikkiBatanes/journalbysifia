@@ -508,7 +508,12 @@ class PDFExportService {
       ? rawPlaybookVerseRef.toUpperCase().includes(rawPlaybookVerseVersion.toUpperCase())
       : false;
 
-    const safeVerseText = this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseText));
+    // Clean verse text - remove trailing empty parentheses that sometimes appear
+    const cleanedVerseText = this.cleanMarkdown(rawPlaybookVerseText)
+      .replace(/\(\s*\)\s*$/g, '')  // Remove trailing empty parentheses
+      .replace(/\(\)\s*$/g, '')      // Remove trailing empty parentheses without spaces
+      .trim();
+    const safeVerseText = this.escapeHtml(cleanedVerseText);
     // Clean up empty parentheses from reference - more aggressive cleaning
     let cleanedVerseRef = this.cleanMarkdown(rawPlaybookVerseRef)
       .replace(/\(\s*\)/g, '')  // Remove empty parentheses
@@ -557,21 +562,31 @@ class PDFExportService {
     // Try to extract up to two numbered challenge items: "1. ... 2. ..."
     const challengeItems: string[] = [];
     if (normalizedChallenge) {
+      // Debug: Log the normalized challenge to see what we're parsing
+      console.log('[PDF Export] Normalized challenge:', normalizedChallenge);
+      
       // 1st item: capture everything after "1." up to (but not including) "2." or end of string
       const firstMatch = normalizedChallenge.match(/1\.\s*([\s\S]*?)(?=2\.\s|$)/);
       if (firstMatch && firstMatch[1] && firstMatch[1].trim()) {
-        challengeItems.push(firstMatch[1].trim());
+        const item1 = firstMatch[1].trim();
+        console.log('[PDF Export] Challenge item 1:', item1);
+        challengeItems.push(item1);
       }
 
       // 2nd item: capture everything after "2." to the end
       const secondMatch = normalizedChallenge.match(/2\.\s*([\s\S]*)$/);
       if (secondMatch && secondMatch[1] && secondMatch[1].trim()) {
-        challengeItems.push(secondMatch[1].trim());
+        const item2 = secondMatch[1].trim();
+        console.log('[PDF Export] Challenge item 2:', item2);
+        challengeItems.push(item2);
       }
+      
+      console.log('[PDF Export] Challenge items before dedup:', challengeItems);
     }
     
     // Ensure we only have maximum 2 items and remove any duplicates
     const uniqueChallengeItems = [...new Set(challengeItems)].slice(0, 2);
+    console.log('[PDF Export] Unique challenge items:', uniqueChallengeItems);
 
     const safeChallengeItems = uniqueChallengeItems.map(item => {
       // Remove deadline text like "(48-72 hour deadline):"
@@ -964,7 +979,6 @@ class PDFExportService {
                             <div class="examples-section">
                               <div class="examples-header">
                                 <span class="examples-icon">💬</span>
-                                <span>Examples</span>
                               </div>
                               <ul class="examples-list">
                                 ${step.examples
