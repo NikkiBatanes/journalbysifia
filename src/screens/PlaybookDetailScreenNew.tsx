@@ -2576,18 +2576,20 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   affirmationsHeaderStack: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginBottom: 8,
   },
   quoteIconStack: {
     marginRight: 8,
     transform: [{ scaleX: -1 }],
+    alignSelf: 'center',
   },
   affirmationsTitleStack: {
     fontSize: 20,
     color: Colors.hopeWhite,
     fontWeight: '700',
     textAlign: 'left',
+    lineHeight: 24,
   },
   affirmationsListStack: {
     marginTop: 0,
