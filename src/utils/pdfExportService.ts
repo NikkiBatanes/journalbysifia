@@ -509,8 +509,12 @@ class PDFExportService {
       : false;
 
     const safeVerseText = this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseText));
-    // Clean up empty parentheses from reference
-    const cleanedVerseRef = this.cleanMarkdown(rawPlaybookVerseRef).replace(/\s*\(\s*\)\s*/g, '').trim();
+    // Clean up empty parentheses from reference - more aggressive cleaning
+    let cleanedVerseRef = this.cleanMarkdown(rawPlaybookVerseRef)
+      .replace(/\(\s*\)/g, '')  // Remove empty parentheses
+      .replace(/\(\)/g, '')      // Remove empty parentheses without spaces
+      .replace(/\s+/g, ' ')      // Normalize whitespace
+      .trim();
     const safeVerseRef = this.escapeHtml(cleanedVerseRef);
     const safeVerseVersion = !rawPlaybookVerseVersion || playbookRefIncludesVersion
       ? ''
@@ -555,18 +559,21 @@ class PDFExportService {
     if (normalizedChallenge) {
       // 1st item: capture everything after "1." up to (but not including) "2." or end of string
       const firstMatch = normalizedChallenge.match(/1\.\s*([\s\S]*?)(?=2\.\s|$)/);
-      if (firstMatch && firstMatch[1]) {
+      if (firstMatch && firstMatch[1] && firstMatch[1].trim()) {
         challengeItems.push(firstMatch[1].trim());
       }
 
       // 2nd item: capture everything after "2." to the end
       const secondMatch = normalizedChallenge.match(/2\.\s*([\s\S]*)$/);
-      if (secondMatch && secondMatch[1]) {
+      if (secondMatch && secondMatch[1] && secondMatch[1].trim()) {
         challengeItems.push(secondMatch[1].trim());
       }
     }
+    
+    // Ensure we only have maximum 2 items and remove any duplicates
+    const uniqueChallengeItems = [...new Set(challengeItems)].slice(0, 2);
 
-    const safeChallengeItems = challengeItems.map(item => {
+    const safeChallengeItems = uniqueChallengeItems.map(item => {
       // Remove deadline text like "(48-72 hour deadline):"
       const cleaned = item.replace(/\([^)]*deadline[^)]*\)\s*:?/gi, '').trim();
       return this.escapeHtml(cleaned);
@@ -787,9 +794,9 @@ class PDFExportService {
             .examples-section {
               margin-top: 12px;
               padding: 12px;
-              background: rgba(39, 70, 115, 0.03);
+              background: rgba(255, 107, 107, 0.04);
               border-radius: 8px;
-              border-left: 3px solid #274673;
+              border-left: 3px solid #FF6B6B;
             }
 
             .examples-header {
@@ -799,13 +806,14 @@ class PDFExportService {
               margin-bottom: 8px;
               font-size: 11px;
               font-weight: 600;
-              color: #274673;
+              color: #FF6B6B;
               text-transform: uppercase;
               letter-spacing: 0.5px;
             }
 
             .examples-icon {
               font-size: 14px;
+              color: #FF6B6B;
             }
 
             .examples-list {
@@ -954,6 +962,10 @@ class PDFExportService {
                       ${step.examples && step.examples.length > 0
                         ? `
                             <div class="examples-section">
+                              <div class="examples-header">
+                                <span class="examples-icon">💬</span>
+                                <span>Examples</span>
+                              </div>
                               <ul class="examples-list">
                                 ${step.examples
                                   .map(example => `<li>${example}</li>`)

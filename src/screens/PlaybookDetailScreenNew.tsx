@@ -1188,6 +1188,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                        [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
                        '';
 
+    // Get bible version from user preferences or default to NASB
+    const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
+    
     pdfExportService.exportPlaybookPDF({
       title: playbook.title,
       truthInLove: replaceAllNamePlaceholders(
@@ -1200,7 +1203,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         { firstName, displayName },
         { replaceHardcodedNames: true }
       ),
-      bibleVerse: playbook.bibleVerse,
+      bibleVerse: {
+        ...playbook.bibleVerse,
+        version: bibleVersion,
+      },
       actionSteps: playbook.actionSteps?.map(step => {
         // Derive examples similar to ActionStepsCard
         let examples: string[] = [];
