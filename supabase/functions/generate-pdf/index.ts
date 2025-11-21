@@ -68,82 +68,87 @@ serve(async (req) => {
 });
 
 /**
- * Generate PDF from HTML using Puppeteer
- * More reliable than external services, runs directly in Edge Function
+ * Generate PDF from HTML using PDFShift API
+ * Reliable cloud-based PDF generation service
  */
 async function generatePDFFromHTML(html: string): Promise<Uint8Array> {
-  try {
-    // Import Puppeteer for Deno
-    const puppeteer = await import('https://deno.land/x/puppeteer@16.2.0/mod.ts');
-    
-    // Launch browser
-    const browser = await puppeteer.default.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    
-    const page = await browser.newPage();
-    
-    // Set content and wait for it to load
-    await page.setContent(html, {
-      waitUntil: ['load', 'domcontentloaded'],
-    });
-    
-    // Wait a bit for fonts and styles to fully render
-    await page.waitForTimeout(1000);
-    
-    // Generate PDF with proper settings
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: false,
-      displayHeaderFooter: false,
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px',
+  // Try multiple PDF services in order of preference
+  const services = [
+    {
+      name: 'api2pdf',
+      url: 'https://v2.api2pdf.com/chrome/html',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    });
-    
-    await browser.close();
-    
-    return new Uint8Array(pdfBuffer);
-  } catch (error) {
-    console.error('Puppeteer PDF generation failed:', error);
-    
-    // Fallback: Try html2pdf.app as backup
-    try {
-      const response = await fetch('https://html2pdf.app/api/v1/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          html,
-          engine: 'chrome',
-          pdf: {
-            format: 'A4',
-            printBackground: true,
-            margin: {
-              top: '20px',
-              right: '20px',
-              bottom: '20px',
-              left: '20px',
-            },
+      body: {
+        html,
+        options: {
+          printBackground: true,
+          format: 'A4',
+          margin: {
+            top: '20px',
+            right: '20px',
+            bottom: '20px',
+            left: '20px',
           },
-        }),
+        },
+      },
+    },
+    {
+      name: 'html2pdf.app',
+      url: 'https://html2pdf.app/api/v1/generate',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: {
+        html,
+        engine: 'chrome',
+        pdf: {
+          format: 'A4',
+          printBackground: true,
+          margin: {
+            top: '20px',
+            right: '20px',
+            bottom: '20px',
+            left: '20px',
+          },
+        },
+      },
+    },
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const service of services) {
+    try {
+      console.log(`[PDF] Trying ${service.name}...`);
+      
+      const response = await fetch(service.url, {
+        method: 'POST',
+        headers: service.headers,
+        body: JSON.stringify(service.body),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`PDF service error: ${response.status} - ${errorText}`);
+        console.error(`[PDF] ${service.name} failed:`, response.status, errorText);
+        lastError = new Error(`${service.name} error: ${response.status} - ${errorText}`);
+        continue;
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      return new Uint8Array(arrayBuffer);
-    } catch (fallbackError) {
-      console.error('Fallback PDF service also failed:', fallbackError);
-      throw new Error('Both Puppeteer and fallback PDF service failed. Please try again later.');
+      const result = new Uint8Array(arrayBuffer);
+      
+      console.log(`[PDF] ${service.name} succeeded, buffer length:`, result.length);
+      
+      return result;
+    } catch (error) {
+      console.error(`[PDF] ${service.name} exception:`, error);
+      lastError = error as Error;
+      continue;
     }
   }
+
+  // If all services failed, throw the last error
+  throw lastError || new Error('All PDF generation services failed');
 }

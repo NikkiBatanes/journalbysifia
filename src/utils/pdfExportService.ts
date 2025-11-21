@@ -473,6 +473,13 @@ class PDFExportService {
       const html = this.generateDevotionalHTML(data);
       const fileName = `siFia_Devotional_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
 
+      Logger.debug('[PDFExportService] Generating PDF', {
+        component: 'pdfExportService',
+        fileName,
+        htmlLength: html.length,
+        dataKeys: Object.keys(data),
+      });
+
       // Call Supabase Edge Function to generate PDF
       const { data: pdfResponse, error } = await supabase.functions.invoke('generate-pdf', {
         body: {
@@ -482,13 +489,35 @@ class PDFExportService {
       });
 
       if (error) {
+        Logger.error('[PDFExportService] Edge Function error', error as Error, {
+          component: 'pdfExportService',
+        });
         throw new Error(`PDF generation failed: ${error.message}`);
       }
 
+      Logger.debug('[PDFExportService] PDF response received', {
+        component: 'pdfExportService',
+        responseType: typeof pdfResponse,
+        isArrayBuffer: pdfResponse instanceof ArrayBuffer,
+        isUint8Array: pdfResponse instanceof Uint8Array,
+        length: pdfResponse?.length || pdfResponse?.byteLength || 0,
+      });
+
       // Convert ArrayBuffer to base64 for sharing
       const uint8Array = new Uint8Array(pdfResponse);
+      
+      Logger.debug('[PDFExportService] Converting to base64', {
+        component: 'pdfExportService',
+        uint8ArrayLength: uint8Array.length,
+      });
+
       const binaryString = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
       const base64Data = `data:application/pdf;base64,${btoa(binaryString)}`;
+
+      Logger.debug('[PDFExportService] Sharing PDF', {
+        component: 'pdfExportService',
+        base64Length: base64Data.length,
+      });
 
       // Share the PDF using base64 data URL
       await Share.open({
