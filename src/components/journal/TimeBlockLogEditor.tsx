@@ -153,7 +153,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 100,
+    paddingBottom: 220,
   },
   entryInput: {
     color: Colors.hopeWhite,
@@ -231,7 +231,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timeText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
+    fontSize: 20,
     fontFamily: fonts.semiBold,
   },
   timeSeparator: {
@@ -277,6 +277,9 @@ const createDefaultStyles = (fonts: any) => ({
     color: Colors.hopeWhite,
     fontSize: 16,
     fontFamily: fonts.medium,
+  },
+  categoryTextRequired: {
+    color: Colors.alertCoral,
   },
   allDayContainer: {
     flexDirection: 'row',
@@ -628,6 +631,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   endRepeatContainer: {
     marginTop: 8,
+    marginBottom: 16,
   },
   endRepeatRow: {
     flexDirection: 'row',
@@ -650,6 +654,13 @@ const createDefaultStyles = (fonts: any) => ({
   endRepeatButtonText: {
     color: Colors.hopeWhite,
     fontSize: 14,
+  },
+  endRepeatButtonNeverActive: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  endRepeatButtonNeverText: {
+    color: Colors.hopeWhite,
   },
   marginTop12: {
     marginTop: 12,
@@ -709,6 +720,7 @@ function TimeBlockLogEditorInner(
 
   const s = useMemo(() => ({ ...createDefaultStyles(fonts), ...styles }), [fonts, styles]);
   const inputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView | null>(null);
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -905,10 +917,12 @@ function TimeBlockLogEditorInner(
 
         <View style={s.contentCard}>
           <ScrollView
+            ref={scrollViewRef}
             style={s.content}
             contentContainerStyle={s.scrollContent}
             scrollEnabled={true}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
@@ -986,8 +1000,8 @@ function TimeBlockLogEditorInner(
               <TextInput
                 ref={inputRef}
                 style={[s.formInput, { fontFamily: fonts.regular }]}
-                placeholder="Title"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                placeholder="Title *"
+                placeholderTextColor={Colors.alertCoral}
                 value={title}
                 onChangeText={(text) => handleContentChange('title', text)}
               />
@@ -1079,7 +1093,15 @@ function TimeBlockLogEditorInner(
                   color={Colors.hopeWhite}
                   style={s.categoryIcon}
                 />
-                <ThemedText weight="medium" style={s.categoryText}>{category}</ThemedText>
+                <ThemedText
+                  weight="medium"
+                  style={[
+                    s.categoryText,
+                    category === 'Select a category' && s.categoryTextRequired,
+                  ]}
+                >
+                  {category === 'Select a category' ? 'Select a category *' : category}
+                </ThemedText>
                 <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} style={s.chevronIcon} />
               </TouchableOpacity>
 
@@ -1357,6 +1379,14 @@ function TimeBlockLogEditorInner(
                 onChangeText={(text) => handleContentChange('notes', text)}
                 multiline
                 textAlignVertical="top"
+                onFocus={() => {
+                  // Give the keyboard a moment to appear, then nudge scroll so Notes is above it
+                  setTimeout(() => {
+                    if (scrollViewRef.current) {
+                      scrollViewRef.current.scrollTo({ y: 360, animated: true });
+                    }
+                  }, 250);
+                }}
               />
 
               {/* Metadata section */}

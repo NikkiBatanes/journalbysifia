@@ -557,8 +557,8 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   timeText: {
-    fontSize: 10,
-    color: Colors.textGray,
+    fontSize: 14,
+    color: Colors.hopeWhite,
   },
   normalTitleText: {
     fontStyle: 'normal',
