@@ -821,8 +821,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                       {
                         text: upgradePrompt?.cta || 'Upgrade Now',
                         onPress: () => {
-                          // Navigate to subscription screen
-                          navigation.navigate('OnboardingSalesOffer');
+                          // Navigate to subscription screen with export restriction context
+                          navigation.navigate('OnboardingSalesOffer', {
+                            source: 'pdf_export_restriction',
+                            feature: 'export_pdf',
+                          });
                         },
                       },
                     ]

@@ -25,8 +25,17 @@ export type RootStackParamList = {
       challengeDetails: string;
     };
   };
-  OnboardingSalesOffer: undefined;
-  OnboardingTrialOffer: undefined;
+  OnboardingSalesOffer: {
+    upgradeMode?: boolean;
+    currentTier?: string;
+    source?: string;
+    feature?: string;
+    tier?: string;
+  } | undefined;
+  OnboardingTrialOffer: {
+    source?: string;
+    feature?: string;
+  } | undefined;
   OnboardingPaymentConfirmation: {
     userType: 'trial' | 'paid' | 'freemium';
     selectedTier?: string;

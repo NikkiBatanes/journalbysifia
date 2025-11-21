@@ -1168,8 +1168,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           {
             text: upgradePrompt?.cta || 'Upgrade Now',
             onPress: () => {
-              // Navigate to subscription screen
-              rootNavigation.navigate('OnboardingSalesOffer');
+              // Navigate to subscription screen with export restriction context
+              rootNavigation.navigate('OnboardingSalesOffer', {
+                source: 'pdf_export_restriction',
+                feature: 'export_pdf',
+              });
             },
           },
         ]

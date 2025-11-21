@@ -980,20 +980,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       {/* Body content: sticky toggle header + scrollable content */}
       <View style={styles.content}>
-        {/* Custom messaging for Growth+ only features */}
-        {(fromExportRestriction || fromSmartJournalingLock) && (
-          <View style={styles.featureMessageContainer}>
-            <ThemedText weight="semiBold" style={styles.featureMessageTitle}>
-              {fromExportRestriction ? 'Export Your Content' : 'Smart Journaling'}
-            </ThemedText>
-            <ThemedText style={styles.featureMessageText}>
-              {fromExportRestriction 
-                ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
-                : 'Unlock Smart Journaling to track time blocks, gratitude, prayers, and reflections. Available with Growth or Transformation plans.'}
-            </ThemedText>
-          </View>
-        )}
-
         {/* Pricing Cards - Scrollable with sticky toggle */}
         <ScrollView
           style={styles.pricingScroll}
@@ -1044,7 +1030,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                           ? 'Unlock Unlimited Guided Prompts'
                           : fromSmartJournalingLock
                             ? 'Upgrade to Unlock Smart Journaling'
-                            : "You've taken your first step!"}
+                            : fromExportRestriction
+                              ? `Unlock ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
+                              : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
@@ -1063,7 +1051,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                           ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
                           : fromSmartJournalingLock
                             ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
-                            : 'Keep walking, one faithful step at a time.'}
+                            : fromExportRestriction
+                              ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
+                              : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}
@@ -1243,6 +1233,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 billing: currentBilling,
                 skipNotificationPreference: routeParams?.skipNotificationPreference,
                 closeAllOnDismiss: true,
+                source: routeParams?.source,
+                feature: routeParams?.feature,
               });
             } else {
               const source = routeParams?.source;
@@ -1683,24 +1675,6 @@ const styles = StyleSheet.create({
   },
   scrollContentPadding: {
     paddingBottom: 80,
-  },
-  featureMessageContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  featureMessageTitle: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
-    marginBottom: 8,
-  },
-  featureMessageText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 20,
   },
   // Copy todos stats styles
   statsSection: {
