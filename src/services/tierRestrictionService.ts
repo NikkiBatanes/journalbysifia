@@ -161,7 +161,8 @@ class TierRestrictionService {
         });
       }
       
-      const limits = subscriptionService.getSubscriptionLimits(currentTier);
+      // CRITICAL FIX: Use effectiveTier for limits to get correct feature flags for trial users
+      const limits = subscriptionService.getSubscriptionLimits(effectiveTier);
 
       // Find restriction for this feature
       const restriction = this.restrictions.find(r => r.feature === feature);
