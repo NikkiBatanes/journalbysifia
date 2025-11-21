@@ -82,12 +82,10 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         'Long press any subtask or suggestion to open Smart Journaling.',
         '',
         'You\'ll see the text in a focused bubble, then choose a journal type:',
-        '- Reflection',
-        '- Prayer',
-        '- Gratitude',
-        '- Time Block',
-        '',
-        'You can also Copy or Share the text.',
+        '💡 Reflection',
+        '🙏 Prayer',
+        '❤️ Gratitude',
+        '⏰ Time Block',
       ].join('\n'),
     );
   };

@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
-import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -142,6 +142,11 @@ export default function ActionStepsCard({
   // Unified Journal Type Selector Tooltip State
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipSubtask, setTooltipSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
+  
+  // Smart Journaling Helper Tooltip State
+  const [showSmartTooltip, setShowSmartTooltip] = useState(false);
+  const tooltipOpacity = useRef(new Animated.Value(0)).current;
+  const tooltipTranslateY = useRef(new Animated.Value(10)).current;
 
   const completionAnim = React.useRef<Record<string, Animated.Value>>({});
 
@@ -764,22 +769,40 @@ export default function ActionStepsCard({
     color: completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)'),
   });
 
+  // Animate tooltip in/out
+  useEffect(() => {
+    if (showSmartTooltip) {
+      Animated.parallel([
+        Animated.timing(tooltipOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tooltipTranslateY, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(tooltipOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tooltipTranslateY, {
+          toValue: 10,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showSmartTooltip, tooltipOpacity, tooltipTranslateY]);
+
   const handleInfoPress = () => {
     triggerLightHaptic();
-    Alert.alert(
-      'Smart Journaling',
-      [
-        'Long press any subtask or suggestion to open Smart Journaling.',
-        '',
-        'You\'ll see the text in a focused bubble, then choose a journal type:',
-        '- Reflection',
-        '- Prayer',
-        '- Gratitude',
-        '- Time Block',
-        '',
-        'You can also Copy or Share the text.',
-      ].join('\n'),
-    );
+    setShowSmartTooltip(!showSmartTooltip);
   };
 
   return (
@@ -1143,6 +1166,45 @@ export default function ActionStepsCard({
         onClose={handleTooltipClose}
         subtaskText={tooltipSubtask?.subTask?.text}
       />
+
+      {/* Smart Journaling Helper Tooltip */}
+      {showSmartTooltip && (
+        <TouchableOpacity
+          style={styles.tooltipBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowSmartTooltip(false)}
+        >
+          <Animated.View
+            style={[
+              styles.smartTooltip,
+              {
+                opacity: tooltipOpacity,
+                transform: [{ translateY: tooltipTranslateY }],
+              },
+            ]}
+            pointerEvents="box-none"
+          >
+            <ThemedText weight="semiBold" style={styles.tooltipKicker}>Smart Journaling</ThemedText>
+            <ThemedText weight="bold" style={styles.tooltipTitle}>Long press any subtask or suggestion to open Smart Journaling.</ThemedText>
+            <ThemedText style={styles.tooltipSubtitle}>You'll see the text in a focused bubble, then choose a journal type:</ThemedText>
+            <View style={styles.tooltipList}>
+              <View style={styles.tooltipItemRow}>
+                <ThemedText style={styles.tooltipItemText}>💡 Reflection</ThemedText>
+              </View>
+              <View style={styles.tooltipItemRow}>
+                <ThemedText style={styles.tooltipItemText}>🙏 Prayer</ThemedText>
+              </View>
+              <View style={styles.tooltipItemRow}>
+                <ThemedText style={styles.tooltipItemText}>❤️ Gratitude</ThemedText>
+              </View>
+              <View style={styles.tooltipItemRow}>
+                <ThemedText style={styles.tooltipItemText}>⏰ Time Block</ThemedText>
+              </View>
+            </View>
+            <View style={styles.tooltipCaret} />
+          </Animated.View>
+        </TouchableOpacity>
+      )}
     </>
   );
 }
@@ -1611,11 +1673,65 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  followUpPrompt: {
-    ...Typography.interRegular,
+  // Smart Journaling Helper Tooltip Styles
+  tooltipBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+  },
+  smartTooltip: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    maxWidth: 280,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 12,
+    padding: 12,
+    zIndex: 10000,
+  },
+  tooltipKicker: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 15,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  tooltipTitle: {
+    color: 'rgba(255,255,255,0.95)',
     fontSize: 13,
     lineHeight: 18,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontStyle: 'italic',
+    marginBottom: 6,
+  },
+  tooltipSubtitle: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  tooltipList: {
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  tooltipItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tooltipItemText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    lineHeight: 18,
+    flexShrink: 1,
+  },
+  tooltipCaret: {
+    position: 'absolute',
+    right: 24,
+    top: -6,
+    width: 12,
+    height: 12,
+    backgroundColor: Colors.alertCoral,
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 3,
   },
 });

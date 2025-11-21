@@ -144,17 +144,7 @@ export default function TruthInLoveCard({
                   </ThemedText>
                 ))
               ))
-            : (Platform.OS === 'ios' ? (
-                <ThemedTextInput
-                  weight="regular"
-                  value={truthParagraphs.length > 0 ? truthParagraphs[0] : processedTruth}
-                  editable={false}
-                  multiline={true}
-                  scrollEnabled={false}
-                  numberOfLines={numberOfLines}
-                  style={[styles.truth, { color: textColor }]}
-                />
-              ) : (
+            : (
                 <ThemedText
                   weight="regular"
                   style={[styles.truth, { color: textColor }]}
@@ -166,7 +156,7 @@ export default function TruthInLoveCard({
                 >
                   {truthParagraphs.length > 0 ? truthParagraphs[0] : processedTruth}
                 </ThemedText>
-              ))}
+              )}
         </View>
       </View>
 
