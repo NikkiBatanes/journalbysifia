@@ -132,7 +132,9 @@ class PDFExportService {
       : false;
 
     const safeVerseText = this.escapeHtml(rawVerseText);
-    const safeVerseRef = this.escapeHtml(rawVerseRef);
+    // Clean up empty parentheses from reference
+    const cleanedDevVerseRef = rawVerseRef.replace(/\s*\(\s*\)\s*/g, '').trim();
+    const safeVerseRef = this.escapeHtml(cleanedDevVerseRef);
     const safeVerseVersion = !rawVerseVersion || referenceIncludesVersion
       ? ''
       : this.escapeHtml(rawVerseVersion);
@@ -507,7 +509,9 @@ class PDFExportService {
       : false;
 
     const safeVerseText = this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseText));
-    const safeVerseRef = this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseRef));
+    // Clean up empty parentheses from reference
+    const cleanedVerseRef = this.cleanMarkdown(rawPlaybookVerseRef).replace(/\s*\(\s*\)\s*/g, '').trim();
+    const safeVerseRef = this.escapeHtml(cleanedVerseRef);
     const safeVerseVersion = !rawPlaybookVerseVersion || playbookRefIncludesVersion
       ? ''
       : this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseVersion));

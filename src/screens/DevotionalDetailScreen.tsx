@@ -50,6 +50,8 @@ import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
 import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDetailSkeleton';
 import { pdfExportService } from '../utils/pdfExportService';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { Alert } from 'react-native';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
@@ -58,6 +60,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const userId = user?.id;
   // Measured viewport width of the list (works inside modal and with insets)
   const [pageWidth, setPageWidth] = useState<number>(0);
+
+  // Feature access for PDF export
+  const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
 
   // React Query hooks for devotional data
   // Clean and validate devotional ID from route params to avoid simulator-only issues
@@ -804,6 +809,27 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               style={styles.exportButton}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
+                
+                // Check feature access
+                if (!pdfExportAccess.hasAccess) {
+                  const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
+                  Alert.alert(
+                    upgradePrompt?.title || 'Upgrade Required',
+                    upgradePrompt?.message || 'PDF export is available with Growth and Transformation plans.',
+                    [
+                      { text: 'Maybe Later', style: 'cancel' },
+                      {
+                        text: upgradePrompt?.cta || 'Upgrade Now',
+                        onPress: () => {
+                          // Navigate to subscription screen
+                          navigation.navigate('OnboardingSalesOffer');
+                        },
+                      },
+                    ]
+                  );
+                  return;
+                }
+                
                 if (currentDay) {
                   pdfExportService.exportDevotionalPDF({
                     title: devotional.title,

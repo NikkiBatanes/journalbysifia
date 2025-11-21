@@ -32,24 +32,24 @@ export interface TierRestriction {
 
 class TierRestrictionService {
   private restrictions: TierRestriction[] = [
-    // Export features
+    // Export features - Growth tier and above only
     {
       feature: 'export_pdf',
-      requiredTier: 'spark',
+      requiredTier: 'growth',
       usageType: 'exports',
       featureFlag: 'intelligenceEnabled',
     },
     {
       feature: 'export_docx',
-      requiredTier: 'spark',
+      requiredTier: 'growth',
       usageType: 'exports',
       featureFlag: 'intelligenceEnabled',
     },
 
-    // Smart journaling
+    // Smart journaling - Spark tier and above only (restrict Seeker and Free Trial)
     {
       feature: 'smart_journaling',
-      requiredTier: 'free_trial',
+      requiredTier: 'spark',
       featureFlag: 'smartJournalingEnabled',
     },
 
@@ -143,7 +143,14 @@ class TierRestrictionService {
     try {
       // Get user subscription and limits
       const subscription = await subscriptionService.getUserSubscription(userId);
-      const limits = subscriptionService.getSubscriptionLimits(subscription?.tier || 'seeker');
+      const currentTier = subscription?.tier || 'seeker';
+      
+      // For free_trial users, use their trial_chosen_tier for feature access checks
+      const effectiveTier = currentTier === 'free_trial' && subscription?.trial_chosen_tier
+        ? subscription.trial_chosen_tier
+        : currentTier;
+      
+      const limits = subscriptionService.getSubscriptionLimits(currentTier);
 
       // Find restriction for this feature
       const restriction = this.restrictions.find(r => r.feature === feature);
@@ -152,8 +159,8 @@ class TierRestrictionService {
         return { hasAccess: true };
       }
 
-      // Check tier requirement
-      if (!this.hasTierAccess(subscription?.tier || 'seeker', restriction.requiredTier)) {
+      // Check tier requirement using effective tier (trial_chosen_tier for trials)
+      if (!this.hasTierAccess(effectiveTier, restriction.requiredTier)) {
         return {
           hasAccess: false,
           reason: 'tier_restriction',

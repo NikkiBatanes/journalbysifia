@@ -76,6 +76,8 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { pdfExportService } from '../utils/pdfExportService';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { Alert } from 'react-native';
 
 // Navigation types
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -303,6 +305,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // 2b. Advanced playbook hooks for prefetching and navigation
   const { prefetchForCurrentPlaybook } = useIntelligentPrefetching(userId || '');
+
+  // 2c. Feature access for PDF export
+  const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
 
   // 3. Context hooks
   const { actionSteps, setActionSteps, saveActionSteps } = useActionSteps();
@@ -1152,10 +1157,46 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const handleExportPDF = useCallback(() => {
     if (!playbook) {return;}
 
+    // Check feature access
+    if (!pdfExportAccess.hasAccess) {
+      const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
+      Alert.alert(
+        upgradePrompt?.title || 'Upgrade Required',
+        upgradePrompt?.message || 'PDF export is available with Growth and Transformation plans.',
+        [
+          { text: 'Maybe Later', style: 'cancel' },
+          {
+            text: upgradePrompt?.cta || 'Upgrade Now',
+            onPress: () => {
+              // Navigate to subscription screen
+              rootNavigation.navigate('OnboardingSalesOffer');
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // Get user name for dynamic replacement (same as cardData)
+    const userMeta: any = (user as any)?.user_metadata || {};
+    const firstName = userMeta.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+    const displayName = (user as any)?.displayName ||
+                       userMeta.full_name ||
+                       [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
+                       '';
+
     pdfExportService.exportPlaybookPDF({
       title: playbook.title,
-      truthInLove: typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text,
-      truthInLoveSummary: typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove?.summary,
+      truthInLove: replaceAllNamePlaceholders(
+        typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text || '',
+        { firstName, displayName },
+        { replaceHardcodedNames: true }
+      ),
+      truthInLoveSummary: replaceAllNamePlaceholders(
+        typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove?.summary || '',
+        { firstName, displayName },
+        { replaceHardcodedNames: true }
+      ),
       bibleVerse: playbook.bibleVerse,
       actionSteps: playbook.actionSteps?.map(step => {
         // Derive examples similar to ActionStepsCard
@@ -1182,11 +1223,21 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           examples,
         };
       }),
-      affirmations: playbook.affirmations?.map(a => a.text) || [],
-      directChallenge: typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text,
+      affirmations: playbook.affirmations?.map(a => 
+        replaceAllNamePlaceholders(
+          a.text,
+          { firstName, displayName },
+          { replaceHardcodedNames: true }
+        )
+      ) || [],
+      directChallenge: replaceAllNamePlaceholders(
+        typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text || '',
+        { firstName, displayName },
+        { replaceHardcodedNames: true }
+      ),
       createdAt: playbook.createdAt,
     });
-  }, [playbook]);
+  }, [playbook, user, pdfExportAccess, rootNavigation]);
 
   // Header right component
   const headerRight = React.useCallback(() => (

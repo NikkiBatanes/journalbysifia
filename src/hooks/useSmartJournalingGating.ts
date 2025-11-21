@@ -36,25 +36,32 @@ export function useSmartJournalingGating(options: SmartJournalingGatingOptions =
 
   const result = useMemo(() => {
     const seekerBypassesLock = allowSeekerFreeForm && feature === 'reflection';
-    const isLocked = tier === 'seeker' && !seekerBypassesLock;
+    
+    // For free_trial users, use their trial_chosen_tier for access checks
+    const effectiveTier = tier === 'free_trial' && subscription?.trial_chosen_tier
+      ? subscription.trial_chosen_tier
+      : tier;
+    
+    // Restrict Seeker and Spark tiers - only Growth and Transformation can access
+    const isLocked = (effectiveTier === 'seeker' || effectiveTier === 'spark' || effectiveTier === 'spark_annual') && !seekerBypassesLock;
     const canUseFeature = !isLocked;
 
     const defaultMessages: Record<SmartJournalingFeature, string> = {
-      general: 'Upgrade to unlock Smart Journaling and track time blocks, gratitude, prayers, and reflections',
-      reflection: 'Upgrade to unlock guided prompts and premium journaling tools',
-      gratitude: 'Upgrade to unlock Smart Gratitude journaling with unlimited entries',
-      prayer: 'Upgrade to unlock Smart Prayer journaling and track answered prayers',
-      time_block: 'Upgrade to schedule time blocks and sync advanced journaling routines',
+      general: 'Upgrade to Growth or Transformation to unlock Smart Journaling and track time blocks, gratitude, prayers, and reflections',
+      reflection: 'Upgrade to Growth or Transformation to unlock guided prompts and premium journaling tools',
+      gratitude: 'Upgrade to Growth or Transformation to unlock Smart Gratitude journaling with unlimited entries',
+      prayer: 'Upgrade to Growth or Transformation to unlock Smart Prayer journaling and track answered prayers',
+      time_block: 'Upgrade to Growth or Transformation to schedule time blocks and sync advanced journaling routines',
     };
 
     return {
       isLocked,
-      tier,
+      tier: effectiveTier,
       canUseFeature,
       upgradeMessage: isLocked ? (customMessage || defaultMessages[feature] || defaultMessages.general) : '',
       feature,
     };
-  }, [allowSeekerFreeForm, customMessage, feature, tier]);
+  }, [allowSeekerFreeForm, customMessage, feature, tier, subscription?.trial_chosen_tier]);
 
   return result;
 }
