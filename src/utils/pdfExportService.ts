@@ -566,7 +566,8 @@ class PDFExportService {
       console.log('[PDF Export] Normalized challenge:', normalizedChallenge);
       
       // 1st item: capture everything after "1." up to (but not including) "2." or end of string
-      const firstMatch = normalizedChallenge.match(/1\.\s*([\s\S]*?)(?=2\.\s|$)/);
+      // Updated regex to handle "2." followed by any character (space, parenthesis, etc.)
+      const firstMatch = normalizedChallenge.match(/1\.\s*([\s\S]*?)(?=2\.|$)/);
       if (firstMatch && firstMatch[1] && firstMatch[1].trim()) {
         const item1 = firstMatch[1].trim();
         console.log('[PDF Export] Challenge item 1:', item1);
