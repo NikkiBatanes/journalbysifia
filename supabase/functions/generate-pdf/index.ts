@@ -64,37 +64,77 @@ serve(async (req) => {
 });
 
 /**
- * Generate PDF from HTML using HTML2PDF.app (free, no API key required)
- * Alternative: Use PDFShift, Puppeteer, or other services
+ * Generate PDF from HTML using Puppeteer
+ * More reliable than external services, runs directly in Edge Function
  */
 async function generatePDFFromHTML(html: string): Promise<Uint8Array> {
-  // Use HTML2PDF.app - a free, open-source HTML to PDF API
-  // No API key required for basic usage
-  const response = await fetch('https://html2pdf.app/api/v1/generate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      html,
-      engine: 'chrome',
-      pdf: {
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20px',
-          right: '20px',
-          bottom: '20px',
-          left: '20px',
-        },
+  try {
+    // Import Puppeteer for Deno
+    const puppeteer = await import('https://deno.land/x/puppeteer@16.2.0/mod.ts');
+    
+    // Launch browser
+    const browser = await puppeteer.default.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    
+    const page = await browser.newPage();
+    
+    // Set content and wait for it to load
+    await page.setContent(html, {
+      waitUntil: 'networkidle0',
+    });
+    
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20px',
+        right: '20px',
+        bottom: '20px',
+        left: '20px',
       },
-    }),
-  });
+    });
+    
+    await browser.close();
+    
+    return new Uint8Array(pdfBuffer);
+  } catch (error) {
+    console.error('Puppeteer PDF generation failed:', error);
+    
+    // Fallback: Try html2pdf.app as backup
+    try {
+      const response = await fetch('https://html2pdf.app/api/v1/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          html,
+          engine: 'chrome',
+          pdf: {
+            format: 'A4',
+            printBackground: true,
+            margin: {
+              top: '20px',
+              right: '20px',
+              bottom: '20px',
+              left: '20px',
+            },
+          },
+        }),
+      });
 
-  if (!response.ok) {
-    throw new Error(`PDF service error: ${response.statusText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`PDF service error: ${response.status} - ${errorText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      return new Uint8Array(arrayBuffer);
+    } catch (fallbackError) {
+      console.error('Fallback PDF service also failed:', fallbackError);
+      throw new Error('Both Puppeteer and fallback PDF service failed. Please try again later.');
+    }
   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
 }
