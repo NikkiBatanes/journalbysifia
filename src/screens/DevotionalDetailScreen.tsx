@@ -819,7 +819,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 }
               }}
             >
-              <Ionicons name="share-outline" size={24} color={Colors.hopeWhite} />
+              <Ionicons name="share-outline" size={18} color={Colors.hopeWhite} />
             </TouchableOpacity>
           )}
         </View>

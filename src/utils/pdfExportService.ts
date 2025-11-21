@@ -758,7 +758,11 @@ class PDFExportService {
   async exportDevotionalPDF(data: DevotionalPDFData): Promise<void> {
     try {
       const html = this.generateDevotionalHTML(data);
-      const fileName = `siFia_Devotional_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
+      const devotionalSlug = data.title
+        .trim()
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-+|-+$/g, '');
+      const fileName = `siFia-Devotional-${devotionalSlug || 'Devotional'}-${Date.now()}`;
 
       Logger.debug('[PDFExportService] Generating PDF with native renderer', {
         component: 'pdfExportService',
@@ -800,7 +804,6 @@ class PDFExportService {
       Logger.error('[PDFExportService] Failed to export devotional PDF', error as Error, {
         component: 'pdfExportService',
       });
-      Alert.alert('Export Failed', 'Unable to export devotional as PDF. Please try again.');
     }
   }
 
@@ -810,7 +813,11 @@ class PDFExportService {
   async exportPlaybookPDF(data: PlaybookPDFData): Promise<void> {
     try {
       const html = this.generatePlaybookHTML(data);
-      const fileName = `siFia_Playbook_${data.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
+      const playbookSlug = data.title
+        .trim()
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-+|-+$/g, '');
+      const fileName = `siFia-Playbook-${playbookSlug || 'Playbook'}-${Date.now()}`;
 
       Logger.debug('[PDFExportService] Generating playbook PDF with native renderer', {
         component: 'pdfExportService',
