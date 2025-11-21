@@ -1392,7 +1392,6 @@ const styles = StyleSheet.create({
     padding: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    flex: 1,
   },
   questionCardNumber: {
     color: Colors.hopeWhite,
