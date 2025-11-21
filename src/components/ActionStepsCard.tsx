@@ -1189,16 +1189,28 @@ export default function ActionStepsCard({
             <ThemedText style={styles.tooltipSubtitle}>You'll see the text in a focused bubble, then choose a journal type:</ThemedText>
             <View style={styles.tooltipList}>
               <View style={styles.tooltipItemRow}>
-                <ThemedText style={styles.tooltipItemText}>💡 Reflection</ThemedText>
+                <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.reflectionBlue }]}>
+                  <MaterialCommunityIcons name="head-lightbulb" size={16} color={Colors.hopeWhite} />
+                </View>
+                <ThemedText style={styles.tooltipItemText}>Reflection</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
-                <ThemedText style={styles.tooltipItemText}>🙏 Prayer</ThemedText>
+                <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.prayerPurple }]}>
+                  <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.hopeWhite} />
+                </View>
+                <ThemedText style={styles.tooltipItemText}>Prayer</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
-                <ThemedText style={styles.tooltipItemText}>❤️ Gratitude</ThemedText>
+                <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.gratitudeRed }]}>
+                  <MaterialCommunityIcons name="heart" size={16} color={Colors.hopeWhite} />
+                </View>
+                <ThemedText style={styles.tooltipItemText}>Gratitude</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
-                <ThemedText style={styles.tooltipItemText}>⏰ Time Block</ThemedText>
+                <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.timeblockGreen }]}>
+                  <MaterialCommunityIcons name="clock" size={16} color={Colors.hopeWhite} />
+                </View>
+                <ThemedText style={styles.tooltipItemText}>Time Block</ThemedText>
               </View>
             </View>
             <View style={styles.tooltipCaret} />
@@ -1694,8 +1706,8 @@ const styles = StyleSheet.create({
   },
   tooltipKicker: {
     color: 'rgba(255,255,255,0.9)',
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     marginBottom: 4,
   },
   tooltipTitle: {
@@ -1706,7 +1718,8 @@ const styles = StyleSheet.create({
   },
   tooltipSubtitle: {
     color: 'rgba(255,255,255,0.9)',
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
     marginBottom: 2,
   },
   tooltipList: {
@@ -1718,15 +1731,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  tooltipIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
   tooltipItemText: {
     color: 'rgba(255,255,255,0.9)',
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 18,
     flexShrink: 1,
   },
   tooltipCaret: {
     position: 'absolute',
-    right: 24,
+    right: 110,
     top: -6,
     width: 12,
     height: 12,
