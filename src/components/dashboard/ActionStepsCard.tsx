@@ -12,8 +12,10 @@ import {
   FlatList,
   Animated,
   DeviceEventEmitter,
+  Alert
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Pencil, AlertCircle } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -71,6 +73,24 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   const [visibleCount, setVisibleCount] = useState<number>(3);
   const stepAnimations = useRef<{[stepId: string]: Animated.Value}>({}).current;
   // Example modal removed per request; keep UI simple and non-interactive
+
+  const handleSmartJournalingInfo = () => {
+    triggerLightHaptic();
+    Alert.alert(
+      'Smart Journaling',
+      [
+        'Long press any subtask or suggestion to open Smart Journaling.',
+        '',
+        'You\'ll see the text in a focused bubble, then choose a journal type:',
+        '- Reflection',
+        '- Prayer',
+        '- Gratitude',
+        '- Time Block',
+        '',
+        'You can also Copy or Share the text.',
+      ].join('\n'),
+    );
+  };
 
   const logEvent = useCallback(async () => {
     try {
@@ -580,6 +600,34 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         renderEmptyState()
       ) : (
         <>
+          <View style={styles.header}>
+            <ThemedText weight="semiBold" style={styles.titleText}>
+              Action Steps
+            </ThemedText>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={styles.smartJournalHelperButton}
+                onPress={handleSmartJournalingInfo}
+                activeOpacity={0.7}
+              >
+                <Pencil
+                  width={14}
+                  height={14}
+                  color={'rgba(255,255,255,0.85)'}
+                  strokeWidth={2.2}
+                />
+              </TouchableOpacity>
+              {_onViewAll && (
+                <TouchableOpacity style={styles.viewAllButton} onPress={() => { triggerLightHaptic(); _onViewAll(); }}>
+                  <ThemedText weight="semiBold" style={styles.viewAllText}>
+                    View all
+                  </ThemedText>
+                  <Ionicons name="chevron-forward" size={14} color={Colors.alertCoral} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
           <FlatList
             data={visibleSteps}
             renderItem={renderActionStep}
@@ -693,8 +741,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+  },
+  smartJournalHelperButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   stepHeaderMain: {
     flexDirection: 'row',

@@ -3,7 +3,8 @@ import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter } from 'react-native';
+import { Pencil } from 'lucide-react-native';
+import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter, Alert } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -763,6 +764,24 @@ export default function ActionStepsCard({
     color: completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)'),
   });
 
+  const handleInfoPress = () => {
+    triggerLightHaptic();
+    Alert.alert(
+      'Smart Journaling',
+      [
+        'Long press any subtask or suggestion to open Smart Journaling.',
+        '',
+        'You\'ll see the text in a focused bubble, then choose a journal type:',
+        '- Reflection',
+        '- Prayer',
+        '- Gratitude',
+        '- Time Block',
+        '',
+        'You can also Copy or Share the text.',
+      ].join('\n'),
+    );
+  };
+
   return (
     <>
       <View style={style}>
@@ -774,16 +793,38 @@ export default function ActionStepsCard({
             color={Colors.alertCoral}
             style={styles.icon}
           />
-          <ThemedText weight="bold" style={[
-            styles.heading,
-            textColor ? { color: textColor } : {},
-          ]}>
+          <ThemedText
+            weight="bold"
+            style={[
+              styles.heading,
+              textColor ? { color: textColor } : {},
+            ]}
+          >
             {titleOverride ? titleOverride : `${steps.length} Action Steps`}
           </ThemedText>
+          {expanded && (
+            <TouchableOpacity
+              style={styles.infoButtonInline}
+              onPress={handleInfoPress}
+              activeOpacity={0.7}
+            >
+              <Pencil
+                width={14}
+                height={14}
+                color={textColor ? textColor : 'rgba(255,255,255,0.8)'}
+                strokeWidth={2.2}
+              />
+            </TouchableOpacity>
+          )}
         </View>
         {expanded && showCloseButton && (
           <View style={styles.closeButtonContainer}>
-            <Ionicons name="close" size={18} color={textColor || Colors.hopeWhite} style={styles.closeButton} />
+            <Ionicons
+              name="close"
+              size={18}
+              color={textColor || Colors.hopeWhite}
+              style={styles.closeButton}
+            />
           </View>
         )}
       </View>
@@ -809,7 +850,7 @@ export default function ActionStepsCard({
 
               // First, check if step has examples field from database
               if ((step as any).examples && typeof (step as any).examples === 'string') {
-                // Split examples by "Example:" and clean them up
+                // Split examples by legacy "Example:" markers and clean them up
                 const exampleText = (step as any).examples;
                 const exampleMatches = exampleText.split(/Example:\s*/i).filter((text: string) => text.trim().length > 0);
                 examples = exampleMatches.map((ex: string, i: number) => ({
@@ -823,7 +864,7 @@ export default function ActionStepsCard({
                   text: ex,
                 }));
               } else {
-                // Fallback: extract from sub-tasks that start with "Example:"
+                // Fallback: extract from sub-tasks that start with legacy "Example:"
                 examples = (step.subTasks || [])
                   .filter((st) => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:'))
                   .map((st, i) => ({
@@ -849,11 +890,11 @@ export default function ActionStepsCard({
                 });
               }
 
-              // If showExampleSubtasksInline and we have examples from database, add them as subtasks
+              // If showExampleSubtasksInline and we have examples from database, add them as subtasks (as Suggestions)
               if (showExampleSubtasksInline && examples.length > 0) {
                 const exampleSubtasks = examples.map((ex) => ({
                   id: ex.id,
-                  text: `Example: ${ex.text}`,
+                  text: `Suggestion: ${ex.text}`,
                   completed: false,
                   isExample: true,
                   is_example: true,
@@ -1151,6 +1192,27 @@ const styles = StyleSheet.create({
     ...Typography.interBold,
     fontSize: 20,
     color: Colors.hopeWhite,
+  },
+  infoButtonInline: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoButtonContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   closeButtonContainer: {
     width: 28,

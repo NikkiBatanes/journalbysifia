@@ -215,7 +215,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
               <View style={[styles.iconCircle, { backgroundColor: option.color }]}>
                 <MaterialCommunityIcons
                   name={option.icon}
-                  size={28}
+                  size={18}
                   color={Colors.hopeWhite}
                 />
               </View>
@@ -331,9 +331,9 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
