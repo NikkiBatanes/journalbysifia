@@ -4,7 +4,9 @@
  */
 
 import { Platform, Alert } from 'react-native';
-import * as RNHTMLtoPDF from 'react-native-html-to-pdf';
+// Use require to ensure the native module loads correctly at runtime
+
+const RNHTMLtoPDF: any = require('react-native-html-to-pdf');
 import Share from 'react-native-share';
 import { Logger } from './ProductionLogger';
 

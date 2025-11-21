@@ -508,12 +508,12 @@ export class OnboardingService {
       const { error: profileError } = await this.supabase
         .from('user_profiles')
         .upsert(
-          { 
-            id: userId, 
+          {
+            id: userId,
             onboarding_completed: true,
             updated_at: new Date().toISOString(),
           },
-          { 
+          {
             onConflict: 'id',
             ignoreDuplicates: false, // Always update if exists
           }
