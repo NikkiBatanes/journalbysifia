@@ -1185,32 +1185,32 @@ export default function ActionStepsCard({
             pointerEvents="box-none"
           >
             <ThemedText weight="semiBold" style={styles.tooltipKicker}>Smart Journaling</ThemedText>
-            <ThemedText weight="bold" style={styles.tooltipTitle}>Long press any subtask or suggestion to open Smart Journaling.</ThemedText>
-            <ThemedText style={styles.tooltipSubtitle}>You'll see the text in a focused bubble, then choose a journal type:</ThemedText>
+            <ThemedText weight="semiBold" style={styles.tooltipTitle}>Long press any subtask or suggestion to open Smart Journaling.</ThemedText>
+            <ThemedText weight="semiBold" style={styles.tooltipSubtitle}>You'll see the text in a focused bubble, then choose a journal type:</ThemedText>
             <View style={styles.tooltipList}>
               <View style={styles.tooltipItemRow}>
                 <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.reflectionBlue }]}>
-                  <MaterialCommunityIcons name="head-lightbulb" size={16} color={Colors.hopeWhite} />
+                  <MaterialCommunityIcons name="head-lightbulb" size={20} color={Colors.hopeWhite} />
                 </View>
-                <ThemedText style={styles.tooltipItemText}>Reflection</ThemedText>
+                <ThemedText weight="semiBold" style={styles.tooltipItemText}>Reflection</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
                 <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.prayerPurple }]}>
-                  <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.hopeWhite} />
+                  <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.hopeWhite} />
                 </View>
-                <ThemedText style={styles.tooltipItemText}>Prayer</ThemedText>
+                <ThemedText weight="semiBold" style={styles.tooltipItemText}>Prayer</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
                 <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.gratitudeRed }]}>
-                  <MaterialCommunityIcons name="heart" size={16} color={Colors.hopeWhite} />
+                  <MaterialCommunityIcons name="heart" size={20} color={Colors.hopeWhite} />
                 </View>
-                <ThemedText style={styles.tooltipItemText}>Gratitude</ThemedText>
+                <ThemedText weight="semiBold" style={styles.tooltipItemText}>Gratitude</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
                 <View style={[styles.tooltipIconCircle, { backgroundColor: Colors.timeblockGreen }]}>
-                  <MaterialCommunityIcons name="clock" size={16} color={Colors.hopeWhite} />
+                  <MaterialCommunityIcons name="clock" size={20} color={Colors.hopeWhite} />
                 </View>
-                <ThemedText style={styles.tooltipItemText}>Time Block</ThemedText>
+                <ThemedText weight="semiBold" style={styles.tooltipItemText}>Time Block</ThemedText>
               </View>
             </View>
             <View style={styles.tooltipCaret} />
@@ -1706,8 +1706,8 @@ const styles = StyleSheet.create({
   },
   tooltipKicker: {
     color: 'rgba(255,255,255,0.9)',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 20,
     marginBottom: 4,
   },
   tooltipTitle: {
@@ -1732,9 +1732,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tooltipIconCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
