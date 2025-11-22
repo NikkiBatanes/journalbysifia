@@ -126,9 +126,26 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
+  const isTablet = screenSize.width >= 768;
+  
+  // Debug: Log actual screen dimensions
+  console.log('🔍 SCREEN DEBUG:', {
+    width: screenSize.width,
+    height: screenSize.height,
+    isTablet,
+  });
+  
+  // Proper device classification based on actual iPhone dimensions (in points)
+  // Adjusted threshold based on actual SE reporting 844 height
+  const isSmallPhone = !isTablet && screenSize.height <= 850; // Covers SE (844) and older SE (667)
+  const isRegularPhone = !isTablet && screenSize.height > 850 && screenSize.height < 950; // iPhone 17: 402x874
+  
+  console.log('🔍 DEVICE CLASSIFICATION:', {
+    isSmallPhone,
+    isRegularPhone,
+    isTablet,
+  });
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
-  // Detect small screens (iPhone SE: 667px, iPhone 8: 667px, iPhone 8 Plus: 736px)
-  const isSmallScreen = screenSize.height <= 667;
   // Width of the actual FlatList viewport; defaults to screen, but measured on layout
   const [listWidth, setListWidth] = useState(screenSize.width);
   const { isAuthenticated, user } = useAuth();
@@ -331,7 +348,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const renderSlide = ({ item }: { item: Slide }) => (
     <View style={[styles.slideContainer, { width: listWidth || screenSize.width }]}>
       {/* Slide Icon */}
-      <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }, isSmallScreen && styles.iconContainerSmall]}>
+      <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
         {item.useLucidePencil ? (
           <LucidePencil
             size={item.iconSize || 60}
@@ -344,10 +361,10 @@ const OnboardingWelcomeScreen: React.FC = () => {
       </View>
 
       {/* Slide Title */}
-      <ThemedText weight="bold" style={[styles.slideTitle, isSmallScreen && styles.slideTitleSmall]}>{item.title}</ThemedText>
+      <ThemedText weight="bold" style={styles.slideTitle}>{item.title}</ThemedText>
 
       {/* Slide Subtitle */}
-      <ThemedText style={[styles.slideSubtitle, isSmallScreen && styles.slideSubtitleSmall]}>{item.subtitle}</ThemedText>
+      <ThemedText style={styles.slideSubtitle}>{item.subtitle}</ThemedText>
 
       {/* Features List */}
       <View style={[{ width: contentWidth }, styles.centeredContainer]}>
@@ -367,9 +384,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
     <OnboardingErrorBoundary>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <View style={[OnboardingStyles.innerContainer, { paddingBottom: isSmallScreen ? 10 : 60 }]}>
+        <View style={OnboardingStyles.innerContainer}>
         {/* Logo Section */}
-        <View style={[styles.logoSection, isSmallScreen && styles.logoSectionSmall]}>
+        <View style={styles.logoSection}>
           <Image
             source={require('../../../assets/icons/siFiaTransparent.png')}
             style={styles.logoImage}
@@ -401,7 +418,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Navigation Dots */}
-        <View style={[styles.dotsContainer, { width: contentWidth }, styles.centeredContainer, isSmallScreen && styles.dotsContainerSmall]}>
+        <View style={[styles.dotsContainer, { width: contentWidth }, styles.centeredContainer]}>
           {slides.map((_, index) => (
             <TouchableOpacity
               key={index}
@@ -418,7 +435,17 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Action Buttons */}
-        <View style={[styles.buttonSection, { width: contentWidth }, styles.centeredContainer, isSmallScreen && styles.buttonSectionSmall]}>
+        <View
+          style={[
+            styles.buttonSection,
+            {
+              width: contentWidth,
+              // Device-specific button positioning based on actual screen dimensions
+              marginTop: isTablet ? 250 : (isSmallPhone ? -80 : (isRegularPhone ? 50 : 0)),
+            },
+            styles.centeredContainer,
+          ]}
+        >
           <TouchableOpacity
             style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleCreateAccount}
@@ -441,7 +468,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Terms Text */}
-        <ThemedText style={[styles.termsText, { width: contentWidth }, styles.centeredContainer, isSmallScreen && styles.termsTextSmall]}>
+        <ThemedText style={[styles.termsText, { width: contentWidth }, styles.centeredContainer]}>
           By continuing, you agree to our{' '}
           <ThemedText
             style={styles.linkText}
@@ -475,10 +502,6 @@ const styles = StyleSheet.create({
     marginTop: 56,
     marginBottom: OnboardingSpacing.md,
   },
-  logoSectionSmall: {
-    marginTop: 40,
-    marginBottom: 8,
-  },
   logoImage: {
     width: 120,
     height: 120,
@@ -506,30 +529,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconContainerSmall: {
-    marginBottom: 16,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-  },
   slideTitle: {
     ...OnboardingStyles.mainTitle,
     marginBottom: OnboardingSpacing.md,
     textAlign: 'center',
   },
-  slideTitleSmall: {
-    marginBottom: 8,
-    fontSize: 20,
-    lineHeight: 24,
-  },
   slideSubtitle: {
     ...OnboardingStyles.subtitle,
     marginBottom: OnboardingSpacing.xxl,
     textAlign: 'center',
-  },
-  slideSubtitleSmall: {
-    marginBottom: 16,
-    fontSize: 14,
   },
   featuresList: {
     ...OnboardingStyles.featuresList,
@@ -545,10 +553,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     paddingHorizontal: 24,
   },
-  dotsContainerSmall: {
-    marginTop: 12,
-    marginBottom: 20,
-  },
   dot: OnboardingStyles.dot,
   activeDot: OnboardingStyles.activeDot,
 
@@ -556,10 +560,7 @@ const styles = StyleSheet.create({
   buttonSection: {
     width: '100%',
     paddingHorizontal: 24,
-    marginBottom: 40,
-  },
-  buttonSectionSmall: {
-    marginBottom: 8,
+    marginBottom: OnboardingSpacing.lg,
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
@@ -594,11 +595,7 @@ const styles = StyleSheet.create({
   termsText: {
     ...OnboardingStyles.termsText,
     paddingHorizontal: 24,
-    marginBottom: 48,
-  },
-  termsTextSmall: {
-    marginBottom: 12,
-    fontSize: 11,
+    marginBottom: 20,
   },
   linkText: OnboardingStyles.linkText,
   iconMarginTop: {

@@ -184,7 +184,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <View style={[styles.contentContainer, { width: contentWidth, paddingBottom: 60 }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
+      <View style={[styles.contentContainer, { width: contentWidth }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
         {/* Logo */}
         <Image
           source={require('../../assets/icons/siFiaTransparent.png')}
@@ -278,7 +278,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Terms and Privacy */}
-        <View style={[styles.termsContainer, { paddingBottom: Math.max(insets.bottom, 40) }]}>
+        <View style={[styles.termsContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <ThemedText style={styles.termsText}>
             By continuing, you agree to our{' '}
             <ThemedText
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 60, // Increase from 40 to 60 for iPhone SE
+    paddingBottom: 40,
   },
   contentContainer: {
     flex: 1,

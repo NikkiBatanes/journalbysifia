@@ -54,6 +54,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
+  const isTablet = screenSize.width >= 768;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -154,7 +155,13 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
             {/* Button */}
             <TouchableOpacity
-              style={[OnboardingStyles.primaryButton, styles.startButton, styles.startButtonFullWidth, isLoading && OnboardingStyles.buttonDisabled]}
+              style={[
+                OnboardingStyles.primaryButton,
+                styles.startButton,
+                styles.startButtonFullWidth,
+                !isTablet && { marginBottom: 52 },
+                isLoading && OnboardingStyles.buttonDisabled,
+              ]}
               onPress={handleContinue}
               disabled={isLoading}
             >
@@ -174,10 +181,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: OnboardingStyles.container,
-  content: {
-    ...OnboardingStyles.content,
-    paddingBottom: 100, // Increase from 40 to 80 for iPhone SE
-  },
+  content: OnboardingStyles.content,
   logoSection: {
     ...OnboardingStyles.logoSection,
     marginBottom: OnboardingSpacing.md,
