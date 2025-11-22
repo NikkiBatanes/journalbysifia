@@ -257,7 +257,7 @@ const UserInputScreen: React.FC = () => {
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
-  const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -200 : -80)).current; // in iPad landscape, start high up
+  const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -200 : -16)).current; // in iPad landscape, start high up
   const headerScale = useRef(new Animated.Value(1)).current;
   const headerIntroOpacity = useRef(new Animated.Value(0)).current;
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
@@ -271,10 +271,10 @@ const UserInputScreen: React.FC = () => {
       Animated.delay(220), // small delay to let modal finish sliding
       Animated.parallel([
         Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
-        // In iPad landscape, keep logo at -200; otherwise animate to -250 in portrait
+        // In iPad landscape, keep logo at -200; otherwise animate to 0 in portrait
         Animated.timing(
           headerTranslateY,
-          { toValue: isPad && isLandscape ? -200 : -250, duration: 320, useNativeDriver: true }
+          { toValue: isPad && isLandscape ? -200 : 0, duration: 320, useNativeDriver: true }
         ),
         Animated.sequence([
           Animated.delay(100),
@@ -323,7 +323,7 @@ const UserInputScreen: React.FC = () => {
     // Return logo to original position when keyboard closes
     Animated.parallel([
       Animated.spring(headerTranslateY, {
-        toValue: isPad && isLandscape ? -200 : -250,
+        toValue: isPad && isLandscape ? -200 : 0,
         useNativeDriver: true,
         stiffness: 200,
         damping: 20,
