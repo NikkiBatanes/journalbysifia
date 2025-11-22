@@ -326,7 +326,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         visible={visible}
         animationType="slide"
         transparent={false}
-        presentationStyle="overFullScreen"
         onRequestClose={handleCancel}
       >
           <TimeBlockLogEditor

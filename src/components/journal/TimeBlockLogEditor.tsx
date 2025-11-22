@@ -140,6 +140,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
   contentCard: {
     flex: 1,
@@ -147,6 +148,7 @@ const createDefaultStyles = (fonts: any) => ({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
+    marginTop: 2,
   },
   content: {
     flex: 1,

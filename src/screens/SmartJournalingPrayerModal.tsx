@@ -485,7 +485,6 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         visible={visible}
         animationType="slide"
         transparent={false}
-        presentationStyle="overFullScreen"
         onRequestClose={onCancel}
       >
           <PrayerLogEditor

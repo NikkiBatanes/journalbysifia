@@ -64,6 +64,7 @@ const defaultStyles = {
   },
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
   scrollContent: {
     flexGrow: 1,
@@ -221,6 +222,7 @@ const defaultStyles = {
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
+    marginTop: 2,
   },
   content: {
     flex: 1,
