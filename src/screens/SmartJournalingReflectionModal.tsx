@@ -441,6 +441,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts'),
               } : undefined}
               isLoading={isLoading}
+              hideGuidedPromptButton={true}
             />
 
           {/* New success modal system - completely isolated and robust */}

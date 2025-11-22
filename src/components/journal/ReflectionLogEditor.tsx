@@ -56,6 +56,7 @@ interface ReflectionLogEditorProps {
   subtaskId?: string;
   styles?: any;
   isLoading?: boolean;
+  hideGuidedPromptButton?: boolean;
 }
 
 export interface ReflectionLogEditorRef {
@@ -402,6 +403,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     subtaskId,
     styles,
     isLoading = false,
+    hideGuidedPromptButton = false,
   },
   ref
 ) => {
@@ -1118,8 +1120,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             />
           </TouchableOpacity>
         )}
-        {/* Hide guided prompt icon for devotional and playbook sources */}
-        {!isEditing && source !== 'devotional' && source !== 'playbook' && (
+        {/* Hide guided prompt icon for devotional, playbook sources, or when explicitly hidden */}
+        {!isEditing && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
             disabled={!!selectedPrompt || viewMode === 'guided'} // Disable when active
