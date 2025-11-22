@@ -239,8 +239,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   } = React.useMemo(() => {
     const ITEM_SPACING = 16;
     const isIPad = windowWidth >= 768;
-    // iPad: 70% width (10% narrower), iPhone: 80% width
-    const widthRatio = isIPad ? 0.70 : 0.80;
+    // iPad: 60% width (narrower cards), iPhone: 80% width
+    const widthRatio = isIPad ? 0.60 : 0.80;
     const itemWidth = Math.round(windowWidth * widthRatio);
     return { ITEM_SPACING, ITEM_WIDTH: itemWidth };
   }, [windowWidth]);
@@ -1274,7 +1274,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         style={{
                           width: STACKED_CARD_WIDTH,
                           // Allow content to scroll under footer; we'll add a spacer to clear it
-                          height: Math.max(260, windowHeight - _headerH - insets.top - 100),
+                          // On iPad, use less offset so expanded card occupies more vertical space
+                          height: Math.max(260, windowHeight - _headerH - insets.top - (isTablet ? -120 : 100)),
                           borderRadius: 30,
                         }}
                         contentContainerStyle={{ paddingBottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700) }}

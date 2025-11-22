@@ -1803,7 +1803,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       {
                         width: STACKED_CARD_WIDTH,
                         // Allow content to scroll under footer; we'll add padding to clear it
-                        maxHeight: windowHeight - playbookHeaderHeight - insets.top - 100,
+                        // On iPad, use less offset so expanded card occupies more vertical space
+                        maxHeight: windowHeight - playbookHeaderHeight - insets.top - (isTablet ? -120 : 100),
                       },
                     ]}
                   contentContainerStyle={{
