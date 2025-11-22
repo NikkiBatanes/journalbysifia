@@ -89,6 +89,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     trialEndDate: string | null;
   } | null>(null);
   const [creationError, setCreationError] = useState<Error | null>(null);
+  // Treat shorter devices (e.g., SE-class phones) as small so modal can use a bit more height
+  const isSmallPhone = SCREEN_HEIGHT <= 850;
 
   // Feature gating
   const devotionalGating = useDevotionalGating();
@@ -511,6 +513,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           ref={contentRef}
           style={[
             styles.modalContainer,
+            // On small phones, allow the modal to occupy slightly more vertical space so the footer stays visible
+            isSmallPhone && { maxHeight: '92%' },
             { transform: [{ translateY }] },
           ]}
           onLayout={measureContent}
