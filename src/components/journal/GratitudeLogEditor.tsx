@@ -64,6 +64,9 @@ const defaultStyles = {
   },
   keyboardAvoidingView: {
     flex: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
   },
   scrollContent: {
     flexGrow: 1,

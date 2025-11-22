@@ -105,7 +105,7 @@ const fallbackStyles = {
   header: { padding: 16 },
   title: { fontSize: 18, fontWeight: 'bold', color: Colors.hopeWhite, marginBottom: 8 },
 
-  keyboardAvoidingView: { flex: 1 },
+  keyboardAvoidingView: { flex: 1, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden', backgroundColor: Colors.anchorBlue },
   contentCard: { flex: 1, backgroundColor: 'rgba(26,60,109,0.08)', borderTopLeftRadius: 30, borderTopRightRadius: 30, marginHorizontal: 0, marginTop: 0, marginBottom: 16, padding: 16 },
   content: { flex: 1 },
   scrollContent: { flexGrow: 1 },

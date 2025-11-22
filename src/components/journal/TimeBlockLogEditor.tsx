@@ -143,6 +143,9 @@ const createDefaultStyles = (fonts: any) => ({
   },
   keyboardAvoidingView: {
     flex: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
   },
   contentCard: {
     flex: 1,
