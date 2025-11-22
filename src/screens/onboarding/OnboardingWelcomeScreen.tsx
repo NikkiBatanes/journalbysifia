@@ -127,6 +127,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
+  // Detect small screens (iPhone SE, etc.) - height < 700
+  const isSmallScreen = screenSize.height < 700;
   // Width of the actual FlatList viewport; defaults to screen, but measured on layout
   const [listWidth, setListWidth] = useState(screenSize.width);
   const { isAuthenticated, user } = useAuth();
@@ -365,7 +367,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     <OnboardingErrorBoundary>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <View style={[OnboardingStyles.innerContainer, { paddingBottom: 60 }]}>
+        <View style={[OnboardingStyles.innerContainer, { paddingBottom: isSmallScreen ? 20 : 60 }]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Image
@@ -470,8 +472,8 @@ const styles = StyleSheet.create({
   logoSection: {
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,
-    marginTop: 56,
-    marginBottom: OnboardingSpacing.md,
+    marginTop: 40, // Reduced from 56 for small screens
+    marginBottom: 8, // Reduced from 12
   },
   logoImage: {
     width: 120,
@@ -493,22 +495,25 @@ const styles = StyleSheet.create({
   // Slide Content Styles
   iconContainer: {
     ...OnboardingStyles.iconContainer,
-    marginBottom: 24,
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    marginBottom: 16, // Reduced from 24
+    width: 70, // Reduced from 90
+    height: 70, // Reduced from 90
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
   },
   slideTitle: {
     ...OnboardingStyles.mainTitle,
-    marginBottom: OnboardingSpacing.md,
+    marginBottom: 8, // Reduced from 12
     textAlign: 'center',
+    fontSize: 20, // Reduced from 24
+    lineHeight: 24,
   },
   slideSubtitle: {
     ...OnboardingStyles.subtitle,
-    marginBottom: OnboardingSpacing.xxl,
+    marginBottom: 16, // Reduced from 24
     textAlign: 'center',
+    fontSize: 14, // Reduced from 15
   },
   featuresList: {
     ...OnboardingStyles.featuresList,
@@ -520,8 +525,8 @@ const styles = StyleSheet.create({
   // Navigation Dots
   dotsContainer: {
     ...OnboardingStyles.dotsContainer,
-    marginTop: 20,
-    marginBottom: 40,
+    marginTop: 12, // Reduced from 20
+    marginBottom: 20, // Reduced from 40
     paddingHorizontal: 24,
   },
   dot: OnboardingStyles.dot,
@@ -531,7 +536,7 @@ const styles = StyleSheet.create({
   buttonSection: {
     width: '100%',
     paddingHorizontal: 24,
-    marginBottom: 40,
+    marginBottom: 16, // Reduced from 40
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
@@ -566,7 +571,8 @@ const styles = StyleSheet.create({
   termsText: {
     ...OnboardingStyles.termsText,
     paddingHorizontal: 24,
-    marginBottom: 48,
+    marginBottom: 24, // Reduced from 48
+    fontSize: 11, // Reduced from 12
   },
   linkText: OnboardingStyles.linkText,
   iconMarginTop: {
