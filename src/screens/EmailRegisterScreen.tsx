@@ -46,9 +46,9 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   // Maximum scroll based on content size (prevents blank space past the end)
   const maxScrollableY = useMemo(() => Math.max(0, contentH - svH), [contentH, svH]);
 
-  // Dynamic bottom padding for Android when keyboard is visible
+  // Dynamic bottom padding for Android when keyboard is visible (minimum 40px for iPhone SE)
   const keyboardPaddingStyle = useMemo(() => ({
-    paddingBottom: 8 + Math.max(0, keyboardHeight - 8),
+    paddingBottom: Math.max(40, 8 + Math.max(0, keyboardHeight - 8)),
   }), [keyboardHeight]);
 
   const handleRegister = async () => {

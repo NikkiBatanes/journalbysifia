@@ -444,7 +444,7 @@ const OnboardingNotificationSetupScreen = () => {
       </ScrollView>
 
       {/* Sticky Footer Actions */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 2 }] }>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 2, 40) }] }>
         <TouchableOpacity style={styles.enableButton} onPress={handleEnableNotifications}>
           <ThemedText weight="bold" style={styles.enableButtonText}>Enable Notifications</ThemedText>
         </TouchableOpacity>

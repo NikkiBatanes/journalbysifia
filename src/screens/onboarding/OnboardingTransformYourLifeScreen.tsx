@@ -174,7 +174,10 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: OnboardingStyles.container,
-  content: OnboardingStyles.content,
+  content: {
+    ...OnboardingStyles.content,
+    paddingBottom: 100, // Increase from 40 to 80 for iPhone SE
+  },
   logoSection: {
     ...OnboardingStyles.logoSection,
     marginBottom: OnboardingSpacing.md,

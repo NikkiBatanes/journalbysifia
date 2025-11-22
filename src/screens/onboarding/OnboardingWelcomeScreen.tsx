@@ -365,7 +365,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     <OnboardingErrorBoundary>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <View style={OnboardingStyles.innerContainer}>
+        <View style={[OnboardingStyles.innerContainer, { paddingBottom: 60 }]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Image
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   buttonSection: {
     width: '100%',
     paddingHorizontal: 24,
-    marginBottom: OnboardingSpacing.lg,
+    marginBottom: 40,
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   termsText: {
     ...OnboardingStyles.termsText,
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 48,
   },
   linkText: OnboardingStyles.linkText,
   iconMarginTop: {

@@ -1078,11 +1078,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             // Add safe-area-aware bottom padding for better spacing above home indicator
             keyboardVisible
               ? (currentStep === totalSteps
-                  // Final step: "Create My Playbook" — minimal padding, safe-area only
-                  ? { paddingBottom: Math.max(insets?.bottom ?? 0, 0) }
-                  // Other steps: slightly reduced padding
-                  : { paddingBottom: Math.max(insets?.bottom ?? 0, 4) })
-              : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
+                  // Final step: "Create My Playbook" — minimal padding, safe-area only (minimum 40px for iPhone SE)
+                  ? { paddingBottom: Math.max(insets?.bottom ?? 0, 40) }
+                  // Other steps: slightly reduced padding (minimum 40px for iPhone SE)
+                  : { paddingBottom: Math.max(insets?.bottom ?? 0, 40) })
+              : { paddingBottom: Math.max(insets?.bottom ?? 0, 40) + 8 },
           ]}
         >
           <TouchableOpacity

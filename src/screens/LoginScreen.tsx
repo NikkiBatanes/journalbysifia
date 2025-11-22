@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 60, // Increase from 40 to 60 for iPhone SE
     justifyContent: 'flex-start',
   },
   contentContainer: {

@@ -1161,8 +1161,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               bottom: 0,
               // Collapse top padding when helper text is hidden (cards expanded)
               paddingTop: expandedCards.size === 0 ? 8 : 0,
-              // Keep footer at natural position with just safe area padding
-              paddingBottom: Math.max(insets.bottom, 8),
+              // Keep footer at natural position with safe area padding (minimum 40px for iPhone SE)
+              paddingBottom: Math.max(insets.bottom, 40),
               backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
             },
           ]}>
