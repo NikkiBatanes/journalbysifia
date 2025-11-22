@@ -1707,8 +1707,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             handlePrayerSaved();
           }
         }}
-        onCancel={() => { 
-          setShowPrayerModal(false); 
+        onCancel={() => {
+          setShowPrayerModal(false);
           setSelectedPrayerRequest(null);
           setSelectedReflection(null);
           setJournalSelectorContent('');

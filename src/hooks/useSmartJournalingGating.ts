@@ -36,12 +36,12 @@ export function useSmartJournalingGating(options: SmartJournalingGatingOptions =
 
   const result = useMemo(() => {
     const seekerBypassesLock = allowSeekerFreeForm && feature === 'reflection';
-    
+
     // For free_trial users, use their trial_chosen_tier for access checks
     const effectiveTier = tier === 'free_trial' && subscription?.trial_chosen_tier
       ? subscription.trial_chosen_tier
       : tier;
-    
+
     // Restrict Seeker and Spark tiers - only Growth and Transformation can access
     const isLocked = (effectiveTier === 'seeker' || effectiveTier === 'spark' || effectiveTier === 'spark_annual') && !seekerBypassesLock;
     const canUseFeature = !isLocked;

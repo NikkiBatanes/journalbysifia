@@ -421,10 +421,10 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
           let filteredTiers = tiers || [];
           if (fromGrowthOnlyFeature) {
             filteredTiers = filteredTiers.filter((t: any) => t.id !== 'spark');
-            logger.debug('Filtered out Spark tier for Growth+ feature in trial offer', { 
+            logger.debug('Filtered out Spark tier for Growth+ feature in trial offer', {
               source: routeParams?.source,
               feature: routeParams?.feature,
-              remainingTiers: filteredTiers.map((t: any) => t.id) 
+              remainingTiers: filteredTiers.map((t: any) => t.id),
             });
           }
           setPricingTiers(filteredTiers);
@@ -438,7 +438,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [fromGrowthOnlyFeature, routeParams?.feature, routeParams?.source]);
 
   const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'growth'); // POST-LAUNCH: fallback was 'family'
 

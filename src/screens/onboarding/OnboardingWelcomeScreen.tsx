@@ -127,19 +127,19 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
   const isTablet = screenSize.width >= 768;
-  
+
   // Debug: Log actual screen dimensions
   console.log('🔍 SCREEN DEBUG:', {
     width: screenSize.width,
     height: screenSize.height,
     isTablet,
   });
-  
+
   // Proper device classification based on actual iPhone dimensions (in points)
   // Adjusted threshold based on actual SE reporting 844 height
   const isSmallPhone = !isTablet && screenSize.height <= 850; // Covers SE (844) and older SE (667)
   const isRegularPhone = !isTablet && screenSize.height > 850 && screenSize.height < 950; // iPhone 17: 402x874
-  
+
   console.log('🔍 DEVICE CLASSIFICATION:', {
     isSmallPhone,
     isRegularPhone,

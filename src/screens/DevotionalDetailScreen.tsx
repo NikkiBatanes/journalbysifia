@@ -63,7 +63,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // Feature access for PDF export
   const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
-  
+
   // Debug: Log subscription and export access for Growth trial users
   useEffect(() => {
     if (user?.id) {
@@ -78,7 +78,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         });
       });
     }
-  }, [user?.id, pdfExportAccess.hasAccess]);
+  }, [user?.id, pdfExportAccess.hasAccess, pdfExportAccess.accessResult]);
 
   // React Query hooks for devotional data
   // Clean and validate devotional ID from route params to avoid simulator-only issues
@@ -825,7 +825,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               style={styles.exportButton}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                
+
                 // Check feature access
                 if (!pdfExportAccess.hasAccess) {
                   const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
@@ -848,7 +848,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   );
                   return;
                 }
-                
+
                 if (currentDay) {
                   pdfExportService.exportDevotionalPDF({
                     title: devotional.title,

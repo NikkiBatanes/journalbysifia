@@ -28,7 +28,7 @@ export const cleanText = (text: string): string => {
  * @returns Formatted verse text
  */
 export const formatBibleVerse = (verse: string): string => {
-  if (!verse) {return '';} 
+  if (!verse) {return '';}
 
   // 1) Clean base text
   let formatted = cleanText(verse);

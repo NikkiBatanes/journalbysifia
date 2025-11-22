@@ -1190,7 +1190,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
     // Get bible version from user preferences or default to NASB
     const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
-    
+
     pdfExportService.exportPlaybookPDF({
       title: playbook.title,
       truthInLove: replaceAllNamePlaceholders(
@@ -1232,7 +1232,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           examples,
         };
       }),
-      affirmations: playbook.affirmations?.map(a => 
+      affirmations: playbook.affirmations?.map(a =>
         replaceAllNamePlaceholders(
           a.text,
           { firstName, displayName },

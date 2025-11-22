@@ -108,7 +108,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Detect if coming from Growth+ only features (smart journaling or export)
   const fromGrowthOnlyFeature = fromSmartJournalingLock || fromExportRestriction;
-  const growthOnlyFeatureName = fromExportRestriction 
+  const growthOnlyFeatureName = fromExportRestriction
     ? (routeParams?.feature === 'export_pdf' ? 'PDF Export' : 'Word Export')
     : 'Smart Journaling';
 
@@ -236,9 +236,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         // Filter out Spark tier if coming from Growth+ only features
         if (fromGrowthOnlyFeature) {
           tiers = tiers.filter(t => t.id !== 'spark');
-          logger.debug('Filtered out Spark tier for Growth+ feature', { 
+          logger.debug('Filtered out Spark tier for Growth+ feature', {
             feature: growthOnlyFeatureName,
-            remainingTiers: tiers.map(t => t.id) 
+            remainingTiers: tiers.map(t => t.id),
           });
         }
 
@@ -284,7 +284,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, requestedDuration]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName]);
 
   // Ensure 7-day requests always highlight Transformation when tiers already cached
   useEffect(() => {
@@ -1200,22 +1200,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           disabled={isPurchasing}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing 
-              ? 'Processing...' 
+            {isPurchasing
+              ? 'Processing...'
               : fromExportRestriction
                 ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
                 : fromSmartJournalingLock
                   ? 'Upgrade to Smart Journaling'
-                  : isUpgradeMode 
-                    ? 'Upgrade and Continue' 
-                    : fromPlanningLock 
-                      ? 'Start Planning Ahead' 
-                      : fromCopyTodosLock 
-                        ? 'Upgrade to Copy To-Dos' 
-                        : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) 
-                          ? 'Upgrade to Repeat Options' 
-                          : fromCalendarAutoSync 
-                            ? 'Upgrade to Auto-Sync' 
+                  : isUpgradeMode
+                    ? 'Upgrade and Continue'
+                    : fromPlanningLock
+                      ? 'Start Planning Ahead'
+                      : fromCopyTodosLock
+                        ? 'Upgrade to Copy To-Dos'
+                        : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                          ? 'Upgrade to Repeat Options'
+                          : fromCalendarAutoSync
+                            ? 'Upgrade to Auto-Sync'
                             : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>

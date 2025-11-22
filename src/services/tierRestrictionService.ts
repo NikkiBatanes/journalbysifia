@@ -144,12 +144,12 @@ class TierRestrictionService {
       // Get user subscription and limits
       const subscription = await subscriptionService.getUserSubscription(userId);
       const currentTier = subscription?.tier || 'seeker';
-      
+
       // For free_trial users, use their trial_chosen_tier for feature access checks
       const effectiveTier = currentTier === 'free_trial' && subscription?.trial_chosen_tier
         ? subscription.trial_chosen_tier
         : currentTier;
-      
+
       // Debug logging for trial users
       if (currentTier === 'free_trial') {
         console.log('[TierRestriction] Trial User Debug:', {
@@ -160,7 +160,7 @@ class TierRestrictionService {
           userId: userId.substring(0, 8) + '...',
         });
       }
-      
+
       // CRITICAL FIX: Use effectiveTier for limits to get correct feature flags for trial users
       const limits = subscriptionService.getSubscriptionLimits(effectiveTier);
 
@@ -292,7 +292,7 @@ class TierRestrictionService {
     const currentLevel = tierHierarchy[currentTier] || 0;
     const requiredLevel = tierHierarchy[requiredTier] || 0;
     const hasAccess = currentLevel >= requiredLevel;
-    
+
     console.log('[TierRestriction] hasTierAccess check:', {
       currentTier,
       requiredTier,
@@ -410,7 +410,7 @@ class TierRestrictionService {
 
     // Special handling for export features - emphasize Growth/Transformation only
     const isExportFeature = feature === 'export_pdf' || feature === 'export_docx';
-    
+
     if (isExportFeature) {
       return {
         title: `Unlock ${featureName}`,
@@ -422,7 +422,7 @@ class TierRestrictionService {
 
     // For Growth tier features, mention both Growth and Transformation since both have access
     const isGrowthTierFeature = requiredTier === 'growth' || requiredTier === 'growth_annual';
-    const tierMessage = isGrowthTierFeature 
+    const tierMessage = isGrowthTierFeature
       ? 'Growth or Transformation plans'
       : `${tierName} and higher plans`;
 

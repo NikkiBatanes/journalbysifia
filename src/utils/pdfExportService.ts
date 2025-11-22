@@ -564,7 +564,7 @@ class PDFExportService {
     if (normalizedChallenge) {
       // Debug: Log the normalized challenge to see what we're parsing
       console.log('[PDF Export] Normalized challenge:', normalizedChallenge);
-      
+
       // 1st item: capture everything after "1." up to (but not including) "2." or end of string
       // Updated regex to handle "2." followed by any character (space, parenthesis, etc.)
       const firstMatch = normalizedChallenge.match(/1\.\s*([\s\S]*?)(?=2\.|$)/);
@@ -581,10 +581,10 @@ class PDFExportService {
         console.log('[PDF Export] Challenge item 2:', item2);
         challengeItems.push(item2);
       }
-      
+
       console.log('[PDF Export] Challenge items before dedup:', challengeItems);
     }
-    
+
     // Ensure we only have maximum 2 items and remove any duplicates
     const uniqueChallengeItems = [...new Set(challengeItems)].slice(0, 2);
     console.log('[PDF Export] Unique challenge items:', uniqueChallengeItems);
