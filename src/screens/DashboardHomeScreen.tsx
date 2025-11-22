@@ -325,6 +325,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingBottom: 0,
       paddingTop: 0,
     },
+    pageInner: {
+      width: '100%',
+      maxWidth: 720,
+      alignSelf: 'center',
+    },
     sectionGap: {
       height: 16,
     },
@@ -1454,6 +1459,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.pageInner}>
           {/* Progress Tracking - moved above Today's Scripture */}
           <StreakTracker />
           <View style={styles.smallSectionGap} />
@@ -1608,6 +1614,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {/* Bottom spacing for floating button */}
           <View style={styles.bottomSpacing} />
+          </View>
         </ScrollView>
       </BlueSheet>
       {renderFloatingButton()}

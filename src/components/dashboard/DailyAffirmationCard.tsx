@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Animated,
   NativeModules,
+  Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
@@ -38,6 +39,8 @@ interface DailyAffirmationCardProps {
 
 const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, onAffirmationPress, onReadPress, onEmpty }) => {
   const { user } = useAuth();
+  const { width } = Dimensions.get('window');
+  const isTablet = width >= 768;
   const [affirmations, setAffirmations] = useState<Affirmation[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -375,14 +378,14 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
             // Kept for safety in case of future changes.
             <ThemedText style={styles.errorText}>No declarations found. Create a playbook to get started.</ThemedText>
           ) : (
-            <View style={styles.listContainer}>
+            <View style={[styles.listContainer, isTablet && styles.listContainerTablet]}>
               {affirmations.map((item) => (
                 isAffirmationPressable ? (
                   <TouchableOpacity
                     key={item.id}
                     onPress={() => handleAffirmationPress(item)}
                     activeOpacity={0.7}
-                    style={styles.affirmationItem}
+                    style={[styles.affirmationItem, isTablet && styles.affirmationItemTablet]}
                     accessibilityRole="button"
                     accessibilityLabel={`Affirmation: ${item.content}`}
                   >
@@ -391,7 +394,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                 ) : (
                   <View
                     key={item.id}
-                    style={styles.affirmationItem}
+                    style={[styles.affirmationItem, isTablet && styles.affirmationItemTablet]}
                     accessibilityRole="text"
                   >
                     <ThemedText weight="medium" style={styles.affirmationText}>{item.content}</ThemedText>
@@ -499,6 +502,11 @@ const styles = StyleSheet.create({
   listContainer: {
     gap: 8,
   },
+  listContainerTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
   affirmationItem: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 10,
@@ -506,6 +514,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+  },
+  affirmationItemTablet: {
+    flex: 1,
+    minWidth: '30%',
+    maxWidth: '32%',
   },
   affirmationText: {
     fontSize: 15,
