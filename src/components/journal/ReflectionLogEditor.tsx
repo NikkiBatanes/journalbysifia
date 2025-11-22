@@ -105,19 +105,8 @@ const fallbackStyles = {
   header: { padding: 16 },
   title: { fontSize: 18, fontWeight: 'bold', color: Colors.hopeWhite, marginBottom: 8 },
 
-  keyboardAvoidingView: { flex: 1 },
-  contentCard: { 
-    flex: 1, 
-    backgroundColor: Colors.anchorBlue, 
-    borderTopLeftRadius: 30, 
-    borderTopRightRadius: 30, 
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-  },
+  keyboardAvoidingView: { flex: 1, backgroundColor: Colors.anchorBlue },
+  contentCard: { flex: 1, backgroundColor: 'rgba(26,60,109,0.08)', borderRadius: 12, margin: 16, padding: 16 },
   content: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   entryInput: { color: Colors.hopeWhite, fontSize: 18, marginBottom: 8 },
@@ -188,7 +177,7 @@ const fallbackStyles = {
   editableTitle: {
     opacity: 0.9, // Moved from inline style to fix lint warning
   },
-  fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.anchorBlue },
   fabContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   leftFabContainer: {
     flexDirection: 'row',

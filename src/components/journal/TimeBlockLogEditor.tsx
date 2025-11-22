@@ -148,11 +148,6 @@ const createDefaultStyles = (fonts: any) => ({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
   },
   content: {
     flex: 1,
@@ -354,6 +349,7 @@ const createDefaultStyles = (fonts: any) => ({
     bottom: 0,
     left: 0,
     right: 0,
+    backgroundColor: Colors.anchorBlue,
   },
   fab: {
     width: 44,
