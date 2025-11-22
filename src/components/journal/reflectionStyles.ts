@@ -17,7 +17,6 @@ export const styles = StyleSheet.create({
   },
   keyboardAvoidingView: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
   },
   scrollContent: {
     flexGrow: 1,
