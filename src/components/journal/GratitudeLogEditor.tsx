@@ -61,6 +61,7 @@ const defaultStyles = {
   },
   keyboardAvoidingView: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
   scrollContent: {
     flexGrow: 1,
