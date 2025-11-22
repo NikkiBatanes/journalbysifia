@@ -342,7 +342,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     onboardingCompleted: existingProfile?.onboarding_completed,
                     profileError: profileError?.message,
                     profileErrorCode: profileError?.code,
-                    willRouteTo: existingProfile?.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization'
+                    willRouteTo: existingProfile?.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization',
                   });
 
                   if (profileError && profileError.code !== 'PGRST116') {
@@ -366,11 +366,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                         params: {},
                         is_login_flow: true, // Bypass onboarding checks for completed users
                       }));
-                      
+
                       Logger.debug('[AuthContext] SOCIAL AUTH - Updated redirect to MainTabs for completed user', {
                         userId: session.user.id,
                         target: 'MainTabs',
-                        is_login_flow: true
+                        is_login_flow: true,
                       });
                     } else {
                       // User exists but didn't complete onboarding - send to personalization
@@ -403,13 +403,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                       // Pass registrationMethod to ensure OAuth users get proper name collection
                       const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
                       const isOAuth = provider === 'apple' || provider === 'google';
-                      
+
                       // For OAuth users, check if they already have a name in metadata
                       let userName = '';
                       if (isOAuth && session.user.user_metadata?.first_name) {
                         userName = session.user.user_metadata.first_name;
                       }
-                      
+
                       await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
                         target: 'OnboardingPersonalization',
                         params: {
@@ -448,7 +448,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     onboardingCompleted: profile?.onboarding_completed,
                     profileError: profileError?.message,
                     profileErrorCode: profileError?.code,
-                    willRouteTo: profile?.onboarding_completed === true ? 'MainTabs' : 'OnboardingPersonalization'
+                    willRouteTo: profile?.onboarding_completed === true ? 'MainTabs' : 'OnboardingPersonalization',
                   });
 
                   if (profileError) {
@@ -673,7 +673,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           onboardingCompleted: profile?.onboarding_completed,
           profileError: profileError?.message,
           profileErrorCode: profileError?.code,
-          willRouteTo: (profileError || !profile || profile?.onboarding_completed !== true) ? 'OnboardingPersonalization' : 'MainTabs'
+          willRouteTo: (profileError || !profile || profile?.onboarding_completed !== true) ? 'OnboardingPersonalization' : 'MainTabs',
         });
 
         // If profile doesn't exist or onboarding is not completed, route to personalization
@@ -801,7 +801,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const signOut = async () => {
     try {
       Logger.debug('[AuthContext] 🚪 Starting logout...');
-      
+
       // Clear any persistent redirects to prevent stale routing
       try {
         await AsyncStorage.removeItem('post_auth_redirect');
@@ -811,10 +811,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         Logger.warn('[AuthContext] ⚠️ Error clearing redirects on logout', {
           component: 'AuthContext',
           action: 'logout_cleanup',
-          errorMessage: error instanceof Error ? error.message : String(error)
+          errorMessage: error instanceof Error ? error.message : String(error),
         });
       }
-      
+
       // Clear Google session
       try {
         await GoogleSignin.signOut();
@@ -823,7 +823,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         Logger.warn('[AuthContext] ⚠️ Error clearing Google session', {
           component: 'AuthContext',
           action: 'logout_google_cleanup',
-          errorMessage: error instanceof Error ? error.message : String(error)
+          errorMessage: error instanceof Error ? error.message : String(error),
         });
       }
 

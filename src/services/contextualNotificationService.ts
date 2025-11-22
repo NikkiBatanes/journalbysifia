@@ -1,6 +1,7 @@
 import { Logger } from '../utils/ProductionLogger';
 import { notificationSchedulerService } from './notificationSchedulerService';
 import { NotificationQueueItem } from './notificationManagementService';
+import { supabase } from './supabaseClient';
 
 export interface UserActivity {
   user_id: string;
@@ -518,59 +519,326 @@ class ContextualNotificationService {
 
   // ===== Helper Methods (Database Queries) =====
 
-  private async hasCompletedDevotionalToday(_userId: string): Promise<boolean> {
-    // TODO: Implement actual check against devotionals table
-    // For now, return false to allow scheduling
-    return false;
+  private async hasCompletedDevotionalToday(userId: string): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('devotional_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .eq('completed', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+        Logger.error('Error checking devotional completion', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      Logger.error('Failed to check devotional completion', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return false;
+    }
   }
 
-  private async hasPrayedToday(_userId: string): Promise<boolean> {
-    // TODO: Implement actual check against prayer logs
-    return false;
+  private async hasPrayedToday(userId: string): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('prayers')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('selected_date', today)
+        .limit(1);
+
+      if (error) {
+        Logger.error('Error checking prayer completion', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return false;
+      }
+
+      return (data && data.length > 0) || false;
+    } catch (error) {
+      Logger.error('Failed to check prayer completion', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return false;
+    }
   }
 
-  private async getPendingPrayerRequests(_userId: string): Promise<any[]> {
-    // TODO: Implement actual query for unanswered prayer requests > 24 hours
-    return [];
+  private async getPendingPrayerRequests(userId: string): Promise<any[]> {
+    try {
+      // Get unanswered prayer requests older than 24 hours
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      const { data, error } = await supabase
+        .from('prayers')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_prayer_request', true)
+        .eq('prayed', false)
+        .lt('created_at', twentyFourHoursAgo)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        Logger.error('Error fetching pending prayer requests', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      Logger.error('Failed to get pending prayer requests', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return [];
+    }
   }
 
-  private async getUnreflectedDevotionals(_userId: string): Promise<any[]> {
-    // TODO: Implement actual query for completed but unreflected devotionals
-    return [];
+  private async getUnreflectedDevotionals(userId: string): Promise<any[]> {
+    try {
+      // Get devotionals completed today but without reflection
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('devotional_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .eq('completed', true)
+        .is('reflection', null);
+
+      if (error) {
+        Logger.error('Error fetching unreflected devotionals', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      Logger.error('Failed to get unreflected devotionals', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return [];
+    }
   }
 
-  private async hasGratitudeToday(_userId: string): Promise<boolean> {
-    // TODO: Implement actual check against gratitude logs
-    return false;
+  private async hasGratitudeToday(userId: string): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('created_at', today)
+        .ilike('content', '%gratitude%')
+        .limit(1);
+
+      if (error) {
+        Logger.error('Error checking gratitude completion', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return false;
+      }
+
+      return (data && data.length > 0) || false;
+    } catch (error) {
+      Logger.error('Failed to check gratitude completion', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return false;
+    }
   }
 
-  private async hasWinsToday(_userId: string): Promise<boolean> {
-    // TODO: Implement actual check against wins logs
-    return false;
+  private async hasWinsToday(userId: string): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('created_at', today)
+        .ilike('content', '%win%')
+        .limit(1);
+
+      if (error) {
+        Logger.error('Error checking wins completion', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return false;
+      }
+
+      return (data && data.length > 0) || false;
+    } catch (error) {
+      Logger.error('Failed to check wins completion', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return false;
+    }
   }
 
-  private async getDaysSinceLastJournal(_userId: string): Promise<number> {
-    // TODO: Implement actual check against journal entries
-    return 0;
+  private async getDaysSinceLastJournal(userId: string): Promise<number> {
+    try {
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .select('created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        Logger.error('Error checking last journal entry', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return 0;
+      }
+
+      if (!data || data.length === 0) {
+        return 999; // No journal entries ever
+      }
+
+      const lastEntry = new Date(data[0].created_at);
+      const today = new Date();
+      const diffTime = Math.abs(today.getTime() - lastEntry.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      return diffDays;
+    } catch (error) {
+      Logger.error('Failed to calculate days since last journal', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return 0;
+    }
   }
 
-  private async getIncompletePlaybooks(_userId: string): Promise<any[]> {
-    // TODO: Implement actual query for playbooks with incomplete steps > 48 hours
-    return [];
+  private async getIncompletePlaybooks(userId: string): Promise<any[]> {
+    try {
+      // Get playbooks with incomplete steps older than 48 hours
+      const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
+      const { data, error } = await supabase
+        .from('playbooks')
+        .select(`
+          *,
+          action_steps!inner(
+            id,
+            completed,
+            subtasks(
+              id,
+              completed
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .lt('created_at', fortyEightHoursAgo)
+        .eq('action_steps.completed', false);
+
+      if (error) {
+        Logger.error('Error fetching incomplete playbooks', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      Logger.error('Failed to get incomplete playbooks', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return [];
+    }
   }
 
   private async getTodaysScripture(): Promise<{ reference: string; text: string; preview: string }> {
-    // TODO: Implement actual scripture service
-    return {
-      reference: 'Philippians 4:13',
-      text: 'I can do all things through Christ who strengthens me.',
-      preview: 'I can do all things through Christ...',
-    };
+    try {
+      // Get today's scripture from affirmations table
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('affirmations')
+        .select('reference, text')
+        .eq('date', today)
+        .single();
+
+      if (error || !data) {
+        // Fallback to default scripture
+        return {
+          reference: 'Philippians 4:13',
+          text: 'I can do all things through Christ who strengthens me.',
+          preview: 'I can do all things through Christ...',
+        };
+      }
+
+      const text = data.text || 'I can do all things through Christ who strengthens me.';
+      const reference = data.reference || 'Philippians 4:13';
+      const preview = text.length > 50 ? text.substring(0, 47) + '...' : text;
+
+      return { reference, text, preview };
+    } catch (error) {
+      Logger.error('Failed to get today\'s scripture', error as Error, {
+        component: 'contextualNotificationService',
+      });
+      return {
+        reference: 'Philippians 4:13',
+        text: 'I can do all things through Christ who strengthens me.',
+        preview: 'I can do all things through Christ...',
+      };
+    }
   }
 
-  private async getUnreadAffirmationsCount(_userId: string): Promise<number> {
-    // TODO: Implement actual check against affirmations
-    return 0;
+  private async getUnreadAffirmationsCount(userId: string): Promise<number> {
+    try {
+      // Get count of affirmations not yet read by user
+      const { data, error } = await supabase
+        .from('affirmations')
+        .select('id', { count: 'exact' })
+        .not('read_by', 'cs', `[${userId}]`)
+        .eq('active', true);
+
+      if (error) {
+        Logger.error('Error fetching unread affirmations count', error as Error, {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return 0;
+      }
+
+      return (data?.length) || 0;
+    } catch (error) {
+      Logger.error('Failed to get unread affirmations count', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      return 0;
+    }
   }
 }
 

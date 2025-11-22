@@ -305,13 +305,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               .select('onboarding_completed')
               .eq('id', user?.id)
               .single();
-            
+
             if (profile?.onboarding_completed) {
               logger.debug('🍎 Apple OAuth user has completed onboarding - skipping name collection', { userId: user?.id });
               // Try to get existing name from metadata
-              const metadataName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
-              if (metadataName) {
-                setName(metadataName);
+              const existingMetadataName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
+              if (existingMetadataName) {
+                setName(existingMetadataName);
                 setShowNameStep(false);
                 return;
               }

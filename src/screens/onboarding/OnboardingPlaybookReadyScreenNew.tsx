@@ -238,7 +238,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     ITEM_WIDTH,
   } = React.useMemo(() => {
     const ITEM_SPACING = 16;
-    const isIPad = windowWidth >= 768;
     // Match PlaybookDetailScreen: constrained width with max of 720px
     const maxCardWidth = Math.min(windowWidth - 64, 720);
     return { ITEM_SPACING, ITEM_WIDTH: maxCardWidth };

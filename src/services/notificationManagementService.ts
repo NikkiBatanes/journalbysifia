@@ -453,6 +453,101 @@ class NotificationManagementService {
   }
 
   /**
+   * Mark notification as read/opened
+   */
+  async markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notification_queue')
+        .update({
+          status: 'read',
+          read_at: new Date().toISOString(),
+        })
+        .eq('id', notificationId)
+        .eq('user_id', userId);
+
+      if (error) {
+        Logger.error('Error marking notification as read', error as Error, {
+          component: 'notificationManagementService',
+          notificationId,
+          userId,
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      Logger.error('Failed to mark notification as read', error as Error, {
+        component: 'notificationManagementService',
+        notificationId,
+        userId,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Mark all notifications as read for a user
+   */
+  async markAllNotificationsAsRead(userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notification_queue')
+        .update({
+          status: 'read',
+          read_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .in('status', ['pending', 'sent']);
+
+      if (error) {
+        Logger.error('Error marking all notifications as read', error as Error, {
+          component: 'notificationManagementService',
+          userId,
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      Logger.error('Failed to mark all notifications as read', error as Error, {
+        component: 'notificationManagementService',
+        userId,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Get unread notification count for badge
+   */
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    try {
+      const { count, error } = await supabase
+        .from('notification_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .in('status', ['pending', 'sent']);
+
+      if (error) {
+        Logger.error('Error getting unread notification count', error as Error, {
+          component: 'notificationManagementService',
+          userId,
+        });
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      Logger.error('Failed to get unread notification count', error as Error, {
+        component: 'notificationManagementService',
+        userId,
+      });
+      return 0;
+    }
+  }
+
+  /**
    * Schedule prayer reminder
    */
   async schedulePrayerReminder(userId: string, scheduledFor: Date): Promise<boolean> {

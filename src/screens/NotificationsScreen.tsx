@@ -146,7 +146,16 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       }
 
       // Mark as read/opened
-      // TODO: Implement mark as read in notificationManagementService
+      try {
+        if (user?.id && notification.id) {
+          await notificationManagementService.markNotificationAsRead(notification.id, user.id);
+        }
+      } catch (error) {
+        Logger.error('Failed to mark notification as read', error as Error, {
+          component: 'NotificationsScreen',
+          notificationId: notification.id,
+        });
+      }
 
       // Refresh badge count
       await fetchBadgeCount();

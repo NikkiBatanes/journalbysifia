@@ -482,13 +482,13 @@ export class OnboardingService {
    * Updates BOTH onboarding_progress AND user_profiles to ensure all login methods work
    */
   async completeOnboarding(userId: string): Promise<void> {
-    Logger.debug('[OnboardingService] Starting completeOnboarding', { 
-      userId, 
+    Logger.debug('[OnboardingService] Starting completeOnboarding', {
+      userId,
       userIdType: typeof userId,
       userIdLength: userId?.length,
-      isUuidFormat: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)
+      isUuidFormat: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId),
     });
-    
+
     try {
       // 1. Update onboarding_progress table
       const { error: progressError } = await this.supabase
@@ -513,7 +513,7 @@ export class OnboardingService {
       // 2. Update user_profiles.onboarding_completed (PRIMARY source of truth for login routing)
       // Use upsert to handle cases where profile doesn't exist yet (e.g., social login)
       Logger.debug('[OnboardingService] Updating user_profiles.onboarding_completed to true', { userId });
-      
+
       // First get the user's email to include in the upsert
       const { data: userData } = await this.supabase.auth.getUser();
       const userEmail = userData?.user?.email;
@@ -551,7 +551,7 @@ export class OnboardingService {
         profileError: profileError?.message,
         profileErrorCode: profileError?.code,
         hasUpdateResult: !!updateResult,
-        updatedOnboardingCompleted: updateResult?.onboarding_completed
+        updatedOnboardingCompleted: updateResult?.onboarding_completed,
       });
 
       if (profileError) {
@@ -584,12 +584,12 @@ export class OnboardingService {
           .select('onboarding_completed, updated_at')
           .eq('id', userId)
           .single();
-        
+
         Logger.debug('[OnboardingService] VERIFICATION - Profile after update', {
           userId,
           onboardingCompleted: verifyProfile?.onboarding_completed,
           updatedAt: verifyProfile?.updated_at,
-          verification: verifyProfile?.onboarding_completed === true ? 'SUCCESS' : 'FAILED'
+          verification: verifyProfile?.onboarding_completed === true ? 'SUCCESS' : 'FAILED',
         });
       } catch (verifyError) {
         Logger.warn('[OnboardingService] Could not verify onboarding completion', {

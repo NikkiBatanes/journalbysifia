@@ -17,6 +17,8 @@ import RNIap, {
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
 import { ENV } from '../config/environment';
+import { notificationSchedulerService } from './notificationSchedulerService';
+import { SubscriptionTier } from '../types/subscription';
 
 export interface StoreProduct {
   productId: string;
@@ -547,11 +549,28 @@ export class AppleStoreKitService {
       } else {
         // Regular upgrade/subscription
         await NewSubscriptionService.upgradeSubscription(userId, {
-          target_tier: tier as any,
+          target_tier: tier as SubscriptionTier,
           platform: 'apple',
           platform_subscription_id: purchase.productId,
           platform_transaction_id: purchase.transactionId,
         });
+
+        // Send payment success notification for new purchase/upgrade
+        try {
+          const subscription = await NewSubscriptionService.getUserSubscription(userId);
+          const tierDisplayName = subscription.subscription_display_name || tier;
+          const amount = this.getAmountFromProductId(purchase.productId);
+          // Call scheduler directly to avoid argument count issues
+          await notificationSchedulerService.schedulePaymentSuccessNotification(
+            userId,
+            tierDisplayName,
+            amount
+          );
+        } catch (notifError) {
+          Logger.warn('[StoreKit] Failed to send purchase success notification', notifError as Error, {
+            component: 'AppleStoreKitService',
+          });
+        }
       }
 
     } catch (error) {
@@ -952,7 +971,7 @@ export class AppleStoreKitService {
 
         await NewSubscriptionService.upgradeSubscription(userId, {
           target_tier: 'free_trial',
-          platform: 'apple' as any,
+          platform: 'apple',
           platform_subscription_id: purchase.transactionId,
         });
 
@@ -970,10 +989,26 @@ export class AppleStoreKitService {
         // User has paid subscription - upgrade to actual tier
         // This happens when trial period ends and converts to paid
         await NewSubscriptionService.upgradeSubscription(userId, {
-          target_tier: status.tier as any,
-          platform: 'apple' as any,
+          target_tier: status.tier as SubscriptionTier,
+          platform: 'apple',
           platform_subscription_id: purchase.transactionId,
         });
+
+        // Send payment success notification for trial conversion
+        try {
+          const subscription = await NewSubscriptionService.getUserSubscription(userId);
+          const tierDisplayName = subscription.subscription_display_name || status.tier;
+          // Call scheduler directly to avoid argument count issues
+          await notificationSchedulerService.schedulePaymentSuccessNotification(
+            userId,
+            tierDisplayName,
+            0
+          ); // Trial conversion = no additional cost
+        } catch (notifError) {
+          Logger.warn('[StoreKit] Failed to send trial conversion notification', notifError as Error, {
+            component: 'AppleStoreKitService',
+          });
+        }
       }
 
     } catch (error) {
@@ -1000,10 +1035,10 @@ export class AppleStoreKitService {
 
       // Downgrade to seeker (free tier)
       await NewSubscriptionService.upgradeSubscription(userId, {
-        target_tier: 'seeker',
-        platform: 'apple' as any,
-        platform_subscription_id: undefined,
-      });
+          target_tier: 'seeker',
+          platform: 'apple',
+          platform_subscription_id: undefined,
+        });
 
     } catch (error) {
       Logger.error('[StoreKit] Failed to handle no subscription', error as Error, {
@@ -1097,6 +1132,26 @@ export class AppleStoreKitService {
     }
 
     return 'We couldn\'t restore your purchases right now. Please try again shortly or contact support if the issue continues.';
+  }
+
+  /**
+   * Extract amount from product ID for notifications
+   */
+  private getAmountFromProductId(productId: string): number {
+    // Extract tier and billing from product ID
+    // Example: app.sifia.com.growth.monthly -> Growth tier
+    const parts = productId.split('.');
+    const tier = parts[2]; // growth, spark, transformation
+    const billing = parts[3]; // monthly, annual
+
+    // Return standard pricing amounts (in PHP)
+    const pricing: Record<string, Record<string, number>> = {
+      spark: { monthly: 199, annual: 1990 },
+      growth: { monthly: 499, annual: 4990 },
+      transformation: { monthly: 999, annual: 9990 },
+    };
+
+    return pricing[tier]?.[billing] || 0;
   }
 
   /**

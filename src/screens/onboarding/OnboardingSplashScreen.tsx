@@ -91,13 +91,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
           const isLoginFlow = redirect?.is_login_flow === true;
-          
+
           logger.debug('🔍 [SplashScreen] EARLY REDIRECT CHECK', {
             target,
             params,
             isLoginFlow,
             hasUser: !!user,
-            userId: user?.id
+            userId: user?.id,
           });
 
           // CRITICAL: If this is a login flow, bypass all onboarding checks and go straight to target
@@ -218,13 +218,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
           const isLoginFlow = redirect?.is_login_flow === true;
-          
+
           logger.debug('🔍 [SplashScreen] POST-USER REDIRECT CHECK', {
             target,
             params,
             isLoginFlow,
             hasUser: !!effectiveUser,
-            userId: effectiveUser?.id
+            userId: effectiveUser?.id,
           });
 
           // CRITICAL: If this is a login flow, bypass all onboarding checks and go straight to target

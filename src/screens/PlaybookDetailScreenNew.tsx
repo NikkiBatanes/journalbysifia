@@ -1622,7 +1622,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 return (
                   <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                     <View style={styles.affirmationsHeaderStack}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={styles.rowCenter}>
                         <MaterialCommunityIcons
                           name="format-quote-close"
                           size={24}
@@ -1768,33 +1768,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             >
               {isExpanded ? (
                 <>
-                  {/* Sticky close button - only visible when expanded */}
                   <TouchableOpacity
-                    style={{
-                      position: 'absolute',
-                      top: 16,
-                      right: 16,
-                      width: 32,
-                      height: 32,
-                      borderRadius: 16,
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 10000,
-                      elevation: 10000,
-                    }}
-                    onPress={() => {
-                      try { triggerLightHaptic(); } catch {}
-                      setExpandedCardId(null);
-                      animateCardTransition(card.id, false);
-                    }}
                     activeOpacity={0.7}
                   >
                     <Ionicons
                       name="close"
                       size={20}
                       color={Colors.hopeWhite}
-                      style={{ opacity: 0.9 }}
+                      style={styles.opacity90}
                     />
                   </TouchableOpacity>
                   <ScrollView
@@ -1841,9 +1822,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         animateCardTransition(card.id, false);
                       }
                     }}
-                    style={{ flex: 1 }}
+                    style={styles.flex1}
                   >
-                    <View style={{ flex: 1 }}>
+                    <View style={styles.flex1}>
                       {cardContent}
                     </View>
                   </TouchableOpacity>
@@ -2104,6 +2085,11 @@ interface PlaybookDetailStyles {
   expandedScrollView: ViewStyle;
   expandedScrollContent: ViewStyle;
   collapsedCardTouchable: ViewStyle;
+  // Inline style replacements
+  rowCenter: ViewStyle;
+  absoluteTopRight: ViewStyle;
+  opacity90: ViewStyle;
+  flex1: ViewStyle;
 }
 
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
@@ -2807,6 +2793,30 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   collapsedCardTouchable: {
     borderRadius: 28,
     overflow: 'hidden',
+  },
+  // Inline style replacements
+  rowCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  absoluteTopRight: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10000,
+    elevation: 10000,
+  },
+  opacity90: {
+    opacity: 0.9,
+  },
+  flex1: {
+    flex: 1,
   },
 });
 

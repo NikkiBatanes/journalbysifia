@@ -187,10 +187,10 @@ const OnboardingWelcomeScreen: React.FC = () => {
     const unsubscribe = (navigation as any).addListener?.('focus', async () => {
       try {
         if (!isAuthenticated) {return;}
-        
+
         // Wait a moment for auth context to potentially update the redirect
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
         if (redirectRaw) {
           const redirect = JSON.parse(redirectRaw);
@@ -205,7 +205,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
                 .select('onboarding_completed')
                 .eq('id', user.id)
                 .single();
-              
+
               if (profile?.onboarding_completed) {
                 // User completed onboarding - ignore personalization redirect and go to main
                 console.log('[WelcomeScreen] User completed onboarding - ignoring personalization redirect');
@@ -378,7 +378,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         {
           width: listWidth || screenSize.width,
           // On tablets, push the slide content further down so the middle content sits lower
-          paddingTop: isTablet ? 120 : 10,
+          paddingTop: isTablet ? styles.tabletPaddingTop.paddingTop : styles.phonePaddingTop.paddingTop,
         },
       ]}
     >
@@ -476,7 +476,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
             {
               width: contentWidth,
               // Device-specific button positioning based on actual screen dimensions
-              marginTop: isTablet ? 250 : (isSmallPhone ? -80 : (isRegularPhone ? 50 : 0)),
+              marginTop: isTablet ? styles.dynamicMarginTop.marginTop : (isSmallPhone ? styles.smallPhoneMarginTop.marginTop : (isRegularPhone ? styles.regularPhoneMarginTop.marginTop : styles.zeroMarginTop.marginTop)),
             },
             styles.centeredContainer,
           ]}
@@ -646,6 +646,25 @@ const styles = StyleSheet.create({
   fullWidthButton: {
     alignSelf: 'center',
     width: '100%',
+  },
+  // Dynamic padding styles
+  tabletPaddingTop: {
+    paddingTop: 120,
+  },
+  phonePaddingTop: {
+    paddingTop: 10,
+  },
+  dynamicMarginTop: {
+    marginTop: 250,
+  },
+  smallPhoneMarginTop: {
+    marginTop: -80,
+  },
+  regularPhoneMarginTop: {
+    marginTop: 50,
+  },
+  zeroMarginTop: {
+    marginTop: 0,
   },
 });
 

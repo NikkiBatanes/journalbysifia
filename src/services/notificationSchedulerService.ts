@@ -331,6 +331,141 @@ class NotificationSchedulerService {
       batchWithOthers: false,
     });
   }
+
+  /**
+   * Schedule payment failure notification
+   */
+  async schedulePaymentFailureNotification(userId: string, failureReason?: string): Promise<boolean> {
+    const scheduledFor = new Date();
+    scheduledFor.setHours(scheduledFor.getHours() + 1); // 1 hour from now
+
+    const notification: NotificationQueueItem = {
+      user_id: userId,
+      type: 'payment_failed',
+      title: 'Payment Failed 💳',
+      message: failureReason
+        ? `Payment failed: ${failureReason}. Please update your payment method.`
+        : 'Your payment method failed. Please update it to continue your subscription.',
+      data: {
+        deep_link: 'sifia://subscription/manage',
+        failure_reason: failureReason,
+      },
+      scheduled_for: scheduledFor.toISOString(),
+      priority: 'critical',
+    };
+
+    return await this.scheduleNotification(notification, {
+      priority: 'critical',
+      batchWithOthers: false,
+    });
+  }
+
+  /**
+   * Schedule grace period notification
+   */
+  async scheduleGracePeriodNotification(userId: string, gracePeriodEnds: Date): Promise<boolean> {
+    const scheduledFor = new Date();
+    scheduledFor.setHours(scheduledFor.getHours() + 2); // 2 hours from now
+
+    const notification: NotificationQueueItem = {
+      user_id: userId,
+      type: 'grace_period',
+      title: 'Grace Period Started ⚠️',
+      message: `Your subscription is in grace period until ${gracePeriodEnds.toLocaleDateString()}. Update payment soon!`,
+      data: {
+        deep_link: 'sifia://subscription/manage',
+        grace_period_ends: gracePeriodEnds.toISOString(),
+      },
+      scheduled_for: scheduledFor.toISOString(),
+      priority: 'high',
+    };
+
+    return await this.scheduleNotification(notification, {
+      priority: 'high',
+      batchWithOthers: false,
+    });
+  }
+
+  /**
+   * Schedule monthly renewal reminder
+   */
+  async scheduleRenewalReminderNotification(userId: string, renewalDate: Date, tier: string): Promise<boolean> {
+    const scheduledFor = new Date(renewalDate);
+    scheduledFor.setDate(scheduledFor.getDate() - 1); // 1 day before renewal
+    scheduledFor.setHours(10, 0, 0, 0); // 10 AM
+
+    const notification: NotificationQueueItem = {
+      user_id: userId,
+      type: 'renewal_reminder',
+      title: 'Subscription Renews Tomorrow 🔄',
+      message: `Your ${tier} subscription renews tomorrow. Manage settings if needed.`,
+      data: {
+        deep_link: 'sifia://subscription/manage',
+        renewal_date: renewalDate.toISOString(),
+        tier,
+      },
+      scheduled_for: scheduledFor.toISOString(),
+      priority: 'normal',
+    };
+
+    return await this.scheduleNotification(notification, {
+      priority: 'normal',
+      batchWithOthers: true,
+    });
+  }
+
+  /**
+   * Schedule payment success notification
+   */
+  async schedulePaymentSuccessNotification(userId: string, newTier: string, amount: number): Promise<boolean> {
+    const scheduledFor = new Date();
+    scheduledFor.setMinutes(scheduledFor.getMinutes() + 5); // 5 minutes from now
+
+    const notification: NotificationQueueItem = {
+      user_id: userId,
+      type: 'payment_successful',
+      title: `Welcome to ${newTier}! 🎉`,
+      message: `Your payment of ₱${amount} was successful. Enjoy your enhanced spiritual journey!`,
+      data: {
+        deep_link: 'sifia://dashboard',
+        new_tier: newTier,
+        amount,
+      },
+      scheduled_for: scheduledFor.toISOString(),
+      priority: 'normal',
+    };
+
+    return await this.scheduleNotification(notification, {
+      priority: 'normal',
+      batchWithOthers: true,
+    });
+  }
+
+  /**
+   * Schedule subscription cancelled notification
+   */
+  async scheduleSubscriptionCancelledNotification(userId: string, endDate: Date): Promise<boolean> {
+    const scheduledFor = new Date();
+    scheduledFor.setMinutes(scheduledFor.getMinutes() + 5); // 5 minutes from now
+
+    const notification: NotificationQueueItem = {
+      user_id: userId,
+      type: 'subscription_cancelled',
+      title: 'Subscription Cancelled 📋',
+      message: `We'll miss you! Your benefits continue until ${endDate.toLocaleDateString()}.`,
+      data: {
+        deep_link: 'sifia://subscription/reactivate',
+        end_date: endDate.toISOString(),
+      },
+      scheduled_for: scheduledFor.toISOString(),
+      priority: 'normal',
+    };
+
+    return await this.scheduleNotification(notification, {
+      priority: 'normal',
+      batchWithOthers: true,
+    });
+  }
 }
 
 export const notificationSchedulerService = new NotificationSchedulerService();

@@ -273,7 +273,15 @@ class StreakTrackingService {
       }
 
       // Schedule streak alert notification
-      return await this.scheduleStreakAlert(userId, streakType, currentStreak);
+      const alertResult = await this.scheduleStreakAlert(userId, streakType, currentStreak);
+
+      // Check for milestone celebration (7, 14, 30, 60, 100 days)
+      const milestones = [7, 14, 30, 60, 100];
+      if (milestones.includes(currentStreak)) {
+        await this.scheduleMilestoneCelebration(userId, streakType, currentStreak);
+      }
+
+      return alertResult;
     } catch (error) {
       Logger.error('Error checking streak alert', error as Error, {
         component: 'streakTrackingService',
@@ -320,7 +328,7 @@ class StreakTrackingService {
       const scheduledFor = new Date();
       scheduledFor.setHours(hour, min, 0, 0);
 
-      // If time has passed today, schedule for tomorrow
+      // If scheduled time has passed, schedule for tomorrow
       if (scheduledFor < new Date()) {
         scheduledFor.setDate(scheduledFor.getDate() + 1);
       }
@@ -339,45 +347,105 @@ class StreakTrackingService {
         priority: 'high',
       };
 
-      const success = await notificationSchedulerService.scheduleNotification(notification, {
+      return await notificationSchedulerService.scheduleNotification(notification, {
         priority: 'high',
-        batchWithOthers: false, // Streak alerts are important, don't batch
+        batchWithOthers: false,
       });
-
-      if (success) {
-        Logger.info('Streak alert scheduled', {
-          component: 'streakTrackingService',
-          userId,
-          streakType,
-          currentStreak,
-          scheduledFor: scheduledFor.toISOString(),
-        });
-      }
-
-      return success;
     } catch (error) {
-      Logger.error('Error scheduling streak alert', error as Error, {
+      Logger.error('Failed to schedule streak alert', error as Error, {
         component: 'streakTrackingService',
         userId,
         streakType,
+        currentStreak,
       });
       return false;
     }
   }
 
   /**
-   * Check all streaks and schedule alerts if needed
-   * Should be called daily (e.g., via cron job or background task)
+   * Schedule milestone celebration notifications
+   */
+  async scheduleMilestoneCelebration(
+    userId: string,
+    streakType: StreakType,
+    milestoneStreak: number
+  ): Promise<boolean> {
+    try {
+      const milestoneMessages = {
+        prayer: {
+          7: '🔥 7-Day Prayer Streak! You\'re building spiritual discipline!',
+          14: '🎉 14-Day Prayer Streak! Your consistency is inspiring!',
+          30: '🏆 30-Day Prayer Streak! You\'re a prayer warrior!',
+          60: '💎 60-Day Prayer Streak! Your faith is unshakeable!',
+          100: '🌟 100-Day Prayer Streak! You\'re truly devoted!',
+        },
+        devotional: {
+          7: '📖 7-Day Devotional Streak! Growing in wisdom daily!',
+          14: '🎯 14-Day Devotional Streak! Your spiritual journey is amazing!',
+          30: '🏅 30-Day Devotional Streak! You\'re a faithful student!',
+          60: '💪 60-Day Devotional Streak! Your dedication is remarkable!',
+          100: '👑 100-Day Devotional Streak! You\'re a spiritual champion!',
+        },
+        journal: {
+          7: '✍️ 7-Day Journaling Streak! Documenting your spiritual growth!',
+          14: '📝 14-Day Journaling Streak! Your reflections are beautiful!',
+          30: '📚 30-Day Journaling Streak! You\'re building a spiritual legacy!',
+          60: '🖋️ 60-Day Journaling Streak! Your consistency is admirable!',
+          100: '🌈 100-Day Journaling Streak! You\'re an inspiration to others!',
+        },
+      };
+
+      const message = milestoneMessages[streakType]?.[milestoneStreak as keyof typeof milestoneMessages.prayer];
+      if (!message) {
+        return false; // Not a milestone we celebrate
+      }
+
+      const scheduledFor = new Date();
+      scheduledFor.setMinutes(scheduledFor.getMinutes() + 10); // 10 minutes from now
+
+      const notification: NotificationQueueItem = {
+        user_id: userId,
+        type: 'milestone_celebration',
+        title: `🎉 ${milestoneStreak}-Day ${streakType.charAt(0).toUpperCase() + streakType.slice(1)} Milestone!`,
+        message,
+        data: {
+          deep_link: `sifia://journal/${streakType}`,
+          streak_type: streakType,
+          milestone_streak: milestoneStreak,
+        },
+        scheduled_for: scheduledFor.toISOString(),
+        priority: 'normal',
+      };
+
+      return await notificationSchedulerService.scheduleNotification(notification, {
+        priority: 'normal',
+        batchWithOthers: true,
+      });
+    } catch (error) {
+      Logger.error('Failed to schedule milestone celebration', error as Error, {
+        component: 'streakTrackingService',
+        userId,
+        streakType,
+        milestoneStreak,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Check all streaks for a user and schedule alerts if needed
    */
   async checkAllStreaksForUser(userId: string): Promise<void> {
     try {
-      await Promise.all([
-        this.checkAndScheduleStreakAlert(userId, 'prayer'),
-        this.checkAndScheduleStreakAlert(userId, 'devotional'),
-        this.checkAndScheduleStreakAlert(userId, 'journal'),
-      ]);
+      const streaks = await this.getUserStreaks(userId);
+      if (!streaks) {return;}
+
+      // Check each streak type
+      await this.checkAndScheduleStreakAlert(userId, 'prayer');
+      await this.checkAndScheduleStreakAlert(userId, 'devotional');
+      await this.checkAndScheduleStreakAlert(userId, 'journal');
     } catch (error) {
-      Logger.error('Error checking all streaks', error as Error, {
+      Logger.error('Error checking all streaks for user', error as Error, {
         component: 'streakTrackingService',
         userId,
       });
@@ -385,54 +453,53 @@ class StreakTrackingService {
   }
 
   /**
-   * Get streak status for display in UI
+   * Get streak status for a specific streak type
    */
   async getStreakStatus(userId: string, streakType: StreakType): Promise<{
     current: number;
     best: number;
     lastDate: string | null;
     isActive: boolean;
-  } | null> {
+  }> {
     try {
       const streaks = await this.getUserStreaks(userId);
       if (!streaks) {
-        return null;
+        return { current: 0, best: 0, lastDate: null, isActive: false };
       }
 
       let current = 0;
       let best = 0;
-      let lastDate: string | null = null;
+      let lastDate = null;
 
-      if (streakType === 'prayer') {
-        current = streaks.prayer_streak;
-        best = streaks.prayer_best_streak;
-        lastDate = streaks.prayer_last_date || null;
-      } else if (streakType === 'devotional') {
-        current = streaks.devotional_streak;
-        best = streaks.devotional_best_streak;
-        lastDate = streaks.devotional_last_date || null;
-      } else if (streakType === 'journal') {
-        current = streaks.journal_streak;
-        best = streaks.journal_best_streak;
-        lastDate = streaks.journal_last_date || null;
+      switch (streakType) {
+        case 'prayer':
+          current = streaks.prayer_streak;
+          best = streaks.prayer_best_streak;
+          lastDate = streaks.prayer_last_date || null;
+          break;
+        case 'devotional':
+          current = streaks.devotional_streak;
+          best = streaks.devotional_best_streak;
+          lastDate = streaks.devotional_last_date || null;
+          break;
+        case 'journal':
+          current = streaks.journal_streak;
+          best = streaks.journal_best_streak;
+          lastDate = streaks.journal_last_date || null;
+          break;
       }
 
       const today = new Date().toISOString().split('T')[0];
       const isActive = lastDate === today;
 
-      return {
-        current,
-        best,
-        lastDate,
-        isActive,
-      };
+      return { current, best, lastDate, isActive };
     } catch (error) {
       Logger.error('Error getting streak status', error as Error, {
         component: 'streakTrackingService',
         userId,
         streakType,
       });
-      return null;
+      return { current: 0, best: 0, lastDate: null, isActive: false };
     }
   }
 }
