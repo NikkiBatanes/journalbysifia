@@ -188,7 +188,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       style={[
         styles.container,
         // On small phones, reduce top/bottom padding slightly so the content and buttons fit comfortably
-        isSmallPhone && { paddingTop: 40, paddingBottom: 24 },
+        isSmallPhone && styles.containerSmallPhone,
       ]}
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
@@ -207,7 +207,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             styles.illustrationContainer,
             error ? styles.illustrationContainerCompressed : null,
             // On small phones, make the illustration a bit shorter and tighten vertical margins
-            isSmallPhone && { height: 240, marginVertical: 12 },
+            isSmallPhone && styles.illustrationContainerSmallPhone,
           ]}
         >
           <View style={styles.illustrationPlaceholder}>
@@ -413,6 +413,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.system.regular,
     flexShrink: 1,
+  },
+  containerSmallPhone: {
+    paddingTop: 40,
+    paddingBottom: 24,
+  },
+  illustrationContainerSmallPhone: {
+    height: 240,
+    marginVertical: 12,
   },
   buttonContainer: {
     width: '100%',

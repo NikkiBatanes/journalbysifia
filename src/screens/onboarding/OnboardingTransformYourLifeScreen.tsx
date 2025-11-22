@@ -159,7 +159,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
                 OnboardingStyles.primaryButton,
                 styles.startButton,
                 styles.startButtonFullWidth,
-                !isTablet && { marginBottom: 52 },
+                !isTablet && styles.startButtonPhone,
                 isLoading && OnboardingStyles.buttonDisabled,
               ]}
               onPress={handleContinue}
@@ -265,6 +265,9 @@ const styles = StyleSheet.create({
   },
   startButton: {
     // Additional custom styling if needed
+  },
+  startButtonPhone: {
+    marginBottom: 52,
   },
   startButtonText: {
     // Additional custom styling if needed

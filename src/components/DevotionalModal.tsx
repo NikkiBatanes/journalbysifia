@@ -514,7 +514,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           style={[
             styles.modalContainer,
             // On small phones, allow the modal to occupy slightly more vertical space so the footer stays visible
-            isSmallPhone && { maxHeight: '92%' },
+            isSmallPhone && styles.modalContainerSmallPhone,
             { transform: [{ translateY }] },
           ]}
           onLayout={measureContent}
@@ -974,6 +974,9 @@ const styles = StyleSheet.create({
     width: '100%',
     left: 0,
     right: 0,
+  },
+  modalContainerSmallPhone: {
+    maxHeight: '92%',
   },
   contentWrapper: {
     flex: 1,
