@@ -207,15 +207,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Update screen width on orientation change
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      // Set flag to prevent scroll animation updates during dimension changes
-      isDimensionChanging.current = true;
       setScreenWidth(window.width);
       // Reset headerWidth to force re-measurement on orientation change
       setHeaderWidth(0);
-      // Clear flag after layout settles
-      setTimeout(() => {
-        isDimensionChanging.current = false;
-      }, 300);
     });
     return () => subscription?.remove();
   }, []);
@@ -224,7 +218,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('');
   const scrollTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
-  const isDimensionChanging = useRef(false);
 
   // Haptics while header week is actively scrolled and implied date changes
   const lastHeaderHapticDateKey = useRef<string | null>(null);
@@ -250,12 +243,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Animation state
   const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
   const weekOpacity = scrollY.interpolate({
-    inputRange: [0, 60],
+    inputRange: [0, 40],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
   const weekHeight = scrollY.interpolate({
-    inputRange: [0, 60],
+    inputRange: [0, 40],
     outputRange: [44, 0],
     extrapolate: 'clamp',
   });
@@ -474,24 +467,13 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
     // Update scroll direction
     scrollDirection.current = isScrollingUp ? 'up' : 'down';
+    lastScrollY.current = y;
 
-    // Ignore scroll updates during dimension changes (device tilt/rotation)
-    if (isDimensionChanging.current) {
-      return;
-    }
+    // Update header animation
+    scrollY.setValue(y);
 
-    // Update header animation - only if scroll change is reasonable
-    // Increased threshold to 300px and added minimum scroll position check
-    // This prevents device tilt from triggering header collapse
-    const scrollDiff = Math.abs(y - (lastScrollY.current || 0));
-    if (scrollDiff < 300 && y >= 0) {
-      scrollY.setValue(y);
-      lastScrollY.current = y;
-    }
-
-    // Update header collapsed state - require more scroll before collapsing (60px instead of 40px)
-    // This prevents accidental collapse from device tilt
-    const shouldBeCollapsed = y > 60;
+    // Update header collapsed state
+    const shouldBeCollapsed = y > 40;
     if (shouldBeCollapsed !== isHeaderCollapsed) {
       setIsHeaderCollapsed(shouldBeCollapsed);
     }
