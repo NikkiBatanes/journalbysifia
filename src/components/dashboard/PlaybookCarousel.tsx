@@ -636,6 +636,9 @@ const styles = StyleSheet.create({
     paddingRight: 0,
     overflow: 'visible',
     alignItems: 'center',
+    // Center content when there are fewer cards
+    justifyContent: 'center',
+    flexGrow: 1,
   },
   scrollExpanded: {
     overflow: 'visible',
