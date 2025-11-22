@@ -33,6 +33,7 @@ const OnboardingTrialOfferScreen = () => {
   const { currentFont } = useTheme();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+  const isSmallPhone = height <= 850;
 
   const fonts = useMemo(() => {
     const fontKey = currentFont || 'lexend';
@@ -44,7 +45,7 @@ const OnboardingTrialOfferScreen = () => {
     };
   }, [currentFont]);
 
-  const styles = useMemo(() => createStyles(fonts), [fonts]);
+  const styles = useMemo(() => createStyles(fonts, isSmallPhone), [fonts, isSmallPhone]);
 
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
@@ -866,7 +867,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
   );
 };
 
-const createStyles = (fonts: any) => StyleSheet.create({
+const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -972,16 +973,16 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginBottom: 20,
   },
   introTitle: {
-    fontSize: 18,
+    fontSize: isSmallPhone ? 14 : 18,
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 4,
   },
   introSubtitle: {
-    fontSize: 17,
+    fontSize: isSmallPhone ? 14 : 17,
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    lineHeight: 24,
+    lineHeight: isSmallPhone ? 22 : 24,
     opacity: 0.9,
     marginTop: 12,
   },

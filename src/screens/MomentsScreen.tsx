@@ -140,7 +140,11 @@ export const MomentsScreen: React.FC = () => {
             onChangeText={setSearchQuery}
             placeholder="Search Moments"
             placeholderTextColor={Colors.textGray}
-            style={[styles.searchInput, { fontFamily: fontRegular }]}
+            style={[
+              styles.searchInput,
+              { fontFamily: fontRegular },
+              isSmallScreen && styles.searchInputCompact,
+            ]}
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
@@ -270,6 +274,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     paddingVertical: 0,
+  },
+  searchInputCompact: {
+    fontSize: 15,
+    paddingVertical: 2,
   },
   clearButton: {
     marginLeft: 8,
