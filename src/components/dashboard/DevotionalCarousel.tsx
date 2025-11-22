@@ -696,9 +696,9 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingRight: 0,
-    alignItems: 'center',
-    // Center content when there are fewer cards
-    justifyContent: 'center',
+    alignItems: 'flex-start',
+    // Don't center content - align to start
+    justifyContent: 'flex-start',
     flexGrow: 1,
   },
   scrollExpanded: {

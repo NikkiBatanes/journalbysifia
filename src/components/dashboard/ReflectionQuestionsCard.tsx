@@ -752,16 +752,16 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: Colors.hopeWhite,
     marginBottom: 0,
-    textAlign: 'center',
-    alignSelf: 'center',
+    textAlign: 'left',
+    alignSelf: 'flex-start',
     maxWidth: '90%',
     paddingHorizontal: 8,
   },
   // New carousel styles
   scrollContainer: {
     paddingRight: 0,
-    // Center content when there are fewer cards
-    justifyContent: 'center',
+    // Don't center content - align to start
+    justifyContent: 'flex-start',
     flexGrow: 1,
   },
   scrollExpanded: {
@@ -775,8 +775,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     height: 300,
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
     gap: 16,
   },
   tapHint: {
