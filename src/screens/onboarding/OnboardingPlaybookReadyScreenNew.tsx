@@ -232,17 +232,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch {}
   };
 
-  // Carousel sizing: modern center-snap with spacing and narrower cards (responsive to orientation)
+  // Carousel sizing: match PlaybookDetailScreen width constraints
   // Memoize to recompute on window width changes
   const {
     ITEM_WIDTH,
   } = React.useMemo(() => {
     const ITEM_SPACING = 16;
     const isIPad = windowWidth >= 768;
-    // iPad: 60% width (narrower cards), iPhone: 80% width
-    const widthRatio = isIPad ? 0.60 : 0.80;
-    const itemWidth = Math.round(windowWidth * widthRatio);
-    return { ITEM_SPACING, ITEM_WIDTH: itemWidth };
+    // Match PlaybookDetailScreen: constrained width with max of 720px
+    const maxCardWidth = Math.min(windowWidth - 64, 720);
+    return { ITEM_SPACING, ITEM_WIDTH: maxCardWidth };
   }, [windowWidth]);
 
   // Cleanup on unmount and handle orientation changes
