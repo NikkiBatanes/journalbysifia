@@ -28,30 +28,33 @@ export const cleanText = (text: string): string => {
  * @returns Formatted verse text
  */
 export const formatBibleVerse = (verse: string): string => {
-  if (!verse) {return '';}
+  if (!verse) {return '';} 
 
-  // First clean the text
+  // 1) Clean base text
   let formatted = cleanText(verse);
 
-  // Remove any remaining escaped quotes or special characters
+  // 2) Normalize quotes and spaces
   formatted = formatted
-    // Strip leading/trailing straight double quotes
     .replace(/^"+|"+$/g, '')
-    .replace(/"/g, '"')  // Convert escaped quotes to regular quotes
-    .replace(/[\u201C\u201D]/g, '"')  // Replace smart quotes with straight quotes
-    .replace(/[\u2018\u2019]/g, "'")  // Replace smart single quotes
-    .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+    .replace(/"/g, '"')
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\s+/g, ' ')
     .trim();
 
-  // Remove any duplicate spaces around punctuation
+  // 3) Fix spacing around punctuation
   formatted = formatted
-    .replace(/\s+([.,!?;:])/g, '$1')  // Remove space before punctuation
-    .replace(/([.,!?;:])([^\s])/g, '$1 $2');  // Add space after punctuation if missing
+    .replace(/\s+([.,!?;:])/g, '$1')
+    .replace(/([.,!?;:])([^\s])/g, '$1 $2');
 
-  // Remove trailing " () artifact and any trailing quote with empty parens
+  // 4) Strip trailing empty `()` artifacts in a few variants
   formatted = formatted
-    .replace(/"\s*\(\)\s*$/g, '')  // Remove " () at end
-    .replace(/\(\)\s*$/g, '');      // Remove () at end if quote was already removed
+    // Case 1: " ... " () or " ... " ()! etc.
+    .replace(/"\s*\(\)\s*([.,!?;:]*)\s*$/g, '$1')
+    // Case 2: ... () or ... ()! etc.
+    .replace(/\(\)\s*([.,!?;:]*)\s*$/g, '$1')
+    // Final safety: if any bare () remains at the very end, drop it
+    .replace(/\s*\(\)\s*$/g, '');
 
   return formatted;
 };
