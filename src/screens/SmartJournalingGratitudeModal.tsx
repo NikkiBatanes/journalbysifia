@@ -365,6 +365,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         visible={visible}
         animationType="slide"
         transparent={false}
+        presentationStyle="overFullScreen"
         onRequestClose={() => {
           Keyboard.dismiss();
           // Small delay to ensure keyboard is fully dismissed before closing

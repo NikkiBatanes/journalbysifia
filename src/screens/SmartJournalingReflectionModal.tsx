@@ -403,6 +403,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         visible={visible}
         animationType="slide"
         transparent={false}
+        presentationStyle="overFullScreen"
         onRequestClose={handleCancel}
       >
             <ReflectionLogEditor
