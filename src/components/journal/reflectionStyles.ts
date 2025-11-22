@@ -5,10 +5,7 @@ import { Fonts } from '../../theme/fonts';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
+    backgroundColor: Colors.hopeWhite,
   },
   backgroundContainer: {
     position: 'absolute',
