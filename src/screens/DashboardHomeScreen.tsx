@@ -1055,12 +1055,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       if (user?.id) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.unprayedRequests(user.id) });
       }
+      // Only close modal for prayer requests, not for dashboard prayers
+      setShowPrayerModal(false);
+      setSelectedPrayerRequest(null);
     } catch (e) {
       Logger.error('Failed to mark prayer request as prayed', e as Error, { component: 'DashboardHomeScreen' });
       Alert.alert('Error', 'Failed to update prayer request status.');
-    } finally {
-      setShowPrayerModal(false);
-      setSelectedPrayerRequest(null);
     }
   };
 
@@ -1700,7 +1700,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         initialActiveTab={selectedPrayerRequest ? 'people' : undefined}
         initialPersonName={selectedPrayerRequest?.person_name || ''}
         initialPrayerRequest={selectedPrayerRequest?.content || ''}
-        onSave={() => handlePrayerSaved()}
+        onSave={() => {
+          // Don't close modal immediately - success modal will handle the flow
+          // Only handle prayer request marking if it's a prayer request (not dashboard scripture/declaration)
+          if (selectedPrayerRequest) {
+            handlePrayerSaved();
+          }
+        }}
         onCancel={() => { 
           setShowPrayerModal(false); 
           setSelectedPrayerRequest(null);
