@@ -28,6 +28,7 @@ interface GratitudeLogEditorProps {
     date: Date;
   }) => void;
   onCancel: () => void;
+  onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
   initialItems?: string[];
   subtaskTitle?: string;
   subtaskId?: string;
@@ -423,11 +424,10 @@ const GratitudeLogEditorInner = (
 ) => {
   const {
     onSave,
-    onCancel,
+    onCancel: _onCancel,
+    onUpgradeRequired,
     initialItems = [],
-    subtaskTitle,
-    subtaskId,
-    stepId,
+    subtaskTitle: _subtaskTitle,
     playbookTitle,
     actionStepNumber,
     actionStepTitle,
@@ -621,13 +621,19 @@ const GratitudeLogEditorInner = (
     // Check if feature is gated for seeker accounts
     if (smartJournalingGating.isLocked) {
       try { triggerLightHaptic(); } catch {}
-      (navigation as any).navigate('OnboardingSalesOffer', {
-        source: 'smart_journaling_lock',
-        feature: 'smart_journaling',
-        tier: subscription?.tier || 'seeker',
-        upgradeMode: false,
-        skipNotificationPreference: true,
-      });
+      // Close modal first before navigating
+      if (onUpgradeRequired) {
+        try { onUpgradeRequired(); } catch {}
+      }
+      setTimeout(() => {
+        (navigation as any).navigate('OnboardingSalesOffer', {
+          source: 'smart_journaling_lock',
+          feature: 'smart_journaling',
+          tier: subscription?.tier || 'seeker',
+          upgradeMode: false,
+          skipNotificationPreference: true,
+        });
+      }, 300);
       return;
     }
 

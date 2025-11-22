@@ -51,6 +51,7 @@ interface TimeBlockLogEditorProps {
     existingId?: string;
   }) => void;
   onCancel: () => void;
+  onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
   initialContent?: string;
   subtaskTitle?: string;
   _subtaskId?: string;
@@ -694,6 +695,7 @@ function TimeBlockLogEditorInner(
   const {
     onSave,
     onCancel: _onCancel,
+    onUpgradeRequired,
     subtaskTitle: _subtaskTitle,
     playbookTitle,
     actionStepNumber,
@@ -800,14 +802,20 @@ function TimeBlockLogEditorInner(
       // Check if feature is gated for seeker accounts
       if (smartJournalingGating.isLocked) {
         try { triggerLightHaptic(); } catch {}
-        // Navigate to sales offer with trial eligibility check
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          source: 'smart_journaling_lock',
-          feature: 'smart_journaling',
-          tier: subscription?.tier || 'seeker',
-          upgradeMode: false,
-          skipNotificationPreference: true,
-        });
+        // Close modal first before navigating
+        if (onUpgradeRequired) {
+          try { onUpgradeRequired(); } catch {}
+        }
+        setTimeout(() => {
+          // Navigate to sales offer with trial eligibility check
+          (navigation as any).navigate('OnboardingSalesOffer', {
+            source: 'smart_journaling_lock',
+            feature: 'smart_journaling',
+            tier: subscription?.tier || 'seeker',
+            upgradeMode: false,
+            skipNotificationPreference: true,
+          });
+        }, 300);
         return;
       }
 

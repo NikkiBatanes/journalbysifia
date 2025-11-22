@@ -379,6 +379,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             ref={gratitudeEditorRef}
             onSave={saveGratitude}
             onCancel={onCancel}
+            onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
             initialItems={currentGratitudeEntry?.content ?
               (() => {
                 try {

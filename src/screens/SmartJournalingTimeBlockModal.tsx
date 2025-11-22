@@ -332,6 +332,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             ref={timeBlockEditorRef}
             onSave={saveTimeBlock}
             onCancel={handleCancel}
+            onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
             initialContent={existingTimeBlock?.description || ''}
             subtaskTitle={preservedSubtaskTitle}
             _subtaskId={subtaskId}

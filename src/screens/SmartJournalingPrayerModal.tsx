@@ -491,6 +491,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             ref={prayerEditorRef}
             onSave={savePrayer}
             onCancel={handleCancel}
+            onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
             initialContent={getInitialContent()}
             subtaskTitle={preservedSubtaskTitle}
             subtaskId={subtaskId}
