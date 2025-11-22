@@ -1389,15 +1389,16 @@ function TimeBlockLogEditorInner(
                 }}
               />
 
-              {/* Metadata section */}
-              {(playbookTitle || _subtaskTitle) && (
+              {/* Metadata section
+                 Only show when there is a real playbook title. This keeps
+                 dashboard-triggered time blocks (scripture/declarations) from
+                 being labeled as From Playbook. */}
+              {playbookTitle && (
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
                     <ThemedText weight="medium" style={s.fromText}>From Playbook</ThemedText>
-                    {playbookTitle && (
-                      <ThemedText style={s.metadataText}>{playbookTitle}</ThemedText>
-                    )}
+                    <ThemedText style={s.metadataText}>{playbookTitle}</ThemedText>
                     {actionStepNumber && actionStepTitle && (
                       <ThemedText style={s.metadataText}>
                         Step {actionStepNumber}: {actionStepTitle}

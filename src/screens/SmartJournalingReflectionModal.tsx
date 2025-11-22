@@ -411,11 +411,11 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               onCancel={handleCancel}
               onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
-              // Free-form mode (carousel): blank title with placeholder and unlocked title
-              initialTitle={isGuidedReflection ? preservedSubtaskTitle : (playbookId ? (preservedSubtaskTitle || '') : '')}
+              // Pass subtaskTitle for all modes - freeform can have initial title too
+              initialTitle={preservedSubtaskTitle || ''}
               lockTitle={isGuidedReflection || !!playbookId}
-              // Source: guided for guided prompt, playbook for playbook context, freeform otherwise
-              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'freeform')}
+              // Source: guided for guided prompt, playbook for playbook context, 'thoughts' for dashboard (enforces gating)
+              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts')}
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
@@ -438,7 +438,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 content: existingReflection.content || '',
                 tags: existingReflection.tags || [],
                 type: 'free-form',
-                source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'freeform'),
+                source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts'),
               } : undefined}
               isLoading={isLoading}
             />

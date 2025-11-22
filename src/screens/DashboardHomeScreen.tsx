@@ -51,6 +51,9 @@ import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import BlueSheet from '../components/layout/BlueSheet';
 import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
+import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
+import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
+import JournalTypeSelectorTooltip, { JournalType } from '../components/JournalTypeSelectorTooltip';
 
 import StreakTracker from '../components/dashboard/StreakTracker';
 // Removed WeeklyInsights and AIInsights
@@ -804,6 +807,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Prayer Requests modal state
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any | null>(null);
+  // Gratitude and TimeBlock modal state
+  const [showGratitudeModal, setShowGratitudeModal] = useState(false);
+  const [showTimeBlockModal, setShowTimeBlockModal] = useState(false);
+  // Journal type selector tooltip state
+  const [showJournalTypeSelector, setShowJournalTypeSelector] = useState(false);
+  const [journalSelectorContent, setJournalSelectorContent] = useState('');
 
   // Prayer modal editor state
   const [showPrayerEditorModal, setShowPrayerEditorModal] = useState(false);
@@ -1470,6 +1479,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <DailyBibleVerseCard
                 onRefresh={() => setRefreshing(true)}
                 onEmpty={() => setHasScripture(false)}
+                onLongPress={(content) => {
+                  setJournalSelectorContent(content);
+                  setSelectedReflection({
+                    question: content,
+                    source: 'Today\'s Scripture',
+                    sourceType: 'playbook',
+                  });
+                  setShowJournalTypeSelector(true);
+                }}
               />
               <View style={styles.sectionGap} />
             </>
@@ -1482,6 +1500,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 <DailyAffirmationCard
                   onRefresh={() => setRefreshing(true)}
                   onEmpty={() => setHasAffirmations(false)}
+                  onLongPress={(content) => {
+                    setJournalSelectorContent(content);
+                    setSelectedReflection({
+                      question: content,
+                      source: 'Today\'s Declaration',
+                      sourceType: 'playbook',
+                    });
+                    setShowJournalTypeSelector(true);
+                  }}
                 />
               </View>
               <View style={styles.sectionGap} />
@@ -1621,19 +1648,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
       {/* Reflection Modals */}
       <SmartJournalingReflectionModal
-        visible={(() => {
-
-          return showSJModal;
-        })()}
+        visible={showSJModal}
         subtaskTitle={selectedReflection?.question || ''}
-        // Hide metadata when reflection comes from a guided prompt
-        isGuidedReflection={selectedReflection?.sourceType === 'guided'}
+        // No playbookId, no isGuidedReflection = saves as freeform (THOUGHTS) with no metadata
         onSave={() => {
           // Don't close modal immediately - success modal will handle the flow
         }}
         onCancel={() => {
           setShowSJModal(false);
           setSelectedReflection(null);
+          setJournalSelectorContent('');
         }}
       />
       <DevotionalDetailReflectionModal
@@ -1672,12 +1696,45 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       {/* Prayer Modal */}
       <SmartJournalingPrayerModal
         visible={showPrayerModal}
-        subtaskTitle={selectedPrayerRequest ? (selectedPrayerRequest.person_name ? `Pray for ${selectedPrayerRequest.person_name}` : 'Prayer') : ''}
+        subtaskTitle={selectedPrayerRequest ? (selectedPrayerRequest.person_name ? `Pray for ${selectedPrayerRequest.person_name}` : 'Prayer') : (selectedReflection?.question || '')}
         initialActiveTab={selectedPrayerRequest ? 'people' : undefined}
         initialPersonName={selectedPrayerRequest?.person_name || ''}
         initialPrayerRequest={selectedPrayerRequest?.content || ''}
         onSave={() => handlePrayerSaved()}
-        onCancel={() => { setShowPrayerModal(false); setSelectedPrayerRequest(null); }}
+        onCancel={() => { 
+          setShowPrayerModal(false); 
+          setSelectedPrayerRequest(null);
+          setSelectedReflection(null);
+          setJournalSelectorContent('');
+        }}
+      />
+
+      {/* Gratitude Modal */}
+      <SmartJournalingGratitudeModal
+        visible={showGratitudeModal}
+        subtaskTitle={selectedReflection?.question || ''}
+        onSave={() => {
+          // Don't close modal immediately - success modal will handle the flow
+        }}
+        onCancel={() => {
+          setShowGratitudeModal(false);
+          setSelectedReflection(null);
+          setJournalSelectorContent('');
+        }}
+      />
+
+      {/* TimeBlock Modal */}
+      <SmartJournalingTimeBlockModal
+        visible={showTimeBlockModal}
+        subtaskTitle={selectedReflection?.question || ''}
+        onSave={() => {
+          // Don't close modal immediately - success modal will handle the flow
+        }}
+        onCancel={() => {
+          setShowTimeBlockModal(false);
+          setSelectedReflection(null);
+          setJournalSelectorContent('');
+        }}
       />
 
       {/* Prayer Editor Modal */}
@@ -1762,6 +1819,32 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           hideDoneButton: true,
         }}
         onDone={() => setShowSuccessModal(false)}
+      />
+
+      {/* Journal Type Selector Tooltip */}
+      <JournalTypeSelectorTooltip
+        visible={showJournalTypeSelector}
+        subtaskText={journalSelectorContent}
+        onSelect={(type: JournalType) => {
+          setShowJournalTypeSelector(false);
+          // Keep selectedReflection and journalSelectorContent for the modal
+          // Open the appropriate modal based on journal type
+          if (type === 'reflection') {
+            setShowSJModal(true);
+          } else if (type === 'prayer') {
+            setShowPrayerModal(true);
+          } else if (type === 'gratitude') {
+            setShowGratitudeModal(true);
+          } else if (type === 'timeblock') {
+            setShowTimeBlockModal(true);
+          }
+        }}
+        onClose={() => {
+          // Only clear state when user cancels (doesn't select a type)
+          setShowJournalTypeSelector(false);
+          setJournalSelectorContent('');
+          setSelectedReflection(null);
+        }}
       />
     </Animated.View>
   );

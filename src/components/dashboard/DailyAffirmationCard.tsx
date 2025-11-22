@@ -35,9 +35,10 @@ interface DailyAffirmationCardProps {
   onAffirmationPress?: (affirmation: Affirmation) => void;
   onReadPress?: () => void;
   onEmpty?: () => void; // Callback when no affirmations
+  onLongPress?: (content: string) => void; // Callback for smart journaling
 }
 
-const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, onAffirmationPress, onReadPress, onEmpty }) => {
+const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, onAffirmationPress, onReadPress, onEmpty, onLongPress }) => {
   const { user } = useAuth();
   const { width } = Dimensions.get('window');
   const isTablet = width >= 768;
@@ -384,6 +385,10 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                   <TouchableOpacity
                     key={item.id}
                     onPress={() => handleAffirmationPress(item)}
+                    onLongPress={() => {
+                      triggerLightHaptic();
+                      onLongPress?.(item.content);
+                    }}
                     activeOpacity={0.7}
                     style={[styles.affirmationItem, isTablet && styles.affirmationItemTablet]}
                     accessibilityRole="button"
@@ -392,13 +397,18 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                     <ThemedText weight="medium" style={styles.affirmationText}>{item.content}</ThemedText>
                   </TouchableOpacity>
                 ) : (
-                  <View
+                  <TouchableOpacity
                     key={item.id}
+                    onLongPress={() => {
+                      triggerLightHaptic();
+                      onLongPress?.(item.content);
+                    }}
+                    activeOpacity={0.7}
                     style={[styles.affirmationItem, isTablet && styles.affirmationItemTablet]}
                     accessibilityRole="text"
                   >
                     <ThemedText weight="medium" style={styles.affirmationText}>{item.content}</ThemedText>
-                  </View>
+                  </TouchableOpacity>
                 )
               ))}
             </View>

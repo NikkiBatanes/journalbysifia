@@ -36,10 +36,11 @@ interface DailyBibleVerseCardProps {
   onRefresh?: () => void;
   onVersePress?: (verse: BibleVerse) => void;
   onEmpty?: () => void; // Callback when no verses available
+  onLongPress?: (content: string) => void; // Callback for smart journaling
 }
 
 
-const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, onVersePress, onEmpty }) => {
+const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, onVersePress, onEmpty, onLongPress }) => {
   const { user } = useAuth();
   const [verse, setVerse] = useState<BibleVerse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -379,6 +380,10 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           {isVersePressable ? (
             <TouchableOpacity
               onPress={handleVersePress}
+              onLongPress={() => {
+                triggerLightHaptic();
+                onLongPress?.(`${formatBibleVerse(verse?.verse || '')}\n\n— ${verse?.reference} (${verse?.version || 'NASB'})`);
+              }}
               style={styles.verseContent}
               accessibilityRole="button"
               accessibilityLabel="Open scripture"
@@ -412,7 +417,14 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               </View>
             </TouchableOpacity>
           ) : (
-            <View style={styles.verseContent}>
+            <TouchableOpacity
+              onLongPress={() => {
+                triggerLightHaptic();
+                onLongPress?.(`${formatBibleVerse(verse?.verse || '')}\n\n— ${verse?.reference} (${verse?.version || 'NASB'})`);
+              }}
+              activeOpacity={0.7}
+              style={styles.verseContent}
+            >
               <View style={styles.verseRow}>
                 <View style={styles.leftBar} />
                 <View style={styles.verseColumn}>
@@ -440,7 +452,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                   </View>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         </>
       )}

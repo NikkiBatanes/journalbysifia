@@ -861,19 +861,19 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 </View>
               )}
 
-              {/* Metadata section for playbook context */}
-              {(playbookTitle || _subtaskTitle) && (
+              {/* Metadata section for playbook context
+                 Only show when we have a real playbook title. This keeps dashboard-triggered
+                 prayers (scripture/declarations) from being labeled as FROM PLAYBOOK. */}
+              {playbookTitle && (
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
                     <ThemedText weight="medium" style={s.fromText}>
                       FROM PLAYBOOK
                     </ThemedText>
-                    {playbookTitle && (
-                      <ThemedText style={s.metadataText}>
-                        {playbookTitle}
-                      </ThemedText>
-                    )}
+                    <ThemedText style={s.metadataText}>
+                      {playbookTitle}
+                    </ThemedText>
                     {actionStepNumber && actionStepTitle && (
                       <ThemedText style={s.metadataText}>
                         Step {actionStepNumber}: {actionStepTitle}
