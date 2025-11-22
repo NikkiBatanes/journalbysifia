@@ -7,7 +7,9 @@ const DashboardReflectionSkeleton: React.FC = () => {
   const { width: screenWidth } = Dimensions.get('window');
   const CARD_HORIZONTAL_PADDING = 16; // matches styles.card padding in ReflectionQuestionsCard
   const VISIBLE_WIDTH = Math.max(0, screenWidth - CARD_HORIZONTAL_PADDING * 2);
-  const ITEM_WIDTH = VISIBLE_WIDTH * 0.8;
+  // On iPad, use fixed width (~4 inches = 384 points) so adjacent cards are visible; phones use 80%
+  const isTablet = screenWidth >= 768;
+  const ITEM_WIDTH = isTablet ? 384 : VISIBLE_WIDTH * 0.8;
 
   React.useEffect(() => {
     const animation = Animated.loop(

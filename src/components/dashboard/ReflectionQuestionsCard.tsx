@@ -576,14 +576,15 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   // Match PrayCarousel sizing
   const CARD_HORIZONTAL_PADDING = 16; // matches styles.card padding
   const VISIBLE_WIDTH = Math.max(0, screenWidth - CARD_HORIZONTAL_PADDING * 2);
-  const CARD_WIDTH = VISIBLE_WIDTH * 0.8;
+  // On iPad, use fixed width (~4 inches = 384 points) so adjacent cards are visible; phones use 80%
+  const isTablet = screenWidth >= 768;
+  const CARD_WIDTH = isTablet ? 384 : VISIBLE_WIDTH * 0.8;
   const CARD_SPACING = 8;
   const ITEM_WIDTH = CARD_WIDTH;
   const ITEM_SPACING = CARD_SPACING;
   const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-  // Padding should center the visible card itself (exclude spacing)
-  // Center within visible area (account for card padding)
-  const SIDE_INSET = Math.max(0, (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
+  // On iPad, start closer to the left edge (smaller inset); phones keep centered behavior
+  const SIDE_INSET = Math.max(0, isTablet ? 24 : (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
   // Precompute exact snap offsets for perfect centering
   const snapOffsets = React.useMemo(() => {
     return questions.map((_, i) => i * ITEM_SIZE);

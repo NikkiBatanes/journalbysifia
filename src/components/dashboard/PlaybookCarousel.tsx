@@ -30,10 +30,16 @@ const { width } = Dimensions.get('window');
 // Match ReflectionQuestionsCard sizing and spacing
 const CARD_HORIZONTAL_PADDING = 16; // matches card padding
 const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
-const ITEM_WIDTH = Math.round(VISIBLE_WIDTH * 0.8);
+// On iPad, use fixed width (~4 inches = 384 points) so adjacent cards are visible; phones use 80%
+const isTablet = width >= 768;
+const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
 const ITEM_SPACING = 8;
 const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-const SIDE_INSET = Math.max(0, Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2));
+// On iPad, start closer to the left edge (smaller inset); phones keep centered behavior
+const SIDE_INSET = Math.max(
+  0,
+  isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
+);
 
 interface Playbook {
   id: string;
