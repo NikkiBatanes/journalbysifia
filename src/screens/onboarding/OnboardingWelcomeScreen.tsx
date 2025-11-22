@@ -346,7 +346,16 @@ const OnboardingWelcomeScreen: React.FC = () => {
   };
 
   const renderSlide = ({ item }: { item: Slide }) => (
-    <View style={[styles.slideContainer, { width: listWidth || screenSize.width }]}>
+    <View
+      style={[
+        styles.slideContainer,
+        {
+          width: listWidth || screenSize.width,
+          // On tablets, push the slide content further down so the middle content sits lower
+          paddingTop: isTablet ? 120 : 10,
+        },
+      ]}
+    >
       {/* Slide Icon */}
       <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
         {item.useLucidePencil ? (

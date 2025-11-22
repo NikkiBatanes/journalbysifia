@@ -56,6 +56,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const win = Dimensions.get('window');
   const [screen, setScreen] = React.useState({ width: win.width, height: win.height });
   const isLandscape = screen.width > screen.height;
+  const isTablet = screen.width >= 768;
+  // Treat SE-class and other very small phones as small; threshold mirrors onboarding welcome screen
+  const isSmallPhone = !isTablet && screen.height <= 850;
   const contentWidth = Math.min(isLandscape ? screen.width * 0.6 : screen.width * 0.92, 600);
   const [error, setError] = React.useState<string>('');
   const [activeProvider, setActiveProvider] = React.useState<null | 'apple' | 'google'>(null);
@@ -181,7 +184,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        // On small phones, reduce top/bottom padding slightly so the content and buttons fit comfortably
+        isSmallPhone && { paddingTop: 40, paddingBottom: 24 },
+      ]}
+    >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <View style={[styles.contentContainer, { width: contentWidth }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
@@ -193,10 +202,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         />
 
         {/* Illustration Placeholder */}
-        <View style={[
-          styles.illustrationContainer,
-          error ? styles.illustrationContainerCompressed : null,
-        ]}>
+        <View
+          style={[
+            styles.illustrationContainer,
+            error ? styles.illustrationContainerCompressed : null,
+            // On small phones, make the illustration a bit shorter and tighten vertical margins
+            isSmallPhone && { height: 240, marginVertical: 12 },
+          ]}
+        >
           <View style={styles.illustrationPlaceholder}>
             <Ionicons name="laptop-outline" size={100} color="rgba(255,255,255,0.3)" />
             <Ionicons name="phone-portrait-outline" size={50} color="rgba(255,255,255,0.2)" style={styles.phoneIcon} />
