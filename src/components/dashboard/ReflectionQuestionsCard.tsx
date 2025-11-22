@@ -760,6 +760,9 @@ const styles = StyleSheet.create({
   // New carousel styles
   scrollContainer: {
     paddingRight: 0,
+    // Center content when there are fewer cards
+    justifyContent: 'center',
+    flexGrow: 1,
   },
   scrollExpanded: {
     overflow: 'visible',
