@@ -331,7 +331,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const renderSlide = ({ item }: { item: Slide }) => (
     <View style={[styles.slideContainer, { width: listWidth || screenSize.width }]}>
       {/* Slide Icon */}
-      <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
+      <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }, isSmallScreen && styles.iconContainerSmall]}>
         {item.useLucidePencil ? (
           <LucidePencil
             size={item.iconSize || 60}
@@ -344,10 +344,10 @@ const OnboardingWelcomeScreen: React.FC = () => {
       </View>
 
       {/* Slide Title */}
-      <ThemedText weight="bold" style={styles.slideTitle}>{item.title}</ThemedText>
+      <ThemedText weight="bold" style={[styles.slideTitle, isSmallScreen && styles.slideTitleSmall]}>{item.title}</ThemedText>
 
       {/* Slide Subtitle */}
-      <ThemedText style={styles.slideSubtitle}>{item.subtitle}</ThemedText>
+      <ThemedText style={[styles.slideSubtitle, isSmallScreen && styles.slideSubtitleSmall]}>{item.subtitle}</ThemedText>
 
       {/* Features List */}
       <View style={[{ width: contentWidth }, styles.centeredContainer]}>
@@ -369,7 +369,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={[OnboardingStyles.innerContainer, { paddingBottom: isSmallScreen ? 20 : 60 }]}>
         {/* Logo Section */}
-        <View style={styles.logoSection}>
+        <View style={[styles.logoSection, isSmallScreen && styles.logoSectionSmall]}>
           <Image
             source={require('../../../assets/icons/siFiaTransparent.png')}
             style={styles.logoImage}
@@ -401,7 +401,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Navigation Dots */}
-        <View style={[styles.dotsContainer, { width: contentWidth }, styles.centeredContainer]}>
+        <View style={[styles.dotsContainer, { width: contentWidth }, styles.centeredContainer, isSmallScreen && styles.dotsContainerSmall]}>
           {slides.map((_, index) => (
             <TouchableOpacity
               key={index}
@@ -418,7 +418,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Action Buttons */}
-        <View style={[styles.buttonSection, { width: contentWidth }, styles.centeredContainer]}>
+        <View style={[styles.buttonSection, { width: contentWidth }, styles.centeredContainer, isSmallScreen && styles.buttonSectionSmall]}>
           <TouchableOpacity
             style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleCreateAccount}
@@ -441,7 +441,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Terms Text */}
-        <ThemedText style={[styles.termsText, { width: contentWidth }, styles.centeredContainer]}>
+        <ThemedText style={[styles.termsText, { width: contentWidth }, styles.centeredContainer, isSmallScreen && styles.termsTextSmall]}>
           By continuing, you agree to our{' '}
           <ThemedText
             style={styles.linkText}
@@ -472,8 +472,12 @@ const styles = StyleSheet.create({
   logoSection: {
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,
-    marginTop: 40, // Reduced from 56 for small screens
-    marginBottom: 8, // Reduced from 12
+    marginTop: 56,
+    marginBottom: OnboardingSpacing.md,
+  },
+  logoSectionSmall: {
+    marginTop: 40,
+    marginBottom: 8,
   },
   logoImage: {
     width: 120,
@@ -495,25 +499,37 @@ const styles = StyleSheet.create({
   // Slide Content Styles
   iconContainer: {
     ...OnboardingStyles.iconContainer,
-    marginBottom: 16, // Reduced from 24
-    width: 70, // Reduced from 90
-    height: 70, // Reduced from 90
-    borderRadius: 35,
+    marginBottom: 24,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  iconContainerSmall: {
+    marginBottom: 16,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+  },
   slideTitle: {
     ...OnboardingStyles.mainTitle,
-    marginBottom: 8, // Reduced from 12
+    marginBottom: OnboardingSpacing.md,
     textAlign: 'center',
-    fontSize: 20, // Reduced from 24
+  },
+  slideTitleSmall: {
+    marginBottom: 8,
+    fontSize: 20,
     lineHeight: 24,
   },
   slideSubtitle: {
     ...OnboardingStyles.subtitle,
-    marginBottom: 16, // Reduced from 24
+    marginBottom: OnboardingSpacing.xxl,
     textAlign: 'center',
-    fontSize: 14, // Reduced from 15
+  },
+  slideSubtitleSmall: {
+    marginBottom: 16,
+    fontSize: 14,
   },
   featuresList: {
     ...OnboardingStyles.featuresList,
@@ -525,9 +541,13 @@ const styles = StyleSheet.create({
   // Navigation Dots
   dotsContainer: {
     ...OnboardingStyles.dotsContainer,
-    marginTop: 12, // Reduced from 20
-    marginBottom: 20, // Reduced from 40
+    marginTop: 20,
+    marginBottom: 40,
     paddingHorizontal: 24,
+  },
+  dotsContainerSmall: {
+    marginTop: 12,
+    marginBottom: 20,
   },
   dot: OnboardingStyles.dot,
   activeDot: OnboardingStyles.activeDot,
@@ -536,7 +556,10 @@ const styles = StyleSheet.create({
   buttonSection: {
     width: '100%',
     paddingHorizontal: 24,
-    marginBottom: 16, // Reduced from 40
+    marginBottom: 40,
+  },
+  buttonSectionSmall: {
+    marginBottom: 16,
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
@@ -571,8 +594,11 @@ const styles = StyleSheet.create({
   termsText: {
     ...OnboardingStyles.termsText,
     paddingHorizontal: 24,
-    marginBottom: 24, // Reduced from 48
-    fontSize: 11, // Reduced from 12
+    marginBottom: 48,
+  },
+  termsTextSmall: {
+    marginBottom: 24,
+    fontSize: 11,
   },
   linkText: OnboardingStyles.linkText,
   iconMarginTop: {
