@@ -9,6 +9,7 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
+    marginTop: 40, // Push content down to show rounded corners
   },
   backgroundContainer: {
     position: 'absolute',
