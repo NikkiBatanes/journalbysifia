@@ -428,6 +428,8 @@ const GratitudeLogEditorInner = (
     onUpgradeRequired,
     initialItems = [],
     subtaskTitle: _subtaskTitle,
+    subtaskId,
+    stepId,
     playbookTitle,
     actionStepNumber,
     actionStepTitle,
@@ -497,11 +499,11 @@ const GratitudeLogEditorInner = (
       return key;
     }
 
-    if (subtaskTitle && playbookTitle) {
+    if (_subtaskTitle && playbookTitle) {
       // Fallback to title-based key with date
       const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
       const stepNum = actionStepNumber || 0;
-      const taskTitle = subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
       const key = `@gratitude_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
       return key;
     }
@@ -509,7 +511,7 @@ const GratitudeLogEditorInner = (
     // Default key with date
     const key = `@gratitude_editor_draft_${currentDate}`;
     return key;
-  }, [subtaskId, stepId, subtaskTitle, playbookTitle, actionStepNumber]);
+  }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber]);
 
   // Load draft on component mount
   useEffect(() => {
@@ -801,7 +803,7 @@ const GratitudeLogEditorInner = (
             )}
 
             {/* Metadata section - matching reflection editor format */}
-            {(subtaskTitle || playbookTitle) && (
+            {(_subtaskTitle || playbookTitle) && (
               <View style={s.metadataContainer}>
                 <View style={s.verticalLine} />
                 <View>
@@ -818,9 +820,9 @@ const GratitudeLogEditorInner = (
                       Step {actionStepNumber}: {actionStepTitle}
                     </ThemedText>
                   )}
-                  {subtaskTitle && (
+                  {_subtaskTitle && (
                     <ThemedText style={s.metadataText}>
-                      {subtaskTitle}
+                      {_subtaskTitle}
                     </ThemedText>
                   )}
                 </View>
@@ -837,7 +839,7 @@ const GratitudeLogEditorInner = (
               {/* Cancel FAB */}
               <TouchableOpacity
                 style={[s.fab, s.cancelFab]}
-                onPress={onCancel}
+                onPress={_onCancel}
               >
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
