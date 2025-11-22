@@ -271,10 +271,10 @@ const UserInputScreen: React.FC = () => {
       Animated.delay(220), // small delay to let modal finish sliding
       Animated.parallel([
         Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
-        // In iPad landscape, keep logo at -200; otherwise animate to 0 in portrait
+        // In iPad landscape, keep logo at -160; otherwise animate to 0 in portrait
         Animated.timing(
           headerTranslateY,
-          { toValue: isPad && isLandscape ? -200 : 0, duration: 320, useNativeDriver: true }
+          { toValue: isPad && isLandscape ? -160 : 0, duration: 320, useNativeDriver: true }
         ),
         Animated.sequence([
           Animated.delay(100),
@@ -323,7 +323,7 @@ const UserInputScreen: React.FC = () => {
     // Return logo to original position when keyboard closes
     Animated.parallel([
       Animated.spring(headerTranslateY, {
-        toValue: isPad && isLandscape ? -160 : 0,
+        toValue: isPad && isLandscape ? -200 : 0,
         useNativeDriver: true,
         stiffness: 200,
         damping: 20,
