@@ -64,7 +64,7 @@ export interface ReflectionLogEditorRef {
 
 // Fallback styles in case styles prop is not provided
 const fallbackStyles = {
-  container: { flex: 1, backgroundColor: Colors.anchorBlue },
+  container: { flex: 1, backgroundColor: Colors.anchorBlue, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' },
   backgroundContainer: {},
   metadataContainer: {
     marginTop: 32,

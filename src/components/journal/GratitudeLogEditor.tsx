@@ -50,6 +50,9 @@ const defaultStyles = {
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
   },
   backgroundContainer: {
     position: 'absolute',
