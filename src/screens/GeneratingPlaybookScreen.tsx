@@ -334,7 +334,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.centerBlock}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={require('../../assets/icons/siFiaTransparent.png')}
+                  source={require('../../assets/icons/siFiaAppIcon.png')}
                   style={styles.logo}
                   resizeMode="contain"
                 />
