@@ -127,8 +127,8 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
-  // Detect small screens (iPhone SE, etc.) - height < 700
-  const isSmallScreen = screenSize.height < 700;
+  // Detect small screens (iPhone SE: 667px, iPhone 8: 667px, iPhone 8 Plus: 736px)
+  const isSmallScreen = screenSize.height <= 667;
   // Width of the actual FlatList viewport; defaults to screen, but measured on layout
   const [listWidth, setListWidth] = useState(screenSize.width);
   const { isAuthenticated, user } = useAuth();
@@ -367,7 +367,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     <OnboardingErrorBoundary>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <View style={[OnboardingStyles.innerContainer, { paddingBottom: isSmallScreen ? 20 : 60 }]}>
+        <View style={[OnboardingStyles.innerContainer, { paddingBottom: isSmallScreen ? 10 : 60 }]}>
         {/* Logo Section */}
         <View style={[styles.logoSection, isSmallScreen && styles.logoSectionSmall]}>
           <Image
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   buttonSectionSmall: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   termsTextSmall: {
-    marginBottom: 24,
+    marginBottom: 12,
     fontSize: 11,
   },
   linkText: OnboardingStyles.linkText,
