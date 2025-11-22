@@ -482,6 +482,13 @@ export class OnboardingService {
    * Updates BOTH onboarding_progress AND user_profiles to ensure all login methods work
    */
   async completeOnboarding(userId: string): Promise<void> {
+    Logger.debug('[OnboardingService] Starting completeOnboarding', { 
+      userId, 
+      userIdType: typeof userId,
+      userIdLength: userId?.length,
+      isUuidFormat: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)
+    });
+    
     try {
       // 1. Update onboarding_progress table
       const { error: progressError } = await this.supabase
@@ -505,11 +512,27 @@ export class OnboardingService {
 
       // 2. Update user_profiles.onboarding_completed (PRIMARY source of truth for login routing)
       // Use upsert to handle cases where profile doesn't exist yet (e.g., social login)
-      const { error: profileError } = await this.supabase
+      Logger.debug('[OnboardingService] Updating user_profiles.onboarding_completed to true', { userId });
+      
+      // First get the user's email to include in the upsert
+      const { data: userData } = await this.supabase.auth.getUser();
+      const userEmail = userData?.user?.email;
+
+      if (!userEmail) {
+        Logger.error('[OnboardingService] Cannot get user email for profile update', {
+          component: 'onboardingService',
+          action: 'complete_onboarding',
+          userId,
+        });
+        throw new Error('User email not available for profile update');
+      }
+
+      const { data: updateResult, error: profileError } = await this.supabase
         .from('user_profiles')
         .upsert(
           {
             id: userId,
+            email: userEmail, // Include required email field
             onboarding_completed: true,
             updated_at: new Date().toISOString(),
           },
@@ -517,7 +540,19 @@ export class OnboardingService {
             onConflict: 'id',
             ignoreDuplicates: false, // Always update if exists
           }
-        );
+        )
+        .select('id, onboarding_completed')
+        .single();
+
+      Logger.debug('[OnboardingService] UPSERT RESULT', {
+        userId,
+        userEmail,
+        updateResult,
+        profileError: profileError?.message,
+        profileErrorCode: profileError?.code,
+        hasUpdateResult: !!updateResult,
+        updatedOnboardingCompleted: updateResult?.onboarding_completed
+      });
 
       if (profileError) {
         Logger.error('[OnboardingService] Error updating user_profiles.onboarding_completed', profileError as Error, {
@@ -528,15 +563,48 @@ export class OnboardingService {
         throw profileError;
       }
 
+      if (!updateResult) {
+        Logger.error('[OnboardingService] UPSERT returned no result - possible RLS issue', {
+          component: 'onboardingService',
+          action: 'complete_onboarding',
+          userId,
+        });
+        throw new Error('UPSERT operation returned no result - check RLS policies');
+      }
+
       Logger.debug('[OnboardingService] Onboarding completed successfully for user', {
         component: 'onboardingService',
         userId,
       });
 
+      // VERIFY: Double-check the update worked
+      try {
+        const { data: verifyProfile } = await this.supabase
+          .from('user_profiles')
+          .select('onboarding_completed, updated_at')
+          .eq('id', userId)
+          .single();
+        
+        Logger.debug('[OnboardingService] VERIFICATION - Profile after update', {
+          userId,
+          onboardingCompleted: verifyProfile?.onboarding_completed,
+          updatedAt: verifyProfile?.updated_at,
+          verification: verifyProfile?.onboarding_completed === true ? 'SUCCESS' : 'FAILED'
+        });
+      } catch (verifyError) {
+        Logger.warn('[OnboardingService] Could not verify onboarding completion', {
+          errorMessage: (verifyError as Error)?.message || 'Unknown verification error',
+          component: 'onboardingService',
+          action: 'verify_onboarding_completion',
+          userId,
+        });
+      }
+
     } catch (error) {
       Logger.error('[OnboardingService] Error in completeOnboarding', error as Error, {
         component: 'onboardingService',
-        action: 'onboarding',
+        action: 'complete_onboarding',
+        userId,
       });
       throw error;
     }

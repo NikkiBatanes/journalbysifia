@@ -30,6 +30,7 @@ import { Fonts } from '../../theme/fonts';
 import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { supabase } from '../../services/supabaseClient';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
@@ -186,11 +187,36 @@ const OnboardingWelcomeScreen: React.FC = () => {
     const unsubscribe = (navigation as any).addListener?.('focus', async () => {
       try {
         if (!isAuthenticated) {return;}
+        
+        // Wait a moment for auth context to potentially update the redirect
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
         if (redirectRaw) {
           const redirect = JSON.parse(redirectRaw);
           const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
+
+          // Check if user has completed onboarding before honoring redirect
+          if (user && target === 'OnboardingPersonalization') {
+            try {
+              const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('onboarding_completed')
+                .eq('id', user.id)
+                .single();
+              
+              if (profile?.onboarding_completed) {
+                // User completed onboarding - ignore personalization redirect and go to main
+                console.log('[WelcomeScreen] User completed onboarding - ignoring personalization redirect');
+                try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+                (navigation as any).reset?.({ index: 0, routes: [{ name: 'MainTabs', params: {} }] });
+                return;
+              }
+            } catch (error) {
+              console.warn('[WelcomeScreen] Error checking onboarding status:', error);
+            }
+          }
 
           if (!isActive || !target) {return;}
 

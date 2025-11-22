@@ -299,9 +299,27 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           const resolvedName = paramName || metadataName;
 
           if (provider === 'apple') {
-            logger.debug('🍎 Apple OAuth detected - forcing name collection');
-            setName('');
-            setShowNameStep(true);
+            // Check if user has already completed onboarding
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('onboarding_completed')
+              .eq('id', user?.id)
+              .single();
+            
+            if (profile?.onboarding_completed) {
+              logger.debug('🍎 Apple OAuth user has completed onboarding - skipping name collection', { userId: user?.id });
+              // Try to get existing name from metadata
+              const metadataName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
+              if (metadataName) {
+                setName(metadataName);
+                setShowNameStep(false);
+                return;
+              }
+            } else {
+              logger.debug('🍎 Apple OAuth user needs onboarding - forcing name collection');
+              setName('');
+              setShowNameStep(true);
+            }
 
             try {
               await AsyncStorage.removeItem('apple_signin_name');
