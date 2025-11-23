@@ -150,9 +150,9 @@ class TierRestrictionService {
         ? subscription.trial_chosen_tier
         : currentTier;
 
-      // Debug logging for trial users
+      // Debug logging for trial users - using Logger only
       if (currentTier === 'free_trial') {
-        console.log('[TierRestriction] Trial User Debug:', {
+        Logger.info('[TierRestriction] Trial User Debug:', {
           feature,
           currentTier,
           trial_chosen_tier: subscription?.trial_chosen_tier,
@@ -293,7 +293,7 @@ class TierRestrictionService {
     const requiredLevel = tierHierarchy[requiredTier] || 0;
     const hasAccess = currentLevel >= requiredLevel;
 
-    console.log('[TierRestriction] hasTierAccess check:', {
+    Logger.info('[TierRestriction] hasTierAccess check:', {
       currentTier,
       requiredTier,
       currentLevel,

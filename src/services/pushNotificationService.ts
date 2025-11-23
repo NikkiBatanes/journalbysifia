@@ -86,35 +86,35 @@ class PushNotificationService {
   }
 
   private async initializeIOS(userId: string): Promise<void> {
-    console.log('🔵 [INIT] Starting iOS initialization for user:', userId);
+    Logger.info('INIT: Starting iOS initialization for user:', userId);
     Logger.info('[PushNotification] Initializing iOS push notifications', {
       component: 'pushNotificationService',
       userId,
     });
 
     if (!isNativeModuleAvailable()) {
-      console.log('🔴 [INIT] Native module NOT available');
+      Logger.warn('INIT: Native module NOT available');
       Logger.warn('[PushNotification] Native module not available', {
         component: 'pushNotificationService',
       });
       return;
     }
 
-    console.log('🟢 [INIT] Native module available, registering event listeners');
+    Logger.info('INIT: Native module available, registering event listeners');
 
     // Listen for device token registration
     const tokenListener = addNotificationEventListener(
       'RemoteNotificationRegistered',
       async (event: any) => {
-        console.log('🟢 [TOKEN EVENT] RemoteNotificationRegistered fired!', event);
+        Logger.info('TOKEN EVENT: RemoteNotificationRegistered fired!', event);
         Logger.info('[PushNotification] Device token received', {
           component: 'pushNotificationService',
           tokenLength: event.deviceToken?.length,
         });
         this.deviceToken = event.deviceToken;
-        console.log('🟢 [TOKEN] Calling saveDeviceToken with:', event.deviceToken?.substring(0, 20) + '...');
+        Logger.info('TOKEN: Calling saveDeviceToken with:', event.deviceToken?.substring(0, 20) + '...');
         await this.saveDeviceToken(userId, event.deviceToken);
-        console.log('🟢 [TOKEN] saveDeviceToken completed');
+        Logger.info('TOKEN: saveDeviceToken completed');
       }
     );
 
@@ -126,7 +126,7 @@ class PushNotificationService {
     const errorListener = addNotificationEventListener(
       'RemoteNotificationRegistrationFailed',
       (event: any) => {
-        console.log('🔴 [TOKEN EVENT] RemoteNotificationRegistrationFailed fired!', event);
+        Logger.error('TOKEN EVENT: RemoteNotificationRegistrationFailed fired!', event);
         Logger.error(
           '[PushNotification] Registration failed',
           new Error(event.error),
@@ -145,7 +145,7 @@ class PushNotificationService {
     const notificationListener = addNotificationEventListener(
       'RemoteNotificationReceived',
       (notification: any) => {
-        console.log('🟢 [NOTIFICATION EVENT] RemoteNotificationReceived fired!', notification);
+        Logger.info('NOTIFICATION EVENT: RemoteNotificationReceived fired!', notification);
         Logger.info('[PushNotification] Notification received', {
           component: 'pushNotificationService',
           notification,
@@ -158,7 +158,7 @@ class PushNotificationService {
       this.eventListeners.push(notificationListener);
     }
 
-    console.log('🟢 [INIT] All iOS event listeners registered successfully');
+    Logger.info('INIT: All iOS event listeners registered successfully');
     Logger.info('[PushNotification] iOS event listeners registered', {
       component: 'pushNotificationService',
     });
@@ -227,10 +227,10 @@ class PushNotificationService {
 
   async requestPermissions(): Promise<boolean> {
     try {
-      console.log('🔵 [PERMISSIONS] requestPermissions called');
+      Logger.info('PERMISSIONS: requestPermissions called');
       if (Platform.OS === 'ios') {
         if (!isNativeModuleAvailable()) {
-          console.log('🔴 [PERMISSIONS] Native module not available');
+          Logger.warn('PERMISSIONS: Native module not available');
           Logger.warn('[PushNotification] Native module not available for permissions', {
             component: 'pushNotificationService',
           });
@@ -242,7 +242,7 @@ class PushNotificationService {
         const alreadyGranted = current.alert || current.badge || current.sound;
 
         if (alreadyGranted) {
-          console.log('🟢 [PERMISSIONS] Permissions already granted - forcing APNS re-registration');
+          Logger.info('PERMISSIONS: Permissions already granted - forcing APNS re-registration');
           Logger.info('[PushNotification] Permissions already granted - forcing APNS re-registration', {
             component: 'pushNotificationService',
             permissions: current,
@@ -250,11 +250,11 @@ class PushNotificationService {
 
           try {
             // Force re-registration to re-emit the device token event
-            console.log('🔵 [PERMISSIONS] Calling registerForRemoteNotifications...');
+            Logger.info('PERMISSIONS: Calling registerForRemoteNotifications...');
             await PushNotificationBridge.registerForRemoteNotifications();
-            console.log('🟢 [PERMISSIONS] registerForRemoteNotifications completed');
+            Logger.info('PERMISSIONS: registerForRemoteNotifications completed');
           } catch (error) {
-            console.log('🔴 [PERMISSIONS] Error re-registering for remote notifications:', error);
+            Logger.error('PERMISSIONS: Error re-registering for remote notifications:', error);
             Logger.error('[PushNotification] Error re-registering for remote notifications', error as Error, {
               component: 'pushNotificationService',
             });
@@ -264,9 +264,9 @@ class PushNotificationService {
         }
 
         // Always re-trigger registration to ensure token is emitted
-        console.log('🔵 [PERMISSIONS] Calling native requestPermissions...');
+        Logger.info('PERMISSIONS: Calling native requestPermissions...');
         const granted = await PushNotificationBridge.requestPermissions();
-        console.log('🟢 [PERMISSIONS] Native requestPermissions returned:', granted);
+        Logger.info('PERMISSIONS: Native requestPermissions returned:', granted);
         Logger.info('[PushNotification] iOS permissions result', {
           component: 'pushNotificationService',
           granted,

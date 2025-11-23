@@ -45,14 +45,14 @@ export async function reportBug(payload: BugReportPayload) {
 
     if (error) {
       // Debug: Log the raw error to see what we're actually getting
-      console.log('🐛 RAW SUPABASE ERROR:', error);
-      console.log('🐛 Error type:', typeof error);
-      console.log('🐛 Error keys:', Object.keys(error));
-      console.log('🐛 Error.code:', error.code);
-      console.log('🐛 Error.message:', error.message);
-      console.log('🐛 Error.details:', error.details);
-      console.log('🐛 Error.hint:', error.hint);
-      console.log('🐛 Error stringified:', JSON.stringify(error));
+      Logger.info('RAW SUPABASE ERROR:', error);
+      Logger.info('Error type:', typeof error);
+      Logger.info('Error keys:', Object.keys(error));
+      Logger.info('Error.code:', error.code);
+      Logger.info('Error.message:', error.message);
+      Logger.info('Error.details:', error.details);
+      Logger.info('Error.hint:', error.hint);
+      Logger.info('Error stringified:', JSON.stringify(error));
 
       // Extract meaningful error information
       const errorCode = error.code || 'UNKNOWN';

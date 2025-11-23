@@ -316,14 +316,14 @@ export class TimeBlockApi {
     const endDateStr = (block.metadata && block.metadata.endDate) || block.repeat_until || block.repeat_end_date;
     if (endDateStr) {
       const endDate = new Date(endDateStr);
-      console.log(`🔍 [SHOULD APPEAR] Block ${block.id.substring(0, 8)}... checking end date`);
-      console.log(`🔍 [SHOULD APPEAR] End date: ${endDateStr}, Target date: ${targetDate}`);
-      console.log(`🔍 [SHOULD APPEAR] Target > End? ${targetDateObj > endDate}`);
+      Logger.info(`Block ${block.id.substring(0, 8)}... checking end date`);
+      Logger.info(`End date: ${endDateStr}, Target date: ${targetDate}`);
+      Logger.info(`Target > End? ${targetDateObj > endDate}`);
       if (targetDateObj > endDate) {
-        console.log('🔍 [SHOULD APPEAR] ❌ Block should NOT appear (past end date)');
+        Logger.info('Block should NOT appear (past end date)');
         return false;
       }
-      console.log('🔍 [SHOULD APPEAR] ✅ Block is within end date range');
+      Logger.info('Block is within end date range');
     }
 
     // Use UTC dates to avoid timezone/DST issues
@@ -426,8 +426,8 @@ export class TimeBlockApi {
     id: string,
     updates: Partial<Omit<TimeBlockApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<TimeBlockApiEntry> {
-    console.log('🔧 [API UPDATE] Updating time block:', id);
-    console.log('🔧 [API UPDATE] Updates:', JSON.stringify(updates, null, 2));
+    Logger.info('API UPDATE: Updating time block:', id);
+    Logger.info('API UPDATE: Updates:', JSON.stringify(updates, null, 2));
 
     // Special handling for metadata updates to ensure JSONB merging
     let updatePayload: any = {
@@ -437,7 +437,7 @@ export class TimeBlockApi {
 
     // If updating metadata, we need to fetch current data first and merge
     if (updates.metadata !== undefined) {
-      console.log('🔧 [API UPDATE] Metadata update detected, fetching current data for merge...');
+      Logger.info('API UPDATE: Metadata update detected, fetching current data for merge...');
 
       // Fetch current time block to get existing metadata
       const { data: currentData, error: fetchError } = await supabase
@@ -447,17 +447,17 @@ export class TimeBlockApi {
         .single();
 
       if (fetchError) {
-        console.error('🔧 [API UPDATE] Error fetching current data:', fetchError);
+        Logger.error('API UPDATE: Error fetching current data:', fetchError);
       } else {
         const currentMetadata = currentData?.metadata || {};
-        console.log('🔧 [API UPDATE] Current metadata:', JSON.stringify(currentMetadata));
+        Logger.info('API UPDATE: Current metadata:', JSON.stringify(currentMetadata));
 
         // Merge the metadata
         updatePayload.metadata = {
           ...currentMetadata,
           ...updates.metadata,
         };
-        console.log('🔧 [API UPDATE] Merged metadata:', JSON.stringify(updatePayload.metadata));
+        Logger.info('API UPDATE: Merged metadata:', JSON.stringify(updatePayload.metadata));
       }
     }
 
@@ -469,14 +469,14 @@ export class TimeBlockApi {
       .single();
 
     if (error) {
-      console.error('🔧 [API UPDATE] Error:', error);
+      Logger.error('API UPDATE: Error:', error);
       Logger.error('Error updating time block', error as Error, {
       component: 'timeBlockApi',
     });
       throw new Error(`Failed to update time block: ${error.message}`);
     }
 
-    console.log('🔧 [API UPDATE] Success! Updated data:', JSON.stringify(data, null, 2));
+    Logger.info('API UPDATE: Success! Updated data:', JSON.stringify(data, null, 2));
     return data;
   }
 

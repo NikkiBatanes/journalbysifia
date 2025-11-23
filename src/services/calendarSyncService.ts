@@ -134,8 +134,8 @@ export const updateTimeBlockInCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log('📆 [updateTimeBlockInCalendar] Starting update for event:', calendarEventId);
-    console.log('📆 [updateTimeBlockInCalendar] Time block:', {
+    Logger.info('updateTimeBlockInCalendar: Starting update for event:', calendarEventId);
+    Logger.info('updateTimeBlockInCalendar: Time block:', {
       title: timeBlock.title,
       startTime: timeBlock.startTime.toISOString(),
       endTime: timeBlock.endTime.toISOString(),
@@ -143,13 +143,13 @@ export const updateTimeBlockInCalendar = async (
 
     const hasPermission = await requestCalendarPermissions();
     if (!hasPermission) {
-      console.log('📆 [updateTimeBlockInCalendar] ❌ Permission denied');
+      Logger.warn('updateTimeBlockInCalendar: Permission denied');
       return { success: false, error: 'Calendar permission denied' };
     }
 
     const calendarId = await getSiFiaCalendar();
     if (!calendarId) {
-      console.log('📆 [updateTimeBlockInCalendar] ❌ No calendar ID');
+      Logger.warn('updateTimeBlockInCalendar: No calendar ID');
       return { success: false, error: 'Could not access calendar' };
     }
 
@@ -157,7 +157,7 @@ export const updateTimeBlockInCalendar = async (
     let recurrence: string | undefined;
     if (timeBlock.repeat.frequency !== 'never') {
       recurrence = getRNCalendarRecurrence(timeBlock.repeat);
-      console.log('📆 [updateTimeBlockInCalendar] Recurrence:', recurrence);
+      Logger.info('updateTimeBlockInCalendar: Recurrence:', recurrence);
     }
 
     const eventDetails: any = {
@@ -182,15 +182,15 @@ export const updateTimeBlockInCalendar = async (
       eventDetails.recurrence = recurrence;
     }
 
-    console.log('📆 [updateTimeBlockInCalendar] Event details:', eventDetails);
+    Logger.info('updateTimeBlockInCalendar: Event details:', eventDetails);
 
     const updatedEventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
 
-    console.log('📆 [updateTimeBlockInCalendar] ✅ Event updated! Event ID:', updatedEventId);
+    Logger.info('updateTimeBlockInCalendar: Event updated! Event ID:', updatedEventId);
 
     return { success: true };
   } catch (error) {
-    console.log('📆 [updateTimeBlockInCalendar] ❌ Error:', error);
+    Logger.error('updateTimeBlockInCalendar: Error:', error);
     Logger.error('Calendar update error', error as Error, {
       component: 'calendarSyncService',
     });
@@ -227,18 +227,18 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
   try {
 
     const calendars = await RNCalendarEvents.findCalendars();
-    console.log('📆 [getSiFiaCalendar] Found calendars:', calendars.length);
+    Logger.info('getSiFiaCalendar: Found calendars:', calendars.length);
 
     // 1) Prefer an existing 'siFia' calendar
     const existingSiFia = calendars.find(cal => cal.title === 'siFia');
     if (existingSiFia) {
-      console.log('📆 [getSiFiaCalendar] ✅ Using existing siFia calendar:', existingSiFia.id);
+      Logger.info('getSiFiaCalendar: Using existing siFia calendar:', existingSiFia.id);
       return existingSiFia.id;
     }
 
     // 2) If no calendars exist at all, we need to create one from scratch
     if (calendars.length === 0) {
-      console.log('📆 [getSiFiaCalendar] ⚠️ No calendars found on device, attempting to create siFia calendar');
+      Logger.warn('getSiFiaCalendar: No calendars found on device, attempting to create siFia calendar');
     }
 
     // 3) Get default calendar for source reference (if available)
@@ -259,10 +259,10 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
         // iOS requires a valid source
         if (baseSource && baseSource.id) {
           config.source = baseSource;
-          console.log('📆 [getSiFiaCalendar] Using source from existing calendar:', baseSource.id);
+          Logger.info('getSiFiaCalendar: Using source from existing calendar:', baseSource.id);
         } else {
           // If no calendars exist, try to use iCloud or local source
-          console.log('📆 [getSiFiaCalendar] No source available, attempting to create with default iCloud source');
+          Logger.info('getSiFiaCalendar: No source available, attempting to create with default iCloud source');
           // Try to create with iCloud source (most common on iOS)
           config.source = {
             name: 'iCloud',
@@ -275,17 +275,17 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
         config.ownerAccount = ownerAccount;
         config.accessLevel = 'owner';
         config.accountType = baseSource?.type || 'LOCAL';
-        console.log('📆 [getSiFiaCalendar] Android config:', { ownerAccount, accountType: config.accountType });
+        Logger.info('getSiFiaCalendar: Android config:', { ownerAccount, accountType: config.accountType });
       }
 
-      console.log('📆 [getSiFiaCalendar] Attempting to create siFia calendar with config:', config);
+      Logger.info('getSiFiaCalendar: Attempting to create siFia calendar with config:', config);
       const createdId = await (RNCalendarEvents as any).saveCalendar(config);
 
       if (createdId) {
-        console.log('📆 [getSiFiaCalendar] ✅ Successfully created siFia calendar:', createdId);
+        Logger.info('getSiFiaCalendar: Successfully created siFia calendar:', createdId);
         return createdId as string;
       } else {
-        console.log('📆 [getSiFiaCalendar] ⚠️ saveCalendar returned no ID');
+        Logger.warn('getSiFiaCalendar: saveCalendar returned no ID');
       }
     } catch (createErr) {
       Logger.error('📆 [getSiFiaCalendar] ❌ Could not create siFia calendar', createErr as Error, {
@@ -299,11 +299,11 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
 
     // 5) Last resort: use default calendar if available
     if (defaultCalendar?.id) {
-      console.log('📆 [getSiFiaCalendar] ⚠️ Falling back to default calendar:', defaultCalendar.id);
+      Logger.warn('getSiFiaCalendar: Falling back to default calendar:', defaultCalendar.id);
       return defaultCalendar.id;
     }
 
-    console.log('📆 [getSiFiaCalendar] ❌ No calendar available and could not create one');
+    Logger.error('getSiFiaCalendar: No calendar available and could not create one');
     return null;
   } catch (error) {
     Logger.error('📆 [getSiFiaCalendar] ❌ Error getting calendar', error as Error, {
@@ -332,13 +332,13 @@ export const syncTimeBlockToCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; eventId?: string; error?: string }> => {
   try {
-    console.log('📆 [syncTimeBlockToCalendar] Starting sync for:', timeBlock.title);
-    console.log('📆 [syncTimeBlockToCalendar] Existing calendar event ID:', timeBlock.calendarEventId);
+    Logger.info('syncTimeBlockToCalendar: Starting sync for:', timeBlock.title);
+    Logger.info('syncTimeBlockToCalendar: Existing calendar event ID:', timeBlock.calendarEventId);
 
     const hasPermission = await requestCalendarPermissions();
 
     if (!hasPermission) {
-      console.log('📆 [syncTimeBlockToCalendar] ❌ Permission denied');
+      Logger.warn('syncTimeBlockToCalendar: Permission denied');
       return {
         success: false,
         error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia',
@@ -348,7 +348,7 @@ export const syncTimeBlockToCalendar = async (
     const calendarId = await getSiFiaCalendar();
 
     if (!calendarId) {
-      console.log('📆 [syncTimeBlockToCalendar] ❌ No calendar ID');
+      Logger.warn('syncTimeBlockToCalendar: No calendar ID');
       return { success: false, error: 'Could not access calendar' };
     }
 
@@ -356,7 +356,7 @@ export const syncTimeBlockToCalendar = async (
     let recurrence: string | undefined;
     if (timeBlock.repeat.frequency !== 'never') {
       recurrence = getRNCalendarRecurrence(timeBlock.repeat);
-      console.log('📆 [syncTimeBlockToCalendar] Recurrence:', recurrence);
+      Logger.info('syncTimeBlockToCalendar: Recurrence:', recurrence);
     }
 
     // Build event details; only add recurrence if defined to satisfy typings
@@ -381,7 +381,7 @@ export const syncTimeBlockToCalendar = async (
       eventDetails.recurrence = recurrence;
     }
 
-    console.log('📆 [syncTimeBlockToCalendar] Event details:', {
+    Logger.info('syncTimeBlockToCalendar: Event details:', {
       title: eventDetails.title,
       startDate: eventDetails.startDate,
       endDate: eventDetails.endDate,
@@ -393,18 +393,18 @@ export const syncTimeBlockToCalendar = async (
 
     if (timeBlock.calendarEventId) {
       // Update existing event
-      console.log('📆 [syncTimeBlockToCalendar] Updating existing event:', timeBlock.calendarEventId);
+      Logger.info('syncTimeBlockToCalendar: Updating existing event:', timeBlock.calendarEventId);
       const updateDetails = {
         ...eventDetails,
         id: timeBlock.calendarEventId,
       };
       eventId = await RNCalendarEvents.saveEvent(timeBlock.title, updateDetails);
-      console.log('📆 [syncTimeBlockToCalendar] ✅ Event updated! Event ID:', eventId);
+      Logger.info('syncTimeBlockToCalendar: Event updated! Event ID:', eventId);
     } else {
       // Create new event
-      console.log('📆 [syncTimeBlockToCalendar] Creating new event...');
+      Logger.info('syncTimeBlockToCalendar: Creating new event...');
       eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
-      console.log('📆 [syncTimeBlockToCalendar] ✅ Event created! Event ID:', eventId);
+      Logger.info('syncTimeBlockToCalendar: Event created! Event ID:', eventId);
     }
 
     // Track success analytics
