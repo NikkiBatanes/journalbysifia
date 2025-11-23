@@ -419,7 +419,7 @@ const UserInputScreen: React.FC = () => {
         }
       } catch (rateLimitError) {
         // If rate limiting fails, log but don't block the user
-        Logger.warn('Rate limiting check failed', { error: String(rateLimitError) });
+        Logger.warn('Rate limiting check failed', { errorMessage: String(rateLimitError) });
         // Continue with generation - better UX than crashing
       }
     }
