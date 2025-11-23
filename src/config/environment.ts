@@ -25,8 +25,8 @@ export const ENV = {
   PAYMONGO_PUBLIC_KEY: Config.PAYMONGO_PUBLIC_KEY || 'pk_test_your_paymongo_key',
 
   // App Configuration
-  APP_ENV: Config.APP_ENV || 'development',
-  API_BASE_URL: Config.API_BASE_URL || 'http://localhost:3000',
+  APP_ENV: Config.APP_ENV || 'production',
+  API_BASE_URL: Config.API_BASE_URL || 'https://api.sifia.app',
 
   // Feature Flags
   ENABLE_TRIAL_SYSTEM: Config.ENABLE_TRIAL_SYSTEM !== 'false', // Default true
