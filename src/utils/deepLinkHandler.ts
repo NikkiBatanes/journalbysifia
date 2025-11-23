@@ -79,7 +79,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
           });
         }
       } catch (urlError) {
-        Logger.warn('DeepLink: URL API parsing failed', { error: String(urlError) });
+        Logger.warn('DeepLink: URL API parsing failed', { error: urlError });
       }
 
       // Final fallback: regex extraction from full URL string
