@@ -215,7 +215,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
                 return;
               }
             } catch (error) {
-              Logger.warn('WelcomeScreen: Error checking onboarding status', { error: String(error) });
+              Logger.warn('WelcomeScreen: Error checking onboarding status', { errorMessage: String(error) });
             }
           }
 

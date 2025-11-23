@@ -59,7 +59,7 @@ class SocialShareService {
     try {
       const uri = await viewRef.capture();
 
-      const shareOptions = {
+      const shareOptions: any = {
         url: Platform.OS === 'ios' ? uri : `file://${uri}`,
         type: 'image/png',
         social: Share.Social.INSTAGRAM_STORIES,
@@ -89,7 +89,7 @@ class SocialShareService {
     try {
       const uri = await viewRef.capture();
 
-      const shareOptions = {
+      const shareOptions: any = {
         url: Platform.OS === 'ios' ? uri : `file://${uri}`,
         type: 'image/png',
         social: Share.Social.FACEBOOK,

@@ -106,7 +106,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 
     try {
       Logger.info('ResetPassword: Attempting to update password with tokens');
-      const { error: updateError } = await updatePassword(password, accessToken, refreshToken);
+      const { error: updateError } = await updatePassword(password);
 
       if (updateError) {
         Logger.error('ResetPassword: Password update failed:', updateError);
