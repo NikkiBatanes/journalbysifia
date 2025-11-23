@@ -1596,7 +1596,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       expanded={isExpanded}
                       style={styles.transparentBackground}
                       currentUser={currentUser}
-                      showCloseButton={true}
+                      showCloseButton={false}
                     />
                   </View>
                 );
@@ -1613,7 +1613,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       showExampleSubtasksInline={false}
                       preferPropSteps={false}
                       expanded={isExpanded}
-                      showCloseButton={true}
+                      showCloseButton={false}
                     />
                   </View>
                 );
@@ -1721,7 +1721,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     <BibleVerseCard
                       verse={card.verse || { text: '', reference: '' }}
                       expanded={isExpanded}
-                      showCloseButton={true}
+                      showCloseButton={false}
                     />
                   </View>
                 );
@@ -1734,7 +1734,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       challengeCTA={card.challengeCTA}
                       style={styles.transparentBackground}
                       expanded={isExpanded}
-                      showCloseButton={true}
+                      showCloseButton={false}
                     />
                   </View>
                 );

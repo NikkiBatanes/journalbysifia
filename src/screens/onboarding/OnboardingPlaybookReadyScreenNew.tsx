@@ -480,7 +480,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               expanded={false}
               style={styles.transparentBackground}
               currentUser={{ displayName: onboardingData.name }}
-              showCloseButton={true}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -526,7 +526,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               showExampleSubtasksInline={false}
               preferPropSteps={false}
               expanded={expandedCardId === 'action'}
-              showCloseButton={true}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -654,7 +654,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <BibleVerseCard
               key="bible"
               verse={playbook.bibleVerse}
-              showCloseButton={true}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -676,7 +676,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <DirectChallengeCard
               key="challenge"
               challenge={challengeText}
-              showCloseButton={true}
+              showCloseButton={false}
             />
           </View>
         ),
@@ -1303,7 +1303,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                                 expanded={isExpanded}
                                 style={styles.transparentBackground}
                                 currentUser={{ displayName: onboardingData.name }}
-                                showCloseButton={true}
+                                showCloseButton={false}
                               />
                             </View>
                           ) : (
