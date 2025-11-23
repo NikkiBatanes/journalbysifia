@@ -425,8 +425,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const parts = timeBlock.id.split('-');
           const originalId = parts.slice(0, 5).join('-');
           Logger.info('DELETE FUTURE VIRTUAL: Virtual instance detected');
-          Logger.info('DELETE FUTURE VIRTUAL: Virtual ID:', timeBlock.id);
-          Logger.info('DELETE FUTURE VIRTUAL: Original ID:', originalId);
+          Logger.info('DELETE FUTURE VIRTUAL: Virtual ID', { virtualId: timeBlock.id });
+          Logger.info('DELETE FUTURE VIRTUAL: Original ID', { originalId });
 
           // Set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
@@ -435,14 +435,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           const endDateStr = toLocalDateString(endDate);
-          Logger.info('DELETE FUTURE VIRTUAL: Setting end date to:', endDateStr);
-          Logger.info('DELETE FUTURE VIRTUAL: Adding current date to exceptions:', currentDateStr);
+          Logger.info('DELETE FUTURE VIRTUAL: Setting end date', { endDate: endDateStr });
+          Logger.info('DELETE FUTURE VIRTUAL: Adding current date to exceptions', { currentDate: currentDateStr });
 
           // Get current metadata from original event
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
           const existingMetadata = originalApiEntry?.metadata || {};
           const existingExceptions = existingMetadata.exceptions || [];
-          Logger.info('DELETE FUTURE VIRTUAL: Existing metadata:', JSON.stringify(existingMetadata));
+          Logger.info('DELETE FUTURE VIRTUAL: Existing metadata', { metadata: existingMetadata });
 
           // Add current date to exceptions to hide "this" instance
           const newExceptions = existingExceptions.includes(currentDateStr)
