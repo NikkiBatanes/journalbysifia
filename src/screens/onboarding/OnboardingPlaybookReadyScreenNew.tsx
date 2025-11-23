@@ -1240,9 +1240,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   {isExpanded ? (
                     <>
                       {/* Sticky close button - only visible when expanded */}
-                      <View style={{ 
-                        position: 'absolute', 
-                        top: 16, 
+                      <View style={{
+                        position: 'absolute',
+                        top: 16,
                         right: 16,
                         zIndex: 10000,
                         elevation: 10000,
