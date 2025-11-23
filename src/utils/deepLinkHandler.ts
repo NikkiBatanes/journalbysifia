@@ -19,7 +19,6 @@ export interface DeepLinkParams {
 export const parseDeepLink = (url: string): DeepLinkParams | null => {
   try {
     Logger.info('DeepLink: Parsing URL', { url });
-    Logger.info('[DeepLink] Parsing URL', { url });
 
     // Handle both sifia:// scheme and https:// (Supabase might redirect through https first)
     if (url.startsWith('sifia://') || url.includes('reset-password')) {
@@ -103,11 +102,6 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
       Logger.info('DeepLink: Has access_token', { hasAccessToken: !!params.access_token });
       Logger.info('DeepLink: Has refresh_token', { hasRefreshToken: !!params.refresh_token });
       Logger.info('DeepLink: Type', { type: params.type });
-      Logger.info('[DeepLink] Parsed params', {
-        hasAccessToken: !!params.access_token,
-        hasRefreshToken: !!params.refresh_token,
-        type: params.type,
-      });
 
       // Determine link type
       if (url.includes('reset-password')) {
@@ -127,11 +121,9 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
     }
 
     Logger.warn('DeepLink: Unsupported URL scheme', { url });
-    Logger.warn('[DeepLink] Unsupported URL scheme', { url });
     return null;
   } catch (error) {
     Logger.error('DeepLink: Error parsing URL', error as Error, { url });
-    Logger.error('[DeepLink] Error parsing URL', error as Error, { url });
     return null;
   }
 };
