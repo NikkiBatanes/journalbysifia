@@ -907,7 +907,7 @@ export default function ActionStepsCard({
 
               // Debug logging for subtask filtering
               if (originalSubtasks.length !== subtasks.length) {
-                console.log(`🔍 ActionStepsCard: Step "${step.title}" - Filtered ${originalSubtasks.length} → ${subtasks.length} subtasks`, {
+                Logger.info(`ActionStepsCard: Step "${step.title}" - Filtered ${originalSubtasks.length} → ${subtasks.length} subtasks`, {
                   original: originalSubtasks.map(st => st.text || st),
                   filtered: subtasks.map(st => st.text),
                   showExampleSubtasksInline,

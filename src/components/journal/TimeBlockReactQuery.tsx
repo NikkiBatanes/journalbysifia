@@ -337,7 +337,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     if (isVirtualInstance) {
       const parts = block.id.split('-');
       editIdToUse = parts.slice(0, 5).join('-'); // Get original UUID
-      console.log('📝 [EDIT] Editing virtual instance, using original ID:', editIdToUse);
+      Logger.info('EDIT: Editing virtual instance, using original ID:', editIdToUse);
     }
 
     // Remember whether this edit came from a virtual instance (and which date)
@@ -424,9 +424,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           // For 'future' deletion on virtual instances, set end date on original event
           const parts = timeBlock.id.split('-');
           const originalId = parts.slice(0, 5).join('-');
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] Virtual instance detected');
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] Virtual ID:', timeBlock.id);
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] Original ID:', originalId);
+          Logger.info('DELETE FUTURE VIRTUAL: Virtual instance detected');
+          Logger.info('DELETE FUTURE VIRTUAL: Virtual ID:', timeBlock.id);
+          Logger.info('DELETE FUTURE VIRTUAL: Original ID:', originalId);
 
           // Set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
@@ -435,14 +435,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           const endDateStr = toLocalDateString(endDate);
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] Setting end date to:', endDateStr);
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] Adding current date to exceptions:', currentDateStr);
+          Logger.info('DELETE FUTURE VIRTUAL: Setting end date to:', endDateStr);
+          Logger.info('DELETE FUTURE VIRTUAL: Adding current date to exceptions:', currentDateStr);
 
           // Get current metadata from original event
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === originalId);
           const existingMetadata = originalApiEntry?.metadata || {};
           const existingExceptions = existingMetadata.exceptions || [];
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] Existing metadata:', JSON.stringify(existingMetadata));
+          Logger.info('DELETE FUTURE VIRTUAL: Existing metadata:', JSON.stringify(existingMetadata));
 
           // Add current date to exceptions to hide "this" instance
           const newExceptions = existingExceptions.includes(currentDateStr)
@@ -454,7 +454,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             endDate: endDateStr, // Store as YYYY-MM-DD
             exceptions: newExceptions, // Add current date to exceptions
           };
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] New metadata to save:', JSON.stringify(newMetadata));
+          Logger.info('DELETE FUTURE VIRTUAL: New metadata to save:', JSON.stringify(newMetadata));
 
           await updateMutation.mutateAsync({
             id: originalId,
@@ -463,7 +463,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             },
           });
 
-          console.log('🗓️ [DELETE FUTURE VIRTUAL] Update mutation completed successfully');
+          Logger.info('DELETE FUTURE VIRTUAL: Update mutation completed successfully');
 
           // Force cache invalidation for the current date to update UI immediately
 
@@ -545,7 +545,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             throw updateError;
           }
         } else if (options.type === 'future') {
-          console.log('🗓️ [DELETE FUTURE] Starting future deletion for non-recurring event');
+          Logger.info('DELETE FUTURE: Starting future deletion for non-recurring event');
 
           // For "This entry & future entries", set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
@@ -554,15 +554,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           const endDateStr = toLocalDateString(endDate);
-          console.log('🗓️ [DELETE FUTURE] Setting end date to:', endDateStr);
-          console.log('🗓️ [DELETE FUTURE] Adding current date to exceptions:', currentDateStr);
-          console.log('🗓️ [DELETE FUTURE] Time block ID:', timeBlock.id);
+          Logger.info('DELETE FUTURE: Setting end date to:', endDateStr);
+          Logger.info('DELETE FUTURE: Adding current date to exceptions:', currentDateStr);
+          Logger.info('DELETE FUTURE: Time block ID:', timeBlock.id);
 
           // Get current metadata
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
           const existingMetadata = originalApiEntry?.metadata || {};
           const existingExceptions = existingMetadata.exceptions || [];
-          console.log('🗓️ [DELETE FUTURE] Existing metadata:', JSON.stringify(existingMetadata));
+          Logger.info('DELETE FUTURE: Existing metadata:', JSON.stringify(existingMetadata));
 
           // Add current date to exceptions to hide "this" instance
           const newExceptions = existingExceptions.includes(currentDateStr)
@@ -574,7 +574,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             endDate: endDateStr, // Store as YYYY-MM-DD
             exceptions: newExceptions, // Add current date to exceptions
           };
-          console.log('🗓️ [DELETE FUTURE] New metadata to save:', JSON.stringify(newMetadata));
+          Logger.info('DELETE FUTURE: New metadata to save:', JSON.stringify(newMetadata));
 
           await updateMutation.mutateAsync({
             id: timeBlock.id,
@@ -583,7 +583,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             },
           });
 
-          console.log('🗓️ [DELETE FUTURE] Update mutation completed successfully');
+          Logger.info('DELETE FUTURE: Update mutation completed successfully');
 
           // Force cache invalidation for the current date to update UI immediately
 
@@ -835,7 +835,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate && calendarGating.canUseRepeat) ? newBlock.repeat.endDate.toISOString() : undefined,
         };
 
-        console.log('📝 [EDIT] Updating time block with data:', {
+        Logger.info('EDIT: Updating time block with data:', {
           id: editId,
           originalDate: originalSelectedDate,
           currentViewDate: dateStr,
@@ -892,7 +892,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             id: editId,
             updates: { calendar_event_id: calendarEventIdToSave },
           });
-          console.log('📆 [EDIT] Saved calendar event ID to database');
+          Logger.info('EDIT: Saved calendar event ID to database');
         }
 
         // Force cache invalidation AFTER all operations complete
@@ -901,7 +901,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           await queryClient.invalidateQueries({
             queryKey: [queryKeys.timeBlocks.all[0]],
           });
-          console.log('📝 [EDIT] Cache invalidated for all time blocks');
+          Logger.info('EDIT: Cache invalidated for all time blocks');
         }
 
         analytics.trackTimeBlockEvent('timeblock_updated', {
@@ -944,7 +944,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         // Sync new time block to calendar when autoSync is enabled
         if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
           try {
-            console.log('📆 [CREATE] Starting calendar sync for new time block');
+            Logger.info('CREATE: Starting calendar sync for new time block');
             // Convert repeat frequency for calendar sync compatibility
             const calendarRepeat = {
               ...newBlock.repeat,
@@ -965,30 +965,30 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               calendarEventId: undefined, // No existing event ID for new time blocks
             };
 
-            console.log('📆 [CREATE] Calling syncTimeBlockToCalendar...');
+            Logger.info('CREATE: Calling syncTimeBlockToCalendar...');
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
-            console.log('📆 [CREATE] Sync result:', syncResult);
+            Logger.info('CREATE: Sync result:', syncResult);
 
             if (syncResult.success && syncResult.eventId) {
-              console.log('📆 [CREATE] Saving calendar event ID to database:', syncResult.eventId);
+              Logger.info('CREATE: Saving calendar event ID to database:', syncResult.eventId);
               // Update the time block with the calendar event ID (single update)
               await updateMutation.mutateAsync({
                 id: createResult.id,
                 updates: { calendar_event_id: syncResult.eventId },
               });
-              console.log('📆 [CREATE] Calendar event ID saved successfully');
+              Logger.info('CREATE: Calendar event ID saved successfully');
             } else {
-              console.log('📆 [CREATE] ⚠️ Sync failed or no event ID returned:', syncResult.error);
+              Logger.info('CREATE: ⚠️ Sync failed or no event ID returned:', syncResult.error);
             }
           } catch (calendarError) {
-            console.error('📆 [CREATE] ❌ Calendar sync error:', calendarError);
+            Logger.error('CREATE: Calendar sync error:', calendarError);
             Logger.warn('Calendar sync failed during creation', {
       component: 'TimeBlockReactQuery',
       data: calendarError,
     });
           }
         } else {
-          console.log('📆 [CREATE] ⚠️ Calendar sync disabled by gating');
+          Logger.info('CREATE: ⚠️ Calendar sync disabled by gating');
         }
 
         analytics.trackTimeBlockEvent('timeblock_created', {

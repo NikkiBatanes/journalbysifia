@@ -199,20 +199,20 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
             onPress: async () => {
               setIsLoading(true);
               try {
-                console.log('[CalendarSyncButton] Removing single instance:', calendarEventId);
+                Logger.info('CalendarSyncButton: Removing single instance:', calendarEventId);
                 const result = await removeTimeBlockFromCalendar(calendarEventId, {
                   type: 'single',
                   date: timeBlock.startTime,
                 });
-                console.log('[CalendarSyncButton] Remove result:', result);
+                Logger.info('CalendarSyncButton: Remove result:', result);
 
                 if (result.success) {
-                  console.log('[CalendarSyncButton] Successfully removed single instance (series still synced)');
+                  Logger.info('CalendarSyncButton: Successfully removed single instance (series still synced)');
                   // Don't clear calendar_event_id for single instance removal - the series is still synced
                   triggerSelectionHaptic();
                   Alert.alert('Success', 'This event removed from calendar. Other recurring events remain synced.');
                 } else {
-                  console.error('[CalendarSyncButton] Remove failed:', result.error);
+                  Logger.error('CalendarSyncButton: Remove failed:', result.error);
                   Alert.alert(
                     'Remove Failed',
                     result.error || 'Failed to remove from calendar.',
@@ -220,7 +220,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                   );
                 }
               } catch (error) {
-                console.error('[CalendarSyncButton] Exception during remove:', error);
+                Logger.error('CalendarSyncButton: Exception during remove:', error);
                 Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
                 Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
               } finally {
@@ -234,18 +234,18 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
             onPress: async () => {
               setIsLoading(true);
               try {
-                console.log('[CalendarSyncButton] Removing all instances:', calendarEventId);
+                Logger.info('CalendarSyncButton: Removing all instances:', calendarEventId);
                 const result = await removeTimeBlockFromCalendar(calendarEventId, { type: 'all' });
-                console.log('[CalendarSyncButton] Remove result:', result);
+                Logger.info('CalendarSyncButton: Remove result:', result);
 
                 if (result.success) {
-                  console.log('[CalendarSyncButton] Successfully removed all instances, calling onSyncComplete(null)');
+                  Logger.info('CalendarSyncButton: Successfully removed all instances, calling onSyncComplete(null)');
                   setSyncStatus('unsynced');
                   await onSyncComplete(null);
                   triggerSelectionHaptic();
                   Alert.alert('Success', 'All recurring events removed from calendar.');
                 } else {
-                  console.error('[CalendarSyncButton] Remove failed:', result.error);
+                  Logger.error('CalendarSyncButton: Remove failed:', result.error);
                   Alert.alert(
                     'Remove Failed',
                     result.error || 'Failed to remove from calendar.',
@@ -253,7 +253,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                   );
                 }
               } catch (error) {
-                console.error('[CalendarSyncButton] Exception during remove:', error);
+                Logger.error('CalendarSyncButton: Exception during remove:', error);
                 Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
                 Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
               } finally {
@@ -277,18 +277,18 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
               setIsLoading(true);
 
               try {
-                console.log('[CalendarSyncButton] Removing calendar event:', calendarEventId);
+                Logger.info('CalendarSyncButton: Removing calendar event:', calendarEventId);
                 const result = await removeTimeBlockFromCalendar(calendarEventId);
-                console.log('[CalendarSyncButton] Remove result:', result);
+                Logger.info('CalendarSyncButton: Remove result:', result);
 
                 if (result.success) {
-                  console.log('[CalendarSyncButton] Successfully removed, calling onSyncComplete(null)');
+                  Logger.info('CalendarSyncButton: Successfully removed, calling onSyncComplete(null)');
                   setSyncStatus('unsynced');
                   await onSyncComplete(null);
                   triggerSelectionHaptic();
                   Alert.alert('Success', 'Time block removed from calendar.');
                 } else {
-                  console.error('[CalendarSyncButton] Remove failed:', result.error);
+                  Logger.error('CalendarSyncButton: Remove failed:', result.error);
                   Alert.alert(
                     'Remove Failed',
                     result.error || 'Failed to remove from calendar.',
@@ -296,7 +296,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                   );
                 }
               } catch (error) {
-                console.error('[CalendarSyncButton] Exception during remove:', error);
+                Logger.error('CalendarSyncButton: Exception during remove:', error);
                 Logger.error('Calendar remove error', error as Error, { component: 'CalendarSyncButton' });
                 Alert.alert('Remove Error', 'An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'));
               } finally {
