@@ -40,7 +40,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   const refreshToken = route?.params?.refresh_token;
 
   useEffect(() => {
-    console.log('[ResetPassword] Screen mounted with tokens:', {
+    Logger.info('ResetPassword: Screen mounted with tokens:', {
       hasAccessToken: !!accessToken,
       hasRefreshToken: !!refreshToken,
     });
@@ -104,18 +104,18 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     setLoading(true);
 
     try {
-      console.log('[ResetPassword] Attempting to update password with tokens');
+      Logger.info('ResetPassword: Attempting to update password with tokens');
       const { error: updateError } = await updatePassword(password, accessToken, refreshToken);
 
       if (updateError) {
-        console.error('[ResetPassword] Password update failed:', updateError);
+        Logger.error('ResetPassword: Password update failed:', updateError);
         triggerErrorHaptic();
         setError(updateError.message || 'Failed to reset password. Please try again.');
         setLoading(false);
         return;
       }
 
-      console.log('[ResetPassword] Password updated successfully');
+      Logger.info('ResetPassword: Password updated successfully');
 
       triggerSuccessHaptic();
       Alert.alert(

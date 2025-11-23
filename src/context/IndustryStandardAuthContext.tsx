@@ -830,17 +830,17 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Always attempt Supabase sign-out regardless of provider cleanup result
       let sbError: SupabaseAuthError | null = null;
       try {
-        console.log('[AuthContext] 🔐 Calling Supabase signOut...');
+        Logger.info('AuthContext: Calling Supabase signOut...');
         const { error } = await supabase.auth.signOut();
         if (error) {
           sbError = error as SupabaseAuthError;
-          console.error('[AuthContext] ❌ Supabase signOut error:', error);
+          Logger.error('AuthContext: Supabase signOut error:', error);
         } else {
-          console.log('[AuthContext] ✅ Supabase signOut successful');
+          Logger.info('AuthContext: Supabase signOut successful');
         }
       } catch (e: any) {
         sbError = e as SupabaseAuthError;
-        console.error('[AuthContext] ❌ Supabase signOut exception:', e);
+        Logger.error('AuthContext: Supabase signOut exception:', e);
       }
 
       if (sbError) {
@@ -851,7 +851,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       }
 
       // Clear auth state regardless to avoid stale UI; onAuthStateChange will confirm
-      console.log('[AuthContext] 🧹 Clearing auth state...');
+      Logger.info('AuthContext: Clearing auth state...');
       setAuthState({
         user: null,
         session: null,
@@ -860,9 +860,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         isAuthenticated: false,
       });
       setIsLoggingOut(false);
-      console.log('[AuthContext] ✅ Logout complete');
+      Logger.info('AuthContext: Logout complete');
     } catch (error) {
-      console.error('[AuthContext] ❌ Logout failed:', error);
+      Logger.error('AuthContext: Logout failed:', error);
       setIsLoggingOut(false);
       Logger.error('Logout failed', error as Error, {
         component: 'AuthContext',

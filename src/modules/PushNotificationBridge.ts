@@ -53,7 +53,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.requestPermissions();
     } catch (error) {
-      console.error('[PushNotificationBridge] Error requesting permissions:', error);
+      Logger.error('PushNotificationBridge: Error requesting permissions:', error);
       return false;
     }
   },
@@ -68,7 +68,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.registerForRemoteNotifications();
     } catch (error) {
-      console.error('[PushNotificationBridge] Error registering for remote notifications:', error);
+      Logger.error('PushNotificationBridge: Error registering for remote notifications:', error);
       return false;
     }
   },
@@ -83,7 +83,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.checkPermissions();
     } catch (error) {
-      console.error('[PushNotificationBridge] Error checking permissions:', error);
+      Logger.error('PushNotificationBridge: Error checking permissions:', error);
       return { alert: false, badge: false, sound: false, authorizationStatus: 0 };
     }
   },
@@ -107,7 +107,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.getBadgeNumber();
     } catch (error) {
-      console.error('[PushNotificationBridge] Error getting badge number:', error);
+      Logger.error('PushNotificationBridge: Error getting badge number:', error);
       return 0;
     }
   },
@@ -140,7 +140,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.scheduleLocalNotification(notification);
     } catch (error) {
-      console.error('[PushNotificationBridge] Error scheduling notification:', error);
+      Logger.error('PushNotificationBridge: Error scheduling notification:', error);
       throw error;
     }
   },
@@ -167,7 +167,7 @@ export function addNotificationEventListener(
   listener: NotificationEventListener
 ): { remove: () => void } | null {
   if (!eventEmitter) {
-    console.warn('[PushNotificationBridge] Event emitter not available');
+    Logger.warn('PushNotificationBridge: Event emitter not available');
     return null;
   }
 

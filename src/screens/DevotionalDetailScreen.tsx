@@ -69,7 +69,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     if (user?.id) {
       import('../services/NewSubscriptionService').then(({ NewSubscriptionService }) => {
         NewSubscriptionService.getUserSubscription(user.id).then(sub => {
-          console.log('[DevotionalDetail] Subscription Debug:', {
+          Logger.info('DevotionalDetail: Subscription Debug:', {
             tier: sub.tier,
             trial_chosen_tier: (sub as any).trial_chosen_tier,
             hasExportAccess: pdfExportAccess.hasAccess,

@@ -18,7 +18,7 @@ export interface DeepLinkParams {
  */
 export const parseDeepLink = (url: string): DeepLinkParams | null => {
   try {
-    console.log('[DeepLink] 🔗 Parsing URL:', url);
+    Logger.info('DeepLink: Parsing URL:', url);
     Logger.info('[DeepLink] Parsing URL', { url });
 
     // Handle both sifia:// scheme and https:// (Supabase might redirect through https first)
@@ -33,7 +33,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
       const hashMatch = url.match(/#(.+)$/);
       if (hashMatch) {
         const hashString = hashMatch[1];
-        console.log('[DeepLink] Hash fragment found:', hashString.substring(0, 50) + '...');
+        Logger.info('DeepLink: Hash fragment found:', hashString.substring(0, 50) + '...');
 
         // Parse hash parameters manually
         const hashPairs = hashString.split('&');
@@ -41,7 +41,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
           const [key, value] = pair.split('=');
           if (key && value) {
             params[key] = decodeURIComponent(value);
-            console.log('[DeepLink] Hash param:', key, '=', value.substring(0, 20) + '...');
+            Logger.info('DeepLink: Hash param:', key, '=', value.substring(0, 20) + '...');
           }
         });
       }
@@ -56,7 +56,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
           }
         }
 
-        console.log('[DeepLink] Normalized URL:', normalizedUrl);
+        Logger.info('DeepLink: Normalized URL:', normalizedUrl);
 
         const urlObj = new URL(normalizedUrl);
 
@@ -64,23 +64,23 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
         urlObj.searchParams.forEach((value, key) => {
           if (!params[key]) { // Don't override hash params
             params[key] = value;
-            console.log('[DeepLink] Query param:', key, '=', value.substring(0, 30) + '...');
+            Logger.info('DeepLink: Query param:', key, '=', value.substring(0, 30) + '...');
           }
         });
 
         // Try URL API hash parsing as fallback
         if (urlObj.hash && !params.access_token) {
-          console.log('[DeepLink] URL API hash found:', urlObj.hash.substring(0, 50) + '...');
+          Logger.info('DeepLink: URL API hash found:', urlObj.hash.substring(0, 50) + '...');
           const hashParams = new URLSearchParams(urlObj.hash.substring(1));
           hashParams.forEach((value, key) => {
             if (!params[key]) {
               params[key] = value;
-              console.log('[DeepLink] URL API hash param:', key, '=', value.substring(0, 20) + '...');
+              Logger.info('DeepLink: URL API hash param:', key, '=', value.substring(0, 20) + '...');
             }
           });
         }
       } catch (urlError) {
-        console.warn('[DeepLink] URL API parsing failed, using regex extraction only:', urlError);
+        Logger.warn('DeepLink: URL API parsing failed, using regex extraction only:', urlError);
       }
 
       // Final fallback: regex extraction from full URL string
@@ -88,7 +88,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
         const tokenMatch = url.match(/access_token=([^&#]+)/);
         if (tokenMatch) {
           params.access_token = decodeURIComponent(tokenMatch[1]);
-          console.log('[DeepLink] Extracted access_token from regex');
+          Logger.info('DeepLink: Extracted access_token from regex');
         }
       }
 
@@ -96,13 +96,13 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
         const tokenMatch = url.match(/refresh_token=([^&#]+)/);
         if (tokenMatch) {
           params.refresh_token = decodeURIComponent(tokenMatch[1]);
-          console.log('[DeepLink] Extracted refresh_token from regex');
+          Logger.info('DeepLink: Extracted refresh_token from regex');
         }
       }
 
-      console.log('[DeepLink] ✅ Has access_token:', !!params.access_token);
-      console.log('[DeepLink] ✅ Has refresh_token:', !!params.refresh_token);
-      console.log('[DeepLink] ✅ Type:', params.type);
+      Logger.info('DeepLink: ✅ Has access_token:', !!params.access_token);
+      Logger.info('DeepLink: ✅ Has refresh_token:', !!params.refresh_token);
+      Logger.info('DeepLink: ✅ Type:', params.type);
       Logger.info('[DeepLink] Parsed params', {
         hasAccessToken: !!params.access_token,
         hasRefreshToken: !!params.refresh_token,
@@ -126,11 +126,11 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
       };
     }
 
-    console.warn('[DeepLink] ⚠️ Unsupported URL scheme:', url);
+    Logger.warn('DeepLink: Unsupported URL scheme:', url);
     Logger.warn('[DeepLink] Unsupported URL scheme', { url });
     return null;
   } catch (error) {
-    console.error('[DeepLink] ❌ Error parsing URL:', error);
+    Logger.error('DeepLink: Error parsing URL:', error);
     Logger.error('[DeepLink] Error parsing URL', error as Error, { url });
     return null;
   }

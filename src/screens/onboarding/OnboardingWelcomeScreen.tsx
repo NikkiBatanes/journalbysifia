@@ -130,7 +130,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const isTablet = screenSize.width >= 768;
 
   // Debug: Log actual screen dimensions
-  console.log('🔍 SCREEN DEBUG:', {
+  Logger.info('SCREEN DEBUG:', {
     width: screenSize.width,
     height: screenSize.height,
     isTablet,
@@ -141,7 +141,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const isSmallPhone = !isTablet && screenSize.height <= 850; // Covers SE (844) and older SE (667)
   const isRegularPhone = !isTablet && screenSize.height > 850 && screenSize.height < 950; // iPhone 17: 402x874
 
-  console.log('🔍 DEVICE CLASSIFICATION:', {
+  Logger.info('DEVICE CLASSIFICATION:', {
     isSmallPhone,
     isRegularPhone,
     isTablet,
@@ -208,13 +208,13 @@ const OnboardingWelcomeScreen: React.FC = () => {
 
               if (profile?.onboarding_completed) {
                 // User completed onboarding - ignore personalization redirect and go to main
-                console.log('[WelcomeScreen] User completed onboarding - ignoring personalization redirect');
+                Logger.info('WelcomeScreen: User completed onboarding - ignoring personalization redirect');
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
                 (navigation as any).reset?.({ index: 0, routes: [{ name: 'MainTabs', params: {} }] });
                 return;
               }
             } catch (error) {
-              console.warn('[WelcomeScreen] Error checking onboarding status:', error);
+              Logger.warn('WelcomeScreen: Error checking onboarding status:', error);
             }
           }
 

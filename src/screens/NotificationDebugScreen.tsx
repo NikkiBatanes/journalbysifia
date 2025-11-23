@@ -84,7 +84,7 @@ export default function NotificationDebugScreen() {
         preferences,
       });
     } catch (error) {
-      console.error('Error loading debug info:', error);
+      Logger.error('Error loading debug info:', error);
       Alert.alert('Error', 'Failed to load debug information');
     } finally {
       setLoading(false);
