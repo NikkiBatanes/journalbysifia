@@ -454,7 +454,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             endDate: endDateStr, // Store as YYYY-MM-DD
             exceptions: newExceptions, // Add current date to exceptions
           };
-          Logger.info('DELETE FUTURE VIRTUAL: New metadata to save:', JSON.stringify(newMetadata));
+          Logger.info('DELETE FUTURE VIRTUAL: New metadata to save', { metadata: newMetadata });
 
           await updateMutation.mutateAsync({
             id: originalId,
@@ -554,15 +554,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           endDate.setDate(endDate.getDate() - 1); // End the day before the selected date
 
           const endDateStr = toLocalDateString(endDate);
-          Logger.info('DELETE FUTURE: Setting end date to:', endDateStr);
-          Logger.info('DELETE FUTURE: Adding current date to exceptions:', currentDateStr);
-          Logger.info('DELETE FUTURE: Time block ID:', timeBlock.id);
+          Logger.info('DELETE FUTURE: Setting end date', { endDate: endDateStr });
+          Logger.info('DELETE FUTURE: Adding current date to exceptions', { currentDate: currentDateStr });
+          Logger.info('DELETE FUTURE: Time block ID', { timeBlockId: timeBlock.id });
 
           // Get current metadata
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
           const existingMetadata = originalApiEntry?.metadata || {};
           const existingExceptions = existingMetadata.exceptions || [];
-          Logger.info('DELETE FUTURE: Existing metadata:', JSON.stringify(existingMetadata));
+          Logger.info('DELETE FUTURE: Existing metadata', { metadata: existingMetadata });
 
           // Add current date to exceptions to hide "this" instance
           const newExceptions = existingExceptions.includes(currentDateStr)
@@ -574,7 +574,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             endDate: endDateStr, // Store as YYYY-MM-DD
             exceptions: newExceptions, // Add current date to exceptions
           };
-          Logger.info('DELETE FUTURE: New metadata to save:', JSON.stringify(newMetadata));
+          Logger.info('DELETE FUTURE: New metadata to save', { metadata: newMetadata });
 
           await updateMutation.mutateAsync({
             id: timeBlock.id,
@@ -958,10 +958,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
             Logger.info('CREATE: Calling syncTimeBlockToCalendar...');
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
-            Logger.info('CREATE: Sync result:', syncResult);
+            Logger.info('CREATE: Sync result', { syncResult });
 
             if (syncResult.success && syncResult.eventId) {
-              Logger.info('CREATE: Saving calendar event ID to database:', syncResult.eventId);
+              Logger.info('CREATE: Saving calendar event ID to database', { eventId: syncResult.eventId });
               // Update the time block with the calendar event ID (single update)
               await updateMutation.mutateAsync({
                 id: createResult.id,
@@ -969,10 +969,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               });
               Logger.info('CREATE: Calendar event ID saved successfully');
             } else {
-              Logger.info('CREATE: ⚠️ Sync failed or no event ID returned:', syncResult.error);
+              Logger.info('CREATE: ⚠️ Sync failed or no event ID returned', { error: syncResult.error });
             }
           } catch (calendarError) {
-            Logger.error('CREATE: Calendar sync error:', calendarError);
+            Logger.error('CREATE: Calendar sync error', calendarError as Error, { component: 'TimeBlockReactQuery' });
             Logger.warn('Calendar sync failed during creation', {
       component: 'TimeBlockReactQuery',
       data: calendarError,
