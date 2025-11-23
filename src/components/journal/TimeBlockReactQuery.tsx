@@ -969,7 +969,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               });
               Logger.info('CREATE: Calendar event ID saved successfully');
             } else {
-              Logger.info('CREATE: ⚠️ Sync failed or no event ID returned', { error: syncResult.error });
+              Logger.info('CREATE: ⚠️ Sync failed or no event ID returned', { errorMessage: syncResult.error });
             }
           } catch (calendarError) {
             Logger.error('CREATE: Calendar sync error', calendarError as Error, { component: 'TimeBlockReactQuery' });

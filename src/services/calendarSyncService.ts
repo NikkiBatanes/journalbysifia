@@ -296,7 +296,7 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
 
     // 5) Last resort: use default calendar if available
     if (defaultCalendar?.id) {
-      Logger.warn('getSiFiaCalendar: Falling back to default calendar:', defaultCalendar.id);
+      Logger.warn('getSiFiaCalendar: Falling back to default calendar', { calendarId: defaultCalendar.id });
       return defaultCalendar.id;
     }
 
@@ -329,8 +329,8 @@ export const syncTimeBlockToCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; eventId?: string; error?: string }> => {
   try {
-    Logger.info('syncTimeBlockToCalendar: Starting sync for:', timeBlock.title);
-    Logger.info('syncTimeBlockToCalendar: Existing calendar event ID:', timeBlock.calendarEventId);
+    Logger.info('syncTimeBlockToCalendar: Starting sync for', { title: timeBlock.title });
+    Logger.info('syncTimeBlockToCalendar: Existing calendar event ID', { eventId: timeBlock.calendarEventId });
 
     const hasPermission = await requestCalendarPermissions();
 
@@ -353,7 +353,7 @@ export const syncTimeBlockToCalendar = async (
     let recurrence: string | undefined;
     if (timeBlock.repeat.frequency !== 'never') {
       recurrence = getRNCalendarRecurrence(timeBlock.repeat);
-      Logger.info('syncTimeBlockToCalendar: Recurrence:', recurrence);
+      Logger.info('syncTimeBlockToCalendar: Recurrence', { recurrence });
     }
 
     // Build event details; only add recurrence if defined to satisfy typings
@@ -390,18 +390,18 @@ export const syncTimeBlockToCalendar = async (
 
     if (timeBlock.calendarEventId) {
       // Update existing event
-      Logger.info('syncTimeBlockToCalendar: Updating existing event:', timeBlock.calendarEventId);
+      Logger.info('syncTimeBlockToCalendar: Updating existing event', { eventId: timeBlock.calendarEventId });
       const updateDetails = {
         ...eventDetails,
         id: timeBlock.calendarEventId,
       };
       eventId = await RNCalendarEvents.saveEvent(timeBlock.title, updateDetails);
-      Logger.info('syncTimeBlockToCalendar: Event updated! Event ID:', eventId);
+      Logger.info('syncTimeBlockToCalendar: Event updated! Event ID', { eventId });
     } else {
       // Create new event
       Logger.info('syncTimeBlockToCalendar: Creating new event...');
       eventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
-      Logger.info('syncTimeBlockToCalendar: Event created! Event ID:', eventId);
+      Logger.info('syncTimeBlockToCalendar: Event created! Event ID', { eventId });
     }
 
     // Track success analytics
