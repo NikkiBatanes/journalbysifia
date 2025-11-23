@@ -633,25 +633,25 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             // IMPORTANT: Save the collected name to user metadata so backend can access it
             if (name && name.trim().length > 0) {
               const trimmedName = name.trim();
-              
+
               // For Google users, avoid overwriting the correct first_name/last_name structure
               const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
               const updateData: any = {
                 full_name: trimmedName, // Always set full_name for consistency
               };
-              
+
               if (provider === 'google') {
                 // For Google users, don't overwrite first_name if it already exists and looks correct
                 const existingFirstName = user?.user_metadata?.first_name;
                 const existingLastName = user?.user_metadata?.last_name;
-                
+
                 logger.debug('🔍 Google user name save logic', {
                   existingFirstName,
                   existingLastName,
                   trimmedName,
                   willUpdateFirstName: !existingFirstName || existingFirstName.includes(' '),
                 });
-                
+
                 if (!existingFirstName || existingFirstName.includes(' ')) {
                   // Only update first_name if it doesn't exist or looks wrong (contains spaces)
                   updateData.first_name = trimmedName.split(' ')[0];
@@ -711,17 +711,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // IMPORTANT: Still save the collected name to user metadata even if onboarding update fails
         if (name && name.trim().length > 0 && user) {
           const trimmedName = name.trim();
-          
+
           // Apply the same Google-safe logic as in the success case
           const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
           const updateData: any = {
             full_name: trimmedName,
           };
-          
+
           if (provider === 'google') {
             const existingFirstName = user?.user_metadata?.first_name;
-            const existingLastName = user?.user_metadata?.last_name;
-            
+
             if (!existingFirstName || existingFirstName.includes(' ')) {
               updateData.first_name = trimmedName.split(' ')[0];
               updateData.last_name = trimmedName.split(' ').slice(1).join(' ') || '';
