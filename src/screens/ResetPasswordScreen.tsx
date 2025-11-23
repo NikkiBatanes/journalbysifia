@@ -18,6 +18,7 @@ import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { Logger } from '../utils/ProductionLogger';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
 
