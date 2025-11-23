@@ -51,14 +51,14 @@ export async function reportFeature(payload: FeatureRequestPayload) {
 
     if (error) {
       // Debug: Log the raw error to see what we're actually getting
-      Logger.info('RAW SUPABASE ERROR:', error);
-      Logger.info('Error type:', typeof error);
-      Logger.info('Error keys:', Object.keys(error));
-      Logger.info('Error.code:', error.code);
-      Logger.info('Error.message:', error.message);
-      Logger.info('Error.details:', error.details);
-      Logger.info('Error.hint:', error.hint);
-      Logger.info('Error stringified:', JSON.stringify(error));
+      Logger.info('RAW SUPABASE ERROR', { error });
+      Logger.info('Error type', { errorType: typeof error });
+      Logger.info('Error keys', { errorKeys: Object.keys(error) });
+      Logger.info('Error.code', { code: error.code });
+      Logger.info('Error.message', { message: error.message });
+      Logger.info('Error.details', { details: error.details });
+      Logger.info('Error.hint', { hint: error.hint });
+      Logger.info('Error stringified', { errorString: JSON.stringify(error) });
 
       // Extract meaningful error information
       const errorCode = error.code || 'UNKNOWN';

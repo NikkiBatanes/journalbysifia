@@ -426,8 +426,8 @@ export class TimeBlockApi {
     id: string,
     updates: Partial<Omit<TimeBlockApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<TimeBlockApiEntry> {
-    Logger.info('API UPDATE: Updating time block:', id);
-    Logger.info('API UPDATE: Updates:', JSON.stringify(updates, null, 2));
+    Logger.info('API UPDATE: Updating time block', { id });
+    Logger.info('API UPDATE: Updates', { updates: JSON.stringify(updates, null, 2) });
 
     // Special handling for metadata updates to ensure JSONB merging
     let updatePayload: any = {
@@ -437,7 +437,7 @@ export class TimeBlockApi {
 
     // If updating metadata, we need to fetch current data first and merge
     if (updates.metadata !== undefined) {
-      Logger.info('API UPDATE: Metadata update detected, fetching current data for merge...');
+      Logger.info('API UPDATE: Metadata update detected, fetching current data for merge');
 
       // Fetch current time block to get existing metadata
       const { data: currentData, error: fetchError } = await supabase
@@ -447,17 +447,17 @@ export class TimeBlockApi {
         .single();
 
       if (fetchError) {
-        Logger.error('API UPDATE: Error fetching current data:', fetchError);
+        Logger.error('API UPDATE: Error fetching current data', fetchError as Error, { component: 'timeBlockApi' });
       } else {
         const currentMetadata = currentData?.metadata || {};
-        Logger.info('API UPDATE: Current metadata:', JSON.stringify(currentMetadata));
+        Logger.info('API UPDATE: Current metadata', { metadata: JSON.stringify(currentMetadata) });
 
         // Merge the metadata
         updatePayload.metadata = {
           ...currentMetadata,
           ...updates.metadata,
         };
-        Logger.info('API UPDATE: Merged metadata:', JSON.stringify(updatePayload.metadata));
+        Logger.info('API UPDATE: Merged metadata', { metadata: JSON.stringify(updatePayload.metadata) });
       }
     }
 
