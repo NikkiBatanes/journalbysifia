@@ -204,7 +204,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                   type: 'single',
                   date: timeBlock.startTime,
                 });
-                Logger.info('CalendarSyncButton: Remove result:', result);
+                Logger.info('CalendarSyncButton: Remove result', { result });
 
                 if (result.success) {
                   Logger.info('CalendarSyncButton: Successfully removed single instance (series still synced)');
@@ -212,7 +212,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                   triggerSelectionHaptic();
                   Alert.alert('Success', 'This event removed from calendar. Other recurring events remain synced.');
                 } else {
-                  Logger.error('CalendarSyncButton: Remove failed', { error: result.error });
+                  Logger.error('CalendarSyncButton: Remove failed', { errorMessage: result.error });
                   Alert.alert(
                     'Remove Failed',
                     result.error || 'Failed to remove from calendar.',
@@ -236,7 +236,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
               try {
                 Logger.info('CalendarSyncButton: Removing all instances', { eventId: calendarEventId });
                 const result = await removeTimeBlockFromCalendar(calendarEventId, { type: 'all' });
-                Logger.info('CalendarSyncButton: Remove result:', result);
+                Logger.info('CalendarSyncButton: Remove result', { result });
 
                 if (result.success) {
                   Logger.info('CalendarSyncButton: Successfully removed all instances, calling onSyncComplete(null)');
@@ -245,7 +245,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                   triggerSelectionHaptic();
                   Alert.alert('Success', 'All recurring events removed from calendar.');
                 } else {
-                  Logger.error('CalendarSyncButton: Remove failed', { error: result.error });
+                  Logger.error('CalendarSyncButton: Remove failed', { errorMessage: result.error });
                   Alert.alert(
                     'Remove Failed',
                     result.error || 'Failed to remove from calendar.',
@@ -277,9 +277,9 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
               setIsLoading(true);
 
               try {
-                Logger.info('CalendarSyncButton: Removing calendar event:', calendarEventId);
+                Logger.info('CalendarSyncButton: Removing calendar event', { eventId: calendarEventId });
                 const result = await removeTimeBlockFromCalendar(calendarEventId);
-                Logger.info('CalendarSyncButton: Remove result:', result);
+                Logger.info('CalendarSyncButton: Remove result', { result });
 
                 if (result.success) {
                   Logger.info('CalendarSyncButton: Successfully removed, calling onSyncComplete(null)');
@@ -288,7 +288,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
                   triggerSelectionHaptic();
                   Alert.alert('Success', 'Time block removed from calendar.');
                 } else {
-                  Logger.error('CalendarSyncButton: Remove failed', { error: result.error });
+                  Logger.error('CalendarSyncButton: Remove failed', { errorMessage: result.error });
                   Alert.alert(
                     'Remove Failed',
                     result.error || 'Failed to remove from calendar.',
