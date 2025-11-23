@@ -86,7 +86,7 @@ class PushNotificationService {
   }
 
   private async initializeIOS(userId: string): Promise<void> {
-    Logger.info('INIT: Starting iOS initialization for user:', userId);
+    Logger.info('INIT: Starting iOS initialization for user', { userId });
     Logger.info('[PushNotification] Initializing iOS push notifications', {
       component: 'pushNotificationService',
       userId,
@@ -112,7 +112,7 @@ class PushNotificationService {
           tokenLength: event.deviceToken?.length,
         });
         this.deviceToken = event.deviceToken;
-        Logger.info('TOKEN: Calling saveDeviceToken with:', event.deviceToken?.substring(0, 20) + '...');
+        Logger.info('TOKEN: Calling saveDeviceToken with', { deviceToken: event.deviceToken?.substring(0, 20) + '...' });
         await this.saveDeviceToken(userId, event.deviceToken);
         Logger.info('TOKEN: saveDeviceToken completed');
       }
@@ -266,7 +266,7 @@ class PushNotificationService {
         // Always re-trigger registration to ensure token is emitted
         Logger.info('PERMISSIONS: Calling native requestPermissions...');
         const granted = await PushNotificationBridge.requestPermissions();
-        Logger.info('PERMISSIONS: Native requestPermissions returned:', granted);
+        Logger.info('PERMISSIONS: Native requestPermissions returned', { granted });
         Logger.info('[PushNotification] iOS permissions result', {
           component: 'pushNotificationService',
           granted,

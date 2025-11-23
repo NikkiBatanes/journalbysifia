@@ -476,7 +476,7 @@ export class TimeBlockApi {
       throw new Error(`Failed to update time block: ${error.message}`);
     }
 
-    Logger.info('API UPDATE: Success! Updated data:', JSON.stringify(data, null, 2));
+    Logger.info('API UPDATE: Success! Updated data', { data: JSON.stringify(data, null, 2) });
     return data;
   }
 

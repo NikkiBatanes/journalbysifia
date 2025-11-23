@@ -30,6 +30,7 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { useNewSubscription } from '../hooks/useNewSubscription';
 import { checkAndRecordRequest, type SubscriptionTier } from '../utils/rateLimiting';
 import { Alert } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
