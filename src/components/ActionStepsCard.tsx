@@ -130,7 +130,7 @@ export default function ActionStepsCard({
   titleOverride,
   iconOverride,
   expanded = false,
-  showCloseButton = true,
+  showCloseButton = false,
 }: ActionStepsCardProps) {
   const { user } = useAuth();
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
