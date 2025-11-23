@@ -1225,19 +1225,48 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         }).join(''));
         const googleUser = JSON.parse(jsonPayload);
 
+        // Debug logging to identify name parsing issues
+        Logger.debug('Google OAuth user data', {
+          component: 'AuthContext',
+          action: 'google_name_parsing',
+          googleName: googleUser.name,
+          givenName: googleUser.given_name,
+          familyName: googleUser.family_name,
+        });
+
         // Split full name into first and last name
         let firstName = '';
         let lastName = '';
         if (googleUser.given_name && googleUser.family_name) {
-          // Google provides separate first and last names
-          firstName = googleUser.given_name;
-          lastName = googleUser.family_name;
+          // Google provides separate first and last names - use these directly
+          firstName = googleUser.given_name.trim();
+          lastName = googleUser.family_name.trim();
         } else if (googleUser.name) {
-          // Split the full name (e.g., "BNGC INC" -> first: "BNGC", last: "INC")
+          // Split the full name properly
           const nameParts = googleUser.name.trim().split(/\s+/);
-          firstName = nameParts[0] || '';
-          lastName = nameParts.slice(1).join(' ') || '';
+          if (nameParts.length === 1) {
+            // Single name only (e.g., "Madonna")
+            firstName = nameParts[0];
+            lastName = '';
+          } else if (nameParts.length === 2) {
+            // Standard first + last name (e.g., "John Smith")
+            firstName = nameParts[0];
+            lastName = nameParts[1];
+          } else {
+            // Multiple parts - first word is first name, rest is last name
+            firstName = nameParts[0];
+            lastName = nameParts.slice(1).join(' ');
+          }
         }
+
+        // Log the final parsed names for debugging
+        Logger.debug('Parsed Google names', {
+          component: 'AuthContext',
+          action: 'google_name_parsed',
+          firstName,
+          lastName,
+          fullName: googleUser.name,
+        });
 
         // Update user metadata with Google name and clear avatar URLs
         await supabase.auth.updateUser({

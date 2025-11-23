@@ -296,7 +296,18 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           const paramNameRaw = (route.params as any)?.name;
           const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
           const metadataName = (user?.user_metadata?.first_name || user?.user_metadata?.full_name || '').trim();
-          const resolvedName = paramName || metadataName;
+          // For Google users, if first_name contains spaces, it might be the full name
+          // In that case, prefer using only the first part as the name
+          let resolvedName = paramName || metadataName;
+          if (provider === 'google' && metadataName && metadataName.includes(' ')) {
+            // If Google first_name contains spaces, use only the first part to avoid duplication
+            resolvedName = metadataName.split(' ')[0];
+            logger.debug('🔍 Google user name correction applied', {
+              originalMetadataName: metadataName,
+              correctedName: resolvedName,
+              lastName: user?.user_metadata?.last_name,
+            });
+          }
 
           if (provider === 'apple') {
             // Check if user has already completed onboarding
@@ -621,13 +632,39 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
             // IMPORTANT: Save the collected name to user metadata so backend can access it
             if (name && name.trim().length > 0) {
+              const trimmedName = name.trim();
+              
+              // For Google users, avoid overwriting the correct first_name/last_name structure
+              const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
+              const updateData: any = {
+                full_name: trimmedName, // Always set full_name for consistency
+              };
+              
+              if (provider === 'google') {
+                // For Google users, don't overwrite first_name if it already exists and looks correct
+                const existingFirstName = user?.user_metadata?.first_name;
+                const existingLastName = user?.user_metadata?.last_name;
+                
+                logger.debug('🔍 Google user name save logic', {
+                  existingFirstName,
+                  existingLastName,
+                  trimmedName,
+                  willUpdateFirstName: !existingFirstName || existingFirstName.includes(' '),
+                });
+                
+                if (!existingFirstName || existingFirstName.includes(' ')) {
+                  // Only update first_name if it doesn't exist or looks wrong (contains spaces)
+                  updateData.first_name = trimmedName.split(' ')[0];
+                  updateData.last_name = trimmedName.split(' ').slice(1).join(' ') || '';
+                }
+              } else {
+                // For non-Google users, save the full name as first_name
+                updateData.first_name = trimmedName;
+              }
 
               try {
                 const { error: updateError } = await supabase.auth.updateUser({
-                  data: {
-                    first_name: name.trim(),
-                    full_name: name.trim(), // Also set full_name for consistency
-                  },
+                  data: updateData,
                 });
 
                 if (updateError) {
@@ -673,13 +710,29 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
         // IMPORTANT: Still save the collected name to user metadata even if onboarding update fails
         if (name && name.trim().length > 0 && user) {
+          const trimmedName = name.trim();
+          
+          // Apply the same Google-safe logic as in the success case
+          const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
+          const updateData: any = {
+            full_name: trimmedName,
+          };
+          
+          if (provider === 'google') {
+            const existingFirstName = user?.user_metadata?.first_name;
+            const existingLastName = user?.user_metadata?.last_name;
+            
+            if (!existingFirstName || existingFirstName.includes(' ')) {
+              updateData.first_name = trimmedName.split(' ')[0];
+              updateData.last_name = trimmedName.split(' ').slice(1).join(' ') || '';
+            }
+          } else {
+            updateData.first_name = trimmedName;
+          }
 
           try {
             const { error: updateError } = await supabase.auth.updateUser({
-              data: {
-                first_name: name.trim(),
-                full_name: name.trim(),
-              },
+              data: updateData,
             });
 
             if (updateError) {
