@@ -1240,19 +1240,21 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   {isExpanded ? (
                     <>
                       {/* Sticky close button - only visible when expanded */}
-                      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, zIndex: 10000, pointerEvents: 'box-none' }}>
+                      <View style={{ 
+                        position: 'absolute', 
+                        top: 16, 
+                        right: 16,
+                        zIndex: 10000,
+                        elevation: 10000,
+                      }}>
                         <TouchableOpacity
                           style={{
-                            position: 'absolute',
-                            top: 16,
-                            right: 16,
                             width: 32,
                             height: 32,
                             borderRadius: 16,
                             backgroundColor: 'rgba(255, 255, 255, 0.15)',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            elevation: 10000,
                           }}
                           onPress={() => {
                             try { triggerLightHaptic(); } catch {}
