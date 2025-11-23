@@ -37,7 +37,7 @@ export default function TruthInLoveCard({
   currentUser,
   playbookTitle: _playbookTitle,
   userInput: _userInput,
-  showCloseButton = false,
+  showCloseButton = true,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
   // Use only parent-controlled expansion

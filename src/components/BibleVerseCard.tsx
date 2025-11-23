@@ -23,7 +23,7 @@ type BibleVerseCardProps = {
   showCloseButton?: boolean;
 };
 
-export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = '#274673', expanded = true, collapsedLines = 4, showCloseButton = false }: BibleVerseCardProps) {
+export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = '#274673', expanded = true, collapsedLines = 4, showCloseButton = true }: BibleVerseCardProps) {
   // Default translation/version for onboarding and playbook views
   const [showCopyright, setShowCopyright] = useState(false);
   const bibleVersion = (verse as any)?.version || 'NASB';

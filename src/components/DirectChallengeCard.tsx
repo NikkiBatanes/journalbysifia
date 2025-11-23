@@ -15,7 +15,7 @@ type DirectChallengeCardProps = {
   showCloseButton?: boolean;
 };
 
-export default function DirectChallengeCard({ challenge, challengeCTA, style, expanded = true, showCloseButton = false }: DirectChallengeCardProps) {
+export default function DirectChallengeCard({ challenge, challengeCTA, style, expanded = true, showCloseButton = true }: DirectChallengeCardProps) {
   // Parse SPIRITUAL and TACTICAL sections if they exist
   const spiritualMatch = challenge.match(/SPIRITUAL:\s*(.+?)(?=\n\s*TACTICAL)/is);
   const tacticalMatch = challenge.match(/TACTICAL[^:]*:\s*(.+?)$/is);
