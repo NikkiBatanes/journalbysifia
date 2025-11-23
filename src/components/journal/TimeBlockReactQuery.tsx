@@ -830,6 +830,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
             frequency: newBlock.repeat.frequency,
             customDays: newBlock.repeat.customDays,
+          } : undefined,
+        };
 
         const updateResult = await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
 
