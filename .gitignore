@@ -140,3 +140,4 @@ build/
 # Local bundler cache
 .bundle/
 *.p8
+coverage/
