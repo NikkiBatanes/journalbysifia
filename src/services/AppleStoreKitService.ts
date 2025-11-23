@@ -569,7 +569,7 @@ export class AppleStoreKitService {
         } catch (notifError) {
           Logger.warn('[StoreKit] Failed to send purchase success notification', { 
             component: 'AppleStoreKitService',
-            error: String(notifError) 
+            errorMessage: String(notifError) 
           });
         }
       }
@@ -1008,7 +1008,7 @@ export class AppleStoreKitService {
         } catch (notifError) {
           Logger.warn('[StoreKit] Failed to send trial conversion notification', { 
             component: 'AppleStoreKitService',
-            error: String(notifError) 
+            errorMessage: String(notifError) 
           });
         }
       }
