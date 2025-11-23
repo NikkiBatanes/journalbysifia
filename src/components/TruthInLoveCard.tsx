@@ -88,7 +88,7 @@ export default function TruthInLoveCard({
             <ThemedText weight="bold" style={[styles.heading, { color: textColor }]}>Truth in Love</ThemedText>
           </View>
           {/* Subtle close button when expanded */}
-          {isExpanded && showCloseButton !== false && (
+          {isExpanded && showCloseButton && (
             <View style={styles.closeButtonContainer}>
               <Ionicons
                 name="close"
