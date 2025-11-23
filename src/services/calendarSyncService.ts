@@ -134,7 +134,7 @@ export const updateTimeBlockInCalendar = async (
   timeBlock: TimeBlockData
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    Logger.info('updateTimeBlockInCalendar: Starting update for event:', calendarEventId);
+    Logger.info('updateTimeBlockInCalendar: Starting update for event', { calendarEventId });
     Logger.info('updateTimeBlockInCalendar: Time block:', {
       title: timeBlock.title,
       startTime: timeBlock.startTime.toISOString(),
@@ -157,7 +157,7 @@ export const updateTimeBlockInCalendar = async (
     let recurrence: string | undefined;
     if (timeBlock.repeat.frequency !== 'never') {
       recurrence = getRNCalendarRecurrence(timeBlock.repeat);
-      Logger.info('updateTimeBlockInCalendar: Recurrence:', recurrence);
+      Logger.info('updateTimeBlockInCalendar: Recurrence', { recurrence });
     }
 
     const eventDetails: any = {
@@ -182,18 +182,15 @@ export const updateTimeBlockInCalendar = async (
       eventDetails.recurrence = recurrence;
     }
 
-    Logger.info('updateTimeBlockInCalendar: Event details:', eventDetails);
+    Logger.info('updateTimeBlockInCalendar: Event details', { eventDetails });
 
     const updatedEventId = await RNCalendarEvents.saveEvent(timeBlock.title, eventDetails);
 
-    Logger.info('updateTimeBlockInCalendar: Event updated! Event ID:', updatedEventId);
+    Logger.info('updateTimeBlockInCalendar: Event updated! Event ID', { eventId: updatedEventId });
 
     return { success: true };
   } catch (error) {
-    Logger.error('updateTimeBlockInCalendar: Error:', error);
-    Logger.error('Calendar update error', error as Error, {
-      component: 'calendarSyncService',
-    });
+    Logger.error('updateTimeBlockInCalendar: Error', error as Error, { component: 'calendarSyncService' });
     return { success: false, error: error instanceof Error ? error.message : 'Failed to update calendar event' };
   }
 };
@@ -227,12 +224,12 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
   try {
 
     const calendars = await RNCalendarEvents.findCalendars();
-    Logger.info('getSiFiaCalendar: Found calendars:', calendars.length);
+    Logger.info('getSiFiaCalendar: Found calendars', { count: calendars.length });
 
     // 1) Prefer an existing 'siFia' calendar
     const existingSiFia = calendars.find(cal => cal.title === 'siFia');
     if (existingSiFia) {
-      Logger.info('getSiFiaCalendar: Using existing siFia calendar:', existingSiFia.id);
+      Logger.info('getSiFiaCalendar: Using existing siFia calendar', { calendarId: existingSiFia.id });
       return existingSiFia.id;
     }
 
