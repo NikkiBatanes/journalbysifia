@@ -337,7 +337,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     if (isVirtualInstance) {
       const parts = block.id.split('-');
       editIdToUse = parts.slice(0, 5).join('-'); // Get original UUID
-      Logger.info('EDIT: Editing virtual instance, using original ID:', editIdToUse);
+      Logger.info('EDIT: Editing virtual instance, using original ID', { editId: editIdToUse });
     }
 
     // Remember whether this edit came from a virtual instance (and which date)
@@ -830,17 +830,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
             frequency: newBlock.repeat.frequency,
             customDays: newBlock.repeat.customDays,
-            customFrequency: newBlock.repeat.customFrequency,
-          } : undefined, // Clear repeat_rule when frequency is 'never'
-          repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate && calendarGating.canUseRepeat) ? newBlock.repeat.endDate.toISOString() : undefined,
-        };
-
-        Logger.info('EDIT: Updating time block with data:', {
-          id: editId,
-          originalDate: originalSelectedDate,
-          currentViewDate: dateStr,
-          repeatFrequency: newBlock.repeat.frequency,
-        });
 
         const updateResult = await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
 

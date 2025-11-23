@@ -15,7 +15,7 @@ import UserInputScreen from '../screens/UserInputScreen';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
-import NotificationDebugScreen from '../screens/NotificationDebugScreen';
+// NotificationDebugScreen removed in Phase 1 cleanup
 
 // New Onboarding screens
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
@@ -295,17 +295,7 @@ export default function RootStackNavigator({
             }}
           />
 
-          {/* Dev-only Notification Debug Screen */}
-          <Stack.Screen
-            name="NotificationDebug"
-            component={NotificationDebugScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-              animation: 'slide_from_bottom',
-              gestureEnabled: true,
-            }}
-          />
+          {/* Dev-only Notification Debug Screen - Removed in Phase 1 cleanup */}
 
           {/* Main App Detail Screens */}
           <Stack.Screen

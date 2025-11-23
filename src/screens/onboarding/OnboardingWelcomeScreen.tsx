@@ -31,6 +31,7 @@ import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyle
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { supabase } from '../../services/supabaseClient';
+import { Logger } from '../../utils/ProductionLogger';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
