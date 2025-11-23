@@ -794,6 +794,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 12,
     marginBottom: 0,
   },
