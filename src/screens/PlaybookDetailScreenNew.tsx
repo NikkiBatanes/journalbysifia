@@ -2097,6 +2097,10 @@ interface PlaybookDetailStyles {
   // Inline style replacements
   rowCenter: ViewStyle;
   absoluteTopRight: ViewStyle;
+  // Sticky close button styles
+  stickyCloseButtonContainer: ViewStyle;
+  stickyCloseButton: ViewStyle;
+  closeButtonIcon: TextStyle;
   opacity90: ViewStyle;
   flex1: ViewStyle;
 }
