@@ -18,7 +18,7 @@ export interface DeepLinkParams {
  */
 export const parseDeepLink = (url: string): DeepLinkParams | null => {
   try {
-    Logger.info('DeepLink: Parsing URL:', url);
+    Logger.info('DeepLink: Parsing URL', { url });
     Logger.info('[DeepLink] Parsing URL', { url });
 
     // Handle both sifia:// scheme and https:// (Supabase might redirect through https first)
@@ -33,7 +33,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
       const hashMatch = url.match(/#(.+)$/);
       if (hashMatch) {
         const hashString = hashMatch[1];
-        Logger.info('DeepLink: Hash fragment found:', hashString.substring(0, 50) + '...');
+        Logger.info('DeepLink: Hash fragment found', { fragment: hashString.substring(0, 50) + '...' });
 
         // Parse hash parameters manually
         const hashPairs = hashString.split('&');
@@ -41,7 +41,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
           const [key, value] = pair.split('=');
           if (key && value) {
             params[key] = decodeURIComponent(value);
-            Logger.info('DeepLink: Hash param:', key, '=', value.substring(0, 20) + '...');
+            Logger.info('DeepLink: Hash param', { key, value: value.substring(0, 20) + '...' });
           }
         });
       }
@@ -56,7 +56,7 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
           }
         }
 
-        Logger.info('DeepLink: Normalized URL:', normalizedUrl);
+        Logger.info('DeepLink: Normalized URL', { url: normalizedUrl });
 
         const urlObj = new URL(normalizedUrl);
 
@@ -64,23 +64,23 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
         urlObj.searchParams.forEach((value, key) => {
           if (!params[key]) { // Don't override hash params
             params[key] = value;
-            Logger.info('DeepLink: Query param:', key, '=', value.substring(0, 30) + '...');
+            Logger.info('DeepLink: Query param', { key, value: value.substring(0, 30) + '...' });
           }
         });
 
         // Try URL API hash parsing as fallback
         if (urlObj.hash && !params.access_token) {
-          Logger.info('DeepLink: URL API hash found:', urlObj.hash.substring(0, 50) + '...');
+          Logger.info('DeepLink: URL API hash found', { hash: urlObj.hash.substring(0, 50) + '...' });
           const hashParams = new URLSearchParams(urlObj.hash.substring(1));
           hashParams.forEach((value, key) => {
             if (!params[key]) {
               params[key] = value;
-              Logger.info('DeepLink: URL API hash param:', key, '=', value.substring(0, 20) + '...');
+              Logger.info('DeepLink: URL API hash param', { key, value: value.substring(0, 20) + '...' });
             }
           });
         }
       } catch (urlError) {
-        Logger.warn('DeepLink: URL API parsing failed, using regex extraction only:', urlError);
+        Logger.warn('DeepLink: URL API parsing failed', { error: String(urlError) });
       }
 
       // Final fallback: regex extraction from full URL string
@@ -100,9 +100,9 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
         }
       }
 
-      Logger.info('DeepLink: ✅ Has access_token:', !!params.access_token);
-      Logger.info('DeepLink: ✅ Has refresh_token:', !!params.refresh_token);
-      Logger.info('DeepLink: ✅ Type:', params.type);
+      Logger.info('DeepLink: Has access_token', { hasAccessToken: !!params.access_token });
+      Logger.info('DeepLink: Has refresh_token', { hasRefreshToken: !!params.refresh_token });
+      Logger.info('DeepLink: Type', { type: params.type });
       Logger.info('[DeepLink] Parsed params', {
         hasAccessToken: !!params.access_token,
         hasRefreshToken: !!params.refresh_token,
@@ -126,11 +126,11 @@ export const parseDeepLink = (url: string): DeepLinkParams | null => {
       };
     }
 
-    Logger.warn('DeepLink: Unsupported URL scheme:', url);
+    Logger.warn('DeepLink: Unsupported URL scheme', { url });
     Logger.warn('[DeepLink] Unsupported URL scheme', { url });
     return null;
   } catch (error) {
-    Logger.error('DeepLink: Error parsing URL:', error);
+    Logger.error('DeepLink: Error parsing URL', error as Error, { url });
     Logger.error('[DeepLink] Error parsing URL', error as Error, { url });
     return null;
   }

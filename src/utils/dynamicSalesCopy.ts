@@ -6,6 +6,7 @@
  */
 
 import { SubscriptionTier } from '../types/subscription';
+import { Logger } from './ProductionLogger';
 
 export interface SalesCopyParams {
   featureType: 'playbooks' | 'devotionals';
@@ -74,8 +75,8 @@ function getNextMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   // Set to start of today for accurate day comparison
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  Logger.info('Reset Calculation: subscriptionStartISO:', subscriptionStartISO);
-  Logger.info('Reset Calculation: Today:', today.toISOString());
+  Logger.info('Reset Calculation: subscriptionStartISO', { subscriptionStartISO });
+  Logger.info('Reset Calculation: Today', { today: today.toISOString() });
 
   if (!subscriptionStartISO) {
     // Fallback: first day of next month
@@ -84,18 +85,18 @@ function getNextMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   }
   const start = new Date(subscriptionStartISO);
   const targetDay = start.getDate();
-  Logger.info('Reset Calculation: Subscription start date:', start.toISOString());
-  Logger.info('Reset Calculation: Target billing day:', targetDay);
+  Logger.info('Reset Calculation: Subscription start date', { start: start.toISOString() });
+  Logger.info('Reset Calculation: Target billing day', { targetDay });
 
   // Calculate the reset date for this month (at midnight)
   const lastDayOfThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const resetDayThisMonth = Math.min(targetDay, lastDayOfThisMonth);
   const resetDateThisMonth = new Date(now.getFullYear(), now.getMonth(), resetDayThisMonth);
-  Logger.info('Reset Calculation: This month reset would be:', resetDateThisMonth.toISOString());
+  Logger.info('Reset Calculation: This month reset would be', { resetDate: resetDateThisMonth.toISOString() });
 
   // If the reset date for this month is today or in the future, use it
   if (resetDateThisMonth >= today) {
-    Logger.info('Reset Calculation: Using this month\'s reset date:', resetDateThisMonth.toISOString());
+    Logger.info('Reset Calculation: Using this month\'s reset date', { resetDate: resetDateThisMonth.toISOString() });
     return resetDateThisMonth;
   }
 
@@ -106,7 +107,7 @@ function getNextMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   const lastDayOfNextMonth = new Date(nextYear, normalizedMonth + 1, 0).getDate();
   const day = Math.min(targetDay, lastDayOfNextMonth);
   const nextResetDate = new Date(nextYear, normalizedMonth, day);
-  Logger.info('Reset Calculation: Using next month\'s reset date:', nextResetDate.toISOString());
+  Logger.info('Reset Calculation: Using next month\'s reset date', { resetDate: nextResetDate.toISOString() });
 
   return nextResetDate;
 }

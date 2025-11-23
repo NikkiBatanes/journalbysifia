@@ -4,6 +4,7 @@
  */
 
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { Logger } from '../utils/ProductionLogger';
 
 interface PushNotificationBridgeInterface {
   requestPermissions: () => Promise<boolean>;
@@ -53,7 +54,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.requestPermissions();
     } catch (error) {
-      Logger.error('PushNotificationBridge: Error requesting permissions:', error);
+      Logger.error('PushNotificationBridge: Error requesting permissions', error as Error);
       return false;
     }
   },
@@ -68,7 +69,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.registerForRemoteNotifications();
     } catch (error) {
-      Logger.error('PushNotificationBridge: Error registering for remote notifications:', error);
+      Logger.error('PushNotificationBridge: Error registering for remote notifications', error as Error);
       return false;
     }
   },
@@ -83,7 +84,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.checkPermissions();
     } catch (error) {
-      Logger.error('PushNotificationBridge: Error checking permissions:', error);
+      Logger.error('PushNotificationBridge: Error checking permissions', error as Error);
       return { alert: false, badge: false, sound: false, authorizationStatus: 0 };
     }
   },
@@ -107,7 +108,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.getBadgeNumber();
     } catch (error) {
-      Logger.error('PushNotificationBridge: Error getting badge number:', error);
+      Logger.error('PushNotificationBridge: Error getting badge number', error as Error);
       return 0;
     }
   },
@@ -140,7 +141,7 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
     try {
       return await RCTPushNotificationBridge.scheduleLocalNotification(notification);
     } catch (error) {
-      Logger.error('PushNotificationBridge: Error scheduling notification:', error);
+      Logger.error('PushNotificationBridge: Error scheduling notification', error as Error);
       throw error;
     }
   },

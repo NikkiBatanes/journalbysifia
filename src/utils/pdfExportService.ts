@@ -563,14 +563,14 @@ class PDFExportService {
     const challengeItems: string[] = [];
     if (normalizedChallenge) {
       // Debug: Log the normalized challenge to see what we're parsing
-      Logger.info('PDF Export: Normalized challenge:', normalizedChallenge);
+      Logger.info('PDF Export: Normalized challenge', { challenge: normalizedChallenge });
 
       // 1st item: capture everything after "1." up to (but not including) "2." or end of string
       // Updated regex to handle "2." followed by any character (space, parenthesis, etc.)
       const firstMatch = normalizedChallenge.match(/1\.\s*([\s\S]*?)(?=2\.|$)/);
       if (firstMatch && firstMatch[1] && firstMatch[1].trim()) {
         const item1 = firstMatch[1].trim();
-        Logger.info('PDF Export: Challenge item 1:', item1);
+        Logger.info('PDF Export: Challenge item 1', { item: item1 });
         challengeItems.push(item1);
       }
 
@@ -578,16 +578,16 @@ class PDFExportService {
       const secondMatch = normalizedChallenge.match(/2\.\s*([\s\S]*)$/);
       if (secondMatch && secondMatch[1] && secondMatch[1].trim()) {
         const item2 = secondMatch[1].trim();
-        Logger.info('PDF Export: Challenge item 2:', item2);
+        Logger.info('PDF Export: Challenge item 2', { item: item2 });
         challengeItems.push(item2);
       }
 
-      Logger.info('PDF Export: Challenge items before dedup:', challengeItems);
+      Logger.info('PDF Export: Challenge items before dedup', { items: challengeItems });
     }
 
     // Ensure we only have maximum 2 items and remove any duplicates
     const uniqueChallengeItems = [...new Set(challengeItems)].slice(0, 2);
-    Logger.info('PDF Export: Unique challenge items:', uniqueChallengeItems);
+    Logger.info('PDF Export: Unique challenge items', { items: uniqueChallengeItems });
 
     const safeChallengeItems = uniqueChallengeItems.map(item => {
       // Remove deadline text like "(48-72 hour deadline):"

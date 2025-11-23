@@ -369,7 +369,7 @@ class MonitoringService {
       await this.cleanupOldSnapshots();
     } catch (error) {
       // Silent fail - monitoring shouldn't break the app
-      Logger.warn('Failed to store monitoring snapshot:', error);
+      Logger.warn('Failed to store monitoring snapshot', { error: String(error) });
     }
   }
 
