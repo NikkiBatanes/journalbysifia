@@ -1768,16 +1768,38 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             >
               {isExpanded ? (
                 <>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={20}
-                      color={Colors.hopeWhite}
-                      style={styles.opacity90}
-                    />
-                  </TouchableOpacity>
+                  {/* Sticky close button - only visible when expanded */}
+                  <View style={{ 
+                    position: 'absolute', 
+                    top: 16, 
+                    right: 16,
+                    zIndex: 10000,
+                    elevation: 10000,
+                  }}>
+                    <TouchableOpacity
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onPress={() => {
+                        try { triggerLightHaptic(); } catch {}
+                        setExpandedCardId(null);
+                        animateCardTransition(card.id, false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name="close"
+                        size={20}
+                        color={Colors.hopeWhite}
+                        style={{ opacity: 0.9 }}
+                      />
+                    </TouchableOpacity>
+                  </View>
                   <ScrollView
                     style={[
                       styles.expandedScrollView,
