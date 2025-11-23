@@ -567,7 +567,10 @@ export class AppleStoreKitService {
             amount
           );
         } catch (notifError) {
-          Logger.warn('[StoreKit] Failed to send purchase success notification', notifError as Error, { component: 'AppleStoreKitService' });
+          Logger.warn('[StoreKit] Failed to send purchase success notification', { 
+            component: 'AppleStoreKitService',
+            error: String(notifError) 
+          });
         }
       }
 
@@ -1003,7 +1006,10 @@ export class AppleStoreKitService {
             0
           ); // Trial conversion = no additional cost
         } catch (notifError) {
-          Logger.warn('[StoreKit] Failed to send trial conversion notification', notifError as Error, { component: 'AppleStoreKitService' });
+          Logger.warn('[StoreKit] Failed to send trial conversion notification', { 
+            component: 'AppleStoreKitService',
+            error: String(notifError) 
+          });
         }
       }
 
