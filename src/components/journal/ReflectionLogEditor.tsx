@@ -1018,8 +1018,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
-        {/* Debug: Log modeToggle rendering */}
-        {console.log('🔍 ReflectionLogEditor modeToggle:', { source, hideGuidedPromptButton, viewMode, selectedPrompt })}
         {/* Always show pencil toggle for freeform switching */}
         {source !== 'devotional' && source !== 'playbook' && (
           <TouchableOpacity
@@ -1138,7 +1136,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           </TouchableOpacity>
         )}
         {/* Show guided prompt icon for freeform reflections in journal screen (always visible) */}
-        {console.log('❤️ ReflectionLogEditor heart icon condition:', { source, hideGuidedPromptButton, shouldShow: source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton })}
         {source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
