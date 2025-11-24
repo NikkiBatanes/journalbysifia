@@ -34,11 +34,12 @@ jest.mock('../supabaseClient', () => ({
       update: jest.fn(() => ({
         eq: jest.fn().mockReturnValue({
           select: jest.fn().mockReturnValue({
-            single: jest.fn(() => Promise.resolve({ data: null, error: null }))
+            single: jest.fn(() => Promise.resolve({ data: null, error: null })),
           }),
-        })),
-    })
-  }
+        }),
+      })),
+    })),
+  },
 }));
 
 // Mock AsyncStorage
