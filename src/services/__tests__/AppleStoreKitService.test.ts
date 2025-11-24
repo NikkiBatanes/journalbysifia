@@ -68,7 +68,7 @@ describe('AppleStoreKitService', () => {
     it('should return singleton instance', () => {
       const instance1 = AppleStoreKitService.getInstance();
       const instance2 = AppleStoreKitService.getInstance();
-      
+
       expect(instance1).toBe(instance2);
       expect(instance1).toBeInstanceOf(AppleStoreKitService);
     });
@@ -77,7 +77,7 @@ describe('AppleStoreKitService', () => {
   describe('initialize', () => {
     it('should initialize connection to App Store', async () => {
       const result = await service.initialize();
-      
+
       expect(typeof result).toBe('boolean');
     });
 
@@ -86,7 +86,7 @@ describe('AppleStoreKitService', () => {
       RNIap.initConnection.mockRejectedValueOnce(new Error('Connection failed'));
 
       const result = await service.initialize();
-      
+
       // Should return false on error, not throw
       expect(typeof result).toBe('boolean');
     });
@@ -94,7 +94,7 @@ describe('AppleStoreKitService', () => {
     it('should not initialize twice', async () => {
       await service.initialize();
       await service.initialize();
-      
+
       const RNIap = require('react-native-iap');
       // Should only call initConnection once
       expect(RNIap.initConnection).toHaveBeenCalledTimes(1);
@@ -150,7 +150,7 @@ describe('AppleStoreKitService', () => {
       const purchasePromise = service.purchaseSubscription(productId, userId);
 
       expect(purchasePromise).toBeInstanceOf(Promise);
-      
+
       // Don't await to avoid timeout
     });
 
@@ -279,7 +279,7 @@ describe('AppleStoreKitService', () => {
       RNIap.initConnection.mockRejectedValueOnce(new Error('Network error'));
 
       const result = await service.initialize();
-      
+
       expect(typeof result).toBe('boolean');
     });
 
@@ -288,7 +288,7 @@ describe('AppleStoreKitService', () => {
       RNIap.getSubscriptions.mockRejectedValueOnce(new Error('Store unavailable'));
 
       const products = await service.getAvailableProducts();
-      
+
       expect(Array.isArray(products)).toBe(true);
     });
   });
@@ -296,9 +296,9 @@ describe('AppleStoreKitService', () => {
   describe('edge cases', () => {
     it('should handle concurrent initialization', async () => {
       const promises = Array(5).fill(null).map(() => service.initialize());
-      
+
       const results = await Promise.all(promises);
-      
+
       results.forEach(result => {
         expect(typeof result).toBe('boolean');
       });
