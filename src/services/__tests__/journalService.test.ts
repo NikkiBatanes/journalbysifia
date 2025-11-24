@@ -3,7 +3,7 @@
  * Test suite for journal service
  */
 
-import { journalService } from '../journalService';
+import { smartJournalDetectionV2 } from '../smartJournalDetectionV2';
 
 // Mock Supabase
 jest.mock('../supabaseClient', () => ({
@@ -750,7 +750,7 @@ describe('journalService', () => {
       const results = await Promise.all(promises);
 
       // All should complete without errors
-      results.forEach((result) => {
+      results.forEach((result: any) => {
         expect(typeof result.success).toBe('boolean');
       });
     });

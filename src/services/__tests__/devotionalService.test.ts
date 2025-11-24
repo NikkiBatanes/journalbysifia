@@ -3,7 +3,7 @@
  * Test suite for devotional service
  */
 
-import { devotionalService } from '../devotionalService';
+import { modernDevotionalApi } from '../modernDevotionalApi';
 
 // Mock Supabase
 jest.mock('../supabaseClient', () => ({
@@ -708,7 +708,7 @@ describe('devotionalService', () => {
       const results = await Promise.all(promises);
 
       // All should complete without errors
-      results.forEach((result) => {
+      results.forEach((result: any) => {
         expect(typeof result.success).toBe('boolean');
       });
     });

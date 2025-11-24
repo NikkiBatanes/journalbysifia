@@ -83,7 +83,7 @@ describe('AppleStoreKitService', () => {
       const { getProducts } = require('react-native-iap');
       getProducts.mockResolvedValue(mockProducts);
 
-      const products = await service.getProducts(['com.sifia.spark.monthly']);
+      const products = await service.getAvailableProducts();
 
       expect(products).toEqual(mockProducts);
       expect(getProducts).toHaveBeenCalledWith(['com.sifia.spark.monthly']);
@@ -93,7 +93,7 @@ describe('AppleStoreKitService', () => {
       const { getProducts } = require('react-native-iap');
       getProducts.mockRejectedValue(new Error('Failed to load products'));
 
-      const products = await service.getProducts(['com.sifia.spark.monthly']);
+      const products = await service.getAvailableProducts();
 
       expect(products).toEqual([]);
     });
@@ -102,7 +102,7 @@ describe('AppleStoreKitService', () => {
       const { getProducts } = require('react-native-iap');
       getProducts.mockResolvedValue([]);
 
-      const products = await service.getProducts(['invalid.product.id']);
+      const products = await service.getAvailableProducts();
 
       expect(products).toEqual([]);
     });
@@ -129,13 +129,13 @@ describe('AppleStoreKitService', () => {
       };
 
       (NewSubscriptionService.getUserSubscription as jest.Mock).mockResolvedValue(mockSubscription);
-      (NewSubscriptionService.updateUserSubscription as jest.Mock).mockResolvedValue(true);
+      (NewSubscriptionService.upgradeSubscription as jest.Mock).mockResolvedValue(mockSubscription);
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(true);
       expect(requestPurchase).toHaveBeenCalledWith(productId);
-      expect(NewSubscriptionService.updateUserSubscription).toHaveBeenCalled();
+      expect(NewSubscriptionService.upgradeSubscription).toHaveBeenCalled();
     });
 
     it('should handle purchase cancellation', async () => {
@@ -145,10 +145,10 @@ describe('AppleStoreKitService', () => {
       const { requestPurchase } = require('react-native-iap');
       requestPurchase.mockRejectedValue(new Error('User cancelled'));
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toContain('cancelled');
+      expect(result.error).toContain('cancelled');
     });
 
     it('should handle purchase errors', async () => {
@@ -158,7 +158,7 @@ describe('AppleStoreKitService', () => {
       const { requestPurchase } = require('react-native-iap');
       requestPurchase.mockRejectedValue(new Error('Payment failed'));
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Payment failed');
@@ -221,7 +221,7 @@ describe('AppleStoreKitService', () => {
       };
 
       (NewSubscriptionService.getUserSubscription as jest.Mock).mockResolvedValue(mockSubscription);
-      (NewSubscriptionService.updateUserSubscription as jest.Mock).mockResolvedValue(true);
+      (NewSubscriptionService.upgradeSubscription as jest.Mock).mockResolvedValue(mockSubscription);
 
       const result = await service.upgradeSubscription(userId, newTier);
 
@@ -239,7 +239,7 @@ describe('AppleStoreKitService', () => {
       };
 
       (NewSubscriptionService.getUserSubscription as jest.Mock).mockResolvedValue(mockSubscription);
-      (NewSubscriptionService.updateUserSubscription as jest.Mock).mockResolvedValue(true);
+      (NewSubscriptionService.upgradeSubscription as jest.Mock).mockResolvedValue(mockSubscription);
 
       const result = await service.downgradeSubscription(userId, newTier);
 
@@ -250,7 +250,7 @@ describe('AppleStoreKitService', () => {
     it('should handle subscription cancellation', async () => {
       const userId = 'user-123';
 
-      (NewSubscriptionService.updateUserSubscription as jest.Mock).mockResolvedValue(true);
+      (NewSubscriptionService.upgradeSubscription as jest.Mock).mockResolvedValue(mockSubscription);
 
       const result = await service.cancelSubscription(userId);
 
@@ -337,7 +337,7 @@ describe('AppleStoreKitService', () => {
       const { requestPurchase } = require('react-native-iap');
       requestPurchase.mockRejectedValue(new Error('Network error'));
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Network error');
@@ -347,7 +347,7 @@ describe('AppleStoreKitService', () => {
       const userId = '';
       const productId = 'com.sifia.spark.monthly';
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Invalid user ID');
@@ -357,7 +357,7 @@ describe('AppleStoreKitService', () => {
       const userId = 'user-123';
       const productId = '';
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Invalid product ID');
@@ -415,7 +415,7 @@ describe('AppleStoreKitService', () => {
         productId: productId,
       });
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(false);
     });
@@ -434,7 +434,7 @@ describe('AppleStoreKitService', () => {
         new Error('Subscription service error')
       );
 
-      const result = await service.purchaseProduct(userId, productId);
+      const result = await service.purchaseSubscription(userId, productId);
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Subscription service error');
