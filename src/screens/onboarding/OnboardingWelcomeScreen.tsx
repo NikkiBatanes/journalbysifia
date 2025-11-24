@@ -7,6 +7,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil as LucidePencil } from 'lucide-react-native';
+import LottieView from 'lottie-react-native';
 import {
   View,
   StyleSheet,
@@ -37,15 +38,22 @@ import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 // const { height: _height } = Dimensions.get('window');
 
+// Pre-load Lottie files to avoid dynamic requires
+const JC3_ANIMATION = require('../../../assets/animations/JC 3.json');
+const JC4_ANIMATION = require('../../../assets/animations/JC 4.json');
+const JC5_ANIMATION = require('../../../assets/animations/JC 5.json');
+
 interface Slide {
   id: number;
   title: string;
   subtitle: string;
   features: string[];
-  icon: string;
+  icon?: string;
   color: string;
   iconSize?: number;
   useLucidePencil?: boolean;
+  useLottie?: boolean;
+  lottieFile?: string;
 }
 
 const slides: Slide[] = [
@@ -58,9 +66,9 @@ const slides: Slide[] = [
       'Simple, faith-driven steps you can do now',
       'Encouragement that lasts beyond Sunday',
     ],
-    icon: 'book-outline',
     color: Colors.alertCoral,
-    iconSize: 62,
+    useLottie: true,
+    lottieFile: 'JC 5.json',
   },
   {
     id: 2,
@@ -71,9 +79,9 @@ const slides: Slide[] = [
       'Clear steps that bring real progress',
       'Reminders that keep your spirit steady',
     ],
-    icon: 'map-outline',
     color: Colors.alertCoral,
-    iconSize: 62,
+    useLottie: true,
+    lottieFile: 'JC 4.json',
   },
   {
     id: 3,
@@ -84,10 +92,9 @@ const slides: Slide[] = [
       'Reflections that reveal His work in you',
       'A clear picture of your growth over time',
     ],
-    icon: 'create-outline',
     color: Colors.alertCoral,
-    iconSize: 54,
-    useLucidePencil: true,
+    useLottie: true,
+    lottieFile: 'JC 3.json',
   },
 ];
 
@@ -384,15 +391,21 @@ const OnboardingWelcomeScreen: React.FC = () => {
       ]}
     >
       {/* Slide Icon */}
-      <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-        {item.useLucidePencil ? (
-          <LucidePencil
-            size={item.iconSize || 60}
-            color={Colors.alertCoral}
-            strokeWidth={1.75}
-          />
+      <View style={styles.lottieContainer}>
+        {item.useLottie ? (
+          null // Lottie animations are now displayed under the logo
+        ) : item.useLucidePencil ? (
+          <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
+            <LucidePencil
+              size={item.iconSize || 60}
+              color={Colors.alertCoral}
+              strokeWidth={1.75}
+            />
+          </View>
         ) : (
-          <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
+          <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
+            <Ionicons name={item.icon || 'help-outline'} size={item.iconSize || 60} color={item.color} />
+          </View>
         )}
       </View>
 
@@ -423,11 +436,21 @@ const OnboardingWelcomeScreen: React.FC = () => {
         <View style={OnboardingStyles.innerContainer}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
-          <Image
-            source={require('../../../assets/icons/siFiaTransparent.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
+          {/* Lottie Animation under logo */}
+          {currentSlide >= 0 && slides[currentSlide] && slides[currentSlide].useLottie && (
+            <View style={styles.logoLottieContainer}>
+              <LottieView
+                source={
+                  slides[currentSlide].lottieFile === 'JC 3.json' ? JC3_ANIMATION :
+                  slides[currentSlide].lottieFile === 'JC 4.json' ? JC4_ANIMATION :
+                  JC5_ANIMATION
+                }
+                autoPlay
+                loop
+                style={styles.lottieIconUnderLogo}
+              />
+            </View>
+          )}
         </View>
 
         {/* Carousel */}
@@ -535,12 +558,21 @@ const styles = StyleSheet.create({
   logoSection: {
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,
-    marginTop: 56,
-    marginBottom: OnboardingSpacing.md,
+    marginTop: 20,
+    marginBottom: -100,
   },
   logoImage: {
     width: 120,
     height: 120,
+  },
+  logoLottieContainer: {
+    marginTop: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lottieIconUnderLogo: {
+    width: 350,
+    height: 350,
   },
 
   // Carousel Styles
@@ -550,12 +582,17 @@ const styles = StyleSheet.create({
   slideContainer: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 10,
+    paddingTop: -250,
     paddingBottom: 20,
     justifyContent: 'flex-start',
   },
 
   // Slide Content Styles
+  lottieContainer: {
+    marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   iconContainer: {
     ...OnboardingStyles.iconContainer,
     marginBottom: 24,
@@ -565,14 +602,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  lottieIcon: {
+    width: 60,
+    height: 60,
+  },
+  lottieIconLarge: {
+    width: 150,
+    height: 150,
+  },
+  lottieIconExtraLarge: {
+    width: 350,
+    height: 350,
+  },
   slideTitle: {
     ...OnboardingStyles.mainTitle,
-    marginBottom: OnboardingSpacing.md,
+    marginBottom: OnboardingSpacing.sm,
     textAlign: 'center',
+    marginTop: 0,
   },
   slideSubtitle: {
     ...OnboardingStyles.subtitle,
-    marginBottom: OnboardingSpacing.xxl,
+    marginBottom: OnboardingSpacing.lg,
     textAlign: 'center',
   },
   featuresList: {
@@ -585,7 +635,7 @@ const styles = StyleSheet.create({
   // Navigation Dots
   dotsContainer: {
     ...OnboardingStyles.dotsContainer,
-    marginTop: 20,
+    marginTop: -50,
     marginBottom: 40,
     paddingHorizontal: 24,
   },

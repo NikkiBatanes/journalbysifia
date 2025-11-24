@@ -2,6 +2,7 @@ import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LottieView from 'lottie-react-native';
 import {
   View,
   TouchableOpacity,
@@ -201,7 +202,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           resizeMode="contain"
         />
 
-        {/* Illustration Placeholder */}
+        {/* Illustration */}
         <View
           style={[
             styles.illustrationContainer,
@@ -210,12 +211,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             isSmallPhone && styles.illustrationContainerSmallPhone,
           ]}
         >
-          <View style={styles.illustrationPlaceholder}>
-            <Ionicons name="laptop-outline" size={100} color="rgba(255,255,255,0.3)" />
-            <Ionicons name="phone-portrait-outline" size={50} color="rgba(255,255,255,0.2)" style={styles.phoneIcon} />
-            <Ionicons name="cloud-outline" size={40} color="rgba(255,255,255,0.2)" style={styles.cloudIcon} />
-            <Ionicons name="server-outline" size={30} color="rgba(255,255,255,0.15)" style={styles.serverIcon} />
-          </View>
+          <LottieView
+            source={require('../../assets/animations/JC 1.json')}
+            autoPlay
+            loop
+            style={styles.lottieAnimation}
+          />
         </View>
 
         {/* Title */}
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 120,
     height: 120,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     marginTop: 0,
     marginBottom: 10,
   },
@@ -346,27 +347,9 @@ const styles = StyleSheet.create({
     height: 240,
     marginVertical: 10,
   },
-  illustrationPlaceholder: {
+  lottieAnimation: {
     width: 300,
     height: 250,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  phoneIcon: {
-    position: 'absolute',
-    top: 40,
-    right: 50,
-  },
-  cloudIcon: {
-    position: 'absolute',
-    top: 20,
-    left: 40,
-  },
-  serverIcon: {
-    position: 'absolute',
-    bottom: 30,
-    right: 30,
   },
   titleContainer: {
     alignItems: 'center',

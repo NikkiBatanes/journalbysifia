@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LottieView from 'lottie-react-native';
 import {
   View,
   StyleSheet,
@@ -19,6 +20,9 @@ import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
+
+// Pre-load Lottie animation
+const JC6_ANIMATION = require('../../assets/animations/JC 6.json');
 
 interface Props {
   navigation: any;
@@ -92,6 +96,12 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
             source={require('../../assets/icons/siFiaTransparent.png')}
             style={styles.logo}
             resizeMode="contain"
+          />
+          <LottieView
+            source={JC6_ANIMATION}
+            autoPlay
+            loop
+            style={styles.lottieAnimation}
           />
         </View>
 
@@ -207,6 +217,12 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 10,
+    alignItems: 'center',
+  },
+  lottieAnimation: {
+    width: 350,
+    height: 350,
+    marginTop: -100,
   },
   backButton: {
     marginRight: 20,

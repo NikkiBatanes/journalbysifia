@@ -20,40 +20,38 @@ export interface AuthConfig {
   };
 }
 
-// Production configuration - replace with your actual values
 export const authConfig: AuthConfig = {
   apple: {
     // Your app's bundle identifier
-    clientId: process.env.EXPO_PUBLIC_BUNDLE_ID || 'com.yourcompany.sifia',
+    clientId: 'app.sifia.com',
     // Supabase redirect URL
-    redirectUrl: process.env.EXPO_PUBLIC_SUPABASE_URL
-      ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/callback`
-      : 'https://your-project.supabase.co/auth/v1/callback',
+    redirectUrl: 'https://aesmrjinczhknchlrsmt.supabase.co/auth/v1/callback',
   },
   google: {
     // Replace with your actual Google OAuth client IDs
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'your-google-web-client-id.googleusercontent.com',
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || 'your-google-ios-client-id.googleusercontent.com',
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'your-google-android-client-id.googleusercontent.com',
+    webClientId: '158783468776-nl9jnprt6mu0qhkq4lba6l3gn2adtfgi.apps.googleusercontent.com',
+    iosClientId: '158783468776-1at3oeuablle65rvtsjqeqhv6qc40me8.apps.googleusercontent.com',
+    androidClientId: 'your-google-android-client-id.googleusercontent.com',
   },
   supabase: {
-    url: process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co',
-    anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'your-supabase-anon-key',
+    url: 'https://aesmrjinczhknchlrsmt.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM',
   },
 };
 
-// Environment validation
+// Environment validation for bare React Native
 export const validateAuthConfig = (): boolean => {
-  const requiredEnvVars = [
-    'EXPO_PUBLIC_SUPABASE_URL',
-    'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-    'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+  const requiredValues = [
+    authConfig.supabase.url,
+    authConfig.supabase.anonKey,
+    authConfig.google.webClientId,
+    authConfig.google.iosClientId,
   ];
 
-  const missing = requiredEnvVars.filter(envVar => !process.env[envVar]);
+  const missing = requiredValues.filter(value => !value || value.includes('your-'));
 
   if (missing.length > 0) {
-    Logger.warn('⚠️ Missing required environment variables', { component: 'auth-config', data: missing });
+    Logger.warn('⚠️ Missing required auth configuration values', { component: 'auth-config', data: missing });
     return false;
   }
 

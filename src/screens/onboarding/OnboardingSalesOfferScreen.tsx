@@ -426,7 +426,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         devotionalGating.refreshSubscription(),
         refreshNewSubscription().catch(() => {}),
       ]);
-      
+
       logger.debug('✅ Optimized subscription refresh completed');
     } catch (error) {
       logger.error('Optimized refresh failed:', error as Error);
