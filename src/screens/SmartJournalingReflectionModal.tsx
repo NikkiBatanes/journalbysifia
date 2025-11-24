@@ -31,6 +31,8 @@ interface SmartJournalingReflectionModalProps {
   onCancel: () => void;
   // When true, this reflection was opened from a guided prompt and should hide metadata
   isGuidedReflection?: boolean;
+  // When true, hide the guided prompt button (heart icon)
+  hideGuidedPromptButton?: boolean;
 }
 
 const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalProps> = ({
@@ -47,6 +49,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   onSave,
   onCancel,
   isGuidedReflection = false,
+  hideGuidedPromptButton = true, // Default to true for backward compatibility
 }) => {
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
@@ -441,7 +444,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts'),
               } : undefined}
               isLoading={isLoading}
-              hideGuidedPromptButton={true}
+              hideGuidedPromptButton={hideGuidedPromptButton}
             />
 
           {/* New success modal system - completely isolated and robust */}

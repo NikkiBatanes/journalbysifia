@@ -534,7 +534,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   );
 
   // Check if we're editing an existing entry (has content)
-  const isEditing = !!initialEntry.content;
+  const isEditing = !!(initialEntry.content && initialEntry.content.trim() !== '');
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   // Commenting out add menu for MVP; keep state preserving future functionality
   // const [showAddMenu, setShowAddMenu] = React.useState(false);

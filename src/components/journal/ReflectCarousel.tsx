@@ -191,6 +191,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
         subtaskTitle="" // Blank title with placeholder
         isGuidedReflection={false} // Free-form mode
         selectedDate={selectedDate} // Pass the selected date from journal header
+        hideGuidedPromptButton={false} // Show heart icon for guided prompts
         onSave={handleReflectionModalSave}
         onCancel={handleReflectionModalCancel}
       />
