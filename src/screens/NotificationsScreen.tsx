@@ -13,7 +13,7 @@ import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
 import { notificationManagementService } from '../services/notificationManagementService';
-import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
+// import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 // POST-LAUNCH: import { FamilyNotificationService } from '../services/FamilyNotificationService';
 import { notificationAnalyticsService } from '../services/notificationAnalyticsService';
 // POST-LAUNCH: import { useFamilySubscription } from '../hooks/useFamilySubscription';
@@ -142,7 +142,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       // Navigate using deep link
       if (notification.data?.deep_link) {
-        notificationDeepLinkService.navigate(notification.data.deep_link);
+        // notificationDeepLinkService.navigate(notification.data.deep_link);
       }
 
       // Mark as read/opened
