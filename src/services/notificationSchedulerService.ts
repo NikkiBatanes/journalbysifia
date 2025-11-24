@@ -249,120 +249,156 @@ class NotificationSchedulerService {
    * Schedule daily devotional reminder
    */
   async scheduleDevotionalReminder(userId: string, preferredTime: string = '07:00'): Promise<boolean> {
-    const [hour, min] = preferredTime.split(':').map(Number);
-    const scheduledFor = new Date();
-    scheduledFor.setHours(hour, min, 0, 0);
+    try {
+      const [hour, min] = preferredTime.split(':').map(Number);
+      const scheduledFor = new Date();
+      scheduledFor.setHours(hour, min, 0, 0);
 
-    // If time has passed today, schedule for tomorrow
-    if (scheduledFor < new Date()) {
-      scheduledFor.setDate(scheduledFor.getDate() + 1);
+      // If time has passed today, schedule for tomorrow
+      if (scheduledFor < new Date()) {
+        scheduledFor.setDate(scheduledFor.getDate() + 1);
+      }
+
+      // Use local notification directly (bypass broken scheduler)
+      await pushNotificationService.scheduleLocalNotification({
+        title: 'Daily Devotional Ready 📖',
+        message: 'Start your day with God\'s Word and wisdom.',
+        data: {
+          deep_link: 'sifia://devotionals/today',
+          reminder_type: 'devotional',
+        },
+      }, scheduledFor);
+
+      Logger.info('Daily devotional reminder scheduled successfully', {
+        component: 'notificationSchedulerService',
+        userId,
+        scheduledFor: scheduledFor.toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      Logger.error('Failed to schedule daily devotional reminder', error as Error, {
+        component: 'notificationSchedulerService',
+        userId,
+        preferredTime,
+      });
+      return false;
     }
-
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'devotional_reminder',
-      title: 'Daily Devotional Ready 📖',
-      message: 'Start your day with God\'s Word and wisdom.',
-      data: {
-        deep_link: 'sifia://devotionals/today',
-        reminder_type: 'devotional',
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
-
-    return await this.scheduleNotification(notification, {
-      priority: 'normal',
-      batchWithOthers: true,
-    });
   }
 
   /**
    * Schedule daily prayer reminder
    */
   async schedulePrayerReminder(userId: string, preferredTime: string = '08:00'): Promise<boolean> {
-    const [hour, min] = preferredTime.split(':').map(Number);
-    const scheduledFor = new Date();
-    scheduledFor.setHours(hour, min, 0, 0);
+    try {
+      const [hour, min] = preferredTime.split(':').map(Number);
+      const scheduledFor = new Date();
+      scheduledFor.setHours(hour, min, 0, 0);
 
-    if (scheduledFor < new Date()) {
-      scheduledFor.setDate(scheduledFor.getDate() + 1);
+      if (scheduledFor < new Date()) {
+        scheduledFor.setDate(scheduledFor.getDate() + 1);
+      }
+
+      // Use local notification directly (bypass broken scheduler)
+      await pushNotificationService.scheduleLocalNotification({
+        title: 'Time to Connect with God 🙏',
+        message: 'Take 5 minutes to bring your heart before the Lord.',
+        data: {
+          deep_link: 'sifia://journal/prayer',
+          reminder_type: 'prayer',
+          suggested_duration: '5-10 minutes',
+        },
+      }, scheduledFor);
+
+      Logger.info('Daily prayer reminder scheduled successfully', {
+        component: 'notificationSchedulerService',
+        userId,
+        scheduledFor: scheduledFor.toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      Logger.error('Failed to schedule daily prayer reminder', error as Error, {
+        component: 'notificationSchedulerService',
+        userId,
+        preferredTime,
+      });
+      return false;
     }
-
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'prayer_reminder',
-      title: 'Time to Connect with God 🙏',
-      message: 'Take 5 minutes to bring your heart before the Lord.',
-      data: {
-        deep_link: 'sifia://journal/prayer',
-        reminder_type: 'prayer',
-        suggested_duration: '5-10 minutes',
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
-
-    return await this.scheduleNotification(notification, {
-      priority: 'normal',
-      batchWithOthers: true,
-    });
   }
 
   /**
    * Schedule trial expiring notification
    */
   async scheduleTrialExpiringNotification(userId: string, expiryDate: Date): Promise<boolean> {
-    // Schedule for 1 day before expiry
-    const scheduledFor = new Date(expiryDate);
-    scheduledFor.setDate(scheduledFor.getDate() - 1);
-    scheduledFor.setHours(10, 0, 0, 0); // 10 AM
+    try {
+      // Schedule for 1 day before expiry
+      const scheduledFor = new Date(expiryDate);
+      scheduledFor.setDate(scheduledFor.getDate() - 1);
+      scheduledFor.setHours(10, 0, 0, 0); // 10 AM
 
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'trial_expiring',
-      title: 'Your Trial Ends Tomorrow ⏰',
-      message: 'Continue your spiritual growth journey - upgrade now to keep full access.',
-      data: {
-        deep_link: 'sifia://subscription/upgrade',
-        days_remaining: 1,
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'critical',
-    };
+      // Use local notification directly (bypass broken scheduler)
+      await pushNotificationService.scheduleLocalNotification({
+        title: 'Your Trial Ends Tomorrow ⏰',
+        message: 'Continue your spiritual growth journey - upgrade now to keep full access.',
+        data: {
+          deep_link: 'sifia://subscription/upgrade',
+          days_remaining: 1,
+        },
+      }, scheduledFor);
 
-    return await this.scheduleNotification(notification, {
-      priority: 'critical',
-      batchWithOthers: false,
-    });
+      Logger.info('Trial expiring notification scheduled successfully', {
+        component: 'notificationSchedulerService',
+        userId,
+        scheduledFor: scheduledFor.toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      Logger.error('Failed to schedule trial expiring notification', error as Error, {
+        component: 'notificationSchedulerService',
+        userId,
+        expiryDate,
+      });
+      return false;
+    }
   }
 
   /**
    * Schedule payment failure notification
    */
   async schedulePaymentFailureNotification(userId: string, failureReason?: string): Promise<boolean> {
-    const scheduledFor = new Date();
-    scheduledFor.setHours(scheduledFor.getHours() + 1); // 1 hour from now
+    try {
+      const scheduledFor = new Date();
+      scheduledFor.setHours(scheduledFor.getHours() + 1); // 1 hour from now
 
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'payment_failed',
-      title: 'Payment Failed 💳',
-      message: failureReason
-        ? `Payment failed: ${failureReason}. Please update your payment method.`
-        : 'Your payment method failed. Please update it to continue your subscription.',
-      data: {
-        deep_link: 'sifia://subscription/manage',
-        failure_reason: failureReason,
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'critical',
-    };
+      // Use local notification directly (bypass broken scheduler)
+      await pushNotificationService.scheduleLocalNotification({
+        title: 'Payment Failed 💳',
+        message: failureReason
+          ? `Payment failed: ${failureReason}. Please update your payment method.`
+          : 'Your payment method failed. Please update it to continue your subscription.',
+        data: {
+          deep_link: 'sifia://subscription/manage',
+          failure_reason: failureReason,
+        },
+      }, scheduledFor);
 
-    return await this.scheduleNotification(notification, {
-      priority: 'critical',
-      batchWithOthers: false,
-    });
+      Logger.info('Payment failure notification scheduled successfully', {
+        component: 'notificationSchedulerService',
+        userId,
+        scheduledFor: scheduledFor.toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      Logger.error('Failed to schedule payment failure notification', error as Error, {
+        component: 'notificationSchedulerService',
+        userId,
+        failureReason,
+      });
+      return false;
+    }
   }
 
   /**
