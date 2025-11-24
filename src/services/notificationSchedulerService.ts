@@ -3,7 +3,6 @@ import { Logger } from '../utils/ProductionLogger';
 import { notificationManagementService, NotificationQueueItem } from './notificationManagementService';
 import { notificationAnalyticsService } from './notificationAnalyticsService';
 import { notificationBatchingService } from './notificationBatchingService';
-import { pushNotificationService } from './pushNotificationService';
 import { AppState, AppStateStatus } from 'react-native';
 
 export interface ScheduleOptions {
@@ -57,10 +56,10 @@ class NotificationSchedulerService {
 
       // Smart suppression: Don't schedule if app is active (user is already engaged)
       // EXCEPTION: Prayer requests and critical notifications should never be suppressed
-      const isPrayerRequest = notification.type === 'prayer_request_reminder' || 
+      const isPrayerRequest = notification.type === 'prayer_request_reminder' ||
                              notification.type === 'prayer_request_alert' ||
                              notification.title?.toLowerCase().includes('pray for');
-      
+
       if (this.isAppActive() && priority !== 'critical' && !isPrayerRequest) {
         Logger.info('App is active - suppressing notification', {
           component: 'notificationSchedulerService',

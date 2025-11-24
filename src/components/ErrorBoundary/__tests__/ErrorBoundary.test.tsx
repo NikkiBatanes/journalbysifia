@@ -75,7 +75,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders with custom fallback', () => {
-    const CustomFallback = ({ error, errorInfo, retry }: any) => (
+    const CustomFallback = ({ error: _error, errorInfo: _errorInfo, retry: _retry }: any) => (
       <View testID="custom-fallback">
         <Text>Custom Fallback</Text>
       </View>
@@ -102,7 +102,7 @@ describe('ErrorBoundary Component Structure', () => {
 
   it('specialized components render children correctly', () => {
     const { ComponentErrorBoundary, PageErrorBoundary, CriticalErrorBoundary } = require('../ErrorBoundary');
-    
+
     const SafeComponent = () => (
       <View testID="safe-component">
         <Text>Safe Component</Text>

@@ -45,7 +45,7 @@ export function useNotificationSetup(userId: string | undefined, navigationRef: 
             component: 'notificationSetup',
             userId,
           });
-          
+
           // Try to request permissions and get token
           const permissionsGranted = await pushNotificationService.requestPermissions();
           if (permissionsGranted) {

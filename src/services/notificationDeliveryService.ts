@@ -103,8 +103,8 @@ class NotificationDeliveryService {
 
       // Process each notification
       const processingPromises = pendingNotifications.map(notification =>
-        this.deliverNotification(notification).catch(error => {
-          Logger.error(`Failed to deliver notification ${notification.id}`, error as Error, {
+        this.deliverNotification(notification).catch(deliveryError => {
+          Logger.error(`Failed to deliver notification ${notification.id}`, deliveryError as Error, {
             component: 'NotificationDeliveryService',
             notificationId: notification.id,
           });
@@ -145,7 +145,7 @@ class NotificationDeliveryService {
         .eq('id', notification.id);
 
       // Check if this is a local notification or push notification
-      const isLocalNotification = notification.data?.local || 
+      const isLocalNotification = notification.data?.local ||
                                 notification.type?.includes('test') ||
                                 !notification.user_id;
 
@@ -256,7 +256,7 @@ class NotificationDeliveryService {
         userId: notification.user_id,
         notificationId: notification.id,
       });
-      
+
       // Fallback to local notification if push fails
       Logger.info('Falling back to local notification', {
         component: 'NotificationDeliveryService',

@@ -64,9 +64,9 @@ class PrayerRequestNotificationService {
           prayerRequest,
           prayerId,
         },
-      }, { 
-        priority: 'high', 
-        batchWithOthers: false 
+      }, {
+        priority: 'high',
+        batchWithOthers: false,
       });
 
       if (success) {

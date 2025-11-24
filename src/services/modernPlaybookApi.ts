@@ -105,7 +105,7 @@ function validatePlaybookCompleteness(playbook: any): string | null {
   // Validate each action step
   for (let i = 0; i < playbook.actionSteps.length; i++) {
     const step = playbook.actionSteps[i];
-    
+
     if (!step.title || step.title.trim().length < 5) {
       return `Action step ${i + 1} has incomplete title`;
     }
@@ -124,7 +124,7 @@ function validatePlaybookCompleteness(playbook: any): string | null {
       /coming soon/i,
       /to be added/i,
       /incomplete/i,
-      /partial/i
+      /partial/i,
     ];
 
     if (placeholderPatterns.some(pattern => pattern.test(step.title))) {
@@ -139,7 +139,7 @@ function validatePlaybookCompleteness(playbook: any): string | null {
 
       for (let j = 0; j < step.subTasks.length; j++) {
         const subTask = step.subTasks[j];
-        
+
         if (!subTask.text || subTask.text.trim().length < 3) {
           return `Subtask ${j + 1} in action step ${i + 1} is incomplete`;
         }
@@ -179,8 +179,8 @@ function validatePlaybookCompleteness(playbook: any): string | null {
 
   // Check for overall quality indicators
   const totalLength = playbook.actionSteps.reduce((sum: number, step: any) => {
-    return sum + (step.title ? step.title.length : 0) + 
-           (step.subTasks ? step.subTasks.reduce((subSum: number, subTask: any) => 
+    return sum + (step.title ? step.title.length : 0) +
+           (step.subTasks ? step.subTasks.reduce((subSum: number, subTask: any) =>
              subSum + (subTask.text ? subTask.text.length : 0), 0) : 0);
   }, 0);
 

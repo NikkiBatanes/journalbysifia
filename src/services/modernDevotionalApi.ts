@@ -56,7 +56,7 @@ function validateDevotionalCompleteness(devotional: any, expectedDuration: numbe
   // Validate each day
   for (let i = 0; i < devotional.days.length; i++) {
     const day = devotional.days[i];
-    
+
     if (!day.title || day.title.trim().length < 5) {
       return `Day ${i + 1} has incomplete title`;
     }
@@ -81,7 +81,7 @@ function validateDevotionalCompleteness(devotional: any, expectedDuration: numbe
       /incomplete/i,
       /partial/i,
       /placeholder/i,
-      /template/i
+      /template/i,
     ];
 
     if (placeholderPatterns.some(pattern => pattern.test(day.title))) {
@@ -130,8 +130,8 @@ function validateDevotionalCompleteness(devotional: any, expectedDuration: numbe
 
   // Check for overall quality indicators
   const totalContentLength = devotional.days.reduce((sum: number, day: any) => {
-    return sum + (day.content ? day.content.length : 0) + 
-           (day.reflection ? day.reflection.length : 0) + 
+    return sum + (day.content ? day.content.length : 0) +
+           (day.reflection ? day.reflection.length : 0) +
            (day.prayer ? day.prayer.length : 0);
   }, 0);
 

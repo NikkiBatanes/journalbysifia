@@ -27,7 +27,6 @@ jest.mock('../../utils/ProductionLogger', () => ({
 
 describe('AuthApiService', () => {
   const mockSupabase = require('../supabaseClient').supabase;
-  const { Logger } = require('../../utils/ProductionLogger');
 
   beforeEach(() => {
     jest.clearAllMocks();

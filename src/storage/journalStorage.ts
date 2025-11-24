@@ -14,8 +14,8 @@ import { Logger } from '../utils/ProductionLogger';
 import { streakTrackingService } from '../services/streakTrackingService';
 
 // Storage keys for journal entries
-const JOURNAL_ENTRIES_KEY = 'journal_entries';
-const JOURNAL_ENTRIES_VERSION = '1.0';
+// const JOURNAL_ENTRIES_KEY = 'journal_entries';
+// const JOURNAL_ENTRIES_VERSION = '1.0';
 
 // Initialize AsyncStorage with a test value on first load
 const initStorage = async (): Promise<void> => {

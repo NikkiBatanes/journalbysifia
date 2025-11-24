@@ -858,26 +858,26 @@ class ContextualNotificationService {
     try {
       // Import subscription service to check user's access
       const { subscriptionService } = await import('./subscriptionService');
-      
+
       // Check if user can generate devotionals
       const canGenerate = await subscriptionService.canGenerate(userId, 'devotional');
-      
+
       // If they can generate new ones, they definitely have access
       if (canGenerate.allowed) {
         return true;
       }
-      
+
       // Even if they can't generate new ones, check if they have existing devotionals
       // that are incomplete or not marked as complete
       const hasExistingDevotionals = await this.hasExistingDevotionals(userId);
-      
+
       return hasExistingDevotionals;
     } catch (error) {
       Logger.error('Failed to check devotional access', error as Error, {
         component: 'contextualNotificationService',
         userId,
       });
-      
+
       // Default to false if we can't check
       return false;
     }
