@@ -432,7 +432,7 @@ class AuthApiService {
   async forgotPassword(email: string): Promise<ApiResponse> {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'sifia://reset-password',
+        redirectTo: 'https://sifia.app/reset-password.html',
       });
 
       if (error) {
