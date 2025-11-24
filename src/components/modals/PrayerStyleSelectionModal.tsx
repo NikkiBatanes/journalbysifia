@@ -87,6 +87,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
   // Handle prayer type selection
 
   const handlePrayerTypeSelect = useCallback((type: string) => {
+    console.log('PRAYER TYPE SELECT: Type tapped:', type);
     if (type !== selectedPrayerType) {
       triggerSelectionHaptic();
     }
@@ -95,6 +96,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
 
   // Handle tab change and align selected type
   const handleTabChange = useCallback((tab: 'ACTS' | 'OPEN') => {
+    console.log('TAB CHANGE: Tab tapped:', tab);
     setActiveTab(prev => {
       if (prev !== tab) {
         triggerSelectionHaptic();
@@ -173,7 +175,10 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
         {/* Header - Fixed at top with pointerEvents to ensure it's always tappable */}
         <View style={styles.header} pointerEvents="box-none">
           <TouchableOpacity
-            onPress={onCancel}
+            onPress={() => {
+              console.log('CANCEL BUTTON TAPPED');
+              onCancel();
+            }}
             accessibilityRole="button"
             accessibilityLabel="Cancel"
             style={styles.headerButton}
@@ -186,7 +191,10 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </ThemedText>
 
           <TouchableOpacity
-            onPress={onSave}
+            onPress={() => {
+              console.log('SAVE BUTTON TAPPED');
+              onSave();
+            }}
             disabled={!prayerText.trim() || isSaving}
             accessibilityRole="button"
             accessibilityLabel="Save Prayer"
@@ -203,6 +211,16 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="none"
+          onTouchStart={(e) => {
+            console.log('SCROLLVIEW TOUCH START');
+            // Prevent default behavior that might dismiss keyboard
+            e.persist();
+          }}
+          onTouchEnd={(e) => {
+            console.log('SCROLLVIEW TOUCH END');
+            // Prevent default behavior that might dismiss keyboard
+            e.persist();
+          }}
         >
           {/* Tabs */}
           <View style={styles.tabContainer}>
