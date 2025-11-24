@@ -62,6 +62,7 @@ export const deviceTokenFix = {
       if (tokenToSave) {
         steps.push('💾 Saving token to database...');
         
+        // Try upsert first
         const { error: dbError } = await supabase
           .from('device_tokens')
           .upsert({
@@ -71,21 +72,50 @@ export const deviceTokenFix = {
             is_active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id,platform',
           });
         
         if (dbError) {
-          steps.push(`❌ Database error: ${dbError.message}`);
-          return {
-            success: false,
-            token: tokenToSave,
-            error: `Database error: ${dbError.message}`,
-            steps,
-          };
+          steps.push(`⚠️ Upsert failed: ${dbError.message}`);
+          steps.push('🔄 Trying alternative save method...');
+          
+          // Fallback: Delete existing tokens and insert new one
+          const { error: deleteError } = await supabase
+            .from('device_tokens')
+            .delete()
+            .eq('user_id', userId);
+            
+          if (deleteError) {
+            steps.push(`❌ Delete failed: ${deleteError.message}`);
+          } else {
+            steps.push('✅ Old tokens deleted');
+            
+            // Insert new token
+            const { error: insertError } = await supabase
+              .from('device_tokens')
+              .insert({
+                user_id: userId,
+                token: tokenToSave,
+                platform: 'ios',
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
+              
+            if (insertError) {
+              steps.push(`❌ Insert failed: ${insertError.message}`);
+              return {
+                success: false,
+                token: tokenToSave,
+                error: `Database save failed: ${insertError.message}`,
+                steps,
+              };
+            } else {
+              steps.push('✅ Token saved successfully with fallback method');
+            }
+          }
+        } else {
+          steps.push('✅ Token saved to database');
         }
-        
-        steps.push('✅ Token saved to database');
       }
       
       // Step 6: Verify token in database
