@@ -316,6 +316,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const saveEditedGratitudeItem = useCallback(async () => {
     console.log('EDIT SAVE DEBUG: Starting save for item:', editingItemId);
     console.log('EDIT SAVE DEBUG: New text:', editingItemText);
+    console.log('EDIT SAVE DEBUG: Gratitude entries available:', gratitudeEntries.length);
+    console.log('EDIT SAVE DEBUG: Gratitude entries:', gratitudeEntries.map(e => ({ id: e.id, content: e.content })));
 
     if (!user) {
       Alert.alert('Error', 'You must be logged in to save.');
@@ -340,9 +342,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
       for (const entry of gratitudeEntries) {
         const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+        console.log('EDIT SAVE DEBUG: Checking entry:', entry.id, 'parsed content:', parsed);
+
         if (Array.isArray(parsed?.items)) {
           for (let i = 0; i < parsed.items.length; i++) {
             const compositeId = `${entry.id}_${i}`;
+            console.log('EDIT SAVE DEBUG: Checking compositeId:', compositeId, 'against editingItemId:', editingItemId);
             if (compositeId === editingItemId) {
               targetEntry = entry;
               targetIndex = i;
@@ -359,6 +364,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         console.log('EDIT SAVE DEBUG: Trying fallback search by item.id');
         for (const entry of gratitudeEntries) {
           const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+          console.log('EDIT SAVE DEBUG: Fallback - checking entry:', entry.id, 'parsed:', parsed);
+
           if (Array.isArray(parsed?.items)) {
             const idx = parsed.items.findIndex((it: any) => it?.id === editingItemId);
             if (idx !== -1) {
@@ -373,6 +380,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
       if (!targetEntry || targetIndex === undefined) {
         console.log('EDIT SAVE DEBUG: Could not locate target entry/index for:', editingItemId);
+        console.log('EDIT SAVE DEBUG: Available gratitude items:', gratitudeItems.map(item => ({ id: item.id, text: item.text })));
         Logger.warn('saveEditedGratitudeItem: Could not locate target entry/index for', {
         component: 'GratitudeListReactQuery',
         itemId: editingItemId,
@@ -387,6 +395,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       updatedItems[targetIndex] = { ...original, text: newText };
 
       console.log('EDIT SAVE DEBUG: Updating entry:', targetEntry.id, 'with', updatedItems.length, 'items');
+      console.log('EDIT SAVE DEBUG: Before update:', parsedContent.items);
+      console.log('EDIT SAVE DEBUG: After update:', updatedItems);
 
       await updateMutation.mutateAsync({
         id: targetEntry.id,
@@ -418,7 +428,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       Alert.alert('Error', 'Failed to update gratitude item. Please try again.');
       triggerErrorHaptic();
     }
-  }, [editingItemId, editingItemText, user, gratitudeEntries, updateMutation, dateStr, closeAllSwipeables]);
+  }, [editingItemId, editingItemText, user, gratitudeEntries, gratitudeItems, updateMutation, dateStr, closeAllSwipeables]);
 
   const cancelEditGratitudeItem = useCallback(() => {
     triggerSelectionHaptic();
