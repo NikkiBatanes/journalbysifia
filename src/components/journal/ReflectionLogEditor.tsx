@@ -306,6 +306,21 @@ const fallbackStyles = {
     borderRadius: 16,
     marginBottom: 8,
   },
+  modeButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginHorizontal: 0,
+  },
+  activeModeButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  headerSaveButton: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
   previewToggleText: {
     fontSize: 12,
     color: Colors.hopeWhite,
