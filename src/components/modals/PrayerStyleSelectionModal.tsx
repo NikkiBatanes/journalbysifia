@@ -92,11 +92,6 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
       triggerSelectionHaptic();
     }
     onSelectPrayerType(type);
-
-    // Refocus input to keep keyboard up
-    setTimeout(() => {
-      textInputRef.current?.focus();
-    }, 100);
   }, [selectedPrayerType, onSelectPrayerType]);
 
   // Handle tab change and align selected type
@@ -113,11 +108,6 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
     } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
       onSelectPrayerType('adoration');
     }
-
-    // Refocus input to keep keyboard up
-    setTimeout(() => {
-      textInputRef.current?.focus();
-    }, 100);
   }, [selectedPrayerType, onSelectPrayerType]);
 
   // Filter prayer types by method
@@ -326,6 +316,8 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
                 autoFocus={true}
                 textAlign="left"
                 blurOnSubmit={false}
+                returnKeyType="none"
+                onSubmitEditing={() => {}}
                 onFocus={() => {
                   setTimeout(() => {
                     scrollViewRef.current?.scrollToEnd({ animated: true });
