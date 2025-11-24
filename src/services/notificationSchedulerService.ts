@@ -3,6 +3,7 @@ import { Logger } from '../utils/ProductionLogger';
 import { notificationManagementService, NotificationQueueItem } from './notificationManagementService';
 import { notificationAnalyticsService } from './notificationAnalyticsService';
 import { notificationBatchingService } from './notificationBatchingService';
+import { pushNotificationService } from './pushNotificationService';
 import { AppState, AppStateStatus } from 'react-native';
 
 export interface ScheduleOptions {
