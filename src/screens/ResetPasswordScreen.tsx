@@ -198,10 +198,15 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              // Add debugging prop
+              testID={`password-input-${!showPassword ? 'secure' : 'visible'}`}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
+              onPress={() => {
+                console.log('Eye icon pressed, current showPassword:', showPassword);
+                setShowPassword(!showPassword);
+              }}
             >
               <Ionicons
                 name={showPassword ? 'eye' : 'eye-off'}
@@ -226,10 +231,15 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              // Add debugging prop
+              testID={`confirm-password-input-${!showConfirmPassword ? 'secure' : 'visible'}`}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              onPress={() => {
+                console.log('Confirm eye icon pressed, current showConfirmPassword:', showConfirmPassword);
+                setShowConfirmPassword(!showConfirmPassword);
+              }}
             >
               <Ionicons
                 name={showConfirmPassword ? 'eye' : 'eye-off'}
