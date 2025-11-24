@@ -10,7 +10,7 @@ import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
+import { Check, HandHeart as LuHandHeart, X } from 'lucide-react-native';
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -76,8 +76,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editingItemText, setEditingItemText] = useState('');
   const [newItems, setNewItems] = useState(['', '', '']); // Start with three input fields
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
@@ -317,129 +315,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Individual item edit handlers
   // editGratitudeItem removed - was defined but never called
 
-  const saveEditedGratitudeItem = useCallback(async () => {
-    console.log('EDIT SAVE DEBUG: Starting save for item:', editingItemId);
-    console.log('EDIT SAVE DEBUG: New text:', editingItemText);
-    console.log('EDIT SAVE DEBUG: Gratitude entries available:', gratitudeEntries.length);
-    console.log('EDIT SAVE DEBUG: Gratitude entries:', gratitudeEntries.map(e => ({ id: e.id, content: e.content })));
-
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to save.');
-      return;
-    }
-    if (!editingItemId) {
-      Alert.alert('Error', 'No item selected for editing.');
-      return;
-    }
-    const newText = editingItemText.trim();
-    if (!newText) {
-      Alert.alert('Empty Text', 'Please enter some text before saving.');
-      return;
-    }
-
-    try {
-      // Try to locate the entry and index using the composite UI id pattern `${entry.id}_${index}`
-      let targetEntry: any | undefined;
-      let targetIndex: number | undefined;
-
-      console.log('EDIT SAVE DEBUG: Looking for item in gratitudeEntries:', gratitudeEntries.length);
-
-      for (const entry of gratitudeEntries) {
-        const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-        console.log('EDIT SAVE DEBUG: Checking entry:', entry.id, 'parsed content:', parsed);
-
-        if (Array.isArray(parsed?.items)) {
-          for (let i = 0; i < parsed.items.length; i++) {
-            const compositeId = `${entry.id}_${i}`;
-            console.log('EDIT SAVE DEBUG: Checking compositeId:', compositeId, 'against editingItemId:', editingItemId);
-            if (compositeId === editingItemId) {
-              targetEntry = entry;
-              targetIndex = i;
-              console.log('EDIT SAVE DEBUG: Found item via compositeId:', compositeId, 'at index:', i);
-              break;
-            }
-          }
-        }
-        if (targetEntry) { break; }
-      }
-
-      // Fallback: try to match by item.id when data was saved with explicit ids
-      if (!targetEntry) {
-        console.log('EDIT SAVE DEBUG: Trying fallback search by item.id');
-        for (const entry of gratitudeEntries) {
-          const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-          console.log('EDIT SAVE DEBUG: Fallback - checking entry:', entry.id, 'parsed:', parsed);
-
-          if (Array.isArray(parsed?.items)) {
-            const idx = parsed.items.findIndex((it: any) => it?.id === editingItemId);
-            if (idx !== -1) {
-              targetEntry = entry;
-              targetIndex = idx;
-              console.log('EDIT SAVE DEBUG: Found item via item.id at index:', idx);
-              break;
-            }
-          }
-        }
-      }
-
-      if (!targetEntry || targetIndex === undefined) {
-        console.log('EDIT SAVE DEBUG: Could not locate target entry/index for:', editingItemId);
-        console.log('EDIT SAVE DEBUG: Available gratitude items:', gratitudeItems.map(item => ({ id: item.id, text: item.text })));
-        Logger.warn('saveEditedGratitudeItem: Could not locate target entry/index for', {
-        component: 'GratitudeListReactQuery',
-        itemId: editingItemId,
-      });
-        Alert.alert('Error', 'Could not locate the item to update. Please try again.');
-        return;
-      }
-
-      const parsedContent = typeof targetEntry.content === 'string' ? JSON.parse(targetEntry.content) : targetEntry.content;
-      const updatedItems = [...(parsedContent.items || [])];
-      const original = updatedItems[targetIndex];
-      updatedItems[targetIndex] = { ...original, text: newText };
-
-      console.log('EDIT SAVE DEBUG: Updating entry:', targetEntry.id, 'with', updatedItems.length, 'items');
-      console.log('EDIT SAVE DEBUG: Before update:', parsedContent.items);
-      console.log('EDIT SAVE DEBUG: After update:', updatedItems);
-
-      await updateMutation.mutateAsync({
-        id: targetEntry.id,
-        updates: {
-          content: JSON.stringify({ items: updatedItems }),
-        },
-      });
-
-      console.log('EDIT SAVE DEBUG: Successfully updated entry');
-
-      // Reset edit state
-      setEditingItemId(null);
-      setEditingItemText('');
-      closeAllSwipeables();
-
-      // Track analytics
-      analytics.trackGratitudeEvent('gratitude_items_saved', {
-        items_count: 1,
-        total_text_length: newText.length,
-        is_editing: true,
-        date: dateStr,
-      }, user.id);
-      triggerSuccessHaptic();
-    } catch (updateError) {
-      console.error('EDIT SAVE DEBUG: Failed to update gratitude item:', updateError);
-      Logger.error('Failed to update gratitude item', updateError as Error, {
-        component: 'GratitudeListReactQuery',
-      });
-      Alert.alert('Error', 'Failed to update gratitude item. Please try again.');
-      triggerErrorHaptic();
-    }
-  }, [editingItemId, editingItemText, user, gratitudeEntries, gratitudeItems, updateMutation, dateStr, closeAllSwipeables]);
-
-  const cancelEditGratitudeItem = useCallback(() => {
-    triggerSelectionHaptic();
-    setEditingItemId(null);
-    setEditingItemText('');
-  }, []);
-
   const saveGratitudeItems = async () => {
     console.log('BULK SAVE DEBUG: Starting bulk save');
     console.log('BULK SAVE DEBUG: isEditing:', isEditing);
@@ -612,7 +487,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             accessibilityRole="button"
             accessibilityLabel={(isYesterday || isEarlier) ? 'Revisit gratitude list' : 'Begin gratitude list'}
           >
-            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Ionicons name="create-outline" size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
             <ThemedText style={styles.emptyStateButtonText}>
               {(isYesterday || isEarlier) ? 'Revisit' : 'Begin'}
             </ThemedText>
@@ -650,55 +525,16 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             }}
             onToggle={() => {}}
             onDelete={() => handleDeleteGratitudeItem(item.id)}
-            onEdit={() => {
-              console.log('EDIT DEBUG: Starting edit for item:', item.id);
-              setEditingItemId(item.id);
-              setEditingItemText(item.text);
-              closeAllSwipeables();
-            }}
             hideCheckbox={true}
             variant="gratitude"
             disableSwipe={viewMode === 'carousel' && !expanded}
           >
-            {editingItemId === item.id ? (
-              <View style={styles.editContainer}>
-                <View style={styles.itemNumber}>
-                  <ThemedText style={styles.numberText}>{index + 1}</ThemedText>
-                </View>
-                <TextInput
-                  style={[styles.editInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                  value={editingItemText}
-                  onChangeText={setEditingItemText}
-                  autoFocus
-                  multiline
-                  onSubmitEditing={saveEditedGratitudeItem}
-                  returnKeyType="done"
-                  blurOnSubmit={false}
-                />
-                <View style={styles.editButtons}>
-                  <TouchableOpacity
-                    onPress={cancelEditGratitudeItem}
-                    style={[styles.editActionButton, styles.editCancelButton]}
-                  >
-                    <Ionicons name="close" size={16} color={Colors.hopeWhite} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={saveEditedGratitudeItem}
-                    style={[styles.editActionButton, styles.editSaveButton]}
-                    disabled={!editingItemText.trim()}
-                  >
-                    <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.itemRowTopAligned}>
+              <View style={styles.itemNumber}>
+                <ThemedText style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</ThemedText>
               </View>
-            ) : (
-              <View style={styles.itemRowTopAligned}>
-                <View style={styles.itemNumber}>
-                  <ThemedText style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</ThemedText>
-                </View>
-                <ThemedText style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</ThemedText>
-              </View>
-            )}
+              <ThemedText style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</ThemedText>
+            </View>
           </SwipeableTodoItem>
         </View>
       ))}
@@ -995,42 +831,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 16, // Ensure vertical centering in the circle
-  },
-
-  // Edit styles
-  editContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  editInput: {
-    flex: 1,
-    fontFamily: fonts.regular,
-    color: Colors.hopeWhite,
-    fontSize: 14,
-    lineHeight: 20,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    margin: 0,
-    textAlignVertical: 'center',
-  },
-  editButtons: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  editActionButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editCancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  editSaveButton: {
-    backgroundColor: Colors.growthGreen,
   },
 
   // Input styles
