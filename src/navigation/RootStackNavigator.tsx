@@ -227,9 +227,10 @@ export default function RootStackNavigator({
             options={{
               headerShown: false,
               presentation: 'fullScreenModal',
-              animation: 'slide_from_right',
+              animation: 'slide_from_bottom',
               animationDuration: 350,
               gestureEnabled: true,
+              gestureDirection: 'vertical',
             }}
           />
           <Stack.Screen

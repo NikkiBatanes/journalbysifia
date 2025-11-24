@@ -254,39 +254,46 @@ const UsageTooltipModal: React.FC<Props> = ({
   const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
 
   const handleUpgrade = () => {
+    console.log('🔧 Upgrade button pressed - type:', type, 'tier:', subscription?.tier);
     triggerLightHaptic();
 
-    // Check if user has ever started a trial
-    const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
-    const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
-    const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
+    // Always show sales offer screen from profile usage counter
+    // Users can choose trial from within the sales offer screen
+    console.log('🔧 Always showing sales offer from profile usage counter');
 
     // Close tooltip modal first
     onClose();
 
-    // Navigate after tooltip closes, with longer delay to ensure proper stacking
+    // Navigate after tooltip closes with proper delay
     setTimeout(() => {
-      // Close the UserProfile modal by going back
-      (navigation as any).goBack();
-
-      // Then navigate to the offer screen after profile modal closes
-      setTimeout(() => {
-        if (canOfferTrial) {
-          // User is eligible for trial - show trial offer screen
-          (navigation as any).navigate('OnboardingTrialOffer', {
-            skipNotificationPreference: true,
-          });
-        } else {
-          // User has used trial or is on trial - show sales offer
-          (navigation as any).navigate('OnboardingSalesOffer', {
+      console.log('🔧 Attempting navigation...');
+      try {
+        // Always navigate to sales offer screen
+        console.log('🔧 Navigating to OnboardingSalesOffer');
+        (navigation as any).reset({
+          index: 0,
+          routes: [{ name: 'OnboardingSalesOffer', params: {
             upgradeMode: true,
             currentTier: subscription?.tier || 'seeker',
             skipNotificationPreference: true,
             featureType: type === 'playbooks' || type === 'devotionals' ? type : undefined,
-          });
+            source: 'profile_usage_counter',
+            feature: type === 'playbooks' ? 'playbooks' : 'devotionals',
+            returnTo: 'UserProfile',
+            context: 'profile_settings',
+            dismissBothModalsOnClose: true, // Custom flag to handle dismissal
+          }}],
+        });
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback: try to navigate without extra parameters
+        try {
+          (navigation as any).navigate('OnboardingSalesOffer');
+        } catch (fallbackError) {
+          console.error('Fallback navigation error:', fallbackError);
         }
-      }, 300);
-    }, 100);
+      }
+    }, 300);
   };
 
   return (

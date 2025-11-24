@@ -50,7 +50,7 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
   // But user can change it via "Change Plan" button
-  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string } | undefined;
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string; dismissBothModalsOnClose?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'monthly'; // Default to monthly if not provided
 
@@ -86,7 +86,13 @@ const OnboardingTrialOfferScreen = () => {
       return;
     }
 
-    logger.debug('handleClose executing', { routeParams });
+    logger.debug('handleClose executing', {
+      routeParams,
+      returnTo: routeParams?.returnTo,
+      context: routeParams?.context,
+      dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+      closeAllOnDismiss: routeParams?.closeAllOnDismiss,
+    });
     navigationInProgressRef.current = true;
     setIsClosing(true);
 
@@ -96,9 +102,39 @@ const OnboardingTrialOfferScreen = () => {
 
     // Check if we came from user profile or other specific context
     const fromUserProfile = routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings';
+    const dismissBothModalsOnClose = routeParams?.dismissBothModalsOnClose === true;
 
-    // If from user profile, we need special handling since UserProfile is nested in HomeStack
-    if (fromUserProfile) {
+    logger.debug('Navigation context determined', { fromUserProfile, dismissBothModalsOnClose });
+
+    // If from user profile with dismissBothModalsOnClose flag, dismiss all modals
+    if (fromUserProfile && dismissBothModalsOnClose) {
+      logger.debug('Closing from user profile - dismissing both modals', { fromUserProfile, dismissBothModalsOnClose });
+      try {
+        // Try a more conservative approach - pop 2 screens (Trial and Sales Offer)
+        const popAction = StackActions.pop(2);
+        navigation.dispatch(popAction);
+        logger.debug('Successfully dispatched pop(2) action');
+      } catch (error) {
+        logger.error('Pop action failed, trying fallback', error as Error);
+        // Fallback: try going back multiple times with longer delays
+        try {
+          logger.debug('Attempting fallback navigation');
+          navigation.goBack();
+          setTimeout(() => {
+            logger.debug('First goBack completed, attempting second');
+            navigation.goBack();
+          }, 200);
+          setTimeout(() => {
+            logger.debug('Second goBack completed, attempting third if needed');
+            navigation.goBack();
+          }, 400);
+        } catch (fallbackError) {
+          logger.error('Fallback navigation also failed', fallbackError as Error);
+        }
+      }
+    }
+    // If from user profile (regular case)
+    else if (fromUserProfile) {
       logger.debug('Closing from user profile - going back twice');
       try {
         // First pop this screen (Trial Offer)

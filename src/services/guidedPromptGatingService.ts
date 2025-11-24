@@ -45,7 +45,7 @@ export class GuidedPromptGatingService {
       };
     }
 
-    // Seeker tier: Show ALL prompts - 2 free + rest locked
+    // Seeker tier: Show ALL prompts - guaranteed minimum 1 free prompt + rest locked
     const freePrompts = this.generateConsistentFreePrompts(userId, 2);
     const remainingPrompts = GUIDED_PROMPTS.filter(p => !freePrompts.includes(p));
 
@@ -134,10 +134,19 @@ export class GuidedPromptGatingService {
   /**
    * Generate consistent daily free prompts (same every day for a user)
    * Uses user ID as seed for consistency
+   * Guarantees at least 1 free prompt for seeker accounts
    */
   private generateConsistentFreePrompts(userId: string, count: number): string[] {
     const seedStr = `${userId}-free-daily`;
-    return this.generateDeterministicPrompts(seedStr, GUIDED_PROMPTS, count);
+    const prompts = this.generateDeterministicPrompts(seedStr, GUIDED_PROMPTS, count);
+
+    // Ensure at least 1 free prompt for seeker accounts (fallback guarantee)
+    if (prompts.length === 0 && GUIDED_PROMPTS.length > 0) {
+      // Use first prompt as guaranteed free prompt
+      return [GUIDED_PROMPTS[0]];
+    }
+
+    return prompts;
   }
 
   /**

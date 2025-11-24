@@ -458,9 +458,27 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         });
       });
 
-      // Limit to 10 total questions: 7 devotional questions + 3 guided prompts
+      // Ensure seeker accounts have at least one free reflection question
+      if (subscription?.tier === 'seeker' && freePrompts.length > 0) {
+        const hasFreeQuestion = guidedQuestions.some(q => freePrompts.includes(q.question));
+        if (!hasFreeQuestion && freePrompts.length > 0) {
+          // Add the first free prompt as a guaranteed question
+          guidedQuestions.unshift({
+            id: `guided-${dateKey}-guaranteed`,
+            question: freePrompts[0],
+            source: 'Free Guided Prompt',
+            sourceType: 'guided',
+            category: 'Guided',
+            questionIndex: 0,
+            questionKey: 'guidedPrompt',
+            groupLabel: 'Free Guided Prompt',
+          });
+        }
+      }
+
+      // Limit to 10 total questions: 7 devotional questions + up to 3 guided prompts
       const limitedDevotionalQuestions = allQuestions.slice(0, 7);
-      setQuestions([...limitedDevotionalQuestions, ...guidedQuestions]);
+      setQuestions([...limitedDevotionalQuestions, ...guidedQuestions.slice(0, 3)]);
 
     } catch (err) {
       Logger.error('Error fetching reflection questions', err as Error, { component: 'ReflectionQuestionsCard' });
@@ -474,7 +492,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       }
       setLoading(false);
     }
-  }, [user, guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts]);
+  }, [user, guidedPromptGating.freePrompts, guidedPromptGating.lockedPrompts, subscription?.tier]);
 
   useEffect(() => {
     fetchReflectionQuestions();

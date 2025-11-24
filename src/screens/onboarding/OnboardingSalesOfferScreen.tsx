@@ -368,10 +368,34 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     // Check if we came from a specific screen (e.g., UserProfile) - prioritize returning there
     if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
       logger.info('Returning to user profile from feature gating');
-      setTimeout(() => {
-        navigation.goBack();
-      }, 50);
-      return;
+      // Check if user is eligible for trial and should see trial before returning to profile
+      if (canOfferTrial) {
+        logger.info('User eligible for trial - showing trial before returning to profile', {
+          currentSelectedTier,
+          currentBilling,
+          dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+        });
+        setTimeout(() => {
+          (navigation as any).navigate('OnboardingTrialOffer', {
+            selectedTierId: currentSelectedTier,
+            billing: currentBilling,
+            skipNotificationPreference: routeParams?.skipNotificationPreference,
+            closeAllOnDismiss: true,
+            onboardingFlow: (routeParams as any)?.onboardingFlow === true,
+            returnTo: routeParams?.returnTo,
+            context: routeParams?.context,
+            dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+          });
+        }, 100);
+        return;
+      } else {
+        // No trial eligible, just go back to profile
+        logger.info('No trial eligible - returning directly to profile');
+        setTimeout(() => {
+          navigation.goBack();
+        }, 50);
+        return;
+      }
     }
 
     // Always show trial if eligible for cancelled sales offer (regardless of upgrade/onboarding)
@@ -392,6 +416,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           onboardingFlow: (routeParams as any)?.onboardingFlow === true,
           returnTo: routeParams?.returnTo,
           context: routeParams?.context,
+          // Forward the dismissBothModalsOnClose flag from profile usage counter
+          dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
         });
       }, 100);
     } else {
@@ -1246,6 +1272,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 closeAllOnDismiss: true,
                 source: routeParams?.source,
                 feature: routeParams?.feature,
+                returnTo: routeParams?.returnTo,
+                context: routeParams?.context,
+                dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
               });
             } else {
               const source = routeParams?.source;
