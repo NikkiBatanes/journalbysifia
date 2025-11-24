@@ -72,17 +72,37 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
   visible,
   selectedPrayerType,
   prayerText,
-  onSelectPrayerType,
   onPrayerTextChange,
+  onSelectPrayerType,
   onSave,
   onCancel,
-  isSaving = false,
+  isSaving,
 }) => {
   const [activeTab, setActiveTab] = useState<'ACTS' | 'OPEN'>('ACTS');
   const theme = useTheme();
   const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
   const textInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Prevent keyboard dismissal when header buttons are pressed
+  const handleHeaderButtonPress = useCallback((action: () => void) => {
+    // Prevent keyboard from dismissing
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      // Immediately refocus the input if it was dismissed
+      setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 50);
+      keyboardDidHideListener.remove();
+    });
+
+    // Execute the action
+    action();
+
+    // Remove listener after a short delay
+    setTimeout(() => {
+      keyboardDidHideListener.remove();
+    }, 1000);
+  }, []);
 
   // Handle prayer type selection
 
@@ -173,7 +193,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
         {/* Header - Fixed at top with pointerEvents to ensure it's always tappable */}
         <View style={styles.header} pointerEvents="box-none">
           <TouchableOpacity
-            onPress={onCancel}
+            onPress={() => handleHeaderButtonPress(onCancel)}
             accessibilityRole="button"
             accessibilityLabel="Cancel"
             style={styles.headerButton}
@@ -186,7 +206,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </ThemedText>
 
           <TouchableOpacity
-            onPress={onSave}
+            onPress={() => handleHeaderButtonPress(onSave)}
             disabled={!prayerText.trim() || isSaving}
             accessibilityRole="button"
             accessibilityLabel="Save Prayer"
