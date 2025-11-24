@@ -81,8 +81,10 @@ export class GuidedPromptGatingService {
     const allocation = this.getDailyPrompts(userId, tier);
     const isFreePrompt = allocation.freePrompts.includes(prompt);
 
+    // Free prompts can always be used (even if completed before)
+    // Locked prompts cannot be used and require upgrade
     return {
-      canUse: isFreePrompt && !isCompleted,
+      canUse: isFreePrompt, // Free prompts are always usable
       isCompleted,
       requiresUpgrade: !isFreePrompt,
     };
