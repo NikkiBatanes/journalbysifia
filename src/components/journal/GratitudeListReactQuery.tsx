@@ -314,6 +314,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // editGratitudeItem removed - was defined but never called
 
   const saveEditedGratitudeItem = useCallback(async () => {
+    console.log('EDIT SAVE DEBUG: Starting save for item:', editingItemId);
+    console.log('EDIT SAVE DEBUG: New text:', editingItemText);
+
     if (!user) {
       Alert.alert('Error', 'You must be logged in to save.');
       return;
@@ -333,6 +336,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       let targetEntry: any | undefined;
       let targetIndex: number | undefined;
 
+      console.log('EDIT SAVE DEBUG: Looking for item in gratitudeEntries:', gratitudeEntries.length);
+
       for (const entry of gratitudeEntries) {
         const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
         if (Array.isArray(parsed?.items)) {
@@ -341,6 +346,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             if (compositeId === editingItemId) {
               targetEntry = entry;
               targetIndex = i;
+              console.log('EDIT SAVE DEBUG: Found item via compositeId:', compositeId, 'at index:', i);
               break;
             }
           }
@@ -350,6 +356,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
       // Fallback: try to match by item.id when data was saved with explicit ids
       if (!targetEntry) {
+        console.log('EDIT SAVE DEBUG: Trying fallback search by item.id');
         for (const entry of gratitudeEntries) {
           const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
           if (Array.isArray(parsed?.items)) {
@@ -357,6 +364,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             if (idx !== -1) {
               targetEntry = entry;
               targetIndex = idx;
+              console.log('EDIT SAVE DEBUG: Found item via item.id at index:', idx);
               break;
             }
           }
@@ -364,6 +372,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       }
 
       if (!targetEntry || targetIndex === undefined) {
+        console.log('EDIT SAVE DEBUG: Could not locate target entry/index for:', editingItemId);
         Logger.warn('saveEditedGratitudeItem: Could not locate target entry/index for', {
         component: 'GratitudeListReactQuery',
         itemId: editingItemId,
@@ -377,12 +386,16 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       const original = updatedItems[targetIndex];
       updatedItems[targetIndex] = { ...original, text: newText };
 
+      console.log('EDIT SAVE DEBUG: Updating entry:', targetEntry.id, 'with', updatedItems.length, 'items');
+
       await updateMutation.mutateAsync({
         id: targetEntry.id,
         updates: {
           content: JSON.stringify({ items: updatedItems }),
         },
       });
+
+      console.log('EDIT SAVE DEBUG: Successfully updated entry');
 
       // Reset edit state
       setEditingItemId(null);
@@ -398,6 +411,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       }, user.id);
       triggerSuccessHaptic();
     } catch (updateError) {
+      console.error('EDIT SAVE DEBUG: Failed to update gratitude item:', updateError);
       Logger.error('Failed to update gratitude item', updateError as Error, {
         component: 'GratitudeListReactQuery',
       });
@@ -601,6 +615,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             }}
             onToggle={() => {}}
             onDelete={() => handleDeleteGratitudeItem(item.id)}
+            onEdit={() => {
+              console.log('EDIT DEBUG: Starting edit for item:', item.id);
+              setEditingItemId(item.id);
+              setEditingItemText(item.text);
+              closeAllSwipeables();
+            }}
             hideCheckbox={true}
             variant="gratitude"
             disableSwipe={viewMode === 'carousel' && !expanded}
