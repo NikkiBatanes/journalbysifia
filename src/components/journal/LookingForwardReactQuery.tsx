@@ -133,13 +133,20 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
+            console.log('DELETE DEBUG: Attempting to delete entry:', id);
             triggerSelectionHaptic();
             deleteMutation.mutate(id, {
               onSuccess: () => {
+                console.log('DELETE DEBUG: Successfully deleted entry:', id);
                 triggerSuccessHaptic();
+                // Optional: Show success message
+                Alert.alert('Deleted', 'Looking Forward entry deleted successfully');
               },
-              onError: () => {
+              onError: (deleteError: any) => {
+                console.error('DELETE DEBUG: Failed to delete entry:', id, deleteError);
                 triggerErrorHaptic();
+                // Show error message to user
+                Alert.alert('Error', 'Failed to delete Looking Forward entry. Please try again.');
               },
             });
           },
