@@ -348,8 +348,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   lottieAnimation: {
-    width: 300,
-    height: 250,
+    width: 350,
+    height: 350,
   },
   titleContainer: {
     alignItems: 'center',
