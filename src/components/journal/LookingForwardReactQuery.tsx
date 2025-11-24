@@ -139,14 +139,12 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               onSuccess: () => {
                 console.log('DELETE DEBUG: Successfully deleted entry:', id);
                 triggerSuccessHaptic();
-                // Optional: Show success message
-                Alert.alert('Deleted', 'Looking Forward entry deleted successfully');
+                // Force refetch to update UI immediately
+                refetch();
               },
               onError: (deleteError: any) => {
                 console.error('DELETE DEBUG: Failed to delete entry:', id, deleteError);
                 triggerErrorHaptic();
-                // Show error message to user
-                Alert.alert('Error', 'Failed to delete Looking Forward entry. Please try again.');
               },
             });
           },

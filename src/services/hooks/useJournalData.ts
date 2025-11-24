@@ -566,6 +566,10 @@ export const useDeleteLookingForwardEntry = () => {
       queryClient.invalidateQueries({
         queryKey: ['journal', 'lookingForward'],
       });
+      // Also invalidate any specific looking forward queries
+      queryClient.invalidateQueries({
+        queryKey: ['lookingForward'],
+      });
     },
   });
 };
