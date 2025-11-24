@@ -213,7 +213,7 @@ describe('storageService', () => {
 
   describe('multiSet', () => {
     it('should set multiple items successfully', async () => {
-      const keyValues = [['key1', 'value1'], ['key2', 'value2']];
+      const keyValues: [string, string][] = [['key1', 'value1'], ['key2', 'value2']];
 
       mockAsyncStorage.multiSet.mockResolvedValueOnce();
 
@@ -235,7 +235,7 @@ describe('storageService', () => {
     });
 
     it('should handle multiSet errors gracefully', async () => {
-      const keyValues = [['key1', 'value1']];
+      const keyValues: [string, string][] = [['key1', 'value1']];
       const error = new Error('MultiSet failed');
 
       mockAsyncStorage.multiSet.mockRejectedValueOnce(error);
