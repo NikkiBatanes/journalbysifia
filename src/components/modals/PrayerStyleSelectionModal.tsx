@@ -297,6 +297,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
                 textAlignVertical="top"
                 autoFocus={true}
                 textAlign="left"
+                blurOnSubmit={false}
                 onFocus={() => {
                   setTimeout(() => {
                     scrollViewRef.current?.scrollToEnd({ animated: true });
