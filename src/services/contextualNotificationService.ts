@@ -35,6 +35,16 @@ class ContextualNotificationService {
         return false;
       }
 
+      // Check if user has devotionals available (subscription/limits)
+      const hasDevotionalAccess = await this.hasDevotionalAccess(userId);
+      if (!hasDevotionalAccess) {
+        Logger.info('User does not have devotional access - skipping reminder', {
+          component: 'contextualNotificationService',
+          userId,
+        });
+        return false;
+      }
+
       return await notificationSchedulerService.scheduleDevotionalReminder(userId, preferredTime);
     } catch (error) {
       Logger.error('Failed to schedule devotional reminder', error as Error, {
@@ -838,6 +848,29 @@ class ContextualNotificationService {
         userId,
       });
       return 0;
+    }
+  }
+
+  /**
+   * Check if user has access to devotionals (subscription/limits)
+   */
+  private async hasDevotionalAccess(userId: string): Promise<boolean> {
+    try {
+      // Import subscription service to check user's access
+      const { subscriptionService } = await import('./subscriptionService');
+      
+      // Check if user can generate devotionals
+      const canGenerate = await subscriptionService.canGenerate(userId, 'devotional');
+      
+      return canGenerate.allowed;
+    } catch (error) {
+      Logger.error('Failed to check devotional access', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
+      
+      // Default to false if we can't check
+      return false;
     }
   }
 }
