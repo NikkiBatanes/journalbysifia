@@ -28,22 +28,28 @@ class RCTPushNotificationBridge: RCTEventEmitter {
   
   // Called from AppDelegate when device token is received
   @objc public func didRegisterForRemoteNotifications(withDeviceToken deviceToken: String) {
-    sendEvent(withName: "RemoteNotificationRegistered", body: ["deviceToken": deviceToken])
+    let body: [String: Any] = ["deviceToken": deviceToken]
+    sendEvent(withName: "RemoteNotificationRegistered", body: body)
   }
   
   // Called from AppDelegate when registration fails
   @objc public func didFailToRegisterForRemoteNotifications(withError error: String) {
-    sendEvent(withName: "RemoteNotificationRegistrationFailed", body: ["error": error])
+    let body: [String: Any] = ["error": error]
+    sendEvent(withName: "RemoteNotificationRegistrationFailed", body: body)
   }
   
   // Called from AppDelegate when notification is received
   @objc public func didReceiveRemoteNotification(_ notification: [AnyHashable: Any]) {
-    sendEvent(withName: "RemoteNotificationReceived", body: notification)
+    // Filter out nil values to prevent NSInvalidArgumentException
+    let filteredNotification = notification.compactMapValues { $0 }
+    sendEvent(withName: "RemoteNotificationReceived", body: filteredNotification)
   }
   
   // Called from AppDelegate when local notification is received
   @objc public func didReceiveLocalNotification(_ notification: [AnyHashable: Any]) {
-    sendEvent(withName: "LocalNotificationReceived", body: notification)
+    // Filter out nil values to prevent NSInvalidArgumentException
+    let filteredNotification = notification.compactMapValues { $0 }
+    sendEvent(withName: "LocalNotificationReceived", body: filteredNotification)
   }
   
   // Request permissions from JavaScript

@@ -1,7 +1,8 @@
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Logger } from '../utils/ProductionLogger';
 import { authErrorHandler, AuthErrorHandlerOptions } from './authErrorHandler';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
+import { MemoryManager } from './memoryManager';
 
 // Enhanced API wrapper with authentication recovery
 export const useApi = () => {
@@ -12,6 +13,7 @@ export const useApi = () => {
   } = useAuth();
 
   const retryCountRef = useRef<Map<string, number>>(new Map());
+  const namespace = useRef(`api_${Date.now()}`).current;
 
   // Authenticated fetch with comprehensive error handling
   const authFetch = useCallback(async (
@@ -22,6 +24,9 @@ export const useApi = () => {
     const operationId = `${options.method || 'GET'}_${url}`;
     const maxRetries = errorHandlerOptions.retryAttempts || 2;
     const currentRetries = retryCountRef.current.get(operationId) || 0;
+
+    // Create and store AbortController for this operation
+    const abortController = MemoryManager.createAbortController(`${namespace}_${operationId}`);
 
     try {
       // Check if we have a valid session
@@ -46,6 +51,7 @@ export const useApi = () => {
 
       const response = await fetch(url, {
         ...options,
+        signal: abortController.signal,
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
@@ -115,8 +121,16 @@ export const useApi = () => {
 
         retryCountRef.current.set(operationId, currentRetries + 1);
 
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetries) * 1000));
+        // Wait before retry with abortable timeout
+        await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(resolve, Math.pow(2, currentRetries) * 1000);
+          
+          // Cleanup timeout if operation is aborted
+          abortController.signal.addEventListener('abort', () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Request aborted'));
+          });
+        });
 
         return authFetch(url, options, errorHandlerOptions);
       }
@@ -129,6 +143,9 @@ export const useApi = () => {
 
       // Return a failed response instead of throwing
       return new Response(null, { status: 500, statusText: 'Network Error' });
+    } finally {
+      // Always cleanup the AbortController
+      MemoryManager.abortController(`${namespace}_${operationId}`);
     }
   }, [session, signOut]);
 
@@ -146,11 +163,20 @@ export const useApi = () => {
     });
   }, []);
 
+  // Cleanup function to abort all pending requests
+  const abortAllRequests = useCallback(() => {
+    MemoryManager.cleanupNamespace(namespace);
+  }, [namespace]);
+
+  useEffect(() => {
+    return abortAllRequests;
+  }, [abortAllRequests]);
+
   return {
     authFetch,
     simpleFetch,
     isAuthenticated: !!session,
     loading,
-    session,
+    abortAllRequests, // Expose cleanup function
   };
 };
