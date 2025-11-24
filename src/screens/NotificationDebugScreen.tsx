@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { notificationDebugger } from '../utils/notificationDebugger';
 import { notificationTesting } from '../utils/notificationTesting';
+import { directNotificationTest } from '../utils/directNotificationTest';
 import { Logger } from '../utils/ProductionLogger';
 import { Colors } from '../theme/colors';
 import { testNotifications } from '../utils/testNotifications';
@@ -102,6 +103,15 @@ const NotificationDebugScreen = () => {
         case 'force':
           await notificationTesting.forceScheduleDailyNotifications(user.id);
           break;
+        case 'direct':
+          await directNotificationTest.sendImmediateTest(user.id);
+          break;
+        case 'now':
+          await directNotificationTest.sendNowTest(user.id);
+          break;
+        case 'basic':
+          await directNotificationTest.sendBasicTest(user.id);
+          break;
         case 'all':
           await testNotifications.sendAllTests();
           break;
@@ -114,6 +124,30 @@ const NotificationDebugScreen = () => {
       Alert.alert('❌ Error', 'Failed to send test notification. Check logs for details.');
     } finally {
       setIsSendingTest(false);
+    }
+  };
+
+  const testPushService = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    try {
+      const test = await directNotificationTest.testPushService();
+      
+      const message = `
+Push Service Available: ${test.available ? 'Yes' : 'No'}
+Device Token: ${test.deviceToken ? 'Found' : 'Not Found'}
+Permissions: ${JSON.stringify(test.permissions)}
+${test.error ? `Error: ${test.error}` : ''}
+      `.trim();
+
+      Alert.alert('🔍 Push Service Test', message);
+      Logger.info('Push service test completed', { test });
+    } catch (error) {
+      Logger.error('Failed to test push service', error as Error);
+      Alert.alert('❌ Error', 'Failed to test push service');
     }
   };
 
@@ -222,7 +256,7 @@ ${diagnosis.recommendations.join('\n')}
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.hopeBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🔔 Notification Debug</Text>
@@ -248,20 +282,32 @@ ${diagnosis.recommendations.join('\n')}
           </TouchableOpacity>
 
           <TouchableOpacity 
+            style={[styles.actionButton, styles.criticalButton]}
+            onPress={() => sendTestNotification('direct')}
+            disabled={isSendingTest}
+          >
+            {isSendingTest ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.actionButtonText}>⚡ Direct Test (2s)</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
             style={[styles.actionButton, styles.secondaryButton]}
-            onPress={diagnoseSuppression}
+            onPress={testPushService}
           >
             <Text style={[styles.actionButtonText, { color: Colors.anchorBlue }]}>
-              🚫 Why Suppressed?
+              🔍 Test Push Service
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.actionButton, styles.secondaryButton]}
-            onPress={loadQuickStatus}
+            onPress={diagnoseSuppression}
           >
             <Text style={[styles.actionButtonText, { color: Colors.anchorBlue }]}>
-              🔄 Refresh Status
+              🚫 Why Suppressed?
             </Text>
           </TouchableOpacity>
         </View>
@@ -278,6 +324,8 @@ ${diagnosis.recommendations.join('\n')}
               { type: 'gratitude', label: '🙏 Gratitude' },
               { type: 'critical', label: '🚨 Critical Test' },
               { type: 'force', label: '⚡ Force Daily' },
+              { type: 'now', label: '⚡ NOW Test' },
+              { type: 'basic', label: '📱 Basic Test' },
               { type: 'all', label: '🎯 All Tests' },
             ].map((test) => (
               <TouchableOpacity
@@ -418,6 +466,9 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: Colors.anchorBlue,
+  },
+  criticalButton: {
+    backgroundColor: '#ef4444',
   },
   secondaryButton: {
     backgroundColor: '#f1f5f9',
