@@ -165,13 +165,18 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
       presentationStyle="pageSheet"
       onRequestClose={onCancel}
     >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        {/* Header - Fixed at top with pointerEvents to ensure it's always tappable */}
+        <View style={styles.header} pointerEvents="box-none">
           <TouchableOpacity
             onPress={onCancel}
             accessibilityRole="button"
             accessibilityLabel="Cancel"
+            style={styles.headerButton}
           >
             <ThemedText style={styles.headerButtonText} weight="medium">Cancel</ThemedText>
           </TouchableOpacity>
@@ -185,23 +190,20 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
             disabled={!prayerText.trim() || isSaving}
             accessibilityRole="button"
             accessibilityLabel="Save Prayer"
+            style={styles.headerButton}
           >
             <ThemedText style={[styles.headerButtonText, (!prayerText.trim() || isSaving) && styles.disabledText]} weight="medium">Save</ThemedText>
           </TouchableOpacity>
         </View>
 
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
         >
-          <ScrollView
-            ref={scrollViewRef}
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="always"
-          >
           {/* Tabs */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
@@ -308,8 +310,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </View>
 
         </ScrollView>
-        </KeyboardAvoidingView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -326,6 +327,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
+    zIndex: 1000,
+    backgroundColor: Colors.anchorBlue,
+  },
+  headerButton: {
+    padding: 8,
+    minWidth: 60,
   },
   headerButtonText: {
     fontSize: 16,
@@ -333,9 +340,6 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     opacity: 0.5,
-  },
-  keyboardContainer: {
-    flex: 1,
   },
   headerTitle: {
     fontSize: 18,
