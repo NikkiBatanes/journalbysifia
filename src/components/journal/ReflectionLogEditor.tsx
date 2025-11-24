@@ -1120,8 +1120,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             />
           </TouchableOpacity>
         )}
-        {/* Hide guided prompt icon for devotional, playbook sources, or when explicitly hidden */}
-        {!isEditing && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton && (
+        {/* Show guided prompt icon for freeform reflections in journal screen (always visible) */}
+        {source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
             disabled={!!selectedPrompt || viewMode === 'guided'} // Disable when active
