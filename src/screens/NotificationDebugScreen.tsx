@@ -17,6 +17,7 @@ import { directNotificationTest } from '../utils/directNotificationTest';
 import { deviceTokenFix } from '../utils/deviceTokenFix';
 import { notificationDeliveryService } from '../services/notificationDeliveryService';
 import { comprehensiveNotificationTest } from '../utils/comprehensiveNotificationTest';
+import { realtimeNotificationDebugger } from '../utils/realtimeNotificationDebugger';
 import { Logger } from '../utils/ProductionLogger';
 import { Colors } from '../theme/colors';
 import { testNotifications } from '../utils/testNotifications';
@@ -218,6 +219,45 @@ The delivery service processes pending notifications every 30 seconds.
     } catch (error) {
       Logger.error('Failed to run comprehensive test', error as Error);
       Alert.alert('❌ Error', 'Failed to run comprehensive test');
+    }
+  };
+
+  const debugRealtimeNotifications = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    try {
+      Alert.alert('🔍 Debugging Real-time Notifications', 'Analyzing your complete notification system...\n\nThis may take 15-20 seconds.');
+      
+      const result = await realtimeNotificationDebugger.debugRealtimeNotifications(user.id);
+      
+      const stepsMessage = result.steps.join('\n\n');
+      
+      Alert.alert(
+        result.success ? '✅ Real-time Notifications Working' : '❌ Issues Found', 
+        `Real-time notification analysis completed!\n\n${stepsMessage}`,
+        [
+          {
+            text: result.issues.length > 0 ? 'View Issues' : 'OK',
+            onPress: result.issues.length > 0 ? () => {
+              const issuesMessage = result.issues.join('\n\n');
+              Alert.alert('🚨 Issues Found', issuesMessage);
+            } : undefined,
+            style: result.issues.length > 0 ? 'default' : 'cancel',
+          },
+          {
+            text: 'OK',
+            style: 'cancel',
+          },
+        ]
+      );
+      
+      Logger.info('Real-time notification debugging completed', { result });
+    } catch (error) {
+      Logger.error('Failed to debug real-time notifications', error as Error);
+      Alert.alert('❌ Error', 'Failed to debug real-time notifications');
     }
   };
 
@@ -432,6 +472,13 @@ ${diagnosis.recommendations.join('\n')}
           </TouchableOpacity>
 
           <TouchableOpacity 
+            style={[styles.actionButton, styles.debugButton]}
+            onPress={debugRealtimeNotifications}
+          >
+            <Text style={styles.actionButtonText}>🔍 Debug Real-time</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
             style={[styles.actionButton, styles.testButton]}
             onPress={runComprehensiveTest}
           >
@@ -621,8 +668,13 @@ const styles = StyleSheet.create({
   criticalButton: {
     backgroundColor: '#ef4444',
   },
+  debugButton: {
+    backgroundColor: '#9333ea',
+    marginTop: 8,
+  },
   fixButton: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#dc2626',
+    marginTop: 8,
   },
   deliveryButton: {
     backgroundColor: '#10b981',
