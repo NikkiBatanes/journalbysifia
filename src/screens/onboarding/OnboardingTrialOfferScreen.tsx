@@ -326,15 +326,12 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
             refetchType: 'active', // Force immediate refetch of active queries
           });
 
-          // Give React Query time to propagate the updates
-          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (syncError) {
           logger.error('Trial sync error', syncError as Error);
         }
 
         // Final step
         setLoadingStep('completing');
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         // CRITICAL: Hide loading modal first, then show success modal
         // This prevents both modals from being visible at the same time
@@ -345,8 +342,8 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
         setPurchaseValidated(true); // Always show as validated for successful purchases
         setIsStartingTrial(false); // Hide loading modal
 
-        // Wait for loading modal to fully hide before showing success modal
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Minimal wait for loading modal to hide before showing success modal
+        await new Promise(resolve => setTimeout(resolve, 200));
         setShowSuccessModal(true);
       } else {
         throw new Error(result.error || 'Trial subscription failed');

@@ -412,6 +412,27 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   };
 
+  // Optimized subscription refresh to prevent redundant calls
+  const optimizedRefreshSubscription = useCallback(async (userId: string) => {
+    try {
+      // Invalidate cache first to trigger fresh fetch
+      await queryClient.invalidateQueries({
+        queryKey: ['subscription', userId],
+        refetchType: 'active',
+      });
+
+      // Batch all refresh operations in parallel
+      await Promise.all([
+        devotionalGating.refreshSubscription(),
+        refreshNewSubscription().catch(() => {}),
+      ]);
+      
+      logger.debug('✅ Optimized subscription refresh completed');
+    } catch (error) {
+      logger.error('Optimized refresh failed:', error as Error);
+    }
+  }, [queryClient, devotionalGating, refreshNewSubscription]);
+
   const handleUnlockPlan = async () => {
     // Prevent multiple simultaneous purchases
     if (isPurchasing) {
@@ -528,32 +549,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               transactionId: result.transactionId?.substring(0, 10) + '...',
             });
 
-            // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
-            logger.debug('Invalidating subscription cache for immediate UI update');
-            await queryClient.invalidateQueries({
-              queryKey: ['subscription', user?.id],
-              refetchType: 'active', // Force immediate refetch of active queries
-            });
+            // Optimized: Use single refresh function
+            await optimizedRefreshSubscription(user?.id || '');
 
-            // Refresh subscription state - wait for both to complete
-            await Promise.all([
-              devotionalGating.refreshSubscription(),
-              refreshNewSubscription().catch(() => {}),
-            ]);
-
-            // Give React Query time to propagate the updates
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Wait a moment for UI to update
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Show success modal before navigating back
+            // Show success modal immediately after validation
             setLoadingStep('completing');
-            await new Promise(resolve => setTimeout(resolve, 300));
             setPurchaseValidated(true);
             setLastPurchasedTier(purchaseTier);
             setIsPurchasing(false); // Hide loading modal
-            await new Promise(resolve => setTimeout(resolve, 200)); // Wait for loading modal to hide
+            await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
             setShowSuccessModal(true);
             // Navigation will happen when user dismisses the success modal via handleSuccessModalContinue
           } else {
@@ -639,15 +643,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 refetchType: 'active', // Force immediate refetch of active queries
               });
 
-              // Also refresh local state - wait for both to complete
-              await Promise.all([
-                devotionalGating.refreshSubscription(),
-                refreshNewSubscription().catch(() => {}),
-              ]);
+              // Optimized: Use single refresh function
+              await optimizedRefreshSubscription(user?.id || '');
               logger.info('✅ Local subscription state refreshed');
-
-              // Give React Query time to propagate the updates
-              await new Promise(resolve => setTimeout(resolve, 100));
 
               // Verify the subscription was actually updated
               const newTier = devotionalGating.tier;
@@ -664,22 +662,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   const storeKit = AppleStoreKit.getInstance();
                   await storeKit.restorePurchases(user?.id || '');
                   logger.info('Restore purchases completed');
+                  // Optimized: Single refresh after restore
+                  await devotionalGating.refreshSubscription();
+                  logger.debug('Second refresh - tier', { tier: devotionalGating.tier });
                 } catch (restoreError) {
                   logger.error('Restore failed', restoreError as Error);
                 }
-
-                // Give it one more second and try again
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                await devotionalGating.refreshSubscription();
-                logger.debug('Second refresh - tier', { tier: devotionalGating.tier });
-            }
+              }
           } catch (refreshError) {
             logger.error('Failed to refresh subscription', refreshError as Error);
             // Continue to navigation even if refresh fails
           }
 
           setLoadingStep('completing');
-          await new Promise(resolve => setTimeout(resolve, 300));
           setPurchaseValidated(true);
           setLastPurchasedTier(purchaseTier);
           setShowSuccessModal(true);
