@@ -1186,11 +1186,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               {(() => {
                 // Lock title if:
                 // 1. Explicit lock flag is set, OR
-                // 2. Source is non-freeform AND we have content (not switching to blank free-form), OR
+                // 2. Source is devotional/playbook AND we have content, OR
                 // 3. There's a selected prompt, OR
                 // 4. Title matches a guided prompt
                 const shouldLockTitle = lockTitle ||
-                                       (source && source !== 'freeform' && (newEntry.title || newEntry.content)) ||
+                                       ((source === 'devotional' || source === 'playbook') && (newEntry.title || newEntry.content)) ||
                                        selectedPrompt ||
                                        (guidedPromptGating.allPrompts || []).includes(newEntry.title);
 
