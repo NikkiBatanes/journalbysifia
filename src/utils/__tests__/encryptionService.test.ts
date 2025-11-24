@@ -99,7 +99,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encrypt(data, key);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
       expect(result).toContain('Hello, World!');
     });
 
@@ -108,7 +108,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encrypt(data);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
       expect(result).toContain('Test data');
     });
 
@@ -117,7 +117,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encrypt(data);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
     });
 
     it('should encrypt special characters', async () => {
@@ -125,7 +125,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encrypt(data);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
     });
 
     it('should encrypt very long strings', async () => {
@@ -133,7 +133,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encrypt(data);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
       expect(result.length).toBeGreaterThan(data.length);
     });
 
@@ -365,7 +365,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encryptObject(obj, key);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
       expect(typeof result).toBe('string');
     });
 
@@ -387,7 +387,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encryptObject(obj);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
     });
 
     it('should encrypt array', async () => {
@@ -395,7 +395,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encryptObject(arr);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
     });
 
     it('should encrypt null and undefined values', async () => {
@@ -403,7 +403,7 @@ describe('encryptionService', () => {
 
       const result = await encryptionService.encryptObject(obj);
 
-      expect(result).toStartWith('encrypted_');
+      expect(result.startsWith('encrypted_')).toBe(true);
     });
   });
 
@@ -565,7 +565,7 @@ describe('encryptionService', () => {
       const results = await Promise.all(operations);
 
       results.forEach((result, index) => {
-        expect(result).toStartWith('encrypted_');
+        expect(result.startsWith('encrypted_')).toBe(true);
         expect(result).toContain(`data_${index}`);
       });
     });
