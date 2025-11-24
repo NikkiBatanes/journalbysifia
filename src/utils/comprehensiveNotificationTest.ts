@@ -39,7 +39,7 @@ export const comprehensiveNotificationTest = {
         title: '🧪 Comprehensive Test',
         message: 'This is a comprehensive pipeline test notification',
         scheduled_for: new Date(Date.now() + 2000).toISOString(), // 2 seconds from now
-        priority: 'high',
+        priority: 'high' as const,
         data: {
           deep_link: 'sifia://dashboard',
           type: 'comprehensive_test',

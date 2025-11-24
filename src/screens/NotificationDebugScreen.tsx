@@ -481,7 +481,7 @@ ${diagnosis.recommendations.join('\n')}
             ].map((test) => (
               <TouchableOpacity
                 key={test.type}
-                style={[styles.testButton, isSendingTest && styles.disabledButton]}
+                style={[styles.testNotificationButton, isSendingTest && styles.disabledButton]}
                 onPress={() => sendTestNotification(test.type)}
                 disabled={isSendingTest}
               >
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  testButton: {
+  testNotificationButton: {
     flex: 1,
     minWidth: '45%',
     padding: 12,
