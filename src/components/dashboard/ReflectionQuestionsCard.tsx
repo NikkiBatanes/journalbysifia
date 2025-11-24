@@ -54,7 +54,7 @@ interface ReflectionQuestionsCardProps {
 }
 
 const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
-  onQuestionPress: _onQuestionPress,
+  onQuestionPress,
   onViewAll: _onViewAll,
 }) => {
   const { user } = useAuth();
@@ -713,12 +713,19 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 </View>
                 <ThemedText weight="bold" style={styles.questionText}>{item.question}</ThemedText>
                 <View style={styles.buttonRow}>
-                  <View
+                  <TouchableOpacity
                     style={styles.reflectButton}
+                    onPress={() => {
+                      // Always allow opening the reflection editor to show the experience
+                      // The lock and upgrade flow will be handled inside the editor
+                      onQuestionPress?.(item);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reflect on this question"
                   >
                     <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
                     <ThemedText weight="medium" style={styles.reflectButtonText}>Reflect</ThemedText>
-                  </View>
+                  </TouchableOpacity>
                 </View>
               </Animated.View>
             );
