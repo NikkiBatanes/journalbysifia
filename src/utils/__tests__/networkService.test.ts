@@ -110,7 +110,7 @@ const networkService = {
         
         if (progress >= 100) {
           clearInterval(interval);
-          resolve(new Blob(['mock file content'], { type: 'text/plain' }));
+          return resolve(new Blob(['mock file content'], { type: 'text/plain', lastModified: Date.now() }));
         }
       }, 50);
     });
