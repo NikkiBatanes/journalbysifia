@@ -551,8 +551,6 @@ export const useUpdateLookingForwardEntry = () => {
 };
 
 export const useDeleteLookingForwardEntry = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: JournalApi.deleteJournalEntry,
     onMutate: async (entryId: string) => {
@@ -561,22 +559,9 @@ export const useDeleteLookingForwardEntry = () => {
       return { entryId };
     },
     onSuccess: (_, _deletedId, _context: any) => {
-      // Remove the entry from looking forward queries
-      // Use prefix matching to invalidate all looking forward queries for all users/dates
-      queryClient.invalidateQueries({
-        queryKey: ['journal', 'lookingForward'],
-      });
-
-      // Also use more specific prefix matching to ensure all variations are covered
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const queryKey = query.queryKey;
-          return Array.isArray(queryKey) &&
-                 queryKey.length >= 3 &&
-                 queryKey[0] === 'journal' &&
-                 queryKey[1] === 'lookingForward';
-        },
-      });
+      // Don't invalidate queries here - let the component handle cache updates
+      // This prevents automatic refetch that would restore the deleted entry
+      // The component manually removes the entry from cache for instant UI update
     },
   });
 };
