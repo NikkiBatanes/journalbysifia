@@ -437,10 +437,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [navigation]);
 
   const toggleUserInput = useCallback(() => {
+    try { triggerLightHaptic(); } catch {}
     setShowUserInput(!showUserInput);
   }, [showUserInput]);
 
   const handleCreateDevotional = useCallback(() => {
+    try { triggerLightHaptic(); } catch {}
     setShowDevotionalModal(true);
   }, []);
 
