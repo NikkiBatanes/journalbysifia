@@ -159,9 +159,10 @@ export default function ActionStepsCard({
   const isExampleSubtask = selectedSubtask?.subTask?.isExample || selectedSubtask?.subTask?.is_example ||
     (subtaskId && subtaskId.startsWith('example-'));
 
+  // Only call the hook if we have a valid, non-example subtask ID
   const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
     user?.id || '',
-    isExampleSubtask ? '' : subtaskId // Pass empty string for example subtasks to prevent API call
+    !isExampleSubtask && subtaskId ? subtaskId : ''
   );
 
   // Toggle simplified insight for a specific step
