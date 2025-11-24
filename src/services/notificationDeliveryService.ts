@@ -59,9 +59,9 @@ class NotificationDeliveryService {
   }
 
   /**
-   * Process all pending notifications
+   * Process all pending notifications (public for testing)
    */
-  private async processPendingNotifications(): Promise<void> {
+  async processPendingNotifications(): Promise<void> {
     if (this.isProcessing) {
       return;
     }
@@ -167,10 +167,10 @@ class NotificationDeliveryService {
         .eq('id', notification.id);
 
       // Track analytics
-      await notificationAnalyticsService.trackNotificationSent(
+      await notificationAnalyticsService.trackSent(
         notification.user_id,
-        notification.type,
-        notification.id
+        notification.id,
+        notification.type
       );
 
       Logger.info(`Successfully delivered notification ${notification.id}`, {
@@ -214,13 +214,50 @@ class NotificationDeliveryService {
    * Deliver push notification
    */
   private async deliverPushNotification(notification: any): Promise<void> {
-    // For push notifications, we would typically send to a service like:
-    // - Firebase Cloud Messaging (FCM)
-    // - Apple Push Notification Service (APNS)
-    // - OneSignal, etc.
-    
-    // For now, deliver as local notification since we have the device token
-    await this.deliverLocalNotification(notification);
+    try {
+      // Get the user's device token from the database
+      const { data: deviceToken, error: tokenError } = await supabase
+        .from('device_tokens')
+        .select('token')
+        .eq('user_id', notification.user_id)
+        .eq('is_active', true)
+        .single();
+
+      if (tokenError || !deviceToken?.token) {
+        throw new Error(`No device token found for user ${notification.user_id}`);
+      }
+
+      // Send real push notification using the push notification service
+      await pushNotificationService.sendPushNotification({
+        to: deviceToken.token,
+        title: notification.title,
+        message: notification.message,
+        badge: notification.badge,
+        sound: notification.sound || 'default',
+        data: notification.data || {},
+      });
+
+      Logger.info('Push notification sent successfully', {
+        component: 'NotificationDeliveryService',
+        userId: notification.user_id,
+        notificationId: notification.id,
+        type: notification.type,
+      });
+
+    } catch (error) {
+      Logger.error('Failed to send push notification', error as Error, {
+        component: 'NotificationDeliveryService',
+        userId: notification.user_id,
+        notificationId: notification.id,
+      });
+      
+      // Fallback to local notification if push fails
+      Logger.info('Falling back to local notification', {
+        component: 'NotificationDeliveryService',
+        userId: notification.user_id,
+      });
+      await this.deliverLocalNotification(notification);
+    }
   }
 
   /**
