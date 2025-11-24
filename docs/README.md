@@ -10,22 +10,6 @@
 ### **Quick Reference**
 - [Main README](../README.md) - Project overview and getting started
 
-## 🗂️ Archive
-
-Historical documentation and analysis files are stored in `archive/`:
-- Phase completion summaries
-- Bug fix documentation
-- Feature development logs
-- Technical analysis reports
-
-## 📁 Database
-
-### **Active Migrations**
-- `database/migrations/` - Current database schema migrations
-
-### **Archive**
-- `database/archive/` - Legacy SQL and diagnostic queries
-
 ---
 
 **Last Updated:** 2025-11-24
