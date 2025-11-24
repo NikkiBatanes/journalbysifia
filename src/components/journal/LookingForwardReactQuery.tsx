@@ -136,7 +136,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             console.log('DELETE DEBUG: Attempting to delete entry:', id);
             triggerSelectionHaptic();
 
@@ -149,6 +149,15 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               const filteredData = currentData.filter((entryToDelete: any) => entryToDelete.id !== id);
               queryClient.setQueryData(currentQueryKey, filteredData);
               console.log('DELETE DEBUG: Removed entry from cache, remaining entries:', filteredData.length);
+
+              // CRITICAL: Also clear AsyncStorage cache to prevent entry from coming back on refresh
+              try {
+                const { JournalCache } = await import('../../services/cache/journalCache');
+                await JournalCache.clearCache(userId, dateStr, 'looking_forward');
+                console.log('DELETE DEBUG: Cleared AsyncStorage cache for looking_forward');
+              } catch (cacheError) {
+                console.error('DELETE DEBUG: Failed to clear AsyncStorage cache:', cacheError);
+              }
             }
 
             deleteMutation.mutate(id, {
