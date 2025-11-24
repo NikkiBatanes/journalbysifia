@@ -23,166 +23,181 @@ export const deviceTokenFix = {
       Logger.info('🔧 Starting device token registration fix', { userId });
       steps.push('📍 Starting token registration...');
       
-      // Step 1: Re-initialize push service
+      // Step 1: Check if push notifications are available
+      steps.push('🔍 Checking push notification availability...');
+      const isAvailable = await this.checkPushNotificationAvailability();
+      if (!isAvailable) {
+        steps.push('❌ Push notifications not available on this device');
+        return { success: false, token: null, error: 'Push notifications not available', steps };
+      }
+      steps.push('✅ Push notifications available');
+      
+      // Step 2: Re-initialize push service
       steps.push('🔄 Re-initializing push notification service...');
       await pushNotificationService.initialize(userId);
       
-      // Step 2: Check current token
-      steps.push('🔍 Checking current device token...');
-      const currentToken = await pushNotificationService.getStoredToken();
+      // Step 3: Request permissions
+      steps.push('🔐 Requesting notification permissions...');
+      const hasPermissions = await pushNotificationService.requestPermissions();
+      if (!hasPermissions) {
+        steps.push('❌ Notification permissions denied');
+        return { success: false, token: null, error: 'Notification permissions denied', steps };
+      }
+      steps.push('✅ Notification permissions granted');
       
-      if (!currentToken) {
-        steps.push('❌ No token found in storage');
-        
-        // Step 3: Try to request permissions again
-        steps.push('📱 Requesting permissions...');
-        await pushNotificationService.requestPermissions();
-        
-        // Step 4: Check again after permission request
-        steps.push('🔍 Checking token after permission request...');
-        const tokenAfterPermission = await pushNotificationService.getStoredToken();
-        
-        if (!tokenAfterPermission) {
-          steps.push('❌ Still no token - may need app restart');
-          return {
-            success: false,
-            token: null,
-            error: 'No device token available after permission request',
-            steps,
-          };
-        }
-        
-        steps.push(`✅ Token found after permission request: ${tokenAfterPermission.substring(0, 20)}...`);
-      } else {
-        steps.push(`✅ Token found: ${currentToken.substring(0, 20)}...`);
+      // Step 4: Get current token
+      steps.push('📱 Getting device token...');
+      const token = await pushNotificationService.getStoredToken();
+      
+      if (!token) {
+        steps.push('❌ No token available after initialization');
+        return { success: false, token: null, error: 'No token available', steps };
       }
       
-      // Step 5: Save to database
-      const tokenToSave = currentToken || await pushNotificationService.getStoredToken();
-      if (tokenToSave) {
-        steps.push('💾 Saving token to database...');
-        
-        // Try upsert first
-        const { error: dbError } = await supabase
-          .from('device_tokens')
-          .upsert({
-            user_id: userId,
-            device_id: `device_${userId}_${Date.now()}`, // Generate unique device ID
-            token: tokenToSave,
-            platform: 'ios', // or 'android' - we can detect this
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-        
-        if (dbError) {
-          steps.push(`⚠️ Upsert failed: ${dbError.message}`);
-          steps.push('🔄 Trying alternative save method...');
-          
-          // Fallback: Delete existing tokens and insert new one
-          const { error: deleteError } = await supabase
-            .from('device_tokens')
-            .delete()
-            .eq('user_id', userId);
-            
-          if (deleteError) {
-            steps.push(`❌ Delete failed: ${deleteError.message}`);
-          } else {
-            steps.push('✅ Old tokens deleted');
-            
-            // Insert new token
-            const { error: insertError } = await supabase
-              .from('device_tokens')
-              .insert({
-                user_id: userId,
-                device_id: `device_${userId}_${Date.now()}`, // Generate unique device ID
-                token: tokenToSave,
-                platform: 'ios',
-                is_active: true,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              });
-              
-            if (insertError) {
-              steps.push(`❌ Insert failed: ${insertError.message}`);
-              return {
-                success: false,
-                token: tokenToSave,
-                error: `Database save failed: ${insertError.message}`,
-                steps,
-              };
-            } else {
-              steps.push('✅ Token saved successfully with fallback method');
-            }
-          }
-        } else {
-          steps.push('✅ Token saved to database');
-        }
-      }
+      steps.push(`✅ Token found: ${token.substring(0, 10)}...`);
       
-      // Step 6: Verify token in database
+      // Step 5: Force save to database
+      steps.push('💾 Saving token to database...');
+      await pushNotificationService.saveDeviceToken(userId, token);
+      
+      // Step 6: Verify in database
       steps.push('🔍 Verifying token in database...');
-      const { data: dbTokens, error: verifyError } = await supabase
-        .from('device_tokens')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_active', true);
+      const verified = await this.verifyTokenInDatabase(userId, token);
       
-      if (verifyError) {
-        steps.push(`❌ Verification error: ${verifyError.message}`);
-      } else if (dbTokens && dbTokens.length > 0) {
-        steps.push(`✅ Found ${dbTokens.length} active tokens in database`);
-      } else {
-        steps.push('❌ No active tokens found in database');
+      if (!verified) {
+        steps.push('❌ Token verification failed');
+        return { success: false, token, error: 'Token verification failed', steps };
       }
       
-      steps.push('🎉 Token registration process completed');
+      steps.push('✅ Token successfully registered and verified');
       
-      return {
-        success: true,
-        token: tokenToSave,
-        steps,
-      };
+      return { success: true, token, steps };
       
     } catch (error) {
-      Logger.error('Device token registration failed', error as Error);
+      Logger.error('Device token fix failed', error as Error, { userId });
       steps.push(`❌ Error: ${(error as Error).message}`);
-      
-      return {
-        success: false,
-        token: null,
-        error: (error as Error).message,
-        steps,
+      return { 
+        success: false, 
+        token: null, 
+        error: (error as Error).message, 
+        steps 
       };
     }
   },
 
   /**
-   * Test push notification with token
+   * Check push notification availability
    */
-  async testPushWithToken(userId: string): Promise<boolean> {
+  async checkPushNotificationAvailability(): Promise<boolean> {
     try {
-      Logger.info('🧪 Testing push notification with current token');
-      
-      // This would normally go through your backend
-      // For now, we'll create a local notification to simulate success
-      await pushNotificationService.scheduleLocalNotification({
-        title: '🔧 Token Test',
-        message: 'Device token registration test successful!',
-        badge: 1,
-        sound: 'default',
-        data: {
-          deep_link: 'sifia://dashboard',
-          type: 'token_test',
-        },
-      }, new Date(Date.now() + 3000)); // 3 seconds from now
-      
-      Logger.info('✅ Token test notification scheduled');
-      return true;
-      
+      // Check if the push notification module is available
+      const { isNativeModuleAvailable } = await import('../modules/PushNotificationBridge');
+      return isNativeModuleAvailable();
     } catch (error) {
-      Logger.error('Token test failed', error as Error);
+      Logger.error('Failed to check push notification availability', error as Error);
       return false;
     }
-  }
+  },
+
+  /**
+   * Verify token exists in database
+   */
+  async verifyTokenInDatabase(userId: string, expectedToken: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('device_tokens')
+        .select('token, is_active')
+        .eq('user_id', userId)
+        .eq('token', expectedToken)
+        .single();
+
+      if (error || !data) {
+        return false;
+      }
+
+      return data.token === expectedToken && data.is_active;
+    } catch (error) {
+      Logger.error('Failed to verify token in database', error as Error);
+      return false;
+    }
+  },
+
+  /**
+   * Manual token registration (for debugging)
+   */
+  async manualTokenRegistration(userId: string): Promise<{
+    success: boolean;
+    steps: string[];
+    error?: string;
+  }> {
+    const steps: string[] = [];
+    
+    try {
+      steps.push('🔧 Starting manual token registration...');
+      
+      // Check current token
+      const currentToken = await pushNotificationService.getStoredToken();
+      
+      if (!currentToken) {
+        steps.push('❌ No token found - trying to initialize...');
+        await pushNotificationService.initialize(userId);
+        
+        // Check again
+        const tokenAfterInit = await pushNotificationService.getStoredToken();
+        if (!tokenAfterInit) {
+          steps.push('❌ Still no token - requesting permissions...');
+          await pushNotificationService.requestPermissions();
+          
+          // Final check
+          const tokenAfterPermission = await pushNotificationService.getStoredToken();
+          if (!tokenAfterPermission) {
+            steps.push('❌ No token available - you may need to restart the app');
+            return { 
+              success: false, 
+              steps, 
+              error: 'No token available after all attempts' 
+            };
+          }
+        }
+      }
+      
+      const finalToken = await pushNotificationService.getStoredToken();
+      if (!finalToken) {
+        return { 
+          success: false, 
+          steps, 
+          error: 'Failed to obtain token' 
+        };
+      }
+      
+      steps.push(`✅ Token obtained: ${finalToken.substring(0, 10)}...`);
+      
+      // Save to database
+      steps.push('💾 Saving token to database...');
+      await pushNotificationService.saveDeviceToken(userId, finalToken);
+      
+      // Verify
+      const verified = await this.verifyTokenInDatabase(userId, finalToken);
+      if (verified) {
+        steps.push('✅ Token successfully registered!');
+        return { success: true, steps };
+      } else {
+        steps.push('❌ Token verification failed');
+        return { 
+          success: false, 
+          steps, 
+          error: 'Token verification failed' 
+        };
+      }
+      
+    } catch (error) {
+      Logger.error('Manual token registration failed', error as Error);
+      steps.push(`❌ Error: ${(error as Error).message}`);
+      return { 
+        success: false, 
+        steps, 
+        error: (error as Error).message 
+      };
+    }
+  },
 };
