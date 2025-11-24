@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard, Pressable, TouchableWithoutFeedback } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { X, Check } from 'lucide-react-native'; // Unused
 import { Colors } from '../../theme/colors';
@@ -165,10 +165,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
       presentationStyle="pageSheet"
       onRequestClose={onCancel}
     >
-      <TouchableWithoutFeedback accessible={false}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={onCancel}
             accessibilityRole="button"
@@ -196,14 +195,13 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
-          <Pressable style={styles.pressableContainer}>
-            <ScrollView
-              ref={scrollViewRef}
-              style={styles.content}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="always"
-            >
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="always"
+          >
           {/* Tabs */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
@@ -310,10 +308,8 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </View>
 
         </ScrollView>
-        </Pressable>
         </KeyboardAvoidingView>
       </View>
-      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -339,9 +335,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   keyboardContainer: {
-    flex: 1,
-  },
-  pressableContainer: {
     flex: 1,
   },
   headerTitle: {
