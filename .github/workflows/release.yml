@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests
+        run: npm test -- --coverage=false
+        
+      - name: Build Android Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+          
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload Android APK
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: android/app/build/outputs/apk/release/app-release.apk
+          asset_name: siFia-${{ github.ref_name }}-android.apk
+          asset_content_type: application/vnd.android.package-archive
+
+  build-ios:
+    name: Build iOS Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-latest
+    needs: create-release
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+          working-directory: ios
+          
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          bundle exec pod install
+          
+      - name: Build iOS Release
+        run: |
+          cd ios
+          xcodebuild -workspace siFia.xcworkspace \
+                     -scheme siFia \
+                     -configuration Release \
+                     -destination generic/platform=iOS \
+                     -archivePath DerivedData/siFia.xcarchive \
+                     archive
+                     
+      - name: Export IPA
+        run: |
+          cd ios
+          xcodebuild -exportArchive \
+                     -archivePath DerivedData/siFia.xcarchive \
+                     -exportPath DerivedData \
+                     -exportOptionsPlist ExportOptions.plist
+                     
+      - name: Upload iOS IPA
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ios/DerivedData/siFia.ipa
+          asset_name: siFia-${{ github.ref_name }}-ios.ipa
+          asset_content_type: application/octet-stream
