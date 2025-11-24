@@ -833,10 +833,22 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   }, [isEditing, lockTitle]);
 
   // Refresh guided prompt gating state when component mounts
+  const hasRefreshedRef = useRef(false);
   useEffect(() => {
-    // Refresh to ensure we have the latest free prompts list
-    guidedPromptGating.refreshAccess();
-  }, [guidedPromptGating]);
+    // Refresh to ensure we have the latest free prompts list (only on mount)
+    if (!hasRefreshedRef.current) {
+      hasRefreshedRef.current = true;
+      const refreshGating = async () => {
+        try {
+          await guidedPromptGating.refreshAccess();
+        } catch (error) {
+          // Silently handle refresh errors
+        }
+      };
+      refreshGating();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run on mount
 
   // Save handler - check for guided prompt restrictions
   const handleSave = async () => {
@@ -846,16 +858,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Check if this is a guided prompt and if user has access
     // Check both selectedPrompt and title to prevent loopholes
     const promptToCheck = selectedPrompt || (guidedPromptGating.allPrompts.includes(newEntry.title) ? newEntry.title : null);
-
-    // Debug logging
-    console.log('SAVE DEBUG:', {
-      promptToCheck,
-      selectedPrompt,
-      title: newEntry.title,
-      freePrompts: guidedPromptGating.freePrompts,
-      isFreePrompt: promptToCheck ? guidedPromptGating.freePrompts.includes(promptToCheck) : false,
-      allPrompts: guidedPromptGating.allPrompts,
-    });
 
     // For free-form reflections (not guided prompts), check smart journaling gating
     if (!promptToCheck && smartJournalingGating.isLocked) {
@@ -876,7 +878,14 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
     if (promptToCheck) {
       // Use async canUsePrompt method
+      console.log('PROMPT GATING DEBUG:', {
+        promptToCheck,
+        freePrompts: guidedPromptGating.freePrompts,
+        isFreePrompt: guidedPromptGating.freePrompts.includes(promptToCheck),
+      });
+
       const canUseResult = await guidedPromptGating.canUsePrompt(promptToCheck);
+      console.log('CAN USE RESULT:', canUseResult);
 
       if (!canUseResult) {
         // Close the reflection modal first so the sales offer shows in front
