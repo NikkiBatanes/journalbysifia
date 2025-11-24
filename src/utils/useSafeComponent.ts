@@ -49,7 +49,7 @@ export const useSafeIntervals = (namespace: string): { setInterval: (id: string,
 
   const setInterval = useCallback((id: string, callback: () => void, delay: number): NodeJS.Timeout => {
     const fullId = `${namespace}_${id}`;
-    
+
     // Clear existing interval if any
     const existing = intervalsRef.current.get(fullId);
     if (existing) {
@@ -84,7 +84,7 @@ export const useSafeIntervals = (namespace: string): { setInterval: (id: string,
   }, [namespace]);
 
   const clearIntervalAll = useCallback((): void => {
-    for (const [fullId, interval] of intervalsRef.current) {
+    for (const [_fullId, interval] of intervalsRef.current) {
       global.clearInterval(interval);
     }
     intervalsRef.current.clear();
@@ -108,7 +108,7 @@ export const useSafeAsync = (namespace: string): { createOperation: (id: string)
 
   const createOperation = useCallback((id: string): AbortController => {
     const fullId = `${namespace}_${id}`;
-    
+
     // Abort existing operation if any
     const existing = operationsRef.current.get(fullId);
     if (existing) {
@@ -130,7 +130,7 @@ export const useSafeAsync = (namespace: string): { createOperation: (id: string)
   }, [namespace]);
 
   const abortAllOperations = useCallback((): void => {
-    for (const [fullId, controller] of operationsRef.current) {
+    for (const [_fullId, controller] of operationsRef.current) {
       controller.abort();
     }
     operationsRef.current.clear();

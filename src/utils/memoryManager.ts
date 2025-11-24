@@ -17,7 +17,7 @@ export class MemoryManager {
   static setTimeout(id: string, callback: () => void, delay: number): NodeJS.Timeout {
     // Clear any existing timer with this ID
     this.clearTimeout(id);
-    
+
     const timer = setTimeout(() => {
       try {
         callback();
@@ -27,7 +27,7 @@ export class MemoryManager {
         this.timers.delete(id);
       }
     }, delay);
-    
+
     this.timers.set(id, timer);
     return timer;
   }
@@ -49,7 +49,7 @@ export class MemoryManager {
   static createAbortController(id: string): AbortController {
     // Abort any existing controller with this ID
     this.abortController(id);
-    
+
     const controller = new AbortController();
     this.abortControllers.set(id, controller);
     return controller;
@@ -124,20 +124,20 @@ export class MemoryManager {
    */
   static cleanupAll(): void {
     // Clear all timers
-    for (const [id, timer] of this.timers.entries()) {
+    for (const [_id, timer] of this.timers.entries()) {
       clearTimeout(timer);
     }
     this.timers.clear();
 
     // Abort all operations
-    for (const [id, controller] of this.abortControllers.entries()) {
+    for (const [_id, controller] of this.abortControllers.entries()) {
       controller.abort();
     }
     this.abortControllers.clear();
 
     // Execute all cleanup callbacks
-    for (const [id] of this.cleanupCallbacks.entries()) {
-      this.executeCleanup(id);
+    for (const [_id] of this.cleanupCallbacks.entries()) {
+      this.executeCleanup(_id);
     }
 
     Logger.debug('🧹 Cleaned up all resources', { component: 'MemoryManager' });
@@ -183,12 +183,12 @@ export const useSafeTimeout = () => {
   }, []);
 
   useEffect(() => {
+    const currentTimers = timersRef.current;
     return () => {
       // Clear all timers created by this hook instance
-      for (const id of timersRef.current) {
+      for (const id of currentTimers) {
         MemoryManager.clearTimeout(id);
       }
-      timersRef.current.clear();
     };
   }, []);
 

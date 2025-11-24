@@ -107,7 +107,7 @@ export const setSentryUser = (userId: string, email?: string) => {
     Logger.debug('[Sentry] Sentry not available - skipping user context', { component: 'sentry' });
     return;
   }
-  
+
   Sentry.setUser({
     id: userId,
     // Don't include email in production for privacy
@@ -121,7 +121,7 @@ export const clearSentryUser = () => {
     Logger.debug('[Sentry] Sentry not available - skipping user context clear', { component: 'sentry' });
     return;
   }
-  
+
   Sentry.setUser(null);
 };
 
@@ -131,7 +131,7 @@ export const addSentryBreadcrumb = (message: string, category: string, data?: Re
     Logger.debug('[Sentry] Sentry not available - skipping breadcrumb', { component: 'sentry' });
     return;
   }
-  
+
   Sentry.addBreadcrumb({
     message,
     category,
@@ -147,7 +147,7 @@ export const captureSentryException = (error: Error, context?: Record<string, an
     Logger.error('Unhandled error (Sentry unavailable)', error, { component: 'sentry' });
     return;
   }
-  
+
   Sentry.captureException(error, {
     contexts: {
       custom: context,
@@ -162,7 +162,7 @@ export const captureSentryMessage = (message: string, level: Sentry.SeverityLeve
     Logger.info(`[Sentry Message] ${message}`, { component: 'sentry' });
     return;
   }
-  
+
   Sentry.captureMessage(message, level);
 };
 
@@ -172,7 +172,7 @@ export const startSentrySpan = (name: string, op: string, callback: () => void |
     Logger.debug('[Sentry] Sentry not available - executing callback without span', { component: 'sentry' });
     return callback();
   }
-  
+
   return Sentry.startSpan(
     {
       name,

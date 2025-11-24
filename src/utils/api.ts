@@ -124,7 +124,7 @@ export const useApi = () => {
         // Wait before retry with abortable timeout
         await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(resolve, Math.pow(2, currentRetries) * 1000);
-          
+
           // Cleanup timeout if operation is aborted
           abortController.signal.addEventListener('abort', () => {
             clearTimeout(timeoutId);
@@ -147,7 +147,7 @@ export const useApi = () => {
       // Always cleanup the AbortController
       MemoryManager.abortController(`${namespace}_${operationId}`);
     }
-  }, [session, signOut]);
+  }, [session, signOut, namespace]);
 
   // Simplified fetch for non-authenticated requests
   const simpleFetch = useCallback(async (
