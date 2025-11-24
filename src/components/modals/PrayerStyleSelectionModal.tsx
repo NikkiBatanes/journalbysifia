@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { X, Check } from 'lucide-react-native'; // Unused
 import { Colors } from '../../theme/colors';
@@ -94,10 +94,6 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
       triggerSelectionHaptic();
     }
     onSelectPrayerType(type);
-    setTimeout(() => {
-      textInputRef.current?.focus();
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
   }, [selectedPrayerType, onSelectPrayerType]);
 
   // Handle tab change and align selected type
@@ -116,10 +112,6 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
     } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
       onSelectPrayerType('adoration');
     }
-    setTimeout(() => {
-      textInputRef.current?.focus();
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
   }, [selectedPrayerType, onSelectPrayerType]);
 
   // Filter prayer types by method
@@ -185,7 +177,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           <TouchableOpacity
             onPress={() => {
               Keyboard.dismiss();
-              setTimeout(() => onCancel(), 50);
+              onCancel();
             }}
             accessibilityRole="button"
             accessibilityLabel="Cancel"
@@ -200,7 +192,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           <TouchableOpacity
             onPress={() => {
               Keyboard.dismiss();
-              setTimeout(() => onSave(), 50);
+              onSave();
             }}
             disabled={!prayerText.trim() || isSaving}
             accessibilityRole="button"
@@ -215,13 +207,14 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={0}
         >
-          <ScrollView
-            ref={scrollViewRef}
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
+          <Pressable style={styles.pressableContainer}>
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="always"
+            >
           {/* Tabs */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
@@ -328,6 +321,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </View>
 
         </ScrollView>
+        </Pressable>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -355,6 +349,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   keyboardContainer: {
+    flex: 1,
+  },
+  pressableContainer: {
     flex: 1,
   },
   headerTitle: {
