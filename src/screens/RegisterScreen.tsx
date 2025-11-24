@@ -209,6 +209,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             error ? styles.illustrationContainerCompressed : null,
             // On small phones, make the illustration a bit shorter and tighten vertical margins
             isSmallPhone && styles.illustrationContainerSmallPhone,
+            // Move up Lottie animation in landscape mode
+            isLandscape && styles.illustrationContainerLandscape,
           ]}
         >
           <LottieView
@@ -404,6 +406,9 @@ const styles = StyleSheet.create({
   illustrationContainerSmallPhone: {
     height: 240,
     marginVertical: 12,
+  },
+  illustrationContainerLandscape: {
+    marginVertical: -60, // Negative margin to move Lottie animation even higher in landscape
   },
   buttonContainer: {
     width: '100%',
