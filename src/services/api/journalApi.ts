@@ -202,16 +202,28 @@ export class JournalApi {
 
   // Delete a journal entry
   static async deleteJournalEntry(id: string): Promise<void> {
-    const { error } = await supabase
+    console.log('API DELETE: Attempting to delete journal entry:', id);
+
+    const { error, data } = await supabase
       .from('journal_entries')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select(); // Add select to see what was deleted
+
+    console.log('API DELETE: Response:', { error, data, deletedCount: data?.length });
 
     if (error) {
+      console.error('API DELETE: Failed with error:', error);
       Logger.error('Error deleting journal entry', error as Error, {
       component: 'journalApi',
     });
       throw new Error(`Failed to delete journal entry: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('API DELETE: No rows deleted - entry may not exist:', id);
+    } else {
+      console.log('API DELETE: Successfully deleted entry:', id);
     }
   }
 
