@@ -1,7 +1,7 @@
 {
   "name": "siFia",
   "displayName": "siFia",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "orientation": "portrait",
   "icon": "./assets/images/siFiaAppIcon.png",
   "splash": {
@@ -11,16 +11,16 @@
   },
   "ios": {
     "supportsTablet": true,
-    "bundleIdentifier": "com.sifiaopc.app",
-    "buildNumber": "1.1.0"
+    "bundleIdentifier": "app.sifia.com",
+    "buildNumber": "3"
   },
   "android": {
     "adaptiveIcon": {
       "foregroundImage": "./assets/images/siFiaAppIcon.png",
       "backgroundColor": "#1A3C6D"
     },
-    "package": "com.sifiaopc.app",
-    "versionCode": 2
+    "package": "app.sifia.com",
+    "versionCode": 3
   },
   "extra": {
     "eas": {

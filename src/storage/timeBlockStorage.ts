@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
+import { parseStorageValue } from '../utils/safeJsonParse';
 import { supabase } from '../services/supabaseClient';
 import { toLocalDateString } from '../utils/date';
 
@@ -63,7 +64,7 @@ export const getLocalTimeBlocks = async (
   try {
     const key = getTimeBlockKey(userId, date);
     const data = await AsyncStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
+    return parseStorageValue<TimeBlockEntry[]>(data, []);
   } catch (error) {
     Logger.error('Error getting time blocks from local storage', error as Error, {
       component: 'timeBlockStorage',

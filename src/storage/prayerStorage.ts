@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
+import { parseStorageValue } from '../utils/safeJsonParse';
 import { supabase } from '../services/supabaseClient';
 import { toLocalDateString } from '../utils/date';
 import { streakTrackingService } from '../services/streakTrackingService';
@@ -110,7 +111,7 @@ export const getLocalPrayers = async (
   try {
     const key = getPrayerStorageKey(userId, date);
     const data = await AsyncStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
+    return parseStorageValue<PrayerEntry[]>(data, []);
   } catch (error) {
     Logger.error('Error loading prayers from local storage', error as Error, {
       component: 'prayerStorage',

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeJsonParse } from '../utils/safeJsonParse';
 
 const USERNAME_KEY = 'user_name';
 
@@ -29,7 +30,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     AsyncStorage.getItem('@supabase_session').then((sessionStr) => {
       if (sessionStr) {
         try {
-          const session = JSON.parse(sessionStr);
+          const session = safeJsonParse<{user?: {id?: string}; user_id?: string}>(sessionStr, {
+            fallback: null,
+            context: 'UserContext:session',
+          });
           // Supabase session user id may be at session.user.id or session.user?.id
           const userId = session?.user?.id || session?.user_id || null;
           setIdState(userId);

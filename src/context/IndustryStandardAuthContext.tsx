@@ -1,3 +1,4 @@
+import { safeJsonParse } from '../utils/safeJsonParse';
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError as SupabaseAuthError } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
@@ -313,7 +314,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                 if (isSocialAuth) {
                   // Check if login flow flag is already set (from signInWithGoogle/signInWithApple)
                   const existingRedirectRaw = await AsyncStorage.getItem('post_auth_redirect');
-                  const existingRedirect = existingRedirectRaw ? JSON.parse(existingRedirectRaw) : null;
+                  const existingRedirect = safeJsonParse<{is_login_flow?: boolean}>(existingRedirectRaw, {
+                    fallback: null,
+                    context: 'IndustryStandardAuthContext:socialAuth',
+                  });
                   const isLoginFlow = existingRedirect?.is_login_flow === true;
 
                   if (isLoginFlow) {
@@ -423,7 +427,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   // Regular email/password auth - check if login flow flag is already set
                   // If it is, don't overwrite it (signIn already set it with is_login_flow: true)
                   const existingRedirectRaw = await AsyncStorage.getItem('post_auth_redirect');
-                  const existingRedirect = existingRedirectRaw ? JSON.parse(existingRedirectRaw) : null;
+                  const existingRedirect = safeJsonParse<{is_login_flow?: boolean}>(existingRedirectRaw, {
+                    fallback: null,
+                    context: 'IndustryStandardAuthContext:emailAuth',
+                  });
                   const isLoginFlow = existingRedirect?.is_login_flow === true;
 
                   if (isLoginFlow) {
@@ -1154,10 +1161,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
 
-        const googleUser = JSON.parse(jsonPayload);
+        const googleUser = safeJsonParse<{name?: string; email?: string}>(jsonPayload, {
+          fallback: {name: '', email: ''},
+          context: 'IndustryStandardAuthContext:googleSignIn',
+        });
 
         // Check if we need to collect additional user info
-        const needsNameCollection = !googleUser.name || googleUser.name.trim().length === 0;
+        const needsNameCollection = !googleUser?.name || googleUser.name.trim().length === 0;
 
         // userData object removed - was defined but never used
         // If name is missing or incomplete, we'll handle it after auth
@@ -1223,25 +1233,28 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
-        const googleUser = JSON.parse(jsonPayload);
+        const googleUser = safeJsonParse<{name?: string; email?: string; given_name?: string; family_name?: string}>(jsonPayload, {
+          fallback: {name: '', email: '', given_name: '', family_name: ''},
+          context: 'IndustryStandardAuthContext:googleRegister',
+        });
 
         // Debug logging to identify name parsing issues
         Logger.debug('Google OAuth user data', {
           component: 'AuthContext',
           action: 'google_name_parsing',
-          googleName: googleUser.name,
-          givenName: googleUser.given_name,
-          familyName: googleUser.family_name,
+          googleName: googleUser?.name,
+          givenName: googleUser?.given_name,
+          familyName: googleUser?.family_name,
         });
 
         // Split full name into first and last name
         let firstName = '';
         let lastName = '';
-        if (googleUser.given_name && googleUser.family_name) {
+        if (googleUser?.given_name && googleUser?.family_name) {
           // Google provides separate first and last names - use these directly
           firstName = googleUser.given_name.trim();
           lastName = googleUser.family_name.trim();
-        } else if (googleUser.name) {
+        } else if (googleUser?.name) {
           // Split the full name properly
           const nameParts = googleUser.name.trim().split(/\s+/);
           if (nameParts.length === 1) {
@@ -1265,7 +1278,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           action: 'google_name_parsed',
           firstName,
           lastName,
-          fullName: googleUser.name,
+          fullName: googleUser?.name,
         });
 
         // Update user metadata with Google name and clear avatar URLs
@@ -1274,7 +1287,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             ...currentUser.data.user.user_metadata,
             first_name: firstName,
             last_name: lastName,
-            full_name: googleUser.name || '',
+            full_name: googleUser?.name || '',
             // Clear avatar URLs to use our custom avatar system
             avatar_url: undefined,
             picture: undefined,

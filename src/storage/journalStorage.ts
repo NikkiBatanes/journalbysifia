@@ -11,6 +11,7 @@ import { supabase } from '../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { Logger } from '../utils/ProductionLogger';
+import { safeJsonParse, parseStorageValue } from '../utils/safeJsonParse';
 import { streakTrackingService } from '../services/streakTrackingService';
 
 // Storage keys for journal entries
@@ -159,11 +160,7 @@ export const getLocalTimeBlocksForDate = async (
   const key = `time_blocks_${userId}_${date}`;
   const raw = await AsyncStorage.getItem(key);
   if (!raw) {return [];}
-  try {
-    return JSON.parse(raw) as TimeBlockEntry[];
-  } catch {
-    return [];
-  }
+  return parseStorageValue<TimeBlockEntry[]>(raw, []);
 };
 
 // Save a time block entry to AsyncStorage with version checking
@@ -192,11 +189,7 @@ export const saveLocalTimeBlock = async (
 export const getLocalTimeBlock = async (key: string): Promise<TimeBlockEntry | null> => {
   const raw = await AsyncStorage.getItem(key);
   if (!raw) {return null;}
-  try {
-    return JSON.parse(raw) as TimeBlockEntry;
-  } catch {
-    return null;
-  }
+  return parseStorageValue<TimeBlockEntry | null>(raw, null);
 };
 
 export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, 'id'|'created_at'|'updated_at'>, userId: string): Promise<JournalEntryBase> => {
@@ -280,7 +273,7 @@ export const getLocalEntry = async (key: string): Promise<JournalEntryBase | nul
 
   const value = await AsyncStorage.getItem(key);
 
-  return value ? JSON.parse(value) : null;
+  return parseStorageValue(value, null);
 };
 
 export const getLocalEntriesForDate = async (date: string, contentType: string, userId: string) => {
@@ -604,9 +597,12 @@ export const getValidSession = async (): Promise<SupabaseSession | null> => {
       if (storedSession) {
         try {
 
-          const parsedSession = JSON.parse(storedSession);
+          const parsedSession = safeJsonParse<{access_token?: string; refresh_token?: string}>(storedSession, {
+            fallback: undefined,
+            context: 'journalStorage:session',
+          });
 
-          if (!parsedSession.access_token) {
+          if (!parsedSession || !parsedSession.access_token) {
             throw new Error('No access token in stored session');
           }
 

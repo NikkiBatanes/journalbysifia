@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
+import { safeJsonParse } from '../utils/safeJsonParse';
 import { supabase } from '../services/supabaseClient';
 import { checkSession } from './journalStorage';
 
@@ -113,7 +114,11 @@ export const getLocalReflectionEntry = async (key: string): Promise<ReflectionSt
     const data = await AsyncStorage.getItem(key);
     if (!data) {return null;}
 
-    const parsed = JSON.parse(data);
+    const parsed = safeJsonParse<ReflectionStorageEntry>(data, {
+      fallback: null,
+      context: 'reflectionStorage:getReflection',
+    });
+    if (!parsed) {return null;}
     // Convert date strings back to Date objects for entries
     if (parsed.content?.entries) {
       parsed.content.entries = parsed.content.entries.map((entry: any) => ({

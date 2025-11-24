@@ -41,6 +41,8 @@
 	<string>This app may save images to your photo library when updating your profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to let you choose a profile picture.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>siFia sends you helpful reminders for your daily devotionals, prayer requests, and spiritual practices to support your faith journey.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Lexend-Regular.ttf</string>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { Logger } from '../utils/ProductionLogger';
+import { safeJsonParse } from '../utils/safeJsonParse';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../services/supabaseClient';
 
@@ -77,7 +78,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (savedToken && savedRefresh && savedUser) {
           setAccessToken(savedToken);
           setRefreshToken(savedRefresh);
-          setUser(JSON.parse(savedUser));
+          const parsedUser = safeJsonParse<User>(savedUser, {
+            fallback: null,
+            context: 'AuthContext:loadAuth',
+          });
+          if (parsedUser) {
+            setUser(parsedUser);
+          }
           setIsAuthenticated(true);
           // After loading, validate session
           validateSession(savedToken);

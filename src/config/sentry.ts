@@ -24,12 +24,6 @@ export const initializeSentry = () => {
     return;
   }
 
-  // Skip in development unless explicitly enabled
-  if (__DEV__ && process.env.NODE_ENV !== 'test') {
-    Logger.debug('[Sentry] Skipping initialization in development mode', { component: 'sentry' });
-    return;
-  }
-
   Sentry.init({
     // Use environment variable for DSN
     dsn: ENV.SENTRY_DSN,
@@ -50,17 +44,26 @@ export const initializeSentry = () => {
     // Environment
     environment: __DEV__ ? 'development' : 'production',
 
-    // Release version - TODO: Update with actual version from package.json
-    release: 'siFia@1.0.0',
+    // Release version
+    release: 'siFia@1.2.0',
 
     // Distribution
-    dist: '1',
+    dist: '3',
+
+    // Send PII for better debugging (disable in production if needed)
+    sendDefaultPii: !__DEV__,
+
+    // Enable Logs
+    enableLogs: true,
+
+    // Configure Session Replay
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
 
     // Integrations - using current Sentry SDK API
     integrations: [
-      // React Navigation integration for performance tracking
-      // Uncomment and configure when you set up navigation instrumentation:
-      // Sentry.reactNavigationIntegration(),
+      Sentry.mobileReplayIntegration(),
+      Sentry.feedbackIntegration(),
     ],
 
     // Before send hook - filter sensitive data
@@ -95,6 +98,18 @@ export const initializeSentry = () => {
       // Common mobile errors
       'Aborted',
       'cancelled',
+
+      // WebSocket/Supabase errors that cause NSInternalInconsistencyException
+      'RCTCallableJSModules is not set',
+      'websocketClosed',
+      'WebSocket connection closed',
+      'RCTWebSocketModule',
+      'NSInternalInconsistencyException',
+
+      // Supabase realtime errors
+      'realtime subscription error',
+      'subscription already closed',
+      'channel already closed',
     ],
   });
 

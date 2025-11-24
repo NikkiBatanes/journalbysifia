@@ -79,29 +79,12 @@ function App(): React.JSX.Element {
 
 import {useAuth} from './src/context/IndustryStandardAuthContext';
 import {useNotificationSetup} from './src/utils/notificationSetup';
+import {initializeSentry} from './src/config/sentry';
 import * as Sentry from '@sentry/react-native';
+import { realtimeManager } from './src/utils/supabaseRealtimeManager';
 
-Sentry.init({
-  dsn: 'https://c36993548b8e2050ac3bbd2b89e12539@o4510417997332490.ingest.us.sentry.io/4510417998970880',
-
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
-
-  // Enable Logs
-  enableLogs: true,
-
-  // Configure Session Replay
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1,
-  integrations: [
-    Sentry.mobileReplayIntegration(),
-    Sentry.feedbackIntegration(),
-  ],
-
-  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
-  // spotlight: __DEV__,
-});
+// Initialize Sentry with proper configuration from environment variables
+initializeSentry();
 
 function AppWithAuth({
   fontsLoaded,
@@ -171,7 +154,9 @@ function AppWithAuth({
 
   useEffect(() => {
     // Initialize app-level services
-    console.log(' siFia App initialized');
+    if (__DEV__) {
+      console.log(' siFia App initialized');
+    }
 
     // ENTERPRISE: Sync subscription status on app launch
     const syncSubscriptionStatus = async () => {
@@ -181,10 +166,14 @@ function AppWithAuth({
             './src/services/AppleStoreKitService'
           );
 
-          console.log('[App] Syncing subscription status on launch...');
+          if (__DEV__) {
+            console.log('[App] Syncing subscription status on launch...');
+          }
           const storeKit = AppleStoreKitService.getInstance();
           await storeKit.checkAndSyncSubscriptionStatus(user.id);
-          console.log('[App] Subscription status synced');
+          if (__DEV__) {
+            console.log('[App] Subscription status synced');
+          }
         } catch (error) {
           console.error('[App] Failed to sync subscription status:', error);
         }
@@ -209,12 +198,26 @@ function AppWithAuth({
             const storeKit = AppleStoreKitService.getInstance();
             await storeKit.checkAndSyncSubscriptionStatus(user.id);
           } catch (error) {
-            console.error(
-              '[App] Failed to sync subscription status on foreground:',
-              error,
-            );
+            if (__DEV__) {
+              console.error(
+                '[App] Failed to sync subscription status on foreground:',
+                error,
+              );
+            }
           }
         })();
+      } else if (nextState === 'background') {
+        // Clean up WebSocket connections to prevent NSInternalInconsistencyException
+        try {
+          realtimeManager.cleanupAllSubscriptions();
+          if (__DEV__) {
+            console.log('[App] Cleaned up WebSocket subscriptions on background');
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.error('[App] Error cleaning up subscriptions:', error);
+          }
+        }
       }
     };
 
@@ -225,6 +228,17 @@ function AppWithAuth({
 
     return () => {
       subscription.remove();
+      // Clean up WebSocket connections on unmount
+      try {
+        realtimeManager.cleanupAllSubscriptions();
+        if (__DEV__) {
+          console.log('[App] Cleaned up WebSocket subscriptions on unmount');
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('[App] Error cleaning up subscriptions on unmount:', error);
+        }
+      }
     };
   }, [isAuthenticated, user?.id]);
 

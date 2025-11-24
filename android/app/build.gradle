@@ -78,13 +78,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.anchoredapp"
+    namespace "app.sifia.com"
     defaultConfig {
-        applicationId "com.anchoredapp"
+        applicationId "app.sifia.com"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.2.0"
     }
     signingConfigs {
         debug {
