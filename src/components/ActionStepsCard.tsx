@@ -154,10 +154,14 @@ export default function ActionStepsCard({
 
   const completionAnim = React.useRef<Record<string, Animated.Value>>({});
 
-  // Query for existing reflection when a subtask is selected
+  // Query for existing reflection when a subtask is selected (but not for example subtasks)
+  const subtaskId = selectedSubtask?.subTask?.id ?? '';
+  const isExampleSubtask = selectedSubtask?.subTask?.isExample || selectedSubtask?.subTask?.is_example ||
+    (subtaskId && subtaskId.startsWith('example-'));
+
   const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
     user?.id || '',
-    selectedSubtask?.subTask?.id ?? ''
+    isExampleSubtask ? '' : subtaskId // Pass empty string for example subtasks to prevent API call
   );
 
   // Toggle simplified insight for a specific step
@@ -356,6 +360,11 @@ export default function ActionStepsCard({
     // Handle reflection type with modal
     if (journalType === 'reflection') {
 
+      // Check if this is an example subtask (synthetic subtask from examples)
+      // Example subtasks have IDs that don't exist in the database, so we skip prefetch
+      const isExampleSubtaskForReflection = subTask.isExample || subTask.is_example ||
+        (subTask.id && subTask.id.startsWith('example-'));
+
       // Prefetch reflection data and wait for it to complete before opening modal
       const openModal = async () => {
         // Protect against logout during operation
@@ -363,7 +372,8 @@ export default function ActionStepsCard({
           (globalThis as any).authMonitor.startOperation();
         }
 
-        if (user?.id && subTask.id) {
+        // Only prefetch for non-example subtasks that have valid IDs
+        if (!isExampleSubtaskForReflection && user?.id && subTask.id) {
 
           try {
             await queryClient.prefetchQuery({
