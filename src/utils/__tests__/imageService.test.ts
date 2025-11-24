@@ -16,10 +16,10 @@ const imageService = {
   },
 
   cropImage: async (
-    imageData: string, 
-    x: number, 
-    y: number, 
-    width: number, 
+    imageData: string,
+    x: number,
+    y: number,
+    width: number,
     height: number
   ): Promise<string> => {
     // Mock implementation - in real app this would crop image
@@ -37,8 +37,8 @@ const imageService = {
   },
 
   addWatermark: async (
-    imageData: string, 
-    watermarkText: string, 
+    imageData: string,
+    watermarkText: string,
     options?: {
       position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
       opacity?: number;
@@ -51,9 +51,9 @@ const imageService = {
       opacity: 0.5,
       fontSize: 16,
       color: '#ffffff',
-      ...options
+      ...options,
     };
-    
+
     return `watermarked_${watermarkText}_${opts.position}_${opts.opacity}_${imageData}`;
   },
 
@@ -77,12 +77,12 @@ const imageService = {
       format: 'jpeg',
       size: imageData.length,
       colorSpace: 'RGB',
-      hasAlpha: false
+      hasAlpha: false,
     };
   },
 
   generateThumbnail: async (
-    imageData: string, 
+    imageData: string,
     size: number = 150,
     quality: number = 0.8
   ): Promise<string> => {
@@ -91,7 +91,7 @@ const imageService = {
   },
 
   applyFilter: async (
-    imageData: string, 
+    imageData: string,
     filterType: 'grayscale' | 'sepia' | 'blur' | 'sharpen' | 'brightness' | 'contrast',
     intensity?: number
   ): Promise<string> => {
@@ -111,7 +111,7 @@ const imageService = {
     const params = Object.entries(adjustments)
       .map(([key, value]) => `${key}_${value}`)
       .join('_');
-    
+
     return `adjusted_${params}_${imageData}`;
   },
 
@@ -130,7 +130,7 @@ const imageService = {
     // Mock implementation - in real app this would use face detection
     return [
       { x: 100, y: 100, width: 150, height: 150, confidence: 0.95 },
-      { x: 300, y: 200, width: 120, height: 120, confidence: 0.87 }
+      { x: 300, y: 200, width: 120, height: 120, confidence: 0.87 },
     ];
   },
 
@@ -145,7 +145,7 @@ const imageService = {
       { hex: '#4ECDC4', rgb: { r: 78, g: 205, b: 196 }, percentage: 25 },
       { hex: '#45B7D1', rgb: { r: 69, g: 183, b: 209 }, percentage: 20 },
       { hex: '#96CEB4', rgb: { r: 150, g: 206, b: 180 }, percentage: 15 },
-      { hex: '#FFEAA7', rgb: { r: 255, g: 234, b: 167 }, percentage: 5 }
+      { hex: '#FFEAA7', rgb: { r: 255, g: 234, b: 167 }, percentage: 5 },
     ];
   },
 
@@ -165,7 +165,7 @@ const imageService = {
       maxHeight: 1080,
       quality: 0.8,
       format: 'jpeg' as const,
-      ...options
+      ...options,
     };
 
     const originalSize = imageData.length;
@@ -176,7 +176,7 @@ const imageService = {
       optimizedData: `optimized_${opts.format}_${opts.quality}_${imageData}`,
       originalSize,
       optimizedSize,
-      compressionRatio
+      compressionRatio,
     };
   },
 
@@ -189,14 +189,14 @@ const imageService = {
       borderRadius?: number;
     }
   ): Promise<string> => {
-    const opts = {
+    const _opts = {
       spacing: 10,
       backgroundColor: '#ffffff',
       borderRadius: 0,
-      ...options
+      ...options,
     };
 
-    return `collage_${layout}_${images.length}_images_${imageData}`;
+    return `collage_${layout}_${images.length}_images_${images[0] || 'empty'}`;
   },
 
   addFrame: async (
@@ -209,7 +209,7 @@ const imageService = {
   ): Promise<string> => {
     const { width, color, style } = frameOptions;
     return `framed_${width}px_${color}_${style}_${imageData}`;
-  }
+  },
 };
 
 describe('imageService', () => {
@@ -231,7 +231,7 @@ describe('imageService', () => {
         { width: 100, height: 100 },
         { width: 1920, height: 1080 },
         { width: 500, height: 300 },
-        { width: 1024, height: 768 }
+        { width: 1024, height: 768 },
       ];
 
       for (const { width, height } of testCases) {
@@ -283,7 +283,7 @@ describe('imageService', () => {
 
     it('should handle edge quality values', async () => {
       const imageData = 'base64_image_data';
-      
+
       const minQuality = await imageService.compressImage(imageData, 0);
       expect(minQuality).toBe('compressed_0_base64_image_data');
 
@@ -310,7 +310,7 @@ describe('imageService', () => {
       const testCases = [
         { x: 0, y: 0, width: 100, height: 100 },
         { x: 50, y: 25, width: 300, height: 200 },
-        { x: 200, y: 150, width: 400, height: 300 }
+        { x: 200, y: 150, width: 400, height: 300 },
       ];
 
       for (const { x, y, width, height } of testCases) {
@@ -382,7 +382,7 @@ describe('imageService', () => {
   describe('addWatermark', () => {
     it('should add watermark with default options', async () => {
       const imageData = 'base64_image_data';
-      const watermarkText = '© 2024';
+      const watermarkText = ' 2024';
 
       const result = await imageService.addWatermark(imageData, watermarkText);
 
@@ -396,7 +396,7 @@ describe('imageService', () => {
         position: 'top-left' as const,
         opacity: 0.8,
         fontSize: 20,
-        color: '#ff0000'
+        color: '#ff0000',
       };
 
       const result = await imageService.addWatermark(imageData, watermarkText, options);
@@ -417,7 +417,7 @@ describe('imageService', () => {
 
     it('should handle special characters in watermark text', async () => {
       const imageData = 'base64_image_data';
-      const watermarkText = '© ™ ® ★ ☆';
+      const watermarkText = '  ™ ® ★ ☆';
 
       const result = await imageService.addWatermark(imageData, watermarkText);
       expect(result).toBe(`watermarked_${watermarkText}_bottom-right_0.5_${imageData}`);
@@ -465,7 +465,7 @@ describe('imageService', () => {
         format: 'jpeg',
         size: imageData.length,
         colorSpace: 'RGB',
-        hasAlpha: false
+        hasAlpha: false,
       });
     });
 
@@ -589,7 +589,7 @@ describe('imageService', () => {
         brightness: 1.2,
         contrast: 1.1,
         saturation: 0.9,
-        hue: 0.1
+        hue: 0.1,
       };
 
       const result = await imageService.adjustImageProperties(imageData, adjustments);
@@ -629,7 +629,7 @@ describe('imageService', () => {
       const imageDataTypes = [
         'jpeg_base64_data',
         'png_base64_data',
-        'webp_base64_data'
+        'webp_base64_data',
       ];
 
       for (const imageData of imageDataTypes) {
@@ -651,14 +651,14 @@ describe('imageService', () => {
         y: 100,
         width: 150,
         height: 150,
-        confidence: 0.95
+        confidence: 0.95,
       });
       expect(result[1]).toEqual({
         x: 300,
         y: 200,
         width: 120,
         height: 120,
-        confidence: 0.87
+        confidence: 0.87,
       });
     });
 
@@ -688,17 +688,17 @@ describe('imageService', () => {
       expect(result[0]).toEqual({
         hex: '#FF6B6B',
         rgb: { r: 255, g: 107, b: 107 },
-        percentage: 35
+        percentage: 35,
       });
     });
 
     it('should extract custom number of colors', async () => {
       const imageData = 'base64_image_data';
-      const count = 3;
+      const _count = 3;
 
-      const result = await imageService.extractColors(imageData, count);
+      const result = await imageService.extractColors(imageData, _count);
 
-      expect(result).toHaveLength(count);
+      expect(result).toHaveLength(_count);
     });
 
     it('should return color objects with correct structure', async () => {
@@ -737,7 +737,7 @@ describe('imageService', () => {
         maxWidth: 1024,
         maxHeight: 768,
         quality: 0.6,
-        format: 'webp' as const
+        format: 'webp' as const,
       };
 
       const result = await imageService.optimizeForWeb(imageData, options);
@@ -767,7 +767,7 @@ describe('imageService', () => {
 
       const result = await imageService.createCollage(images, layout);
 
-      expect(result).toBe(`collage_${layout}_${images.length}_images_img1`);
+      expect(result).toBe(`collage_${layout}_${images.length}_images_${images[0] || 'empty'}`);
     });
 
     it('should create collage with custom options', async () => {
@@ -776,12 +776,12 @@ describe('imageService', () => {
       const options = {
         spacing: 20,
         backgroundColor: '#000000',
-        borderRadius: 5
+        borderRadius: 5,
       };
 
       const result = await imageService.createCollage(images, layout, options);
 
-      expect(result).toBe(`collage_${layout}_${images.length}_images_img1`);
+      expect(result).toBe(`collage_${layout}_${images.length}_images_${images[0] || 'empty'}`);
     });
 
     it('should handle different layouts', async () => {
@@ -790,7 +790,7 @@ describe('imageService', () => {
 
       for (const layout of layouts) {
         const result = await imageService.createCollage(images, layout);
-        expect(result).toBe(`collage_${layout}_${images.length}_images_img1`);
+        expect(result).toBe(`collage_${layout}_${images.length}_images_${images[0] || 'empty'}`);
       }
     });
 
@@ -800,7 +800,7 @@ describe('imageService', () => {
 
       const result = await imageService.createCollage(images, layout);
 
-      expect(result).toBe('collage_grid_0_images_img1');
+      expect(result).toBe('collage_grid_0_images_empty');
     });
   });
 
@@ -810,7 +810,7 @@ describe('imageService', () => {
       const frameOptions = {
         width: 10,
         color: '#000000',
-        style: 'solid' as const
+        style: 'solid' as const,
       };
 
       const result = await imageService.addFrame(imageData, frameOptions);
@@ -835,7 +835,7 @@ describe('imageService', () => {
         { width: 1, color: '#ff0000' },
         { width: 5, color: '#00ff00' },
         { width: 10, color: '#0000ff' },
-        { width: 20, color: '#ffffff' }
+        { width: 20, color: '#ffffff' },
       ];
 
       for (const frameOptions of testCases) {
@@ -879,7 +879,7 @@ describe('imageService', () => {
   describe('concurrent operations', () => {
     it('should handle multiple concurrent image operations', async () => {
       const imageData = 'base64_image_data';
-      const operations = Array.from({ length: 10 }, (_, i) => 
+      const operations = Array.from({ length: 10 }, (_, i) =>
         imageService.resizeImage(imageData, 100 + i * 10, 100 + i * 10)
       );
 
@@ -898,7 +898,7 @@ describe('imageService', () => {
         imageService.compressImage(imageData, 0.8),
         imageService.cropImage(imageData, 100, 100, 200, 200),
         imageService.rotateImage(imageData, 90),
-        imageService.addWatermark(imageData, 'Test')
+        imageService.addWatermark(imageData, 'Test'),
       ];
 
       const results = await Promise.all(operations);
@@ -914,7 +914,7 @@ describe('imageService', () => {
   describe('performance considerations', () => {
     it('should handle large numbers of image operations efficiently', async () => {
       const imageData = 'base64_image_data';
-      const operations = Array.from({ length: 100 }, (_, i) => 
+      const operations = Array.from({ length: 100 }, (_, i) =>
         imageService.resizeImage(imageData, 100, 100)
       );
 
@@ -928,13 +928,13 @@ describe('imageService', () => {
 
     it('should handle complex image operations efficiently', async () => {
       const imageData = 'base64_image_data';
-      
+
       const startTime = Date.now();
       const result = await imageService.optimizeForWeb(imageData, {
         maxWidth: 1920,
         maxHeight: 1080,
         quality: 0.8,
-        format: 'webp'
+        format: 'webp',
       });
       const endTime = Date.now();
 
@@ -946,24 +946,24 @@ describe('imageService', () => {
   describe('integration scenarios', () => {
     it('should handle complete image processing workflow', async () => {
       const imageData = 'base64_image_data';
-      
+
       // Step 1: Get image info
       const info = await imageService.getImageInfo(imageData);
       expect(info.width).toBe(1920);
       expect(info.height).toBe(1080);
-      
+
       // Step 2: Resize for web
       const resized = await imageService.resizeImage(imageData, 800, 600);
       expect(resized).toBe('resized_800x600_base64_image_data');
-      
+
       // Step 3: Compress
       const compressed = await imageService.compressImage(resized, 0.8);
       expect(compressed).toBe('compressed_0.8_resized_800x600_base64_image_data');
-      
+
       // Step 4: Add watermark
       const watermarked = await imageService.addWatermark(compressed, '© 2024');
       expect(watermarked).toBe('watermarked_© 2024_bottom-right_0.5_compressed_0.8_resized_800x600_base64_image_data');
-      
+
       // Step 5: Generate thumbnail
       const thumbnail = await imageService.generateThumbnail(watermarked, 150, 0.9);
       expect(thumbnail).toBe('thumbnail_150x150_q0.9_watermarked_© 2024_bottom-right_0.5_compressed_0.8_resized_800x600_base64_image_data');
@@ -971,7 +971,7 @@ describe('imageService', () => {
 
     it('should handle batch image processing', async () => {
       const images = ['image1', 'image2', 'image3'];
-      
+
       // Process all images in parallel
       const processedImages = await Promise.all(
         images.map(async (image) => {
@@ -981,7 +981,7 @@ describe('imageService', () => {
           return thumbnail;
         })
       );
-      
+
       expect(processedImages).toHaveLength(3);
       processedImages.forEach((result, index) => {
         expect(result).toBe(`thumbnail_100x100_q0.8_compressed_0.7_resized_400x300_${images[index]}`);
@@ -990,17 +990,17 @@ describe('imageService', () => {
 
     it('should handle image analysis workflow', async () => {
       const imageData = 'base64_image_data';
-      
+
       // Analyze image
       const info = await imageService.getImageInfo(imageData);
       const colors = await imageService.extractColors(imageData);
       const faces = await imageService.detectFaces(imageData);
-      
+
       // Verify analysis results
       expect(info.width).toBe(1920);
       expect(colors).toHaveLength(5);
       expect(faces.length).toBeGreaterThan(0);
-      
+
       // Process based on analysis
       if (faces.length > 0) {
         const cropped = await imageService.cropImage(

@@ -9,7 +9,7 @@ const validationService = {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return {
       isValid: emailRegex.test(email),
-      error: emailRegex.test(email) ? null : 'Invalid email format'
+      error: emailRegex.test(email) ? null : 'Invalid email format',
     };
   },
 
@@ -21,7 +21,7 @@ const validationService = {
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
     const isValid = password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar;
-    
+
     return {
       isValid,
       error: isValid ? null : 'Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters',
@@ -30,8 +30,8 @@ const validationService = {
         hasUpperCase,
         hasLowerCase,
         hasNumbers,
-        hasSpecialChar
-      }
+        hasSpecialChar,
+      },
     };
   },
 
@@ -39,7 +39,7 @@ const validationService = {
     const nameRegex = /^[a-zA-Z\s'-]{2,50}$/;
     return {
       isValid: nameRegex.test(name.trim()),
-      error: nameRegex.test(name.trim()) ? null : 'Name must be 2-50 characters and contain only letters, spaces, hyphens, and apostrophes'
+      error: nameRegex.test(name.trim()) ? null : 'Name must be 2-50 characters and contain only letters, spaces, hyphens, and apostrophes',
     };
   },
 
@@ -47,7 +47,7 @@ const validationService = {
     const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
     return {
       isValid: phoneRegex.test(phone),
-      error: phoneRegex.test(phone) ? null : 'Invalid phone number format'
+      error: phoneRegex.test(phone) ? null : 'Invalid phone number format',
     };
   },
 
@@ -55,7 +55,7 @@ const validationService = {
     const isValid = value !== null && value !== undefined && value !== '';
     return {
       isValid,
-      error: isValid ? null : `${fieldName} is required`
+      error: isValid ? null : `${fieldName} is required`,
     };
   },
 
@@ -63,7 +63,7 @@ const validationService = {
     const isValid = value.length >= minLength;
     return {
       isValid,
-      error: isValid ? null : `Must be at least ${minLength} characters`
+      error: isValid ? null : `Must be at least ${minLength} characters`,
     };
   },
 
@@ -71,7 +71,7 @@ const validationService = {
     const isValid = value.length <= maxLength;
     return {
       isValid,
-      error: isValid ? null : `Must be no more than ${maxLength} characters`
+      error: isValid ? null : `Must be no more than ${maxLength} characters`,
     };
   },
 
@@ -79,7 +79,7 @@ const validationService = {
     const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
     return {
       isValid: urlRegex.test(url),
-      error: urlRegex.test(url) ? null : 'Invalid URL format'
+      error: urlRegex.test(url) ? null : 'Invalid URL format',
     };
   },
 
@@ -88,7 +88,7 @@ const validationService = {
     const isValid = !isNaN(dateObj.getTime());
     return {
       isValid,
-      error: isValid ? null : 'Invalid date format'
+      error: isValid ? null : 'Invalid date format',
     };
   },
 
@@ -103,9 +103,9 @@ const validationService = {
     return {
       isValid,
       error: isValid ? null : `Age must be between ${minAge} and ${maxAge} years`,
-      actualAge
+      actualAge,
     };
-  }
+  },
 };
 
 describe('validationService', () => {
@@ -118,7 +118,7 @@ describe('validationService', () => {
         'user+tag@example.org',
         'user_name@example-domain.com',
         '123@example.com',
-        'test.email.with+symbol@example.com'
+        'test.email.with+symbol@example.com',
       ];
 
       validEmails.forEach(email => {
@@ -139,7 +139,7 @@ describe('validationService', () => {
         'user@domain.',
         'user name@domain.com',
         'user@domain .com',
-        'user@domain,com'
+        'user@domain,com',
       ];
 
       invalidEmails.forEach(email => {
@@ -153,7 +153,7 @@ describe('validationService', () => {
       const edgeCases = [
         'a@b.c', // Minimal valid email
         'very.long.email.address@example-domain.com',
-        'user@subdomain.example.com'
+        'user@subdomain.example.com',
       ];
 
       edgeCases.forEach(email => {
@@ -170,7 +170,7 @@ describe('validationService', () => {
         'Password123!',
         'MySecureP@ssw0rd',
         'Complex#Password123',
-        'Str0ng!P@ssword'
+        'Str0ng!P@ssword',
       ];
 
       strongPasswords.forEach(password => {
@@ -193,7 +193,7 @@ describe('validationService', () => {
         'Password', // No numbers, special chars
         'Password1', // No special chars
         'Pass!', // Too short
-        ''
+        '',
       ];
 
       weakPasswords.forEach(password => {
@@ -224,7 +224,7 @@ describe('validationService', () => {
         'Jean-Luc Picard',
         'Anne Marie',
         'John',
-        'Elizabeth Alexandra Mary Windsor'
+        'Elizabeth Alexandra Mary Windsor',
       ];
 
       validNames.forEach(name => {
@@ -243,7 +243,7 @@ describe('validationService', () => {
         'John@Doe',
         'John_Doe',
         '   ', // Only spaces
-        'John   Doe' // Multiple spaces
+        'John   Doe', // Multiple spaces
       ];
 
       invalidNames.forEach(name => {
@@ -257,7 +257,7 @@ describe('validationService', () => {
       const namesWithSpaces = [
         '  John Doe  ',
         '\tMary Smith\n',
-        '  Anne-Marie  '
+        '  Anne-Marie  ',
       ];
 
       namesWithSpaces.forEach(name => {
@@ -276,7 +276,7 @@ describe('validationService', () => {
         '(123) 456-7890',
         '+1 (123) 456-7890',
         '1234567890',
-        '+44 20 7946 0958'
+        '+44 20 7946 0958',
       ];
 
       validPhones.forEach(phone => {
@@ -293,7 +293,7 @@ describe('validationService', () => {
         'abc',
         '123-abc-7890',
         '(123 456-7890', // Unbalanced parentheses
-        '123 456 7890 123' // Too long with spaces
+        '123 456 7890 123', // Too long with spaces
       ];
 
       invalidPhones.forEach(phone => {
@@ -313,7 +313,7 @@ describe('validationService', () => {
         [],
         {},
         '0',
-        'false'
+        'false',
       ];
 
       validValues.forEach(value => {
@@ -328,7 +328,7 @@ describe('validationService', () => {
         null,
         undefined,
         '',
-        '   ' // This might be considered invalid depending on implementation
+        '   ', // This might be considered invalid depending on implementation
       ];
 
       invalidValues.forEach(value => {
@@ -387,7 +387,7 @@ describe('validationService', () => {
         'https://subdomain.example.com/path',
         'https://example.com/path?query=value',
         'https://example.com:8080/path',
-        'http://localhost:3000'
+        'http://localhost:3000',
       ];
 
       validUrls.forEach(url => {
@@ -406,7 +406,7 @@ describe('validationService', () => {
         'example.com',
         'https://',
         'http://',
-        'https://example'
+        'https://example',
       ];
 
       invalidUrls.forEach(url => {
@@ -425,7 +425,7 @@ describe('validationService', () => {
         '2024-02-29', // Leap year
         '2000-02-29', // Leap year
         '2024-01-15T10:30:00Z',
-        '2024-01-15T10:30:00.000Z'
+        '2024-01-15T10:30:00.000Z',
       ];
 
       validDates.forEach(date => {
@@ -443,7 +443,7 @@ describe('validationService', () => {
         '2024-02-30', // Invalid day
         '2024-01-32', // Invalid day
         '2024-02-29', // Non-leap year
-        '2023-02-29'  // Non-leap year
+        '2023-02-29',  // Non-leap year
       ];
 
       invalidDates.forEach(date => {
@@ -460,7 +460,7 @@ describe('validationService', () => {
       const validBirthDates = [
         new Date(today.getFullYear() - 20, today.getMonth(), today.getDate()).toISOString(), // 20 years old
         new Date(today.getFullYear() - 13, today.getMonth(), today.getDate()).toISOString(), // Exactly 13
-        new Date(today.getFullYear() - 50, today.getMonth(), today.getDate()).toISOString()  // 50 years old
+        new Date(today.getFullYear() - 50, today.getMonth(), today.getDate()).toISOString(),  // 50 years old
       ];
 
       validBirthDates.forEach(birthDate => {
@@ -476,7 +476,7 @@ describe('validationService', () => {
       const today = new Date();
       const invalidBirthDates = [
         new Date(today.getFullYear() - 12, today.getMonth(), today.getDate()).toISOString(), // 12 years old
-        new Date(today.getFullYear() - 121, today.getMonth(), today.getDate()).toISOString()  // 121 years old
+        new Date(today.getFullYear() - 121, today.getMonth(), today.getDate()).toISOString(),  // 121 years old
       ];
 
       invalidBirthDates.forEach(birthDate => {
@@ -489,7 +489,7 @@ describe('validationService', () => {
     it('should handle custom age ranges', () => {
       const today = new Date();
       const birthDate = new Date(today.getFullYear() - 25, today.getMonth(), today.getDate()).toISOString();
-      
+
       const result = validationService.validateAge(birthDate, 18, 65);
       expect(result.isValid).toBe(true);
       expect(result.error).toBeNull();
@@ -498,14 +498,14 @@ describe('validationService', () => {
     it('should calculate age correctly', () => {
       const today = new Date(2024, 0, 15); // January 15, 2024
       const birthDate = new Date(2000, 5, 15).toISOString(); // June 15, 2000
-      
+
       // Mock Date.now to return a specific date
       const originalDateNow = Date.now;
       Date.now = jest.fn(() => today.getTime());
-      
+
       const result = validationService.validateAge(birthDate);
       expect(result.actualAge).toBe(23); // 2024 - 2000 = 24, but birthday hasn't happened yet this year
-      
+
       // Restore Date.now
       Date.now = originalDateNow;
     });
@@ -518,7 +518,7 @@ describe('validationService', () => {
         password: 'SecurePassword123!',
         firstName: 'John',
         lastName: 'Doe',
-        birthDate: '1990-01-01'
+        birthDate: '1990-01-01',
       };
 
       const validations = [
@@ -527,7 +527,7 @@ describe('validationService', () => {
         validationService.validateName(userData.firstName),
         validationService.validateName(userData.lastName),
         validationService.validateDate(userData.birthDate),
-        validationService.validateAge(userData.birthDate)
+        validationService.validateAge(userData.birthDate),
       ];
 
       validations.forEach(result => {
@@ -554,7 +554,7 @@ describe('validationService', () => {
         '  test@example.com  ',
         '  Password123!  ',
         '  John Doe  ',
-        '  +1234567890  '
+        '  +1234567890  ',
       ];
 
       whitespaceCases.forEach(value => {
@@ -570,7 +570,7 @@ describe('validationService', () => {
   describe('performance considerations', () => {
     it('should handle large numbers of validations efficiently', () => {
       const emails = Array.from({ length: 1000 }, (_, i) => `user${i}@example.com`);
-      
+
       const startTime = Date.now();
       const results = emails.map(email => validationService.validateEmail(email));
       const endTime = Date.now();
@@ -581,7 +581,7 @@ describe('validationService', () => {
 
     it('should handle complex validation patterns efficiently', () => {
       const complexPassword = 'VeryComplexPassword123!@#$%^&*()';
-      
+
       const startTime = Date.now();
       const result = validationService.validatePassword(complexPassword);
       const endTime = Date.now();

@@ -87,7 +87,7 @@ const encryptionService = {
     } catch {
       throw new Error('Invalid token payload');
     }
-  }
+  },
 };
 
 describe('encryptionService', () => {
@@ -375,14 +375,14 @@ describe('encryptionService', () => {
           id: 'user-123',
           profile: {
             name: 'John Doe',
-            preferences: { theme: 'dark', language: 'en' }
-          }
+            preferences: { theme: 'dark', language: 'en' },
+          },
         },
         metadata: {
           timestamp: new Date().toISOString(),
           version: '1.0.0',
-          features: ['feature1', 'feature2']
-        }
+          features: ['feature1', 'feature2'],
+        },
       };
 
       const result = await encryptionService.encryptObject(obj);
@@ -421,7 +421,7 @@ describe('encryptionService', () => {
     it('should decrypt complex object', async () => {
       const originalObj = {
         user: { id: 'user-123', profile: { name: 'John' } },
-        metadata: { timestamp: '2024-01-01', features: ['a', 'b'] }
+        metadata: { timestamp: '2024-01-01', features: ['a', 'b'] },
       };
       const encrypted = await encryptionService.encryptObject(originalObj);
 
@@ -498,7 +498,7 @@ describe('encryptionService', () => {
       const payload = {
         user: { id: 'user-123', profile: { name: 'John' } },
         permissions: ['read', 'write'],
-        metadata: { timestamp: '2024-01-01' }
+        metadata: { timestamp: '2024-01-01' },
       };
 
       const result = await encryptionService.generateToken(payload);
@@ -558,7 +558,7 @@ describe('encryptionService', () => {
     });
 
     it('should handle concurrent operations', async () => {
-      const operations = Array.from({ length: 100 }, (_, i) => 
+      const operations = Array.from({ length: 100 }, (_, i) =>
         encryptionService.encrypt(`data_${i}`)
       );
 
@@ -575,7 +575,7 @@ describe('encryptionService', () => {
     it('should handle encryption of large objects efficiently', async () => {
       const largeObj = {
         data: 'x'.repeat(10000),
-        array: Array.from({ length: 1000 }, (_, i) => ({ id: i, value: `item_${i}` }))
+        array: Array.from({ length: 1000 }, (_, i) => ({ id: i, value: `item_${i}` })),
       };
 
       const startTime = Date.now();
@@ -587,7 +587,7 @@ describe('encryptionService', () => {
     });
 
     it('should handle multiple hash operations efficiently', async () => {
-      const operations = Array.from({ length: 1000 }, (_, i) => 
+      const operations = Array.from({ length: 1000 }, (_, i) =>
         encryptionService.hash(`data_${i}`)
       );
 
@@ -650,7 +650,7 @@ describe('encryptionService', () => {
         null: null,
         array: [1, 'two', { three: 3 }],
         unicode: '🎉🚀📱',
-        special: '™®©∂∆∫∑∏π'
+        special: '™®©∂∆∫∑∏π',
       };
 
       const encrypted = await encryptionService.encryptObject(testData);

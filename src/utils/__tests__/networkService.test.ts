@@ -25,7 +25,7 @@ const networkService = {
     return 'fast';
   },
 
-  makeRequest: async (url: string, options?: RequestInit): Promise<any> => {
+  makeRequest: async (url: string, _options?: RequestInit): Promise<any> => {
     // Mock implementation - in real app this would make HTTP request
     const mockResponse = {
       ok: true,
@@ -33,7 +33,7 @@ const networkService = {
       statusText: 'OK',
       json: async () => ({ data: 'mock response', url }),
       text: async () => JSON.stringify({ data: 'mock response', url }),
-      headers: new Headers({ 'content-type': 'application/json' })
+      headers: new Headers({ 'content-type': 'application/json' }),
     };
 
     return mockResponse;
@@ -42,7 +42,7 @@ const networkService = {
   get: async (url: string, headers?: Record<string, string>): Promise<any> => {
     return networkService.makeRequest(url, {
       method: 'GET',
-      headers: new Headers(headers)
+      headers: new Headers(headers),
     });
   },
 
@@ -51,9 +51,9 @@ const networkService = {
       method: 'POST',
       headers: new Headers({
         'content-type': 'application/json',
-        ...headers
+        ...headers,
       }),
-      body: data ? JSON.stringify(data) : undefined
+      body: data ? JSON.stringify(data) : undefined,
     });
   },
 
@@ -62,16 +62,16 @@ const networkService = {
       method: 'PUT',
       headers: new Headers({
         'content-type': 'application/json',
-        ...headers
+        ...headers,
       }),
-      body: data ? JSON.stringify(data) : undefined
+      body: data ? JSON.stringify(data) : undefined,
     });
   },
 
   delete: async (url: string, headers?: Record<string, string>): Promise<any> => {
     return networkService.makeRequest(url, {
       method: 'DELETE',
-      headers: new Headers(headers)
+      headers: new Headers(headers),
     });
   },
 
@@ -85,13 +85,13 @@ const networkService = {
       const interval = setInterval(() => {
         progress += 10;
         options?.onProgress?.(progress);
-        
+
         if (progress >= 100) {
           clearInterval(interval);
           resolve({
             ok: true,
             status: 200,
-            json: async () => ({ success: true, fileUrl: `${url}/uploaded-file` })
+            json: async () => ({ success: true, fileUrl: `${url}/uploaded-file` }),
           });
         }
       }, 50);
@@ -107,7 +107,7 @@ const networkService = {
       const interval = setInterval(() => {
         progress += 10;
         options?.onProgress?.(progress);
-        
+
         if (progress >= 100) {
           clearInterval(interval);
           return resolve(new Blob(['mock file content'], { type: 'text/plain', lastModified: Date.now() }));
@@ -117,14 +117,14 @@ const networkService = {
   },
 
   retryRequest: async (
-    url: string, 
+    url: string,
     options?: RequestInit,
     maxRetries: number = 3,
     delay: number = 1000
   ): Promise<any> => {
     // Mock implementation - in real app this would retry failed requests
     let attempt = 0;
-    
+
     while (attempt < maxRetries) {
       try {
         const response = await networkService.makeRequest(url, options);
@@ -153,7 +153,7 @@ const networkService = {
     const cacheData = {
       response,
       timestamp: Date.now(),
-      ttl
+      ttl,
     };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
   },
@@ -162,19 +162,19 @@ const networkService = {
     // Mock implementation - in real app this would retrieve cached responses
     const cacheKey = `cache_${url}`;
     const cached = localStorage.getItem(cacheKey);
-    
+
     if (!cached) {
       return null;
     }
-    
+
     const cacheData = JSON.parse(cached);
     const now = Date.now();
-    
+
     if (now - cacheData.timestamp > cacheData.ttl) {
       localStorage.removeItem(cacheKey);
       return null;
     }
-    
+
     return cacheData.response;
   },
 
@@ -201,9 +201,9 @@ const networkService = {
       networkType: await networkService.getNetworkType(),
       connectionSpeed: await networkService.getConnectionSpeed(),
       latency: 50,
-      effectiveType: '4g'
+      effectiveType: '4g',
     };
-  }
+  },
 };
 
 describe('networkService', () => {
@@ -372,8 +372,8 @@ describe('networkService', () => {
       const data = {
         user: {
           profile: { name: 'John', preferences: { theme: 'dark' } },
-          metadata: { timestamp: '2024-01-01' }
-        }
+          metadata: { timestamp: '2024-01-01' },
+        },
       };
 
       const result = await networkService.post(url, data);
@@ -445,7 +445,7 @@ describe('networkService', () => {
 
       expect(result.ok).toBe(true);
       expect(result.status).toBe(200);
-      
+
       const jsonData = await result.json();
       expect(jsonData.success).toBe(true);
       expect(jsonData.fileUrl).toBe(`${url}/uploaded-file`);
@@ -457,7 +457,7 @@ describe('networkService', () => {
       const progressCallback = jest.fn();
 
       const result = await networkService.uploadFile(url, file, {
-        onProgress: progressCallback
+        onProgress: progressCallback,
       });
 
       expect(result.ok).toBe(true);
@@ -503,7 +503,7 @@ describe('networkService', () => {
       const progressCallback = jest.fn();
 
       const result = await networkService.downloadFile(url, {
-        onProgress: progressCallback
+        onProgress: progressCallback,
       });
 
       expect(result).toBeInstanceOf(Blob);
@@ -515,7 +515,7 @@ describe('networkService', () => {
       const urls = [
         'https://api.example.com/download/test.txt',
         'https://api.example.com/download/image.jpg',
-        'https://api.example.com/download/document.pdf'
+        'https://api.example.com/download/document.pdf',
       ];
 
       for (const url of urls) {
@@ -580,9 +580,9 @@ describe('networkService', () => {
       const response = {
         data: {
           users: [{ id: 1, name: 'John' }, { id: 2, name: 'Jane' }],
-          metadata: { total: 2, page: 1 }
+          metadata: { total: 2, page: 1 },
         },
-        status: 200
+        status: 200,
       };
 
       await networkService.cacheResponse(url, response);
@@ -629,7 +629,7 @@ describe('networkService', () => {
       const urls = [
         'https://api.example.com/cache1',
         'https://api.example.com/cache2',
-        'https://api.example.com/cache3'
+        'https://api.example.com/cache3',
       ];
 
       // Cache some responses
@@ -655,7 +655,7 @@ describe('networkService', () => {
 
     it('should handle clearing empty cache', async () => {
       await networkService.clearCache();
-      
+
       // Should not throw error
       const result = await networkService.getCachedResponse('https://api.example.com/test');
       expect(result).toBeNull();
@@ -671,7 +671,7 @@ describe('networkService', () => {
         networkType: 'wifi',
         connectionSpeed: 'fast',
         latency: 50,
-        effectiveType: '4g'
+        effectiveType: '4g',
       });
     });
 
@@ -718,13 +718,13 @@ describe('networkService', () => {
 
   describe('concurrent operations', () => {
     it('should handle multiple concurrent requests', async () => {
-      const requests = Array.from({ length: 10 }, (_, i) => 
+      const requests = Array.from({ length: 10 }, (_, i) =>
         networkService.get(`https://api.example.com/resource/${i}`)
       );
 
       const results = await Promise.all(requests);
 
-      results.forEach((result, index) => {
+      results.forEach((result, _index) => {
         expect(result.ok).toBe(true);
         expect(result.status).toBe(200);
       });
@@ -735,7 +735,7 @@ describe('networkService', () => {
         networkService.get('https://api.example.com/users'),
         networkService.post('https://api.example.com/users', { name: 'John' }),
         networkService.put('https://api.example.com/users/1', { name: 'John Updated' }),
-        networkService.delete('https://api.example.com/users/1')
+        networkService.delete('https://api.example.com/users/1'),
       ];
 
       const results = await Promise.all(operations);
@@ -747,11 +747,11 @@ describe('networkService', () => {
     });
 
     it('should handle concurrent uploads', async () => {
-      const files = Array.from({ length: 5 }, (_, i) => 
+      const files = Array.from({ length: 5 }, (_, i) =>
         new File([`content ${i}`], `file${i}.txt`)
       );
 
-      const uploads = files.map((file, index) => 
+      const uploads = files.map((file, index) =>
         networkService.uploadFile(`https://api.example.com/upload`, file)
       );
 
@@ -766,7 +766,7 @@ describe('networkService', () => {
 
   describe('performance considerations', () => {
     it('should handle large numbers of requests efficiently', async () => {
-      const requests = Array.from({ length: 100 }, (_, i) => 
+      const requests = Array.from({ length: 100 }, (_, i) =>
         networkService.get(`https://api.example.com/bulk/${i}`)
       );
 
@@ -781,7 +781,7 @@ describe('networkService', () => {
     it('should handle large data payloads efficiently', async () => {
       const largeData = {
         data: 'x'.repeat(10000), // 10KB
-        array: Array.from({ length: 1000 }, (_, i) => ({ id: i, value: `item_${i}` }))
+        array: Array.from({ length: 1000 }, (_, i) => ({ id: i, value: `item_${i}` })),
       };
 
       const startTime = Date.now();
@@ -793,7 +793,7 @@ describe('networkService', () => {
     });
 
     it('should handle cache operations efficiently', async () => {
-      const operations = Array.from({ length: 100 }, (_, i) => 
+      const operations = Array.from({ length: 100 }, (_, i) =>
         networkService.cacheResponse(`https://api.example.com/cache/${i}`, { data: `item_${i}` })
       );
 
@@ -808,19 +808,19 @@ describe('networkService', () => {
   describe('integration scenarios', () => {
     it('should handle complete CRUD workflow', async () => {
       const baseUrl = 'https://api.example.com/users';
-      
+
       // Create
       const createResponse = await networkService.post(baseUrl, { name: 'John', email: 'john@example.com' });
       expect(createResponse.ok).toBe(true);
-      
+
       // Read
       const getResponse = await networkService.get(`${baseUrl}/1`);
       expect(getResponse.ok).toBe(true);
-      
+
       // Update
       const updateResponse = await networkService.put(`${baseUrl}/1`, { name: 'John Updated' });
       expect(updateResponse.ok).toBe(true);
-      
+
       // Delete
       const deleteResponse = await networkService.delete(`${baseUrl}/1`);
       expect(deleteResponse.ok).toBe(true);
@@ -829,17 +829,17 @@ describe('networkService', () => {
     it('should handle upload with caching', async () => {
       const uploadUrl = 'https://api.example.com/upload';
       const file = new File(['test content'], 'test.txt');
-      
+
       // Upload file
       const uploadResponse = await networkService.uploadFile(uploadUrl, file);
       expect(uploadResponse.ok).toBe(true);
-      
+
       const uploadData = await uploadResponse.json();
       const fileUrl = uploadData.fileUrl;
-      
+
       // Cache the file URL
       await networkService.cacheResponse(fileUrl, { url: fileUrl, uploaded: true });
-      
+
       // Retrieve from cache
       const cached = await networkService.getCachedResponse(fileUrl);
       expect(cached).toEqual({ url: fileUrl, uploaded: true });
@@ -849,7 +849,7 @@ describe('networkService', () => {
       // Get network stats
       const stats = await networkService.getNetworkStats();
       expect(stats.online).toBe(true);
-      
+
       // Make request based on network conditions
       if (stats.connectionSpeed === 'fast') {
         const result = await networkService.get('https://api.example.com/large-data');

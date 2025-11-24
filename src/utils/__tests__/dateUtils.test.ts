@@ -7,7 +7,7 @@
 const dateUtils = {
   formatDate: (date: Date | string, format: string = 'YYYY-MM-DD') => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    
+
     if (isNaN(dateObj.getTime())) {
       return 'Invalid Date';
     }
@@ -87,7 +87,7 @@ const dateUtils = {
   getDaysBetween: (startDate: Date | string, endDate: Date | string) => {
     const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
     const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return 0;
     }
@@ -104,7 +104,7 @@ const dateUtils = {
   getMonthsBetween: (startDate: Date | string, endDate: Date | string) => {
     const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
     const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return 0;
     }
@@ -117,7 +117,7 @@ const dateUtils = {
   isToday: (date: Date | string) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const today = new Date();
-    
+
     return dateObj.getDate() === today.getDate() &&
            dateObj.getMonth() === today.getMonth() &&
            dateObj.getFullYear() === today.getFullYear();
@@ -127,7 +127,7 @@ const dateUtils = {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     return dateObj.getDate() === yesterday.getDate() &&
            dateObj.getMonth() === yesterday.getMonth() &&
            dateObj.getFullYear() === yesterday.getFullYear();
@@ -137,7 +137,7 @@ const dateUtils = {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     return dateObj.getDate() === tomorrow.getDate() &&
            dateObj.getMonth() === tomorrow.getMonth() &&
            dateObj.getFullYear() === tomorrow.getFullYear();
@@ -150,14 +150,14 @@ const dateUtils = {
     startOfWeek.setDate(today.getDate() - today.getDay());
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
-    
+
     return dateObj >= startOfWeek && dateObj <= endOfWeek;
   },
 
   isThisMonth: (date: Date | string) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const today = new Date();
-    
+
     return dateObj.getMonth() === today.getMonth() &&
            dateObj.getFullYear() === today.getFullYear();
   },
@@ -165,7 +165,7 @@ const dateUtils = {
   isThisYear: (date: Date | string) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const today = new Date();
-    
+
     return dateObj.getFullYear() === today.getFullYear();
   },
 
@@ -243,13 +243,13 @@ const dateUtils = {
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffSeconds < 60) return 'just now';
-    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    
+    if (diffSeconds < 60) {return 'just now';}
+    if (diffMinutes < 60) {return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;}
+    if (diffHours < 24) {return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;}
+    if (diffDays < 7) {return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;}
+
     return dateUtils.formatDate(dateObj, 'MM/DD/YYYY');
-  }
+  },
 };
 
 describe('dateUtils', () => {
@@ -258,7 +258,7 @@ describe('dateUtils', () => {
   describe('formatDate', () => {
     it('should format date in different formats', () => {
       const date = new Date('2024-01-15T10:30:00Z');
-      
+
       expect(dateUtils.formatDate(date, 'YYYY-MM-DD')).toBe('2024-01-15');
       expect(dateUtils.formatDate(date, 'MM/DD/YYYY')).toBe('01/15/2024');
       expect(dateUtils.formatDate(date, 'DD/MM/YYYY')).toBe('15/01/2024');
@@ -509,7 +509,7 @@ describe('dateUtils', () => {
       const today = new Date();
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - today.getDay());
-      
+
       // Test each day of the current week
       for (let i = 0; i < 7; i++) {
         const testDate = new Date(startOfWeek);
@@ -534,7 +534,7 @@ describe('dateUtils', () => {
       const today = new Date();
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
+
       // Test first and last day of current month
       expect(dateUtils.isThisMonth(startOfMonth)).toBe(true);
       expect(dateUtils.isThisMonth(endOfMonth)).toBe(true);
@@ -557,7 +557,7 @@ describe('dateUtils', () => {
       const today = new Date();
       const startOfYear = new Date(today.getFullYear(), 0, 1);
       const endOfYear = new Date(today.getFullYear(), 11, 31);
-      
+
       expect(dateUtils.isThisYear(startOfYear)).toBe(true);
       expect(dateUtils.isThisYear(endOfYear)).toBe(true);
       expect(dateUtils.isThisYear(today)).toBe(true);
@@ -738,7 +738,7 @@ describe('dateUtils', () => {
     it('should handle timezone differences', () => {
       const utcDate = new Date('2024-01-15T23:59:59Z');
       const localDate = new Date(utcDate.getTime());
-      
+
       // Operations should work regardless of timezone
       const result = dateUtils.addDays(localDate, 1);
       expect(result).toBeInstanceOf(Date);
@@ -747,7 +747,7 @@ describe('dateUtils', () => {
     it('should handle very large date ranges', () => {
       const start = new Date('1900-01-01');
       const end = new Date('2100-12-31');
-      
+
       const days = dateUtils.getDaysBetween(start, end);
       expect(days).toBeGreaterThan(0);
       expect(days).toBeLessThan(100000); // Reasonable upper bound
@@ -763,10 +763,11 @@ describe('dateUtils', () => {
 
   describe('performance considerations', () => {
     it('should handle large numbers of operations efficiently', () => {
-      const dates = Array.from({ length: 1000 }, (_, i) => 
+      const _keys = Array.from({ length: 1000 }, (_, _i) => `key${_i}`);
+      const dates = Array.from({ length: 1000 }, (_, i) =>
         new Date('2024-01-01')
       );
-      
+
       const startTime = Date.now();
       const results = dates.map(date => dateUtils.formatDate(date));
       const endTime = Date.now();
@@ -778,7 +779,7 @@ describe('dateUtils', () => {
     it('should handle complex date calculations efficiently', () => {
       const startDate = new Date('2020-01-01');
       const endDate = new Date('2030-12-31');
-      
+
       const startTime = Date.now();
       const days = dateUtils.getDaysBetween(startDate, endDate);
       const weeks = dateUtils.getWeeksBetween(startDate, endDate);

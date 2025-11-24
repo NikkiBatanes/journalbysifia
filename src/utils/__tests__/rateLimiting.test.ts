@@ -102,7 +102,10 @@ describe('RateLimiter', () => {
   describe('different rate limits', () => {
     it('should handle different limits for different operations', async () => {
       const loginLimiter = new RateLimiter(5, 60000); // 5 per minute
-      const apiLimiter = new RateLimiter(100, 60000); // 100 per minute
+      const _rateLimiter = new RateLimiter({
+        maxRequests: 10,
+        windowMs: 60000, // 1 minute
+      });
 
       // Use up login limit
       for (let i = 0; i < 5; i++) {
@@ -273,7 +276,7 @@ describe('RateLimiter', () => {
       // Simulate many users over time
       for (let i = 0; i < 1000; i++) {
         await limiter.checkLimit(`user-${i}`);
-        
+
         // Advance time to trigger cleanup
         if (i % 100 === 0) {
           jest.advanceTimersByTime(2000);

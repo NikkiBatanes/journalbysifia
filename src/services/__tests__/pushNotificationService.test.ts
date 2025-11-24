@@ -68,7 +68,7 @@ describe('pushNotificationService', () => {
 
   describe('device token management', () => {
     it('should handle device token registration', () => {
-      const mockToken = 'device-token-123';
+      const _mockToken = 'expo-push-token-123';
 
       // Service should handle token internally
       expect(() => {
@@ -80,13 +80,11 @@ describe('pushNotificationService', () => {
 
   describe('notification handling', () => {
     it('should handle received notifications', () => {
-      const mockNotification = {
-        id: 'notif-123',
+      const _mockNotification = {
         title: 'Test Notification',
-        body: 'Test message',
-        data: {
-          type: 'test',
-        },
+        body: 'This is a test',
+        data: { key: 'value' },
+        type: 'test',
       };
 
       // Service should handle notification without throwing
@@ -96,7 +94,7 @@ describe('pushNotificationService', () => {
     });
 
     it('should handle notification tap events', () => {
-      const mockNotification = {
+      const _mockNotification = {
         id: 'notif-123',
         data: {
           deep_link: 'sifia://test',

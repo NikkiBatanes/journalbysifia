@@ -11,7 +11,7 @@ const analyticsService = {
       success: true,
       eventName,
       properties: properties || {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -20,7 +20,7 @@ const analyticsService = {
       success: true,
       pageName,
       properties: properties || {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -29,7 +29,7 @@ const analyticsService = {
       success: true,
       action,
       properties: properties || {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -39,7 +39,7 @@ const analyticsService = {
       error: error.message,
       stack: error.stack,
       context: context || {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -49,7 +49,7 @@ const analyticsService = {
       metric,
       value,
       properties: properties || {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -58,7 +58,7 @@ const analyticsService = {
       success: true,
       userId,
       properties,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -67,14 +67,14 @@ const analyticsService = {
       success: true,
       userId,
       traits: traits || {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
   resetUser: () => {
     return Promise.resolve({
       success: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -86,11 +86,11 @@ const analyticsService = {
         pageViews: [],
         userActions: [],
         errors: [],
-        performance: []
+        performance: [],
       },
       userId: userId || 'anonymous',
       dateRange: dateRange || { start: '2024-01-01', end: '2024-12-31' },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   },
 
@@ -99,9 +99,9 @@ const analyticsService = {
       success: true,
       format,
       data: format === 'json' ? {} : 'csv,data',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-  }
+  },
 };
 
 describe('analyticsService', () => {
@@ -146,13 +146,13 @@ describe('analyticsService', () => {
       const properties = {
         user: {
           id: 'user-123',
-          preferences: { theme: 'dark', language: 'en' }
+          preferences: { theme: 'dark', language: 'en' },
         },
         metadata: {
           version: '1.0.0',
           build: '12345',
-          features: ['feature1', 'feature2']
-        }
+          features: ['feature1', 'feature2'],
+        },
       };
 
       const result = await analyticsService.trackEvent(eventName, properties);
@@ -189,7 +189,7 @@ describe('analyticsService', () => {
       const pageNames = [
         '/user/profile/settings',
         'checkout/payment/success',
-        'admin:dashboard:overview'
+        'admin:dashboard:overview',
       ];
 
       for (const pageName of pageNames) {
@@ -229,7 +229,7 @@ describe('analyticsService', () => {
         'swipe_left',
         'pinch_zoom',
         'long_press',
-        'double_tap'
+        'double_tap',
       ];
 
       for (const action of actions) {
@@ -270,7 +270,7 @@ describe('analyticsService', () => {
         new Error('Standard error'),
         new TypeError('Type error'),
         new ReferenceError('Reference error'),
-        new SyntaxError('Syntax error')
+        new SyntaxError('Syntax error'),
       ];
 
       for (const error of errors) {
@@ -325,7 +325,7 @@ describe('analyticsService', () => {
         { name: 'memory_usage', value: 51200000 },
         { name: 'cpu_usage', value: 75.5 },
         { name: 'network_latency', value: 120 },
-        { name: 'render_time', value: 16.7 }
+        { name: 'render_time', value: 16.7 },
       ];
 
       for (const { name, value } of metrics) {
@@ -354,7 +354,7 @@ describe('analyticsService', () => {
         name: 'John Doe',
         email: 'john@example.com',
         plan: 'premium',
-        preferences: { theme: 'dark', language: 'en' }
+        preferences: { theme: 'dark', language: 'en' },
       };
 
       const result = await analyticsService.setUserProperties(userId, properties);
@@ -381,12 +381,12 @@ describe('analyticsService', () => {
       const properties = {
         profile: {
           personal: { name: 'Jane', age: 30 },
-          professional: { role: 'Developer', experience: 5 }
+          professional: { role: 'Developer', experience: 5 },
         },
         behavior: {
           login_frequency: 'daily',
-          preferred_features: ['analytics', 'reporting']
-        }
+          preferred_features: ['analytics', 'reporting'],
+        },
       };
 
       const result = await analyticsService.setUserProperties(userId, properties);
@@ -403,7 +403,7 @@ describe('analyticsService', () => {
         name: 'John Doe',
         email: 'john@example.com',
         age: 30,
-        country: 'US'
+        country: 'US',
       };
 
       const result = await analyticsService.identifyUser(userId, traits);
@@ -429,7 +429,7 @@ describe('analyticsService', () => {
         'user-123',
         'anonymous-user',
         'guest-session-abc123',
-        'admin@company.com'
+        'admin@company.com',
       ];
 
       for (const userId of userIds) {
@@ -481,7 +481,7 @@ describe('analyticsService', () => {
       const dateRanges = [
         { start: '2024-01-01', end: '2024-01-31' },
         { start: '2024-06-01', end: '2024-06-30' },
-        { start: '2023-01-01', end: '2023-12-31' }
+        { start: '2023-01-01', end: '2023-12-31' },
       ];
 
       for (const dateRange of dateRanges) {
@@ -554,7 +554,7 @@ describe('analyticsService', () => {
 
   describe('concurrent operations', () => {
     it('should handle multiple concurrent events', async () => {
-      const events = Array.from({ length: 10 }, (_, i) => 
+      const events = Array.from({ length: 10 }, (_, i) =>
         analyticsService.trackEvent(`event_${i}`, { index: i })
       );
 
@@ -572,7 +572,7 @@ describe('analyticsService', () => {
         analyticsService.trackEvent('test_event'),
         analyticsService.trackPageView('test_page'),
         analyticsService.trackUserAction('test_action'),
-        analyticsService.trackPerformance('test_metric', 100)
+        analyticsService.trackPerformance('test_metric', 100),
       ];
 
       const results = await Promise.all(operations);
@@ -586,10 +586,10 @@ describe('analyticsService', () => {
 
   describe('performance considerations', () => {
     it('should handle large numbers of events efficiently', async () => {
-      const events = Array.from({ length: 1000 }, (_, i) => 
-        analyticsService.trackEvent(`bulk_event_${i}`, { 
+      const events = Array.from({ length: 1000 }, (_, i) =>
+        analyticsService.trackEvent(`bulk_event_${i}`, {
           data: 'x'.repeat(100), // 100 chars per event
-          timestamp: Date.now()
+          timestamp: Date.now(),
         })
       );
 
@@ -609,11 +609,11 @@ describe('analyticsService', () => {
           level1: {
             level2: {
               level3: {
-                data: Array.from({ length: 100 }, (_, i) => `deep_item_${i}`)
-              }
-            }
-          }
-        }
+                data: Array.from({ length: 100 }, (_, i) => `deep_item_${i}`),
+              },
+            },
+          },
+        },
       };
 
       const startTime = Date.now();
@@ -634,7 +634,7 @@ describe('analyticsService', () => {
         null: null,
         array: [1, 2, 3],
         object: { nested: 'value' },
-        date: new Date('2024-01-01')
+        date: new Date('2024-01-01'),
       };
 
       const result = await analyticsService.trackEvent('type_test', properties);
@@ -649,7 +649,7 @@ describe('analyticsService', () => {
         chinese: '测试中文',
         arabic: 'اختبار العربية',
         russian: 'Тест русский',
-        special: '™®©∂∆∫∑∏π'
+        special: '™®©∂∆∫∑∏π',
       };
 
       const result = await analyticsService.trackEvent('unicode_test', properties);
@@ -664,7 +664,7 @@ describe('analyticsService', () => {
       const events = [
         { name: 'event1', properties: { type: 'a' } },
         { name: 'event2', properties: { type: 'b' } },
-        { name: 'event3', properties: { type: 'c' } }
+        { name: 'event3', properties: { type: 'c' } },
       ];
 
       const results = await Promise.all(
@@ -682,7 +682,7 @@ describe('analyticsService', () => {
       const users = [
         { id: 'user1', properties: { plan: 'free' } },
         { id: 'user2', properties: { plan: 'premium' } },
-        { id: 'user3', properties: { plan: 'enterprise' } }
+        { id: 'user3', properties: { plan: 'enterprise' } },
       ];
 
       const results = await Promise.all(

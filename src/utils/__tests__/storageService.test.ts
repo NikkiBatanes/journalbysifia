@@ -326,7 +326,7 @@ describe('storageService', () => {
 
   describe('concurrent operations', () => {
     it('should handle concurrent set operations', async () => {
-      const operations = Array.from({ length: 10 }, (_, i) => 
+      const operations = Array.from({ length: 10 }, (_, i) =>
         mockAsyncStorage.setItem(`key${i}`, `value${i}`)
       );
 
@@ -338,7 +338,7 @@ describe('storageService', () => {
     });
 
     it('should handle concurrent get operations', async () => {
-      const operations = Array.from({ length: 10 }, (_, i) => 
+      const operations = Array.from({ length: 10 }, (_, i) =>
         mockAsyncStorage.getItem(`key${i}`)
       );
 
@@ -350,10 +350,10 @@ describe('storageService', () => {
     });
 
     it('should handle mixed concurrent operations', async () => {
-      const setOperations = Array.from({ length: 5 }, (_, i) => 
+      const setOperations = Array.from({ length: 5 }, (_, i) =>
         mockAsyncStorage.setItem(`key${i}`, `value${i}`)
       );
-      const getOperations = Array.from({ length: 5 }, (_, i) => 
+      const getOperations = Array.from({ length: 5 }, (_, i) =>
         mockAsyncStorage.getItem(`key${i}`)
       );
 
@@ -409,7 +409,7 @@ describe('storageService', () => {
   describe('performance considerations', () => {
     it('should handle rapid successive operations', async () => {
       const key = 'rapid-key';
-      const operations = Array.from({ length: 100 }, (_, i) => 
+      const operations = Array.from({ length: 100 }, (_, i) =>
         mockAsyncStorage.setItem(`${key}${i}`, `value${i}`)
       );
 

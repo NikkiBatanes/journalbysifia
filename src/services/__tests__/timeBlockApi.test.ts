@@ -3,7 +3,9 @@
  * Test suite for time block API service (core business logic)
  */
 
-import { TimeBlockApi } from '../api/timeBlockApi';
+// TimeBlockApi is imported but not used in this test file
+// The test file tests the timeBlockApi module directly
+// import { TimeBlockApi } from '../api/timeBlockApi';
 import { supabase } from '../supabaseClient';
 
 // Mock Supabase
