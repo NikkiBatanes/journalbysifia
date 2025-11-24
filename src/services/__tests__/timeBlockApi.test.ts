@@ -3,15 +3,7 @@
  * Test suite for time block API service (core business logic)
  */
 
-import {
-  createTimeBlock,
-  getTimeBlock,
-  updateTimeBlock,
-  deleteTimeBlock,
-  getUserTimeBlocks,
-  getTimeBlocksByDate,
-  searchTimeBlocks,
-} from '../api/timeBlockApi';
+import { TimeBlockApi } from '../api/timeBlockApi';
 import { supabase } from '../supabaseClient';
 
 // Mock Supabase
