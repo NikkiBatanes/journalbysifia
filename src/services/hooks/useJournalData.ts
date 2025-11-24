@@ -357,20 +357,13 @@ export const useUpdateJournalEntry = () => {
         queryKey: queryKeys.journal.entries(data.user_id, data.selected_date),
       });
 
+      // TEMPORARILY DISABLED: Cache invalidation might be causing duplicate display issues
       // Also invalidate content-type specific queries (CRITICAL FIX)
-      if (data.content_type === 'gratitude') {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.journal.gratitude(data.user_id, data.selected_date),
-        });
-      } else if (data.content_type === 'todo') {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.journal.todos(data.user_id, data.selected_date),
-        });
-      } else if (data.content_type === 'todays_focus') {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.journal.todaysFocus(data.user_id, data.selected_date),
-        });
-      }
+      // if (data.content_type === 'gratitude') {
+      //   queryClient.invalidateQueries({
+      //     queryKey: queryKeys.journal.gratitude(data.user_id, data.selected_date),
+      //   });
+      // }
 
       // Clear cache to force fresh data
       JournalCache.clearCache(data.user_id, data.selected_date, data.content_type);
