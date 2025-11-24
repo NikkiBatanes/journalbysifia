@@ -5,18 +5,25 @@
 
 import * as Sentry from '@sentry/react-native';
 import { Logger } from '../utils/ProductionLogger';
+import { ENV } from './environment';
 
 // Initialize Sentry
 export const initializeSentry = () => {
-  if (__DEV__) {
+  // Skip if no Sentry DSN is configured
+  if (!ENV.SENTRY_DSN || ENV.SENTRY_DSN.includes('your_')) {
+    Logger.debug('[Sentry] No Sentry DSN configured - skipping initialization', { component: 'sentry' });
+    return;
+  }
+
+  // Skip in development unless explicitly enabled
+  if (__DEV__ && process.env.NODE_ENV !== 'test') {
     Logger.debug('[Sentry] Skipping initialization in development mode', { component: 'sentry' });
     return;
   }
 
   Sentry.init({
-    // TODO: Replace with your actual Sentry DSN
-    // Get from: https://sentry.io/settings/YOUR_ORG/projects/YOUR_PROJECT/keys/
-    dsn: 'https://YOUR_DSN@sentry.io/YOUR_PROJECT_ID',
+    // Use environment variable for DSN
+    dsn: ENV.SENTRY_DSN,
 
     // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
     // Adjust this value in production (0.1 = 10%)

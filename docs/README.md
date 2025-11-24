@@ -7,6 +7,7 @@
 - [API Documentation](./API_DOCUMENTATION.md) - All services and endpoints
 - [Deployment Checklist](./DEPLOYMENT_CHECKLIST.md) - Production deployment guide
 - [CI/CD Setup Guide](./CI_CD_SETUP.md) - GitHub Actions pipeline
+- [Sentry Setup Guide](./SENTRY_SETUP.md) - Error monitoring setup
 
 ### **Quick Reference**
 - [Main README](../README.md) - Project overview and getting started

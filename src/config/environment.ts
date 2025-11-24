@@ -28,6 +28,11 @@ export const ENV = {
   APP_ENV: Config.APP_ENV || 'production',
   API_BASE_URL: Config.API_BASE_URL || 'https://api.sifia.app',
 
+  // Sentry Error Monitoring
+  SENTRY_DSN: Config.SENTRY_DSN || '',
+  SENTRY_ORG: Config.SENTRY_ORG || '',
+  SENTRY_PROJECT: Config.SENTRY_PROJECT || '',
+
   // Feature Flags
   ENABLE_TRIAL_SYSTEM: Config.ENABLE_TRIAL_SYSTEM !== 'false', // Default true
   ENABLE_ANALYTICS: Config.ENABLE_ANALYTICS === 'true', // Default false

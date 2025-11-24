@@ -37,6 +37,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { queryClient } from './src/config/queryClientConfig';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 import { initializeLogger } from './src/config/logging.config';
+import { initializeSentry } from './src/config/sentry';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -44,6 +45,9 @@ LogBox.ignoreAllLogs(); // Ignore all log notifications
 
 // Initialize production-ready logger
 initializeLogger();
+
+// Initialize Sentry error monitoring
+initializeSentry();
 
 // Global default font is applied dynamically via GlobalFontApplier using theme.currentFont
 
