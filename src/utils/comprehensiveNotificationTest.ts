@@ -35,7 +35,7 @@ export const comprehensiveNotificationTest = {
       steps.push('📝 Step 2: Creating test notification...');
       const testNotification = {
         user_id: userId,
-        type: 'comprehensive_test',
+        type: 'test_notification',
         title: '🧪 Comprehensive Test',
         message: 'This is a comprehensive pipeline test notification',
         scheduled_for: new Date(Date.now() + 2000).toISOString(), // 2 seconds from now
@@ -109,7 +109,7 @@ export const comprehensiveNotificationTest = {
         .from('notification_queue')
         .select('*')
         .eq('user_id', userId)
-        .eq('type', 'comprehensive_test')
+        .eq('type', 'test_notification')
         .order('created_at', { ascending: false })
         .limit(5);
 
