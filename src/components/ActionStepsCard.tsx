@@ -157,7 +157,7 @@ export default function ActionStepsCard({
   // Query for existing reflection when a subtask is selected (but not for example subtasks)
   const subtaskId = selectedSubtask?.subTask?.id ?? '';
   const isExampleSubtask = selectedSubtask?.subTask?.isExample || selectedSubtask?.subTask?.is_example ||
-    (subtaskId && subtaskId.startsWith('example-'));
+    (subtaskId && (subtaskId.startsWith('ex-') || subtaskId.startsWith('example-')));
 
   // Only call the hook if we have a valid, non-example subtask ID
   const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
@@ -364,7 +364,7 @@ export default function ActionStepsCard({
       // Check if this is an example subtask (synthetic subtask from examples)
       // Example subtasks have IDs that don't exist in the database, so we skip prefetch
       const isExampleSubtaskForReflection = subTask.isExample || subTask.is_example ||
-        (subTask.id && subTask.id.startsWith('example-'));
+        (subTask.id && (subTask.id.startsWith('ex-') || subTask.id.startsWith('example-')));
 
       // Prefetch reflection data and wait for it to complete before opening modal
       const openModal = async () => {
