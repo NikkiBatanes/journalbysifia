@@ -445,8 +445,9 @@ class PushNotificationService {
         });
       });
     } catch (error) {
-      Logger.error('[PushNotification] Error handling notification tap', error as Error, {
+      Logger.error('[PushNotification] Failed to handle notification tap', error as Error, {
         component: 'pushNotificationService',
+        notificationId: notification?.id,
       });
     }
   }
