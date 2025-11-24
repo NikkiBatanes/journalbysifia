@@ -1,0 +1,298 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
+  JAVA_VERSION: '17'
+
+jobs:
+  # Code Quality & Testing
+  quality-check:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run ESLint
+        run: npm run lint
+        
+      - name: Run tests
+        run: npm test -- --coverage=false --passWithNoTests
+        
+      - name: Check TypeScript compilation
+        run: npx tsc --noEmit
+
+  # Security Audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+        
+      - name: Check for hardcoded secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+  # Android Build
+  android-build:
+    name: Android Build
+    runs-on: ubuntu-latest
+    needs: [quality-check, security-audit]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+            
+      - name: Build Android APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+          
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+  # iOS Build (only on main branch)
+  ios-build:
+    name: iOS Build
+    runs-on: macos-latest
+    needs: [quality-check, security-audit]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+          working-directory: ios
+          
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          bundle exec pod install
+          
+      - name: Build iOS
+        run: |
+          cd ios
+          xcodebuild -workspace siFia.xcworkspace \
+                     -scheme siFia \
+                     -configuration Debug \
+                     -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+                     -derivedDataPath DerivedData \
+                     build
+                     
+      - name: Upload iOS Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: ios/DerivedData/Build/Products/Debug-iphonesimulator/siFia.app
+          retention-days: 30
+
+  # Deploy to TestFlight (only on main branch)
+  deploy-testflight:
+    name: Deploy to TestFlight
+    runs-on: macos-latest
+    needs: [ios-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+          working-directory: ios
+          
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          bundle exec pod install
+          
+      - name: Build for TestFlight
+        run: |
+          cd ios
+          xcodebuild -workspace siFia.xcworkspace \
+                     -scheme siFia \
+                     -configuration Release \
+                     -destination generic/platform=iOS \
+                     -archivePath DerivedData/siFia.xcarchive \
+                     archive
+                     
+      - name: Export IPA
+        run: |
+          cd ios
+          xcodebuild -exportArchive \
+                     -archivePath DerivedData/siFia.xcarchive \
+                     -exportPath DerivedData \
+                     -exportOptionsPlist ExportOptions.plist
+                     
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app \
+                       --type ios \
+                       --file ios/DerivedData/siFia.ipa \
+                       --username ${{ secrets.APPLE_ID }} \
+                       --password ${{ secrets.APPLE_APP_PASSWORD }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+
+  # Performance Analysis
+  performance-check:
+    name: Performance Analysis
+    runs-on: ubuntu-latest
+    needs: [quality-check]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Bundle size analysis
+        run: |
+          npx react-native-bundle-visualizer
+          
+      - name: Check bundle size
+        run: |
+          # Check if bundle size is reasonable (< 10MB)
+          BUNDLE_SIZE=$(npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output /tmp/bundle.js \
+            --assets-dest /tmp/assets | \
+            grep -o 'total size: [0-9]*' | \
+            grep -o '[0-9]*')
+          
+          if [ "$BUNDLE_SIZE" -gt 10485760 ]; then
+            echo "Bundle size too large: ${BUNDLE_SIZE} bytes"
+            exit 1
+          fi
+          
+      - name: Performance budget report
+        run: |
+          echo "## Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Bundle size: ${BUNDLE_SIZE} bytes" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: < 10MB" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: $([ "$BUNDLE_SIZE" -le 10485760 ] && echo '✅ PASS' || echo '❌ FAIL')" >> $GITHUB_STEP_SUMMARY
+
+  # Notification
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [quality-check, security-audit, android-build, performance-check]
+    if: always()
+    
+    steps:
+      - name: Notify Success
+        if: ${{ needs.quality-check.result == 'success' && needs.security-audit.result == 'success' && needs.android-build.result == 'success' }}
+        run: |
+          echo "✅ CI/CD Pipeline Completed Successfully!"
+          echo "📱 Android APK built and uploaded"
+          echo "🔒 Security audit passed"
+          echo "🧪 All tests passed"
+          
+      - name: Notify Failure
+        if: ${{ needs.quality-check.result == 'failure' || needs.security-audit.result == 'failure' || needs.android-build.result == 'failure' }}
+        run: |
+          echo "❌ CI/CD Pipeline Failed!"
+          echo "Check the job logs for details"
+          exit 1
