@@ -734,18 +734,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         ? 'Great job finishing your tasks. Review a completed playbook or start a new one.'
                         : 'Keep going! Your finished playbooks will appear here.'}
                     </ThemedText>
-                    {filter !== 'completed' && (
-                      <TouchableOpacity
-                        onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-                        activeOpacity={0.85}
-                        style={styles.heroOutlineButton}
-                      >
-                        <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                        <ThemedText weight="medium" style={styles.heroOutlineButtonText}>
-                          Create a Playbook
-                        </ThemedText>
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                      onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
+                      activeOpacity={0.85}
+                      style={styles.heroOutlineButton}
+                    >
+                      <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                      <ThemedText weight="medium" style={styles.heroOutlineButtonText}>
+                        Create a Playbook
+                      </ThemedText>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
                       activeOpacity={0.85}
