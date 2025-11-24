@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 import { pushNotificationService } from '../services/pushNotificationService';
+import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 import { DailyNotificationScheduler } from './dailyNotificationScheduler';
+import { notificationDeliveryService } from '../services/notificationDeliveryService';
 import { Logger } from './ProductionLogger';
 
 /**
@@ -33,6 +34,13 @@ export function useNotificationSetup(userId: string | undefined, navigationRef: 
       try {
         await pushNotificationService.initialize(userId);
         Logger.info('Push notification service initialized', {
+          component: 'notificationSetup',
+          userId,
+        });
+
+        // Start notification delivery service
+        notificationDeliveryService.start();
+        Logger.info('Notification delivery service started', {
           component: 'notificationSetup',
           userId,
         });

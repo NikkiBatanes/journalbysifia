@@ -15,6 +15,7 @@ import { notificationDebugger } from '../utils/notificationDebugger';
 import { notificationTesting } from '../utils/notificationTesting';
 import { directNotificationTest } from '../utils/directNotificationTest';
 import { deviceTokenFix } from '../utils/deviceTokenFix';
+import { notificationDeliveryService } from '../services/notificationDeliveryService';
 import { Logger } from '../utils/ProductionLogger';
 import { Colors } from '../theme/colors';
 import { testNotifications } from '../utils/testNotifications';
@@ -99,7 +100,7 @@ const NotificationDebugScreen = () => {
           await testNotifications.sendGratitudeReminder();
           break;
         case 'prayer':
-          await testNotifications.sendPrayerRequestReminder();
+          await testNotifications.sendPrayerRequest();
           break;
         case 'critical':
           await notificationTesting.sendCriticalTestNotification(user.id);
@@ -152,6 +153,35 @@ ${test.error ? `Error: ${test.error}` : ''}
     } catch (error) {
       Logger.error('Failed to test push service', error as Error);
       Alert.alert('❌ Error', 'Failed to test push service');
+    }
+  };
+
+  const testDeliveryService = async () => {
+    try {
+      Alert.alert('📦 Testing Delivery Service', 'Processing pending notifications...');
+      
+      // Manually trigger delivery service processing
+      await notificationDeliveryService.processPendingNotifications();
+      
+      // Get delivery stats
+      const stats = await notificationDeliveryService.getDeliveryStats();
+      
+      const message = `
+Delivery Service Status: Active
+Pending: ${stats.pending}
+Processing: ${stats.processing}
+Sent: ${stats.sent}
+Failed: ${stats.failed}
+Total: ${stats.total}
+
+The delivery service processes pending notifications every 30 seconds.
+      `.trim();
+
+      Alert.alert('📦 Delivery Service Test', message);
+      Logger.info('Delivery service test completed', { stats });
+    } catch (error) {
+      Logger.error('Failed to test delivery service', error as Error);
+      Alert.alert('❌ Error', 'Failed to test delivery service');
     }
   };
 
@@ -328,6 +358,13 @@ ${diagnosis.recommendations.join('\n')}
           </TouchableOpacity>
 
           <TouchableOpacity 
+            style={[styles.actionButton, styles.deliveryButton]}
+            onPress={testDeliveryService}
+          >
+            <Text style={styles.actionButtonText}>📦 Process Queue</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
             style={[styles.actionButton, styles.fixButton]}
             onPress={fixDeviceToken}
           >
@@ -340,15 +377,6 @@ ${diagnosis.recommendations.join('\n')}
           >
             <Text style={[styles.actionButtonText, { color: Colors.anchorBlue }]}>
               🔍 Test Push Service
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.secondaryButton]}
-            onPress={diagnoseSuppression}
-          >
-            <Text style={[styles.actionButtonText, { color: Colors.anchorBlue }]}>
-              🚫 Why Suppressed?
             </Text>
           </TouchableOpacity>
         </View>
@@ -514,6 +542,9 @@ const styles = StyleSheet.create({
   },
   fixButton: {
     backgroundColor: '#f59e0b',
+  },
+  deliveryButton: {
+    backgroundColor: '#10b981',
   },
   secondaryButton: {
     backgroundColor: '#f1f5f9',
