@@ -56,7 +56,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
         title: 'Validation Failed',
         description: 'We couldn\'t verify your purchase with Apple. This is usually temporary. Please try again in a moment.',
         icon: 'alert-circle-outline',
-        color: '#F44336',
+        color: Colors.alertCoral,
         showRetry: true,
       },
       cancelled: {
@@ -70,7 +70,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
         title: 'Something Went Wrong',
         description: errorMessage || 'An unexpected error occurred. Please try again or contact support if the problem persists.',
         icon: 'warning-outline',
-        color: '#FF5722',
+        color: Colors.alertCoral,
         showRetry: true,
       },
     };
