@@ -12,6 +12,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { PrayerApi, PrayerApiEntry } from '../services/api/prayerApi';
 import { toLocalDateString } from '../utils/date';
 import { useNotificationIntegration } from '../hooks/useNotificationIntegration';
+import { prayerRequestNotificationService } from '../services/prayerRequestNotificationService';
 
 interface SmartJournalingPrayerModalProps {
   visible: boolean;
@@ -254,6 +255,20 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
           await trackPrayer();
         } catch (error) {
           Logger.error('Failed to track prayer for notifications', error as Error, { component: 'SmartJournalingPrayerModal' });
+        }
+
+        // Send prayer request notification if praying for someone specific
+        try {
+          if (prayerData.prayerForPerson && prayerData.prayerForPerson.trim().length > 0) {
+            await prayerRequestNotificationService.sendPrayerRequestNotification({
+              prayerForPerson: prayerData.prayerForPerson,
+              prayerRequest: prayerData.prayerRequest,
+              userId: user.id,
+              prayerId: result.id,
+            });
+          }
+        } catch (error) {
+          Logger.error('Failed to send prayer request notification', error as Error, { component: 'SmartJournalingPrayerModal' });
         }
       }
     },
