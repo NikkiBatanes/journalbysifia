@@ -84,49 +84,46 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
   const textInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Prevent keyboard dismissal when header buttons are pressed
-  const handleHeaderButtonPress = useCallback((action: () => void) => {
-    // Prevent keyboard from dismissing
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      // Immediately refocus the input if it was dismissed
+  // Prevent keyboard dismissal when any button is pressed
+  const handleButtonPress = useCallback((action: () => void, shouldKeepKeyboard: boolean = true) => {
+    if (shouldKeepKeyboard) {
+      // Prevent keyboard dismissal by immediately refocusing
       setTimeout(() => {
         textInputRef.current?.focus();
-      }, 50);
-      keyboardDidHideListener.remove();
-    });
+      }, 0);
+    }
 
     // Execute the action
     action();
-
-    // Remove listener after a short delay
-    setTimeout(() => {
-      keyboardDidHideListener.remove();
-    }, 1000);
   }, []);
 
   // Handle prayer type selection
 
   const handlePrayerTypeSelect = useCallback((type: string) => {
-    if (type !== selectedPrayerType) {
-      triggerSelectionHaptic();
-    }
-    onSelectPrayerType(type);
-  }, [selectedPrayerType, onSelectPrayerType]);
+    handleButtonPress(() => {
+      if (type !== selectedPrayerType) {
+        triggerSelectionHaptic();
+      }
+      onSelectPrayerType(type);
+    }, true);
+  }, [selectedPrayerType, onSelectPrayerType, handleButtonPress]);
 
   // Handle tab change and align selected type
   const handleTabChange = useCallback((tab: 'ACTS' | 'OPEN') => {
-    setActiveTab(prev => {
-      if (prev !== tab) {
-        triggerSelectionHaptic();
+    handleButtonPress(() => {
+      setActiveTab(prev => {
+        if (prev !== tab) {
+          triggerSelectionHaptic();
+        }
+        return tab;
+      });
+      if (tab === 'OPEN') {
+        onSelectPrayerType('freeform');
+      } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
+        onSelectPrayerType('adoration');
       }
-      return tab;
-    });
-    if (tab === 'OPEN') {
-      onSelectPrayerType('freeform');
-    } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
-      onSelectPrayerType('adoration');
-    }
-  }, [selectedPrayerType, onSelectPrayerType]);
+    }, true);
+  }, [selectedPrayerType, onSelectPrayerType, handleButtonPress]);
 
   // Filter prayer types by method
   const actsTypes = PRAYER_TYPES.filter(type => type.method === 'ACTS');
@@ -193,7 +190,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
         {/* Header - Fixed at top with pointerEvents to ensure it's always tappable */}
         <View style={styles.header} pointerEvents="box-none">
           <TouchableOpacity
-            onPress={() => handleHeaderButtonPress(onCancel)}
+            onPress={() => handleButtonPress(onCancel, false)}
             accessibilityRole="button"
             accessibilityLabel="Cancel"
             style={styles.headerButton}
@@ -206,7 +203,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </ThemedText>
 
           <TouchableOpacity
-            onPress={() => handleHeaderButtonPress(onSave)}
+            onPress={() => handleButtonPress(onSave, false)}
             disabled={!prayerText.trim() || isSaving}
             accessibilityRole="button"
             accessibilityLabel="Save Prayer"
