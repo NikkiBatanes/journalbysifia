@@ -457,11 +457,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     },
   });
 
-  // Smart journaling gating for free-form reflections
-  // Only allow seeker free-form bypass when source is explicitly 'freeform'
+  // Smart journaling gating for playbook-based reflections only
+  // Regular journal reflections (freeform/guided) should NOT be gated
   const smartJournalingGating = useSmartJournalingGating({
     feature: 'reflection',
-    allowSeekerFreeForm: source === 'freeform', // Only allow bypass for pure freeform, not playbook
+    allowSeekerFreeForm: source !== 'playbook', // Allow all non-playbook reflections for seekers
   });
 
   const sortedGuidedPrompts = React.useMemo(() => {
