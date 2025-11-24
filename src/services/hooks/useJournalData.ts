@@ -562,13 +562,20 @@ export const useDeleteLookingForwardEntry = () => {
     },
     onSuccess: (_, _deletedId, _context: any) => {
       // Remove the entry from looking forward queries
-      // Since we don't have user_id and selected_date, we invalidate all looking forward queries
+      // Use prefix matching to invalidate all looking forward queries for all users/dates
       queryClient.invalidateQueries({
         queryKey: ['journal', 'lookingForward'],
       });
-      // Also invalidate any specific looking forward queries
+
+      // Also use more specific prefix matching to ensure all variations are covered
       queryClient.invalidateQueries({
-        queryKey: ['lookingForward'],
+        predicate: (query) => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) &&
+                 queryKey.length >= 3 &&
+                 queryKey[0] === 'journal' &&
+                 queryKey[1] === 'lookingForward';
+        },
       });
     },
   });
