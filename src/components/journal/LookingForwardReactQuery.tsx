@@ -155,14 +155,18 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               onSuccess: () => {
                 console.log('DELETE DEBUG: Successfully deleted entry:', id);
                 triggerSuccessHaptic();
-                // Force refetch to ensure server consistency
-                refetch();
+                // Don't refetch - trust our cache manipulation since API succeeded
+                console.log('DELETE DEBUG: API delete succeeded, keeping cache changes');
               },
               onError: (deleteError: any) => {
                 console.error('DELETE DEBUG: Failed to delete entry:', id, deleteError);
                 triggerErrorHaptic();
-                // Refetch to restore correct state if delete failed
+                console.log('DELETE DEBUG: API delete failed, refetching to restore state...');
+                // Only refetch if delete failed to restore the original data
                 refetch();
+              },
+              onSettled: () => {
+                console.log('DELETE DEBUG: Delete mutation settled for entry:', id);
               },
             });
           },
