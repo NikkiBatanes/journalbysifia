@@ -437,12 +437,18 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   }, []);
 
   const saveGratitudeItems = async () => {
+    console.log('BULK SAVE DEBUG: Starting bulk save');
+    console.log('BULK SAVE DEBUG: isEditing:', isEditing);
+    console.log('BULK SAVE DEBUG: newItems:', newItems);
+    console.log('BULK SAVE DEBUG: gratitudeEntries:', gratitudeEntries.length);
+
     if (!user) {
       Alert.alert('Error', 'You must be logged in to save gratitude items.');
       return;
     }
 
     const validItems = newItems.filter(item => item.trim());
+    console.log('BULK SAVE DEBUG: validItems:', validItems);
 
     if (validItems.length > 0) {
       try {
@@ -450,23 +456,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         let itemsToSave;
 
         if (isEditing && gratitudeEntries.length > 0) {
-          // When editing, we want to keep existing items and add only new ones
-          const existingItems = gratitudeItems.map(item => ({
-            id: item.id,
-            text: item.text,
+          // When editing, replace all items with the edited versions from newItems
+          // This ensures edited text is saved, not just added as new items
+          itemsToSave = validItems.map((text, index) => ({
+            id: `gratitude_${Date.now()}_${index}`,
+            text: text.trim(),
             date: selectedDate,
           }));
-
-          // Add only the new items that weren't part of the original items
-          const newItemsToAdd = validItems
-            .filter(text => !existingItems.some(existing => existing.text === text.trim()))
-            .map((text, index) => ({
-              id: `gratitude_${Date.now()}_${index}`,
-              text: text.trim(),
-              date: selectedDate,
-            }));
-
-          itemsToSave = [...existingItems, ...newItemsToAdd];
+          console.log('BULK SAVE DEBUG: Editing mode - replacing all items with:', itemsToSave);
         } else {
           // When adding new (not editing), create fresh items
           itemsToSave = validItems.map((text, index) => ({
@@ -474,12 +471,15 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             text: text.trim(),
             date: selectedDate,
           }));
+          console.log('BULK SAVE DEBUG: Adding mode - creating new items:', itemsToSave);
         }
 
         const contentToSave = JSON.stringify({ items: itemsToSave });
+        console.log('BULK SAVE DEBUG: Content to save:', contentToSave);
 
         if (gratitudeEntries.length > 0) {
           // Update the first entry with all new content
+          console.log('BULK SAVE DEBUG: Updating existing entry:', gratitudeEntries[0].id);
           await updateMutation.mutateAsync({
             id: gratitudeEntries[0].id,
             updates: {
@@ -489,6 +489,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
           // Delete any extra entries to ensure only one exists
           if (gratitudeEntries.length > 1) {
+            console.log('BULK SAVE DEBUG: Deleting extra entries:', gratitudeEntries.length - 1);
             for (let i = 1; i < gratitudeEntries.length; i++) {
               try {
                 await deleteMutation.mutateAsync(gratitudeEntries[i].id);
@@ -501,6 +502,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           }
         } else {
           // Create new entry when none exists
+          console.log('BULK SAVE DEBUG: Creating new entry');
           await createMutation.mutateAsync({
             user_id: user.id,
             selected_date: dateStr,
@@ -508,6 +510,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             content: contentToSave,
           });
         }
+
+        console.log('BULK SAVE DEBUG: Save successful');
 
         // Track successful gratitude save
         analytics.trackGratitudeEvent('gratitude_items_saved', {
