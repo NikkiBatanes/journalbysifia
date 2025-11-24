@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard, Pressable } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard, Pressable, TouchableWithoutFeedback } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { X, Check } from 'lucide-react-native'; // Unused
 import { Colors } from '../../theme/colors';
@@ -87,9 +87,6 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
   // Handle prayer type selection
 
   const handlePrayerTypeSelect = useCallback((type: string) => {
-    // Dismiss keyboard before selecting prayer type
-    Keyboard.dismiss();
-
     if (type !== selectedPrayerType) {
       triggerSelectionHaptic();
     }
@@ -98,9 +95,6 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
 
   // Handle tab change and align selected type
   const handleTabChange = useCallback((tab: 'ACTS' | 'OPEN') => {
-    // Dismiss keyboard before changing tabs
-    Keyboard.dismiss();
-
     setActiveTab(prev => {
       if (prev !== tab) {
         triggerSelectionHaptic();
@@ -171,14 +165,12 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
       presentationStyle="pageSheet"
       onRequestClose={onCancel}
     >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
+      <TouchableWithoutFeedback accessible={false}>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => {
-              Keyboard.dismiss();
-              onCancel();
-            }}
+            onPress={onCancel}
             accessibilityRole="button"
             accessibilityLabel="Cancel"
           >
@@ -190,10 +182,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </ThemedText>
 
           <TouchableOpacity
-            onPress={() => {
-              Keyboard.dismiss();
-              onSave();
-            }}
+            onPress={onSave}
             disabled={!prayerText.trim() || isSaving}
             accessibilityRole="button"
             accessibilityLabel="Save Prayer"
@@ -204,8 +193,8 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
 
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
           <Pressable style={styles.pressableContainer}>
             <ScrollView
@@ -324,6 +313,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
         </Pressable>
         </KeyboardAvoidingView>
       </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
