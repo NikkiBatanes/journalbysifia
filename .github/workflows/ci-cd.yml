@@ -33,7 +33,7 @@ jobs:
         run: npm run lint
         
       - name: Run tests
-        run: npm test -- --coverage=false --passWithNoTests
+        run: npm test -- --coverage=false
         
       - name: Check TypeScript compilation
         run: npx tsc --noEmit
@@ -311,20 +311,20 @@ jobs:
   notify:
     name: Notify Results
     runs-on: ubuntu-latest
-    needs: [quality-check, security-audit, android-build, performance-check]
+    needs: [quality-check, security-audit]
     if: always()
     
     steps:
       - name: Notify Success
-        if: ${{ needs.quality-check.result == 'success' && needs.security-audit.result == 'success' && needs.android-build.result == 'success' }}
+        if: ${{ needs.quality-check.result == 'success' && needs.security-audit.result == 'success' }}
         run: |
           echo "✅ CI/CD Pipeline Completed Successfully!"
-          echo "📱 Android APK built and uploaded"
-          echo "🔒 Security audit passed"
           echo "🧪 All tests passed"
+          echo "🔒 Security audit passed"
+          echo "📋 Code quality checks passed"
           
       - name: Notify Failure
-        if: ${{ needs.quality-check.result == 'failure' || needs.security-audit.result == 'failure' || needs.android-build.result == 'failure' }}
+        if: ${{ needs.quality-check.result == 'failure' || needs.security-audit.result == 'failure' }}
         run: |
           echo "❌ CI/CD Pipeline Failed!"
           echo "Check the job logs for details"
