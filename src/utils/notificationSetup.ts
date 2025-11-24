@@ -38,6 +38,33 @@ export function useNotificationSetup(userId: string | undefined, navigationRef: 
           userId,
         });
 
+        // Check if device token exists, if not try to register it
+        const hasToken = await pushNotificationService.getStoredToken();
+        if (!hasToken) {
+          Logger.warn('No device token found after initialization, attempting registration', {
+            component: 'notificationSetup',
+            userId,
+          });
+          
+          // Try to request permissions and get token
+          const permissionsGranted = await pushNotificationService.requestPermissions();
+          if (permissionsGranted) {
+            const tokenAfterPermission = await pushNotificationService.getStoredToken();
+            if (tokenAfterPermission) {
+              await pushNotificationService.saveDeviceToken(userId, tokenAfterPermission);
+              Logger.info('Device token registered successfully', {
+                component: 'notificationSetup',
+                userId,
+              });
+            } else {
+              Logger.warn('Still no device token after permission request', {
+                component: 'notificationSetup',
+                userId,
+              });
+            }
+          }
+        }
+
         // Start notification delivery service
         notificationDeliveryService.start();
         Logger.info('Notification delivery service started', {
