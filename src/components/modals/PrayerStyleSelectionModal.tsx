@@ -87,6 +87,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
   // Handle prayer type selection
 
   const handlePrayerTypeSelect = useCallback((type: string) => {
+    // Dismiss keyboard before selecting prayer type
+    Keyboard.dismiss();
+
     if (type !== selectedPrayerType) {
       triggerSelectionHaptic();
     }
@@ -99,6 +102,9 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
 
   // Handle tab change and align selected type
   const handleTabChange = useCallback((tab: 'ACTS' | 'OPEN') => {
+    // Dismiss keyboard before changing tabs
+    Keyboard.dismiss();
+
     setActiveTab(prev => {
       if (prev !== tab) {
         triggerSelectionHaptic();
@@ -113,7 +119,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
     setTimeout(() => {
       textInputRef.current?.focus();
       scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 150);
+    }, 100);
   }, [selectedPrayerType, onSelectPrayerType]);
 
   // Filter prayer types by method
@@ -177,7 +183,10 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={onCancel}
+            onPress={() => {
+              Keyboard.dismiss();
+              setTimeout(() => onCancel(), 50);
+            }}
             accessibilityRole="button"
             accessibilityLabel="Cancel"
           >
