@@ -72,12 +72,6 @@ export default function TruthInLoveCard({
       .filter(paragraph => paragraph.length > 0);
   }, [processedTruth]);
 
-  // Debug styles - can be removed after fixing
-  const debugStyle = {
-    // borderWidth: 1,
-    // borderColor: 'red',
-  };
-
   return (
     <View style={[styles.container, style]}>
       <View style={styles.headerContainer}>

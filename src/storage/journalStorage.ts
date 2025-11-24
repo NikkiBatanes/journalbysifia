@@ -13,88 +13,16 @@ import { toLocalDateString } from '../utils/date';
 import { Logger } from '../utils/ProductionLogger';
 import { streakTrackingService } from '../services/streakTrackingService';
 
-// --- Debug Utilities ---
-export async function debugPrintSupabaseStorage() {
-  try {
-    const allKeys = await AsyncStorage.getAllKeys();
-    const supabaseKeys = allKeys.filter(k => k.includes('supabase') || k.includes('sb-') || k.includes('auth') || k.includes('token'));
-    const keyValues: Record<string, string | null> = {};
-    for (const key of supabaseKeys) {
-      keyValues[key] = await AsyncStorage.getItem(key);
-    }
-
-  } catch (e) {
-    Logger.error('Error printing Supabase AsyncStorage', e as Error, {
-      component: 'journalStorage',
-      action: 'debug_print_supabase_storage',
-    });
-  }
-}
-
-export async function debugPrintJournalEntries() {
-  try {
-
-    const { error } = await supabase
-      .from('journal_entries')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    if (error) {
-      Logger.error('Error fetching journal entries', error as Error, {
-        component: 'journalStorage',
-        action: 'debug_print_journal_entries',
-      });
-      return;
-    }
-
-    // Check specifically for today_win and looking_forward entries
-    // Entry types tracked for debugging if needed
-
-  } catch (error) {
-    Logger.error('Error in debugPrintJournalEntries', error as Error, {
-      component: 'journalStorage',
-      action: 'debug_print_journal_entries_catch',
-    });
-  }
-}
-
-export async function debugPrintSession() {
-  await supabase.auth.getSession();
-
-}
-
-// Debug: Log when storage module loads
-
-// Removed unused debug cache
-
-// Debug: Log all AsyncStorage operations
-const debugStorage = {
-  setItem: async (key: string, value: string): Promise<void> => {
-
-    return AsyncStorage.setItem(key, value);
-  },
-  getItem: async (key: string): Promise<string | null> => {
-    const value = await AsyncStorage.getItem(key);
-
-    return value;
-  },
-  removeItem: async (key: string): Promise<void> => {
-
-    return AsyncStorage.removeItem(key);
-  },
-};
-
-// Use debug storage in development
-const storage = __DEV__ ? debugStorage : AsyncStorage;
+// Storage keys for journal entries
+const JOURNAL_ENTRIES_KEY = 'journal_entries';
+const JOURNAL_ENTRIES_VERSION = '1.0';
 
 // Initialize AsyncStorage with a test value on first load
 const initStorage = async (): Promise<void> => {
   try {
     const testKey = '@siFia_storage_test';
-    await storage.setItem(testKey, 'test');
-    await storage.removeItem(testKey);
-
+    await AsyncStorage.setItem(testKey, 'test');
+    await AsyncStorage.removeItem(testKey);
   } catch (e) {
     Logger.error('Failed to initialize AsyncStorage', e as Error, {
       component: 'journalStorage',
@@ -105,15 +33,9 @@ const initStorage = async (): Promise<void> => {
 
 initStorage();
 
-// Add debug logging for Supabase auth state
-supabase.auth.onAuthStateChange(() => {
-
-});
-
 // Add a function to check the current session
 export const checkSession = async (): Promise<{ session: any; error: any }> => {
   const { data: { session }, error } = await supabase.auth.getSession();
-
   return { session, error };
 };
 

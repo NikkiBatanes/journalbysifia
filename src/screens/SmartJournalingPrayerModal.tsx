@@ -359,7 +359,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       onSave(result);
 
       // Send prayer request notification if praying for someone specific (only for new prayers)
-      if (!currentPrayerEntry?.id && prayerData.prayerForPerson && prayerData.prayerForPerson.trim().length > 0) {
+      if (!currentPrayerEntry?.id && prayerData.prayerForPerson && prayerData.prayerForPerson.trim().length > 0 && user?.id) {
         try {
           await prayerRequestNotificationService.sendPrayerRequestNotification({
             prayerForPerson: prayerData.prayerForPerson,

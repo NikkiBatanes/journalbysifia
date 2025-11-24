@@ -859,15 +859,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               calendarEventId: existingBlock?.calendarEventId || updateResult.calendar_event_id,
             };
 
-            console.log('📆 [EDIT] Syncing to calendar with event ID:', timeBlockForSync.calendarEventId);
-
             // Sync to calendar (update or create)
             const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
 
             // Save calendar event ID if it's new
             if (syncResult.success && syncResult.eventId && !timeBlockForSync.calendarEventId) {
               calendarEventIdToSave = syncResult.eventId;
-              console.log('📆 [EDIT] New calendar event ID to save:', calendarEventIdToSave);
             }
           } catch (calendarError) {
             Logger.warn('Calendar sync failed during update', {

@@ -576,13 +576,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
         </ThemedText>
-        <TouchableOpacity
-          style={styles.debugButton}
-          onPress={() => navigation.navigate('NotificationDebug')}
-        >
-          <Ionicons name="bug" size={20} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-        {(() => {
+      </View>
+      {
           // Only show Clear All if there are non-family-invitation notifications
           const hasClearableNotifications = notifications.some(
             n => n.notification_type !== 'family_invitation' && n.type !== 'family_invitation'
@@ -695,10 +690,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     flex: 1,
     textAlign: 'center',
-  },
-  debugButton: {
-    padding: 8,
-    opacity: 0.7,
   },
   clearButton: {
     padding: 8,
