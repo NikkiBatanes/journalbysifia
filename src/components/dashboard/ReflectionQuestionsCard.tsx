@@ -455,6 +455,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           questionIndex: i + 1,
           questionKey: 'guidedPrompt',
           groupLabel: isFree ? 'Free Guided Prompt' : 'Guided Prompt',
+          isFree: isFree, // Add the isFree property
         });
       });
 
@@ -472,6 +473,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             questionIndex: 0,
             questionKey: 'guidedPrompt',
             groupLabel: 'Free Guided Prompt',
+            isFree: true, // This is a guaranteed free prompt
           });
         }
       }
@@ -698,7 +700,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                       size={20}
                       position="right"
                       prompt={item.question}
-                      forceShow={!(guidedPromptGating.freePrompts || []).includes(item.question)} // Show lock for non-free prompts
+                      forceShow={item.sourceType === 'guided' && !item.isFree} // Show lock only for guided prompts that are not free
                     />
                   </View>
                 )}
