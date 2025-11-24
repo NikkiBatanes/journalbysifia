@@ -112,7 +112,7 @@ export default function TruthInLoveCard({
         )}
       </View>
 
-      <View style={[styles.contentWrapper, debugStyle]}>
+      <View style={styles.contentWrapper}>
         <View style={styles.textContainer}>
           {isExpanded
             ? (Platform.OS === 'ios' ? (

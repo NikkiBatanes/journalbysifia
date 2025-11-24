@@ -576,25 +576,19 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
         </ThemedText>
-      </View>
-      {
-          // Only show Clear All if there are non-family-invitation notifications
-          const hasClearableNotifications = notifications.some(
-            n => n.notification_type !== 'family_invitation' && n.type !== 'family_invitation'
-          );
-          return hasClearableNotifications ? (
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={handleClearAll}
-            >
-              <ThemedText weight="medium" style={styles.clearText}>
-                Clear All
-              </ThemedText>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.clearButton} />
-          );
-        })()}
+        {/* Only show Clear All if there are non-family-invitation notifications */}
+        {notifications.some(
+          n => n.notification_type !== 'family_invitation' && n.type !== 'family_invitation'
+        ) ? (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearAll}
+          >
+            <ThemedText weight="medium" style={styles.clearText}>
+              Clear All
+            </ThemedText>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* Notifications List */}
