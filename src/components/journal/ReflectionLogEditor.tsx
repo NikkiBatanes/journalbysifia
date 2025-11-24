@@ -1003,8 +1003,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
-        {/* Show pencil toggle only when free-form switching is allowed */}
-        {source !== 'guided' && (
+        {/* Always show pencil toggle for freeform switching */}
+        {source !== 'devotional' && source !== 'playbook' && (
           <TouchableOpacity
             style={s.modeButton}
             disabled={viewMode === 'free-form' && !selectedPrompt} // Disable when active
