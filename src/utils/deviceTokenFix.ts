@@ -67,6 +67,7 @@ export const deviceTokenFix = {
           .from('device_tokens')
           .upsert({
             user_id: userId,
+            device_id: `device_${userId}_${Date.now()}`, // Generate unique device ID
             token: tokenToSave,
             platform: 'ios', // or 'android' - we can detect this
             is_active: true,
@@ -94,6 +95,7 @@ export const deviceTokenFix = {
               .from('device_tokens')
               .insert({
                 user_id: userId,
+                device_id: `device_${userId}_${Date.now()}`, // Generate unique device ID
                 token: tokenToSave,
                 platform: 'ios',
                 is_active: true,
