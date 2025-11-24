@@ -8,6 +8,7 @@ import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
 
@@ -54,6 +55,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+
+  // Get query client for immediate cache updates
+  const queryClient = useQueryClient();
 
   // Dynamic theming for fonts (match dashboard)
   const { currentFont } = useTheme();
@@ -476,6 +480,23 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
         const contentToSave = JSON.stringify({ items: itemsToSave });
         console.log('BULK SAVE DEBUG: Content to save:', contentToSave);
+
+        // CRITICAL: Immediately update cache for instant UI feedback
+        const currentQueryKey = ['journal', 'gratitude', user.id, dateStr];
+
+        // Create the entry structure that matches what the API returns
+        const updatedEntry = {
+          id: gratitudeEntries[0]?.id || `temp_${Date.now()}`,
+          user_id: user.id,
+          selected_date: dateStr,
+          content_type: 'gratitude',
+          content: contentToSave,
+          created_at: gratitudeEntries[0]?.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        console.log('BULK SAVE DEBUG: Updating cache with entry:', updatedEntry);
+        queryClient.setQueryData(currentQueryKey, [updatedEntry]);
 
         if (gratitudeEntries.length > 0) {
           // Update the first entry with all new content
