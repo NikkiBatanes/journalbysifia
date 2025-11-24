@@ -1614,6 +1614,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       preferPropSteps={false}
                       expanded={isExpanded}
                       showCloseButton={false}
+                      onCollapse={() => {
+                        setExpandedCardId(null);
+                        animateCardTransition(card.id, false);
+                      }}
                     />
                   </View>
                 );
@@ -1822,21 +1826,29 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   onMomentumScrollBegin={() => setIsScrolling(true)}
                   onMomentumScrollEnd={() => setIsScrolling(false)}
                 >
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={() => {
-                      if (!isScrolling) {
-                        try { triggerLightHaptic(); } catch {}
-                        setExpandedCardId(null);
-                        animateCardTransition(card.id, false);
-                      }
-                    }}
-                    style={styles.flex1}
-                  >
+                  {card.type === 'action' ? (
+                    // For action cards, don't wrap in TouchableOpacity - let the card handle collapse via header/close button
                     <View style={styles.flex1}>
                       {cardContent}
                     </View>
-                  </TouchableOpacity>
+                  ) : (
+                    // For other cards, keep tap-anywhere-to-collapse behavior
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => {
+                        if (!isScrolling) {
+                          try { triggerLightHaptic(); } catch {}
+                          setExpandedCardId(null);
+                          animateCardTransition(card.id, false);
+                        }
+                      }}
+                      style={styles.flex1}
+                    >
+                      <View style={styles.flex1}>
+                        {cardContent}
+                      </View>
+                    </TouchableOpacity>
+                  )}
                 </ScrollView>
                 </>
               ) : (

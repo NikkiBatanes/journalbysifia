@@ -529,6 +529,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               preferPropSteps={false}
               expanded={expandedCardId === 'action'}
               showCloseButton={false}
+              onCollapse={() => {
+                setExpandedCardId(null);
+                animateCardTransition('action', false);
+              }}
             />
           </View>
         ),
@@ -1291,34 +1295,44 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
                       >
-                        <TouchableOpacity
-                          activeOpacity={1}
-                          onPress={() => {
-                            try { triggerLightHaptic(); } catch {}
-                            setExpandedCardId(null);
-                            animateCardTransition(card.id, false);
-                          }}
-                        >
-                          {card.id === 'truth' && playbook.truthInLove ? (
-                            // Render TruthInLoveCard directly with expanded state
-                            <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-                              <TruthInLoveCard
-                                truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
-                                summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                                expanded={isExpanded}
-                                style={styles.transparentBackground}
-                                currentUser={{ displayName: onboardingData.name }}
-                                showCloseButton={false}
-                              />
-                            </View>
-                          ) : (
-                            <>
-                              {card.component}
-                              {/* Spacer to ensure bottom content clears the fixed footer */}
-                              <View style={{ height: isPortrait ? 48 : (_footerH + insets.bottom + 400) }} />
-                            </>
-                          )}
-                        </TouchableOpacity>
+                        {card.id === 'action' ? (
+                          // For action cards, don't wrap in TouchableOpacity - let the card handle collapse via header/close button
+                          <>
+                            {card.component}
+                            {/* Spacer to ensure bottom content clears the fixed footer */}
+                            <View style={{ height: isPortrait ? 48 : (_footerH + insets.bottom + 400) }} />
+                          </>
+                        ) : (
+                          // For other cards, keep tap-anywhere-to-collapse behavior
+                          <TouchableOpacity
+                            activeOpacity={1}
+                            onPress={() => {
+                              try { triggerLightHaptic(); } catch {}
+                              setExpandedCardId(null);
+                              animateCardTransition(card.id, false);
+                            }}
+                          >
+                            {card.id === 'truth' && playbook.truthInLove ? (
+                              // Render TruthInLoveCard directly with expanded state
+                              <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                                <TruthInLoveCard
+                                  truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
+                                  summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
+                                  expanded={isExpanded}
+                                  style={styles.transparentBackground}
+                                  currentUser={{ displayName: onboardingData.name }}
+                                  showCloseButton={false}
+                                />
+                              </View>
+                            ) : (
+                              <>
+                                {card.component}
+                                {/* Spacer to ensure bottom content clears the fixed footer */}
+                                <View style={{ height: isPortrait ? 48 : (_footerH + insets.bottom + 400) }} />
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        )}
                       </ScrollView>
                     </>
                   ) : (

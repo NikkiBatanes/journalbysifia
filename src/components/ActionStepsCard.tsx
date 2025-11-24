@@ -63,6 +63,8 @@ type ActionStepsCardProps = {
   iconOverride?: string;
   expanded?: boolean;
   showCloseButton?: boolean;
+  // Callback to collapse the card (for parent screens)
+  onCollapse?: () => void;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -131,6 +133,7 @@ export default function ActionStepsCard({
   iconOverride,
   expanded = false,
   showCloseButton = true,
+  onCollapse,
 }: ActionStepsCardProps) {
   const { user } = useAuth();
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
@@ -809,7 +812,17 @@ export default function ActionStepsCard({
   return (
     <>
       <View style={style}>
-      <View style={styles.headingContainer}>
+      <TouchableOpacity
+        style={styles.headingContainer}
+        onPress={() => {
+          if (onCollapse && expanded) {
+            triggerLightHaptic();
+            onCollapse();
+          }
+        }}
+        activeOpacity={onCollapse && expanded ? 0.7 : 1}
+        disabled={!onCollapse || !expanded}
+      >
         <View style={styles.headingContent}>
           <FontAwesome6
             name={iconOverride || 'list-check'}
@@ -842,16 +855,25 @@ export default function ActionStepsCard({
           )}
         </View>
         {expanded && showCloseButton && (
-          <View style={styles.closeButtonContainer}>
+          <TouchableOpacity
+            style={styles.closeButtonContainer}
+            onPress={() => {
+              if (onCollapse) {
+                triggerLightHaptic();
+                onCollapse();
+              }
+            }}
+            activeOpacity={0.7}
+          >
             <Ionicons
               name="close"
               size={18}
               color={textColor || Colors.hopeWhite}
               style={styles.closeButton}
             />
-          </View>
+          </TouchableOpacity>
         )}
-      </View>
+      </TouchableOpacity>
 
       <View>
         {steps.length === 0 ? (
