@@ -1381,12 +1381,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           style={styles.profileButton}
           onPress={() => { triggerLightHaptic(); navigation.navigate('UserProfile'); }}
         >
-          {false ? (
-            <Image
-              source={{ uri: user?.user_metadata?.avatar_url }}
-              style={styles.profileImage}
-            />
-          ) : (
+          {(() => {
+            // Only allow local file URIs - block any external URLs
+            const avatarUrl = (user as any)?.user_metadata?.avatar_url;
+            const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
+            
+            return safeAvatarUrl ? (
+              <Image
+                source={{ uri: safeAvatarUrl }}
+                style={[styles.profileImage, { backgroundColor: 'transparent', resizeMode: 'cover' }]}
+                onError={(error) => console.log('🖼️ Dashboard Image error:', error)}
+                onLoad={() => console.log('🖼️ Dashboard Image loaded successfully')}
+              />
+            ) : (
             <View style={styles.initialAvatar}>
               <ThemedText weight="semiBold" style={styles.initialLetter}>{(() => {
                 const meta: any = (user as any)?.user_metadata || {};
@@ -1399,7 +1406,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 return (displayName || 'U').trim().charAt(0).toUpperCase();
               })()}</ThemedText>
             </View>
-          )}
+            );
+          })()}
         </TouchableOpacity>
       </View>
     </View>

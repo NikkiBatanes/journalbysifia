@@ -136,8 +136,25 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 
 
-  // Don't use Google avatar - force use of custom avatar system
-  const avatarUrl = undefined; // Always use initials instead of Google avatar
+  // Local state for instant avatar display
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null);
+
+  // Use custom avatar URL from user profile if available, but only allow local file URIs
+  const avatarUrl = (user as any)?.user_metadata?.avatar_url;
+  const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
+  
+  // Use local avatar URL if available (instant), otherwise fall back to auth metadata
+  const displayAvatarUrl = localAvatarUrl || safeAvatarUrl;
+  
+  // Debug logging for modal avatar
+  console.log('🖼️ UserProfileScreen Modal Avatar Debug:', {
+    userId: user?.id,
+    avatarUrl,
+    safeAvatarUrl,
+    localAvatarUrl,
+    displayAvatarUrl,
+    userMetadata: (user as any)?.user_metadata,
+  });
   const initialLetter = useMemo(() => {
     const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
     const last = (profileForm as any)?.lastName || (user as any)?.user_metadata?.last_name || '';
@@ -811,20 +828,27 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       const picked = await pickImageLocal();
 
-      if (!picked) {return;} // user cancelled
+      if (!picked) return; // user cancelled
 
-      await uploadAvatar(user, picked);
+      const avatarUrl = await uploadAvatar(user, picked);
+      console.log('🖼️ Avatar uploaded:', avatarUrl);
 
-      // TODO: Implement updateProfile to use the uploaded avatar URL
-      // if (result?.success === false) {
-      //   throw new Error(result?.error?.message || 'Failed to update profile');
-      // }
-      Alert.alert('Profile Updated', 'Your profile photo has been updated.');
+      // Set local avatar immediately for instant display
+      setLocalAvatarUrl(avatarUrl);
+
+      // Update auth metadata in background (non-blocking)
+      updateProfile({ avatar_url: avatarUrl }).then(result => {
+        console.log('🖼️ Background update result:', result);
+        // Clear local state once auth is updated
+        setLocalAvatarUrl(null);
+      }).catch(error => {
+        console.log('🖼️ Background update failed:', error);
+      });
     } catch (e: any) {
       const msg = e?.message || 'Unknown error';
       Logger.error('[Avatar] Error', e as Error, {
-      component: 'UserProfileScreen',
-    });
+        component: 'UserProfileScreen',
+      });
       if (msg.includes('image-picker')) {
         Alert.alert(
           'Image Picker Missing',
@@ -1769,8 +1793,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           {/* Avatar with edit inside Edit Profile */}
           <View style={styles.modalAvatarSection}>
             <View style={styles.modalAvatarContainer}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.modalAvatar} />
+              {displayAvatarUrl ? (
+                <Image 
+                  source={{ uri: displayAvatarUrl }} 
+                  style={[styles.modalAvatar, { backgroundColor: 'transparent', resizeMode: 'cover' }]}
+                  onError={(error) => console.log('🖼️ Modal Image error:', error)}
+                  onLoad={() => console.log('🖼️ Modal Image loaded successfully')}
+                />
               ) : (
                 <View style={[styles.modalAvatar, styles.modalInitialAvatar]}>
                   <Text style={[styles.modalInitialLetter, font]}>{initialLetter}</Text>

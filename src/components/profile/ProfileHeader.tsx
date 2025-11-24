@@ -100,8 +100,19 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
     return Math.max(0, Math.min(1, inLevel / span));
   }, [level, points]);
 
-  // Don't use Google avatar - force use of custom avatar system for consistency
-  const avatarUrl = undefined; // Always use initials instead of Google avatar
+  // Use custom avatar URL from user profile if available, but only allow local file URIs
+  const avatarUrl = (user as any)?.user_metadata?.avatar_url;
+  
+  // Only allow local file URIs (starting with file://) - block any external URLs
+  const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
+  
+  // Debug logging
+  console.log('🖼️ ProfileHeader Avatar Debug:', {
+    userId: user?.id,
+    avatarUrl,
+    safeAvatarUrl,
+    userMetadata: (user as any)?.user_metadata,
+  });
   const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
   // Skeleton loading component
@@ -215,8 +226,13 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
           accessibilityLabel="Edit profile"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          {safeAvatarUrl ? (
+            <Image 
+              source={{ uri: safeAvatarUrl }} 
+              style={[styles.avatar, { backgroundColor: 'transparent', resizeMode: 'cover' }]}
+              onError={(error) => console.log('🖼️ ProfileHeader Image error:', error)}
+              onLoad={() => console.log('🖼️ ProfileHeader Image loaded successfully')}
+            />
           ) : (
             <View style={[styles.avatar, styles.initialAvatar]}>
               <Text style={[styles.initialLetter, font]}>{initialLetter}</Text>
