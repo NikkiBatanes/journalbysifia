@@ -17,6 +17,7 @@ import ReflectionLogEditor from './ReflectionLogEditor';
 import { styles as reflectionLogStyles } from './reflectionStyles';
 import { GUIDED_PROMPTS } from './reflectionConstants';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
 import {
   useReflectionData,
   useCreateReflection,
@@ -393,6 +394,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
+  // Guided prompt gating for consistent lock state
+  const guidedPromptGating = useGuidedPromptGating({
+    context: 'inApp',
+  });
+
   // Debug logging for date handling
 
   const isSelectedToday = isTodayFn(selectedDate);
@@ -597,9 +603,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }, [entries, deleteMutation, user, dateStr]);
 
-  // handleEntryPress removed - not used in original design
-
-  // startAdding removed - not used in original design
+  // Refresh guided prompt gating state when editor modal opens
+  useEffect(() => {
+    if (isAdding) {
+      guidedPromptGating.refreshAccess();
+    }
+  }, [isAdding, guidedPromptGating]);
 
   // Handle prompt selection with analytics
   const handlePromptSelection = useCallback((prompt: string) => {
@@ -658,46 +667,85 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     selectedPromptOption: {
       backgroundColor: 'rgba(255, 107, 107, 0.1)',
     },
+    promptOptionContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
     promptOptionText: {
       fontFamily: Fonts.regular,
       fontSize: 14,
       color: Colors.darkGray,
+      flex: 1,
+    },
+    lockedPromptText: {
+      color: Colors.trustGrey,
+      opacity: 0.7,
+    },
+    lockIcon: {
+      marginLeft: 8,
     },
   });
 
-  const renderPromptPicker = () => (
-    <Modal
-      visible={showPromptPicker}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowPromptPicker(false)}
-    >
-      <View style={promptModalStyles.promptModalContainer}>
-        <View style={promptModalStyles.promptModalContent}>
-          <View style={promptModalStyles.promptModalHeader}>
-            <ThemedText style={promptModalStyles.promptModalTitle}>Select a Prompt</ThemedText>
-            <TouchableOpacity onPress={() => { triggerLightHaptic(); setShowPromptPicker(false); }}>
-              <X size={24} color={Colors.darkGray} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={promptModalStyles.promptList}>
-            {GUIDED_PROMPTS.map((prompt, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  promptModalStyles.promptOption,
-                  selectedPrompt === prompt && promptModalStyles.selectedPromptOption,
-                ]}
-                onPress={() => handlePromptSelection(prompt)}
-              >
-                <ThemedText style={promptModalStyles.promptOptionText}>{prompt}</ThemedText>
+  const renderPromptPicker = () => {
+    // Get gated prompts from the editor component
+    const lockedPrompts = guidedPromptGating.lockedPrompts || [];
+
+    return (
+      <Modal
+        visible={showPromptPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPromptPicker(false)}
+      >
+        <View style={promptModalStyles.promptModalContainer}>
+          <View style={promptModalStyles.promptModalContent}>
+            <View style={promptModalStyles.promptModalHeader}>
+              <ThemedText style={promptModalStyles.promptModalTitle}>Select a Prompt</ThemedText>
+              <TouchableOpacity onPress={() => { triggerLightHaptic(); setShowPromptPicker(false); }}>
+                <X size={24} color={Colors.darkGray} />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </View>
+            <ScrollView style={promptModalStyles.promptList}>
+              {GUIDED_PROMPTS.map((prompt, index) => {
+                const isLocked = lockedPrompts.includes(prompt);
+                const isSelected = selectedPrompt === prompt;
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      promptModalStyles.promptOption,
+                      isSelected && promptModalStyles.selectedPromptOption,
+                    ]}
+                    onPress={() => handlePromptSelection(prompt)}
+                    disabled={isLocked}
+                  >
+                    <View style={promptModalStyles.promptOptionContent}>
+                      <ThemedText style={[
+                        promptModalStyles.promptOptionText,
+                        isLocked && promptModalStyles.lockedPromptText,
+                      ]}>
+                        {prompt}
+                      </ThemedText>
+                      {isLocked && (
+                        <Ionicons
+                          name="lock-closed"
+                          size={16}
+                          color={Colors.trustGrey}
+                          style={promptModalStyles.lockIcon}
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
