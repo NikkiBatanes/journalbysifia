@@ -48,6 +48,7 @@ interface RouteParams {
   context?: string; // e.g., 'profile_settings', 'timeblock'
   returnTo?: string; // e.g., 'UserProfile' - screen to return to on close
   returnToReflection?: boolean; // when launched from reflection editor
+  dismissBothModalsOnClose?: boolean; // when both modals should be dismissed on close
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
