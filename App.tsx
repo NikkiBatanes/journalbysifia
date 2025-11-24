@@ -16,7 +16,6 @@ import {
   Image,
   AppState,
   AppStateStatus,
-  Button,
 } from 'react-native';
 
 import {
@@ -48,7 +47,6 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {queryClient} from './src/config/queryClientConfig';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 import {initializeLogger} from './src/config/logging.config';
-import {initializeSentry} from './src/config/sentry';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -57,8 +55,6 @@ LogBox.ignoreAllLogs(); // Ignore all log notifications
 // Initialize production-ready logger
 initializeLogger();
 
-// Initialize Sentry error monitoring (now handled by wizard)
-// initializeSentry(); // Commented out - wizard handles initialization
 
 // Global default font is applied dynamically via GlobalFontApplier using theme.currentFont
 
@@ -323,20 +319,6 @@ function AppWithAuth({
                         !HIDE_NETWORK_ON.has(currentRouteName) ? (
                           <NetworkStatus />
                         ) : null}
-                        
-                        {/* Development: Sentry Test Button - Remove in production */}
-                        {__DEV__ && (
-                          <View style={{ position: 'absolute', top: 80, right: 20, zIndex: 9999 }}>
-                            <Button
-                              title='Test Sentry'
-                              onPress={() => {
-                                Sentry.captureException(new Error('Test error from siFia app'));
-                                console.log('📊 Test error sent to Sentry');
-                              }}
-                              color="red"
-                            />
-                          </View>
-                        )}
                       </AuthStateMonitor>
                     </LogoutContext.Provider>
                   </PointsNotificationProvider>
