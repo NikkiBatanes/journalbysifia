@@ -22,6 +22,130 @@ interface DevotionalGenerationParams {
 type GeneratedDevotional = Devotional;
 
 /**
+ * Validates devotional completeness and quality
+ * Returns error message if validation fails, null if valid
+ */
+function validateDevotionalCompleteness(devotional: any, expectedDuration: number): string | null {
+  // Check title quality
+  if (!devotional.title || devotional.title.trim().length < 5) {
+    return 'Title is too short or missing';
+  }
+
+  if (devotional.title.length > 200) {
+    return 'Title is too long';
+  }
+
+  // Check description quality
+  if (!devotional.description || devotional.description.trim().length < 10) {
+    return 'Description is too short or missing';
+  }
+
+  if (devotional.description.length > 1000) {
+    return 'Description is too long';
+  }
+
+  // Check days completeness
+  if (!Array.isArray(devotional.days) || devotional.days.length === 0) {
+    return 'No devotional days provided';
+  }
+
+  if (devotional.days.length !== expectedDuration) {
+    return `Expected ${expectedDuration} days, but got ${devotional.days.length}`;
+  }
+
+  // Validate each day
+  for (let i = 0; i < devotional.days.length; i++) {
+    const day = devotional.days[i];
+    
+    if (!day.title || day.title.trim().length < 5) {
+      return `Day ${i + 1} has incomplete title`;
+    }
+
+    if (!day.content || day.content.trim().length < 50) {
+      return `Day ${i + 1} has insufficient content`;
+    }
+
+    if (day.content.length > 2000) {
+      return `Day ${i + 1} content is too long`;
+    }
+
+    // Check for placeholder text that indicates incomplete generation
+    const placeholderPatterns = [
+      /\[.*\]/, // [placeholder text]
+      /\.\.\./, // trailing dots
+      /lorem ipsum/i,
+      /example here/i,
+      /fill in/i,
+      /coming soon/i,
+      /to be added/i,
+      /incomplete/i,
+      /partial/i,
+      /placeholder/i,
+      /template/i
+    ];
+
+    if (placeholderPatterns.some(pattern => pattern.test(day.title))) {
+      return `Day ${i + 1} title contains placeholder text`;
+    }
+
+    if (placeholderPatterns.some(pattern => pattern.test(day.content))) {
+      return `Day ${i + 1} content contains placeholder text`;
+    }
+
+    // Check for reflection if expected
+    if (day.reflection) {
+      if (day.reflection.trim().length < 20) {
+        return `Day ${i + 1} reflection is too short`;
+      }
+
+      if (placeholderPatterns.some(pattern => pattern.test(day.reflection))) {
+        return `Day ${i + 1} reflection contains placeholder text`;
+      }
+    }
+
+    // Check for prayer if expected
+    if (day.prayer) {
+      if (day.prayer.trim().length < 10) {
+        return `Day ${i + 1} prayer is too short`;
+      }
+
+      if (placeholderPatterns.some(pattern => pattern.test(day.prayer))) {
+        return `Day ${i + 1} prayer contains placeholder text`;
+      }
+    }
+
+    // Check for scripture if expected
+    if (day.scripture) {
+      if (typeof day.scripture === 'object' && day.scripture.text) {
+        if (day.scripture.text.trim().length < 5) {
+          return `Day ${i + 1} scripture is too short`;
+        }
+      } else if (typeof day.scripture === 'string') {
+        if (day.scripture.trim().length < 5) {
+          return `Day ${i + 1} scripture is too short`;
+        }
+      }
+    }
+  }
+
+  // Check for overall quality indicators
+  const totalContentLength = devotional.days.reduce((sum: number, day: any) => {
+    return sum + (day.content ? day.content.length : 0) + 
+           (day.reflection ? day.reflection.length : 0) + 
+           (day.prayer ? day.prayer.length : 0);
+  }, 0);
+
+  const minLengthPerDay = 100; // Minimum 100 characters per day
+  const expectedMinLength = expectedDuration * minLengthPerDay;
+
+  if (totalContentLength < expectedMinLength) {
+    return `Devotional content is too short overall (minimum ${expectedMinLength} characters expected)`;
+  }
+
+  return null; // Validation passed
+}
+
+/**
  * Generate a new devotional using modern Supabase session
  * This replaces the legacy generateDevotional function
  */
@@ -118,6 +242,12 @@ export async function generateDevotional(
       // Validate the response structure
       if (!result || !Array.isArray(result.days) || result.days.length === 0) {
         throw new Error('Invalid devotional format received from server');
+      }
+
+      // Validate content completeness and quality
+      const validationError = validateDevotionalCompleteness(result, duration);
+      if (validationError) {
+        throw new Error(`Incomplete devotional: ${validationError}`);
       }
 
       // Choose a category: prefer result.category/categories if present, else derive from title/description

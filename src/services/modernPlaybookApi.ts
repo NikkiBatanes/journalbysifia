@@ -76,6 +76,122 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
 import { addJournalTypesToPlaybook } from '../utils/journalTypeDetection';
 
 /**
+ * Validates playbook completeness and quality
+ * Returns error message if validation fails, null if valid
+ */
+function validatePlaybookCompleteness(playbook: any): string | null {
+  // Check title quality
+  if (!playbook.title || playbook.title.trim().length < 5) {
+    return 'Title is too short or missing';
+  }
+
+  if (playbook.title.length > 200) {
+    return 'Title is too long';
+  }
+
+  // Check action steps completeness
+  if (!Array.isArray(playbook.actionSteps) || playbook.actionSteps.length === 0) {
+    return 'No action steps provided';
+  }
+
+  if (playbook.actionSteps.length < 3) {
+    return 'Too few action steps (minimum 3 required)';
+  }
+
+  if (playbook.actionSteps.length > 10) {
+    return 'Too many action steps (maximum 10 allowed)';
+  }
+
+  // Validate each action step
+  for (let i = 0; i < playbook.actionSteps.length; i++) {
+    const step = playbook.actionSteps[i];
+    
+    if (!step.title || step.title.trim().length < 5) {
+      return `Action step ${i + 1} has incomplete title`;
+    }
+
+    if (step.title.length > 300) {
+      return `Action step ${i + 1} title is too long`;
+    }
+
+    // Check for placeholder text that indicates incomplete generation
+    const placeholderPatterns = [
+      /\[.*\]/, // [placeholder text]
+      /\.\.\./, // trailing dots
+      /lorem ipsum/i,
+      /example here/i,
+      /fill in/i,
+      /coming soon/i,
+      /to be added/i,
+      /incomplete/i,
+      /partial/i
+    ];
+
+    if (placeholderPatterns.some(pattern => pattern.test(step.title))) {
+      return `Action step ${i + 1} contains placeholder text`;
+    }
+
+    // Validate subtasks if present
+    if (step.subTasks && Array.isArray(step.subTasks)) {
+      if (step.subTasks.length > 5) {
+        return `Action step ${i + 1} has too many subtasks (maximum 5 allowed)`;
+      }
+
+      for (let j = 0; j < step.subTasks.length; j++) {
+        const subTask = step.subTasks[j];
+        
+        if (!subTask.text || subTask.text.trim().length < 3) {
+          return `Subtask ${j + 1} in action step ${i + 1} is incomplete`;
+        }
+
+        if (placeholderPatterns.some(pattern => pattern.test(subTask.text))) {
+          return `Subtask ${j + 1} in action step ${i + 1} contains placeholder text`;
+        }
+      }
+    }
+  }
+
+  // Check truthInLove section if present
+  if (playbook.truthInLove) {
+    if (typeof playbook.truthInLove === 'string') {
+      if (playbook.truthInLove.trim().length > 0 && playbook.truthInLove.length < 10) {
+        return 'Truth in Love section is too short';
+      }
+    } else if (typeof playbook.truthInLove === 'object' && playbook.truthInLove.text) {
+      if (playbook.truthInLove.text.trim().length > 0 && playbook.truthInLove.text.length < 10) {
+        return 'Truth in Love section is too short';
+      }
+    }
+  }
+
+  // Check bible verse if present
+  if (playbook.bibleVerse) {
+    if (typeof playbook.bibleVerse === 'string') {
+      if (playbook.bibleVerse.trim().length > 0 && playbook.bibleVerse.length < 5) {
+        return 'Bible verse is too short';
+      }
+    } else if (typeof playbook.bibleVerse === 'object' && playbook.bibleVerse.text) {
+      if (playbook.bibleVerse.text.trim().length > 0 && playbook.bibleVerse.text.length < 5) {
+        return 'Bible verse is too short';
+      }
+    }
+  }
+
+  // Check for overall quality indicators
+  const totalLength = playbook.actionSteps.reduce((sum: number, step: any) => {
+    return sum + (step.title ? step.title.length : 0) + 
+           (step.subTasks ? step.subTasks.reduce((subSum: number, subTask: any) => 
+             subSum + (subTask.text ? subTask.text.length : 0), 0) : 0);
+  }, 0);
+
+  if (totalLength < 100) {
+    return 'Playbook content is too short overall';
+  }
+
+  return null; // Validation passed
+}
+
+/**
  * Internal function that does the actual generation
  * Wrapped by generatePlaybook for deduplication
  */
@@ -179,9 +295,15 @@ async function generatePlaybookInternal(
 
       const result = await response.json();
 
-      // Validate the response structure
+      // Enhanced validation for complete playbook content
       if (!result || !result.title || !Array.isArray(result.actionSteps)) {
         throw new Error('Invalid playbook format received from server');
+      }
+
+      // Validate content completeness and quality
+      const validationError = validatePlaybookCompleteness(result);
+      if (validationError) {
+        throw new Error(`Incomplete playbook: ${validationError}`);
       }
 
       // Ensure the playbook has a proper UUID
