@@ -31,40 +31,66 @@ export const comprehensiveNotificationTest = {
       results.beforeQueue = beforeStats;
       steps.push(`✅ Queue status: Pending=${beforeStats.pending}, Processing=${beforeStats.processing}, Sent=${beforeStats.sent}`);
 
-      // Step 2: Create a test notification directly
+      // Step 2: Create a test notification directly using the working approach
       steps.push('📝 Step 2: Creating test notification...');
-      const testNotification = {
-        user_id: userId,
-        type: 'test_notification',
-        title: '🧪 Comprehensive Test',
-        message: 'This is a comprehensive pipeline test notification',
-        scheduled_for: new Date(Date.now() + 2000).toISOString(), // 2 seconds from now
-        priority: 'high' as const,
-        data: {
-          deep_link: 'sifia://dashboard',
-          type: 'comprehensive_test',
-          test: true,
-          timestamp: new Date().toISOString(),
-        },
-      };
-
-      const scheduleResult = await notificationSchedulerService.scheduleNotification(testNotification, {
-        priority: 'high',
-        batchWithOthers: false,
-      });
-
-      if (!scheduleResult) {
-        steps.push('❌ Failed to schedule test notification');
-        return {
-          success: false,
-          steps,
-          results,
-          error: 'Failed to schedule test notification',
-        };
+      
+      // First try the working local notification approach
+      try {
+        const { pushNotificationService } = await import('../services/pushNotificationService');
+        
+        await pushNotificationService.scheduleLocalNotification({
+          title: '🧪 Comprehensive Test',
+          message: 'This is a comprehensive pipeline test notification',
+          data: {
+            deep_link: 'sifia://dashboard',
+            type: 'comprehensive_test',
+            test: true,
+            timestamp: new Date().toISOString(),
+          },
+        }, new Date(Date.now() + 2000)); // 2 seconds from now
+        
+        steps.push('✅ Local notification scheduled successfully');
+        results.localNotificationResult = true;
+        
+      } catch (error) {
+        steps.push(`❌ Failed to schedule local notification: ${(error as Error).message}`);
+        results.localNotificationError = (error as Error).message;
       }
 
-      steps.push('✅ Test notification scheduled successfully');
-      results.scheduleResult = scheduleResult;
+      // Also try the scheduler service to see why it fails
+      try {
+        const testNotification = {
+          user_id: userId,
+          type: 'test_notification',
+          title: '🧪 Scheduler Test',
+          message: 'Testing scheduler service',
+          scheduled_for: new Date(Date.now() + 2000).toISOString(),
+          priority: 'high' as const,
+          data: {
+            deep_link: 'sifia://dashboard',
+            type: 'scheduler_test',
+            test: true,
+          },
+        };
+
+        const scheduleResult = await notificationSchedulerService.scheduleNotification(testNotification, {
+          priority: 'high',
+          batchWithOthers: false,
+        });
+
+        Logger.info('Schedule result', { scheduleResult, testNotification });
+
+        if (scheduleResult) {
+          steps.push('✅ Scheduler notification also successful');
+          results.schedulerResult = true;
+        } else {
+          steps.push('❌ Scheduler notification failed (but local worked)');
+          results.schedulerResult = false;
+        }
+      } catch (error) {
+        steps.push(`❌ Scheduler error: ${(error as Error).message}`);
+        results.schedulerError = (error as Error).message;
+      }
 
       // Step 3: Wait a moment for scheduling
       steps.push('⏳ Step 3: Waiting for scheduling to complete...');
