@@ -110,24 +110,18 @@ const OnboardingTrialOfferScreen = () => {
     if (fromUserProfile && dismissBothModalsOnClose) {
       logger.debug('Closing from user profile - dismissing both modals', { fromUserProfile, dismissBothModalsOnClose });
       try {
-        // Try a more conservative approach - pop 2 screens (Trial and Sales Offer)
-        const popAction = StackActions.pop(2);
-        navigation.dispatch(popAction);
-        logger.debug('Successfully dispatched pop(2) action');
+        // Use goBack twice with proper timing to dismiss Trial and Sales Offer
+        // This is more reliable than pop(2) for modal navigation
+        navigation.goBack(); // Close Trial screen
+        setTimeout(() => {
+          navigation.goBack(); // Close Sales Offer screen
+          logger.debug('Both modals dismissed, should be back at UserProfile');
+        }, 100);
       } catch (error) {
-        logger.error('Pop action failed, trying fallback', error as Error);
-        // Fallback: try going back multiple times with longer delays
+        logger.error('Modal dismissal failed', error as Error);
+        // Fallback: try going back once
         try {
-          logger.debug('Attempting fallback navigation');
           navigation.goBack();
-          setTimeout(() => {
-            logger.debug('First goBack completed, attempting second');
-            navigation.goBack();
-          }, 200);
-          setTimeout(() => {
-            logger.debug('Second goBack completed, attempting third if needed');
-            navigation.goBack();
-          }, 400);
         } catch (fallbackError) {
           logger.error('Fallback navigation also failed', fallbackError as Error);
         }

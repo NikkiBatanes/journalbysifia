@@ -261,39 +261,39 @@ const UsageTooltipModal: React.FC<Props> = ({
     // Users can choose trial from within the sales offer screen
     console.log('🔧 Always showing sales offer from profile usage counter');
 
-    // Close tooltip modal first
+    // CRITICAL: Close tooltip modal first to ensure proper navigation context
     onClose();
 
-    // Navigate after tooltip closes with proper delay
+    // Use longer delay to ensure modal is fully closed before navigation
+    // This prevents navigation context issues with React Native modals
     setTimeout(() => {
-      console.log('🔧 Attempting navigation...');
+      console.log('🔧 Attempting navigation after modal close...');
       try {
-        // Always navigate to sales offer screen
-        console.log('🔧 Navigating to OnboardingSalesOffer');
-        (navigation as any).reset({
-          index: 0,
-          routes: [{ name: 'OnboardingSalesOffer', params: {
-            upgradeMode: true,
-            currentTier: subscription?.tier || 'seeker',
-            skipNotificationPreference: true,
-            featureType: type === 'playbooks' || type === 'devotionals' ? type : undefined,
-            source: 'profile_usage_counter',
-            feature: type === 'playbooks' ? 'playbooks' : 'devotionals',
-            returnTo: 'UserProfile',
-            context: 'profile_settings',
-            dismissBothModalsOnClose: true, // Custom flag to handle dismissal
-          }}],
-        });
-      } catch (error) {
-        console.error('Navigation error:', error);
-        // Fallback: try to navigate without extra parameters
-        try {
-          (navigation as any).navigate('OnboardingSalesOffer');
-        } catch (fallbackError) {
-          console.error('Fallback navigation error:', fallbackError);
+        const nav = navigation as any;
+
+        // Check if navigation is available
+        if (!nav || typeof nav.navigate !== 'function') {
+          console.error('❌ Navigation not available');
+          return;
         }
+
+        console.log('🔧 Navigating to OnboardingSalesOffer');
+        nav.navigate('OnboardingSalesOffer', {
+          upgradeMode: true,
+          currentTier: subscription?.tier || 'seeker',
+          skipNotificationPreference: true,
+          featureType: type === 'playbooks' || type === 'devotionals' ? type : undefined,
+          source: 'profile_usage_counter',
+          feature: type === 'playbooks' ? 'playbooks' : 'devotionals',
+          returnTo: 'UserProfile',
+          context: 'profile_settings',
+          dismissBothModalsOnClose: true, // Custom flag to handle dismissal
+        });
+        console.log('✅ Navigation call completed');
+      } catch (error) {
+        console.error('❌ Navigation error:', error);
       }
-    }, 300);
+    }, 500); // Increased delay to ensure modal is fully closed
   };
 
   return (
