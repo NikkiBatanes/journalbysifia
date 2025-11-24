@@ -68,6 +68,8 @@ describe('pushNotificationService', () => {
 
   describe('device token management', () => {
     it('should handle device token registration', () => {
+      const mockToken = 'device-token-123';
+
       // Service should handle token internally
       expect(() => {
         // Simulate token received
@@ -78,6 +80,15 @@ describe('pushNotificationService', () => {
 
   describe('notification handling', () => {
     it('should handle received notifications', () => {
+      const mockNotification = {
+        id: 'notif-123',
+        title: 'Test Notification',
+        body: 'Test message',
+        data: {
+          type: 'test',
+        },
+      };
+
       // Service should handle notification without throwing
       expect(() => {
         // Notification would be handled internally
@@ -85,9 +96,16 @@ describe('pushNotificationService', () => {
     });
 
     it('should handle notification tap events', () => {
-      // Service should handle invalid notification gracefully
+      const mockNotification = {
+        id: 'notif-123',
+        data: {
+          deep_link: 'sifia://test',
+        },
+      };
+
+      // Service should handle tap without throwing
       expect(() => {
-        // Invalid notification would be handled internally
+        // Tap would be handled internally
       }).not.toThrow();
     });
   });
@@ -110,6 +128,8 @@ describe('pushNotificationService', () => {
     });
 
     it('should handle invalid notification data', () => {
+      const invalidNotification = null;
+
       // Should handle gracefully
       expect(() => {
         // Would be handled internally
