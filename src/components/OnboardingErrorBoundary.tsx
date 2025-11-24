@@ -66,22 +66,27 @@ class OnboardingErrorBoundary extends Component<Props, State> {
 
     // Send error to Sentry
     try {
-      Sentry.captureException(error, {
-        contexts: {
-          react: {
-            componentStack: errorInfo.componentStack,
+      // Check if Sentry is available before using it
+      if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+        Sentry.captureException(error, {
+          contexts: {
+            react: {
+              componentStack: errorInfo.componentStack,
+            },
           },
-        },
-        tags: {
-          screen: 'onboarding',
-          errorCount: String(this.state.errorCount + 1),
-        },
-        level: 'error',
-      });
+          tags: {
+            screen: 'onboarding',
+            errorCount: String(this.state.errorCount + 1),
+          },
+          level: 'error',
+        });
+      } else {
+        Logger.debug('[OnboardingErrorBoundary] Sentry not available - logging locally', { component: 'OnboardingErrorBoundary' });
+      }
     } catch (trackingError) {
       Logger.error('[OnboardingErrorBoundary] Failed to track error', trackingError as Error, {
-  component: 'OnboardingErrorBoundary',
-});
+        component: 'OnboardingErrorBoundary',
+      });
     }
   }
 
