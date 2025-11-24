@@ -13,14 +13,19 @@ import { getEnvironmentConfig, validateEnvironment } from '../config/environment
 
 // Get environment configuration
 const env = getEnvironmentConfig();
-const supabaseUrl = env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co';
-const supabaseAnonKey = env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM';
+const supabaseUrl = env.SUPABASE_URL;
+const supabaseAnonKey = env.SUPABASE_ANON_KEY;
 
 // Validate environment on startup
 if (!validateEnvironment()) {
-  Logger.warn('⚠️ Some environment variables are missing. Please check your .env file.', {
+  Logger.error('❌ CRITICAL: Missing required environment variables. App cannot function without SUPABASE_URL and SUPABASE_ANON_KEY.', {
       component: 'supabaseClient',
     });
+}
+
+// Ensure required values are present
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('CRITICAL: SUPABASE_URL and SUPABASE_ANON_KEY must be set in environment variables');
 }
 
 // Create Supabase client with proper session persistence

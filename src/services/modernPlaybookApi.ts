@@ -13,6 +13,7 @@ import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeou
 import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
 import { monitoring } from '../utils/monitoring';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
+import { ENV } from '../config/environment';
 // Offline queue utilities available but not currently used
 // import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
 
@@ -145,7 +146,7 @@ async function generatePlaybookInternal(
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
+              'apikey': ENV.SUPABASE_ANON_KEY,
               'Authorization': `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({

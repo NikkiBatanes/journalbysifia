@@ -12,17 +12,17 @@ import { Logger } from '../utils/ProductionLogger';
 
 export const ENV = {
   // Supabase Configuration
-  SUPABASE_URL: Config.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co',
-  SUPABASE_ANON_KEY: Config.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM',
+  SUPABASE_URL: Config.SUPABASE_URL || '',
+  SUPABASE_ANON_KEY: Config.SUPABASE_ANON_KEY || '',
 
   // OpenAI Configuration
-  OPENAI_API_KEY: Config.OPENAI_API_KEY || 'your_openai_api_key_here',
+  OPENAI_API_KEY: Config.OPENAI_API_KEY || '',
 
   // Payment Configuration - US Market
-  STRIPE_PUBLISHABLE_KEY: Config.STRIPE_PUBLISHABLE_KEY || 'pk_test_your_stripe_key',
+  STRIPE_PUBLISHABLE_KEY: Config.STRIPE_PUBLISHABLE_KEY || '',
 
   // Payment Configuration - Philippines Market
-  PAYMONGO_PUBLIC_KEY: Config.PAYMONGO_PUBLIC_KEY || 'pk_test_your_paymongo_key',
+  PAYMONGO_PUBLIC_KEY: Config.PAYMONGO_PUBLIC_KEY || '',
 
   // App Configuration
   APP_ENV: Config.APP_ENV || 'production',

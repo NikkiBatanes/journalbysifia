@@ -70,9 +70,9 @@ describe('uuidUtils', () => {
     });
 
     it('should return false for UUID with wrong version', () => {
-      // UUID v1 format (not v4)
-      const uuidV1 = '550e8400-e29b-11d4-a716-446655440000';
-      expect(isValidUUID(uuidV1)).toBe(false);
+      // UUID v6 format (not supported - only v1-v5 are valid)
+      const uuidV6 = '550e8400-e29b-66d4-a716-446655440000';
+      expect(isValidUUID(uuidV6)).toBe(false);
     });
 
     it('should return false for UUID with wrong variant', () => {
