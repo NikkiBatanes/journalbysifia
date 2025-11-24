@@ -10,12 +10,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { notificationDebugger } from '../../utils/notificationDebugger';
-import { Logger } from '../../utils/ProductionLogger';
-import { Colors } from '../../theme/colors';
-import { testNotifications } from '../../utils/testNotifications';
-import ThemedText from '../../components/common/ThemedText';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { notificationDebugger } from '../utils/notificationDebugger';
+import { notificationTesting } from '../utils/notificationTesting';
+import { Logger } from '../utils/ProductionLogger';
+import { Colors } from '../theme/colors';
+import { testNotifications } from '../utils/testNotifications';
+import ThemedText from '../components/common/ThemedText';
 
 const NotificationDebugScreen = () => {
   const { user } = useAuth();
@@ -95,6 +96,12 @@ const NotificationDebugScreen = () => {
         case 'gratitude':
           await testNotifications.sendGratitudeReminder();
           break;
+        case 'critical':
+          await notificationTesting.sendCriticalTestNotification(user.id);
+          break;
+        case 'force':
+          await notificationTesting.forceScheduleDailyNotifications(user.id);
+          break;
         case 'all':
           await testNotifications.sendAllTests();
           break;
@@ -107,6 +114,32 @@ const NotificationDebugScreen = () => {
       Alert.alert('❌ Error', 'Failed to send test notification. Check logs for details.');
     } finally {
       setIsSendingTest(false);
+    }
+  };
+
+  const diagnoseSuppression = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    try {
+      const diagnosis = await notificationTesting.diagnoseSuppression(user.id);
+      
+      const message = `
+App Active: ${diagnosis.appActive ? 'Yes (suppressing notifications)' : 'No'}
+Fatigue: ${diagnosis.fatigue ? 'Yes (too many notifications)' : 'No'}
+Recent Count: ${diagnosis.recentCount}/3 daily limit
+
+Recommendations:
+${diagnosis.recommendations.join('\n')}
+      `.trim();
+
+      Alert.alert('🔍 Suppression Diagnosis', message);
+      Logger.info('Suppression diagnosis completed', { diagnosis });
+    } catch (error) {
+      Logger.error('Failed to diagnose suppression', error as Error);
+      Alert.alert('❌ Error', 'Failed to diagnose suppression');
     }
   };
 
@@ -200,7 +233,7 @@ const NotificationDebugScreen = () => {
         {/* Quick Status */}
         {renderQuickStatus()}
 
-        {/* Action Buttons */}
+        {/* Actions Section */}
         <View style={styles.actionsSection}>
           <TouchableOpacity 
             style={[styles.actionButton, styles.primaryButton]}
@@ -216,9 +249,18 @@ const NotificationDebugScreen = () => {
 
           <TouchableOpacity 
             style={[styles.actionButton, styles.secondaryButton]}
+            onPress={diagnoseSuppression}
+          >
+            <Text style={[styles.actionButtonText, { color: Colors.anchorBlue }]}>
+              🚫 Why Suppressed?
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.secondaryButton]}
             onPress={loadQuickStatus}
           >
-            <Text style={[styles.actionButtonText, { color: Colors.hopeBlue }]}>
+            <Text style={[styles.actionButtonText, { color: Colors.anchorBlue }]}>
               🔄 Refresh Status
             </Text>
           </TouchableOpacity>
@@ -234,6 +276,8 @@ const NotificationDebugScreen = () => {
               { type: 'devotional', label: '📖 Devotional' },
               { type: 'milestone', label: '🌟 Milestone' },
               { type: 'gratitude', label: '🙏 Gratitude' },
+              { type: 'critical', label: '🚨 Critical Test' },
+              { type: 'force', label: '⚡ Force Daily' },
               { type: 'all', label: '🎯 All Tests' },
             ].map((test) => (
               <TouchableOpacity
@@ -295,7 +339,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   header: {
-    backgroundColor: Colors.hopeBlue,
+    backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 24,
     paddingVertical: 20,
     paddingBottom: 32,
@@ -373,12 +417,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: Colors.hopeBlue,
+    backgroundColor: Colors.anchorBlue,
   },
   secondaryButton: {
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: Colors.hopeBlue,
+    borderColor: Colors.anchorBlue,
   },
   actionButtonText: {
     fontSize: 14,

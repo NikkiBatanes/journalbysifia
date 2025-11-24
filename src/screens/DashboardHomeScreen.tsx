@@ -1366,6 +1366,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             triggerLightHaptic();
             navigation.navigate('Notifications');
           }}
+          onLongPress={() => {
+            triggerLightHaptic();
+            navigation.navigate('NotificationDebug');
+          }}
+          delayLongPress={500}
         >
           <Ionicons name="notifications-outline" size={24} color={Colors.anchorBlue} />
           {badgeCount > 0 && (
