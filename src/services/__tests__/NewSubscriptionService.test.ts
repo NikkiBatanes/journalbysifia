@@ -1,6 +1,7 @@
 /**
  * NewSubscriptionService.test.ts
  * Test suite for subscription management service
+ * Testing only PUBLIC static methods that actually exist
  */
 
 import { NewSubscriptionService } from '../NewSubscriptionService';
@@ -97,66 +98,72 @@ describe('NewSubscriptionService', () => {
     });
   });
 
-  describe('updateSubscription', () => {
-    it('should update subscription successfully', async () => {
-      const updateData = {
-        tier: 'growth',
-        status: 'active',
-        subscription_display_name: 'Growth',
+  describe('upgradeSubscription', () => {
+    it('should upgrade subscription successfully', async () => {
+      const upgradeOptions = {
+        target_tier: 'growth' as const,
+        platform: 'apple' as const,
       };
 
       mockSupabase.from.mockReturnValue({
-        upsert: jest.fn().mockResolvedValue({
-          data: { user_id: mockUserId, ...updateData },
-          error: null,
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: { user_id: mockUserId, tier: 'growth', status: 'active' },
+              error: null,
+            }),
+          }),
         }),
       });
 
-      const result = await NewSubscriptionService.updateSubscription(mockUserId, updateData);
+      const result = await NewSubscriptionService.upgradeSubscription(mockUserId, upgradeOptions);
 
-      expect(result.success).toBe(true);
-      expect(mockSupabase.from).toHaveBeenCalledWith('user_subscriptions');
+      expect(result).toBeDefined();
+      expect(result.tier).toBe('growth');
     });
 
-    it('should handle update errors', async () => {
+    it('should handle upgrade errors', async () => {
       mockSupabase.from.mockReturnValue({
-        upsert: jest.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Update failed', code: 'UPDATE_ERROR' },
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Upgrade failed', code: 'UPGRADE_ERROR' },
+            }),
+          }),
         }),
       });
 
-      const result = await NewSubscriptionService.updateSubscription(mockUserId, { tier: 'spark' });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      await expect(
+        NewSubscriptionService.upgradeSubscription(mockUserId, { target_tier: 'spark', platform: 'apple' })
+      ).rejects.toThrow();
     });
   });
 
-  describe('subscription tier validation', () => {
-    it('should validate transformation tier', () => {
-      const isValid = NewSubscriptionService.isValidTier('transformation');
-      expect(isValid).toBe(true);
+  describe('getTierLimits', () => {
+    it('should get transformation tier limits', () => {
+      const limits = NewSubscriptionService.getTierLimits('transformation');
+      expect(limits).toBeDefined();
+      expect(limits.playbooks_limit).toBeGreaterThan(0);
+      expect(limits.devotionals_limit).toBeGreaterThan(0);
     });
 
-    it('should validate growth tier', () => {
-      const isValid = NewSubscriptionService.isValidTier('growth');
-      expect(isValid).toBe(true);
+    it('should get growth tier limits', () => {
+      const limits = NewSubscriptionService.getTierLimits('growth');
+      expect(limits).toBeDefined();
+      expect(limits.playbooks_limit).toBe(20);
     });
 
-    it('should validate spark tier', () => {
-      const isValid = NewSubscriptionService.isValidTier('spark');
-      expect(isValid).toBe(true);
+    it('should get spark tier limits', () => {
+      const limits = NewSubscriptionService.getTierLimits('spark');
+      expect(limits).toBeDefined();
+      expect(limits.playbooks_limit).toBe(8);
     });
 
-    it('should validate seeker tier', () => {
-      const isValid = NewSubscriptionService.isValidTier('seeker');
-      expect(isValid).toBe(true);
-    });
-
-    it('should reject invalid tiers', () => {
-      const isValid = NewSubscriptionService.isValidTier('invalid-tier');
-      expect(isValid).toBe(false);
+    it('should get seeker tier limits', () => {
+      const limits = NewSubscriptionService.getTierLimits('seeker');
+      expect(limits).toBeDefined();
+      expect(limits.playbooks_limit).toBe(0);
     });
   });
 
@@ -303,12 +310,12 @@ describe('NewSubscriptionService', () => {
       });
 
       const promises = Array(5).fill(null).map(() =>
-        NewSubscriptionService.updateSubscription(mockUserId, { tier: 'transformation' })
+        NewSubscriptionService.upgradeSubscription(mockUserId, { target_tier: 'transformation', platform: 'apple' })
       );
 
       const results = await Promise.all(promises);
-      results.forEach(result => {
-        expect(result.success).toBe(true);
+      results.forEach((result: any) => {
+        expect(result).toBeDefined();
       });
     });
   });
