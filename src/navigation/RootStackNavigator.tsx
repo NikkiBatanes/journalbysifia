@@ -30,6 +30,7 @@ import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlayb
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
 import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
+import NotificationDebugScreen from '../screens/NotificationDebugScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
 
@@ -295,7 +296,17 @@ export default function RootStackNavigator({
             }}
           />
 
-          {/* Dev-only Notification Debug Screen - Removed in Phase 1 cleanup */}
+          {/* Dev-only Notification Debug Screen */}
+          <Stack.Screen
+            name="NotificationDebug"
+            component={NotificationDebugScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
+          />
 
           {/* Main App Detail Screens */}
           <Stack.Screen

@@ -47,6 +47,7 @@ export type RootStackParamList = {
   OnboardingNotificationSetup: {
     userType: 'trial' | 'paid' | 'freemium';
   };
+  NotificationDebug: undefined;
 
   // Main App
   MainTabs: undefined;

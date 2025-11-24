@@ -1,0 +1,466 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  StatusBar,
+  ActivityIndicator,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { notificationDebugger } from '../../utils/notificationDebugger';
+import { Logger } from '../../utils/ProductionLogger';
+import { Colors } from '../../theme/colors';
+import { testNotifications } from '../../utils/testNotifications';
+import ThemedText from '../../components/common/ThemedText';
+
+const NotificationDebugScreen = () => {
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  
+  const [isRunningDiagnostic, setIsRunningDiagnostic] = useState(false);
+  const [diagnosticResults, setDiagnosticResults] = useState<any>(null);
+  const [quickStatus, setQuickStatus] = useState<any>(null);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadQuickStatus();
+    }
+  }, [user?.id]);
+
+  const loadQuickStatus = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const status = await notificationDebugger.getQuickStatus(user.id);
+      setQuickStatus(status);
+      Logger.info('Quick status loaded', { status });
+    } catch (error) {
+      Logger.error('Failed to load quick status', error as Error);
+    }
+  };
+
+  const runFullDiagnostic = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    setIsRunningDiagnostic(true);
+    try {
+      Logger.info('Starting full notification diagnostic');
+      const results = await notificationDebugger.runFullDiagnostic(user.id);
+      setDiagnosticResults(results);
+      Logger.info('Diagnostic completed', { issues: results.issues.length });
+      
+      // Show summary alert
+      if (results.issues.length === 0) {
+        Alert.alert('✅ Diagnostic Complete', 'No issues found! Your notification system appears to be working correctly.');
+      } else {
+        Alert.alert(
+          '⚠️ Issues Found', 
+          `Found ${results.issues.length} issue(s). Check the detailed results below.`
+        );
+      }
+    } catch (error) {
+      Logger.error('Diagnostic failed', error as Error);
+      Alert.alert('Error', 'Failed to run diagnostic. Check logs for details.');
+    } finally {
+      setIsRunningDiagnostic(false);
+    }
+  };
+
+  const sendTestNotification = async (testType: string) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      switch (testType) {
+        case 'streak':
+          await testNotifications.sendPrayerStreakAlert();
+          break;
+        case 'devotional':
+          await testNotifications.sendDevotionalReminder();
+          break;
+        case 'milestone':
+          await testNotifications.sendMilestoneCelebration();
+          break;
+        case 'gratitude':
+          await testNotifications.sendGratitudeReminder();
+          break;
+        case 'all':
+          await testNotifications.sendAllTests();
+          break;
+      }
+      
+      Alert.alert('✅ Test Sent', `Test ${testType} notification scheduled! You should receive it in a few seconds.`);
+      Logger.info('Test notification sent', { testType });
+    } catch (error) {
+      Logger.error('Failed to send test notification', error as Error);
+      Alert.alert('❌ Error', 'Failed to send test notification. Check logs for details.');
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
+  const renderStatusCard = (title: string, status: 'pass' | 'fail' | 'unknown', details: any) => {
+    const statusColor = status === 'pass' ? '#10b981' : status === 'fail' ? '#ef4444' : '#6b7280';
+    const statusIcon = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '❓';
+
+    return (
+      <View style={[styles.card, { borderLeftColor: statusColor }]}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          <Text style={[styles.statusBadge, { color: statusColor, backgroundColor: statusColor + '20' }]}>
+            {statusIcon} {status.toUpperCase()}
+          </Text>
+        </View>
+        
+        <View style={styles.cardContent}>
+          {Object.entries(details).map(([key, value]) => (
+            <Text key={key} style={styles.detailText}>
+              {key}: {JSON.stringify(value)}
+            </Text>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const renderQuickStatus = () => {
+    if (!quickStatus) return null;
+
+    return (
+      <View style={[styles.quickStatusCard, { 
+        backgroundColor: quickStatus.overallStatus === 'healthy' ? '#10b98120' : '#ef444420' 
+      }]}>
+        <Text style={styles.quickStatusTitle}>
+          {quickStatus.overallStatus === 'healthy' ? '✅ System Healthy' : '⚠️ Issues Found'}
+        </Text>
+        
+        <View style={styles.quickStatusGrid}>
+          <View style={styles.quickStatusItem}>
+            <Text style={styles.quickStatusLabel}>Device Token</Text>
+            <Text style={styles.quickStatusValue}>
+              {quickStatus.hasDeviceToken ? '✅' : '❌'}
+            </Text>
+          </View>
+          
+          <View style={styles.quickStatusItem}>
+            <Text style={styles.quickStatusLabel}>Permissions</Text>
+            <Text style={styles.quickStatusValue}>
+              {quickStatus.hasPermissions ? '✅' : '❌'}
+            </Text>
+          </View>
+          
+          <View style={styles.quickStatusItem}>
+            <Text style={styles.quickStatusLabel}>Scheduled</Text>
+            <Text style={styles.quickStatusValue}>
+              {quickStatus.notificationsScheduled ? '✅' : '❌'}
+            </Text>
+          </View>
+          
+          <View style={styles.quickStatusItem}>
+            <Text style={styles.quickStatusLabel}>Pending</Text>
+            <Text style={styles.quickStatusValue}>
+              {quickStatus.pendingNotifications}
+            </Text>
+          </View>
+        </View>
+        
+        {quickStatus.keyIssues.length > 0 && (
+          <View style={styles.issuesSection}>
+            <Text style={styles.issuesTitle}>Key Issues:</Text>
+            {quickStatus.keyIssues.map((issue: string, index: number) => (
+              <Text key={index} style={styles.issueText}>• {issue}</Text>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.hopeBlue} />
+      
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>🔔 Notification Debug</Text>
+        <Text style={styles.headerSubtitle}>Diagnose and test push notifications</Text>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Quick Status */}
+        {renderQuickStatus()}
+
+        {/* Action Buttons */}
+        <View style={styles.actionsSection}>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.primaryButton]}
+            onPress={runFullDiagnostic}
+            disabled={isRunningDiagnostic}
+          >
+            {isRunningDiagnostic ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.actionButtonText}>🔍 Run Full Diagnostic</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.secondaryButton]}
+            onPress={loadQuickStatus}
+          >
+            <Text style={[styles.actionButtonText, { color: Colors.hopeBlue }]}>
+              🔄 Refresh Status
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Test Notifications */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🧪 Test Notifications</Text>
+          
+          <View style={styles.testButtonsGrid}>
+            {[
+              { type: 'streak', label: '🔥 Streak Alert' },
+              { type: 'devotional', label: '📖 Devotional' },
+              { type: 'milestone', label: '🌟 Milestone' },
+              { type: 'gratitude', label: '🙏 Gratitude' },
+              { type: 'all', label: '🎯 All Tests' },
+            ].map((test) => (
+              <TouchableOpacity
+                key={test.type}
+                style={[styles.testButton, isSendingTest && styles.disabledButton]}
+                onPress={() => sendTestNotification(test.type)}
+                disabled={isSendingTest}
+              >
+                <Text style={styles.testButtonText}>{test.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Detailed Results */}
+        {diagnosticResults && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📊 Diagnostic Results</Text>
+            
+            {/* Issues and Recommendations */}
+            {diagnosticResults.issues.length > 0 && (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>❌ Issues Found</Text>
+                {diagnosticResults.issues.map((issue: string, index: number) => (
+                  <Text key={index} style={styles.issueText}>• {issue}</Text>
+                ))}
+              </View>
+            )}
+
+            {diagnosticResults.recommendations.length > 0 && (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>💡 Recommendations</Text>
+                {diagnosticResults.recommendations.map((rec: string, index: number) => (
+                  <Text key={index} style={styles.recommendationText}>• {rec}</Text>
+                ))}
+              </View>
+            )}
+
+            {/* Detailed Checks */}
+            {Object.entries(diagnosticResults.checks).map(([key, check]: [string, any]) => (
+              <View key={key} style={{ marginBottom: 16 }}>
+                {renderStatusCard(
+                  key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                  check.status,
+                  check.details
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  header: {
+    backgroundColor: Colors.hopeBlue,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    paddingBottom: 32,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#fff',
+    opacity: 0.8,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  quickStatusCard: {
+    marginVertical: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+  },
+  quickStatusTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  quickStatusGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  quickStatusItem: {
+    width: '50%',
+    marginBottom: 8,
+  },
+  quickStatusLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 2,
+  },
+  quickStatusValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  issuesSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  issuesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#ef4444',
+  },
+  issueText: {
+    fontSize: 12,
+    color: '#ef4444',
+    marginBottom: 2,
+  },
+  actionsSection: {
+    flexDirection: 'row',
+    gap: 12,
+    marginVertical: 16,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: Colors.hopeBlue,
+  },
+  secondaryButton: {
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: Colors.hopeBlue,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  section: {
+    marginVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: '#1e293b',
+  },
+  testButtonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  testButton: {
+    flex: 1,
+    minWidth: '45%',
+    padding: 12,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  testButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#475569',
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#6b7280',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  cardContent: {
+    gap: 4,
+  },
+  detailText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontFamily: 'monospace',
+  },
+  recommendationText: {
+    fontSize: 12,
+    color: '#059669',
+    marginBottom: 2,
+  },
+});
+
+export default NotificationDebugScreen;
