@@ -256,20 +256,6 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         } catch (error) {
           Logger.error('Failed to track prayer for notifications', error as Error, { component: 'SmartJournalingPrayerModal' });
         }
-
-        // Send prayer request notification if praying for someone specific
-        try {
-          if (prayerData.prayerForPerson && prayerData.prayerForPerson.trim().length > 0) {
-            await prayerRequestNotificationService.sendPrayerRequestNotification({
-              prayerForPerson: prayerData.prayerForPerson,
-              prayerRequest: prayerData.prayerRequest,
-              userId: user.id,
-              prayerId: result.id,
-            });
-          }
-        } catch (error) {
-          Logger.error('Failed to send prayer request notification', error as Error, { component: 'SmartJournalingPrayerModal' });
-        }
       }
     },
     onError: (error) => {
@@ -371,6 +357,20 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
       // Call parent onSave callback
       onSave(result);
+
+      // Send prayer request notification if praying for someone specific (only for new prayers)
+      if (!currentPrayerEntry?.id && prayerData.prayerForPerson && prayerData.prayerForPerson.trim().length > 0) {
+        try {
+          await prayerRequestNotificationService.sendPrayerRequestNotification({
+            prayerForPerson: prayerData.prayerForPerson,
+            prayerRequest: prayerData.prayerRequest,
+            userId: user.id,
+            prayerId: result.id,
+          });
+        } catch (error) {
+          Logger.error('Failed to send prayer request notification', error as Error, { component: 'SmartJournalingPrayerModal' });
+        }
+      }
 
       // Mark subtask as completed immediately since data is saved (only for new prayers)
       if (stepId && subtaskId && handleToggleStep && !currentPrayerEntry?.id) {
