@@ -55,7 +55,12 @@ class NotificationSchedulerService {
       } = options;
 
       // Smart suppression: Don't schedule if app is active (user is already engaged)
-      if (this.isAppActive() && priority !== 'critical') {
+      // EXCEPTION: Prayer requests and critical notifications should never be suppressed
+      const isPrayerRequest = notification.type === 'prayer_request_reminder' || 
+                             notification.type === 'prayer_request_alert' ||
+                             notification.title?.toLowerCase().includes('pray for');
+      
+      if (this.isAppActive() && priority !== 'critical' && !isPrayerRequest) {
         Logger.info('App is active - suppressing notification', {
           component: 'notificationSchedulerService',
           userId: notification.user_id,
@@ -66,7 +71,7 @@ class NotificationSchedulerService {
 
       // Check notification fatigue
       const isFatigued = await notificationAnalyticsService.checkNotificationFatigue(notification.user_id);
-      if (isFatigued && priority !== 'critical') {
+      if (isFatigued && priority !== 'critical' && !isPrayerRequest) {
         Logger.info('User experiencing notification fatigue - skipping notification', {
           component: 'notificationSchedulerService',
           userId: notification.user_id,

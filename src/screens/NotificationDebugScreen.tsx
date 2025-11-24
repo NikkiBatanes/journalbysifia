@@ -98,6 +98,9 @@ const NotificationDebugScreen = () => {
         case 'gratitude':
           await testNotifications.sendGratitudeReminder();
           break;
+        case 'prayer':
+          await testNotifications.sendPrayerRequestReminder();
+          break;
         case 'critical':
           await notificationTesting.sendCriticalTestNotification(user.id);
           break;
@@ -360,6 +363,7 @@ ${diagnosis.recommendations.join('\n')}
               { type: 'devotional', label: '📖 Devotional' },
               { type: 'milestone', label: '🌟 Milestone' },
               { type: 'gratitude', label: '🙏 Gratitude' },
+              { type: 'prayer', label: '🙏 Pray for Someone' },
               { type: 'critical', label: '🚨 Critical Test' },
               { type: 'force', label: '⚡ Force Daily' },
               { type: 'now', label: '⚡ NOW Test' },
