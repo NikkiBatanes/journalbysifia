@@ -48,7 +48,8 @@ export const realtimeNotificationDebugger = {
         issues.push('No device token registered');
         steps.push('❌ No device token found');
       } else {
-        steps.push(`✅ Device token found: ${deviceTokenCheck.token.substring(0, 10)}...`);
+        const tokenPreview = deviceTokenCheck.token ? deviceTokenCheck.token.substring(0, 10) + '...' : 'N/A';
+        steps.push(`✅ Device token found: ${tokenPreview}`);
       }
 
       // Step 3: Check notification queue
