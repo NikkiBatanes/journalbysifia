@@ -37,7 +37,6 @@ import { LocationSelector } from '../LocationSelector';
 import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
 import { CalendarSyncButton } from '../CalendarSyncButton';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
-import { useScroll } from '../../context/ScrollContext';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -180,7 +179,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     return key ? map[key] ?? 0 : 0;
   }, [user]);
   const dateStr = toLocalDateString(selectedDate);
-  const { scrollToTop } = useScroll();
 
   // Performance monitoring
   const loadStartTime = useRef<number>(Date.now());
@@ -990,15 +988,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           date: dateStr,
         }, user?.id);
 
-        // After creating a new time block, scroll the page to top
-        try { scrollToTop(true); } catch {}
       }
 
       // Reset form
       setNewBlock({
         title: '',
         startTime: new Date(),
-        endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
+        endTime: new Date(Date.now() + 60 * 60 * 1000), // Default 1 hour duration
         category: '',
         notes: '',
         location: '',
@@ -2171,8 +2167,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   triggerLightHaptic();
                   setIsAdding(false);
                   setEditId(null);
-                  // Scroll to top when canceling, same as when saving
-                  try { scrollToTop(true); } catch {}
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel adding time block"
