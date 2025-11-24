@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil as LucidePencil } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
@@ -31,7 +32,6 @@ import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyle
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { supabase } from '../../services/supabaseClient';
-import { Logger } from '../../utils/ProductionLogger';
 import ThemedText from '../../components/common/ThemedText';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
@@ -161,6 +161,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const lottieFadeAnim = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -178,6 +179,32 @@ const OnboardingWelcomeScreen: React.FC = () => {
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  // Animate Lottie in/out when slide changes
+  useEffect(() => {
+    // Fade out current Lottie
+    Animated.timing(lottieFadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      // Fade in new Lottie after fade out
+      Animated.timing(lottieFadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [currentSlide]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialize Lottie animation on mount
+  useEffect(() => {
+    Animated.timing(lottieFadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen to dimension changes to respond to rotation
   useEffect(() => {
@@ -438,16 +465,18 @@ const OnboardingWelcomeScreen: React.FC = () => {
           {/* Lottie Animation under logo */}
           {currentSlide >= 0 && slides[currentSlide] && slides[currentSlide].useLottie && (
             <View style={styles.logoLottieContainer}>
-              <LottieView
-                source={
-                  slides[currentSlide].lottieFile === 'JC 3.json' ? JC3_ANIMATION :
-                  slides[currentSlide].lottieFile === 'JC 4.json' ? JC4_ANIMATION :
-                  JC5_ANIMATION
-                }
-                autoPlay
-                loop
-                style={styles.lottieIconUnderLogo}
-              />
+              <Animated.View style={[styles.lottieAnimatedContainer, { opacity: lottieFadeAnim }]}>
+                <LottieView
+                  source={
+                    slides[currentSlide].lottieFile === 'JC 3.json' ? JC3_ANIMATION :
+                    slides[currentSlide].lottieFile === 'JC 4.json' ? JC4_ANIMATION :
+                    JC5_ANIMATION
+                  }
+                  autoPlay
+                  loop
+                  style={styles.lottieIconUnderLogo}
+                />
+              </Animated.View>
             </View>
           )}
         </View>
@@ -572,6 +601,10 @@ const styles = StyleSheet.create({
   lottieIconUnderLogo: {
     width: 350,
     height: 350,
+  },
+  lottieAnimatedContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Carousel Styles
