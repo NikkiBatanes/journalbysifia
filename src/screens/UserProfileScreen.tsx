@@ -142,10 +142,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Use custom avatar URL from user profile if available, but only allow local file URIs
   const avatarUrl = (user as any)?.user_metadata?.avatar_url;
   const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
-  
+
   // Use local avatar URL if available (instant), otherwise fall back to auth metadata
   const displayAvatarUrl = localAvatarUrl || safeAvatarUrl;
-  
+
   // Debug logging for modal avatar
   console.log('🖼️ UserProfileScreen Modal Avatar Debug:', {
     userId: user?.id,
@@ -828,16 +828,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       const picked = await pickImageLocal();
 
-      if (!picked) return; // user cancelled
+      if (!picked) {return;} // user cancelled
 
-      const avatarUrl = await uploadAvatar(user, picked);
-      console.log('🖼️ Avatar uploaded:', avatarUrl);
+      const uploadedAvatarUrl = await uploadAvatar(user, picked);
+      console.log('🖼️ Avatar uploaded:', uploadedAvatarUrl);
 
       // Set local avatar immediately for instant display
-      setLocalAvatarUrl(avatarUrl);
+      setLocalAvatarUrl(uploadedAvatarUrl);
 
       // Update auth metadata in background (non-blocking)
-      updateProfile({ avatar_url: avatarUrl }).then(result => {
+      updateProfile({ avatar_url: uploadedAvatarUrl }).then(result => {
         console.log('🖼️ Background update result:', result);
         // Clear local state once auth is updated
         setLocalAvatarUrl(null);
@@ -1794,9 +1794,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.modalAvatarSection}>
             <View style={styles.modalAvatarContainer}>
               {displayAvatarUrl ? (
-                <Image 
-                  source={{ uri: displayAvatarUrl }} 
-                  style={[styles.modalAvatar, { backgroundColor: 'transparent', resizeMode: 'cover' }]}
+                <Image
+                  source={{ uri: displayAvatarUrl }}
+                  style={styles.modalAvatar}
                   onError={(error) => console.log('🖼️ Modal Image error:', error)}
                   onLoad={() => console.log('🖼️ Modal Image loaded successfully')}
                 />
@@ -2787,7 +2787,8 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#ccc',
+    backgroundColor: 'transparent',
+    resizeMode: 'cover',
   },
   modalInitialAvatar: {
     alignItems: 'center',

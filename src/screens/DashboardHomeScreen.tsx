@@ -242,7 +242,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       width: 32,
       height: 32,
       borderRadius: 16,
-      backgroundColor: Colors.lightGray,
+      backgroundColor: 'transparent',
+      resizeMode: 'cover',
     },
     initialAvatar: {
       width: 32,
@@ -1385,11 +1386,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             // Only allow local file URIs - block any external URLs
             const avatarUrl = (user as any)?.user_metadata?.avatar_url;
             const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
-            
+
             return safeAvatarUrl ? (
               <Image
                 source={{ uri: safeAvatarUrl }}
-                style={[styles.profileImage, { backgroundColor: 'transparent', resizeMode: 'cover' }]}
+                style={styles.profileImage}
                 onError={(error) => console.log('🖼️ Dashboard Image error:', error)}
                 onLoad={() => console.log('🖼️ Dashboard Image loaded successfully')}
               />

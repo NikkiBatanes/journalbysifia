@@ -982,7 +982,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           currentMetadata: (authState.user as any)?.user_metadata,
           profileData,
         });
-        
+
         setAuthState(prev => {
           if (!prev.user) {return prev;}
           const mergedMeta = {
@@ -990,7 +990,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             ...profileData,
           };
           const updatedUser = { ...(prev.user as any), user_metadata: mergedMeta } as User;
-          
+
           console.log('🖼️ AuthContext - After update:', {
             newMetadata: mergedMeta,
             updatedUserMetadata: updatedUser.user_metadata,

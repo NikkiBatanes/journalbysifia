@@ -102,10 +102,10 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
   // Use custom avatar URL from user profile if available, but only allow local file URIs
   const avatarUrl = (user as any)?.user_metadata?.avatar_url;
-  
+
   // Only allow local file URIs (starting with file://) - block any external URLs
   const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
-  
+
   // Debug logging
   console.log('🖼️ ProfileHeader Avatar Debug:', {
     userId: user?.id,
@@ -227,9 +227,9 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {safeAvatarUrl ? (
-            <Image 
-              source={{ uri: safeAvatarUrl }} 
-              style={[styles.avatar, { backgroundColor: 'transparent', resizeMode: 'cover' }]}
+            <Image
+              source={{ uri: safeAvatarUrl }}
+              style={styles.avatar}
               onError={(error) => console.log('🖼️ ProfileHeader Image error:', error)}
               onLoad={() => console.log('🖼️ ProfileHeader Image loaded successfully')}
             />
@@ -302,7 +302,8 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#ccc',
+    backgroundColor: 'transparent',
+    resizeMode: 'cover',
   },
   initialAvatar: {
     alignItems: 'center',

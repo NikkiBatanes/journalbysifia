@@ -1,4 +1,3 @@
-import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import type { User } from '@supabase/supabase-js';
 
@@ -57,7 +56,7 @@ export async function uploadAvatar(user: User, file: { uri: string; name: string
     if (!file.uri.startsWith('file://')) {
       throw new Error('Only local file URIs are allowed for avatars');
     }
-    
+
     console.log('📸 Using local file URI for fast loading');
     return file.uri;
 

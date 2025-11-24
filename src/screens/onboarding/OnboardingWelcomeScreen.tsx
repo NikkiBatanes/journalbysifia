@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
-  Image,
   Linking,
   Dimensions,
   FlatList,
