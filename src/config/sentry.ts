@@ -10,7 +10,7 @@ import { ENV } from './environment';
 // Check if Sentry is available and initialized
 const isSentryAvailable = (): boolean => {
   try {
-    return typeof Sentry !== 'undefined' && Sentry.getCurrentHub?.getClient() !== undefined;
+    return typeof Sentry !== 'undefined' && typeof Sentry.captureException === 'function';
   } catch {
     return false;
   }
@@ -159,7 +159,7 @@ export const captureSentryException = (error: Error, context?: Record<string, an
 export const captureSentryMessage = (message: string, level: Sentry.SeverityLevel = 'info') => {
   if (!isSentryAvailable()) {
     Logger.debug('[Sentry] Sentry not available - logging message locally', { component: 'sentry' });
-    Logger.log(`[Sentry Message] ${message}`, { component: 'sentry' });
+    Logger.info(`[Sentry Message] ${message}`, { component: 'sentry' });
     return;
   }
   
