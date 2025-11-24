@@ -35,9 +35,8 @@ jest.mock('../supabaseClient', () => ({
         eq: jest.fn().mockReturnValue({
           select: jest.fn().mockReturnValue({
             single: jest.fn(() => Promise.resolve({ data: null, error: null }))
-          })
-        })
-      }),
+          }),
+        })),
     })
   }
 }));
