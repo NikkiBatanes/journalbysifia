@@ -1076,7 +1076,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Simple, guided journaling to help you hear and respond to God.
+                    Simple, guided journaling tools to help you hear and respond to God.
                   </ThemedText>
                 </View>
               </>
@@ -1152,7 +1152,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   <View style={styles.featureBullet}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>
-                      Track growth with smart journaling and deeper reflections over time.
+                      Track growth with journaling tools and deeper reflections over time.
                     </ThemedText>
                   </View>
                   <View style={styles.featureBullet}>
