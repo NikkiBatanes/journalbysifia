@@ -161,7 +161,6 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const lottieFadeAnim = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -179,32 +178,6 @@ const OnboardingWelcomeScreen: React.FC = () => {
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
-
-  // Animate Lottie in/out when slide changes
-  useEffect(() => {
-    // Fade out current Lottie
-    Animated.timing(lottieFadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      // Fade in new Lottie after fade out
-      Animated.timing(lottieFadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    });
-  }, [currentSlide]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Initialize Lottie animation on mount
-  useEffect(() => {
-    Animated.timing(lottieFadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen to dimension changes to respond to rotation
   useEffect(() => {
@@ -465,18 +438,16 @@ const OnboardingWelcomeScreen: React.FC = () => {
           {/* Lottie Animation under logo */}
           {currentSlide >= 0 && slides[currentSlide] && slides[currentSlide].useLottie && (
             <View style={styles.logoLottieContainer}>
-              <Animated.View style={[styles.lottieAnimatedContainer, { opacity: lottieFadeAnim }]}>
-                <LottieView
-                  source={
-                    slides[currentSlide].lottieFile === 'JC 3.json' ? JC3_ANIMATION :
-                    slides[currentSlide].lottieFile === 'JC 4.json' ? JC4_ANIMATION :
-                    JC5_ANIMATION
-                  }
-                  autoPlay
-                  loop
-                  style={styles.lottieIconUnderLogo}
-                />
-              </Animated.View>
+              <LottieView
+                source={
+                  slides[currentSlide].lottieFile === 'JC 3.json' ? JC3_ANIMATION :
+                  slides[currentSlide].lottieFile === 'JC 4.json' ? JC4_ANIMATION :
+                  JC5_ANIMATION
+                }
+                autoPlay
+                loop
+                style={styles.lottieIconUnderLogo}
+              />
             </View>
           )}
         </View>
@@ -601,10 +572,6 @@ const styles = StyleSheet.create({
   lottieIconUnderLogo: {
     width: 350,
     height: 350,
-  },
-  lottieAnimatedContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
   // Carousel Styles
@@ -732,22 +699,22 @@ const styles = StyleSheet.create({
   },
   // Dynamic padding styles
   tabletPaddingTop: {
-    paddingTop: 120,
+    paddingTop: 30,
   },
   phonePaddingTop: {
     paddingTop: 10,
   },
   dynamicMarginTop: {
-    marginTop: 250,
+    marginTop: 0,
   },
   smallPhoneMarginTop: {
-    marginTop: -80,
+    marginTop: -30,
   },
   regularPhoneMarginTop: {
-    marginTop: 50,
+    marginTop: 80,
   },
   zeroMarginTop: {
-    marginTop: 0,
+    marginTop: 70,
   },
 });
 
