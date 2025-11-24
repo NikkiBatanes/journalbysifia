@@ -44,6 +44,7 @@ const validationService = {
   },
 
   validatePhoneNumber: (phone: string) => {
+    // eslint-disable-next-line no-useless-escape
     const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
     return {
       isValid: phoneRegex.test(phone),
@@ -76,6 +77,7 @@ const validationService = {
   },
 
   validateUrl: (url: string) => {
+    // eslint-disable-next-line no-useless-escape
     const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
     return {
       isValid: urlRegex.test(url),

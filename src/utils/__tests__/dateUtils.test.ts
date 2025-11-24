@@ -763,8 +763,7 @@ describe('dateUtils', () => {
 
   describe('performance considerations', () => {
     it('should handle large numbers of operations efficiently', () => {
-      const _keys = Array.from({ length: 1000 }, (_, _i) => `key${_i}`);
-      const dates = Array.from({ length: 1000 }, (_, i) =>
+      const dates = Array.from({ length: 1000 }, (_, _i) =>
         new Date('2024-01-01')
       );
 

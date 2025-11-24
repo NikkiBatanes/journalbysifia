@@ -434,7 +434,7 @@ describe('encryptionService', () => {
       const originalArr = [1, 2, 3, 'string', { nested: 'object' }];
       const encrypted = await encryptionService.encryptObject(originalArr);
 
-      const result = await encryptionService.decryptObject(originalArr);
+      const result = await encryptionService.decryptObject(encrypted);
 
       expect(result).toEqual(originalArr);
     });

@@ -9,10 +9,7 @@ import { RateLimiter } from '../rateLimiting';
 jest.useFakeTimers();
 
 describe('RateLimiter', () => {
-  let rateLimiter: RateLimiter;
-
   beforeEach(() => {
-    rateLimiter = new RateLimiter();
     jest.clearAllTimers();
   });
 
@@ -102,10 +99,6 @@ describe('RateLimiter', () => {
   describe('different rate limits', () => {
     it('should handle different limits for different operations', async () => {
       const loginLimiter = new RateLimiter(5, 60000); // 5 per minute
-      const _rateLimiter = new RateLimiter({
-        maxRequests: 10,
-        windowMs: 60000, // 1 minute
-      });
 
       // Use up login limit
       for (let i = 0; i < 5; i++) {

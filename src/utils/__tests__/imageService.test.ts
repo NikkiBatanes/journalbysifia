@@ -120,7 +120,7 @@ const imageService = {
     return `background_removed_${imageData}`;
   },
 
-  detectFaces: async (imageData: string): Promise<Array<{
+  detectFaces: async (_imageData: string): Promise<Array<{
     x: number;
     y: number;
     width: number;
@@ -134,7 +134,7 @@ const imageService = {
     ];
   },
 
-  extractColors: async (imageData: string, count: number = 5): Promise<Array<{
+  extractColors: async (imageData: string, _count: number = 5): Promise<Array<{
     hex: string;
     rgb: { r: number; g: number; b: number };
     percentage: number;
@@ -183,19 +183,12 @@ const imageService = {
   createCollage: async (
     images: string[],
     layout: 'grid' | 'horizontal' | 'vertical' | 'mosaic',
-    options?: {
+    _options?: {
       spacing?: number;
       backgroundColor?: string;
       borderRadius?: number;
     }
   ): Promise<string> => {
-    const _opts = {
-      spacing: 10,
-      backgroundColor: '#ffffff',
-      borderRadius: 0,
-      ...options,
-    };
-
     return `collage_${layout}_${images.length}_images_${images[0] || 'empty'}`;
   },
 
@@ -470,8 +463,8 @@ describe('imageService', () => {
     });
 
     it('should return correct types', async () => {
-      const imageData = 'base64_image_data';
-      const result = await imageService.getImageInfo(imageData);
+      const _imageData = 'base64_image_data';
+      const result = await imageService.getImageInfo(_imageData);
 
       expect(typeof result.width).toBe('number');
       expect(typeof result.height).toBe('number');
@@ -879,8 +872,8 @@ describe('imageService', () => {
   describe('concurrent operations', () => {
     it('should handle multiple concurrent image operations', async () => {
       const imageData = 'base64_image_data';
-      const operations = Array.from({ length: 10 }, (_, i) =>
-        imageService.resizeImage(imageData, 100 + i * 10, 100 + i * 10)
+      const operations = Array.from({ length: 10 }, (_, _i) =>
+        imageService.resizeImage(imageData, 100 + _i * 10, 100 + _i * 10)
       );
 
       const results = await Promise.all(operations);
@@ -914,7 +907,7 @@ describe('imageService', () => {
   describe('performance considerations', () => {
     it('should handle large numbers of image operations efficiently', async () => {
       const imageData = 'base64_image_data';
-      const operations = Array.from({ length: 100 }, (_, i) =>
+      const operations = Array.from({ length: 100 }, (_, _i) =>
         imageService.resizeImage(imageData, 100, 100)
       );
 

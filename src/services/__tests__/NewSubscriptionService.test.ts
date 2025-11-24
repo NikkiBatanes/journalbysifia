@@ -31,7 +31,7 @@ jest.mock('../supabaseClient', () => ({
         })
       }))
     }),
-  },
+  }
 }));
 
 // Mock AsyncStorage

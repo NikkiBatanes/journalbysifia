@@ -751,7 +751,7 @@ describe('networkService', () => {
         new File([`content ${i}`], `file${i}.txt`)
       );
 
-      const uploads = files.map((file, index) =>
+      const uploads = files.map((file, _index) =>
         networkService.uploadFile(`https://api.example.com/upload`, file)
       );
 
