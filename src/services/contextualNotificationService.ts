@@ -862,7 +862,16 @@ class ContextualNotificationService {
       // Check if user can generate devotionals
       const canGenerate = await subscriptionService.canGenerate(userId, 'devotional');
       
-      return canGenerate.allowed;
+      // If they can generate new ones, they definitely have access
+      if (canGenerate.allowed) {
+        return true;
+      }
+      
+      // Even if they can't generate new ones, check if they have existing devotionals
+      // that are incomplete or not marked as complete
+      const hasExistingDevotionals = await this.hasExistingDevotionals(userId);
+      
+      return hasExistingDevotionals;
     } catch (error) {
       Logger.error('Failed to check devotional access', error as Error, {
         component: 'contextualNotificationService',
@@ -870,6 +879,35 @@ class ContextualNotificationService {
       });
       
       // Default to false if we can't check
+      return false;
+    }
+  }
+
+  /**
+   * Check if user has existing devotionals that are incomplete or not marked as complete
+   */
+  private async hasExistingDevotionals(userId: string): Promise<boolean> {
+    try {
+      // Check for devotionals that are not marked as completed
+      const { data, error } = await supabase
+        .from('devotionals')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('completed', false)
+        .limit(1);
+
+      if (error) {
+        Logger.error('Error checking existing devotionals', error as Error);
+        return false;
+      }
+
+      // If user has any incomplete devotionals, they should get reminders
+      return (data && data.length > 0);
+    } catch (error) {
+      Logger.error('Failed to check existing devotionals', error as Error, {
+        component: 'contextualNotificationService',
+        userId,
+      });
       return false;
     }
   }
