@@ -10,7 +10,7 @@
  * - Required for enterprise-grade UX
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Modal,
@@ -24,6 +24,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { triggerLightHaptic } from '../utils/haptics';
+import { pricingService, type PricingTier } from '../services/pricingService';
 
 const { width } = Dimensions.get('window');
 
@@ -46,6 +47,14 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;
+  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+
+  useEffect(() => {
+    // Load pricing tiers when component mounts
+    pricingService.getLocationAdjustedPricing().then(tiers => {
+      setPricingTiers(tiers);
+    });
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -94,42 +103,27 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     const baseName = planNames[effectiveTierKey] || effectiveTierKey;
     // Add "siFia" prefix for non-trial purchases
     const displayName = isTrial ? baseName : `siFia ${baseName}`;
-    const isFamily = effectiveTierKey === 'family';
-    const isUnlimited = effectiveTierKey === 'transformation' || effectiveTierKey === 'family';
 
-    const getPlanLimits = (key: string): { playbooks: number; devotionals: number } => {
-      switch (key) {
-        case 'spark':
-          return { playbooks: 8, devotionals: 8 };
-        case 'growth':
-          return { playbooks: 20, devotionals: 20 };
-        case 'transformation':
-        case 'family':
-          return { playbooks: -1, devotionals: -1 };
-        default:
-          return { playbooks: 0, devotionals: 0 };
-      }
-    };
-
-    const limits = getPlanLimits(effectiveTierKey);
-    const playbooksText = limits.playbooks === -1 ? 'unlimited playbooks' : `${limits.playbooks} playbooks`;
-    const devotionalsText = limits.devotionals === -1 ? 'unlimited devotionals' : `${limits.devotionals} devotionals`;
-
-    const renewalLine = limits.playbooks === 0 && limits.devotionals === 0
-      ? ''
-      : isFamily && isUnlimited
-        ? `Will renew to the ${baseName} plan with ${playbooksText} and ${devotionalsText} for your whole family if not cancelled.`
-        : `Will renew to the ${baseName} plan with ${playbooksText} and ${devotionalsText} if not cancelled.`;
+    // Get tier features from pricing service
+    const currentTier = pricingTiers.find(t => t.id === effectiveTierKey);
 
     if (isTrial) {
       const benefits: string[] = [];
 
-      if (isFamily) {
-        benefits.push('3 days free access for your whole family');
-        benefits.push('Up to 5 family members are included in your Family plan');
-        benefits.push('Each family member can generate 2 Playbooks during the trial');
-        benefits.push('Each family member can generate 2 Devotionals during the trial');
+      // Use pricing service features for trial
+      if (currentTier) {
+        benefits.push(`3 days free access to the ${baseName} plan`);
+        benefits.push('Generate 2 Playbooks during the trial');
+        benefits.push('Generate 2 Devotionals during the trial');
+
+        // Add key features from pricing service
+        if (currentTier.features.length > 0) {
+          // Show first 2 features to give them a taste
+          const keyFeatures = currentTier.features.slice(0, 2);
+          benefits.push(...keyFeatures);
+        }
       } else {
+        // Fallback if pricing not loaded
         benefits.push(`3 days free access to the ${baseName} plan`);
         benefits.push('Generate 2 Playbooks during the trial');
         benefits.push('Generate 2 Devotionals during the trial');
@@ -138,10 +132,6 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       benefits.push('Cancel anytime');
       benefits.push('No commitment');
 
-      if (renewalLine) {
-        benefits.push(renewalLine);
-      }
-
       return {
         name: `${displayName} Trial`,
         color: Colors.alertCoral,
@@ -149,13 +139,27 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       };
     }
 
+    // For paid plans, use pricing service features
+    if (currentTier) {
+      return {
+        name: displayName,
+        color: Colors.alertCoral,
+        benefits: currentTier.features,
+      };
+    }
+
+    // Fallback if pricing not loaded yet
     if (effectiveTierKey === 'spark') {
       return {
         name: displayName,
         color: Colors.alertCoral,
         benefits: [
-          '8 Playbooks per month',
-          '8 Devotionals per month',
+          '8 playbooks & 8 devotionals each month',
+          'Gentle reminders to keep you on track',
+          'Track your progress week by week',
+          'Basic journaling tools',
+          'Calendar Sync to stay on track',
+          'Copy To-Dos to other dates for flexibility',
         ],
       };
     }
@@ -165,9 +169,12 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
         name: displayName,
         color: Colors.alertCoral,
         benefits: [
-          '20 Playbooks per month',
-          '20 Devotionals per month',
-          'Priority support',
+          'All in Spark, plus:',
+          '20 playbooks & 20 devotionals each month',
+          'Access 1-day, 3-day & 5-day devotionals',
+          'Advanced reflection prompts',
+          'Smart Journaling for personalized reflection',
+          'Export to PDF for sharing and printing',
         ],
       };
     }
@@ -177,10 +184,10 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
         name: displayName,
         color: Colors.alertCoral,
         benefits: [
-          'Unlimited Playbooks',
-          'Unlimited Devotionals',
-          'Premium features',
-          'VIP support',
+          'All in Growth, plus:',
+          'Unlimited playbooks & devotionals',
+          'Access all devotional durations (1-7 days)',
+          'Priority support',
         ],
       };
     }

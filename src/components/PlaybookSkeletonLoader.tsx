@@ -85,7 +85,7 @@ const PlaybookSkeletonLoader = () => {
                   <View style={styles.progressBarBg}>
                     <SkeletonBox
                       width="100%"
-                      height={32}
+                      height={12}
                       style={styles.progressBarFill}
                       backgroundColor="rgba(255, 255, 255, 0.20)"
                     />
@@ -176,13 +176,13 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     flex: 1,
-    height: 8,
-    borderRadius: 8,
+    height: 12,
+    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.16)',
   },
   progressBarFill: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
   tasksText: {
     marginLeft: 12,
