@@ -16,6 +16,7 @@ import { notificationTesting } from '../utils/notificationTesting';
 import { directNotificationTest } from '../utils/directNotificationTest';
 import { deviceTokenFix } from '../utils/deviceTokenFix';
 import { notificationDeliveryService } from '../services/notificationDeliveryService';
+import { comprehensiveNotificationTest } from '../utils/comprehensiveNotificationTest';
 import { Logger } from '../utils/ProductionLogger';
 import { Colors } from '../theme/colors';
 import { testNotifications } from '../utils/testNotifications';
@@ -182,6 +183,79 @@ The delivery service processes pending notifications every 30 seconds.
     } catch (error) {
       Logger.error('Failed to test delivery service', error as Error);
       Alert.alert('❌ Error', 'Failed to test delivery service');
+    }
+  };
+
+  const runComprehensiveTest = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    try {
+      Alert.alert('🧪 Running Comprehensive Test', 'Testing complete notification pipeline...\n\nThis may take 10-15 seconds.');
+      
+      const result = await comprehensiveNotificationTest.testCompletePipeline(user.id);
+      
+      const stepsMessage = result.steps.join('\n\n');
+      
+      Alert.alert(
+        result.success ? '🎉 Test Completed' : '❌ Test Failed', 
+        `Pipeline test completed!\n\n${stepsMessage}`,
+        [
+          {
+            text: 'View Queue Analysis',
+            onPress: () => viewQueueAnalysis(),
+          },
+          {
+            text: 'OK',
+            style: 'cancel',
+          },
+        ]
+      );
+      
+      Logger.info('Comprehensive test completed', { result });
+    } catch (error) {
+      Logger.error('Failed to run comprehensive test', error as Error);
+      Alert.alert('❌ Error', 'Failed to run comprehensive test');
+    }
+  };
+
+  const viewQueueAnalysis = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    try {
+      const analysis = await comprehensiveNotificationTest.getQueueAnalysis(user.id);
+      
+      const statusBreakdown = Object.entries(analysis.byStatus)
+        .map(([status, count]) => `${status}: ${count}`)
+        .join('\n');
+
+      const typeBreakdown = Object.entries(analysis.byType)
+        .map(([type, count]) => `${type}: ${count}`)
+        .join('\n');
+
+      const message = `
+Queue Analysis for ${user.id}:
+Total Notifications: ${analysis.total}
+
+Status Breakdown:
+${statusBreakdown || 'None'}
+
+Type Breakdown:
+${typeBreakdown || 'None'}
+
+Recent Notifications: ${analysis.recent.length} shown
+      `.trim();
+
+      Alert.alert('📊 Queue Analysis', message);
+      Logger.info('Queue analysis completed', { analysis });
+    } catch (error) {
+      Logger.error('Failed to analyze queue', error as Error);
+      Alert.alert('❌ Error', 'Failed to analyze queue');
     }
   };
 
@@ -355,6 +429,13 @@ ${diagnosis.recommendations.join('\n')}
             ) : (
               <Text style={styles.actionButtonText}>🔍 Run Full Diagnostic</Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.testButton]}
+            onPress={runComprehensiveTest}
+          >
+            <Text style={styles.actionButtonText}>🧪 Pipeline Test</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -545,6 +626,9 @@ const styles = StyleSheet.create({
   },
   deliveryButton: {
     backgroundColor: '#10b981',
+  },
+  testButton: {
+    backgroundColor: '#8b5cf6',
   },
   secondaryButton: {
     backgroundColor: '#f1f5f9',
