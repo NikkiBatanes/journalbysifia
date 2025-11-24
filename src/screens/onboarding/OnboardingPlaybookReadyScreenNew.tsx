@@ -100,7 +100,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [_currentIndex, setCurrentIndex] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action', 'truth', 'affirmations']));
   // Stacked card view: track which card is expanded (null = all collapsed/stacked)
-  const [expandedCardId, setExpandedCardId] = useState<string | null>('truth'); // Start with Truth in Love expanded
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null); // Start with all cards collapsed
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set()); // Used in line 688
   const [showUserInput, setShowUserInput] = useState(false);
