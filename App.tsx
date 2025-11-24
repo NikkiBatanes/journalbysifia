@@ -6,38 +6,49 @@
 // Polyfill for URL API in React Native
 import 'react-native-url-polyfill/auto';
 
-import React, { useState, useEffect } from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, StyleSheet, LogBox, Image, AppState, AppStateStatus } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {
+  View,
+  StatusBar,
+  StyleSheet,
+  LogBox,
+  Image,
+  AppState,
+  AppStateStatus,
+  Button,
+} from 'react-native';
 
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  NavigationContainerRef,
+} from '@react-navigation/native';
 
-
-import { Colors } from './src/theme/colors';
-import { ThemeProvider } from './src/theme/ThemeContext';
+import {Colors} from './src/theme/colors';
+import {ThemeProvider} from './src/theme/ThemeContext';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
-import { UserProvider } from './src/context/UserContext';
+import {UserProvider} from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
-import { LogoutContext } from './src/context/LogoutContext';
-import { ScrollProvider } from './src/context/ScrollContext';
+import {LogoutContext} from './src/context/LogoutContext';
+import {ScrollProvider} from './src/context/ScrollContext';
 
 import IndustryStandardAuthProvider from './src/context/IndustryStandardAuthContext';
 // import AuthGuard from './src/components/AuthGuard'; // unused
-import { NetworkStatus } from './src/components/NetworkStatus';
+import {NetworkStatus} from './src/components/NetworkStatus';
 import AuthStateMonitor from './src/components/AuthStateMonitor';
-import { OnboardingProvider } from './src/context/OnboardingContext';
+import {OnboardingProvider} from './src/context/OnboardingContext';
 // import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration'; // unused
-import { PointsNotificationProvider } from './src/context/PointsNotificationContext';
+import {PointsNotificationProvider} from './src/context/PointsNotificationContext';
 
-import { QueryClientProvider } from '@tanstack/react-query';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {QueryClientProvider} from '@tanstack/react-query';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 // Removed ErrorBoundary unused default import (no default export)
-import { queryClient } from './src/config/queryClientConfig';
+import {queryClient} from './src/config/queryClientConfig';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
-import { initializeLogger } from './src/config/logging.config';
-import { initializeSentry } from './src/config/sentry';
+import {initializeLogger} from './src/config/logging.config';
+import {initializeSentry} from './src/config/sentry';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -46,15 +57,15 @@ LogBox.ignoreAllLogs(); // Ignore all log notifications
 // Initialize production-ready logger
 initializeLogger();
 
-// Initialize Sentry error monitoring
-initializeSentry();
+// Initialize Sentry error monitoring (now handled by wizard)
+// initializeSentry(); // Commented out - wizard handles initialization
 
 // Global default font is applied dynamically via GlobalFontApplier using theme.currentFont
 
 // Main App Component
 function App(): React.JSX.Element {
   const [fontsLoaded] = useState(true); // Vector icons are auto-linked
-  const [playbook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
+  const [playbook] = useState<{actionSteps: any[]}>({actionSteps: []});
 
   // Vector icons are automatically loaded through native linking in modern versions
   // No need for manual font loading
@@ -70,14 +81,44 @@ function App(): React.JSX.Element {
   );
 }
 
-import { useAuth } from './src/context/IndustryStandardAuthContext';
-import { useNotificationSetup } from './src/utils/notificationSetup';
+import {useAuth} from './src/context/IndustryStandardAuthContext';
+import {useNotificationSetup} from './src/utils/notificationSetup';
+import * as Sentry from '@sentry/react-native';
 
-function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
+Sentry.init({
+  dsn: 'https://c36993548b8e2050ac3bbd2b89e12539@o4510417997332490.ingest.us.sentry.io/4510417998970880',
 
-  const { isAuthenticated, bootstrapping, user, signOut } = useAuth();
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+    Sentry.feedbackIntegration(),
+  ],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
+
+function AppWithAuth({
+  fontsLoaded,
+  playbook,
+}: {
+  fontsLoaded: boolean;
+  playbook: {actionSteps: any[]};
+}) {
+  const {isAuthenticated, bootstrapping, user, signOut} = useAuth();
   const navigationRef = React.useRef<NavigationContainerRef<any> | null>(null);
-  const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(undefined);
+  const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(
+    undefined,
+  );
 
   // Linking configuration for deep links - MUST be before any early returns
   // Only enable linking when authenticated to prevent interference with logout
@@ -107,26 +148,30 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   // Initialize notification system (deep links, scheduling, badges)
   useNotificationSetup(user?.id, navigationRef.current);
 
-  const HIDE_NETWORK_ON = React.useMemo(() => new Set<string>([
-    'OnboardingSplash',
-    'TransformJourney',
-    'OnboardingWelcome',
-    'OnboardingPersonalization',
-    'OnboardingPlaybookGeneration',
-    'OnboardingPlaybookReady',
-    'OnboardingSalesOffer',
-    'OnboardingTrialOffer',
-    'OnboardingPaymentProcessing',
-    'OnboardingPaymentConfirmation',
-    'OnboardingNotificationSetup',
-    // Auth screens - hide network status during authentication
-    'Auth',
-    'Login',
-    'Register',
-    'EmailLogin',
-    'EmailRegister',
-    'ResetPassword',
-  ]), []);
+  const HIDE_NETWORK_ON = React.useMemo(
+    () =>
+      new Set<string>([
+        'OnboardingSplash',
+        'TransformJourney',
+        'OnboardingWelcome',
+        'OnboardingPersonalization',
+        'OnboardingPlaybookGeneration',
+        'OnboardingPlaybookReady',
+        'OnboardingSalesOffer',
+        'OnboardingTrialOffer',
+        'OnboardingPaymentProcessing',
+        'OnboardingPaymentConfirmation',
+        'OnboardingNotificationSetup',
+        // Auth screens - hide network status during authentication
+        'Auth',
+        'Login',
+        'Register',
+        'EmailLogin',
+        'EmailRegister',
+        'ResetPassword',
+      ]),
+    [],
+  );
 
   useEffect(() => {
     // Initialize app-level services
@@ -136,7 +181,9 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     const syncSubscriptionStatus = async () => {
       if (isAuthenticated && user?.id) {
         try {
-          const { AppleStoreKitService } = await import('./src/services/AppleStoreKitService');
+          const {AppleStoreKitService} = await import(
+            './src/services/AppleStoreKitService'
+          );
 
           console.log('[App] Syncing subscription status on launch...');
           const storeKit = AppleStoreKitService.getInstance();
@@ -160,17 +207,25 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
       if (nextState === 'active') {
         (async () => {
           try {
-            const { AppleStoreKitService } = await import('./src/services/AppleStoreKitService');
+            const {AppleStoreKitService} = await import(
+              './src/services/AppleStoreKitService'
+            );
             const storeKit = AppleStoreKitService.getInstance();
             await storeKit.checkAndSyncSubscriptionStatus(user.id);
           } catch (error) {
-            console.error('[App] Failed to sync subscription status on foreground:', error);
+            console.error(
+              '[App] Failed to sync subscription status on foreground:',
+              error,
+            );
           }
         })();
       }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
 
     return () => {
       subscription.remove();
@@ -201,7 +256,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
 
   return (
     <NavigationContainer
-      ref={(ref) => {
+      ref={ref => {
         navigationRef.current = ref;
       }}
       linking={linking as any}
@@ -219,7 +274,10 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
           const name = navigationRef.current?.getCurrentRoute()?.name;
           setCurrentRouteName(name);
         } catch (err) {
-          console.warn('[App] Error getting current route on state change:', err);
+          console.warn(
+            '[App] Error getting current route on state change:',
+            err,
+          );
         }
       }}
       fallback={
@@ -230,11 +288,8 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
             resizeMode="contain"
           />
         </View>
-      }
-    >
+      }>
       <GestureHandlerRootView style={styles.gestureHandler}>
-
-
         <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
         <ThemeProvider>
           <GlobalFontApplier />
@@ -249,11 +304,13 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
                           try {
                             await signOut();
                           } catch (error) {
-                            console.warn('[App] LogoutContext signOut failed', error);
+                            console.warn(
+                              '[App] LogoutContext signOut failed',
+                              error,
+                            );
                           }
                         },
-                      }}
-                    >
+                      }}>
                       <AuthStateMonitor>
                         <RootStackNavigator
                           isAuthenticated={isAuthenticated}
@@ -262,9 +319,24 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
                           onLogin={async () => {}}
                           AuthStack={AuthStackNavigator}
                         />
-                        {currentRouteName && !HIDE_NETWORK_ON.has(currentRouteName) ? (
+                        {currentRouteName &&
+                        !HIDE_NETWORK_ON.has(currentRouteName) ? (
                           <NetworkStatus />
                         ) : null}
+                        
+                        {/* Development: Sentry Test Button - Remove in production */}
+                        {__DEV__ && (
+                          <View style={{ position: 'absolute', top: 80, right: 20, zIndex: 9999 }}>
+                            <Button
+                              title='Test Sentry'
+                              onPress={() => {
+                                Sentry.captureException(new Error('Test error from siFia app'));
+                                console.log('📊 Test error sent to Sentry');
+                              }}
+                              color="red"
+                            />
+                          </View>
+                        )}
                       </AuthStateMonitor>
                     </LogoutContext.Provider>
                   </PointsNotificationProvider>
@@ -295,4 +367,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default Sentry.wrap(App);
