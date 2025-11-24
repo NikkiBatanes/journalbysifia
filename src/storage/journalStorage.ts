@@ -140,14 +140,14 @@ export const getJournalKey = (userId: string, contentType: string, date: string 
 // --- AsyncStorage Operations ---
 
 // Save all time blocks for a date to AsyncStorage (as a list)
-export const saveLocalTimeBlocksForDate = async (
+export const setLocalTimeBlocksForDate = async (
   userId: string,
   date: string,
   blocks: TimeBlockEntry[]
 ): Promise<TimeBlockEntry[]> => {
   const key = `time_blocks_${userId}_${date}`;
   // Optionally do version checking here per block (can be enhanced)
-  await storage.setItem(key, JSON.stringify(blocks));
+  await AsyncStorage.setItem(key, JSON.stringify(blocks));
   return blocks;
 };
 
@@ -157,7 +157,7 @@ export const getLocalTimeBlocksForDate = async (
   date: string
 ): Promise<TimeBlockEntry[]> => {
   const key = `time_blocks_${userId}_${date}`;
-  const raw = await storage.getItem(key);
+  const raw = await AsyncStorage.getItem(key);
   if (!raw) {return [];}
   try {
     return JSON.parse(raw) as TimeBlockEntry[];
@@ -184,13 +184,13 @@ export const saveLocalTimeBlock = async (
     created_at: existing?.created_at || now,
     updated_at: now,
   };
-  await storage.setItem(key, JSON.stringify(entryToSave));
+  await AsyncStorage.setItem(key, JSON.stringify(entryToSave));
   return entryToSave;
 };
 
 // Retrieve a time block entry from AsyncStorage
 export const getLocalTimeBlock = async (key: string): Promise<TimeBlockEntry | null> => {
-  const raw = await storage.getItem(key);
+  const raw = await AsyncStorage.getItem(key);
   if (!raw) {return null;}
   try {
     return JSON.parse(raw) as TimeBlockEntry;
