@@ -101,6 +101,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// Create admin Supabase client for privileged operations
+const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+export const supabaseAdmin = supabaseServiceRoleKey 
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+      },
+    })
+  : null;
+
 // Helper functions for session management
 export const getSession = async () => {
   try {

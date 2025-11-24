@@ -202,6 +202,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       component: 'UserProfileScreen',
       isValidBirthYear,
       hasUser: !!user,
+      userId: user?.id,
     });
 
     try {
@@ -209,10 +210,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       if (!isValidBirthYear) {
         Logger.warn('[UserProfileScreen] Invalid birth year', {
           component: 'UserProfileScreen',
+          birthYear: deleteBirthYear,
         });
         Alert.alert('Enter valid year', 'Please enter your birth year (YYYY) to continue.');
         return;
       }
+
+      Logger.debug('[UserProfileScreen] Birth year validation passed', {
+        component: 'UserProfileScreen',
+        birthYear: deleteBirthYear,
+      });
 
       // Show confirmation alert before proceeding
       Alert.alert(
@@ -245,6 +252,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 });
 
                 // Mark account for deletion in user metadata
+                Logger.debug('[UserProfileScreen] Marking account for deletion in metadata', {
+                  component: 'UserProfileScreen',
+                });
                 const { error: updateError } = await supabase.auth.updateUser({
                   data: {
                     account_deletion_requested: true,
@@ -258,6 +268,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   });
                   throw updateError;
                 }
+
+                Logger.debug('[UserProfileScreen] Successfully marked account for deletion', {
+                  component: 'UserProfileScreen',
+                });
 
                 // Delete all user data from tables (in order to respect foreign key constraints)
                 // First get all playbook IDs for this user
@@ -298,7 +312,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 Logger.debug('[UserProfileScreen] Account deletion complete, signing out', {
                   component: 'UserProfileScreen',
                 });
+                Logger.debug('[UserProfileScreen] Signing out user after deletion', {
+                  component: 'UserProfileScreen',
+                });
                 await signOut();
+
+                // Close modals and reset state
+                setDeleteAccountModal(false);
+                setEditProfileModal(false);
+                setDeleteBirthYear('');
+                setIsDeletingAccount(false);
 
                 // Show success message
                 Logger.debug('[UserProfileScreen] Showing success message', {

@@ -383,16 +383,27 @@ export class AppleStoreKitService {
       }
 
       // ENTERPRISE IMPROVEMENT: Server-side validation FIRST
-      const serverValidation = await this.validateReceiptServerSide(
-        purchase.transactionReceipt,
-        this.currentUserId || '',
-        purchase.productId
-      );
+      let serverValidation = { success: false };
+      try {
+        serverValidation = await this.validateReceiptServerSide(
+          purchase.transactionReceipt,
+          this.currentUserId || '',
+          purchase.productId
+        );
+      } catch (serverError) {
+        Logger.warn('[StoreKit] Server validation failed, proceeding with client validation', {
+          component: 'AppleStoreKitService',
+          errorMessage: serverError instanceof Error ? serverError.message : 'Unknown server error',
+        });
+      }
 
       if (!serverValidation.success) {
         // Still try client-side validation as fallback
         const isValid = await this.validateReceipt(purchase);
         if (!isValid) {
+          Logger.warn('[StoreKit] Client validation also failed, skipping purchase', {
+            component: 'AppleStoreKitService',
+          });
           return;
         }
       }
@@ -405,7 +416,7 @@ export class AppleStoreKitService {
       }
 
       // Update user subscription in database
-      await this.updateUserSubscription(purchase, tier);
+      await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
 
       // Finish the transaction
       await finishTransaction({ purchase, isConsumable: false });
@@ -515,14 +526,19 @@ export class AppleStoreKitService {
    */
   private async updateUserSubscription(
     purchase: ProductPurchase,
-    tier: string
+    tier: string,
+    userId?: string
   ): Promise<void> {
     try {
-      // This would typically be called with the current user's ID
-      // For now, we'll need to get it from the auth context
-      const userId = await this.getCurrentUserId();
+      // Use provided userId or fall back to stored currentUserId for purchase flows
+      const finalUserId = userId || this.currentUserId || await this.getCurrentUserId();
 
-      if (!userId) {
+      if (!finalUserId) {
+        Logger.error('[StoreKit] No userId available for subscription update', undefined, {
+          component: 'AppleStoreKitService',
+          action: 'error',
+          context: 'updateUserSubscription called without userId',
+        });
         throw new Error('No authenticated user found');
       }
 
@@ -530,7 +546,7 @@ export class AppleStoreKitService {
       const { data: userProfile, error: userCheckError } = await supabase
         .from('user_profiles')
         .select('id')
-        .eq('id', userId)
+        .eq('id', finalUserId)
         .single();
 
       if (userCheckError || !userProfile) {
@@ -539,7 +555,7 @@ export class AppleStoreKitService {
       }
 
       // Check if user is on trial - if so, convert to paid
-      const currentSubscription = await NewSubscriptionService.getUserSubscription(userId);
+      const currentSubscription = await NewSubscriptionService.getUserSubscription(finalUserId);
       const isTrialProduct = purchase.productId?.includes('freetrial');
 
       if (currentSubscription.tier === 'free_trial' && isTrialProduct) {
@@ -548,7 +564,7 @@ export class AppleStoreKitService {
         // Only convert when trial expires or user manually upgrades
       } else {
         // Regular upgrade/subscription
-        await NewSubscriptionService.upgradeSubscription(userId, {
+        await NewSubscriptionService.upgradeSubscription(finalUserId, {
           target_tier: tier as SubscriptionTier,
           platform: 'apple',
           platform_subscription_id: purchase.productId,
@@ -557,12 +573,12 @@ export class AppleStoreKitService {
 
         // Send payment success notification for new purchase/upgrade
         try {
-          const subscription = await NewSubscriptionService.getUserSubscription(userId);
+          const subscription = await NewSubscriptionService.getUserSubscription(finalUserId);
           const tierDisplayName = subscription.subscription_display_name || tier;
           const amount = this.getAmountFromProductId(purchase.productId);
           // Call scheduler directly to avoid argument count issues
           await notificationSchedulerService.schedulePaymentSuccessNotification(
-            userId,
+            finalUserId,
             tierDisplayName,
             amount
           );
@@ -681,6 +697,15 @@ export class AppleStoreKitService {
    */
   async checkAndSyncSubscriptionStatus(userId: string, skipIfPurchaseInProgress = true): Promise<void> {
     try {
+      // Validate userId early to fail fast
+      if (!userId) {
+        Logger.error('[StoreKit] No userId provided to checkAndSyncSubscriptionStatus', undefined, {
+          component: 'AppleStoreKitService',
+          action: 'error',
+        });
+        throw new Error('No authenticated user found');
+      }
+
       // CRITICAL: Don't sync if a purchase is currently in progress
       // This prevents cached purchases from interfering with new purchase flows
       if (skipIfPurchaseInProgress && this.purchaseInitiatedTimestamp) {
@@ -698,9 +723,18 @@ export class AppleStoreKitService {
 
       Logger.info('[StoreKit] 🔄 Checking subscription status with Apple', {
         component: 'AppleStoreKitService',
+        userId: userId.substring(0, 10) + '...', // Log partial userId for privacy
       });
 
       // Get all available purchases from Apple
+      if (!RNIap.getAvailablePurchases) {
+        Logger.error('[StoreKit] RNIap not properly initialized', undefined, {
+          component: 'AppleStoreKitService',
+          action: 'error',
+        });
+        throw new Error('In-app purchase library not available');
+      }
+
       const availablePurchases = await RNIap.getAvailablePurchases();
 
       Logger.info('[StoreKit] Available purchases from Apple', {

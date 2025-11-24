@@ -14,6 +14,7 @@ export const ENV = {
   // Supabase Configuration
   SUPABASE_URL: Config.SUPABASE_URL || '',
   SUPABASE_ANON_KEY: Config.SUPABASE_ANON_KEY || '',
+  SUPABASE_SERVICE_ROLE_KEY: Config.SUPABASE_SERVICE_ROLE_KEY || '',
 
   // OpenAI Configuration
   OPENAI_API_KEY: Config.OPENAI_API_KEY || '',
@@ -40,7 +41,7 @@ export const ENV = {
   // Development helpers
   isDevelopment: Config.APP_ENV === 'development',
   isProduction: Config.APP_ENV === 'production',
-};
+} as const;
 
 // Validation function to ensure required env vars are set
 export const validateEnvironment = () => {
@@ -49,11 +50,22 @@ export const validateEnvironment = () => {
     'SUPABASE_ANON_KEY',
   ];
 
+  const optional = [
+    'OPENAI_API_KEY',
+    'SENTRY_DSN',
+  ];
+
   const missing = required.filter(key => !(ENV as any)[key] || (ENV as any)[key].includes('your_'));
+  const missingOptional = optional.filter(key => !(ENV as any)[key] || (ENV as any)[key].includes('your_'));
 
   if (missing.length > 0) {
-    Logger.warn('⚠️ Missing environment variables', { component: 'environment', data: missing });
-    Logger.warn('Please check your .env file and ensure all required variables are set.', { component: 'environment' });
+    Logger.error('❌ CRITICAL: Missing required environment variables', { component: 'environment', data: missing });
+    Logger.error('App cannot function without these variables. Please check your .env file.', { component: 'environment' });
+  }
+
+  if (missingOptional.length > 0) {
+    Logger.warn('⚠️ Missing optional environment variables', { component: 'environment', data: missingOptional });
+    Logger.warn('Some features may not work without these variables.', { component: 'environment' });
   }
 
   return missing.length === 0;
@@ -63,8 +75,9 @@ export const validateEnvironment = () => {
 export const EXPO_ENV = {
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY,
   // ... other expo variables
-};
+} as const;
 
 // Auto-detect environment type
 export const getEnvironmentConfig = () => {
