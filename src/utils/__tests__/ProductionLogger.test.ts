@@ -3,7 +3,7 @@
  * Test suite for the production logging system
  */
 
-import { Logger, LogLevel } from '../ProductionLogger';
+import { Logger } from '../ProductionLogger';
 
 describe('ProductionLogger', () => {
   let consoleLogSpy: jest.SpyInstance;
