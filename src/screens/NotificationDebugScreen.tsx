@@ -14,6 +14,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { notificationDebugger } from '../utils/notificationDebugger';
 import { notificationTesting } from '../utils/notificationTesting';
 import { directNotificationTest } from '../utils/directNotificationTest';
+import { deviceTokenFix } from '../utils/deviceTokenFix';
 import { Logger } from '../utils/ProductionLogger';
 import { Colors } from '../theme/colors';
 import { testNotifications } from '../utils/testNotifications';
@@ -151,6 +152,48 @@ ${test.error ? `Error: ${test.error}` : ''}
     }
   };
 
+  const fixDeviceToken = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    try {
+      Alert.alert('🔧 Fixing Device Token', 'Starting device token registration fix...\n\nThis may take a few seconds.');
+      
+      const result = await deviceTokenFix.forceRegisterToken(user.id);
+      
+      const stepsMessage = result.steps.join('\n\n');
+      
+      if (result.success) {
+        Alert.alert(
+          '✅ Token Registration Successful!', 
+          `Device token registered successfully!\n\n${stepsMessage}`,
+          [
+            {
+              text: 'Test Notification',
+              onPress: () => deviceTokenFix.testPushWithToken(user.id),
+            },
+            {
+              text: 'OK',
+              style: 'cancel',
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          '❌ Token Registration Failed', 
+          `Failed to register device token.\n\n${stepsMessage}\n\nError: ${result.error || 'Unknown error'}`
+        );
+      }
+      
+      Logger.info('Device token fix completed', { result });
+    } catch (error) {
+      Logger.error('Failed to fix device token', error as Error);
+      Alert.alert('❌ Error', 'Failed to fix device token');
+    }
+  };
+
   const diagnoseSuppression = async () => {
     if (!user?.id) {
       Alert.alert('Error', 'User ID not found');
@@ -282,15 +325,10 @@ ${diagnosis.recommendations.join('\n')}
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.actionButton, styles.criticalButton]}
-            onPress={() => sendTestNotification('direct')}
-            disabled={isSendingTest}
+            style={[styles.actionButton, styles.fixButton]}
+            onPress={fixDeviceToken}
           >
-            {isSendingTest ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.actionButtonText}>⚡ Direct Test (2s)</Text>
-            )}
+            <Text style={styles.actionButtonText}>🔧 Fix Device Token</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -469,6 +507,9 @@ const styles = StyleSheet.create({
   },
   criticalButton: {
     backgroundColor: '#ef4444',
+  },
+  fixButton: {
+    backgroundColor: '#f59e0b',
   },
   secondaryButton: {
     backgroundColor: '#f1f5f9',
