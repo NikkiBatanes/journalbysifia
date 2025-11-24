@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -46,6 +47,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   // Dynamic theming for fonts
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
+
+  // Get query client for direct cache manipulation
+  const queryClient = useQueryClient();
 
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
@@ -135,16 +139,30 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           onPress: () => {
             console.log('DELETE DEBUG: Attempting to delete entry:', id);
             triggerSelectionHaptic();
+
+            // Immediately remove from cache for instant UI update
+            const currentQueryKey = ['journal', 'lookingForward', userId, dateStr];
+
+            // Get current data and filter out the deleted entry
+            const currentData = queryClient.getQueryData(currentQueryKey);
+            if (currentData && Array.isArray(currentData)) {
+              const filteredData = currentData.filter((entryToDelete: any) => entryToDelete.id !== id);
+              queryClient.setQueryData(currentQueryKey, filteredData);
+              console.log('DELETE DEBUG: Removed entry from cache, remaining entries:', filteredData.length);
+            }
+
             deleteMutation.mutate(id, {
               onSuccess: () => {
                 console.log('DELETE DEBUG: Successfully deleted entry:', id);
                 triggerSuccessHaptic();
-                // Force refetch to update UI immediately
+                // Force refetch to ensure server consistency
                 refetch();
               },
               onError: (deleteError: any) => {
                 console.error('DELETE DEBUG: Failed to delete entry:', id, deleteError);
                 triggerErrorHaptic();
+                // Refetch to restore correct state if delete failed
+                refetch();
               },
             });
           },
