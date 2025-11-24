@@ -47,19 +47,46 @@ describe('IndustryStandardAuthContext', () => {
     email: 'test@example.com',
     firstName: 'John',
     lastName: 'Doe',
-    avatar: null,
+    avatar: undefined,
     preferences: {
-      theme: 'light',
-      notifications: true,
-      language: 'en',
+      notifications: {
+        dailyDevotional: true,
+        prayerReminders: true,
+        journalPrompts: true,
+        playbookUpdates: true,
+        achievements: true,
+        weeklyReports: true,
+        pushEnabled: true,
+        emailEnabled: true,
+        reminderTime: '08:00',
+        timezone: 'UTC',
+      },
+      theme: 'default',
+      fontSize: 'medium',
+      colorScheme: 'default',
+      privacy: {
+        profileVisibility: 'private',
+        shareProgress: false,
+        shareJournal: false,
+      },
+      content: {
+        language: 'en',
+        bibleVersion: 'NIV',
+        autoPlayAudio: false,
+        downloadForOffline: false,
+        showVerseOfDay: true,
+      },
     },
-    subscription: {
-      tier: 'free',
-      status: 'active',
-      expiresAt: null,
-    },
+    level: 1,
+    experience: 0,
+    streak: 0,
+    longestStreak: 0,
+    totalPoints: 0,
+    badges: [],
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    emailVerified: true,
+    phoneVerified: false,
   };
 
   beforeEach(() => {
@@ -195,8 +222,11 @@ describe('IndustryStandardAuthContext', () => {
       const registerData: RegisterData = {
         email: 'newuser@example.com',
         password: 'password123',
+        confirmPassword: 'password123',
         firstName: 'Jane',
         lastName: 'Smith',
+        acceptTerms: true,
+        acceptPrivacy: true,
       };
 
       mockSupabase.auth.signUp.mockResolvedValue({
@@ -231,8 +261,11 @@ describe('IndustryStandardAuthContext', () => {
       const registerData: RegisterData = {
         email: 'existing@example.com',
         password: 'password123',
+        confirmPassword: 'password123',
         firstName: 'John',
         lastName: 'Doe',
+        acceptTerms: true,
+        acceptPrivacy: true,
       };
 
       mockSupabase.auth.signUp.mockResolvedValue({

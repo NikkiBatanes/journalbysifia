@@ -43,7 +43,7 @@ describe('AppleStoreKitService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new AppleStoreKitService();
+    service = AppleStoreKitService.getInstance();
   });
 
   afterEach(() => {

@@ -11,7 +11,7 @@ import {
   getUserTimeBlocks,
   getTimeBlocksByDate,
   searchTimeBlocks,
-} from '../timeBlockApi';
+} from '../api/timeBlockApi';
 import { supabase } from '../supabaseClient';
 
 // Mock Supabase
