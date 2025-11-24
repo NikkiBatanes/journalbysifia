@@ -832,6 +832,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   }, [isEditing, lockTitle]);
 
+  // Refresh guided prompt gating state when component mounts
+  useEffect(() => {
+    // Refresh to ensure we have the latest free prompts list
+    guidedPromptGating.refreshAccess();
+  }, [guidedPromptGating]);
+
   // Save handler - check for guided prompt restrictions
   const handleSave = async () => {
     // Haptic feedback for save action
@@ -840,6 +846,16 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Check if this is a guided prompt and if user has access
     // Check both selectedPrompt and title to prevent loopholes
     const promptToCheck = selectedPrompt || (guidedPromptGating.allPrompts.includes(newEntry.title) ? newEntry.title : null);
+
+    // Debug logging
+    console.log('SAVE DEBUG:', {
+      promptToCheck,
+      selectedPrompt,
+      title: newEntry.title,
+      freePrompts: guidedPromptGating.freePrompts,
+      isFreePrompt: promptToCheck ? guidedPromptGating.freePrompts.includes(promptToCheck) : false,
+      allPrompts: guidedPromptGating.allPrompts,
+    });
 
     // For free-form reflections (not guided prompts), check smart journaling gating
     if (!promptToCheck && smartJournalingGating.isLocked) {
