@@ -818,10 +818,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   }, [showFormattingModal, slideAnim]);
 
-  // Auto-focus title input for free form reflections
+  // Auto-focus title input for new entries
   useEffect(() => {
-    // Only auto-focus for free form mode and when not editing existing entry
-    if (!isEditing && source === 'freeform' && !lockTitle && titleInputRef.current) {
+    // Only auto-focus for new entries (not editing) and when title is not locked
+    if (!isEditing && !lockTitle && titleInputRef.current) {
       // Add a small delay to ensure the component is fully rendered
       createManagedTimeout(() => {
         if (titleInputRef.current) {
@@ -830,7 +830,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         }
       }, 300);
     }
-  }, [isEditing, source, lockTitle]);
+  }, [isEditing, lockTitle]);
 
   // Save handler - check for guided prompt restrictions
   const handleSave = async () => {
@@ -1135,8 +1135,18 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             />
           </TouchableOpacity>
         )}
-        {/* Show guided prompt icon for freeform reflections in journal screen (always visible) */}
-        {source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton && (
+        {/* Show guided prompt icon for new entries only (not when editing) */}
+        {(() => {
+          console.log('HEART ICON DEBUG:', {
+            source,
+            hideGuidedPromptButton,
+            showHeart: !isEditing && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton,
+            isEditing,
+            viewMode,
+            selectedPrompt,
+          });
+          return !isEditing && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton;
+        })() && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
             disabled={!!selectedPrompt || viewMode === 'guided'} // Disable when active
@@ -1193,6 +1203,18 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                                        ((source === 'devotional' || source === 'playbook') && (newEntry.title || newEntry.content)) ||
                                        selectedPrompt ||
                                        (guidedPromptGating.allPrompts || []).includes(newEntry.title);
+
+                console.log('TITLE DEBUG:', {
+                  lockTitle,
+                  source,
+                  hasTitle: !!newEntry.title,
+                  hasContent: !!newEntry.content,
+                  selectedPrompt,
+                  allPrompts: guidedPromptGating.allPrompts,
+                  titleMatchesPrompt: (guidedPromptGating.allPrompts || []).includes(newEntry.title),
+                  shouldLockTitle,
+                  isEditing,
+                });
 
                 return shouldLockTitle;
               })() ? (
