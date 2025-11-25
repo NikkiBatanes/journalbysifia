@@ -1875,7 +1875,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         maxHeight: Math.max(600, windowHeight * 1.1),
                       },
                     ]}
-                  contentContainerStyle={styles.expandedScrollContent}
+                  contentContainerStyle={[
+                    styles.expandedScrollContent,
+                    // Dynamic padding based on orientation for better scrollability
+                    { paddingBottom: isLandscape ? 400 : 600 }
+                  ]}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={true}
                   scrollEnabled={true}
