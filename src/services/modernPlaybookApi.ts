@@ -62,9 +62,10 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
 
       return session;
     } catch (error) {
-      Logger.error(`Session retrieval failed (attempt ${i + 1}/${retries}):`, {
+      Logger.error(`Session retrieval failed (attempt ${i + 1}/${retries})`, error as Error, {
         component: 'modernPlaybookApi',
-        data: error,
+        attempt: i + 1,
+        maxRetries: retries,
       });
       if (i === retries - 1) {throw error;}
       await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
@@ -644,9 +645,10 @@ export async function updatePlaybookActionSteps(
           .eq('playbook_id', playbookId);
 
         if (updateError) {
-          Logger.error(`❌ Error updating action step ${step.id}:`, {
+          Logger.error(`Error updating action step ${step.id}`, new Error(updateError.message || JSON.stringify(updateError)), {
         component: 'modernPlaybookApi',
-        data: updateError,
+        errorDetails: updateError,
+        stepId: step.id,
       });
           return { success: false, error: `Failed to update action step ${index + 1}: ${updateError.message}` };
         }
@@ -667,9 +669,11 @@ export async function updatePlaybookActionSteps(
                 .eq('action_step_id', step.id);
 
               if (subTaskError) {
-                Logger.error(`❌ Error updating subtask ${subTask.id}:`, {
+                Logger.error(`Error updating subtask ${subTask.id}`, new Error(subTaskError.message || JSON.stringify(subTaskError)), {
         component: 'modernPlaybookApi',
-        data: subTaskError,
+        errorDetails: subTaskError,
+        subtaskId: subTask.id,
+        stepId: step.id,
       });
                 // Continue with other subtasks even if one fails
               } else {
