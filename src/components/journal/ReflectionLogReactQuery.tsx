@@ -1165,7 +1165,7 @@ return (
         >
           <Pencil
             size={16}
-            color={Colors.textGray}
+            color={Colors.alertCoral}
             strokeWidth={2}
           />
         </TouchableOpacity>
