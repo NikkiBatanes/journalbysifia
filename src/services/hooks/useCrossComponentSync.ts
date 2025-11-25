@@ -109,34 +109,24 @@ export const useCrossComponentSync = (userId: string) => {
         component: 'useCrossComponentSync',
       });
 
-      // CRITICAL: Batch all query invalidations together to prevent cascade re-renders
-      // Use setTimeout to defer invalidations until after current render cycle
+      // CRITICAL: Don't invalidate queries immediately - causes 7+ second UI freeze
+      // Instead, let components refetch naturally or use optimistic updates
+      // Only invalidate dashboard queries which are lightweight
       setTimeout(() => {
-        Logger.debug(`[CrossComponentSync] 🔍 INSIDE setTimeout - starting query invalidation`, {
+        Logger.debug(`[CrossComponentSync] 🔍 INSIDE setTimeout - starting selective invalidation`, {
           component: 'useCrossComponentSync',
         });
 
-        // Batch invalidate all queries at once
+        // ONLY invalidate lightweight dashboard queries
+        // DO NOT invalidate devotionals list - it causes massive re-render
         queryClient.invalidateQueries({
-          predicate: (query) => {
-            const key = query.queryKey;
-            // Invalidate devotionals list
-            if (Array.isArray(key) && key[0] === 'devotionals' && key[1] === 'list' && key[2] === userId) {
-              return true;
-            }
-            // Invalidate dashboard queries
-            if (Array.isArray(key) && key[0] === 'dashboard' && key[2] === userId) {
-              return true;
-            }
-            // Invalidate playbook queries if linked
-            if (playbookId && Array.isArray(key) && key[0] === 'playbooks') {
-              return true;
-            }
-            return false;
-          },
+          queryKey: ['dashboard', 'streaks', userId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['dashboard', 'insights', userId],
         });
 
-        Logger.debug(`[CrossComponentSync] 🔍 AFTER invalidateQueries`, {
+        Logger.debug(`[CrossComponentSync] 🔍 AFTER selective invalidation`, {
           component: 'useCrossComponentSync',
         });
 
