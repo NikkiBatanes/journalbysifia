@@ -608,7 +608,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     if (isAdding) {
       guidedPromptGating.refreshAccess();
     }
-  }, [isAdding, guidedPromptGating]);
+  }, [isAdding, guidedPromptGating.refreshAccess]); // Only depend on the function, not the whole object
 
   // Handle prompt selection with analytics
   const handlePromptSelection = useCallback((prompt: string) => {
