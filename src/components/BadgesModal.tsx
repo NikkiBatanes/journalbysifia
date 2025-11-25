@@ -231,7 +231,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
           { backgroundColor: getRarityColor(item.rarity) }
         ]}>
           <ThemedText style={styles.rarityText}>
-            {item.rarity.toUpperCase()}
+            {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
           </ThemedText>
         </View>
       </View>
@@ -342,7 +342,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                   { backgroundColor: getRarityColor(item.rarity) }
                 ]}>
                   <ThemedText style={styles.rarityText}>
-                    {item.rarity.toUpperCase()}
+                    {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
                   </ThemedText>
                 </View>
               </View>
@@ -498,13 +498,14 @@ const styles = StyleSheet.create({
   },
   rarityBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 8,
-    alignSelf: 'center',
-    minWidth: 60,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   rarityText: {
-    fontSize: 7,
+    fontSize: 9,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     letterSpacing: 0.3,
