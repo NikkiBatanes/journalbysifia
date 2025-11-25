@@ -166,9 +166,9 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
         completedDaysMap.set(dev.id, completedDays);
 
-        Logger.info(`[ReflectionQuestions] Initial setup for ${dev.id}: currentDay=${devCurrentDay}, completedDays=${Array.from(completedDays).join(',')}`, {
-          component: 'ReflectionQuestionsCard',
-        });
+        // Logger.info(`[ReflectionQuestions] Initial setup for ${dev.id}: currentDay=${devCurrentDay}, completedDays=${Array.from(completedDays).join(',')}`, {
+        //   component: 'ReflectionQuestionsCard',
+        // });
       });
 
       // Then, enhance with progress_data if available
@@ -186,15 +186,15 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             const progressCurrentDay = progressData?.current_day || progressData?.currentDay || 1;
 
             // DEBUG: Log the progress data structure
-            Logger.info(`[ReflectionQuestions] Progress data for ${contentId}:`, {
-              component: 'ReflectionQuestionsCard',
-              data: {
-                progressCurrentDay,
-                hasDays: !!progressData?.days,
-                daysLength: progressData?.days?.length,
-                daysData: progressData?.days,
-              },
-            });
+            // Logger.info(`[ReflectionQuestions] Progress data for ${contentId}:`, {
+            //   component: 'ReflectionQuestionsCard',
+            //   data: {
+            //     progressCurrentDay,
+            //     hasDays: !!progressData?.days,
+            //     daysLength: progressData?.days?.length,
+            //     daysData: progressData?.days,
+            //   },
+            // });
 
             // Add any explicitly completed days from progress_data
             if (progressData?.days && Array.isArray(progressData.days)) {
@@ -203,9 +203,9 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 // Add if explicitly marked as completed
                 if (day?.completed) {
                   completedDays.add(dayNumber);
-                  Logger.info(`[ReflectionQuestions] Day ${dayNumber} marked as completed in progress_data`, {
-                    component: 'ReflectionQuestionsCard',
-                  });
+                  // Logger.info(`[ReflectionQuestions] Day ${dayNumber} marked as completed in progress_data`, {
+                  //   component: 'ReflectionQuestionsCard',
+                  // });
                 }
               });
             }
@@ -214,9 +214,9 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             completedDaysMap.set(contentId, completedDays);
 
             // Debug logging
-            Logger.info(`[ReflectionQuestions] Final for ${contentId}: completedDays=${Array.from(completedDays).join(',')}`, {
-              component: 'ReflectionQuestionsCard',
-            });
+            // Logger.info(`[ReflectionQuestions] Final for ${contentId}: completedDays=${Array.from(completedDays).join(',')}`, {
+            //   component: 'ReflectionQuestionsCard',
+            // });
           } catch (e) {
             Logger.warn('Error parsing progress data for reflection questions', {
               component: 'ReflectionQuestionsCard',
@@ -249,24 +249,24 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               // FILTER: Only show questions from Day 1 OR completed days
               const dayNumber = ctx?.dayNumber || 1;
               if (dayNumber > 1 && !completedDays.has(dayNumber)) {
-                Logger.info(`[ReflectionQuestions] Skipping future day question: ${qText.substring(0, 50)}... (Day ${dayNumber}, completed days: ${Array.from(completedDays).join(',')})`, {
-                  component: 'ReflectionQuestionsCard',
-                });
+                // Logger.info(`[ReflectionQuestions] Skipping future day question: ${qText.substring(0, 50)}... (Day ${dayNumber}, completed days: ${Array.from(completedDays).join(',')})`, {
+                //   component: 'ReflectionQuestionsCard',
+                // });
                 return; // Skip questions from incomplete future days
               }
 
               // Check if this question has already been journaled
               const questionId = `${devotional.id}-${ctx?.dayNumber || 1}-${ctx?.questionIndex || 1}`;
               if (journaledQuestionIds.has(questionId)) {
-                Logger.info(`[ReflectionQuestions] Skipping journaled question: ${qText.substring(0, 50)}... (ID: ${questionId})`, {
-                  component: 'ReflectionQuestionsCard',
-                });
+                // Logger.info(`[ReflectionQuestions] Skipping journaled question: ${qText.substring(0, 50)}... (ID: ${questionId})`, {
+                //   component: 'ReflectionQuestionsCard',
+                // });
                 return; // Skip journaled questions
               }
 
-              Logger.info(`[ReflectionQuestions] Including question: ${qText.substring(0, 50)}... (Day ${dayNumber}, ID: ${questionId})`, {
-                component: 'ReflectionQuestionsCard',
-              });
+              // Logger.info(`[ReflectionQuestions] Including question: ${qText.substring(0, 50)}... (Day ${dayNumber}, ID: ${questionId})`, {
+              //   component: 'ReflectionQuestionsCard',
+              // });
 
               allQuestions.push({
                 id: `devotional-${devotional.id}-${idxSuffix}`,
