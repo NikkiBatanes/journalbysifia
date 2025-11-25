@@ -83,28 +83,41 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     <View style={[
       styles.badgeItem,
       item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
-      { borderColor: getRarityColor(item.rarity) }
     ]}>
-      <Text style={styles.badgeIcon}>{item.unlocked ? item.icon : '🔒'}</Text>
-      <Text style={styles.badgeName}>
+      <View style={styles.badgeIconContainer}>
+        <Text style={styles.badgeIcon}>
+          {item.unlocked ? item.icon : '🔐'}
+        </Text>
+        {!item.unlocked && <View style={styles.lockOverlay} />}
+      </View>
+      
+      <Text style={[
+        styles.badgeName,
+        { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
+      ]}>
         {item.name}
       </Text>
-      <Text style={styles.badgeDescription}>
+      
+      <Text style={[
+        styles.badgeDescription,
+        { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
+      ]}>
         {item.description}
       </Text>
+      
       <View style={styles.badgeFooter}>
-        <Text style={[
-          styles.rarityText, 
-          { 
-            backgroundColor: getRarityColor(item.rarity),
-            color: Colors.hopeWhite,
-          }
+        <View style={[
+          styles.rarityBadge,
+          { backgroundColor: getRarityColor(item.rarity) }
         ]}>
-          {item.rarity.toUpperCase()}
-        </Text>
+          <Text style={styles.rarityText}>
+            {item.rarity.toUpperCase()}
+          </Text>
+        </View>
+        
         {item.unlocked && item.unlockedAt && (
           <Text style={styles.unlockedDate}>
-            Unlocked {new Date(item.unlockedAt).toLocaleDateString()}
+            {new Date(item.unlockedAt).toLocaleDateString()}
           </Text>
         )}
       </View>
@@ -145,19 +158,18 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                 </View>
               </View>
 
-              <View style={styles.scrollContainer}>
-                <FlatList
-                  data={availableBadges}
-                  renderItem={renderBadge}
-                  keyExtractor={(item) => item.id}
-                  numColumns={2}
-                  contentContainerStyle={styles.badgesList}
-                  showsVerticalScrollIndicator={false}
-                  refreshing={loading}
-                  onRefresh={loadBadges}
-                  bounces={true}
-                />
-              </View>
+              <FlatList
+                data={availableBadges}
+                renderItem={renderBadge}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                contentContainerStyle={styles.badgesList}
+                showsVerticalScrollIndicator={false}
+                refreshing={loading}
+                onRefresh={loadBadges}
+                bounces={true}
+                style={styles.flatListStyle}
+              />
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -169,7 +181,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(26, 60, 109, 0.8)', // Anchor blue overlay
+    backgroundColor: 'rgba(26, 60, 109, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
@@ -237,70 +249,81 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.8,
   },
-  scrollContainer: {
+  flatListStyle: {
     flex: 1,
+    paddingHorizontal: 16,
   },
   badgesList: {
-    paddingHorizontal: 16,
     paddingBottom: 40,
   },
   badgeItem: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)', // Match dashboard carousel
+    borderRadius: 20,
+    padding: 20,
     margin: 6,
-    borderWidth: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
     flex: 1,
-    minHeight: 160,
-    shadowColor: Colors.anchorBlue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    minHeight: 180,
+    justifyContent: 'space-between',
   },
   unlockedBadge: {
-    opacity: 1,
-    transform: [{ scale: 1 }],
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   lockedBadge: {
-    opacity: 0.7,
-    backgroundColor: 'rgba(242, 245, 247, 0.6)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  badgeIconContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+    position: 'relative',
   },
   badgeIcon: {
-    fontSize: 40,
+    fontSize: 48,
     textAlign: 'center',
-    marginBottom: 12,
+  },
+  lockOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 24,
   },
   badgeName: {
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 6,
-    color: Colors.anchorBlue,
+    marginBottom: 8,
   },
   badgeDescription: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'center',
-    color: Colors.textGray,
-    marginBottom: 12,
-    lineHeight: 16,
+    marginBottom: 16,
+    lineHeight: 18,
+    flex: 1,
   },
   badgeFooter: {
     alignItems: 'center',
-    marginTop: 'auto',
+  },
+  rarityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   rarityText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
-    marginBottom: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    overflow: 'hidden',
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
   },
   unlockedDate: {
-    fontSize: 10,
-    color: Colors.textGray,
+    fontSize: 11,
+    color: 'rgba(242, 245, 247, 0.7)',
     fontStyle: 'italic',
   },
 });
