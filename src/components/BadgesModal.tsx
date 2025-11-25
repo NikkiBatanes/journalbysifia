@@ -92,8 +92,14 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
             if (row.badge_data) {
               badgeData = typeof row.badge_data === 'string' ? JSON.parse(row.badge_data) : row.badge_data;
             } else if (row.badge_id) {
-              // If only badge_id exists, we need to get the badge data from the service
-              badgeData = { id: row.badge_id };
+              // If only badge_id exists, get the full badge data from the service
+              const allBadges = await faithPointsService.getAvailableBadges();
+              const fullBadge = allBadges.find(b => b.id === row.badge_id);
+              if (fullBadge) {
+                badgeData = fullBadge;
+              } else {
+                badgeData = { id: row.badge_id };
+              }
             }
             
             if (row.unlocked_at) {
@@ -121,6 +127,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       }
 
       console.log('Parsed unlocked badges:', unlockedBadges);
+      console.log('Badge icons in unlocked badges:', unlockedBadges.map(b => ({ id: b.id, icon: b.icon })));
 
       // Get all available badges
       console.log('Calling faithPointsService.getAvailableBadges()');
@@ -202,7 +209,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       <View style={styles.iconContainer}>
         <View style={styles.badgeIconContainer}>
           {item.unlocked ? (
-            <Text style={styles.badgeIcon}>{item.icon}</Text>
+            <Text style={styles.badgeIcon}>{item.icon || '⭐'}</Text>
           ) : (
             <Image 
               source={require('../../assets/icons/padlock-3.png')} 
@@ -313,7 +320,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               <View style={styles.iconContainer}>
                 <View style={styles.badgeIconContainer}>
                   {item.unlocked ? (
-                    <Text style={styles.badgeIcon}>{item.icon}</Text>
+                    <Text style={styles.badgeIcon}>{item.icon || '⭐'}</Text>
                   ) : (
                     <Image 
                       source={require('../../assets/icons/padlock-3.png')} 
