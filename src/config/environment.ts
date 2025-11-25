@@ -16,8 +16,8 @@ export const ENV = {
   SUPABASE_ANON_KEY: Config.SUPABASE_ANON_KEY || '',
   SUPABASE_SERVICE_ROLE_KEY: Config.SUPABASE_SERVICE_ROLE_KEY || '',
 
-  // OpenAI Configuration
-  OPENAI_API_KEY: Config.OPENAI_API_KEY || '',
+  // Note: OpenAI API keys are managed in Supabase Edge Functions secrets
+  // No OPENAI_API_KEY needed in client environment for security
 
   // Payment Configuration - US Market
   STRIPE_PUBLISHABLE_KEY: Config.STRIPE_PUBLISHABLE_KEY || '',
@@ -51,7 +51,6 @@ export const validateEnvironment = () => {
   ];
 
   const optional = [
-    'OPENAI_API_KEY',
     'SENTRY_DSN',
   ];
 
