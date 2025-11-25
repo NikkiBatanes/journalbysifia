@@ -569,7 +569,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Dynamic title font sizing based on number of lines
   const [titleLineCount, setTitleLineCount] = useState(1);
-  const titleFontSize = titleLineCount > 3 ? 18 : 24; // Reduce from 24 to 18 if more than 3 lines
+  const titleFontSize = titleLineCount > 3 ? 14 : 18; // Reduce from 18 to 14 if more than 3 lines
 
   // Refs
   const titleInputRef = useRef<TextInput>(null);
