@@ -426,7 +426,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               initialTitle={preservedSubtaskTitle || ''}
               lockTitle={isGuidedReflection || !!playbookId}
               // Source: guided for guided prompt, playbook for playbook context, 'freeform' for journal carousel, 'thoughts' for dashboard (enforces gating)
-              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : (isJournalCarousel ? 'freeform' : 'thoughts'))}
+              // Check playbookTitle OR playbookId to determine playbook context (Today's Scripture/Declaration don't have playbookId)
+              source={isGuidedReflection ? 'guided' : (playbookId || playbookTitle ? 'playbook' : (isJournalCarousel ? 'freeform' : 'thoughts'))}
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
