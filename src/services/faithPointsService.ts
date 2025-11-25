@@ -658,6 +658,14 @@ export class FaithPointsService {
         pointsRequired: 80,
       },
       {
+        id: 'faithful_witness',
+        name: 'Faithful Witness',
+        description: 'Documented 15 answered prayers',
+        icon: '📝',
+        rarity: 'rare',
+        pointsRequired: 120,
+      },
+      {
         id: 'devotional_dedicated',
         name: 'Devotional Dedicated',
         description: 'Generated 25 devotionals',
@@ -1197,6 +1205,10 @@ export class FaithPointsService {
         const prayerListPrayedCount = await this.getActivityCount(userId, 'prayer_list_prayed');
         const totalPrayerActivities = devotionalPrayersCount + prayerListPrayedCount;
         return totalPrayerActivities >= 25;
+
+      case 'Faithful Witness':
+        // Award after documenting 15 answered prayers
+        return await this.getActivityCount(userId, 'prayer_answered') >= 15;
 
       case 'Devotional Dedicated':
         // Award after generating 25 devotionals
