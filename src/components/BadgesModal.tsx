@@ -16,6 +16,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { faithPointsService, Badge } from '../services/faithPointsService';
+
+// Extended type for badge with unlock status
+interface BadgeWithStatus extends Badge {
+  unlocked?: boolean;
+}
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -34,7 +39,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
-  const [availableBadges, setAvailableBadges] = useState<Badge[]>([]);
+  const [availableBadges, setAvailableBadges] = useState<BadgeWithStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -114,7 +119,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     setRefreshing(false);
   };
 
-  const renderBadge = ({ item }: { item: Badge & { unlocked?: boolean; unlockedAt?: string } }) => (
+  const renderBadge = ({ item }: { item: BadgeWithStatus }) => (
     <View style={[
       styles.badgeItem,
       item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
@@ -215,7 +220,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
           }
           showsVerticalScrollIndicator={false}
         >
-          {availableBadges.map((item) => (
+          {availableBadges.map((item: BadgeWithStatus) => (
             <View key={item.id} style={[
               styles.badgeItem,
               item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
