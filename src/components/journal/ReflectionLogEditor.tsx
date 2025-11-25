@@ -481,12 +481,13 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     },
   });
 
-  // Smart journaling gating for dashboard smart journaling only
-  // Regular journal reflections (freeform/guided) should NOT be gated
-  // Only gate when source is specifically 'thoughts' (dashboard smart journaling)
+  // Smart journaling gating (Growth & Transformation only)
+  // Smart journaling = dashboard smart journaling, action steps, Today's Scripture/Declaration (all with tooltip icons)
+  // NOT smart journaling = devotional editor, journal carousel freeform, journal carousel guided prompts
+  // Only gate when source is 'thoughts' (all smart journaling contexts)
   const smartJournalingGating = useSmartJournalingGating({
     feature: 'reflection',
-    allowSeekerFreeForm: source !== 'thoughts', // Allow all non-dashboard reflections for seekers
+    allowSeekerFreeForm: source !== 'thoughts', // Only gate smart journaling (source='thoughts')
   });
 
   const sortedGuidedPrompts = React.useMemo(() => {
