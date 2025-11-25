@@ -139,22 +139,22 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
       await refetch();
 
-      // Invalidate cache to update journal screen
+      // PERFORMANCE: Parallel cache invalidation instead of sequential
       if (user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'byDate', user.id, dateStr],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'devotional', user.id],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ['journal', 'reflections', user.id, dateStr],
-        });
-
-        // Simple additional cache invalidation
-        await queryClient.invalidateQueries({
-          queryKey: ['journal', 'all'],
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['reflections', 'byDate', user.id, dateStr],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['reflections', 'devotional', user.id],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'reflections', user.id, dateStr],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'all'],
+          }),
+        ]);
       }
 
       // Award faith points for answering devotional question (only for new entries)
