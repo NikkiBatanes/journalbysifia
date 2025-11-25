@@ -1124,6 +1124,9 @@ export default function ActionStepsCard({
           actionStepTitle={selectedActionStep?.stepTitle}
           existingReflection={existingReflection}
           selectedDate={selectedDate}
+          isGuidedReflection={false} // Action steps are playbook context, not guided
+          hideGuidedPromptButton={false} // Show guided prompt button in action steps
+          isJournalCarousel={false} // This is from action steps, not journal carousel
           onSave={handleReflectionSave}
           onCancel={() => {
             setActiveModal(null);
