@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { ScrollView, View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { ScrollView, View, StyleSheet, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
 
 import { Colors } from '../theme';
 import TruthInLoveCard from './TruthInLoveCard';
@@ -43,6 +43,8 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
   maxCardWidth,
 }) => {
   const { user } = useAuth();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
 
   // DEBUG: Log actionSteps received by DocumentCards
 
@@ -81,6 +83,8 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       contentContainerStyle={[
         propStyles.docContentContainer,
         styles.contentContainer,
+        // Dynamic padding based on orientation for consistent scrolling behavior
+        { paddingBottom: isLandscape ? 140 : 250 }
       ]}
       onScroll={handleScroll}
       scrollEventThrottle={scrollEventThrottle}
