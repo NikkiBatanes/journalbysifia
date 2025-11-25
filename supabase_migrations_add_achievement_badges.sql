@@ -120,7 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_badges_rarity ON badges(rarity);
 -- Playbook Generation Badges
 INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
-  ('First Steps', 'Generated your first playbook', '👶', 10, 'common'),
+  ('First Steps', 'Generated your first playbook', '👶🏽', 10, 'common'),
   ('Growth Seeker', 'Generated 25 playbooks', '🌱', 250, 'rare'),
   ('Playbook Master', 'Generated 50 playbooks', '🌿', 500, 'epic'),
   ('Playbook Legend', 'Generated 100 playbooks', '🌳', 1000, 'legendary')
@@ -134,7 +134,7 @@ ON CONFLICT (name) DO UPDATE SET
 -- Devotional Badges
 INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
-  ('Prayer Warrior', 'Generated 10 devotionals', '🙏', 80, 'rare'),
+  ('Prayer Warrior', 'Generated 10 devotionals', '🙏🏼', 80, 'rare'),
   ('Devotional Dedicated', 'Generated 25 devotionals', '📿', 200, 'epic'),
   ('Devotional Master', 'Generated 50 devotionals', '⛪', 400, 'legendary')
 ON CONFLICT (name) DO UPDATE SET
@@ -160,7 +160,7 @@ ON CONFLICT (name) DO UPDATE SET
 INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
   ('Faithful Week', 'Used the app 7 days in a row', '🔥', 35, 'common'),
-  ('Streak Warrior', '14-day streak', '💪', 70, 'rare'),
+  ('Streak Warrior', '14-day streak', '💪🏼', 70, 'rare'),
   ('Streak Master', '30-day streak', '⚡', 150, 'epic'),
   ('Streak Legend', '60-day streak', '🏆', 300, 'legendary')
 ON CONFLICT (name) DO UPDATE SET
@@ -187,7 +187,7 @@ VALUES
   ('Seeker', 'Beginning your faith journey', '🔍', 0, 'common'),
   ('Believer', 'Growing in faith', '🌱', 100, 'common'),
   ('Disciple', 'Committed to growth', '⚡', 300, 'rare'),
-  ('Servant', 'Serving others', '🤲', 600, 'rare'),
+  ('Servant', 'Serving others', '🤲🏼', 600, 'rare'),
   ('Leader', 'Leading by example', '👑', 1000, 'legendary'),
   ('Teacher', 'Sharing wisdom', '📚', 1500, 'legendary'),
   ('Mentor', 'Guiding others', '🎯', 2500, 'legendary'),
