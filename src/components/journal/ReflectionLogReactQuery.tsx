@@ -1250,12 +1250,6 @@ return (
                   }, user.id);
                 }
 
-                // Wait a moment for the mutation to complete before refetching
-                setTimeout(async () => {
-                  await refetch();
-
-                }, 100);
-
                 // Close editor modal first, then show success modal to avoid layering conflicts
                 setSelectedEntry(null);
                 setEditingId(null);
