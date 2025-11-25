@@ -1011,7 +1011,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               )}
               <View style={styles.scriptureReferenceContainer}>
                 <ThemedText weight="bold" style={styles.scriptureReference} selectable={true}>
-                  {day.scripture?.reference || ''}{day.scripture?.version ? ` ${day.scripture.version}` : ''}
+                  {(day.scripture?.reference || '').toUpperCase()}{day.scripture?.version ? ` ${day.scripture.version}` : ''}
                 </ThemedText>
                 {day.scripture?.version && (
                   <TouchableOpacity
