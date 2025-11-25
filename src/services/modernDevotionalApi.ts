@@ -242,12 +242,12 @@ export async function generateDevotional(
       // Log the response for debugging
       Logger.info('Devotional API response received', {
         component: 'modernDevotionalApi',
-        data: {
+        data: JSON.stringify({
           daysCount: result?.days?.length || 0,
           firstDayTitle: result?.days?.[0]?.title || 'none',
           firstDayContentLength: result?.days?.[0]?.content?.length || 0,
           firstDayContentPreview: result?.days?.[0]?.content?.substring(0, 100) || 'none'
-        }
+        })
       });
 
       // Validate the response structure
@@ -261,7 +261,7 @@ export async function generateDevotional(
         // Log detailed info about the failed validation
         Logger.error('Devotional validation failed', {
           component: 'modernDevotionalApi',
-          data: {
+          data: JSON.stringify({
             validationError,
             duration,
             daysCount: result?.days?.length,
@@ -274,7 +274,7 @@ export async function generateDevotional(
               titlePreview: day?.title?.substring(0, 50) || 'none',
               contentPreview: day?.content?.substring(0, 100) || 'none'
             }))
-          }
+          })
         });
         throw new Error(`Incomplete devotional: ${validationError}`);
       }
@@ -374,7 +374,7 @@ export async function generateDevotional(
       lastError = error;
       Logger.error(`Attempt ${attempt + 1} failed:`, {
         component: 'modernDevotionalApi',
-        data: error.message,
+        data: JSON.stringify({ error: error.message, stack: error.stack }),
       });
 
       // Handle timeout errors
