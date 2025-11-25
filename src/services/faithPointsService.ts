@@ -722,12 +722,84 @@ export class FaithPointsService {
       
       // Level Achievement Badges
       {
-        id: 'faith_champion',
-        name: 'Faith Champion',
+        id: 'level_1_newborn',
+        name: 'Level 1: Newborn',
+        description: 'Reached level 1',
+        icon: '🌟',
+        rarity: 'common',
+        pointsRequired: 50,
+      },
+      {
+        id: 'level_2_growing',
+        name: 'Level 2: Growing',
+        description: 'Reached level 2',
+        icon: '🌱',
+        rarity: 'common',
+        pointsRequired: 100,
+      },
+      {
+        id: 'level_3_flourishing',
+        name: 'Level 3: Flourishing',
+        description: 'Reached level 3',
+        icon: '🌿',
+        rarity: 'rare',
+        pointsRequired: 200,
+      },
+      {
+        id: 'level_4_thriving',
+        name: 'Level 4: Thriving',
+        description: 'Reached level 4',
+        icon: '🌳',
+        rarity: 'rare',
+        pointsRequired: 400,
+      },
+      {
+        id: 'level_5_faith_champion',
+        name: 'Level 5: Faith Champion',
         description: 'Reached level 5',
         icon: '👑',
         rarity: 'legendary',
         pointsRequired: 1000,
+      },
+      {
+        id: 'level_6_faith_master',
+        name: 'Level 6: Faith Master',
+        description: 'Reached level 6',
+        icon: '🏆',
+        rarity: 'legendary',
+        pointsRequired: 2000,
+      },
+      {
+        id: 'level_7_faith_legend',
+        name: 'Level 7: Faith Legend',
+        description: 'Reached level 7',
+        icon: '💫',
+        rarity: 'legendary',
+        pointsRequired: 3500,
+      },
+      {
+        id: 'level_8_faith_saint',
+        name: 'Level 8: Faith Saint',
+        description: 'Reached level 8',
+        icon: '🌟',
+        rarity: 'legendary',
+        pointsRequired: 5000,
+      },
+      {
+        id: 'level_9_faith_prophet',
+        name: 'Level 9: Faith Prophet',
+        description: 'Reached level 9',
+        icon: '✨',
+        rarity: 'legendary',
+        pointsRequired: 7500,
+      },
+      {
+        id: 'level_10_faith_apostle',
+        name: 'Level 10: Faith Apostle',
+        description: 'Reached level 10',
+        icon: '🌈',
+        rarity: 'legendary',
+        pointsRequired: 10000,
       },
     ];
   }
@@ -1062,9 +1134,45 @@ export class FaithPointsService {
         return await this.getActivityCount(userId, 'daily_streak') >= 60;
 
       // Level Achievement Badges
-      case 'Faith Champion':
+      case 'Level 1: Newborn':
+        // Award after reaching level 1
+        return await this.getActivityCount(userId, 'level_1_reached') >= 1;
+
+      case 'Level 2: Growing':
+        // Award after reaching level 2
+        return await this.getActivityCount(userId, 'level_2_reached') >= 1;
+
+      case 'Level 3: Flourishing':
+        // Award after reaching level 3
+        return await this.getActivityCount(userId, 'level_3_reached') >= 1;
+
+      case 'Level 4: Thriving':
+        // Award after reaching level 4
+        return await this.getActivityCount(userId, 'level_4_reached') >= 1;
+
+      case 'Level 5: Faith Champion':
         // Award after reaching level 5
         return await this.getActivityCount(userId, 'level_5_reached') >= 1;
+
+      case 'Level 6: Faith Master':
+        // Award after reaching level 6
+        return await this.getActivityCount(userId, 'level_6_reached') >= 1;
+
+      case 'Level 7: Faith Legend':
+        // Award after reaching level 7
+        return await this.getActivityCount(userId, 'level_7_reached') >= 1;
+
+      case 'Level 8: Faith Saint':
+        // Award after reaching level 8
+        return await this.getActivityCount(userId, 'level_8_reached') >= 1;
+
+      case 'Level 9: Faith Prophet':
+        // Award after reaching level 9
+        return await this.getActivityCount(userId, 'level_9_reached') >= 1;
+
+      case 'Level 10: Faith Apostle':
+        // Award after reaching level 10
+        return await this.getActivityCount(userId, 'level_10_reached') >= 1;
 
       default:
         return false;

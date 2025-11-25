@@ -181,6 +181,26 @@ ON CONFLICT (name) DO UPDATE SET
   rarity = EXCLUDED.rarity,
   updated_at = NOW();
 
+-- Level Achievement Badges
+INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
+VALUES 
+  ('Level 1: Newborn', 'Reached level 1', '🌟', 50, 'common'),
+  ('Level 2: Growing', 'Reached level 2', '🌱', 100, 'common'),
+  ('Level 3: Flourishing', 'Reached level 3', '🌿', 200, 'rare'),
+  ('Level 4: Thriving', 'Reached level 4', '🌳', 400, 'rare'),
+  ('Level 5: Faith Champion', 'Reached level 5', '👑', 1000, 'legendary'),
+  ('Level 6: Faith Master', 'Reached level 6', '🏆', 2000, 'legendary'),
+  ('Level 7: Faith Legend', 'Reached level 7', '💫', 3500, 'legendary'),
+  ('Level 8: Faith Saint', 'Reached level 8', '🌟', 5000, 'legendary'),
+  ('Level 9: Faith Prophet', 'Reached level 9', '✨', 7500, 'legendary'),
+  ('Level 10: Faith Apostle', 'Reached level 10', '🌈', 10000, 'legendary')
+ON CONFLICT (name) DO UPDATE SET
+  description = EXCLUDED.description,
+  icon = EXCLUDED.icon,
+  faith_points_reward = EXCLUDED.faith_points_reward,
+  rarity = EXCLUDED.rarity,
+  updated_at = NOW();
+
 -- ============================================================================
 -- Verification Query
 -- ============================================================================
@@ -196,5 +216,8 @@ ON CONFLICT (name) DO UPDATE SET
 --   'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
 --   'Journal Keeper', 'Journal Scribe',
 --   'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend',
---   'Faith Champion'
+--   'Faith Champion',
+--   'Level 1: Newborn', 'Level 2: Growing', 'Level 3: Flourishing', 'Level 4: Thriving',
+--   'Level 5: Faith Champion', 'Level 6: Faith Master', 'Level 7: Faith Legend',
+--   'Level 8: Faith Saint', 'Level 9: Faith Prophet', 'Level 10: Faith Apostle'
 -- );
