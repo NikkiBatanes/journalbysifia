@@ -13,7 +13,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Animated,
   StatusBar,
   Linking,
   Dimensions,
@@ -136,48 +135,32 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const isLandscape = screenSize.width > screenSize.height;
   const isTablet = screenSize.width >= 768;
 
-  // Debug: Log actual screen dimensions
-  Logger.info('SCREEN DEBUG:', {
-    width: screenSize.width,
-    height: screenSize.height,
-    isTablet,
-  });
-
   // Proper device classification based on actual iPhone dimensions (in points)
   // Adjusted threshold based on actual SE reporting 844 height
   const isSmallPhone = !isTablet && screenSize.height <= 850; // Covers SE (844) and older SE (667)
   const isRegularPhone = !isTablet && screenSize.height > 850 && screenSize.height < 950; // iPhone 17: 402x874
 
-  Logger.info('DEVICE CLASSIFICATION:', {
-    isSmallPhone,
-    isRegularPhone,
-    isTablet,
-  });
+  // Debug: Log screen dimensions and classification only when they change
+  useEffect(() => {
+    Logger.info('SCREEN DEBUG:', {
+      width: screenSize.width,
+      height: screenSize.height,
+      isTablet,
+    });
+
+    Logger.info('DEVICE CLASSIFICATION:', {
+      isSmallPhone,
+      isRegularPhone,
+      isTablet,
+    });
+  }, [screenSize, isTablet, isSmallPhone, isRegularPhone]);
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
   // Width of the actual FlatList viewport; defaults to screen, but measured on layout
   const [listWidth, setListWidth] = useState(screenSize.width);
   const { isAuthenticated, user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
   const flatListRef = useRef<FlatList>(null);
-
-  useEffect(() => {
-    // Entrance animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
 
   // Listen to dimension changes to respond to rotation
   useEffect(() => {
@@ -526,22 +509,20 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Terms Text */}
-        <ThemedText style={[styles.termsText, { width: contentWidth }, styles.centeredContainer]}>
-          By continuing, you agree to our{' '}
-          <ThemedText
-            style={styles.linkText}
-            onPress={() => Linking.openURL('https://sifia.app/legal/terms.html')}
-          >
-            Terms of Service
+        <View style={[{ width: contentWidth }, styles.centeredContainer]}>
+          <ThemedText style={styles.termsText}>
+            By continuing, you agree to our{' '}
           </ThemedText>
-          {' '}and{' '}
-          <ThemedText
-            style={styles.linkText}
-            onPress={() => Linking.openURL('https://sifia.app/legal/privacy.html')}
-          >
-            Privacy Policy
+          <TouchableOpacity onPress={() => Linking.openURL('https://sifia.app/legal/terms.html')}>
+            <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+          </TouchableOpacity>
+          <ThemedText style={styles.termsText}>
+            {' '}and{' '}
           </ThemedText>
-        </ThemedText>
+          <TouchableOpacity onPress={() => Linking.openURL('https://sifia.app/legal/privacy.html')}>
+            <ThemedText style={styles.linkText}>Privacy Policy</ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
       </View>
     </OnboardingErrorBoundary>

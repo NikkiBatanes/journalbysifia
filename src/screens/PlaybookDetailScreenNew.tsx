@@ -207,7 +207,10 @@ const HeaderLeftInner = ({ showUserInput, setShowUserInput, chevronStyle, showCo
 
 const ShareButton = ({ onPress, styles }: { onPress: () => void; styles: any }) => (
   <TouchableOpacity
-    onPress={onPress}
+    onPress={() => {
+      triggerLightHaptic();
+      onPress();
+    }}
     style={styles.shareButton}
     activeOpacity={0.7}
   >
@@ -1849,7 +1852,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     <TouchableOpacity
                       style={styles.stickyCloseButton}
                       onPress={() => {
-                        try { triggerLightHaptic(); } catch {}
+                        triggerLightHaptic();
                         setExpandedCardId(null);
                         animateCardTransition(card.id, false);
                       }}
@@ -1892,7 +1895,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       activeOpacity={1}
                       onPress={() => {
                         if (!isScrolling) {
-                          try { triggerLightHaptic(); } catch {}
+                          triggerLightHaptic();
                           setExpandedCardId(null);
                           animateCardTransition(card.id, false);
                         }
@@ -1910,7 +1913,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 <TouchableOpacity
                   activeOpacity={1}
                   onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
+                    triggerLightHaptic();
                     setExpandedCardId(card.id);
                     animateCardTransition(card.id, true);
                   }}
@@ -1976,6 +1979,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             style={styles.navButton}
             onPress={() => {
               try {
+                triggerLightHaptic();
                 navigation.goBack();
               } catch (err) {
 
@@ -1999,6 +2003,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               <TouchableOpacity
                 style={styles.onboardingContinueButton}
                 onPress={() => {
+                  triggerLightHaptic();
                   navigation.navigate('MainTabs' as any);
                 }}
               >
