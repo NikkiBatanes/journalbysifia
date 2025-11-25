@@ -184,16 +184,16 @@ ON CONFLICT (name) DO UPDATE SET
 -- Level Achievement Badges
 INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
-  ('Level 1: Newborn', 'Reached level 1', '🌟', 50, 'common'),
-  ('Level 2: Growing', 'Reached level 2', '🌱', 100, 'common'),
-  ('Level 3: Flourishing', 'Reached level 3', '🌿', 200, 'rare'),
-  ('Level 4: Thriving', 'Reached level 4', '🌳', 400, 'rare'),
-  ('Level 5: Faith Champion', 'Reached level 5', '👑', 1000, 'legendary'),
-  ('Level 6: Faith Master', 'Reached level 6', '🏆', 2000, 'legendary'),
-  ('Level 7: Faith Legend', 'Reached level 7', '💫', 3500, 'legendary'),
-  ('Level 8: Faith Saint', 'Reached level 8', '🌟', 5000, 'legendary'),
-  ('Level 9: Faith Prophet', 'Reached level 9', '✨', 7500, 'legendary'),
-  ('Level 10: Faith Apostle', 'Reached level 10', '🌈', 10000, 'legendary')
+  ('Seeker', 'Beginning your faith journey', '🔍', 0, 'common'),
+  ('Believer', 'Growing in faith', '🌱', 100, 'common'),
+  ('Disciple', 'Committed to growth', '⚡', 300, 'rare'),
+  ('Servant', 'Serving others', '🤲', 600, 'rare'),
+  ('Leader', 'Leading by example', '👑', 1000, 'legendary'),
+  ('Teacher', 'Sharing wisdom', '📚', 1500, 'legendary'),
+  ('Mentor', 'Guiding others', '🎯', 2500, 'legendary'),
+  ('Elder', 'Wise in faith', '🦉', 4000, 'legendary'),
+  ('Steward', 'Faithful steward of God''s gifts', '🌾', 6000, 'legendary'),
+  ('Ambassador', 'Spreading the faith', '🌍', 10000, 'legendary')
 ON CONFLICT (name) DO UPDATE SET
   description = EXCLUDED.description,
   icon = EXCLUDED.icon,
@@ -217,7 +217,6 @@ ON CONFLICT (name) DO UPDATE SET
 --   'Journal Keeper', 'Journal Scribe',
 --   'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend',
 --   'Faith Champion',
---   'Level 1: Newborn', 'Level 2: Growing', 'Level 3: Flourishing', 'Level 4: Thriving',
---   'Level 5: Faith Champion', 'Level 6: Faith Master', 'Level 7: Faith Legend',
---   'Level 8: Faith Saint', 'Level 9: Faith Prophet', 'Level 10: Faith Apostle'
+--   'Seeker', 'Believer', 'Disciple', 'Servant', 'Leader',
+--   'Teacher', 'Mentor', 'Elder', 'Steward', 'Ambassador'
 -- );

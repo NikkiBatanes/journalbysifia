@@ -722,82 +722,82 @@ export class FaithPointsService {
       
       // Level Achievement Badges
       {
-        id: 'level_1_newborn',
-        name: 'Level 1: Newborn',
-        description: 'Reached level 1',
-        icon: '🌟',
+        id: 'seeker',
+        name: 'Seeker',
+        description: 'Beginning your faith journey',
+        icon: '🔍',
         rarity: 'common',
-        pointsRequired: 50,
+        pointsRequired: 0,
       },
       {
-        id: 'level_2_growing',
-        name: 'Level 2: Growing',
-        description: 'Reached level 2',
+        id: 'believer',
+        name: 'Believer',
+        description: 'Growing in faith',
         icon: '🌱',
         rarity: 'common',
         pointsRequired: 100,
       },
       {
-        id: 'level_3_flourishing',
-        name: 'Level 3: Flourishing',
-        description: 'Reached level 3',
-        icon: '🌿',
+        id: 'disciple',
+        name: 'Disciple',
+        description: 'Committed to growth',
+        icon: '⚡',
         rarity: 'rare',
-        pointsRequired: 200,
+        pointsRequired: 300,
       },
       {
-        id: 'level_4_thriving',
-        name: 'Level 4: Thriving',
-        description: 'Reached level 4',
-        icon: '🌳',
+        id: 'servant',
+        name: 'Servant',
+        description: 'Serving others',
+        icon: '🤲',
         rarity: 'rare',
-        pointsRequired: 400,
+        pointsRequired: 600,
       },
       {
-        id: 'level_5_faith_champion',
-        name: 'Level 5: Faith Champion',
-        description: 'Reached level 5',
+        id: 'leader',
+        name: 'Leader',
+        description: 'Leading by example',
         icon: '👑',
         rarity: 'legendary',
         pointsRequired: 1000,
       },
       {
-        id: 'level_6_faith_master',
-        name: 'Level 6: Faith Master',
-        description: 'Reached level 6',
-        icon: '🏆',
+        id: 'teacher',
+        name: 'Teacher',
+        description: 'Sharing wisdom',
+        icon: '📚',
         rarity: 'legendary',
-        pointsRequired: 2000,
+        pointsRequired: 1500,
       },
       {
-        id: 'level_7_faith_legend',
-        name: 'Level 7: Faith Legend',
-        description: 'Reached level 7',
-        icon: '💫',
+        id: 'mentor',
+        name: 'Mentor',
+        description: 'Guiding others',
+        icon: '🎯',
         rarity: 'legendary',
-        pointsRequired: 3500,
+        pointsRequired: 2500,
       },
       {
-        id: 'level_8_faith_saint',
-        name: 'Level 8: Faith Saint',
-        description: 'Reached level 8',
-        icon: '🌟',
+        id: 'elder',
+        name: 'Elder',
+        description: 'Wise in faith',
+        icon: '🦉',
         rarity: 'legendary',
-        pointsRequired: 5000,
+        pointsRequired: 4000,
       },
       {
-        id: 'level_9_faith_prophet',
-        name: 'Level 9: Faith Prophet',
-        description: 'Reached level 9',
-        icon: '✨',
+        id: 'steward',
+        name: 'Steward',
+        description: 'Faithful steward of God\'s gifts',
+        icon: '🌾',
         rarity: 'legendary',
-        pointsRequired: 7500,
+        pointsRequired: 6000,
       },
       {
-        id: 'level_10_faith_apostle',
-        name: 'Level 10: Faith Apostle',
-        description: 'Reached level 10',
-        icon: '🌈',
+        id: 'ambassador',
+        name: 'Ambassador',
+        description: 'Spreading the faith',
+        icon: '🌍',
         rarity: 'legendary',
         pointsRequired: 10000,
       },
@@ -1134,43 +1134,43 @@ export class FaithPointsService {
         return await this.getActivityCount(userId, 'daily_streak') >= 60;
 
       // Level Achievement Badges
-      case 'Level 1: Newborn':
+      case 'Seeker':
         // Award after reaching level 1
         return await this.getActivityCount(userId, 'level_1_reached') >= 1;
 
-      case 'Level 2: Growing':
+      case 'Believer':
         // Award after reaching level 2
         return await this.getActivityCount(userId, 'level_2_reached') >= 1;
 
-      case 'Level 3: Flourishing':
+      case 'Disciple':
         // Award after reaching level 3
         return await this.getActivityCount(userId, 'level_3_reached') >= 1;
 
-      case 'Level 4: Thriving':
+      case 'Servant':
         // Award after reaching level 4
         return await this.getActivityCount(userId, 'level_4_reached') >= 1;
 
-      case 'Level 5: Faith Champion':
+      case 'Leader':
         // Award after reaching level 5
         return await this.getActivityCount(userId, 'level_5_reached') >= 1;
 
-      case 'Level 6: Faith Master':
+      case 'Teacher':
         // Award after reaching level 6
         return await this.getActivityCount(userId, 'level_6_reached') >= 1;
 
-      case 'Level 7: Faith Legend':
+      case 'Mentor':
         // Award after reaching level 7
         return await this.getActivityCount(userId, 'level_7_reached') >= 1;
 
-      case 'Level 8: Faith Saint':
+      case 'Elder':
         // Award after reaching level 8
         return await this.getActivityCount(userId, 'level_8_reached') >= 1;
 
-      case 'Level 9: Faith Prophet':
+      case 'Steward':
         // Award after reaching level 9
         return await this.getActivityCount(userId, 'level_9_reached') >= 1;
 
-      case 'Level 10: Faith Apostle':
+      case 'Ambassador':
         // Award after reaching level 10
         return await this.getActivityCount(userId, 'level_10_reached') >= 1;
 
