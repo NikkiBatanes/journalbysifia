@@ -9,7 +9,10 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  ScrollView,
+  RefreshControl,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { faithPointsService, Badge } from '../services/faithPointsService';
@@ -28,55 +31,18 @@ interface BadgesModalProps {
 const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   const { user } = useAuth();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
   const [availableBadges, setAvailableBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(false);
-  
-  // Animation refs (matching DevotionalModal pattern)
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const contentRef = useRef<View>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Animation effects (matching DevotionalModal pattern)
   useEffect(() => {
     if (visible && user) {
       loadBadges();
-      setIsVisible(true);
-      // Fade in backdrop and slide up modal
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 350,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      // Fade out and slide down
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: SCREEN_HEIGHT,
-          duration: 300,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setIsVisible(false);
-      });
     }
-  }, [visible, user, fadeAnim, translateY]);
+  }, [visible, user]);
 
   const loadBadges = async () => {
     if (!user) return;
@@ -142,6 +108,12 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     onClose();
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadBadges();
+    setRefreshing(false);
+  };
+
   const renderBadge = ({ item }: { item: Badge & { unlocked?: boolean; unlockedAt?: string } }) => (
     <View style={[
       styles.badgeItem,
@@ -197,119 +169,125 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     </View>
   );
 
-  // Don't render if not visible and not animating
-  if (!isVisible && !visible) {return null;}
-
   return (
     <Modal
-      visible={isVisible}
-      transparent={true}
-      animationType="none"
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={() => handleClose()}
     >
-      <View style={styles.modalOverlay}>
-        <Animated.View
-          style={[
-            styles.backdrop,
-            { opacity: fadeAnim },
-          ]}
-        >
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={() => { triggerLightHaptic(); handleClose(); }}
-          />
-        </Animated.View>
-        <Animated.View
-          ref={contentRef}
-          style={[
-            styles.modalContainer,
-            { transform: [{ translateY }] },
-          ]}
-        >
-          <View style={styles.contentWrapper}>
-            {/* Header */}
-            <View style={styles.headerContainer}>
-              <TouchableOpacity onPress={() => handleClose()} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>←</Text>
-              </TouchableOpacity>
-              <ThemedText weight="bold" style={styles.title}>
-                My Badges
-              </ThemedText>
-            </View>
+      <SafeAreaView
+        edges={['top']}
+        style={[
+          styles.container,
+          { backgroundColor: Colors.anchorBlue },
+        ]}
+      >
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={() => handleClose()} style={styles.backButton}>
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <ThemedText weight="bold" style={styles.title}>
+            My Badges
+          </ThemedText>
+          <View style={styles.placeholder} />
+        </View>
 
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={[styles.statNumber, font]}>{userBadges.length}</Text>
-                <ThemedText style={styles.statLabel}>Unlocked</ThemedText>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={[styles.statNumber, font]}>{availableBadges.length}</Text>
-                <ThemedText style={styles.statLabel}>Total</ThemedText>
-              </View>
-            </View>
-
-            {/* Badges List */}
-            <FlatList
-              data={availableBadges}
-              renderItem={renderBadge}
-              keyExtractor={(item) => item.id}
-              numColumns={1}  // Single column layout
-              contentContainerStyle={styles.badgesList}
-              showsVerticalScrollIndicator={false}
-              refreshing={loading}
-              onRefresh={loadBadges}
-              bounces={true}
-              style={styles.flatListStyle}
-            />
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, font]}>{userBadges.length}</Text>
+            <ThemedText style={styles.statLabel}>Unlocked</ThemedText>
           </View>
-        </Animated.View>
-      </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, font]}>{availableBadges.length}</Text>
+            <ThemedText style={styles.statLabel}>Total</ThemedText>
+          </View>
+        </View>
+
+        {/* Badges List */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 20 }]}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {availableBadges.map((item) => (
+            <View key={item.id} style={[
+              styles.badgeItem,
+              item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
+            ]}>
+              {/* Left side - Icon */}
+              <View style={styles.iconContainer}>
+                <View style={styles.badgeIconContainer}>
+                  <Text style={styles.badgeIcon}>
+                    {item.unlocked ? item.icon : '🔐'}
+                  </Text>
+                  {!item.unlocked && <View style={styles.lockOverlay} />}
+                </View>
+                
+                {/* Rarity Badge */}
+                <View style={[
+                  styles.rarityBadge,
+                  { backgroundColor: getRarityColor(item.rarity) }
+                ]}>
+                  <ThemedText style={styles.rarityText}>
+                    {item.rarity.toUpperCase()}
+                  </ThemedText>
+                </View>
+              </View>
+              
+              {/* Right side - Content */}
+              <View style={styles.contentContainer}>
+                <ThemedText 
+                  weight="bold" 
+                  style={[
+                    styles.badgeName,
+                    { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
+                  ]}
+                >
+                  {item.name}
+                </ThemedText>
+                
+                <ThemedText 
+                  style={[
+                    styles.badgeDescription,
+                    { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
+                  ]}
+                >
+                  {item.description}
+                </ThemedText>
+                
+                {item.unlocked && item.unlockedAt && (
+                  <Text style={styles.unlockedDate}>
+                    Unlocked {new Date(item.unlockedAt).toLocaleDateString()}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  container: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'transparent',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-    paddingBottom: 40,
-    maxHeight: '85%',
-    minHeight: 300,
-    borderWidth: 0,
-    borderColor: 'transparent',
-    overflow: 'hidden',
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    left: 0,
-    right: 0,
-  },
-  contentWrapper: {
-    flex: 1,
-    width: '100%',
   },
   headerContainer: {
-    position: 'relative',
-    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
-  closeButton: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    padding: 0,
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -317,24 +295,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeButtonText: {
+  backButtonText: {
     fontSize: 24,
     color: Colors.hopeWhite,
     fontWeight: 'bold',
   },
+  placeholder: {
+    width: 40,
+  },
   title: {
     fontSize: 24,
     color: Colors.hopeWhite,
-    marginBottom: 0,
-    marginTop: 0,
     textAlign: 'center',
     flex: 1,
-    marginLeft: 40,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 24,
+    marginHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: 'rgba(242, 245, 247, 0.1)',
     borderRadius: 16,
@@ -353,11 +332,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.8,
   },
-  flatListStyle: {
+  scrollView: {
     flex: 1,
   },
-  badgesList: {
-    paddingBottom: 20,
+  scrollContent: {
+    paddingHorizontal: 0,
   },
   badgeItem: {
     backgroundColor: 'rgba(255,255,255,0.06)',
