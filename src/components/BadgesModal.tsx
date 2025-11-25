@@ -83,6 +83,13 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       if (badgeRows && badgeRows.length > 0) {
         console.log('Database columns found:', Object.keys(badgeRows[0] || {}));
         
+        // First, get all available badges once if we need them
+        let allBadges = [];
+        const needsServiceLookup = badgeRows.some(row => row.badge_id && !row.badge_data);
+        if (needsServiceLookup) {
+          allBadges = await faithPointsService.getAvailableBadges();
+        }
+        
         unlockedBadges = badgeRows.map(row => {
           try {
             // Try different possible column names
@@ -93,7 +100,6 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               badgeData = typeof row.badge_data === 'string' ? JSON.parse(row.badge_data) : row.badge_data;
             } else if (row.badge_id) {
               // If only badge_id exists, get the full badge data from the service
-              const allBadges = await faithPointsService.getAvailableBadges();
               const fullBadge = allBadges.find(b => b.id === row.badge_id);
               if (fullBadge) {
                 badgeData = fullBadge;
