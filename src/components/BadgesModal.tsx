@@ -13,6 +13,7 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
@@ -283,7 +284,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         {/* Header */}
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => handleClose()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
+            <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
           <ThemedText weight="bold" style={styles.title}>
             My Badges
@@ -392,30 +393,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingVertical: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(242, 245, 247, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: Colors.hopeWhite,
-    fontWeight: 'bold',
+    padding: 8,
   },
   placeholder: {
-    width: 40,
+    padding: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 18,
     color: Colors.hopeWhite,
-    textAlign: 'center',
     flex: 1,
+    textAlign: 'center',
   },
   statsRow: {
     flexDirection: 'row',
