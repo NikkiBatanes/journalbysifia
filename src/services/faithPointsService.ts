@@ -593,7 +593,6 @@ export class FaithPointsService {
    */
   async getAvailableBadges(): Promise<Badge[]> {
     return [
-      // Achievement Badges
       {
         id: 'first_playbook',
         name: 'First Steps',
@@ -649,71 +648,6 @@ export class FaithPointsService {
         icon: '👑',
         rarity: 'legendary',
         pointsRequired: 1000,
-      },
-      // Level-Up Badges (Progression System)
-      {
-        id: 'level_2',
-        name: 'Level 2: Believer',
-        description: 'Growing in faith (100 points)',
-        icon: '🌟',
-        rarity: 'common',
-        pointsRequired: 100,
-      },
-      {
-        id: 'level_3',
-        name: 'Level 3: Disciple',
-        description: 'Committed to growth (300 points)',
-        icon: '⭐',
-        rarity: 'rare',
-        pointsRequired: 300,
-      },
-      {
-        id: 'level_4',
-        name: 'Level 4: Servant',
-        description: 'Serving others (600 points)',
-        icon: '✨',
-        rarity: 'rare',
-        pointsRequired: 600,
-      },
-      {
-        id: 'level_6',
-        name: 'Level 6: Teacher',
-        description: 'Sharing wisdom (1500 points)',
-        icon: '🎓',
-        rarity: 'epic',
-        pointsRequired: 1500,
-      },
-      {
-        id: 'level_7',
-        name: 'Level 7: Mentor',
-        description: 'Guiding others (2500 points)',
-        icon: '🏆',
-        rarity: 'epic',
-        pointsRequired: 2500,
-      },
-      {
-        id: 'level_8',
-        name: 'Level 8: Elder',
-        description: 'Wise in faith (4000 points)',
-        icon: '👨‍🏫',
-        rarity: 'legendary',
-        pointsRequired: 4000,
-      },
-      {
-        id: 'level_9',
-        name: 'Level 9: Steward',
-        description: 'Faithful steward (6000 points)',
-        icon: '⚖️',
-        rarity: 'legendary',
-        pointsRequired: 6000,
-      },
-      {
-        id: 'level_10',
-        name: 'Level 10: Ambassador',
-        description: 'Spreading the faith (10000 points)',
-        icon: '🌍',
-        rarity: 'legendary',
-        pointsRequired: 10000,
       },
     ];
   }
