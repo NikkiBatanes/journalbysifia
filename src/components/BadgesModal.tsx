@@ -50,6 +50,11 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     }
   }, [visible, user]);
 
+  // Debug: Log when badges change
+  useEffect(() => {
+    console.log('Rendering badges, availableBadges:', availableBadges);
+  }, [availableBadges]);
+
   const loadBadges = async () => {
     if (!user) return;
     
@@ -228,7 +233,6 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
           }
           showsVerticalScrollIndicator={false}
         >
-          {console.log('Rendering badges, availableBadges:', availableBadges)}
           {availableBadges.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No badges available</Text>
