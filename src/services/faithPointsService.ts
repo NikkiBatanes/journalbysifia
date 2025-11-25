@@ -427,14 +427,20 @@ export class FaithPointsService {
                 .insert({
                   user_id: userId,
                   badge_id: badge.id,
-                  badge_data: badge,
+                  badge_data: JSON.stringify(badge), // Stringify the badge object
                   unlocked_at: new Date().toISOString(),
                 });
               
               if (badgeSaveError) {
-                Logger.error('[FaithPointsService] Failed to save badge to database', badgeSaveError, {
+                Logger.error('[FaithPointsService] Failed to save badge to database', new Error(JSON.stringify(badgeSaveError)), {
                   component: 'faithPointsService',
                   badgeId: badge.id,
+                  errorDetails: {
+                    message: badgeSaveError.message,
+                    details: badgeSaveError.details,
+                    hint: badgeSaveError.hint,
+                    code: badgeSaveError.code,
+                  },
                 });
               } else {
                 Logger.debug(`[FaithPointsService] Badge saved to database: ${badge.name}`, {
@@ -894,8 +900,23 @@ export class FaithPointsService {
         .select('badge_data')
         .eq('user_id', userId);
 
-      return badges?.map(b => b.badge_data) || [];
+      return badges?.map(b => {
+        try {
+          // Parse the JSON string back to object
+          return typeof b.badge_data === 'string' ? JSON.parse(b.badge_data) : b.badge_data;
+        } catch (parseError) {
+          Logger.error('[FaithPointsService] Failed to parse badge data', parseError as Error, {
+            component: 'faithPointsService',
+            badgeData: b.badge_data,
+          });
+          return null;
+        }
+      }).filter(Boolean) || [];
     } catch (error) {
+      Logger.error('[FaithPointsService] Error getting user badges', error as Error, {
+        component: 'faithPointsService',
+        userId,
+      });
       return [];
     }
   }

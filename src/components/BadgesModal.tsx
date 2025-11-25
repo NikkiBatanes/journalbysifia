@@ -86,13 +86,27 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       // Get user's unlocked badges from database
       const { data: badgeRows, error: badgeError } = await supabase
         .from('user_badges')
-        .select('badge_data')
+        .select('badge_data, unlocked_at')
         .eq('user_id', user.id);
 
-      let unlockedBadges: Badge[] = [];
-      if (!badgeError && badgeRows) {
-        unlockedBadges = badgeRows.map(row => row.badge_data);
+      if (badgeError) {
+        console.error('Error fetching user badges:', badgeError);
+        return;
       }
+
+      // Parse user badges from database
+      const unlockedBadges: (Badge & { unlockedAt: string })[] = badgeRows?.map(row => {
+        try {
+          const badgeData = typeof row.badge_data === 'string' ? JSON.parse(row.badge_data) : row.badge_data;
+          return {
+            ...badgeData,
+            unlockedAt: row.unlocked_at,
+          };
+        } catch (parseError) {
+          console.error('Error parsing badge data:', parseError);
+          return null;
+        }
+      }).filter(Boolean) || [];
 
       // Get all available badges
       const allBadges = await faithPointsService.getAvailableBadges();
