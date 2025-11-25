@@ -133,8 +133,8 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       styles.badgeItem,
       item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
     ]}>
-      {/* Icon Section */}
-      <View style={styles.iconSection}>
+      {/* Left side - Icon */}
+      <View style={styles.iconContainer}>
         <View style={styles.badgeIconContainer}>
           <Text style={styles.badgeIcon}>
             {item.unlocked ? item.icon : '🔐'}
@@ -153,8 +153,8 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         </View>
       </View>
       
-      {/* Content Section */}
-      <View style={styles.contentSection}>
+      {/* Right side - Content */}
+      <View style={styles.contentContainer}>
         <ThemedText 
           weight="bold" 
           style={[
@@ -241,7 +241,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               data={availableBadges}
               renderItem={renderBadge}
               keyExtractor={(item) => item.id}
-              numColumns={2}
+              numColumns={1}  // Single column layout
               contentContainerStyle={styles.badgesList}
               showsVerticalScrollIndicator={false}
               refreshing={loading}
@@ -348,12 +348,14 @@ const styles = StyleSheet.create({
   badgeItem: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 16,
-    margin: 8,
+    marginHorizontal: 16,
+    marginVertical: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-    flex: 1,
-    minHeight: 160,
-    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    minHeight: 80,
   },
   unlockedBadge: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -363,20 +365,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderColor: 'rgba(255,255,255,0.05)',
   },
-  iconSection: {
+  iconContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    marginRight: 16,
+    width: 60,
   },
   badgeIconContainer: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     position: 'relative',
   },
   badgeIcon: {
-    fontSize: 40,
+    fontSize: 32,
     textAlign: 'center',
   },
   lockOverlay: {
@@ -386,44 +386,40 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 20,
+    borderRadius: 16,
   },
   rarityBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
   rarityText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textAlign: 'center',
   },
-  contentSection: {
-    padding: 16,
+  contentContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   badgeName: {
     fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
     color: Colors.hopeWhite,
   },
   badgeDescription: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    marginBottom: 6,
+    lineHeight: 18,
     color: 'rgba(242, 245, 247, 0.8)',
   },
   unlockedDate: {
-    fontSize: 10,
+    fontSize: 11,
     color: 'rgba(242, 245, 247, 0.6)',
     fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 'auto',
   },
 });
 
