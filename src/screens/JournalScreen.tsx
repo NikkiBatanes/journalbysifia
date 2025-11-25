@@ -151,14 +151,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     };
   }, [setContentScrollRef]);
 
-  // Reset to today's date when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      const today = new Date();
-      setCurrentDate(today);
-      hasInitializedScroll.current = true;
-    }, [])
-  );
+  // Initialize to today's date only on first mount, not on every focus
+  useEffect(() => {
+    const today = new Date();
+    setCurrentDate(today);
+    hasInitializedScroll.current = true;
+  }, []); // Empty dependency array = only run once on mount
 
   // Centralized reset: ensure top-of-content and clear transient UI
   const resetToTop = useCallback(() => {
