@@ -1,7 +1,7 @@
 // useGuidedPromptGating - Simplified hook using centralized gating service
 // Provides React state management for guided prompt access
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from './useSubscription';
 import {
@@ -53,8 +53,8 @@ export function useGuidedPromptGating({
     allPrompts: [],
   });
 
-  // Get current tier
-  const currentTier = subscription?.tier || 'seeker';
+  // Get current tier - memoize to prevent infinite loops
+  const currentTier = useMemo(() => subscription?.tier || 'seeker', [subscription?.tier]);
 
   // Legacy compatibility - calculate from new service
   const accessCheck = checkGuidedPromptAccess(currentTier, 0, context);
@@ -116,10 +116,10 @@ export function useGuidedPromptGating({
     await loadDailyAllocation();
   }, [loadDailyAllocation]);
 
-  // Load data on mount and when dependencies change
+  // Load data on mount and when user or tier changes
   useEffect(() => {
     loadDailyAllocation();
-  }, [loadDailyAllocation]);
+  }, [user?.id, currentTier]); // Use direct dependencies instead of loadDailyAllocation
 
   // Note: Removed automatic upgrade trigger - let components handle this manually
   // This prevents unwanted sales offer popups when just viewing locked prompts
