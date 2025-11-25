@@ -588,7 +588,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       }
       // For freeform mode with unlocked title, focus title input first only if title is empty
       else if (source === 'freeform' && !lockTitle && titleInputRef.current && !newEntry.title.trim()) {
-        logFocus('focusInput method', 'title (empty)');
+        logFocus('focusInput method', 'title');
         titleInputRef.current.focus();
         // Position cursor at the end of the title
         createManagedTimeout(() => {
@@ -693,7 +693,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 }
                 // For freeform mode with unlocked title, focus title input only if title is empty
                 else if (source === 'freeform' && !lockTitle && titleInputRef.current && !title) {
-                  logFocus('draft loading', 'title (empty)');
+                  logFocus('draft loading', 'title');
                   titleInputRef.current.focus();
                 } else if (content && contentInputRef.current) {
                   // For other modes, focus content input only if there's content
@@ -861,7 +861,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       // Add a small delay to ensure the component is fully rendered
       createManagedTimeout(() => {
         if (titleInputRef.current && !newEntry.title.trim()) {
-          logFocus('auto-focus effect', 'title (empty)');
+          logFocus('auto-focus effect', 'title');
           titleInputRef.current.focus();
         }
       }, 300);
