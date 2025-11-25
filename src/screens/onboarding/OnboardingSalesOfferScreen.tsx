@@ -179,13 +179,29 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
     setTimeout(() => {
       if (isUpgradeMode) {
-        // In upgrade mode, navigate back to the original context
+        // In upgrade mode, handle navigation based on context
         const source = routeParams?.source;
-        if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
+        const returnTo = routeParams?.returnTo;
+        const returnToReflection = routeParams?.returnToReflection;
+        const dismissBothModalsOnClose = routeParams?.dismissBothModalsOnClose;
+
+        // Handle special navigation cases
+        if (returnTo) {
+          // Navigate to specific screen
+          (navigation as any).navigate(returnTo);
+        } else if (returnToReflection) {
+          // Go back to reflection editor
+          navigation.goBack();
+        } else if (dismissBothModalsOnClose) {
+          // Dismiss both modals (e.g., from trial to sales offer)
+          navigation.goBack();
+          setTimeout(() => navigation.goBack(), 100);
+        } else if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
           // Go back multiple times to return to TimeBlock screen
           navigation.goBack();
           setTimeout(() => navigation.goBack(), 100);
         } else {
+          // Default go back
           navigation.goBack();
         }
       } else {
@@ -193,7 +209,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
       }
     }, 100);
-  }, [navigation, isUpgradeMode, routeParams?.source]);
+  }, [navigation, isUpgradeMode, routeParams]);
 
   // Pre-fetch available products on mount to avoid delays during purchase
   useEffect(() => {
