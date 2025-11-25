@@ -105,9 +105,17 @@ export const useCrossComponentSync = (userId: string) => {
         pointsAwarded: pointsResult?.pointsAwarded,
       });
 
+      Logger.debug(`[CrossComponentSync] 🔍 BEFORE setTimeout for query invalidation`, {
+        component: 'useCrossComponentSync',
+      });
+
       // CRITICAL: Batch all query invalidations together to prevent cascade re-renders
       // Use setTimeout to defer invalidations until after current render cycle
       setTimeout(() => {
+        Logger.debug(`[CrossComponentSync] 🔍 INSIDE setTimeout - starting query invalidation`, {
+          component: 'useCrossComponentSync',
+        });
+
         // Batch invalidate all queries at once
         queryClient.invalidateQueries({
           predicate: (query) => {
@@ -128,8 +136,16 @@ export const useCrossComponentSync = (userId: string) => {
           },
         });
 
+        Logger.debug(`[CrossComponentSync] 🔍 AFTER invalidateQueries`, {
+          component: 'useCrossComponentSync',
+        });
+
         // Update cross-component relationship if linked to playbook
         if (playbookId) {
+          Logger.debug(`[CrossComponentSync] 🔍 BEFORE setQueryData for playbook`, {
+            component: 'useCrossComponentSync',
+          });
+
           queryClient.setQueryData(
             queryKeys.playbooks.withDevotionals(userId, playbookId),
             (oldData: any) => ({
@@ -138,8 +154,20 @@ export const useCrossComponentSync = (userId: string) => {
               lastSynced: new Date().toISOString(),
             })
           );
+
+          Logger.debug(`[CrossComponentSync] 🔍 AFTER setQueryData for playbook`, {
+            component: 'useCrossComponentSync',
+          });
         }
+
+        Logger.debug(`[CrossComponentSync] 🔍 setTimeout completed`, {
+          component: 'useCrossComponentSync',
+        });
       }, 0);
+
+      Logger.debug(`[CrossComponentSync] 🔍 AFTER setTimeout setup`, {
+        component: 'useCrossComponentSync',
+      });
 
       const syncEvent: SyncEvent = {
         type: 'devotional_completion',
@@ -152,6 +180,10 @@ export const useCrossComponentSync = (userId: string) => {
           newLevel: pointsResult?.newLevel,
         },
       };
+
+      Logger.debug(`[CrossComponentSync] 🔍 BEFORE return syncEvent`, {
+        component: 'useCrossComponentSync',
+      });
 
       return syncEvent;
     } catch (error) {
