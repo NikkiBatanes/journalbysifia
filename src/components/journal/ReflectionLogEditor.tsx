@@ -567,6 +567,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
 
+  // Dynamic title font sizing based on number of lines
+  const [titleLineCount, setTitleLineCount] = useState(1);
+  const titleFontSize = titleLineCount > 3 ? 18 : 24; // Reduce from 24 to 18 if more than 3 lines
+
   // Refs
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
@@ -1345,7 +1349,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                       s.transparentInput,
                       s.editableTitle, // Match locked title opacity
                       s.titleWithLock, // Add flex styling
-                      { fontFamily: fontFamilyBold },
+                      { fontFamily: fontFamilyBold, fontSize: titleFontSize },
                     ]}
                     placeholder="Name Your Reflection..."
                     placeholderTextColor="rgba(255, 255, 255, 0.6)"
@@ -1353,6 +1357,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     onChangeText={(text: string) => {
                       setNewEntry({ ...newEntry, title: text });
                       checkForChanges(newEntry.content, text);
+                    }}
+                    onContentSizeChange={(e) => {
+                      // Calculate number of lines based on content height
+                      const lineHeight = titleFontSize * 1.2; // Approximate line height
+                      const lines = Math.ceil(e.nativeEvent.contentSize.height / lineHeight);
+                      setTitleLineCount(lines);
                     }}
                     onFocus={() => {
                       // In edit mode, position cursor at end instead of selecting all
