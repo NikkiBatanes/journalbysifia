@@ -420,36 +420,11 @@ export class FaithPointsService {
             // Show badge notification
             notificationService.showBadgeNotification(badge);
 
-            // CRITICAL: Save badge to database - this was missing!
+            // Save badge to database (using awardBadge method which has correct schema)
             try {
-              const { error: badgeSaveError } = await supabase
-                .from('user_badges')
-                .insert({
-                  user_id: userId,
-                  badge_id: badge.id,
-                  badge_data: JSON.stringify(badge), // Stringify the badge object
-                  unlocked_at: new Date().toISOString(),
-                });
-              
-              if (badgeSaveError) {
-                Logger.error('[FaithPointsService] Failed to save badge to database', new Error(JSON.stringify(badgeSaveError)), {
-                  component: 'faithPointsService',
-                  badgeId: badge.id,
-                  errorDetails: {
-                    message: badgeSaveError.message,
-                    details: badgeSaveError.details,
-                    hint: badgeSaveError.hint,
-                    code: badgeSaveError.code,
-                  },
-                });
-              } else {
-                Logger.debug(`[FaithPointsService] Badge saved to database: ${badge.name}`, {
-                  component: 'faithPointsService',
-                  badgeId: badge.id,
-                });
-              }
+              await this.awardBadge(userId, badge);
             } catch (saveErr) {
-              Logger.error('[FaithPointsService] Exception saving badge to database', saveErr as Error, {
+              Logger.error('[FaithPointsService] Exception saving badge to database (deferred)', saveErr as Error, {
                 component: 'faithPointsService',
                 badgeId: badge.id,
               });
