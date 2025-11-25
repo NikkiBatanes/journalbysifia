@@ -396,6 +396,11 @@ export class FaithPointsService {
 
       // Show badge unlock notifications
       if (newBadges && newBadges.length > 0 && !_metadata?.suppressNotification) {
+        Logger.debug(`[FaithPointsService] 🔍 BEFORE badge processing - Count: ${newBadges.length}`, {
+          component: 'faithPointsService',
+          badgeCount: newBadges.length,
+        });
+
         // CRITICAL: Process all badges in parallel to prevent UI blocking
         const badgePromises = newBadges.map(async (badge) => {
           Logger.debug(`[FaithPointsService] Badge unlocked: ${badge.name}`, {
@@ -404,13 +409,25 @@ export class FaithPointsService {
             userId,
           });
 
+          Logger.debug(`[FaithPointsService] 🔍 BEFORE showBadgeNotification - Badge: ${badge.name}`, {
+            component: 'faithPointsService',
+          });
+
           // Show badge notification
           notificationService.showBadgeNotification(badge);
+
+          Logger.debug(`[FaithPointsService] 🔍 AFTER showBadgeNotification - Badge: ${badge.name}`, {
+            component: 'faithPointsService',
+          });
 
           // Emit badge unlock event for UI updates
           faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
             userId,
             badge,
+          });
+
+          Logger.debug(`[FaithPointsService] 🔍 AFTER emit event - Badge: ${badge.name}`, {
+            component: 'faithPointsService',
           });
 
           // Award bonus points for badge unlock (non-blocking)
@@ -426,13 +443,25 @@ export class FaithPointsService {
           });
         });
 
+        Logger.debug(`[FaithPointsService] 🔍 BEFORE Promise.all - Badge promises created`, {
+          component: 'faithPointsService',
+        });
+
         // Don't await - let badges process in background
         Promise.all(badgePromises).catch(err => {
           Logger.error('[FaithPointsService] Failed to process badges', err as Error, {
             component: 'faithPointsService',
           });
         });
+
+        Logger.debug(`[FaithPointsService] 🔍 AFTER Promise.all - Badges processing in background`, {
+          component: 'faithPointsService',
+        });
       }
+
+      Logger.debug(`[FaithPointsService] 🔍 BEFORE milestone check`, {
+        component: 'faithPointsService',
+      });
 
       // Check for milestone celebrations (non-blocking)
       milestoneCelebrationService.checkFaithPointsMilestone(
@@ -445,10 +474,21 @@ export class FaithPointsService {
         });
       });
 
+      Logger.debug(`[FaithPointsService] 🔍 AFTER milestone check`, {
+        component: 'faithPointsService',
+      });
+
       // Emit events for UI updates with delay to ensure database is updated
       // Only emit events if not suppressed to prevent duplicate UI updates
       if (!_metadata?.suppressNotification) {
+        Logger.debug(`[FaithPointsService] 🔍 BEFORE setTimeout for events`, {
+          component: 'faithPointsService',
+        });
+
         setTimeout(() => {
+          Logger.debug(`[FaithPointsService] 🔍 INSIDE setTimeout - emitting events`, {
+            component: 'faithPointsService',
+          });
 
           faithPointsEvents.emit(FAITH_POINTS_EVENTS.POINTS_UPDATED, {
             userId,
@@ -465,10 +505,25 @@ export class FaithPointsService {
               totalPoints: newTotalPoints,
             });
           }
+
+          Logger.debug(`[FaithPointsService] 🔍 AFTER emitting events in setTimeout`, {
+            component: 'faithPointsService',
+          });
         }, 100); // Small delay to ensure database transaction is complete
+
+        Logger.debug(`[FaithPointsService] 🔍 AFTER setTimeout setup`, {
+          component: 'faithPointsService',
+        });
       } else {
 
       }
+
+      Logger.debug(`[FaithPointsService] 🔍 BEFORE return statement`, {
+        component: 'faithPointsService',
+        pointsAwarded,
+        newLevel: leveledUp ? newLevel : undefined,
+        badgeCount: newBadges?.length || 0,
+      });
 
       return {
         pointsAwarded,

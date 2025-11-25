@@ -85,6 +85,12 @@ export const useCrossComponentSync = (userId: string) => {
       const activityType = completionContext?.isFullDevotionalComplete ? 'devotional_full_completed' : 'devotional_completed';
       const isFullCompletion = completionContext?.isFullDevotionalComplete;
 
+      Logger.debug(`[CrossComponentSync] 🔍 BEFORE awardPoints call`, {
+        component: 'useCrossComponentSync',
+        activityType,
+        isFullCompletion,
+      });
+
       // PERFORMANCE: Award points first, then batch invalidate queries
       const pointsResult = await faithPointsService.awardPoints(userId, activityType as any, {
         devotionalId,
@@ -92,6 +98,11 @@ export const useCrossComponentSync = (userId: string) => {
         timestamp: new Date().toISOString(),
         suppressNotification: !isFullCompletion, // Show animation only for full completion (3/3), suppress daily (1/3, 2/3)
         completionContext,
+      });
+
+      Logger.debug(`[CrossComponentSync] 🔍 AFTER awardPoints call`, {
+        component: 'useCrossComponentSync',
+        pointsAwarded: pointsResult?.pointsAwarded,
       });
 
       // CRITICAL: Batch all query invalidations together to prevent cascade re-renders
