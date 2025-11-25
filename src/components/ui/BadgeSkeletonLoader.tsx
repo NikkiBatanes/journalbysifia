@@ -1,6 +1,7 @@
 /**
  * BadgeSkeletonLoader.tsx
  * Skeleton loader component for badges and badge count
+ * Matches exact layout of real badges in BadgesModal
  */
 
 import React from 'react';
@@ -26,13 +27,25 @@ const BadgeSkeletonLoader: React.FC<BadgeSkeletonLoaderProps> = ({
         </View>
       )}
 
-      {/* Badges Grid Skeleton */}
-      <View style={styles.badgesGrid}>
+      {/* Badges List Skeleton - matches real badge layout */}
+      <View style={styles.badgesList}>
         {Array.from({ length: count }).map((_, index) => (
           <View key={index} style={styles.badgeSkeleton}>
-            <View style={styles.badgeIconSkeleton} />
-            <View style={styles.badgeTextSkeleton} />
-            <View style={styles.badgeDescriptionSkeleton} />
+            {/* Left side - Icon Container */}
+            <View style={styles.iconContainer}>
+              <View style={styles.badgeIconContainer}>
+                <View style={styles.badgeIconSkeleton} />
+              </View>
+              {/* Rarity Badge Skeleton */}
+              <View style={styles.rarityBadgeSkeleton} />
+            </View>
+            
+            {/* Right side - Content Container */}
+            <View style={styles.contentContainer}>
+              <View style={styles.badgeNameSkeleton} />
+              <View style={styles.badgeDescriptionSkeleton} />
+              <View style={styles.unlockedDateSkeleton} />
+            </View>
           </View>
         ))}
       </View>
@@ -43,64 +56,91 @@ const BadgeSkeletonLoader: React.FC<BadgeSkeletonLoaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
   countContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-around',
+    marginBottom: 24,
+    marginHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(242, 245, 247, 0.1)',
+    borderRadius: 16,
   },
   countSkeleton: {
-    width: 120,
-    height: 24,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 12,
-    marginRight: 8,
+    width: 32,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    alignSelf: 'center',
   },
   totalCountSkeleton: {
-    width: 80,
-    height: 16,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    alignSelf: 'center',
   },
-  badgesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  badgesList: {
+    flex: 1,
+    paddingHorizontal: 0,
   },
   badgeSkeleton: {
-    width: '48%',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    minHeight: 80,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 80,
+  },
+  badgeIconContainer: {
+    alignItems: 'center',
+    marginBottom: 6,
+    position: 'relative',
   },
   badgeIconSkeleton: {
-    width: 50,
-    height: 50,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 25,
-    marginBottom: 12,
+    width: 32,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+  },
+  rarityBadgeSkeleton: {
+    width: 40,
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
     alignSelf: 'center',
   },
-  badgeTextSkeleton: {
-    width: '80%',
+  contentContainer: {
+    flex: 1,
+  },
+  badgeNameSkeleton: {
+    width: '60%',
     height: 16,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 8,
-    marginBottom: 8,
-    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 4,
+    marginBottom: 4,
   },
   badgeDescriptionSkeleton: {
-    width: '100%',
+    width: '90%',
     height: 12,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    marginBottom: 8,
+  },
+  unlockedDateSkeleton: {
+    width: '40%',
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 3,
   },
 });
 
