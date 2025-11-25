@@ -64,34 +64,21 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   const [preservedPlaybookTitle, setPreservedPlaybookTitle] = useState(playbookTitle);
 
   // Track when metadata props change and preserve non-empty values
+  // PERFORMANCE: Combine all metadata updates into single useEffect to reduce re-renders
   React.useEffect(() => {
-
     if (subtaskTitle && subtaskTitle.trim() !== '') {
       setPreservedSubtaskTitle(subtaskTitle);
-
     }
-  }, [subtaskTitle]);
-
-  React.useEffect(() => {
     if (actionStepNumber !== undefined && actionStepNumber !== null) {
       setPreservedActionStepNumber(actionStepNumber);
-
     }
-  }, [actionStepNumber]);
-
-  React.useEffect(() => {
     if (actionStepTitle && actionStepTitle.trim() !== '') {
       setPreservedActionStepTitle(actionStepTitle);
-
     }
-  }, [actionStepTitle]);
-
-  React.useEffect(() => {
     if (playbookTitle && playbookTitle.trim() !== '') {
       setPreservedPlaybookTitle(playbookTitle);
-
     }
-  }, [playbookTitle]);
+  }, [subtaskTitle, actionStepNumber, actionStepTitle, playbookTitle]);
 
   // New success modal system
   const successModal = useSuccessModal(
@@ -244,12 +231,15 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       if (user?.id && data?.selected_date) {
         const savedDateStr = data.selected_date; // Use the actual date from the saved data
 
-        queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, savedDateStr] }); // CRITICAL: Invalidate ACTS prayer query for PrayerJournalReactQuery
-        queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] });
-        queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] });
-        queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });
-        queryClient.invalidateQueries({ queryKey: ['prayers', user.id] });
-        queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+        // PERFORMANCE: Parallel cache invalidation instead of sequential
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, savedDateStr] }),
+          queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] }),
+          queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] }),
+          queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] }),
+          queryClient.invalidateQueries({ queryKey: ['prayers', user.id] }),
+          queryClient.invalidateQueries({ queryKey: ['journal', 'all'] }),
+        ]);
 
         // Track prayer activity for notifications (streak tracking, alerts)
         try {

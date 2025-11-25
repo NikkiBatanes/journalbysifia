@@ -251,14 +251,16 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         result = await createMutation.mutateAsync(gratitudeEntry);
       }
 
-      // Simple cache invalidation (revert to working approach)
+      // PERFORMANCE: Parallel cache invalidation instead of sequential
       if (user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: ['journal', 'gratitude', user.id, dateStr],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ['journal', 'all'],
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'gratitude', user.id, dateStr],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'all'],
+          }),
+        ]);
       }
 
       // Call parent onSave callback

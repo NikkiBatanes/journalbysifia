@@ -129,20 +129,21 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       // Invalidate timeblock queries for the saved date
       const savedDateStr = data.selected_date; // Use the actual saved date from the response
-
-      queryClient.invalidateQueries({
-        queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr],
-      });
-      // Also invalidate for today in case they're the same
       const todayStr = toLocalDateString(new Date());
+
+      // PERFORMANCE: Parallel cache invalidation instead of sequential
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr] }),
+        queryClient.invalidateQueries({ queryKey: ['timeBlocks'] }),
+        queryClient.invalidateQueries({ queryKey: ['journal', 'all'] }),
+      ];
+      // Also invalidate for today if different
       if (savedDateStr !== todayStr) {
-        queryClient.invalidateQueries({
-          queryKey: ['timeBlocks', 'byDate', user?.id, todayStr],
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, todayStr] })
+        );
       }
-      // Also invalidate broader timeblock queries as fallback
-      queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
-      queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+      Promise.all(invalidations);
 
       setHasSaved(true);
 
@@ -168,18 +169,20 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       // Invalidate timeblock queries for the saved date
       const savedDateStr = data.selected_date; // Use the actual saved date from the response
-      queryClient.invalidateQueries({
-        queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr],
-      });
-      // Also invalidate for today in case they're the same
       const todayStr = toLocalDateString(new Date());
+
+      // PERFORMANCE: Parallel cache invalidation instead of sequential
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr] }),
+        queryClient.invalidateQueries({ queryKey: ['timeBlocks'] }),
+      ];
+      // Also invalidate for today if different
       if (savedDateStr !== todayStr) {
-        queryClient.invalidateQueries({
-          queryKey: ['timeBlocks', 'byDate', user?.id, todayStr],
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, todayStr] })
+        );
       }
-      // Also invalidate broader timeblock queries as fallback
-      queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
+      Promise.all(invalidations);
       setHasSaved(true);
     },
     onError: (error) => {
