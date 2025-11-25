@@ -481,11 +481,12 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     },
   });
 
-  // Smart journaling gating for playbook-based reflections only
+  // Smart journaling gating for dashboard smart journaling only
   // Regular journal reflections (freeform/guided) should NOT be gated
+  // Only gate when source is specifically 'thoughts' (dashboard smart journaling)
   const smartJournalingGating = useSmartJournalingGating({
     feature: 'reflection',
-    allowSeekerFreeForm: source !== 'playbook', // Allow all non-playbook reflections for seekers
+    allowSeekerFreeForm: source !== 'thoughts', // Allow all non-dashboard reflections for seekers
   });
 
   const sortedGuidedPrompts = React.useMemo(() => {
@@ -574,8 +575,19 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   useImperativeHandle(ref, () => ({
     focusInput: () => {
 
+      // For dashboard smart journaling (thoughts source), always focus content input
+      if (source === 'thoughts' && contentInputRef.current) {
+        logFocus('focusInput method', 'content');
+        contentInputRef.current.focus();
+        // Position cursor at the end of the text
+        createManagedTimeout(() => {
+          if (contentInputRef.current) {
+            contentInputRef.current.setSelection(newEntry.content.length, newEntry.content.length);
+          }
+        }, 100);
+      }
       // For freeform mode with unlocked title, focus title input first
-      if (source === 'freeform' && !lockTitle && titleInputRef.current) {
+      else if (source === 'freeform' && !lockTitle && titleInputRef.current) {
         logFocus('focusInput method', 'title');
         titleInputRef.current.focus();
         // Position cursor at the end of the title
@@ -673,8 +685,13 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
               // Focus the appropriate input after a short delay
               createManagedTimeout(() => {
+                // For dashboard smart journaling (thoughts source), always focus content input
+                if (source === 'thoughts' && contentInputRef.current) {
+                  logFocus('draft loading', 'content');
+                  contentInputRef.current.focus();
+                }
                 // For freeform mode with unlocked title, always focus title input (even without content)
-                if (source === 'freeform' && !lockTitle && titleInputRef.current) {
+                else if (source === 'freeform' && !lockTitle && titleInputRef.current) {
                   logFocus('draft loading', 'title');
                   titleInputRef.current.focus();
                 } else if (content && contentInputRef.current) {
@@ -827,10 +844,19 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   }, [showFormattingModal, slideAnim]);
 
-  // Auto-focus title input for new entries
+  // Auto-focus appropriate input for new entries
   useEffect(() => {
-    // Only auto-focus for new entries (not editing) and when title is not locked
-    if (!isEditing && !lockTitle && titleInputRef.current) {
+    // For dashboard smart journaling (thoughts source), always focus content input
+    if (!isEditing && source === 'thoughts' && contentInputRef.current) {
+      createManagedTimeout(() => {
+        if (contentInputRef.current) {
+          logFocus('auto-focus effect', 'content');
+          contentInputRef.current.focus();
+        }
+      }, 300);
+    }
+    // For freeform mode with unlocked title, focus title input
+    else if (!isEditing && !lockTitle && titleInputRef.current) {
       // Add a small delay to ensure the component is fully rendered
       createManagedTimeout(() => {
         if (titleInputRef.current) {
@@ -839,7 +865,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         }
       }, 300);
     }
-  }, [isEditing, lockTitle]);
+  }, [isEditing, lockTitle, source]);
 
   // Refresh guided prompt gating state when component mounts
   const hasRefreshedRef = useRef(false);

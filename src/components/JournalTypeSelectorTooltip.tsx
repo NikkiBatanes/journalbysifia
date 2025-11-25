@@ -5,7 +5,7 @@
  * with blur effect on other items (similar to iMessage emoji reactions)
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import {
   Clipboard,
   Alert,
   Share,
+  Dimensions,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -70,6 +71,16 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 }) => {
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [textHeight, setTextHeight] = useState(0);
+  const [dynamicTop, setDynamicTop] = useState(0); // Will be set after screen dimensions are available
+  const textMeasureRef = useRef<View>(null);
+
+  const { height: screenHeight } = Dimensions.get('window');
+  
+  // Set initial dynamic top after screen height is available
+  React.useEffect(() => {
+    setDynamicTop(screenHeight * 0.3); // Default to 30% of screen height
+  }, [screenHeight]);
 
   // For display only: strip surrounding straight or curly quotes from the text
   const displayText = React.useMemo(() => {
@@ -82,6 +93,45 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
     }
     return trimmed;
   }, [subtaskText]);
+
+  // Dynamic positioning to prevent overlap
+  useLayoutEffect(() => {
+    if (visible && displayText) {
+      // Measure text height after a short delay to ensure layout is complete
+      const timeout = setTimeout(() => {
+        if (textMeasureRef.current) {
+          textMeasureRef.current.measure((x, y, width, height, pageX, pageY) => {
+            if (height > 0) {
+              setTextHeight(height);
+              
+              // Calculate dynamic top position
+              // Base position is 30%, but we need to ensure text doesn't overlap with picker at 50%
+              const pickerTop = screenHeight * 0.5; // Picker is at 50%
+              const textBubbleHeight = height + 40; // Text height + padding
+              const minTopPosition = pickerTop - textBubbleHeight - 120; // 120px gap for picker and buttons
+              
+              // Ensure text is not too high (min 20% from top) and not too low (max 40% from top)
+              const calculatedTop = Math.max(screenHeight * 0.2, Math.min(minTopPosition, screenHeight * 0.4));
+              
+              console.log('Dynamic positioning:', {
+                textHeight: height,
+                screenHeight,
+                pickerTop,
+                textBubbleHeight,
+                minTopPosition,
+                calculatedTop,
+                defaultTop: screenHeight * 0.3,
+              });
+              
+              setDynamicTop(calculatedTop);
+            }
+          });
+        }
+      }, 100);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [visible, displayText, screenHeight]);
 
   useEffect(() => {
     if (visible) {
@@ -181,10 +231,14 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
               {
                 opacity: opacityAnim,
                 transform: [{ scale: scaleAnim }],
+                top: dynamicTop,
               },
             ]}
           >
-            <View style={styles.focusedSubtaskBubble}>
+            <View 
+              ref={textMeasureRef}
+              style={styles.focusedSubtaskBubble}
+            >
               <ThemedText weight="medium" style={styles.focusedSubtaskText}>
                 {displayText}
               </ThemedText>
@@ -271,10 +325,8 @@ const styles = StyleSheet.create({
   },
   focusedSubtaskContainer: {
     position: 'absolute',
-    top: '30%',
     width: '85%',
     alignItems: 'center',
-    marginBottom: 100, // Space for picker pill below
   },
   focusedSubtaskBubble: {
     backgroundColor: Colors.anchorBlue,
