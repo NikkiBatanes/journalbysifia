@@ -486,23 +486,21 @@ const GratitudeLogEditorInner = (
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     focusInput: () => {
-      // Focus the last non-empty input, or the last input if all are empty
-      const lastIndex = gratitudeItems.length - 1;
-      let lastNonEmptyIndex = -1;
-
-      // Find last non-empty item (reverse search)
-      for (let i = gratitudeItems.length - 1; i >= 0; i--) {
-        if (gratitudeItems[i].trim().length > 0) {
-          lastNonEmptyIndex = i;
+      // Find the first empty input field
+      let firstEmptyIndex = -1;
+      for (let i = 0; i < gratitudeItems.length; i++) {
+        if (gratitudeItems[i].trim().length === 0) {
+          firstEmptyIndex = i;
           break;
         }
       }
 
-      const targetIndex = lastNonEmptyIndex >= 0 ? lastNonEmptyIndex : lastIndex;
+      // If all fields have content, focus on the last field and position cursor at the end
+      const targetIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : gratitudeItems.length - 1;
 
       if (inputRefs.current[targetIndex]) {
         inputRefs.current[targetIndex].focus();
-        // Position cursor at the end of the text
+        // Position cursor at the end of the text (or start if empty)
         setTimeout(() => {
           if (inputRefs.current[targetIndex]) {
             const text = gratitudeItems[targetIndex] || '';

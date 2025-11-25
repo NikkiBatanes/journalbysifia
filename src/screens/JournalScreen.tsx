@@ -163,15 +163,16 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Centralized reset: ensure top-of-content and clear transient UI
   const resetToTop = useCallback(() => {
     try {
-      // Scroll vertical content to top
-      contentScrollRef.current?.scrollTo?.({ y: 0, animated: false });
+      // Scroll content to top
+      contentScrollRef.current?.scrollTo?.({ y: 0, animated: true });
+      savedScrollPosition.current = 0;
     } catch {}
     try {
-      // Ensure header expanded
-      setIsHeaderCollapsed(false);
+      // Reset all carousel indices to first slide
+      setCarouselIndices({ plan: 0, reflect: 0, pray: 0 });
     } catch {}
     try {
-      // Reset to today's date
+      // Reset date to today
       const today = new Date();
       setCurrentDate(today);
       lastSelectedDate.current = null;
@@ -194,7 +195,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Store scroll position to preserve carousel position when navigating away
   const savedScrollPosition = useRef<number>(0);
-  const savedCarouselIndices = useRef({ plan: 0, reflect: 0, pray: 0 });
+  const [carouselIndices, setCarouselIndices] = useState({ plan: 0, reflect: 0, pray: 0 });
 
   // Save scroll position when screen loses focus, restore when it gains focus
   useFocusEffect(
@@ -601,8 +602,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                 <PlanCarousel
                   selectedDate={currentDate}
                   refreshKey={refreshKey}
-                  initialScrollIndex={savedCarouselIndices.current.plan}
-                  onScrollIndexChange={(index) => { savedCarouselIndices.current.plan = index; }}
+                  initialScrollIndex={carouselIndices.plan}
+                  onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, plan: index })); }}
                 />
               </View>
               {/* Only show ReflectCarousel for today or past dates */}
@@ -612,15 +613,15 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                     <ReflectCarousel
                       selectedDate={currentDate}
                       refreshKey={refreshKey}
-                      initialScrollIndex={savedCarouselIndices.current.reflect}
-                      onScrollIndexChange={(index) => { savedCarouselIndices.current.reflect = index; }}
+                      initialScrollIndex={carouselIndices.reflect}
+                      onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, reflect: index })); }}
                     />
                   </View>
                   <View style={styles.carouselContainer}>
                     <PrayCarousel 
                       selectedDate={currentDate}
-                      initialScrollIndex={savedCarouselIndices.current.pray}
-                      onScrollIndexChange={(index) => { savedCarouselIndices.current.pray = index; }}
+                      initialScrollIndex={carouselIndices.pray}
+                      onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, pray: index })); }}
                     />
                   </View>
                 </>

@@ -94,14 +94,14 @@ const fallbackStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 4,
-    lineHeight: 12,
+    lineHeight: 18,
   },
   lastMetadataText: {
     fontSize: 12,
     color: Colors.hopeWhite,
     opacity: 0.6,
-    marginBottom: 4,
-    lineHeight: 12,
+    marginBottom: 0,
+    lineHeight: 18,
   },
   header: {
     flexDirection: 'row',
@@ -1448,7 +1448,29 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   )}
                   {dayNumber && dayTitle && totalDays !== 1 && (
                     <ThemedText style={s.metadataText}>
-                      Day {dayNumber}: {dayTitle}
+                      Day {dayNumber}: {(() => {
+                        // Check if title includes "Bible verse" or "bible verse"
+                        const lowerTitle = dayTitle.toLowerCase();
+                        const bibleVerseIndex = lowerTitle.indexOf('bible verse');
+                        
+                        if (bibleVerseIndex !== -1) {
+                          // Split the title into parts
+                          const beforeBibleVerse = dayTitle.substring(0, bibleVerseIndex);
+                          const bibleVersePart = dayTitle.substring(bibleVerseIndex, bibleVerseIndex + 11); // "Bible verse" is 11 chars
+                          const afterBibleVerse = dayTitle.substring(bibleVerseIndex + 11);
+                          
+                          return (
+                            <>
+                              {beforeBibleVerse}
+                              <ThemedText style={[s.metadataText, { fontSize: 10 }]}>
+                                {bibleVersePart}
+                              </ThemedText>
+                              {afterBibleVerse}
+                            </>
+                          );
+                        }
+                        return dayTitle;
+                      })()}
                     </ThemedText>
                   )}
                   {questionNumber && (
@@ -1473,7 +1495,29 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   )}
                   {dayNumber && dayTitle && (
                     <ThemedText style={s.metadataText}>
-                      Step {dayNumber}: {dayTitle}
+                      Step {dayNumber}: {(() => {
+                        // Check if title includes "Bible verse" or "bible verse"
+                        const lowerTitle = dayTitle.toLowerCase();
+                        const bibleVerseIndex = lowerTitle.indexOf('bible verse');
+                        
+                        if (bibleVerseIndex !== -1) {
+                          // Split the title into parts
+                          const beforeBibleVerse = dayTitle.substring(0, bibleVerseIndex);
+                          const bibleVersePart = dayTitle.substring(bibleVerseIndex, bibleVerseIndex + 11); // "Bible verse" is 11 chars
+                          const afterBibleVerse = dayTitle.substring(bibleVerseIndex + 11);
+                          
+                          return (
+                            <>
+                              {beforeBibleVerse}
+                              <ThemedText style={[s.metadataText, { fontSize: 10 }]}>
+                                {bibleVersePart}
+                              </ThemedText>
+                              {afterBibleVerse}
+                            </>
+                          );
+                        }
+                        return dayTitle;
+                      })()}
                     </ThemedText>
                   )}
                   </View>
