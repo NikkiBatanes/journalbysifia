@@ -321,14 +321,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     title: playbook.title,
                     truthInLove: playbook.truthInLove || 'God loves you and is with you in this journey.',
                     actionSteps: playbook.actionSteps || [],
-                    // Use affirmations from playbook or personalized fallbacks if empty
+                    // Use only affirmations actually returned from the playbook; if none, leave empty
                     affirmations: (playbook.affirmations && playbook.affirmations.length > 0)
                       ? playbook.affirmations.map((aff: any) => typeof aff === 'string' ? aff : aff.text || aff)
-                      : [
-                          `I am ${userName}, loved unconditionally by God`,
-                          `I am ${userName}, and God gives me strength for each challenge`,
-                          `I am ${userName}, and I can find peace in God's presence`,
-                        ],
+                      : [],
                     bibleVerse: playbook.bibleVerse || {
                       text: 'Cast all your anxiety on him because he cares for you.',
                       reference: '1 Peter 5:7',
@@ -417,14 +413,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                         title: completePlaybook.title,
                         truthInLove: completePlaybook.truthInLove || 'God loves you and is with you in this journey.',
                         actionSteps: completePlaybook.actionSteps || [],
-                        // Use affirmations from playbook or personalized fallbacks if empty
+                        // Use only affirmations actually returned from the playbook; if none, leave empty
                         affirmations: (completePlaybook.affirmations && completePlaybook.affirmations.length > 0)
                           ? completePlaybook.affirmations.map((aff: any) => typeof aff === 'string' ? aff : aff.text || aff)
-                          : [
-                              `I am ${userName}, loved unconditionally by God`,
-                              `I am ${userName}, and God gives me strength for each challenge`,
-                              `I am ${userName}, and I can find peace in God's presence`,
-                            ],
+                          : [],
                         bibleVerse: completePlaybook.bibleVerse || {
                           text: 'Cast all your anxiety on him because he cares for you.',
                           reference: '1 Peter 5:7',

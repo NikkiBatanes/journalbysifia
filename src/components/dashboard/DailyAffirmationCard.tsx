@@ -379,7 +379,11 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
             // Kept for safety in case of future changes.
             <ThemedText style={styles.errorText}>No declarations found. Create a playbook to get started.</ThemedText>
           ) : (
-            <View style={[styles.listContainer, isTablet && styles.listContainerTablet]}>
+            <View style={[
+              styles.listContainer, 
+              isTablet && affirmations.length > 1 && styles.listContainerTablet,
+              isTablet && affirmations.length === 1 && styles.listContainerTabletSingle
+            ]}>
               {affirmations.map((item) => (
                 isAffirmationPressable ? (
                   <TouchableOpacity
@@ -390,7 +394,11 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                       onLongPress?.(item.content);
                     }}
                     activeOpacity={0.7}
-                    style={[styles.affirmationItem, isTablet && styles.affirmationItemTablet]}
+                    style={[
+                      styles.affirmationItem, 
+                      isTablet && affirmations.length > 1 && styles.affirmationItemTablet,
+                      isTablet && affirmations.length === 1 && styles.affirmationItemTabletSingle
+                    ]}
                     accessibilityRole="button"
                     accessibilityLabel={`Affirmation: ${item.content}`}
                   >
@@ -404,7 +412,11 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                       onLongPress?.(item.content);
                     }}
                     activeOpacity={0.7}
-                    style={[styles.affirmationItem, isTablet && styles.affirmationItemTablet]}
+                    style={[
+                      styles.affirmationItem, 
+                      isTablet && affirmations.length > 1 && styles.affirmationItemTablet,
+                      isTablet && affirmations.length === 1 && styles.affirmationItemTabletSingle
+                    ]}
                     accessibilityRole="text"
                   >
                     <ThemedText weight="medium" style={styles.affirmationText}>{item.content}</ThemedText>
@@ -517,6 +529,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
   },
+  listContainerTabletSingle: {
+    flexDirection: 'column',
+    gap: 8,
+  },
   affirmationItem: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 10,
@@ -529,6 +545,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '30%',
     maxWidth: '32%',
+  },
+  affirmationItemTabletSingle: {
+    // Full width for single declaration on iPad
+    width: '100%',
   },
   affirmationText: {
     fontSize: 15,
