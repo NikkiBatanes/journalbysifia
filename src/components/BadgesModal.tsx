@@ -11,6 +11,7 @@ import {
   Easing,
   ScrollView,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
@@ -127,10 +128,15 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       {/* Left side - Icon */}
       <View style={styles.iconContainer}>
         <View style={styles.badgeIconContainer}>
-          <Text style={styles.badgeIcon}>
-            {item.unlocked ? item.icon : '🔐'}
-          </Text>
-          {!item.unlocked && <View style={styles.lockOverlay} />}
+          {item.unlocked ? (
+            <Text style={styles.badgeIcon}>{item.icon}</Text>
+          ) : (
+            <Image 
+              source={require('../assets/icons/padlock-3.png')} 
+              style={styles.lockIcon}
+              resizeMode="contain"
+            />
+          )}
         </View>
         
         {/* Rarity Badge */}
@@ -228,10 +234,15 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               {/* Left side - Icon */}
               <View style={styles.iconContainer}>
                 <View style={styles.badgeIconContainer}>
-                  <Text style={styles.badgeIcon}>
-                    {item.unlocked ? item.icon : '🔐'}
-                  </Text>
-                  {!item.unlocked && <View style={styles.lockOverlay} />}
+                  {item.unlocked ? (
+                    <Text style={styles.badgeIcon}>{item.icon}</Text>
+                  ) : (
+                    <Image 
+                      source={require('../assets/icons/padlock-3.png')} 
+                      style={styles.lockIcon}
+                      resizeMode="contain"
+                    />
+                  )}
                 </View>
                 
                 {/* Rarity Badge */}
@@ -377,14 +388,10 @@ const styles = StyleSheet.create({
     fontSize: 32,
     textAlign: 'center',
   },
-  lockOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 16,
+  lockIcon: {
+    width: 32,
+    height: 32,
+    tintColor: 'rgba(242, 245, 247, 0.4)',
   },
   rarityBadge: {
     paddingHorizontal: 8,
