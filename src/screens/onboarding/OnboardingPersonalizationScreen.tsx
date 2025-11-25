@@ -217,14 +217,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const routeParams = route.params as { name?: string } | undefined;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  
+
   // Responsive dimensions for landscape/tablet support
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
-  const isTablet = screenSize.width >= 768;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
-  
+
   // Determine if we need to show name input step based on registration method
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
   const [showNameStep, setShowNameStep] = useState(false);

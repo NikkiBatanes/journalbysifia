@@ -221,7 +221,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
-  const isPortrait = windowHeight > windowWidth;
   const isTablet = windowWidth >= 768;
   // Always constrain card width, even in landscape - never full screen
   const maxCardWidth = Math.min(windowWidth - 64, 720);
@@ -379,7 +378,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       // Clear existing timers
       stackReadHapticTimersRef.current.forEach(id => clearTimeout(id));
       stackReadHapticTimersRef.current = [];
-      
+
       const schedule = [0, 250, 500, 750];
       schedule.forEach(delay => {
         const id = setTimeout(() => {
@@ -1836,10 +1835,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         maxHeight: Math.max(600, windowHeight * 1.1),
                       },
                     ]}
-                  contentContainerStyle={{
-                    ...styles.expandedScrollContent,
-                    paddingBottom: 400,
-                  }}
+                  contentContainerStyle={styles.expandedScrollContent}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={true}
                   scrollEnabled={true}
@@ -2854,6 +2850,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   expandedScrollContent: {
     flexGrow: 1,
+    paddingBottom: 400,
   },
   collapsedCardTouchable: {
     borderRadius: 28,
