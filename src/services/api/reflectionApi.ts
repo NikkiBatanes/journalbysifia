@@ -181,8 +181,10 @@ export class ReflectionApi {
       .single();
 
     if (error) {
-      Logger.error('Error creating reflection entry', error as Error, {
+      Logger.error('Error creating reflection entry', new Error(error.message || JSON.stringify(error)), {
       component: 'reflectionApi',
+      errorDetails: error,
+      entry: entryWithTimestamps,
     });
       throw new Error(`Failed to create reflection entry: ${error.message}`);
     }

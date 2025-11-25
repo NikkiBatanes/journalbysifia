@@ -210,21 +210,26 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       const finalType = entry.type === 'guided' ? 'guided' : (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'free');
       const finalSource = entry.type === 'guided' ? 'guided' : (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform');
 
+      // Validate UUID format before including in data
+      const isValidUUID = (id: string | undefined): boolean => {
+        if (!id) return false;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(id);
+      };
+
       const reflectionData = {
-        user_id: user.id,
+        user_id: user?.id || '',
         title: entry.title,
         content: entry.content,
-        // Use type/source from ReflectionLogEditor if it determined it's guided
         type: finalType,
-        source: finalSource,
         selected_date: dateStr,
         tags: [...(entry.tags || []), (finalType === 'guided' ? 'guided' : finalType === 'playbook' ? 'playbook' : 'freeform')],
         // Save the prompt for guided reflections so it can be displayed in the journal
         ...(finalType === 'guided' && (entry.prompt || preservedSubtaskTitle) ? { prompt: entry.prompt || preservedSubtaskTitle } : {}),
-        // Only attach playbook metadata when not guided
+        // Only attach playbook metadata when not guided - validate UUIDs before including
         ...(isPlaybookContext && playbookTitle ? { playbook_title: playbookTitle } : {}),
-        ...(isPlaybookContext && playbookId ? { playbook_id: playbookId } : {}),
-        ...(isPlaybookContext && subtaskId ? { subtask_id: subtaskId } : {}),
+        ...(isPlaybookContext && isValidUUID(playbookId) ? { playbook_id: playbookId } : {}),
+        ...(isPlaybookContext && isValidUUID(subtaskId) ? { subtask_id: subtaskId } : {}),
         ...(isPlaybookContext && actionStepNumber !== undefined ? { day_number: actionStepNumber } : {}),
         ...(isPlaybookContext && actionStepTitle ? { day_title: actionStepTitle } : {}),
       };
@@ -297,7 +302,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       DeviceEventEmitter.emit('reflection_saved', {
         reflectionId: savedReflection.id,
         type: reflectionData.type,
-        source: reflectionData.source,
+        source: finalSource,
       });
 
       // Award faith points for answering reflection question (only for new reflections)
