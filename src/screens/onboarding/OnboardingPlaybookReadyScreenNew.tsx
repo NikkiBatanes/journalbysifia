@@ -1288,7 +1288,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       </View>
                       <ScrollView
                         style={{
-                          width: isExpanded ? '100%' : STACKED_CARD_WIDTH,
+                          width: '100%', // Always 100% when expanded
                           // Use responsive height for expanded cards based on orientation
                           maxHeight: isPortrait
                             ? Math.max(600, windowHeight * 0.8)
@@ -1302,7 +1302,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       >
                         {card.id === 'action' ? (
                           // For action cards, don't wrap in TouchableOpacity - let the card handle collapse via header/close button
-                          <View style={{ flex: 1 }}>
+                          <View style={{ flex: 1, width: '100%' }}>
                             {card.component}
                           </View>
                         ) : (
@@ -1314,10 +1314,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                               setExpandedCardId(null);
                               animateCardTransition(card.id, false);
                             }}
+                            style={{ flex: 1, width: '100%' }}
                           >
                             {card.id === 'truth' && playbook.truthInLove ? (
                               // Render TruthInLoveCard directly with expanded state
-                              <View style={[styles.carouselCard, styles.cardContainerLarge, { width: STACKED_CARD_WIDTH }]}>
+                              <View style={{ flex: 1, width: '100%' }}>
                                 <TruthInLoveCard
                                   truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                                   summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
@@ -1328,9 +1329,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                                 />
                               </View>
                             ) : (
-                              <>
+                              <View style={{ flex: 1, width: '100%' }}>
                                 {card.component}
-                              </>
+                              </View>
                             )}
                           </TouchableOpacity>
                         )}
