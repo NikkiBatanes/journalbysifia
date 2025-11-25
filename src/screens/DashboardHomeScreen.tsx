@@ -1660,10 +1660,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       <SmartJournalingReflectionModal
         visible={showSJModal}
         subtaskTitle={selectedReflection?.question || ''}
-        // Pass metadata when coming from Today's Scripture or other playbook/devotional sources
-        playbookTitle={selectedReflection?.sourceType === 'playbook' ? selectedReflection.source : undefined}
-        // Don't set isGuidedReflection for Today's Scripture so metadata shows
-        isGuidedReflection={false}
+        // Pass metadata based on sourceType
+        playbookTitle={
+          selectedReflection?.sourceType === 'playbook' 
+            ? selectedReflection.source 
+            : selectedReflection?.sourceType === 'guided'
+            ? selectedReflection.source // 'Free Guided Prompt' or 'Guided Prompt'
+            : undefined
+        }
+        // Set isGuidedReflection only for guided prompts to hide metadata for those
+        isGuidedReflection={selectedReflection?.sourceType === 'guided'}
         onSave={() => {
           // Don't close modal immediately - success modal will handle the flow
         }}
