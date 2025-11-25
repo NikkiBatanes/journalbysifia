@@ -77,6 +77,17 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   const isLandscape = width > height;
   const isTablet = width >= 768; // iPad mini width and above
   
+  // ENTERPRISE DEBUG: Log responsive state
+  React.useEffect(() => {
+    console.log('[JournalTypeSelectorTooltip] Responsive state:', {
+      width,
+      height,
+      isLandscape,
+      isTablet,
+      shouldUseLandscapeStyles: isLandscape && isTablet,
+    });
+  }, [width, height, isLandscape, isTablet]);
+  
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   
   // Filter options based on showTimeBlock prop
@@ -269,12 +280,25 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
             },
           ]}
         >
-          {filteredOptions.map((option, index) => (
+          {filteredOptions.map((option, index) => {
+            const buttonStyle = isLandscape && isTablet ? styles.iconButtonLandscape : styles.iconButton;
+            const borderStyle = index < filteredOptions.length - 1 && (isLandscape && isTablet ? styles.iconButtonBorderLandscape : styles.iconButtonBorder);
+            
+            // ENTERPRISE DEBUG: Log applied styles
+            if (index === 0) {
+              console.log('[JournalTypeSelectorTooltip] Button styles:', {
+                usingLandscape: isLandscape && isTablet,
+                buttonStyle,
+                borderStyle,
+              });
+            }
+            
+            return (
             <TouchableOpacity
               key={option.type}
               style={[
-                isLandscape && isTablet ? styles.iconButtonLandscape : styles.iconButton,
-                index < filteredOptions.length - 1 && (isLandscape && isTablet ? styles.iconButtonBorderLandscape : styles.iconButtonBorder),
+                buttonStyle,
+                borderStyle,
               ]}
               onPress={() => handleSelect(option.type)}
               activeOpacity={0.6}
@@ -287,7 +311,8 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
                 />
               </View>
             </TouchableOpacity>
-          ))}
+            );
+          })}
         </Animated.View>
 
         {/* Utility buttons below picker */}
