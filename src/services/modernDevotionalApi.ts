@@ -259,7 +259,7 @@ export async function generateDevotional(
       const validationError = validateDevotionalCompleteness(result, duration);
       if (validationError) {
         // Log detailed info about the failed validation
-        Logger.error('Devotional validation failed', {
+        Logger.error('Devotional validation failed', undefined, {
           component: 'modernDevotionalApi',
           data: JSON.stringify({
             validationError,
@@ -372,9 +372,9 @@ export async function generateDevotional(
 
     } catch (error: any) {
       lastError = error;
-      Logger.error(`Attempt ${attempt + 1} failed:`, {
+      Logger.error(`Attempt ${attempt + 1} failed:`, error, {
         component: 'modernDevotionalApi',
-        data: JSON.stringify({ error: error.message, stack: error.stack }),
+        data: JSON.stringify({ errorMessage: error.message }),
       });
 
       // Handle timeout errors
