@@ -132,7 +132,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
             <Text style={styles.badgeIcon}>{item.icon}</Text>
           ) : (
             <Image 
-              source={require('../assets/icons/padlock-3.png')} 
+              source={require('siFia/assets/icons/padlock-3.png')} 
               style={styles.lockIcon}
               resizeMode="contain"
             />
@@ -238,7 +238,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                     <Text style={styles.badgeIcon}>{item.icon}</Text>
                   ) : (
                     <Image 
-                      source={require('../assets/icons/padlock-3.png')} 
+                      source={require('siFia/assets/icons/padlock-3.png')} 
                       style={styles.lockIcon}
                       resizeMode="contain"
                     />
