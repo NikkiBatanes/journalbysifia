@@ -1087,19 +1087,51 @@ export class FaithPointsService {
 
   private async awardBadge(userId: string, badge: Badge): Promise<void> {
     try {
-      // Only insert badge_id and earned_at (actual schema columns)
+      // ENTERPRISE FIX: Query badges table to get UUID for the badge
+      // The user_badges.badge_id is a foreign key to badges.id (UUID)
+      // We need to look up the badge by name to get its UUID
+      const { data: badgeRecord, error: lookupError } = await supabase
+        .from('badges')
+        .select('id')
+        .eq('name', badge.name)
+        .single();
+
+      if (lookupError || !badgeRecord) {
+        Logger.error('[FaithPointsService] Badge not found in badges table', lookupError as Error, {
+          component: 'faithPointsService',
+          badgeName: badge.name,
+          badgeId: badge.id,
+          errorDetails: lookupError,
+        });
+        // Badge doesn't exist in badges table - skip insertion
+        // This prevents UUID type errors
+        return;
+      }
+
+      // Insert with the actual UUID from badges table
       const { error: insertError } = await supabase
         .from('user_badges')
         .insert({
           user_id: userId,
-          badge_id: badge.id,
+          badge_id: badgeRecord.id, // Use UUID from badges table
           earned_at: new Date().toISOString(),
         });
 
       if (insertError) {
+        // Check if it's a duplicate key error (badge already awarded)
+        if (insertError.code === '23505') {
+          Logger.info('[FaithPointsService] Badge already awarded to user', {
+            component: 'faithPointsService',
+            badgeId: badgeRecord.id,
+            badgeName: badge.name,
+          });
+          return;
+        }
+
         Logger.error('[FaithPointsService] Failed to save badge to database', insertError as Error, {
           component: 'faithPointsService',
-          badgeId: badge.id,
+          badgeId: badgeRecord.id,
+          badgeName: badge.name,
           errorDetails: insertError,
         });
         throw insertError;
@@ -1107,13 +1139,14 @@ export class FaithPointsService {
 
       Logger.info('[FaithPointsService] Badge awarded successfully', {
         component: 'faithPointsService',
-        badgeId: badge.id,
+        badgeId: badgeRecord.id,
         badgeName: badge.name,
       });
     } catch (error) {
       Logger.error('[FaithPointsService] Error awarding badge', error as Error, {
         component: 'faithPointsService',
         badgeId: badge.id,
+        badgeName: badge.name,
       });
     }
   }
