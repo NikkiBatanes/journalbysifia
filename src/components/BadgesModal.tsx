@@ -497,11 +497,11 @@ const styles = StyleSheet.create({
     tintColor: 'rgba(242, 245, 247, 0.4)',
   },
   rarityBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 2,
     borderRadius: 8,
     alignSelf: 'center',
-    minWidth: 60,
+    minWidth: 70,
   },
   rarityText: {
     fontSize: 8,
@@ -509,6 +509,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textAlign: 'center',
+    flexWrap: 'nowrap',
   },
   contentContainer: {
     flex: 1,
