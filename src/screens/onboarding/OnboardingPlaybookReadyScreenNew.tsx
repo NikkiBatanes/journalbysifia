@@ -1238,6 +1238,15 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         { scale: animValues.scale },
                       ],
                       opacity: animValues.opacity,
+                      // When expanded, position below header
+                      ...(isExpanded && {
+                        position: 'absolute',
+                        top: headerH + (isPortrait ? 20 : 16), // header height + gap below header
+                        left: 0,
+                        right: 0,
+                        width: '100%',
+                        alignSelf: 'stretch',
+                      }),
                     },
                     isExpanded && styles.stackedCardExpanded,
                   ]}
@@ -1279,7 +1288,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       </View>
                       <ScrollView
                         style={{
-                          width: STACKED_CARD_WIDTH,
+                          width: isExpanded ? '100%' : STACKED_CARD_WIDTH,
                           // Use responsive height for expanded cards based on orientation
                           maxHeight: isPortrait
                             ? Math.max(600, windowHeight * 0.8)
@@ -2022,9 +2031,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   stackedCardExpanded: {
-    position: 'relative',
+    position: 'absolute',
+    top: 0, // This will be updated dynamically
+    left: 0,
+    right: 0,
     minHeight: 400,
     width: '100%',
+    zIndex: 9999,
   },
   stackedCardHeader: {
     flexDirection: 'row',
