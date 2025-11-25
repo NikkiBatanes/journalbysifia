@@ -790,7 +790,13 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
           </TouchableOpacity>
           <TouchableOpacity
             style={[s.modeButton, activeTab === 'people' && s.activeModeButton]}
-            onPress={() => setActiveTab('people')}
+            onPress={() => {
+              setActiveTab('people');
+              // Focus the person input after switching tabs
+              setTimeout(() => {
+                personInputRef.current?.focus();
+              }, 100);
+            }}
             accessibilityLabel="Switch to Prayers for People"
           >
             <Ionicons

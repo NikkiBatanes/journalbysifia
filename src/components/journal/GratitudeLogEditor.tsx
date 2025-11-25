@@ -21,6 +21,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -446,6 +448,9 @@ const GratitudeLogEditorInner = (
   const navigation = useNavigation();
   const { subscription } = useSubscription();
   const smartJournalingGating = useSmartJournalingGating();
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
 
   const s = { ...defaultStyles, ...styles };
 
@@ -600,8 +605,16 @@ const GratitudeLogEditorInner = (
   };
 
   const addGratitudeItem = () => {
+    const newIndex = gratitudeItems.length;
     setGratitudeItems([...gratitudeItems, '']);
     setHasUserMadeChanges(true);
+    
+    // Focus the new input after it's rendered
+    setTimeout(() => {
+      if (inputRefs.current[newIndex]) {
+        inputRefs.current[newIndex]?.focus();
+      }
+    }, 100);
   };
 
   const getCurrentDate = () => {
@@ -746,7 +759,7 @@ const GratitudeLogEditorInner = (
               >
                 <TextInput
                   ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
-                  style={[s.entryInput, s.entryContentInput]}
+                  style={[s.entryInput, s.entryContentInput, { fontFamily: fontRegular }]}
                   placeholder={`${index + 1}. I'm grateful for...`}
                   placeholderTextColor="rgba(255, 255, 255, 0.4)"
                   value={item}

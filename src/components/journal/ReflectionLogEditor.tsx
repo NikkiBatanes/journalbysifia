@@ -650,9 +650,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       return key;
     }
 
-    // Fallback key for other sources
-    const sourceType = source ? source.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
-    return `@reflection_editor_draft_${sourceType}_${Date.now()}`;
+    // Fallback key for other sources - use date string instead of timestamp for consistency
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const sourceType = source ? source.replace(/[^a-zA-Z0-9]/g, '_') : 'freeform';
+    return `@reflection_editor_draft_${sourceType}_${currentDate}`;
   }, [source, devotionalTitle, dayNumber, questionNumber, playbookTitle, subtaskId]);
 
   // Load draft when component mounts (only for new entries, not when editing)
