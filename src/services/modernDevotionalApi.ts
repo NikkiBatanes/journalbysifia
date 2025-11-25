@@ -223,7 +223,7 @@ export async function generateDevotional(
         Logger.error('Request timed out after 120 seconds', undefined, {
           component: 'modernDevotionalApi',
         });
-        throw new Error('Devotional generation is taking longer than expected. Please try again or choose a shorter duration (1-7 days recommended).');
+        throw new Error('Devotional generation is taking longer than expected. Please try again.');
       }
 
       // Don't retry on certain errors
