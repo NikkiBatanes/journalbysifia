@@ -32,7 +32,7 @@ export class NetworkErrorBoundary extends Component<Props, State> {
     
     if (isNetworkError) {
       Logger.error('NetworkErrorBoundary: Caught network-related error', error, {
-        component: this.props.name || 'Unknown',
+        component: 'Unknown',
         isNetworkError: true,
       });
       return { hasError: true, error, errorInfo: null };
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.hopeWhite,
   },
   content: {
     alignItems: 'center',
@@ -110,13 +110,13 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: Colors.textGray,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

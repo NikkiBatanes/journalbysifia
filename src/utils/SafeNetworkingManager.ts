@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 /**
  * Safe networking manager to handle blob responses that may crash
@@ -75,52 +75,7 @@ export class SafeNetworkingManager {
     
     return mimeMap[mimeType.toLowerCase()] || '.bin';
   }
-
-  /**
-   * Patch fetch to handle blob responses safely
-   */
-  static patchFetch(): void {
-    if (Platform.OS !== 'ios') {
-      return; // Only patch on iOS where the crash occurs
-    }
-
-    const originalFetch = global.fetch;
-    
-    global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const response = await originalFetch(input, init);
-      
-      // If this might be a blob response, add safety checks
-      if (init && init.headers) {
-        const headers = new Headers(init.headers);
-        const accept = headers.get('accept');
-        
-        if (accept && (accept.includes('blob') || accept.includes('application/octet-stream'))) {
-          // Create a safe response wrapper
-          const safeResponse = new Response(response.body, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers,
-          });
-          
-          // Override suggestedFilename if it exists
-          if (Platform.OS === 'ios' && 'suggestedFilename' in response) {
-            Object.defineProperty(safeResponse, 'suggestedFilename', {
-              get: () => this.safeGetFilename(response),
-              enumerable: true,
-              configurable: true,
-            });
-          }
-          
-          return safeResponse;
-        }
-      }
-      
-      return response;
-    };
-  }
 }
 
-// Initialize the patch when the module loads
-if (typeof window !== 'undefined' && Platform.OS === 'ios') {
-  SafeNetworkingManager.patchFetch();
-}
+// Export a singleton instance
+export default SafeNetworkingManager.getInstance();
