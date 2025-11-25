@@ -405,7 +405,6 @@ const fallbackStyles = {
     borderRadius: 8,
     padding: 16,
   },
-
   // Metadata styles moved to inline styles to prevent override
 };
 
