@@ -661,7 +661,7 @@ export class FaithPointsService {
         id: 'faithful_witness',
         name: 'Faithful Witness',
         description: 'Documented 15 answered prayers',
-        icon: '👁️',
+        icon: '🕊️',
         rarity: 'rare',
         pointsRequired: 120,
       },
