@@ -27,7 +27,7 @@ type GeneratedDevotional = Devotional;
  */
 export async function generateDevotional(
   params: DevotionalGenerationParams,
-  maxRetries: number = API_RETRY_ATTEMPTS
+  maxRetries: number = 5 // Increased from 3 to 5 retries
 ): Promise<GeneratedDevotional> {
   const { duration, playbookId, userInput, isOnboarding, bibleVersion } = params;
 
@@ -107,6 +107,11 @@ export async function generateDevotional(
         } else if (response.status === 403) {
           throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
         } else if (response.status >= 500) {
+          const errorText = await response.text();
+          Logger.error('Backend server error', new Error(`Server error: ${response.status}`), {
+            component: 'modernDevotionalApi',
+            data: { status: response.status, errorText, url: functionUrl },
+          });
           throw new Error(`Server error: ${response.status}. Please try again.`);
         } else {
           throw new Error(errorText || `HTTP error! status: ${response.status}`);
@@ -234,7 +239,9 @@ export async function generateDevotional(
       // Wait before retrying (exponential backoff)
       if (attempt < maxRetries) {
         const delay = API_RETRY_DELAY * Math.pow(2, attempt);
-
+        Logger.info(`Retrying devotional generation in ${delay}ms (attempt ${attempt + 2}/${maxRetries + 1})`, {
+          component: 'modernDevotionalApi',
+        });
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
