@@ -4,25 +4,66 @@
 -- Date: 2025-11-26
 -- ============================================================================
 
--- Ensure badges table exists with proper structure
-CREATE TABLE IF NOT EXISTS badges (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL UNIQUE,
-  description TEXT,
-  icon TEXT,
-  faith_points_reward INTEGER DEFAULT 0,
-  rarity TEXT CHECK (rarity IN ('common', 'rare', 'epic', 'legendary')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- DIAGNOSTIC: Check current badge table schema
+-- Run this first to see what columns exist:
+-- SELECT column_name, data_type, is_nullable 
+-- FROM information_schema.columns 
+-- WHERE table_name = 'badges' AND table_schema = 'public'
+-- ORDER BY ordinal_position;
+
+-- First, check existing badges table structure and add missing columns
+-- Add missing columns if they don't exist
+DO $$
+BEGIN
+    -- Check if badges table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'badges' AND table_schema = 'public') THEN
+        -- Add missing columns one by one
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'badges' AND column_name = 'icon' AND table_schema = 'public') THEN
+            ALTER TABLE badges ADD COLUMN icon TEXT;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'badges' AND column_name = 'faith_points_reward' AND table_schema = 'public') THEN
+            ALTER TABLE badges ADD COLUMN faith_points_reward INTEGER DEFAULT 0;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'badges' AND column_name = 'rarity' AND table_schema = 'public') THEN
+            ALTER TABLE badges ADD COLUMN rarity TEXT CHECK (rarity IN ('common', 'rare', 'epic', 'legendary'));
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'badges' AND column_name = 'created_at' AND table_schema = 'public') THEN
+            ALTER TABLE badges ADD COLUMN created_at TIMESTAMPTZ DEFAULT NOW();
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'badges' AND column_name = 'updated_at' AND table_schema = 'public') THEN
+            ALTER TABLE badges ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
+        END IF;
+    ELSE
+        -- Create badges table if it doesn't exist
+        CREATE TABLE badges (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            icon TEXT,
+            faith_points_reward INTEGER DEFAULT 0,
+            rarity TEXT CHECK (rarity IN ('common', 'rare', 'epic', 'legendary')),
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+    END IF;
+END $$;
 
 -- Ensure user_badges table exists with proper foreign keys
-CREATE TABLE IF NOT EXISTS user_badges (
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  badge_id UUID NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
-  earned_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (user_id, badge_id)
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'user_badges' AND table_schema = 'public') THEN
+        CREATE TABLE user_badges (
+            user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+            badge_id UUID NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
+            earned_at TIMESTAMPTZ DEFAULT NOW(),
+            PRIMARY KEY (user_id, badge_id)
+        );
+    END IF;
+END $$;
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON user_badges(user_id);
