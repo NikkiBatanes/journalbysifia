@@ -478,40 +478,42 @@ export class FaithPointsService {
         component: 'faithPointsService',
       });
 
-      // Emit events for UI updates with delay to ensure database is updated
+      // CRITICAL: Disable event emissions - they trigger expensive re-renders causing 7.6s freeze
+      // Components will refetch data naturally via React Query
       // Only emit events if not suppressed to prevent duplicate UI updates
       if (!_metadata?.suppressNotification) {
-        Logger.debug(`[FaithPointsService] 🔍 BEFORE setTimeout for events`, {
+        Logger.debug(`[FaithPointsService] 🔍 Events suppressed to prevent re-render freeze`, {
           component: 'faithPointsService',
         });
 
-        setTimeout(() => {
-          Logger.debug(`[FaithPointsService] 🔍 INSIDE setTimeout - emitting events`, {
-            component: 'faithPointsService',
-          });
+        // DISABLED: These events cause components to re-render and freeze UI
+        // setTimeout(() => {
+        //   Logger.debug(`[FaithPointsService] 🔍 INSIDE setTimeout - emitting events`, {
+        //     component: 'faithPointsService',
+        //   });
 
-          faithPointsEvents.emit(FAITH_POINTS_EVENTS.POINTS_UPDATED, {
-            userId,
-            pointsAwarded,
-            totalPoints: newTotalPoints,
-            level: newLevel,
-          });
+        //   faithPointsEvents.emit(FAITH_POINTS_EVENTS.POINTS_UPDATED, {
+        //     userId,
+        //     pointsAwarded,
+        //     totalPoints: newTotalPoints,
+        //     level: newLevel,
+        //   });
 
-          if (leveledUp) {
+        //   if (leveledUp) {
 
-            faithPointsEvents.emit(FAITH_POINTS_EVENTS.LEVEL_UP, {
-              userId,
-              newLevel,
-              totalPoints: newTotalPoints,
-            });
-          }
+        //     faithPointsEvents.emit(FAITH_POINTS_EVENTS.LEVEL_UP, {
+        //       userId,
+        //       newLevel,
+        //       totalPoints: newTotalPoints,
+        //     });
+        //   }
 
-          Logger.debug(`[FaithPointsService] 🔍 AFTER emitting events in setTimeout`, {
-            component: 'faithPointsService',
-          });
-        }, 100); // Small delay to ensure database transaction is complete
+        //   Logger.debug(`[FaithPointsService] 🔍 AFTER emitting events in setTimeout`, {
+        //     component: 'faithPointsService',
+        //   });
+        // }, 100); // Small delay to ensure database transaction is complete
 
-        Logger.debug(`[FaithPointsService] 🔍 AFTER setTimeout setup`, {
+        Logger.debug(`[FaithPointsService] 🔍 Events disabled - components will refetch naturally`, {
           component: 'faithPointsService',
         });
       } else {
