@@ -17,6 +17,7 @@ import {
   Alert,
   Share,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -71,6 +72,11 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   subtaskText,
   showTimeBlock = false, // Default to false for dashboard
 }) => {
+  // ENTERPRISE: Responsive design for iPad landscape
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isTablet = width >= 768; // iPad mini width and above
+  
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   
   // Filter options based on showTimeBlock prop
@@ -267,8 +273,8 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
             <TouchableOpacity
               key={option.type}
               style={[
-                styles.iconButton,
-                index < filteredOptions.length - 1 && styles.iconButtonBorder,
+                isLandscape && isTablet ? styles.iconButtonLandscape : styles.iconButton,
+                index < filteredOptions.length - 1 && (isLandscape && isTablet ? styles.iconButtonBorderLandscape : styles.iconButtonBorder),
               ]}
               onPress={() => handleSelect(option.type)}
               activeOpacity={0.6}
@@ -388,6 +394,17 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255, 255, 255, 0.2)',
     marginRight: 8,
     paddingRight: 16,
+  },
+  // iPad landscape spacing
+  iconButtonLandscape: {
+    paddingHorizontal: 16, // Double the horizontal padding
+    paddingVertical: 8,   // Double the vertical padding
+  },
+  iconButtonBorderLandscape: {
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 16, // Double the margin
+    paddingRight: 24, // More padding on the right
   },
   iconCircle: {
     width: 34,
