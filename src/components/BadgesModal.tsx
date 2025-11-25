@@ -13,7 +13,7 @@ import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { faithPointsService, Badge } from '../services/faithPointsService';
 import { supabase } from '../services/supabaseClient';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -72,8 +72,8 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case 'common': return Colors.growthGreen;
-      case 'rare': return Colors.hopeBlue;
-      case 'epic': return Colors.purple;
+      case 'rare': return Colors.playbookBlue;
+      case 'epic': return Colors.devotionalPurple;
       case 'legendary': return '#FFD700'; // Gold
       default: return Colors.growthGreen;
     }
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 20,
     width: SCREEN_WIDTH - 32,
     maxHeight: SCREEN_WIDTH - 32,
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: Colors.textGray,
     marginTop: 4,
   },
   badgesList: {
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   badgeDescription: {
     fontSize: 11,
     textAlign: 'center',
-    color: Colors.textSecondary,
+    color: Colors.textGray,
     marginBottom: 8,
     lineHeight: 14,
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   },
   unlockedDate: {
     fontSize: 9,
-    color: Colors.textSecondary,
+    color: Colors.textGray,
   },
 });
 
