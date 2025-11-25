@@ -6,6 +6,7 @@ import { Colors } from '../../theme/colors';
 import { useTheme } from '../../theme/ThemeContext';
 import UsageTooltipModal, { TooltipType } from './UsageTooltipModal';
 import { triggerLightHaptic } from '../../utils/haptics';
+import BadgesModal from '../BadgesModal';
 
 export interface ProfileStatsLite {
   faithPoints: number;
@@ -51,6 +52,8 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   // Tooltip state
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipType, setTooltipType] = useState<TooltipType | null>(null);
+  // Badges modal state
+  const [badgesModalVisible, setBadgesModalVisible] = useState(false);
 
   const showTooltip = (type: TooltipType) => {
     try { triggerLightHaptic(); } catch {}
@@ -62,6 +65,11 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
     setTooltipVisible(false);
     // Clear type after animation completes to prevent flash
     setTimeout(() => setTooltipType(null), 300);
+  };
+
+  const showBadgesModal = () => {
+    try { triggerLightHaptic(); } catch {}
+    setBadgesModalVisible(true);
   };
   const displayName = useMemo(() => {
     const meta = (user as any)?.user_metadata || {};
@@ -179,7 +187,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.usagePill}
-                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('badges'); }}
+                    onPress={showBadgesModal}
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
@@ -279,6 +287,12 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
         subscription={subscription || null}
         usage={usage || null}
         stats={stats}
+      />
+
+      {/* Badges Modal */}
+      <BadgesModal
+        visible={badgesModalVisible}
+        onClose={() => setBadgesModalVisible(false)}
       />
     </View>
   );
