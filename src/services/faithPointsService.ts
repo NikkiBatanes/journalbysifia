@@ -396,7 +396,8 @@ export class FaithPointsService {
 
       // Show badge unlock notifications
       if (newBadges && newBadges.length > 0 && !_metadata?.suppressNotification) {
-        for (const badge of newBadges) {
+        // CRITICAL: Process all badges in parallel to prevent UI blocking
+        const badgePromises = newBadges.map(async (badge) => {
           Logger.debug(`[FaithPointsService] Badge unlocked: ${badge.name}`, {
             component: 'faithPointsService',
             badgeId: badge.id,
@@ -412,13 +413,25 @@ export class FaithPointsService {
             badge,
           });
 
-          // Award bonus points for badge unlock
-          await this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
+          // Award bonus points for badge unlock (non-blocking)
+          return this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
             type: 'badge_unlocked',
             badgeId: badge.id,
             badgeName: badge.name,
+          }).catch(err => {
+            Logger.error('[FaithPointsService] Failed to record badge transaction', err as Error, {
+              component: 'faithPointsService',
+              badgeId: badge.id,
+            });
           });
-        }
+        });
+
+        // Don't await - let badges process in background
+        Promise.all(badgePromises).catch(err => {
+          Logger.error('[FaithPointsService] Failed to process badges', err as Error, {
+            component: 'faithPointsService',
+          });
+        });
       }
 
       // Check for milestone celebrations (non-blocking)
