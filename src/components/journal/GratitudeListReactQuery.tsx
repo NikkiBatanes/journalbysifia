@@ -439,11 +439,13 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   };
 
   const loadMore = useCallback(() => {
+    triggerLightHaptic();
     closeAllSwipeables();
     setVisibleCount(prev => Math.min(prev + 5, gratitudeItems.length));
   }, [gratitudeItems.length, closeAllSwipeables]);
 
   const showLess = useCallback(() => {
+    triggerLightHaptic();
     closeAllSwipeables();
     setVisibleCount(5);
   }, [closeAllSwipeables]);

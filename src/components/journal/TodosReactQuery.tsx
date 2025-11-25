@@ -479,11 +479,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   };
 
   const loadMore = () => {
+    triggerLightHaptic();
     closeAllSwipeables();
     setVisibleCount((prev: number) => Math.min(prev + 5, todos.length));
   };
 
   const showLess = () => {
+    triggerLightHaptic();
     closeAllSwipeables();
     setVisibleCount(5);
   };

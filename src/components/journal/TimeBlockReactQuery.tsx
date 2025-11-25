@@ -646,10 +646,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   // Pagination controls for Time Blocks (match Todos design)
   const loadMoreBlocks = () => {
+    triggerLightHaptic();
     setVisibleCount(prev => Math.min(prev + 5, timeBlocks.length));
   };
 
   const showLessBlocks = () => {
+    triggerLightHaptic();
     setVisibleCount(3);
   };
 
