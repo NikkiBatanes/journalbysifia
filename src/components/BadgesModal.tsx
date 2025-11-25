@@ -1,14 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Modal,
   View,
   Text,
   StyleSheet,
-  FlatList,
-  Dimensions,
   TouchableOpacity,
-  Animated,
-  Easing,
   ScrollView,
   RefreshControl,
   Image,
@@ -29,7 +25,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { triggerLightHaptic } from '../utils/haptics';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface BadgesModalProps {
   visible: boolean;
@@ -46,23 +41,16 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (visible && user) {
-      loadBadges();
-    }
-  }, [visible, user]);
-
-  
-  const loadBadges = async () => {
+  const loadBadges = useCallback(async () => {
     if (!user) {
             return;
     }
-    
+
         setLoading(true);
     try {
       // Retroactively award level badges for existing users
       await faithPointsService.retroactivelyAwardLevelBadges(user.id);
-      
+
       // Get user's unlocked badges from database
       const { data: badgeRows, error: badgeError } = await supabase
         .from('user_badges')
@@ -73,25 +61,25 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                 return;
       }
 
-      
+
       // Parse user badges from database
       let unlockedBadges: (Badge & { unlockedAt: string })[] = [];
-      
+
       if (badgeRows && badgeRows.length > 0) {
-                
+
         // First, get all available badges once if we need them
         let allBadges: Badge[] = [];
         const needsServiceLookup = badgeRows.some(row => row.badge_id && !row.badge_data);
         if (needsServiceLookup) {
           allBadges = await faithPointsService.getAvailableBadges();
         }
-        
+
         unlockedBadges = badgeRows.map(row => {
           try {
             // Try different possible column names
             let badgeData = null;
             let unlockedAt = null;
-            
+
             if (row.badge_data) {
               badgeData = typeof row.badge_data === 'string' ? JSON.parse(row.badge_data) : row.badge_data;
             } else if (row.badge_id) {
@@ -103,17 +91,17 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                 badgeData = { id: row.badge_id };
               }
             }
-            
+
             if (row.unlocked_at) {
               unlockedAt = row.unlocked_at;
             } else if (row.created_at) {
               unlockedAt = row.created_at;
             }
-            
+
             if (!badgeData) {
                             return null;
             }
-            
+
             return {
               ...badgeData,
               unlockedAt: unlockedAt,
@@ -127,7 +115,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 
       // Get all available badges
       const allBadges = await faithPointsService.getAvailableBadges();
-      
+
       if (!allBadges || allBadges.length === 0) {
                 // Use fallback badges for testing
         const fallbackBadges = [
@@ -154,7 +142,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         setUserBadges([]);
         return;
       }
-      
+
       // Mark which badges are unlocked
       const availableWithStatus = allBadges.map(badge => ({
         ...badge,
@@ -170,7 +158,13 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (visible && user) {
+      loadBadges();
+    }
+  }, [visible, user, loadBadges]);
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
@@ -193,65 +187,6 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     setRefreshing(false);
   };
 
-  const renderBadge = ({ item }: { item: BadgeWithStatus }) => (
-    <View style={[
-      styles.badgeItem,
-      item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
-    ]}>
-      {/* Left side - Icon */}
-      <View style={styles.iconContainer}>
-        <View style={styles.badgeIconContainer}>
-          {item.unlocked ? (
-            <Text style={styles.badgeIcon}>{item.icon || '⭐'}</Text>
-          ) : (
-            <Image 
-              source={require('../../assets/icons/padlock-3.png')} 
-              style={styles.lockIcon}
-              resizeMode="contain"
-            />
-          )}
-        </View>
-        
-        {/* Rarity Badge */}
-        <View style={[
-          styles.rarityBadge,
-          { backgroundColor: getRarityColor(item.rarity) }
-        ]}>
-          <ThemedText style={styles.rarityText}>
-            {item.rarity.toUpperCase()}
-          </ThemedText>
-        </View>
-      </View>
-      
-      {/* Right side - Content */}
-      <View style={styles.contentContainer}>
-        <ThemedText 
-          weight="bold" 
-          style={[
-            styles.badgeName,
-            { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
-          ]}
-        >
-          {item.name}
-        </ThemedText>
-        
-        <ThemedText 
-          style={[
-            styles.badgeDescription,
-            { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
-          ]}
-        >
-          {item.description}
-        </ThemedText>
-        
-        {item.unlocked && item.unlockedAt && (
-          <Text style={styles.unlockedDate}>
-            Unlocked {new Date(item.unlockedAt).toLocaleDateString()}
-          </Text>
-        )}
-      </View>
-    </View>
-  );
 
   return (
     <Modal
@@ -292,7 +227,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 
         {/* Badges List */}
         {loading ? (
-            <BadgeSkeletonLoader count={8} showCount={false} />
+            <BadgeSkeletonLoader count={8} />
           ) : (
             <ScrollView
               style={styles.scrollView}
@@ -303,7 +238,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               showsVerticalScrollIndicator={false}
             >
               {availableBadges.length === 0 ? (
-                <BadgeSkeletonLoader count={8} showCount={false} />
+                <BadgeSkeletonLoader count={8} />
               ) : (
               availableBadges.map((item: BadgeWithStatus) => (
                     <View key={item.id} style={[
@@ -316,46 +251,46 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                           {item.unlocked ? (
                             <Text style={styles.badgeIcon}>{item.icon || '⭐'}</Text>
                           ) : (
-                            <Image 
-                              source={require('../../assets/icons/padlock-3.png')} 
+                            <Image
+                              source={require('../../assets/icons/padlock-3.png')}
                               style={styles.lockIcon}
                               resizeMode="contain"
                             />
                           )}
                         </View>
-                        
+
                         {/* Rarity Badge */}
                         <View style={[
                           styles.rarityBadge,
-                          { backgroundColor: getRarityColor(item.rarity) }
+                          { backgroundColor: getRarityColor(item.rarity) },
                         ]}>
                           <ThemedText style={styles.rarityText}>
                             {item.rarity.toUpperCase()}
                           </ThemedText>
                         </View>
                       </View>
-                      
+
                       {/* Right side - Content */}
                       <View style={styles.contentContainer}>
-                        <ThemedText 
-                          weight="bold" 
+                        <ThemedText
+                          weight="bold"
                           style={[
                             styles.badgeName,
-                            { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
+                            { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' },
                           ]}
                         >
                           {item.name}
                         </ThemedText>
-                        
-                        <ThemedText 
+
+                        <ThemedText
                           style={[
                             styles.badgeDescription,
-                            { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
+                            { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' },
                           ]}
                         >
                           {item.description}
                         </ThemedText>
-                        
+
                         {item.unlocked && item.unlockedAt && (
                           <Text style={styles.unlockedDate}>
                             Unlocked {new Date(item.unlockedAt).toLocaleDateString()}

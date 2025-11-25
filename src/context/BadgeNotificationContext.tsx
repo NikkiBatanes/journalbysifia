@@ -4,7 +4,6 @@
  */
 
 import React, { createContext, useContext, useState, useRef, useCallback, ReactNode, useEffect } from 'react';
-import { View, StyleSheet, Modal } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
 import AnimatedBadgeNotification from '../components/ui/AnimatedBadgeNotification';
 import { notificationService } from '../services/notificationService';
@@ -17,22 +16,10 @@ interface BadgeNotification {
 
 interface BadgeNotificationContextType {
   showBadgeNotification: (badge: Badge) => void;
+  notifications: BadgeNotification[];
 }
 
 const BadgeNotificationContext = createContext<BadgeNotificationContextType | undefined>(undefined);
-
-const styles = StyleSheet.create({
-  notificationOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999999999,
-    elevation: 999999999,
-    pointerEvents: 'none',
-  },
-});
 
 interface BadgeNotificationProviderProps {
   children: ReactNode;
@@ -41,11 +28,11 @@ interface BadgeNotificationProviderProps {
 export const BadgeNotificationProvider: React.FC<BadgeNotificationProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<BadgeNotification[]>([]);
   const isMounted = useRef(true);
-  const timeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const notificationTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Define showBadgeNotification first to avoid reference issues
   const showBadgeNotification = useCallback((badge: Badge) => {
-    if (!isMounted.current) return;
+    if (!isMounted.current) {return;}
 
     const id = uuidv4();
     const newNotification: BadgeNotification = {
@@ -55,15 +42,14 @@ export const BadgeNotificationProvider: React.FC<BadgeNotificationProviderProps>
 
     setNotifications(prev => [...prev, newNotification]);
 
-    // Auto-hide after 4 seconds
     const timeout = setTimeout(() => {
       if (isMounted.current) {
         setNotifications(prev => prev.filter(n => n.id !== id));
-        delete timeouts.current[id];
+        notificationTimeouts.current.delete(id);
       }
-    }, 4000);
+    }, 5000);
 
-    timeouts.current[id] = timeout;
+    notificationTimeouts.current.set(id, timeout);
   }, []);
 
   useEffect(() => {
@@ -72,39 +58,38 @@ export const BadgeNotificationProvider: React.FC<BadgeNotificationProviderProps>
       showBadgeNotification(badge);
     });
 
-    // Capture current timeouts before cleanup function is created
-    const currentTimeouts = timeouts.current;
-
     return () => {
       isMounted.current = false;
       notificationService.clearBadgeNotificationCallback();
-      // Clear any pending timeouts using captured ref value
-      Object.values(currentTimeouts).forEach(clearTimeout);
+      // Clear any pending timeouts
+      const timeouts = notificationTimeouts.current;
+      timeouts.forEach(timeout => clearTimeout(timeout));
+      timeouts.clear();
     };
   }, [showBadgeNotification]);
 
   const handleAnimationComplete = useCallback((id: string) => {
-    if (!isMounted.current) return;
+    if (!isMounted.current) {return;}
 
-    // Capture current timeout value to avoid stale closure
-    const currentTimeout = timeouts.current[id];
+    setNotifications(prev => prev.filter(n => n.id !== id));
 
-    // Use requestAnimationFrame to defer the state update
-    requestAnimationFrame(() => {
-      if (isMounted.current) {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-        if (currentTimeout) {
-          clearTimeout(currentTimeout);
-          delete timeouts.current[id];
-        }
-      }
-    });
+    // Clear the timeout for this notification
+    const timeout = notificationTimeouts.current.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      notificationTimeouts.current.delete(id);
+    }
   }, []);
 
+  const contextValue: BadgeNotificationContextType = {
+    showBadgeNotification,
+    notifications,
+  };
+
   return (
-    <BadgeNotificationContext.Provider value={{ showBadgeNotification }}>
+    <BadgeNotificationContext.Provider value={contextValue}>
       {children}
-      
+
       {/* Render notifications */}
       {notifications.map(notification => (
         <AnimatedBadgeNotification

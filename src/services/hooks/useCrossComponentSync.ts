@@ -85,7 +85,7 @@ export const useCrossComponentSync = (userId: string) => {
       const activityType = completionContext?.isFullDevotionalComplete ? 'devotional_full_completed' : 'devotional_completed';
       const isFullCompletion = completionContext?.isFullDevotionalComplete;
 
-      Logger.debug(`[CrossComponentSync] 🔍 BEFORE awardPoints call`, {
+      Logger.debug('[CrossComponentSync] 🔍 BEFORE awardPoints call', {
         component: 'useCrossComponentSync',
         activityType,
         isFullCompletion,
@@ -100,12 +100,12 @@ export const useCrossComponentSync = (userId: string) => {
         completionContext,
       });
 
-      Logger.debug(`[CrossComponentSync] 🔍 AFTER awardPoints call`, {
+      Logger.debug('[CrossComponentSync] 🔍 AFTER awardPoints call', {
         component: 'useCrossComponentSync',
         pointsAwarded: pointsResult?.pointsAwarded,
       });
 
-      Logger.debug(`[CrossComponentSync] 🔍 BEFORE setTimeout for query invalidation`, {
+      Logger.debug('[CrossComponentSync] 🔍 BEFORE setTimeout for query invalidation', {
         component: 'useCrossComponentSync',
       });
 
@@ -113,7 +113,7 @@ export const useCrossComponentSync = (userId: string) => {
       // Instead, let components refetch naturally or use optimistic updates
       // Only invalidate dashboard queries which are lightweight
       setTimeout(() => {
-        Logger.debug(`[CrossComponentSync] 🔍 INSIDE setTimeout - starting selective invalidation`, {
+        Logger.debug('[CrossComponentSync] 🔍 INSIDE setTimeout - starting selective invalidation', {
           component: 'useCrossComponentSync',
         });
 
@@ -126,13 +126,13 @@ export const useCrossComponentSync = (userId: string) => {
           queryKey: ['dashboard', 'insights', userId],
         });
 
-        Logger.debug(`[CrossComponentSync] 🔍 AFTER selective invalidation`, {
+        Logger.debug('[CrossComponentSync] 🔍 AFTER selective invalidation', {
           component: 'useCrossComponentSync',
         });
 
         // Update cross-component relationship if linked to playbook
         if (playbookId) {
-          Logger.debug(`[CrossComponentSync] 🔍 BEFORE setQueryData for playbook`, {
+          Logger.debug('[CrossComponentSync] 🔍 BEFORE setQueryData for playbook', {
             component: 'useCrossComponentSync',
           });
 
@@ -145,17 +145,17 @@ export const useCrossComponentSync = (userId: string) => {
             })
           );
 
-          Logger.debug(`[CrossComponentSync] 🔍 AFTER setQueryData for playbook`, {
+          Logger.debug('[CrossComponentSync] 🔍 AFTER setQueryData for playbook', {
             component: 'useCrossComponentSync',
           });
         }
 
-        Logger.debug(`[CrossComponentSync] 🔍 setTimeout completed`, {
+        Logger.debug('[CrossComponentSync] 🔍 setTimeout completed', {
           component: 'useCrossComponentSync',
         });
       }, 0);
 
-      Logger.debug(`[CrossComponentSync] 🔍 AFTER setTimeout setup`, {
+      Logger.debug('[CrossComponentSync] 🔍 AFTER setTimeout setup', {
         component: 'useCrossComponentSync',
       });
 
@@ -171,7 +171,7 @@ export const useCrossComponentSync = (userId: string) => {
         },
       };
 
-      Logger.debug(`[CrossComponentSync] 🔍 BEFORE return syncEvent`, {
+      Logger.debug('[CrossComponentSync] 🔍 BEFORE return syncEvent', {
         component: 'useCrossComponentSync',
       });
 

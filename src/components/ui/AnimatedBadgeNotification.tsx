@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
-import { triggerSuccessHaptic, triggerLightHaptic } from '../../utils/haptics';
+import { triggerSuccessHaptic } from '../../utils/haptics';
 import { Badge } from '../../services/faithPointsService';
 
 const { height } = Dimensions.get('window');
@@ -26,11 +26,7 @@ interface AnimatedBadgeNotificationProps {
   onAnimationComplete?: () => void;
 }
 
-const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({
-  badge,
-  onAnimationComplete,
-}) => {
-  const componentId = useRef(Math.random().toString(36).substr(2, 9)).current;
+const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ badge, onAnimationComplete }) => {
 
   const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -135,24 +131,10 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({
     }
   };
 
-  const getRarityGradient = () => {
-    switch (badge.rarity) {
-      case 'common':
-        return ['#94a3b8', '#64748b'];
-      case 'rare':
-        return ['#3b82f6', '#1d4ed8'];
-      case 'epic':
-        return ['#8b5cf6', '#6d28d9'];
-      case 'legendary':
-        return ['#f59e0b', '#d97706'];
-      default:
-        return ['#6366f1', '#4f46e5'];
-    }
-  };
 
   const sparkleSpin = sparkleRotation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ['0deg', '720deg'],
   });
 
   return (
@@ -170,7 +152,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({
           <View style={[styles.badgeIconContainer, { backgroundColor: getRarityColor() }]}>
             <Text style={styles.badgeIcon}>{badge.icon}</Text>
           </View>
-          
+
           {/* Sparkle effects for legendary badges */}
           {badge.rarity === 'legendary' && (
             <>
@@ -203,12 +185,12 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({
         </View>
 
         <View style={styles.textSection}>
-          <Text style={[styles.title, { color: getRarityColor() }]}>
+          <Text style={[styles.sparkle, styles.sparkleBottomLeft, { color: getRarityColor() }]}>
             Badge Unlocked!
           </Text>
           <Text style={styles.badgeName}>{badge.name}</Text>
           <Text style={styles.badgeDescription}>{badge.description}</Text>
-          
+
           {badge.rarity === 'legendary' && (
             <View style={styles.legendaryBadge}>
               <Ionicons name="trophy" size={12} color="#f59e0b" />
@@ -269,6 +251,14 @@ const styles = StyleSheet.create({
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sparkleTopRight: {
+    top: -5,
+    right: -5,
+  },
+  sparkleBottomLeft: {
+    bottom: -5,
+    left: -5,
   },
   textSection: {
     flex: 1,

@@ -380,12 +380,12 @@ export class FaithPointsService {
       // Award bonus points for level up
       if (leveledUp) {
         await this.recordTransaction(userId, 50, 'achievement', { type: 'level_up', level: newLevel });
-        
+
         // Record level-specific activities for badge tracking
         for (let level = currentLevel + 1; level <= newLevel; level++) {
           await this.recordTransaction(userId, 0, 'achievement', { type: `level_${level}_reached` });
         }
-        
+
         // Show level up notification (unless suppressed)
         if (!_metadata?.suppressNotification) {
           notificationService.showPointsNotification(50, 'level_up', 'center');
@@ -466,7 +466,7 @@ export class FaithPointsService {
         }, 500); // 500ms delay to let UI animations complete first
       }
 
-      Logger.debug(`[FaithPointsService] 🔍 BEFORE milestone check`, {
+      Logger.debug('[FaithPointsService] 🔍 BEFORE milestone check', {
         component: 'faithPointsService',
       });
 
@@ -481,7 +481,7 @@ export class FaithPointsService {
         });
       });
 
-      Logger.debug(`[FaithPointsService] 🔍 AFTER milestone check`, {
+      Logger.debug('[FaithPointsService] 🔍 AFTER milestone check', {
         component: 'faithPointsService',
       });
 
@@ -489,7 +489,7 @@ export class FaithPointsService {
       // Components will refetch data naturally via React Query
       // Only emit events if not suppressed to prevent duplicate UI updates
       if (!_metadata?.suppressNotification) {
-        Logger.debug(`[FaithPointsService] 🔍 Events suppressed to prevent re-render freeze`, {
+        Logger.debug('[FaithPointsService] 🔍 Events suppressed to prevent re-render freeze', {
           component: 'faithPointsService',
         });
 
@@ -520,14 +520,14 @@ export class FaithPointsService {
         //   });
         // }, 100); // Small delay to ensure database transaction is complete
 
-        Logger.debug(`[FaithPointsService] 🔍 Events disabled - components will refetch naturally`, {
+        Logger.debug('[FaithPointsService] 🔍 Events disabled - components will refetch naturally', {
           component: 'faithPointsService',
         });
       } else {
 
       }
 
-      Logger.debug(`[FaithPointsService] 🔍 BEFORE return statement`, {
+      Logger.debug('[FaithPointsService] 🔍 BEFORE return statement', {
         component: 'faithPointsService',
         pointsAwarded,
         newLevel: leveledUp ? newLevel : undefined,
@@ -647,7 +647,7 @@ export class FaithPointsService {
         rarity: 'legendary',
         pointsRequired: 1000,
       },
-      
+
       // Devotional Badges
       {
         id: 'prayer_warrior',
@@ -681,7 +681,7 @@ export class FaithPointsService {
         rarity: 'legendary',
         pointsRequired: 400,
       },
-      
+
       // Journal Badges
       {
         id: 'journal_keeper',
@@ -699,7 +699,7 @@ export class FaithPointsService {
         rarity: 'legendary',
         pointsRequired: 500,
       },
-      
+
       // Streak Badges
       {
         id: 'consistent_week',
@@ -733,7 +733,7 @@ export class FaithPointsService {
         rarity: 'legendary',
         pointsRequired: 300,
       },
-      
+
       // Level Achievement Badges
       {
         id: 'seeker',
@@ -847,16 +847,16 @@ export class FaithPointsService {
 
       // Get all available badges
       const allBadges = await this.getAvailableBadges();
-      
+
       // Award badges for all levels up to current level
       for (let level = 1; level <= currentLevel; level++) {
         const levelBadgeName = this.getLevelBadgeName(level);
         const badge = allBadges.find(b => b.name === levelBadgeName);
-        
+
         if (badge) {
           // Record the level reached activity if it doesn't exist
           await this.recordTransaction(userId, 0, 'achievement', { type: `level_${level}_reached` });
-          
+
           // Try to award the badge
           await this.awardBadge(userId, badge);
         }
@@ -878,7 +878,7 @@ export class FaithPointsService {
   private getLevelBadgeName(level: number): string {
     const levelNames: { [key: number]: string } = {
       1: 'Seeker',
-      2: 'Believer', 
+      2: 'Believer',
       3: 'Disciple',
       4: 'Servant',
       5: 'Leader',
@@ -1102,7 +1102,7 @@ export class FaithPointsService {
         if (!userBadgeIds.includes(badge.id)) {
           // Check specific badge requirements first
           const earned = await this.checkBadgeRequirement(userId, badge, activity);
-          
+
           if (earned) {
             // For activity-based badges (like First Steps), award immediately
             // For point-based badges (like level badges), also check points requirement
@@ -1110,11 +1110,11 @@ export class FaithPointsService {
               'First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
               'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
               'Journal Keeper', 'Journal Scribe',
-              'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend'
+              'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend',
             ].includes(badge.name);
-            
+
             const pointsRequirementMet = totalPoints >= badge.pointsRequired;
-            
+
             // Award if:
             // 1. It's an activity-based badge (no points check needed)
             // 2. OR it's a point-based badge and points requirement is met

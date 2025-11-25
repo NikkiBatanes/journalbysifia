@@ -231,7 +231,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
             <Image
               source={{ uri: safeAvatarUrl }}
               style={styles.avatar}
-              onError={(error) => {/* Handle image error silently */}}
+              onError={(_error) => {/* Handle image error silently */}}
               onLoad={() => {/* Handle image load silently */}}
             />
           ) : (

@@ -6,7 +6,7 @@
 
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
-import { AUTH_ERROR_MESSAGES, API_RETRY_ATTEMPTS, API_RETRY_DELAY } from '../constants/sessionConstants';
+import { AUTH_ERROR_MESSAGES, API_RETRY_DELAY } from '../constants/sessionConstants';
 import { Devotional, DevotionalCategory } from '../interfaces/devotional';
 import { ENV } from '../config/environment';
 
@@ -107,10 +107,10 @@ export async function generateDevotional(
         } else if (response.status === 403) {
           throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
         } else if (response.status >= 500) {
-          const errorText = await response.text();
+          const serverErrorText = await response.text();
           Logger.error('Backend server error', new Error(`Server error: ${response.status}`), {
             component: 'modernDevotionalApi',
-            data: { status: response.status, errorText, url: functionUrl },
+            data: { status: response.status, errorText: serverErrorText, url: functionUrl },
           });
           throw new Error(`Server error: ${response.status}. Please try again.`);
         } else {

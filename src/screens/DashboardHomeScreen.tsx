@@ -775,8 +775,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               refetchType: 'active', // Force immediate refetch
             });
           }
-        } catch (error) {
-          Logger.error('Direct subscription fetch failed', error as Error, {
+        } catch (_error) {
+          Logger.error('Direct subscription fetch failed', _error as Error, {
       component: 'DashboardHomeScreen',
     });
         }
@@ -1125,10 +1125,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             })
             .catch((e) => Logger.warn('DashboardHomeScreen: awardPoints failed (background)', { component: 'DashboardHomeScreen', error: e }));
         }
-      } catch (error) {
+      } catch (_error) {
         Logger.warn('⚠️ Could not award faith points', {
       component: 'DashboardHomeScreen',
-      data: error,
+      data: _error,
     });
       }
 
@@ -1391,7 +1391,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <Image
                 source={{ uri: safeAvatarUrl }}
                 style={styles.profileImage}
-                onError={(error) => {/* Handle dashboard image error silently */}}
+                onError={(_error) => {/* Handle dashboard image error silently */}}
                 onLoad={() => {/* Handle dashboard image load silently */}}
               />
             ) : (

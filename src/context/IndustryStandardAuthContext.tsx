@@ -978,7 +978,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // Locally update auth state so UI reflects changes immediately (e.g., avatar_url)
       try {
-        
+
         setAuthState(prev => {
           if (!prev.user) {return prev;}
           const mergedMeta = {
@@ -987,7 +987,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           };
           const updatedUser = { ...(prev.user as any), user_metadata: mergedMeta } as User;
 
-          
+
           return { ...prev, user: updatedUser };
         });
       } catch (e) {

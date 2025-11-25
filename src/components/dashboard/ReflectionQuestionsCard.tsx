@@ -183,18 +183,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             // Get the existing completedDays set (already initialized above)
             const completedDays = completedDaysMap.get(contentId) || new Set<number>();
 
-            const progressCurrentDay = progressData?.current_day || progressData?.currentDay || 1;
 
-            // DEBUG: Log the progress data structure
-            // Logger.info(`[ReflectionQuestions] Progress data for ${contentId}:`, {
-            //   component: 'ReflectionQuestionsCard',
-            //   data: {
-            //     progressCurrentDay,
-            //     hasDays: !!progressData?.days,
-            //     daysLength: progressData?.days?.length,
-            //     daysData: progressData?.days,
-            //   },
-            // });
 
             // Add any explicitly completed days from progress_data
             if (progressData?.days && Array.isArray(progressData.days)) {
@@ -203,21 +192,14 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 // Add if explicitly marked as completed
                 if (day?.completed) {
                   completedDays.add(dayNumber);
-                  // Logger.info(`[ReflectionQuestions] Day ${dayNumber} marked as completed in progress_data`, {
-                  //   component: 'ReflectionQuestionsCard',
-                  // });
-                }
+                                  }
               });
             }
 
             // Update the map with enhanced data
             completedDaysMap.set(contentId, completedDays);
 
-            // Debug logging
-            // Logger.info(`[ReflectionQuestions] Final for ${contentId}: completedDays=${Array.from(completedDays).join(',')}`, {
-            //   component: 'ReflectionQuestionsCard',
-            // });
-          } catch (e) {
+                      } catch (e) {
             Logger.warn('Error parsing progress data for reflection questions', {
               component: 'ReflectionQuestionsCard',
               details: e,

@@ -167,8 +167,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
           const storeKit = AppleStoreKitService.getInstance();
           await storeKit.checkAndSyncSubscriptionStatus(user.id);
-        } catch (error) {
-          Logger.error('[UserProfileScreen] Failed to sync subscription status on focus', error as Error, {
+        } catch (_error) {
+          Logger.error('[UserProfileScreen] Failed to sync subscription status on focus', _error as Error, {
             component: 'UserProfileScreen',
             action: 'sync_subscription_on_focus',
           });
@@ -403,8 +403,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       setNotificationPrefs(prefs);
-    } catch (error) {
-      Logger.error('Error loading notification preferences', error as Error, {
+    } catch (_error) {
+      Logger.error('Error loading notification preferences', _error as Error, {
       component: 'UserProfileScreen',
     });
       // Set minimal defaults on error
@@ -479,8 +479,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           }
         }
 
-      } catch (error) {
-        Logger.error('Failed to load subscription data', error as Error, {
+      } catch (_error) {
+        Logger.error('Failed to load subscription data', _error as Error, {
       component: 'UserProfileScreen',
     });
       }
@@ -492,8 +492,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     });
       });
 
-    } catch (error) {
-      Logger.error('Failed to load profile data', error as Error, {
+    } catch (_error) {
+      Logger.error('Failed to load profile data', _error as Error, {
       component: 'UserProfileScreen',
     });
       Alert.alert('Error', 'Failed to load profile data');
@@ -555,8 +555,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               } else {
                 Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
               }
-            } catch (error) {
-              Logger.error('Restore purchases error', error as Error, {
+            } catch (_error) {
+              Logger.error('Restore purchases error', _error as Error, {
       component: 'UserProfileScreen',
     });
               Alert.alert(
@@ -692,10 +692,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setBugReportText('');
       try { triggerSuccessHaptic(); } catch {}
       Alert.alert('Thanks!', 'Your bug report was sent successfully.');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to submit bug report. Please try again later.';
+    } catch (_error) {
+      const errorMessage = _error instanceof Error ? _error.message : 'Failed to submit bug report. Please try again later.';
 
-      Logger.error('[ReportBug] Failed to submit bug report', error as Error, {
+      Logger.error('[ReportBug] Failed to submit bug report', _error as Error, {
         component: 'UserProfileScreen',
       });
 
@@ -744,8 +744,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       await Linking.openURL(url);
-    } catch (error) {
-      Logger.error('Failed to open external link', error as Error, {
+    } catch (_error) {
+      Logger.error('Failed to open external link', _error as Error, {
         component: 'UserProfileScreen',
         url,
       });
@@ -822,16 +822,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       if (!picked) {return;} // user cancelled
 
       const uploadedAvatarUrl = await uploadAvatar(user, picked);
-      
+
       // Set local avatar immediately for instant display
       setLocalAvatarUrl(uploadedAvatarUrl);
 
       // Update auth metadata in background (non-blocking)
-      updateProfile({ avatar_url: uploadedAvatarUrl }).then(result => {
+      updateProfile({ avatar_url: uploadedAvatarUrl }).then(_result => {
         /* Background update completed */
         // Clear local state once auth is updated
         setLocalAvatarUrl(null);
-      }).catch(error => {
+      }).catch(_error => {
         /* Handle background update error silently */
       });
     } catch (e: any) {
@@ -864,7 +864,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       } else {
         Alert.alert('Error', result.error?.message || 'Failed to update appearance');
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to update appearance');
     }
   };
@@ -890,10 +890,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setFeatureText('');
       try { triggerSuccessHaptic(); } catch {}
       Alert.alert('Thanks!', 'Your feature suggestion was sent successfully.');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to submit feature suggestion. Please try again later.';
+    } catch (_error) {
+      const errorMessage = _error instanceof Error ? _error.message : 'Failed to submit feature suggestion. Please try again later.';
 
-      Logger.error('[FeatureRequest] Failed to submit', error as Error, {
+      Logger.error('[FeatureRequest] Failed to submit', _error as Error, {
         component: 'UserProfileScreen',
       });
 
@@ -1219,7 +1219,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       } else {
         Alert.alert('Error', result.error?.message || 'Failed to update week start');
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to update week start');
     }
   };
@@ -1244,8 +1244,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       });
         Alert.alert('Error', result.error?.message || 'Failed to update Bible version');
       }
-    } catch (error) {
-      Logger.error('[UserProfile] Error saving Bible version', error as Error, {
+    } catch (_error) {
+      Logger.error('[UserProfile] Error saving Bible version', _error as Error, {
       component: 'UserProfileScreen',
     });
       Alert.alert('Error', 'Failed to update Bible version');
@@ -1290,8 +1290,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       await signOut();
 
-    } catch (error) {
-      Logger.error('❌ Logout failed', error as Error, {
+    } catch (_error) {
+      Logger.error('❌ Logout failed', _error as Error, {
       component: 'UserProfileScreen',
     });
       setLoading(false); // Reset loading state on error
@@ -1604,8 +1604,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     return;
                   }
                   // If not seeker/free_trial, continue to enable auto-sync below
-                } catch (error) {
-                  Logger.error('Failed to check subscription tier', error as Error, {
+                } catch (_error) {
+                  Logger.error('Failed to check subscription tier', _error as Error, {
                     component: 'UserProfileScreen',
                   });
                   // On error, allow the toggle to proceed (fail open for paid users)
@@ -1787,7 +1787,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Image
                   source={{ uri: displayAvatarUrl }}
                   style={styles.modalAvatar}
-                  onError={(error) => {/* Handle modal image error silently */}}
+                  onError={(_error) => {/* Handle modal image error silently */}}
                   onLoad={() => {/* Handle modal image load silently */}}
                 />
               ) : (

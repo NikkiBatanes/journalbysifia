@@ -1,21 +1,17 @@
 /**
  * BadgeSkeletonLoader.tsx
  * Skeleton loader component for badges and badge count
- * Matches exact layout of real badges in BadgesModal
  */
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Colors } from '../../theme/colors';
 
 interface BadgeSkeletonLoaderProps {
   count?: number;
-  showCount?: boolean;
 }
 
-const BadgeSkeletonLoader: React.FC<BadgeSkeletonLoaderProps> = ({ 
-  count = 8, 
-  showCount = false 
+const BadgeSkeletonLoader: React.FC<BadgeSkeletonLoaderProps> = ({
+  count = 8,
 }) => {
   return (
     <View style={styles.container}>
@@ -31,7 +27,7 @@ const BadgeSkeletonLoader: React.FC<BadgeSkeletonLoaderProps> = ({
               {/* Rarity Badge Skeleton */}
               <View style={styles.rarityBadgeSkeleton} />
             </View>
-            
+
             {/* Right side - Content Container */}
             <View style={styles.contentContainer}>
               <View style={styles.badgeNameSkeleton} />

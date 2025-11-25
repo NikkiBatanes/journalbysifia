@@ -48,7 +48,7 @@ export async function uploadAvatar(user: User, file: { uri: string; name: string
     throw new Error('Invalid file URI provided');
   }
 
-  
+
   try {
     // For React Native, just return the file URI directly
     // React Native Image component handles local file URIs efficiently
