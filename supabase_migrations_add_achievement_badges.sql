@@ -121,7 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_badges_rarity ON badges(rarity);
 INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
   ('First Steps', 'Generated your first playbook', '👶🏽', 10, 'common'),
-  ('Growth Seeker', 'Generated 25 playbooks', '🌱', 250, 'rare'),
+  ('Growth Seeker', 'Generated 25 playbooks', '📈', 250, 'rare'),
   ('Playbook Master', 'Generated 50 playbooks', '🌿', 500, 'epic'),
   ('Playbook Legend', 'Generated 100 playbooks', '🌳', 1000, 'legendary')
 ON CONFLICT (name) DO UPDATE SET
@@ -161,7 +161,7 @@ INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
   ('Faithful Week', 'Used the app 7 days in a row', '🔥', 35, 'common'),
   ('Streak Warrior', '14-day streak', '💪🏼', 70, 'rare'),
-  ('Streak Master', '30-day streak', '⚡', 150, 'epic'),
+  ('Streak Master', '30-day streak', '🌟', 150, 'epic'),
   ('Streak Legend', '60-day streak', '🏆', 300, 'legendary')
 ON CONFLICT (name) DO UPDATE SET
   description = EXCLUDED.description,
