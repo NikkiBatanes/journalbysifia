@@ -1492,7 +1492,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   </View>
                 </View>
               )}
-              {(source === 'playbook' || (playbookTitle && source !== 'thoughts')) && (
+              {(source === 'playbook' || (playbookTitle && (source === 'thoughts' || source !== 'freeform'))) && (
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
@@ -1506,7 +1506,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   )}
                   {dayNumber && dayTitle && (
                     <ThemedText style={s.metadataTextWithLineHeight}>
-                      Step {dayNumber}: {(() => {
+                      {dayTitle === 'Example' ? 'EXAMPLE' : `Step ${dayNumber}: ${(() => {
                         // Check if title includes "Bible verse" or "bible verse"
                         const lowerTitle = dayTitle.toLowerCase();
                         const bibleVerseIndex = lowerTitle.indexOf('bible verse');

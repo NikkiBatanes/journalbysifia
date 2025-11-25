@@ -366,33 +366,16 @@ export default function ActionStepsCard({
       const isExampleSubtaskForReflection = subTask.isExample || subTask.is_example ||
         (subTask.id && (subTask.id.startsWith('ex-') || subTask.id.startsWith('example-')));
 
-      // Prefetch reflection data and wait for it to complete before opening modal
+      // PERFORMANCE: Open modal immediately, prefetch in background
       const openModal = async () => {
         // Protect against logout during operation
         if ((globalThis as any).authMonitor) {
           (globalThis as any).authMonitor.startOperation();
         }
 
-        // Only prefetch for non-example subtasks that have valid IDs
-        if (!isExampleSubtaskForReflection && user?.id && subTask.id) {
-
-          try {
-            await queryClient.prefetchQuery({
-              queryKey: ['reflections', 'subtask', user.id, subTask.id],
-              queryFn: () => ReflectionApi.getReflectionBySubtask(user.id, subTask.id),
-            });
-
-          } catch (error) {
-            Logger.warn('[ActionStepsCard] Prefetch failed, opening modal anyway', {
-      component: 'ActionStepsCard',
-      data: error,
-    });
-          }
-        }
-
         const openedFromGuidedPrompt = !stepInfo;
         _setIsGuidedPromptActive(openedFromGuidedPrompt);
-        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
+        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: subTask.isExample ? 0 : (stepInfo?.stepNumber || 0), stepTitle: subTask.isExample ? 'Example' : (stepInfo?.stepTitle || '') } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('reflection');
 
@@ -402,6 +385,20 @@ export default function ActionStepsCard({
             (globalThis as any).authMonitor.endOperation();
           }
         }, 1000);
+
+        // PERFORMANCE: Prefetch in background after modal opens
+        if (!isExampleSubtaskForReflection && user?.id && subTask.id) {
+          // Don't await - prefetch in background
+          queryClient.prefetchQuery({
+            queryKey: ['reflections', 'subtask', user.id, subTask.id],
+            queryFn: () => ReflectionApi.getReflectionBySubtask(user.id, subTask.id),
+          }).catch(error => {
+            Logger.warn('[ActionStepsCard] Background prefetch failed', {
+              component: 'ActionStepsCard',
+              data: error,
+            });
+          });
+        }
       };
 
       openModal();
