@@ -1833,6 +1833,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 styles.stackCardVisible,
                 {
                   zIndex: cardZIndex,
+                  // Only set height constraints when collapsed, let expanded cards use natural height
                   height: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                   maxHeight: isExpanded ? undefined : STACKED_CARD_HEIGHT,
                   width: STACKED_CARD_WIDTH,
@@ -2307,8 +2308,9 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     elevation: 3,
   },
   stackCardExpanded: {
-    height: 'auto',
-    minHeight: undefined,
+    // Let the card expand naturally without fixed height constraints
+    height: undefined,
+    minHeight: 200, // Ensure minimum visible height
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
