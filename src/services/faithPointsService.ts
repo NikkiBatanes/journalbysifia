@@ -401,62 +401,50 @@ export class FaithPointsService {
           badgeCount: newBadges.length,
         });
 
-        // CRITICAL: Process all badges in parallel to prevent UI blocking
-        const badgePromises = newBadges.map(async (badge) => {
-          Logger.debug(`[FaithPointsService] Badge unlocked: ${badge.name}`, {
-            component: 'faithPointsService',
-            badgeId: badge.id,
-            userId,
-          });
+        // CRITICAL: Defer ALL badge processing to prevent UI freeze on full completion
+        // Badge events and notifications were causing UI hangs
+        Logger.debug(`[FaithPointsService] 🔍 Deferring badge processing to prevent freeze - Count: ${newBadges.length}`, {
+          component: 'faithPointsService',
+          badgeCount: newBadges.length,
+        });
 
-          Logger.debug(`[FaithPointsService] 🔍 BEFORE showBadgeNotification - Badge: ${badge.name}`, {
-            component: 'faithPointsService',
-          });
-
-          // Show badge notification
-          notificationService.showBadgeNotification(badge);
-
-          Logger.debug(`[FaithPointsService] 🔍 AFTER showBadgeNotification - Badge: ${badge.name}`, {
-            component: 'faithPointsService',
-          });
-
-          // Emit badge unlock event for UI updates
-          faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
-            userId,
-            badge,
-          });
-
-          Logger.debug(`[FaithPointsService] 🔍 AFTER emit event - Badge: ${badge.name}`, {
-            component: 'faithPointsService',
-          });
-
-          // Award bonus points for badge unlock (non-blocking)
-          return this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
-            type: 'badge_unlocked',
-            badgeId: badge.id,
-            badgeName: badge.name,
-          }).catch(err => {
-            Logger.error('[FaithPointsService] Failed to record badge transaction', err as Error, {
+        // Process badges in background with significant delay to let UI settle
+        setTimeout(() => {
+          const badgePromises = newBadges.map(async (badge) => {
+            Logger.debug(`[FaithPointsService] Badge unlocked (deferred): ${badge.name}`, {
               component: 'faithPointsService',
               badgeId: badge.id,
+              userId,
+            });
+
+            // Show badge notification
+            notificationService.showBadgeNotification(badge);
+
+            // DISABLED: Badge events cause UI freeze
+            // faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
+            //   userId,
+            //   badge,
+            // });
+
+            // Award bonus points for badge unlock (non-blocking)
+            return this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
+              type: 'badge_unlocked',
+              badgeId: badge.id,
+              badgeName: badge.name,
+            }).catch(err => {
+              Logger.error('[FaithPointsService] Failed to record badge transaction', err as Error, {
+                component: 'faithPointsService',
+                badgeId: badge.id,
+              });
             });
           });
-        });
 
-        Logger.debug(`[FaithPointsService] 🔍 BEFORE Promise.all - Badge promises created`, {
-          component: 'faithPointsService',
-        });
-
-        // Don't await - let badges process in background
-        Promise.all(badgePromises).catch(err => {
-          Logger.error('[FaithPointsService] Failed to process badges', err as Error, {
-            component: 'faithPointsService',
+          Promise.all(badgePromises).catch(err => {
+            Logger.error('[FaithPointsService] Failed to process badges', err as Error, {
+              component: 'faithPointsService',
+            });
           });
-        });
-
-        Logger.debug(`[FaithPointsService] 🔍 AFTER Promise.all - Badges processing in background`, {
-          component: 'faithPointsService',
-        });
+        }, 500); // 500ms delay to let UI animations complete first
       }
 
       Logger.debug(`[FaithPointsService] 🔍 BEFORE milestone check`, {
