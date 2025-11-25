@@ -364,65 +364,13 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                       </View>
                     </View>
                   ))
-              <View style={styles.iconContainer}>
-                <View style={styles.badgeIconContainer}>
-                  {item.unlocked ? (
-                    <Text style={styles.badgeIcon}>{item.icon || '⭐'}</Text>
-                  ) : (
-                    <Image 
-                      source={require('../../assets/icons/padlock-3.png')} 
-                      style={styles.lockIcon}
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
-                
-                {/* Rarity Badge */}
-                <View style={[
-                  styles.rarityBadge,
-                  { backgroundColor: getRarityColor(item.rarity) }
-                ]}>
-                  <ThemedText style={styles.rarityText}>
-                    {item.rarity.toUpperCase()}
-                  </ThemedText>
-                </View>
-              </View>
-              
-              {/* Right side - Content */}
-              <View style={styles.contentContainer}>
-                <ThemedText 
-                  weight="bold" 
-                  style={[
-                    styles.badgeName,
-                    { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
-                  ]}
-                >
-                  {item.name}
-                </ThemedText>
-                
-                <ThemedText 
-                  style={[
-                    styles.badgeDescription,
-                    { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
-                  ]}
-                >
-                  {item.description}
-                </ThemedText>
-                
-                {item.unlocked && item.unlockedAt && (
-                  <Text style={styles.unlockedDate}>
-                    Unlocked {new Date(item.unlockedAt).toLocaleDateString()}
-                  </Text>
-                )}
-              </View>
-            </View>
-          ))
+              )}
+            </ScrollView>
           )}
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-  );
-};
+        </SafeAreaView>
+      </Modal>
+    );
+  };
 
 const styles = StyleSheet.create({
   container: {
