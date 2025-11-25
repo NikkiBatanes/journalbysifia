@@ -70,6 +70,9 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   subtaskText,
 }) => {
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
+  
+  // Filter out timeblock option for dashboard smart journaling
+  const filteredOptions = JOURNAL_TYPE_OPTIONS.filter(option => option.type !== 'timeblock');
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [_textHeight, setTextHeight] = useState(0); // Prefixed with _ to indicate intentionally unused
   const [dynamicTop, setDynamicTop] = useState(0); // Will be set after screen dimensions are available
@@ -256,12 +259,12 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
             },
           ]}
         >
-          {JOURNAL_TYPE_OPTIONS.map((option, index) => (
+          {filteredOptions.map((option, index) => (
             <TouchableOpacity
               key={option.type}
               style={[
                 styles.iconButton,
-                index < JOURNAL_TYPE_OPTIONS.length - 1 && styles.iconButtonBorder,
+                index < filteredOptions.length - 1 && styles.iconButtonBorder,
               ]}
               onPress={() => handleSelect(option.type)}
               activeOpacity={0.6}
