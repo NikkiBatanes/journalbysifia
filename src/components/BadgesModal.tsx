@@ -283,7 +283,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       >
         {/* Header */}
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => handleClose()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => { triggerLightHaptic(); handleClose(); }} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
           <ThemedText weight="bold" style={styles.title}>
