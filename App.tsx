@@ -6,6 +6,9 @@
 // Polyfill for URL API in React Native
 import 'react-native-url-polyfill/auto';
 
+// Import safe networking manager to prevent blob crashes
+import './src/utils/SafeNetworkingManager';
+
 import React, {useState, useEffect} from 'react';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {
@@ -28,6 +31,7 @@ import {ThemeProvider} from './src/theme/ThemeContext';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
+import { NetworkErrorBoundary } from './src/components/NetworkErrorBoundary';
 import {UserProvider} from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import {LogoutContext} from './src/context/LogoutContext';
@@ -301,46 +305,48 @@ function AppWithAuth({
       }>
       <GestureHandlerRootView style={styles.gestureHandler}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-        <ThemeProvider>
-          <GlobalFontApplier />
-          <ScrollProvider>
-            <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
-              <UserProvider>
-                <OnboardingProvider>
-                  <PointsNotificationProvider>
-                    <LogoutContext.Provider
-                      value={{
-                        onLogout: async () => {
-                          try {
-                            await signOut();
-                          } catch (error) {
-                            console.warn(
-                              '[App] LogoutContext signOut failed',
-                              error,
-                            );
-                          }
-                        },
-                      }}>
-                      <AuthStateMonitor>
-                        <RootStackNavigator
-                          isAuthenticated={isAuthenticated}
-                          handleLogin={async () => {}}
-                          handleLogout={async () => {}}
-                          onLogin={async () => {}}
-                          AuthStack={AuthStackNavigator}
-                        />
-                        {currentRouteName &&
-                        !HIDE_NETWORK_ON.has(currentRouteName) ? (
-                          <NetworkStatus />
-                        ) : null}
-                      </AuthStateMonitor>
-                    </LogoutContext.Provider>
-                  </PointsNotificationProvider>
-                </OnboardingProvider>
-              </UserProvider>
-            </ActionStepsProviderWrapper>
-          </ScrollProvider>
-        </ThemeProvider>
+        <NetworkErrorBoundary name="App">
+          <ThemeProvider>
+            <GlobalFontApplier />
+            <ScrollProvider>
+              <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
+                <UserProvider>
+                  <OnboardingProvider>
+                    <PointsNotificationProvider>
+                      <LogoutContext.Provider
+                        value={{
+                          onLogout: async () => {
+                            try {
+                              await signOut();
+                            } catch (error) {
+                              console.warn(
+                                '[App] LogoutContext signOut failed',
+                                error,
+                              );
+                            }
+                          },
+                        }}>
+                        <AuthStateMonitor>
+                          <RootStackNavigator
+                            isAuthenticated={isAuthenticated}
+                            handleLogin={async () => {}}
+                            handleLogout={async () => {}}
+                            onLogin={async () => {}}
+                            AuthStack={AuthStackNavigator}
+                          />
+                          {currentRouteName &&
+                          !HIDE_NETWORK_ON.has(currentRouteName) ? (
+                            <NetworkStatus />
+                          ) : null}
+                        </AuthStateMonitor>
+                      </LogoutContext.Provider>
+                    </PointsNotificationProvider>
+                  </OnboardingProvider>
+                </UserProvider>
+              </ActionStepsProviderWrapper>
+            </ScrollProvider>
+          </ThemeProvider>
+        </NetworkErrorBoundary>
       </GestureHandlerRootView>
     </NavigationContainer>
   );
