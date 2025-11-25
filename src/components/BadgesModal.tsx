@@ -10,12 +10,12 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Colors } from '../theme';
-import ThemedText from './common/ThemedText';
+// import ThemedText from './common/ThemedText';
 import { faithPointsService, Badge } from '../services/faithPointsService';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface BadgesModalProps {
   visible: boolean;
@@ -86,12 +86,12 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       { borderColor: getRarityColor(item.rarity) }
     ]}>
       <Text style={styles.badgeIcon}>{item.unlocked ? item.icon : '🔒'}</Text>
-      <ThemedText weight="medium" style={styles.badgeName}>
+      <Text style={styles.badgeName}>
         {item.name}
-      </ThemedText>
-      <ThemedText style={styles.badgeDescription}>
+      </Text>
+      <Text style={styles.badgeDescription}>
         {item.description}
-      </ThemedText>
+      </Text>
       <View style={styles.badgeFooter}>
         <Text style={[
           styles.rarityText, 
@@ -126,9 +126,9 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               <View style={styles.dragHandle} />
               
               <View style={styles.modalHeader}>
-                <ThemedText weight="bold" style={styles.modalTitle}>
+                <Text style={styles.modalTitle}>
                   My Badges
-                </ThemedText>
+                </Text>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                   <Text style={styles.closeButtonText}>✕</Text>
                 </TouchableOpacity>
