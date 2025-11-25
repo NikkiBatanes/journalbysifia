@@ -190,7 +190,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       case 'common': return Colors.growthGreen;
       case 'rare': return Colors.playbookBlue;
       case 'epic': return Colors.devotionalPurple;
-      case 'legendary': return '#FFD700'; // Gold
+      case 'legendary': return '#FF6B35'; // Orange
       default: return Colors.growthGreen;
     }
   };
