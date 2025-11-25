@@ -215,10 +215,6 @@ const defaultStyles = {
     textAlignVertical: 'center',
     marginBottom: 20, // Space below title
   },
-  scriptureText: {
-    fontSize: 14, // Smaller font size for scripture text
-    lineHeight: 20, // Better readability for scripture
-  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -403,9 +399,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
   // Dynamic title font sizing - fixed size based on line count
   // Original: 22px, reduce to 18px if > 3 lines
-  // For dashboard scripture (no playbook): use smaller font size
   const titleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
-  const isDashboardScripture = _subtaskTitle && !playbookTitle; // Scripture from dashboard has no playbook
   const navigation = useNavigation();
   const { subscription } = useSubscription();
   const smartJournalingGating = useSmartJournalingGating();
@@ -845,15 +839,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             >
               {/* Title section with lock icon */}
               <View style={s.titleRow}>
-                <ThemedText weight="semiBold" style={[
-                  s.entryInput, 
-                  s.titleInput, 
-                  s.transparentInput, 
-                  s.lockedTitleText, 
-                  s.titleTextFlex, 
-                  { fontSize: titleFontSize },
-                  isDashboardScripture && s.scriptureText // Apply scripture style for dashboard
-                ]}>
+                <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: titleFontSize }]}>
                   {_subtaskTitle || ''}
                 </ThemedText>
                 {smartJournalingGating.isLocked && (
