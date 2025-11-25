@@ -439,7 +439,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Stacked card animation state
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
-  const cardAnimations = useRef<Record<string, { translateY: RNAnimated.Value; scale: RNAnimated.Value; opacity: RNAnimated.Value }>>({}).current;
+  const cardAnimationsRef = useRef<Record<string, { translateY: RNAnimated.Value; scale: RNAnimated.Value; opacity: RNAnimated.Value }>>({});
 
   // 5. Ref hooks
   const isInitialRender = useRef(true);
@@ -611,6 +611,26 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Initialize animated values for each card
   useEffect(() => {
+    const cardAnimations = cardAnimationsRef.current;
+
+    // Clean up animations for cards that no longer exist
+    const currentCardIds = new Set(cardData.map(card => card.id));
+    Object.keys(cardAnimations).forEach(id => {
+      if (!currentCardIds.has(id)) {
+        // Stop and clean up animations for removed cards
+        const anim = cardAnimations[id];
+        try {
+          anim.translateY.stopAnimation();
+          anim.scale.stopAnimation();
+          anim.opacity.stopAnimation();
+        } catch {
+          // Ignore animation stop errors
+        }
+        delete cardAnimations[id];
+      }
+    });
+
+    // Initialize animations for new cards
     cardData.forEach((card, index) => {
       if (!cardAnimations[card.id]) {
         const initialOffset = (cardData.length - index - 1) * STACK_OFFSET;
@@ -626,6 +646,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Reset animations when collapsing all cards
   useEffect(() => {
+    const cardAnimations = cardAnimationsRef.current;
     if (expandedCardId === null) {
       cardData.forEach((card, index) => {
         const initialOffset = (cardData.length - index - 1) * STACK_OFFSET;
@@ -656,6 +677,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Smooth animation handler for card transitions
   const animateCardTransition = useCallback((cardId: string, isExpanding: boolean) => {
+    const cardAnimations = cardAnimationsRef.current;
     const cardIndex = cardData.findIndex(c => c.id === cardId);
 
     if (isExpanding) {
@@ -727,7 +749,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         ]).start();
       });
     }
-  }, [cardData, cardAnimations]);
+  }, [cardData]);
 
   // Navigation callbacks that depend on cardData
   const goToNextCard = useCallback(() => {
@@ -1007,6 +1029,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   useEffect(() => {
     const currentAnimationRefs = animationRefs.current;
     const currentGestureRefs = gestureAnimationRefs.current;
+    const currentCardAnimations = cardAnimationsRef.current;
 
     return () => {
       // Clean up requestAnimationFrame
@@ -1034,6 +1057,20 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             // Ignore animation cancel errors
           }
         }
+      });
+      // Clean up card animations - CRITICAL for memory leak prevention
+      Object.values(currentCardAnimations).forEach(anim => {
+        try {
+          anim.translateY.stopAnimation();
+          anim.scale.stopAnimation();
+          anim.opacity.stopAnimation();
+        } catch {
+          // Ignore animation stop errors
+        }
+      });
+      // Clear the card animations object
+      Object.keys(currentCardAnimations).forEach(key => {
+        delete currentCardAnimations[key];
       });
       // Clean up haptic timers
       stackReadHapticTimersRef.current.forEach(id => {
