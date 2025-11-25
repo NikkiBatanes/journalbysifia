@@ -1091,12 +1091,29 @@ export class FaithPointsService {
       const newBadges: Badge[] = [];
 
       for (const badge of availableBadges) {
-        if (!userBadgeIds.includes(badge.id) && totalPoints >= badge.pointsRequired) {
-          // Check specific badge requirements
+        if (!userBadgeIds.includes(badge.id)) {
+          // Check specific badge requirements first
           const earned = await this.checkBadgeRequirement(userId, badge, activity);
+          
           if (earned) {
-            newBadges.push(badge);
-            await this.awardBadge(userId, badge);
+            // For activity-based badges (like First Steps), award immediately
+            // For point-based badges (like level badges), also check points requirement
+            const isActivityBasedBadge = [
+              'First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
+              'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
+              'Journal Keeper', 'Journal Scribe',
+              'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend'
+            ].includes(badge.name);
+            
+            const pointsRequirementMet = totalPoints >= badge.pointsRequired;
+            
+            // Award if:
+            // 1. It's an activity-based badge (no points check needed)
+            // 2. OR it's a point-based badge and points requirement is met
+            if (isActivityBasedBadge || pointsRequirementMet) {
+              newBadges.push(badge);
+              await this.awardBadge(userId, badge);
+            }
           }
         }
       }
