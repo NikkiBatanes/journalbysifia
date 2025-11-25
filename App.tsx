@@ -44,6 +44,7 @@ import AuthStateMonitor from './src/components/AuthStateMonitor';
 import {OnboardingProvider} from './src/context/OnboardingContext';
 // import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration'; // unused
 import {PointsNotificationProvider} from './src/context/PointsNotificationContext';
+import {BadgeNotificationProvider} from './src/context/BadgeNotificationContext';
 
 import {QueryClientProvider} from '@tanstack/react-query';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -313,7 +314,8 @@ function AppWithAuth({
                 <UserProvider>
                   <OnboardingProvider>
                     <PointsNotificationProvider>
-                      <LogoutContext.Provider
+                      <BadgeNotificationProvider>
+                        <LogoutContext.Provider
                         value={{
                           onLogout: async () => {
                             try {
@@ -340,6 +342,7 @@ function AppWithAuth({
                           ) : null}
                         </AuthStateMonitor>
                       </LogoutContext.Provider>
+                      </BadgeNotificationProvider>
                     </PointsNotificationProvider>
                   </OnboardingProvider>
                 </UserProvider>
