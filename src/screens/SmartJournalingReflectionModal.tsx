@@ -56,6 +56,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const [preservedActionStepNumber, setPreservedActionStepNumber] = React.useState(actionStepNumber);
   const [preservedActionStepTitle, setPreservedActionStepTitle] = React.useState(actionStepTitle);
   const [preservedPlaybookTitle, setPreservedPlaybookTitle] = React.useState(playbookTitle);
+  
+  // Track lockTitle state internally to allow switching between guided and freeform
+  const [lockTitleInternal, setLockTitleInternal] = React.useState(isGuidedReflection || !!playbookId);
+  
+  // Update lockTitle when isGuidedReflection or playbookId changes
+  React.useEffect(() => {
+    setLockTitleInternal(isGuidedReflection || !!playbookId);
+  }, [isGuidedReflection, playbookId]);
 
   // Track when metadata props change and preserve non-empty values
   React.useEffect(() => {
@@ -201,6 +209,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     try {
       if (!user) {
         throw new Error('User not authenticated');
+      }
+
+      // Update lockTitle state based on entry type
+      // If user switches to guided mode, lock the title. If they switch to freeform, unlock it.
+      if (entry.type === 'guided') {
+        setLockTitleInternal(true);
+      } else if (entry.type === 'free' || entry.source === 'freeform') {
+        setLockTitleInternal(false);
       }
 
       // Determine context: guided or playbook
@@ -421,9 +437,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
               // Pass subtaskTitle for all modes - freeform can have initial title too
               initialTitle={preservedSubtaskTitle || ''}
-              lockTitle={isGuidedReflection || !!playbookId}
-              // Source: guided for guided prompt, playbook for playbook context, 'thoughts' for dashboard (enforces gating)
-              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts')}
+              lockTitle={lockTitleInternal}
+              // Source: freeform for carousel (allows title focus), guided for guided prompt, playbook for playbook context
+              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'freeform')}
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
