@@ -521,8 +521,8 @@ const styles = StyleSheet.create({
   },
   verseText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 26,
     color: Colors.hopeWhite,
     fontStyle: 'normal',
 
