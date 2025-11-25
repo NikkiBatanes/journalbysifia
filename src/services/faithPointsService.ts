@@ -850,7 +850,7 @@ export class FaithPointsService {
           await this.recordTransaction(userId, 0, 'achievement', { type: `level_${level}_reached` });
           
           // Try to award the badge
-          await this.checkAndAwardBadge(userId, badge, 'retroactive_level_up');
+          await this.awardBadge(userId, badge);
         }
       }
 
