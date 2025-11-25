@@ -103,7 +103,16 @@ const fallbackStyles = {
     marginBottom: 4,
     lineHeight: 12,
   },
-  header: { padding: 16 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    zIndex: 10,
+    backgroundColor: Colors.anchorBlue,
+  },
   title: { fontSize: 18, fontWeight: 'bold', color: Colors.hopeWhite, marginBottom: 8 },
 
   keyboardAvoidingView: { flex: 1, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden', backgroundColor: Colors.anchorBlue },
@@ -1043,6 +1052,17 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
+        {/* Show pencil icon for playbook/devotional sources (display only) */}
+        {(source === 'devotional' || source === 'playbook') && (
+          <View style={s.modeButton} pointerEvents="none">
+            <Pencil
+              size={22}
+              color={Colors.alertCoral}
+              fill={Colors.alertCoral}
+              strokeWidth={1.5}
+            />
+          </View>
+        )}
         {/* Always show pencil toggle for freeform switching */}
         {source !== 'devotional' && source !== 'playbook' && (
           <TouchableOpacity
