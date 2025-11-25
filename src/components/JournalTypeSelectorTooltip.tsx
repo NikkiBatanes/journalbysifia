@@ -262,7 +262,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
         {/* iMessage-style horizontal pill picker */}
         <Animated.View
           style={[
-            styles.pickerPill,
+            isLandscape && isTablet ? styles.pickerPillLandscape : styles.pickerPill,
             {
               opacity: opacityAnim,
               transform: [{ scale: scaleAnim }],
@@ -371,6 +371,27 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    position: 'absolute',
+    top: '50%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  // iPad landscape pill container
+  pickerPillLandscape: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(50, 50, 50, 0.95)',
+    borderRadius: 40,
+    paddingHorizontal: 20, // Increased padding
+    paddingVertical: 12,   // Increased padding
     position: 'absolute',
     top: '50%',
     ...Platform.select({
