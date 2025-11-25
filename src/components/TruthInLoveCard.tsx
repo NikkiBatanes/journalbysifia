@@ -160,8 +160,9 @@ export default function TruthInLoveCard({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'space-between',
+    // Remove flex: 1 to allow natural height expansion like other cards
+    // flex: 1,
+    // justifyContent: 'space-between',
   },
   headerContainer: {
     flexShrink: 0,
@@ -170,15 +171,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   contentWrapper: {
-    flex: 1,
-    minHeight: 0,
+    // Remove flex constraints to allow natural scrolling
+    // flex: 1,
+    // minHeight: 0,
     marginTop: 16,
-    flexShrink: 1,
+    // flexShrink: 1,
   },
   textContainer: {
-    flex: 1,
-    minHeight: 0,
-    overflow: 'hidden',
+    // Remove flex and overflow constraints
+    // flex: 1,
+    // minHeight: 0,
+    // overflow: 'hidden',
   },
   headingContainer: {
     flexDirection: 'row',
