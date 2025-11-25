@@ -74,8 +74,27 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 }) => {
   // ENTERPRISE: Responsive design for iPad (both portrait and landscape)
   const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
-  const isTablet = width >= 768; // iPad mini width and above
+  const [currentWidth, setCurrentWidth] = useState(width);
+  const [currentHeight, setCurrentHeight] = useState(height);
+  
+  // ENTERPRISE FIX: Force dimension update when modal becomes visible
+  React.useEffect(() => {
+    if (visible) {
+      // Re-measure dimensions when modal opens
+      const { width: newWidth, height: newHeight } = Dimensions.get('window');
+      setCurrentWidth(newWidth);
+      setCurrentHeight(newHeight);
+      console.log('[JournalTypeSelectorTooltip] Modal opened, dimensions:', {
+        newWidth,
+        newHeight,
+        isLandscape: newWidth > newHeight,
+      });
+    }
+  }, [visible]);
+  
+  // Use current dimensions for calculations
+  const isLandscape = currentWidth > currentHeight;
+  const isTablet = currentWidth >= 768 || currentHeight >= 768; // iPad mini width and above
   
   // ENTERPRISE FIX: Apply better spacing to ALL tablet sizes, not just landscape
   const useEnhancedSpacing = isTablet; // Changed from: isLandscape && isTablet
@@ -83,13 +102,13 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   // ENTERPRISE DEBUG: Log responsive state
   React.useEffect(() => {
     console.log('[JournalTypeSelectorTooltip] Responsive state:', {
-      width,
-      height,
+      width: currentWidth,
+      height: currentHeight,
       isLandscape,
       isTablet,
       useEnhancedSpacing,
     });
-  }, [width, height, isLandscape, isTablet, useEnhancedSpacing]);
+  }, [currentWidth, currentHeight, isLandscape, isTablet, useEnhancedSpacing]);
   
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   
@@ -102,12 +121,10 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   const [dynamicTop, setDynamicTop] = useState(0); // Will be set after screen dimensions are available
   const textMeasureRef = useRef<View>(null);
 
-  const { height: screenHeight } = Dimensions.get('window');
-
   // Set initial dynamic top after screen height is available
   React.useEffect(() => {
-    setDynamicTop(screenHeight * 0.3); // Default to 30% of screen height
-  }, [screenHeight]);
+    setDynamicTop(currentHeight * 0.3); // Default to 30% of screen height
+  }, [currentHeight]);
 
   // For display only: strip surrounding straight or curly quotes from the text
   const displayText = React.useMemo(() => {
@@ -133,21 +150,21 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 
               // Calculate dynamic top position
               // Base position is 30%, but we need to ensure text doesn't overlap with picker at 50%
-              const pickerTop = screenHeight * 0.5; // Picker is at 50%
+              const pickerTop = currentHeight * 0.5; // Picker is at 50%
               const textBubbleHeight = height + 40; // Text height + padding
               const minTopPosition = pickerTop - textBubbleHeight - 120; // 120px gap for picker and buttons
 
               // Ensure text is not too high (min 20% from top) and not too low (max 40% from top)
-              const calculatedTop = Math.max(screenHeight * 0.2, Math.min(minTopPosition, screenHeight * 0.4));
+              const calculatedTop = Math.max(currentHeight * 0.2, Math.min(minTopPosition, currentHeight * 0.4));
 
               console.log('Dynamic positioning:', {
                 textHeight: height,
-                screenHeight,
+                screenHeight: currentHeight,
                 pickerTop,
                 textBubbleHeight,
                 minTopPosition,
                 calculatedTop,
-                defaultTop: screenHeight * 0.3,
+                defaultTop: currentHeight * 0.3,
               });
 
               setDynamicTop(calculatedTop);
@@ -158,7 +175,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 
       return () => clearTimeout(timeout);
     }
-  }, [visible, displayText, screenHeight]);
+  }, [visible, displayText, currentHeight]);
 
   useEffect(() => {
     if (visible) {
