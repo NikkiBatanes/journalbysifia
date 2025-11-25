@@ -127,144 +127,123 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.backdrop}>
-          <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={styles.modalContainer}>
-              {/* Drag Handle */}
-              <View style={styles.dragHandle} />
-              
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  My Badges
-                </Text>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Text style={styles.closeButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{userBadges.length}</Text>
-                  <Text style={styles.statLabel}>Unlocked</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{availableBadges.length}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-              </View>
-
-              <FlatList
-                data={availableBadges}
-                renderItem={renderBadge}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                contentContainerStyle={styles.badgesList}
-                showsVerticalScrollIndicator={false}
-                refreshing={loading}
-                onRefresh={loadBadges}
-                bounces={true}
-                style={styles.flatListStyle}
-              />
-            </View>
-          </TouchableWithoutFeedback>
+      <View style={styles.fullScreenContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>
+            My Badges
+          </Text>
+          <View style={styles.placeholder} />
         </View>
-      </TouchableWithoutFeedback>
+
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{userBadges.length}</Text>
+            <Text style={styles.statLabel}>Unlocked</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{availableBadges.length}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+        </View>
+
+        <FlatList
+          data={availableBadges}
+          renderItem={renderBadge}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.badgesList}
+          showsVerticalScrollIndicator={false}
+          refreshing={loading}
+          onRefresh={loadBadges}
+          bounces={true}
+          style={styles.flatListStyle}
+        />
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
+  fullScreenContainer: {
     flex: 1,
-    backgroundColor: 'rgba(26, 60, 109, 0.8)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    width: SCREEN_WIDTH,
-    height: '85%',
-    paddingTop: 8,
-  },
-  dragHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-    opacity: 0.6,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(242, 245, 247, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    fontWeight: 'bold',
+  },
+  placeholder: {
+    width: 40,
   },
   modalTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(242, 245, 247, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: Colors.hopeWhite,
-    fontWeight: 'bold',
+    textAlign: 'center',
+    flex: 1,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 24,
+    marginBottom: 32,
     marginHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
     backgroundColor: 'rgba(242, 245, 247, 0.1)',
-    borderRadius: 16,
+    borderRadius: 20,
   },
   statItem: {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     color: Colors.faithGold,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.hopeWhite,
-    marginTop: 4,
+    marginTop: 6,
     opacity: 0.8,
   },
   flatListStyle: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   badgesList: {
     paddingBottom: 40,
   },
   badgeItem: {
-    backgroundColor: 'rgba(255,255,255,0.06)', // Match dashboard carousel
-    borderRadius: 20,
-    padding: 20,
-    margin: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 24,
+    padding: 24,
+    margin: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     flex: 1,
-    minHeight: 180,
+    minHeight: 200,
     justifyContent: 'space-between',
   },
   unlockedBadge: {
@@ -277,11 +256,11 @@ const styles = StyleSheet.create({
   },
   badgeIconContainer: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
     position: 'relative',
   },
   badgeIcon: {
-    fontSize: 48,
+    fontSize: 56,
     textAlign: 'center',
   },
   lockOverlay: {
@@ -291,38 +270,38 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 24,
+    borderRadius: 28,
   },
   badgeName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   badgeDescription: {
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 18,
+    marginBottom: 20,
+    lineHeight: 20,
     flex: 1,
   },
   badgeFooter: {
     alignItems: 'center',
   },
   rarityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    marginBottom: 10,
   },
   rarityText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
   },
   unlockedDate: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(242, 245, 247, 0.7)',
     fontStyle: 'italic',
   },
