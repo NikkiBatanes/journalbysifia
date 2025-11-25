@@ -47,26 +47,35 @@ class PrayerRequestNotificationService {
         prayerRequest: prayerRequest?.substring(0, 50) + '...',
       });
 
-      // Schedule immediate notification that bypasses suppression
-      const scheduledFor = new Date(Date.now() + 5000); // 5 seconds from now
+      // Schedule reminder for next day at 9 AM (or user's preferred prayer time)
+      const scheduledFor = new Date();
+      scheduledFor.setDate(scheduledFor.getDate() + 1); // Next day
+      scheduledFor.setHours(9, 0, 0, 0); // 9:00 AM
+      
+      // If it's already past 9 AM today, schedule for tomorrow at 9 AM
+      // Otherwise schedule for today at 9 AM
+      const now = new Date();
+      if (scheduledFor <= now) {
+        scheduledFor.setDate(scheduledFor.getDate() + 1);
+      }
 
       const success = await notificationSchedulerService.scheduleNotification({
         user_id: userId,
-        type: 'prayer_request_alert',
-        title: `🙏 Pray for ${prayerForPerson}`,
-        message: prayerRequest || `Please pray for ${prayerForPerson}`,
+        type: 'prayer_request_reminder',
+        title: `🙏 Remember to Pray for ${prayerForPerson}`,
+        message: prayerRequest || `Don't forget to pray for ${prayerForPerson}`,
         scheduled_for: scheduledFor.toISOString(),
-        priority: 'high', // High priority but not critical
+        priority: 'normal', // Normal priority for scheduled reminders
         data: {
           deep_link: `sifia://prayer/${prayerId || 'new'}`,
-          type: 'prayer_request_alert',
+          type: 'prayer_request_reminder',
           prayerForPerson,
           prayerRequest,
           prayerId,
         },
       }, {
-        priority: 'high',
-        batchWithOthers: false,
+        priority: 'normal',
+        batchWithOthers: true, // Allow batching with other prayer reminders
       });
 
       if (success) {
