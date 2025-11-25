@@ -1200,6 +1200,7 @@ export default function ActionStepsCard({
         onSelect={handleJournalTypeSelect}
         onClose={handleTooltipClose}
         subtaskText={tooltipSubtask?.subTask?.text}
+        showTimeBlock={true} // Show TimeBlock in action steps
       />
 
       {/* Smart Journaling Helper Tooltip */}

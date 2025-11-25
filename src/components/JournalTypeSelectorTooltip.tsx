@@ -38,6 +38,7 @@ interface JournalTypeSelectorTooltipProps {
   onSelect: (type: JournalType) => void;
   onClose: () => void;
   subtaskText?: string; // The subtask text to display in focus
+  showTimeBlock?: boolean; // Whether to show TimeBlock option (default: false)
 }
 
 const JOURNAL_TYPE_OPTIONS: JournalTypeOption[] = [
@@ -68,11 +69,14 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   onSelect,
   onClose,
   subtaskText,
+  showTimeBlock = false, // Default to false for dashboard
 }) => {
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   
-  // Filter out timeblock option for dashboard smart journaling
-  const filteredOptions = JOURNAL_TYPE_OPTIONS.filter(option => option.type !== 'timeblock');
+  // Filter options based on showTimeBlock prop
+  const filteredOptions = showTimeBlock 
+    ? JOURNAL_TYPE_OPTIONS 
+    : JOURNAL_TYPE_OPTIONS.filter(option => option.type !== 'timeblock');
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [_textHeight, setTextHeight] = useState(0); // Prefixed with _ to indicate intentionally unused
   const [dynamicTop, setDynamicTop] = useState(0); // Will be set after screen dimensions are available
