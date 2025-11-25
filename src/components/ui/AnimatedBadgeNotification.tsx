@@ -123,15 +123,15 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({
   const getRarityColor = () => {
     switch (badge.rarity) {
       case 'common':
-        return Colors.common;
+        return Colors.textGray;
       case 'rare':
-        return Colors.rare;
+        return Colors.playbookBlue;
       case 'epic':
-        return Colors.epic;
+        return Colors.devotionalPurple;
       case 'legendary':
-        return Colors.legendary;
+        return Colors.faithGold;
       default:
-        return Colors.primary;
+        return Colors.anchorBlue;
     }
   };
 
