@@ -1094,7 +1094,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         {source !== 'devotional' && source !== 'playbook' && (
           <TouchableOpacity
             style={s.modeButton}
-            disabled={viewMode === 'free-form' && !selectedPrompt} // Disable only when in free-form mode with no prompt
+            disabled={viewMode === 'free-form' && !selectedPrompt} // Only disable when already in true free-form mode (no selected prompt)
             onPress={async () => {
             // Haptic for switching to free-form mode
             triggerLightHaptic();

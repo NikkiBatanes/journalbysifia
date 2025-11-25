@@ -208,11 +208,11 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
         visible={showReflectionModal}
         subtaskTitle="" // Blank title with placeholder
         isGuidedReflection={false} // Free-form mode
+        isJournalCarousel={true} // Mark as journal carousel to bypass smart journaling gating
         selectedDate={selectedDate} // Pass the selected date from journal header
         hideGuidedPromptButton={false} // Show heart icon for guided prompts
         onSave={handleReflectionModalSave}
         onCancel={handleReflectionModalCancel}
-        initialTitle="" // Ensure empty title for auto-focus
       />
     </View>
   );

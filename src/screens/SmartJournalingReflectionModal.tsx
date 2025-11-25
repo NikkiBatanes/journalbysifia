@@ -33,8 +33,8 @@ interface SmartJournalingReflectionModalProps {
   isGuidedReflection?: boolean;
   // When true, hide the guided prompt button (heart icon)
   hideGuidedPromptButton?: boolean;
-  // Initial title for the reflection
-  initialTitle?: string;
+  // When true, this is from journal carousel (freeform) not dashboard smart journaling
+  isJournalCarousel?: boolean;
 }
 
 const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalProps> = ({
@@ -52,7 +52,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   onCancel,
   isGuidedReflection = false,
   hideGuidedPromptButton = true, // Default to true for backward compatibility
-  initialTitle,
+  isJournalCarousel = false, // Default to false for backward compatibility
 }) => {
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
@@ -422,11 +422,11 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               onCancel={handleCancel}
               onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
-              // Pass initialTitle for freeform mode, or preservedSubtaskTitle for guided/playbook
-              initialTitle={initialTitle !== undefined ? initialTitle : (preservedSubtaskTitle || '')}
+              // Pass subtaskTitle for all modes - freeform can have initial title too
+              initialTitle={preservedSubtaskTitle || ''}
               lockTitle={isGuidedReflection || !!playbookId}
-              // Source: guided for guided prompt, playbook for playbook context, 'thoughts' for dashboard (enforces gating)
-              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts')}
+              // Source: guided for guided prompt, playbook for playbook context, 'freeform' for journal carousel, 'thoughts' for dashboard (enforces gating)
+              source={isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : (isJournalCarousel ? 'freeform' : 'thoughts'))}
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
