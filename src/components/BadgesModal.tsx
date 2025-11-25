@@ -13,7 +13,7 @@ import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { faithPointsService, Badge } from '../services/faithPointsService';
 import { supabase } from '../services/supabaseClient';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
