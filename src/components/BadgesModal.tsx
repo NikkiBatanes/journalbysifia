@@ -142,9 +142,12 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                 keyExtractor={(item) => item.id}
                 numColumns={2}
                 contentContainerStyle={styles.badgesList}
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={true}
                 refreshing={loading}
                 onRefresh={loadBadges}
+                style={styles.flatListContainer}
+                nestedScrollEnabled={true}
+                scrollEnabled={true}
               />
             </View>
           </TouchableWithoutFeedback>
@@ -165,9 +168,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     borderRadius: 20,
     width: SCREEN_WIDTH - 32,
-    maxHeight: SCREEN_HEIGHT * 0.85, // Use screen height for better sizing
+    maxHeight: SCREEN_HEIGHT * 0.8, // Better height for scrolling
     padding: 24,
     flex: 0, // Don't expand to fill all available space
+  },
+  flatListContainer: {
+    flex: 1,
+    width: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -221,15 +228,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     borderRadius: 16,
     padding: 16,
-    margin: 8,
+    marginHorizontal: 6,
+    marginVertical: 8,
     borderWidth: 2,
     flex: 1,
-    minHeight: 160,
+    minHeight: 140,
+    maxWidth: (SCREEN_WIDTH - 64) / 2 - 12, // Ensure 2 columns fit properly
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
   unlockedBadge: {
     opacity: 1,
@@ -238,27 +247,26 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   badgeIcon: {
-    fontSize: 40,
+    fontSize: 32,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   badgeName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
     color: Colors.anchorBlue,
   },
   badgeDescription: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
     color: Colors.textGray,
-    marginBottom: 12,
-    lineHeight: 16,
+    marginBottom: 8,
+    lineHeight: 14,
   },
   badgeFooter: {
     alignItems: 'center',
-    marginTop: 'auto',
   },
   rarityText: {
     fontSize: 11,
