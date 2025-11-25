@@ -747,7 +747,7 @@ function TimeBlockLogEditorInner(
   }));
 
   // State management
-  const [title, setTitle] = React.useState(existingTimeBlock?.title || '');
+  const [title, setTitle] = React.useState(existingTimeBlock?.title || _subtaskTitle || '');
   const [startTime, setStartTime] = React.useState(() => {
     if (existingTimeBlock?.start_time) {
       return new Date(existingTimeBlock.start_time);
