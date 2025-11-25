@@ -151,12 +151,14 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     };
   }, [setContentScrollRef]);
 
-  // Initialize to today's date only on first mount, not on every focus
-  useEffect(() => {
-    const today = new Date();
-    setCurrentDate(today);
-    hasInitializedScroll.current = true;
-  }, []); // Empty dependency array = only run once on mount
+  // Reset to today's date when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const today = new Date();
+      setCurrentDate(today);
+      hasInitializedScroll.current = true;
+    }, [])
+  );
 
   // Centralized reset: ensure top-of-content and clear transient UI
   const resetToTop = useCallback(() => {
@@ -190,11 +192,25 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     };
   }, [navigation, resetToTop]);
 
-  // Fallback: ensure top on focus
+  // Store scroll position to preserve carousel position when navigating away
+  const savedScrollPosition = useRef<number>(0);
+
+  // Save scroll position when screen loses focus, restore when it gains focus
   useFocusEffect(
     useCallback(() => {
-      try { contentScrollRef.current?.scrollTo?.({ y: 0, animated: false }); } catch {}
-      return () => {};
+      // Restore scroll position when screen gains focus
+      if (savedScrollPosition.current > 0) {
+        setTimeout(() => {
+          try {
+            contentScrollRef.current?.scrollTo?.({ y: savedScrollPosition.current, animated: false });
+          } catch {}
+        }, 100); // Small delay to ensure content is rendered
+      }
+
+      // Return cleanup function that saves position when screen loses focus
+      return () => {
+        // savedScrollPosition.current is already being updated by handleContentScroll
+      };
     }, [])
   );
   const [weeks, setWeeks] = useState<Date[][]>([]);
@@ -462,6 +478,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const handleContentScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     const y = event.nativeEvent.contentOffset.y;
     const isScrollingUp = y < (lastScrollY.current || 0);
+
+    // Save scroll position for restoration when navigating back
+    savedScrollPosition.current = y;
 
     // Update scroll direction
     scrollDirection.current = isScrollingUp ? 'up' : 'down';
