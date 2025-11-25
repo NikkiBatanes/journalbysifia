@@ -420,6 +420,35 @@ export class FaithPointsService {
             // Show badge notification
             notificationService.showBadgeNotification(badge);
 
+            // CRITICAL: Save badge to database - this was missing!
+            try {
+              const { error: badgeSaveError } = await supabase
+                .from('user_badges')
+                .insert({
+                  user_id: userId,
+                  badge_id: badge.id,
+                  badge_data: badge,
+                  unlocked_at: new Date().toISOString(),
+                });
+              
+              if (badgeSaveError) {
+                Logger.error('[FaithPointsService] Failed to save badge to database', badgeSaveError, {
+                  component: 'faithPointsService',
+                  badgeId: badge.id,
+                });
+              } else {
+                Logger.debug(`[FaithPointsService] Badge saved to database: ${badge.name}`, {
+                  component: 'faithPointsService',
+                  badgeId: badge.id,
+                });
+              }
+            } catch (saveErr) {
+              Logger.error('[FaithPointsService] Exception saving badge to database', saveErr as Error, {
+                component: 'faithPointsService',
+                badgeId: badge.id,
+              });
+            }
+
             // CRITICAL: Re-enable badge events but defer them to prevent freeze
             // Profile screen needs BADGE_UNLOCKED events to update badge count
             setTimeout(() => {
