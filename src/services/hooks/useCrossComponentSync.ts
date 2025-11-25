@@ -85,13 +85,51 @@ export const useCrossComponentSync = (userId: string) => {
       const activityType = completionContext?.isFullDevotionalComplete ? 'devotional_full_completed' : 'devotional_completed';
       const isFullCompletion = completionContext?.isFullDevotionalComplete;
 
-      const pointsResult = await faithPointsService.awardPoints(userId, activityType as any, {
-        devotionalId,
-        playbookId,
-        timestamp: new Date().toISOString(),
-        suppressNotification: !isFullCompletion, // Show animation only for full completion (3/3), suppress daily (1/3, 2/3)
-        completionContext,
-      });
+      // PERFORMANCE: Non-blocking parallel operations
+      const [pointsResult] = await Promise.all([
+        faithPointsService.awardPoints(userId, activityType as any, {
+          devotionalId,
+          playbookId,
+          timestamp: new Date().toISOString(),
+          suppressNotification: !isFullCompletion, // Show animation only for full completion (3/3), suppress daily (1/3, 2/3)
+          completionContext,
+        }),
+        // Parallel: Invalidate queries without awaiting
+        (async () => {
+          // Update devotional queries
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.devotionals.byUser(userId),
+          });
+
+          // Invalidate dashboard-related queries in parallel
+          queryClient.invalidateQueries({
+            queryKey: ['dashboard', 'streaks', userId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['dashboard', 'insights', userId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['dashboard', 'affirmations', userId],
+          });
+
+          // If linked to a playbook, update playbook queries
+          if (playbookId) {
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.playbooks.detail(userId, playbookId),
+            });
+
+            // Update cross-component relationship
+            queryClient.setQueryData(
+              queryKeys.playbooks.withDevotionals(userId, playbookId),
+              (oldData: any) => ({
+                ...oldData,
+                lastDevotionalCompleted: devotionalId,
+                lastSynced: new Date().toISOString(),
+              })
+            );
+          }
+        })(),
+      ]);
 
       const syncEvent: SyncEvent = {
         type: 'devotional_completion',
@@ -104,39 +142,6 @@ export const useCrossComponentSync = (userId: string) => {
           newLevel: pointsResult?.newLevel,
         },
       };
-
-      // Update devotional queries
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.byUser(userId),
-      });
-
-      // Invalidate dashboard-related queries to refresh components
-      await queryClient.invalidateQueries({
-        queryKey: ['dashboard', 'streaks', userId],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['dashboard', 'insights', userId],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['dashboard', 'affirmations', userId],
-      });
-
-      // If linked to a playbook, update playbook queries
-      if (playbookId) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.playbooks.detail(userId, playbookId),
-        });
-
-        // Update cross-component relationship
-        queryClient.setQueryData(
-          queryKeys.playbooks.withDevotionals(userId, playbookId),
-          (oldData: any) => ({
-            ...oldData,
-            lastDevotionalCompleted: devotionalId,
-            lastSynced: new Date().toISOString(),
-          })
-        );
-      }
 
       return syncEvent;
     } catch (error) {
