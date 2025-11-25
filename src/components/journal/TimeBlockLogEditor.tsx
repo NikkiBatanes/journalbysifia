@@ -1434,7 +1434,10 @@ function TimeBlockLogEditorInner(
               {/* Cancel FAB */}
               <TouchableOpacity
                 style={[s.fab, s.cancelFab]}
-                onPress={onCancel}
+                onPress={() => {
+                  triggerLightHaptic();
+                  onCancel();
+                }}
               >
                 <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
               </TouchableOpacity>
@@ -1447,7 +1450,10 @@ function TimeBlockLogEditorInner(
                   (!title.trim() || isLoading) && s.fabDisabled,
                 ]}
                 disabled={!title.trim() || isLoading}
-                onPress={handleSave}
+                onPress={() => {
+                  triggerLightHaptic();
+                  handleSave();
+                }}
               >
                 {isLoading ? (
                   <ActivityIndicator size={20} color={Colors.hopeWhite} />

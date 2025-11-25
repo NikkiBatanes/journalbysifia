@@ -74,17 +74,73 @@ class NotificationDeepLinkService {
         return;
       }
 
-      // TODO: Implement deep link parsing and navigation logic
-      // Example deep links:
-      // - sifia://playbook/{id}
-      // - sifia://devotional/{id}
-      // - sifia://journal
-      // - sifia://profile
+      // Parse deep link URL
+      // Format: sifia://screen/id or sifia://screen
+      const url = deepLink.replace('sifia://', '');
+      const parts = url.split('/');
+      const screen = parts[0];
+      const id = parts[1];
 
-      Logger.warn('Deep link navigation not yet implemented', {
-        component: 'notificationDeepLinkService',
-        deepLink,
-      });
+      // Navigate based on screen type
+      switch (screen) {
+        case 'prayer':
+          // Navigate to Journal screen with prayer tab
+          this.navigationRef.navigate('Journal', {
+            initialTab: 'pray',
+            prayerId: id,
+          });
+          Logger.info('Navigated to prayer', {
+            component: 'notificationDeepLinkService',
+            prayerId: id,
+          });
+          break;
+
+        case 'playbook':
+          // Navigate to Playbook screen
+          this.navigationRef.navigate('Playbook', {
+            playbookId: id,
+          });
+          Logger.info('Navigated to playbook', {
+            component: 'notificationDeepLinkService',
+            playbookId: id,
+          });
+          break;
+
+        case 'devotional':
+          // Navigate to Devotional screen
+          this.navigationRef.navigate('Devotional', {
+            devotionalId: id,
+          });
+          Logger.info('Navigated to devotional', {
+            component: 'notificationDeepLinkService',
+            devotionalId: id,
+          });
+          break;
+
+        case 'journal':
+          // Navigate to Journal screen
+          this.navigationRef.navigate('Journal');
+          Logger.info('Navigated to journal', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
+        case 'profile':
+          // Navigate to Profile screen
+          this.navigationRef.navigate('Profile');
+          Logger.info('Navigated to profile', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
+        default:
+          Logger.warn('Unknown deep link screen type', {
+            component: 'notificationDeepLinkService',
+            screen,
+            deepLink,
+          });
+          break;
+      }
     } catch (error) {
       Logger.error('Failed to navigate to deep link', error as Error, {
         component: 'notificationDeepLinkService',
