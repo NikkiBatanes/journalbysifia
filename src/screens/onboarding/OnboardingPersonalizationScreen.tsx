@@ -1290,8 +1290,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: Colors.modalBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
     paddingTop: 0,
   },
   scrollContainer: {
