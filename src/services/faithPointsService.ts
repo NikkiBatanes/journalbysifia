@@ -567,6 +567,46 @@ export class FaithPointsService {
    * Get available badges
    */
   async getAvailableBadges(): Promise<Badge[]> {
+    try {
+      // Fetch badges from the actual badges table in database
+      const { data: badges, error } = await supabase
+        .from('badges')
+        .select('*')
+        .order('rarity, faith_points_reward');
+
+      if (error) {
+        Logger.error('[FaithPointsService] Error fetching badges from database', error, {
+          component: 'faithPointsService',
+        });
+        // Fallback to hardcoded badges if database fails
+        return this.getFallbackBadges();
+      }
+
+      if (!badges || badges.length === 0) {
+        Logger.warn('[FaithPointsService] No badges found in database, using fallback', {
+          component: 'faithPointsService',
+        });
+        return this.getFallbackBadges();
+      }
+
+      // Transform database badges to Badge interface
+      return badges.map(badge => ({
+        id: badge.id, // Keep UUID from database
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        rarity: badge.rarity as 'common' | 'rare' | 'epic' | 'legendary',
+        pointsRequired: badge.faith_points_reward,
+      }));
+    } catch (error) {
+      Logger.error('[FaithPointsService] Exception in getAvailableBadges', error as Error, {
+        component: 'faithPointsService',
+      });
+      return this.getFallbackBadges();
+    }
+  }
+
+  private getFallbackBadges(): Badge[] {
     return [
       // Playbook Generation Badges
       {
@@ -962,112 +1002,72 @@ export class FaithPointsService {
   }
 
   private async checkBadgeRequirement(userId: string, badge: Badge, activity: string): Promise<boolean> {
-    // Implement specific badge requirement checks
-    switch (badge.id) {
+    // Implement specific badge requirement checks using badge names instead of IDs
+    // This works because badge names are unique and stable
+    switch (badge.name) {
       // Playbook Generation Badges
-      case 'first_playbook':
+      case 'First Steps':
         // Award on first playbook generation
         return activity === 'playbook_generated';
 
-      case 'growth_seeker':
+      case 'Growth Seeker':
         // Award after generating 25 playbooks
         return await this.getActivityCount(userId, 'playbook_generated') >= 25;
 
-      case 'playbook_master':
+      case 'Playbook Master':
         // Award after generating 50 playbooks
         return await this.getActivityCount(userId, 'playbook_generated') >= 50;
 
-      case 'playbook_legend':
+      case 'Playbook Legend':
         // Award after generating 100 playbooks
         return await this.getActivityCount(userId, 'playbook_generated') >= 100;
 
       // Devotional Badges
-      case 'prayer_warrior':
+      case 'Prayer Warrior':
         // Award after generating 10 devotionals
         return await this.getActivityCount(userId, 'devotional_generated') >= 10;
 
-      case 'devotional_dedicated':
+      case 'Devotional Dedicated':
         // Award after generating 25 devotionals
         return await this.getActivityCount(userId, 'devotional_generated') >= 25;
 
-      case 'devotional_master':
+      case 'Devotional Master':
         // Award after generating 50 devotionals
         return await this.getActivityCount(userId, 'devotional_generated') >= 50;
 
       // Journal Badges
-      case 'journal_keeper':
+      case 'Journal Keeper':
         // Award after making 50 journal entries
         return await this.getActivityCount(userId, 'journal_entry') >= 50;
 
-      case 'journal_scribe':
+      case 'Journal Scribe':
         // Award after making 100 journal entries
         return await this.getActivityCount(userId, 'journal_entry') >= 100;
 
       // Streak Badges
-      case 'consistent_week':
-        // Award when user has 7-day streak
-        const { data: weekProfile } = await supabase
-          .from('faith_points_profiles')
-          .select('current_streak, longest_streak')
-          .eq('user_id', userId)
-          .single();
-        const maxWeekStreak = Math.max(
-          weekProfile?.current_streak || 0,
-          weekProfile?.longest_streak || 0
-        );
-        return maxWeekStreak >= 7;
+      case 'Faithful Week':
+        // Award after 7-day streak
+        return await this.getActivityCount(userId, 'daily_streak') >= 7;
 
-      case 'streak_warrior':
-        // Award when user achieves 14-day streak
-        const { data: warriorProfile } = await supabase
-          .from('faith_points_profiles')
-          .select('current_streak, longest_streak')
-          .eq('user_id', userId)
-          .single();
-        const maxWarriorStreak = Math.max(
-          warriorProfile?.current_streak || 0,
-          warriorProfile?.longest_streak || 0
-        );
-        return maxWarriorStreak >= 14;
+      case 'Streak Warrior':
+        // Award after 14-day streak
+        return await this.getActivityCount(userId, 'daily_streak') >= 14;
 
-      case 'streak_master':
-        // Award when user achieves 30-day streak
-        const { data: masterProfile } = await supabase
-          .from('faith_points_profiles')
-          .select('current_streak, longest_streak')
-          .eq('user_id', userId)
-          .single();
-        const maxMasterStreak = Math.max(
-          masterProfile?.current_streak || 0,
-          masterProfile?.longest_streak || 0
-        );
-        return maxMasterStreak >= 30;
+      case 'Streak Master':
+        // Award after 30-day streak
+        return await this.getActivityCount(userId, 'daily_streak') >= 30;
 
-      case 'streak_legend':
-        // Award when user achieves 60-day streak
-        const { data: legendProfile } = await supabase
-          .from('faith_points_profiles')
-          .select('current_streak, longest_streak')
-          .eq('user_id', userId)
-          .single();
-        const maxLegendStreak = Math.max(
-          legendProfile?.current_streak || 0,
-          legendProfile?.longest_streak || 0
-        );
-        return maxLegendStreak >= 60;
+      case 'Streak Legend':
+        // Award after 60-day streak
+        return await this.getActivityCount(userId, 'daily_streak') >= 60;
 
       // Level Achievement Badges
-      case 'faith_champion':
-        // Award when user reaches level 5
-        const { data: levelProfile } = await supabase
-          .from('faith_points_profiles')
-          .select('current_level')
-          .eq('user_id', userId)
-          .single();
-        return (levelProfile?.current_level || 1) >= 5;
+      case 'Faith Champion':
+        // Award after reaching level 5
+        return await this.getActivityCount(userId, 'level_5_reached') >= 1;
 
       default:
-        return true;
+        return false;
     }
   }
 

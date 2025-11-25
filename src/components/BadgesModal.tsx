@@ -51,19 +51,13 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     }
   }, [visible, user]);
 
-  // Debug: Log when badges change
-  useEffect(() => {
-    console.log('Rendering badges, availableBadges:', availableBadges);
-  }, [availableBadges]);
-
+  
   const loadBadges = async () => {
     if (!user) {
-      console.log('No user found, skipping badge loading');
-      return;
+            return;
     }
     
-    console.log('Starting badge loading for user:', user.id);
-    setLoading(true);
+        setLoading(true);
     try {
       // Get user's unlocked badges from database
       const { data: badgeRows, error: badgeError } = await supabase
@@ -72,18 +66,15 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         .eq('user_id', user.id);
 
       if (badgeError) {
-        console.error('Error fetching user badges:', badgeError);
-        return;
+                return;
       }
 
-      console.log('User badge rows from database:', badgeRows);
-
+      
       // Parse user badges from database
       let unlockedBadges: (Badge & { unlockedAt: string })[] = [];
       
       if (badgeRows && badgeRows.length > 0) {
-        console.log('Database columns found:', Object.keys(badgeRows[0] || {}));
-        
+                
         // First, get all available badges once if we need them
         let allBadges: Badge[] = [];
         const needsServiceLookup = badgeRows.some(row => row.badge_id && !row.badge_data);
@@ -116,8 +107,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
             }
             
             if (!badgeData) {
-              console.warn('No badge data found in row:', row);
-              return null;
+                            return null;
             }
             
             return {
@@ -125,25 +115,17 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               unlockedAt: unlockedAt,
             };
           } catch (parseError) {
-            console.error('Error parsing badge data:', parseError);
-            return null;
+                        return null;
           }
         }).filter(Boolean);
       } else {
-        console.log('No unlocked badges found in database for user');
-      }
-
-      console.log('Parsed unlocked badges:', unlockedBadges);
-      console.log('Badge icons in unlocked badges:', unlockedBadges.map(b => ({ id: b.id, icon: b.icon })));
+              }
 
       // Get all available badges
-      console.log('Calling faithPointsService.getAvailableBadges()');
       const allBadges = await faithPointsService.getAvailableBadges();
-      console.log('All available badges:', allBadges);
       
       if (!allBadges || allBadges.length === 0) {
-        console.error('No badges returned from getAvailableBadges(), using fallback badges');
-        // Use fallback badges for testing
+                // Use fallback badges for testing
         const fallbackBadges = [
           {
             id: 'test_badge_1',
