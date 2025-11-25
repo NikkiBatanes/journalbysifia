@@ -187,9 +187,10 @@ class NotificationManagementService {
         });
 
       if (error) {
-        Logger.error('Error scheduling notification', error as Error, {
+        Logger.error('Error scheduling notification', new Error(error.message || JSON.stringify(error)), {
       component: 'notificationManagementService',
-      action: 'error',
+      action: 'schedule_notification',
+      errorDetails: error,
     });
         return false;
       }

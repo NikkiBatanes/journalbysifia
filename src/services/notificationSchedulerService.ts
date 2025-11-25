@@ -153,6 +153,7 @@ class NotificationSchedulerService {
       'milestone_celebration': 'milestone_celebrations',
       'trial_notification': 'trial_notifications',
       'prayer_request_reminder': 'prayer_request_alerts',
+      'prayer_request_alert': 'prayer_request_alerts', // Add mapping for immediate prayer alerts
     };
 
     const prefKey = typeMap[type];
