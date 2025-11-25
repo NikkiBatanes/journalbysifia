@@ -100,7 +100,7 @@ const fallbackStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 4,
-    lineHeight: 20,
+    lineHeight: 16,
   },
   lastMetadataText: {
     fontSize: 12,
