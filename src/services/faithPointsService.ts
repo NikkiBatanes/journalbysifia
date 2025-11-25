@@ -720,88 +720,7 @@ export class FaithPointsService {
         pointsRequired: 300,
       },
       
-      // Level Achievement Badges
-      {
-        id: 'seeker',
-        name: 'Seeker',
-        description: 'Beginning your faith journey',
-        icon: '🔍',
-        rarity: 'common',
-        pointsRequired: 0,
-      },
-      {
-        id: 'believer',
-        name: 'Believer',
-        description: 'Growing in faith',
-        icon: '🌱',
-        rarity: 'common',
-        pointsRequired: 100,
-      },
-      {
-        id: 'disciple',
-        name: 'Disciple',
-        description: 'Committed to growth',
-        icon: '⚡',
-        rarity: 'rare',
-        pointsRequired: 300,
-      },
-      {
-        id: 'servant',
-        name: 'Servant',
-        description: 'Serving others',
-        icon: '🤲🏼',
-        rarity: 'rare',
-        pointsRequired: 600,
-      },
-      {
-        id: 'leader',
-        name: 'Leader',
-        description: 'Leading by example',
-        icon: '👑',
-        rarity: 'legendary',
-        pointsRequired: 1000,
-      },
-      {
-        id: 'teacher',
-        name: 'Teacher',
-        description: 'Sharing wisdom',
-        icon: '📚',
-        rarity: 'legendary',
-        pointsRequired: 1500,
-      },
-      {
-        id: 'mentor',
-        name: 'Mentor',
-        description: 'Guiding others',
-        icon: '🎯',
-        rarity: 'legendary',
-        pointsRequired: 2500,
-      },
-      {
-        id: 'elder',
-        name: 'Elder',
-        description: 'Wise in faith',
-        icon: '🦉',
-        rarity: 'legendary',
-        pointsRequired: 4000,
-      },
-      {
-        id: 'steward',
-        name: 'Steward',
-        description: 'Faithful steward of God\'s gifts',
-        icon: '🌾',
-        rarity: 'legendary',
-        pointsRequired: 6000,
-      },
-      {
-        id: 'ambassador',
-        name: 'Ambassador',
-        description: 'Spreading the faith',
-        icon: '🌍',
-        rarity: 'legendary',
-        pointsRequired: 10000,
-      },
-    ];
+          ];
   }
 
   /**
@@ -1133,47 +1052,7 @@ export class FaithPointsService {
         // Award after 60-day streak
         return await this.getActivityCount(userId, 'daily_streak') >= 60;
 
-      // Level Achievement Badges
-      case 'Seeker':
-        // Award after reaching level 1
-        return await this.getActivityCount(userId, 'level_1_reached') >= 1;
-
-      case 'Believer':
-        // Award after reaching level 2
-        return await this.getActivityCount(userId, 'level_2_reached') >= 1;
-
-      case 'Disciple':
-        // Award after reaching level 3
-        return await this.getActivityCount(userId, 'level_3_reached') >= 1;
-
-      case 'Servant':
-        // Award after reaching level 4
-        return await this.getActivityCount(userId, 'level_4_reached') >= 1;
-
-      case 'Leader':
-        // Award after reaching level 5
-        return await this.getActivityCount(userId, 'level_5_reached') >= 1;
-
-      case 'Teacher':
-        // Award after reaching level 6
-        return await this.getActivityCount(userId, 'level_6_reached') >= 1;
-
-      case 'Mentor':
-        // Award after reaching level 7
-        return await this.getActivityCount(userId, 'level_7_reached') >= 1;
-
-      case 'Elder':
-        // Award after reaching level 8
-        return await this.getActivityCount(userId, 'level_8_reached') >= 1;
-
-      case 'Steward':
-        // Award after reaching level 9
-        return await this.getActivityCount(userId, 'level_9_reached') >= 1;
-
-      case 'Ambassador':
-        // Award after reaching level 10
-        return await this.getActivityCount(userId, 'level_10_reached') >= 1;
-
+      
       default:
         return false;
     }

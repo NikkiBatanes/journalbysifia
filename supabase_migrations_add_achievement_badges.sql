@@ -181,25 +181,6 @@ ON CONFLICT (name) DO UPDATE SET
   rarity = EXCLUDED.rarity,
   updated_at = NOW();
 
--- Level Achievement Badges
-INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
-VALUES 
-  ('Seeker', 'Beginning your faith journey', '🔍', 0, 'common'),
-  ('Believer', 'Growing in faith', '🌱', 100, 'common'),
-  ('Disciple', 'Committed to growth', '⚡', 300, 'rare'),
-  ('Servant', 'Serving others', '🤲🏼', 600, 'rare'),
-  ('Leader', 'Leading by example', '👑', 1000, 'legendary'),
-  ('Teacher', 'Sharing wisdom', '📚', 1500, 'legendary'),
-  ('Mentor', 'Guiding others', '🎯', 2500, 'legendary'),
-  ('Elder', 'Wise in faith', '🦉', 4000, 'legendary'),
-  ('Steward', 'Faithful steward of God''s gifts', '🌾', 6000, 'legendary'),
-  ('Ambassador', 'Spreading the faith', '🌍', 10000, 'legendary')
-ON CONFLICT (name) DO UPDATE SET
-  description = EXCLUDED.description,
-  icon = EXCLUDED.icon,
-  faith_points_reward = EXCLUDED.faith_points_reward,
-  rarity = EXCLUDED.rarity,
-  updated_at = NOW();
 
 -- ============================================================================
 -- Verification Query
@@ -216,7 +197,5 @@ ON CONFLICT (name) DO UPDATE SET
 --   'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
 --   'Journal Keeper', 'Journal Scribe',
 --   'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend',
---   'Faith Champion',
---   'Seeker', 'Believer', 'Disciple', 'Servant', 'Leader',
---   'Teacher', 'Mentor', 'Elder', 'Steward', 'Ambassador'
+--   'Faith Champion'
 -- );
