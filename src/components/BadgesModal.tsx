@@ -67,7 +67,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       // Get user's unlocked badges from database
       const { data: badgeRows, error: badgeError } = await supabase
         .from('user_badges')
-        .select('badge_data, unlocked_at')
+        .select('*')  // Get all columns to see what's available
         .eq('user_id', user.id);
 
       if (badgeError) {
@@ -78,18 +78,47 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       console.log('User badge rows from database:', badgeRows);
 
       // Parse user badges from database
-      const unlockedBadges: (Badge & { unlockedAt: string })[] = badgeRows?.map(row => {
-        try {
-          const badgeData = typeof row.badge_data === 'string' ? JSON.parse(row.badge_data) : row.badge_data;
-          return {
-            ...badgeData,
-            unlockedAt: row.unlocked_at,
-          };
-        } catch (parseError) {
-          console.error('Error parsing badge data:', parseError);
-          return null;
-        }
-      }).filter(Boolean) || [];
+      let unlockedBadges: (Badge & { unlockedAt: string })[] = [];
+      
+      if (badgeRows && badgeRows.length > 0) {
+        console.log('Database columns found:', Object.keys(badgeRows[0] || {}));
+        
+        unlockedBadges = badgeRows.map(row => {
+          try {
+            // Try different possible column names
+            let badgeData = null;
+            let unlockedAt = null;
+            
+            if (row.badge_data) {
+              badgeData = typeof row.badge_data === 'string' ? JSON.parse(row.badge_data) : row.badge_data;
+            } else if (row.badge_id) {
+              // If only badge_id exists, we need to get the badge data from the service
+              badgeData = { id: row.badge_id };
+            }
+            
+            if (row.unlocked_at) {
+              unlockedAt = row.unlocked_at;
+            } else if (row.created_at) {
+              unlockedAt = row.created_at;
+            }
+            
+            if (!badgeData) {
+              console.warn('No badge data found in row:', row);
+              return null;
+            }
+            
+            return {
+              ...badgeData,
+              unlockedAt: unlockedAt,
+            };
+          } catch (parseError) {
+            console.error('Error parsing badge data:', parseError);
+            return null;
+          }
+        }).filter(Boolean);
+      } else {
+        console.log('No unlocked badges found in database for user');
+      }
 
       console.log('Parsed unlocked badges:', unlockedBadges);
 
