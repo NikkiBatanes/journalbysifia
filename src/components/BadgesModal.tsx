@@ -39,27 +39,19 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     
     setLoading(true);
     try {
-      console.log('[BadgesModal] Loading badges for user:', user.id);
-      
       // Get user's unlocked badges from database
       const { data: badgeRows, error: badgeError } = await supabase
         .from('user_badges')
         .select('badge_data')
         .eq('user_id', user.id);
 
-      console.log('[BadgesModal] Badge rows from DB:', badgeRows);
-      console.log('[BadgesModal] Badge error:', badgeError);
-
       let unlockedBadges: Badge[] = [];
       if (!badgeError && badgeRows) {
         unlockedBadges = badgeRows.map(row => row.badge_data);
       }
 
-      console.log('[BadgesModal] Unlocked badges:', unlockedBadges);
-
       // Get all available badges
       const allBadges = await faithPointsService.getAvailableBadges();
-      console.log('[BadgesModal] All available badges:', allBadges);
       
       // Mark which badges are unlocked
       const availableWithStatus = allBadges.map(badge => ({
@@ -68,24 +60,10 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         unlockedAt: unlockedBadges.find(ub => ub.id === badge.id)?.unlockedAt,
       }));
 
-      console.log('[BadgesModal] Final badges with status:', availableWithStatus);
-
       setAvailableBadges(availableWithStatus);
       setUserBadges(unlockedBadges);
     } catch (error) {
-      console.error('[BadgesModal] Error loading badges:', error);
-      // Fallback: Show all available badges as locked
-      try {
-        const allBadges = await faithPointsService.getAvailableBadges();
-        const fallbackBadges = allBadges.map(badge => ({
-          ...badge,
-          unlocked: false,
-        }));
-        setAvailableBadges(fallbackBadges);
-        setUserBadges([]);
-      } catch (fallbackError) {
-        console.error('[BadgesModal] Fallback also failed:', fallbackError);
-      }
+      console.error('Error loading badges:', error);
     } finally {
       setLoading(false);
     }
@@ -158,29 +136,18 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                 </View>
               </View>
 
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <Text style={styles.loadingText}>Loading badges...</Text>
-                </View>
-              ) : availableBadges.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No badges available</Text>
-                </View>
-              ) : (
-                <FlatList
-                  data={availableBadges}
-                  renderItem={renderBadge}
-                  keyExtractor={(item) => item.id}
-                  numColumns={2}
-                  contentContainerStyle={styles.badgesList}
-                  showsVerticalScrollIndicator={true}
-                  refreshing={loading}
-                  onRefresh={loadBadges}
-                  style={styles.flatListContainer}
-                  nestedScrollEnabled={true}
-                  scrollEnabled={true}
-                />
-              )}
+              <FlatList
+                data={availableBadges}
+                renderItem={renderBadge}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                contentContainerStyle={styles.badgesList}
+                showsVerticalScrollIndicator={true}
+                refreshing={loading}
+                onRefresh={loadBadges}
+                style={styles.flatList}
+                nestedScrollEnabled={true}
+              />
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -200,35 +167,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     borderRadius: 20,
     width: SCREEN_WIDTH - 32,
-    maxHeight: SCREEN_HEIGHT * 0.8, // Better height for scrolling
+    maxHeight: SCREEN_HEIGHT * 0.85, // Use screen height for better sizing
     padding: 24,
-    flex: 0, // Don't expand to fill all available space
   },
-  flatListContainer: {
-    flex: 1,
-    width: '100%',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
+  flatList: {
+    flex: 1, // Allow FlatList to take remaining space
   },
   modalHeader: {
     flexDirection: 'row',
@@ -282,17 +225,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     borderRadius: 16,
     padding: 16,
-    marginHorizontal: 6,
-    marginVertical: 8,
+    margin: 8,
     borderWidth: 2,
     flex: 1,
-    minHeight: 140,
-    maxWidth: (SCREEN_WIDTH - 64) / 2 - 12, // Ensure 2 columns fit properly
+    minHeight: 160,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   unlockedBadge: {
     opacity: 1,
@@ -301,26 +242,27 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   badgeIcon: {
-    fontSize: 32,
+    fontSize: 40,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   badgeName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
     color: Colors.anchorBlue,
   },
   badgeDescription: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
     color: Colors.textGray,
-    marginBottom: 8,
-    lineHeight: 14,
+    marginBottom: 12,
+    lineHeight: 16,
   },
   badgeFooter: {
     alignItems: 'center',
+    marginTop: 'auto',
   },
   rarityText: {
     fontSize: 11,
