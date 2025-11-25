@@ -292,19 +292,19 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 
         {/* Badges List */}
         {loading ? (
-          <BadgeSkeletonLoader count={8} showCount={true} />
-        ) : (
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 20 }]}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            showsVerticalScrollIndicator={false}
-          >
-            {availableBadges.length === 0 ? (
-              <BadgeSkeletonLoader count={8} showCount={true} />
-            ) : (
+            <BadgeSkeletonLoader count={8} showCount={false} />
+          ) : (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 20 }]}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              showsVerticalScrollIndicator={false}
+            >
+              {availableBadges.length === 0 ? (
+                <BadgeSkeletonLoader count={8} showCount={false} />
+              ) : (
               availableBadges.map((item: BadgeWithStatus) => (
                     <View key={item.id} style={[
                       styles.badgeItem,

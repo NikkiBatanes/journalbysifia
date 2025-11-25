@@ -15,18 +15,10 @@ interface BadgeSkeletonLoaderProps {
 
 const BadgeSkeletonLoader: React.FC<BadgeSkeletonLoaderProps> = ({ 
   count = 8, 
-  showCount = true 
+  showCount = false 
 }) => {
   return (
     <View style={styles.container}>
-      {/* Badge Count Skeleton */}
-      {showCount && (
-        <View style={styles.countContainer}>
-          <View style={styles.countSkeleton} />
-          <View style={styles.totalCountSkeleton} />
-        </View>
-      )}
-
       {/* Badges List Skeleton - matches real badge layout */}
       <View style={styles.badgesList}>
         {Array.from({ length: count }).map((_, index) => (
