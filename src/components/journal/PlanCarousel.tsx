@@ -18,13 +18,29 @@ const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 interface PlanCarouselProps {
   selectedDate: Date;
   refreshKey?: number;
+  initialScrollIndex?: number;
+  onScrollIndexChange?: (index: number) => void;
 }
 
-const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey }) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
+const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, initialScrollIndex = 0, onScrollIndexChange }) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(initialScrollIndex); // Start with initial card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-  const currentCardIndex = useRef(0);
+  const currentCardIndex = useRef(initialScrollIndex);
+  const hasRestoredPosition = useRef(false);
+
+  // Restore scroll position on mount
+  React.useEffect(() => {
+    if (!hasRestoredPosition.current && initialScrollIndex > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({
+          x: initialScrollIndex * (CARD_WIDTH + CARD_SPACING),
+          animated: false,
+        });
+        hasRestoredPosition.current = true;
+      }, 100);
+    }
+  }, [initialScrollIndex]);
 
   const carouselItems = [
     {
@@ -70,6 +86,8 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey })
       // Auto-expand the currently focused card
       setExpandedIndex(newCardIndex);
       handleScrollFeedback();
+      // Notify parent of scroll index change
+      onScrollIndexChange?.(newCardIndex);
     }
   }, [handleScrollFeedback]);
 

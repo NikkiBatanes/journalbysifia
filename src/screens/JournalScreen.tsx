@@ -194,6 +194,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Store scroll position to preserve carousel position when navigating away
   const savedScrollPosition = useRef<number>(0);
+  const savedCarouselIndices = useRef({ plan: 0, reflect: 0, pray: 0 });
 
   // Save scroll position when screen loses focus, restore when it gains focus
   useFocusEffect(
@@ -600,6 +601,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                 <PlanCarousel
                   selectedDate={currentDate}
                   refreshKey={refreshKey}
+                  initialScrollIndex={savedCarouselIndices.current.plan}
+                  onScrollIndexChange={(index) => { savedCarouselIndices.current.plan = index; }}
                 />
               </View>
               {/* Only show ReflectCarousel for today or past dates */}
@@ -609,10 +612,16 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                     <ReflectCarousel
                       selectedDate={currentDate}
                       refreshKey={refreshKey}
+                      initialScrollIndex={savedCarouselIndices.current.reflect}
+                      onScrollIndexChange={(index) => { savedCarouselIndices.current.reflect = index; }}
                     />
                   </View>
                   <View style={styles.carouselContainer}>
-                    <PrayCarousel selectedDate={currentDate} />
+                    <PrayCarousel 
+                      selectedDate={currentDate}
+                      initialScrollIndex={savedCarouselIndices.current.pray}
+                      onScrollIndexChange={(index) => { savedCarouselIndices.current.pray = index; }}
+                    />
                   </View>
                 </>
               )}
