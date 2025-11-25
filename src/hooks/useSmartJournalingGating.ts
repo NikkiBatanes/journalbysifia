@@ -1,5 +1,6 @@
 // useSmartJournalingGating - Feature gating for smart journaling (time blocks, gratitude, prayer, reflect)
-// Restricts seeker accounts from using smart journaling features
+// Restricts Seeker and Spark accounts from using smart journaling features
+// Only Growth and Transformation tiers have access
 
 import { useMemo } from 'react';
 import { useSubscription } from './useSubscription';
@@ -23,7 +24,8 @@ export interface SmartJournalingGatingResult {
 
 /**
  * Hook for managing smart journaling feature access
- * Seeker accounts are locked out and must upgrade unless explicitly allowed per feature
+ * Seeker and Spark accounts are locked out and must upgrade to Growth or Transformation
+ * Unless explicitly allowed per feature (e.g., journal carousel freeform)
  */
 export function useSmartJournalingGating(options: SmartJournalingGatingOptions = {}): SmartJournalingGatingResult {
   const { subscription } = useSubscription();
@@ -35,6 +37,7 @@ export function useSmartJournalingGating(options: SmartJournalingGatingOptions =
   } = options;
 
   const result = useMemo(() => {
+    // Allow bypass only for specific features when explicitly enabled (e.g., journal carousel)
     const seekerBypassesLock = allowSeekerFreeForm && feature === 'reflection';
 
     // For free_trial users, use their trial_chosen_tier for access checks
@@ -42,7 +45,7 @@ export function useSmartJournalingGating(options: SmartJournalingGatingOptions =
       ? subscription.trial_chosen_tier
       : tier;
 
-    // Restrict Seeker and Spark tiers - only Growth and Transformation can access
+    // Restrict Seeker and Spark tiers - only Growth and Transformation can access smart journaling
     const isLocked = (effectiveTier === 'seeker' || effectiveTier === 'spark' || effectiveTier === 'spark_annual') && !seekerBypassesLock;
     const canUseFeature = !isLocked;
 

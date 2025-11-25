@@ -481,7 +481,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     },
   });
 
-  // Smart journaling gating (Growth & Transformation only)
+  // Smart journaling gating (Growth & Transformation only - gates Seeker AND Spark tiers)
   // Smart journaling = dashboard smart journaling, action steps, Today's Scripture/Declaration (all with tooltip icons)
   // NOT smart journaling = devotional editor, journal carousel freeform, journal carousel guided prompts
   // Only gate when source is 'thoughts' (all smart journaling contexts)
