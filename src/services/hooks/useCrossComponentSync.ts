@@ -98,7 +98,7 @@ export const useCrossComponentSync = (userId: string) => {
         (async () => {
           // Update devotional queries
           queryClient.invalidateQueries({
-            queryKey: queryKeys.devotionals.byUser(userId),
+            queryKey: ['devotionals', 'list', userId],
           });
 
           // Invalidate dashboard-related queries in parallel
