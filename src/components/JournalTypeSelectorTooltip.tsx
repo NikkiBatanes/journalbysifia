@@ -72,10 +72,13 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   subtaskText,
   showTimeBlock = false, // Default to false for dashboard
 }) => {
-  // ENTERPRISE: Responsive design for iPad landscape
+  // ENTERPRISE: Responsive design for iPad (both portrait and landscape)
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const isTablet = width >= 768; // iPad mini width and above
+  
+  // ENTERPRISE FIX: Apply better spacing to ALL tablet sizes, not just landscape
+  const useEnhancedSpacing = isTablet; // Changed from: isLandscape && isTablet
   
   // ENTERPRISE DEBUG: Log responsive state
   React.useEffect(() => {
@@ -84,9 +87,9 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
       height,
       isLandscape,
       isTablet,
-      shouldUseLandscapeStyles: isLandscape && isTablet,
+      useEnhancedSpacing,
     });
-  }, [width, height, isLandscape, isTablet]);
+  }, [width, height, isLandscape, isTablet, useEnhancedSpacing]);
   
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   
@@ -273,7 +276,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
         {/* iMessage-style horizontal pill picker */}
         <Animated.View
           style={[
-            isLandscape && isTablet ? styles.pickerPillLandscape : styles.pickerPill,
+            useEnhancedSpacing ? styles.pickerPillLandscape : styles.pickerPill,
             {
               opacity: opacityAnim,
               transform: [{ scale: scaleAnim }],
@@ -281,13 +284,13 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
           ]}
         >
           {filteredOptions.map((option, index) => {
-            const buttonStyle = isLandscape && isTablet ? styles.iconButtonLandscape : styles.iconButton;
-            const borderStyle = index < filteredOptions.length - 1 && (isLandscape && isTablet ? styles.iconButtonBorderLandscape : styles.iconButtonBorder);
+            const buttonStyle = useEnhancedSpacing ? styles.iconButtonLandscape : styles.iconButton;
+            const borderStyle = index < filteredOptions.length - 1 && (useEnhancedSpacing ? styles.iconButtonBorderLandscape : styles.iconButtonBorder);
             
             // ENTERPRISE DEBUG: Log applied styles
             if (index === 0) {
               console.log('[JournalTypeSelectorTooltip] Button styles:', {
-                usingLandscape: isLandscape && isTablet,
+                useEnhancedSpacing,
                 buttonStyle,
                 borderStyle,
               });
@@ -410,7 +413,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  // iPad landscape pill container
+  // iPad enhanced spacing (portrait and landscape)
   pickerPillLandscape: {
     flexDirection: 'row',
     backgroundColor: 'rgba(50, 50, 50, 0.95)',
@@ -441,7 +444,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     paddingRight: 16,
   },
-  // iPad landscape spacing
+  // iPad enhanced spacing (portrait and landscape)
   iconButtonLandscape: {
     paddingHorizontal: 16, // Double the horizontal padding
     paddingVertical: 8,   // Double the vertical padding
