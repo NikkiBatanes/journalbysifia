@@ -1088,7 +1088,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={true}
+          scrollEnabled={expandedCardId === null} // Disable outer scroll when card is expanded
           bounces={false}
           alwaysBounceVertical={false}
           overScrollMode="never"
@@ -1280,11 +1280,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       <ScrollView
                         style={{
                           width: STACKED_CARD_WIDTH,
-                          // Use fixed height for expanded cards to prevent scrolling issues
-                          maxHeight: Math.max(600, windowHeight * 1.1),
+                          // Use responsive height for expanded cards based on orientation
+                          maxHeight: isPortrait
+                            ? Math.max(600, windowHeight * 0.8)
+                            : Math.min(windowHeight - 120, 400), // In landscape, limit to available height minus header/footer
                           borderRadius: 30,
                         }}
-                        contentContainerStyle={{ flexGrow: 1, paddingBottom: 400 }}
+                        contentContainerStyle={{ flexGrow: 1, paddingBottom: isPortrait ? 400 : 100 }}
                         showsVerticalScrollIndicator={false}
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
