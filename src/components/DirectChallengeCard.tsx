@@ -128,8 +128,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadii.cardXL,
     paddingTop: 0,
     paddingHorizontal: 0,
-    width: '100%',
-    alignSelf: 'stretch',
+    // Remove width constraints to prevent excessive expansion like other cards
+    // width: '100%',
+    // alignSelf: 'stretch',
   },
   headerContainer: {
     flexDirection: 'row',
@@ -158,8 +159,9 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     textAlign: 'left',
     paddingHorizontal: 8,
-    alignSelf: 'stretch',
-    width: '100%',
+    // Remove width constraints to prevent excessive expansion
+    // alignSelf: 'stretch',
+    // width: '100%',
     marginTop: 16,
   },
   cta: {
@@ -169,8 +171,9 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     textAlign: 'left',
     paddingHorizontal: 8,
-    alignSelf: 'stretch',
-    width: '100%',
+    // Remove width constraints to prevent excessive expansion
+    // alignSelf: 'stretch',
+    // width: '100%',
     marginTop: 16,
   },
   expandIcon: {
