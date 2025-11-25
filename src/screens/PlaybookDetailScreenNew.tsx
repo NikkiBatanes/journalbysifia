@@ -615,7 +615,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
     // Clean up animations for cards that no longer exist
     const currentCardIds = new Set(cardData.map(card => card.id));
-    Object.keys(cardAnimations).forEach(id => {
+    Object.keys(cardAnimationsRef.current).forEach(id => {
       if (!currentCardIds.has(id)) {
         // Stop and clean up animations for removed cards
         const anim = cardAnimations[id];
@@ -626,7 +626,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         } catch {
           // Ignore animation stop errors
         }
-        delete cardAnimations[id];
+        delete cardAnimationsRef.current[id];
       }
     });
 
@@ -1644,7 +1644,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
           // Get animation values for this card
-          const animValues = cardAnimations[card.id] || {
+          const animValues = cardAnimationsRef.current[card.id] || {
             translateY: new RNAnimated.Value((cardData.length - index - 1) * STACK_OFFSET),
             scale: new RNAnimated.Value(1),
             opacity: new RNAnimated.Value(1),
