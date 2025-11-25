@@ -957,7 +957,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             {
               // Collapse by default; expand when toggled
               // Exception: Truth, Affirmations, Direct Challenge on iPad portrait show full content
-              height: (isExpanded || shouldShowFullContent) ? 'auto' : COLLAPSED_HEIGHT,
+              height: (isExpanded || shouldShowFullContent) ? undefined : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
               // Remove overflow hidden when expanded to prevent cropping
