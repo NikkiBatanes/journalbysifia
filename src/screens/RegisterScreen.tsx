@@ -299,14 +299,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             By continuing, you agree to our{' '}
             <ThemedText
               style={styles.termsLink}
-              onPress={() => openExternalLink('https://sifia.app/terms')}
+              onPress={() => openExternalLink('https://sifia.app/legal/terms.html')}
             >
               Terms of Service
             </ThemedText>
             {' '}and{' '}
             <ThemedText
               style={styles.termsLink}
-              onPress={() => openExternalLink('https://sifia.app/privacy')}
+              onPress={() => openExternalLink('https://sifia.app/legal/privacy.html')}
             >
               Privacy Policy
             </ThemedText>
