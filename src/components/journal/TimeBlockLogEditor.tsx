@@ -798,9 +798,10 @@ function TimeBlockLogEditorInner(
   };
 
   // Dynamic title font sizing - fixed size based on line count
-  // Original: 16px, reduce to 18px if > 3 lines (consistent with other editors)
-  // Calculate based on header title (subtaskTitle), not input title
-  const titleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 16;
+  // Header title: Original 22px, reduce to 18px if > 3 lines
+  // Input title: Original 16px, reduce to 18px if > 3 lines (but input is for user entry, not subtask)
+  const headerTitleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
+  const inputTitleFontSize = 16; // Input field always uses 16px (user enters their own title)
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
@@ -955,7 +956,7 @@ function TimeBlockLogEditorInner(
           >
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
-              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: titleFontSize }]}>
+              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: headerTitleFontSize }]}>
                 {_subtaskTitle || 'Time Block Entry'}
               </ThemedText>
               {smartJournalingGating.isLocked && (
@@ -1028,7 +1029,7 @@ function TimeBlockLogEditorInner(
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
-                style={[s.formInput, { fontFamily: fonts.regular }, { fontSize: titleFontSize }]}
+                style={[s.formInput, { fontFamily: fonts.regular }, { fontSize: inputTitleFontSize }]}
                 placeholder="Title *"
                 placeholderTextColor={Colors.alertCoral}
                 value={title}
