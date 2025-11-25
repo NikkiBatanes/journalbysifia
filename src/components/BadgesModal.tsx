@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -10,10 +10,11 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Colors } from '../theme';
-// import ThemedText from './common/ThemedText';
+import ThemedText from './common/ThemedText';
 import { faithPointsService, Badge } from '../services/faithPointsService';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -24,6 +25,8 @@ interface BadgesModalProps {
 
 const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   const { user } = useAuth();
+  const theme = useTheme();
+  const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
   const [availableBadges, setAvailableBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(false);
@@ -84,40 +87,50 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       styles.badgeItem,
       item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
     ]}>
-      <View style={styles.badgeIconContainer}>
-        <Text style={styles.badgeIcon}>
-          {item.unlocked ? item.icon : '🔐'}
-        </Text>
-        {!item.unlocked && <View style={styles.lockOverlay} />}
-      </View>
-      
-      <Text style={[
-        styles.badgeName,
-        { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
-      ]}>
-        {item.name}
-      </Text>
-      
-      <Text style={[
-        styles.badgeDescription,
-        { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
-      ]}>
-        {item.description}
-      </Text>
-      
-      <View style={styles.badgeFooter}>
+      {/* Icon Section */}
+      <View style={styles.iconSection}>
+        <View style={styles.badgeIconContainer}>
+          <Text style={styles.badgeIcon}>
+            {item.unlocked ? item.icon : '🔐'}
+          </Text>
+          {!item.unlocked && <View style={styles.lockOverlay} />}
+        </View>
+        
+        {/* Rarity Badge */}
         <View style={[
           styles.rarityBadge,
           { backgroundColor: getRarityColor(item.rarity) }
         ]}>
-          <Text style={styles.rarityText}>
+          <ThemedText style={styles.rarityText}>
             {item.rarity.toUpperCase()}
-          </Text>
+          </ThemedText>
         </View>
+      </View>
+      
+      {/* Content Section */}
+      <View style={styles.contentSection}>
+        <ThemedText 
+          weight="bold" 
+          style={[
+            styles.badgeName,
+            { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
+          ]}
+        >
+          {item.name}
+        </ThemedText>
+        
+        <ThemedText 
+          style={[
+            styles.badgeDescription,
+            { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
+          ]}
+        >
+          {item.description}
+        </ThemedText>
         
         {item.unlocked && item.unlockedAt && (
           <Text style={styles.unlockedDate}>
-            {new Date(item.unlockedAt).toLocaleDateString()}
+            Unlocked {new Date(item.unlockedAt).toLocaleDateString()}
           </Text>
         )}
       </View>
@@ -135,20 +148,20 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>
+          <ThemedText weight="bold" style={styles.modalTitle}>
             My Badges
-          </Text>
+          </ThemedText>
           <View style={styles.placeholder} />
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userBadges.length}</Text>
-            <Text style={styles.statLabel}>Unlocked</Text>
+            <Text style={[styles.statNumber, font]}>{userBadges.length}</Text>
+            <ThemedText style={styles.statLabel}>Unlocked</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{availableBadges.length}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+            <Text style={[styles.statNumber, font]}>{availableBadges.length}</Text>
+            <ThemedText style={styles.statLabel}>Total</ThemedText>
           </View>
         </View>
 
@@ -200,51 +213,49 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
     textAlign: 'center',
     flex: 1,
+    color: Colors.hopeWhite,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 32,
+    marginBottom: 24,
     marginHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 16,
     backgroundColor: 'rgba(242, 245, 247, 0.1)',
-    borderRadius: 20,
+    borderRadius: 16,
   },
   statItem: {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: Colors.faithGold,
   },
   statLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
-    marginTop: 6,
+    marginTop: 4,
     opacity: 0.8,
   },
   flatListStyle: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   badgesList: {
     paddingBottom: 40,
   },
   badgeItem: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 16,
     margin: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     flex: 1,
-    minHeight: 200,
-    justifyContent: 'space-between',
+    minHeight: 160,
+    overflow: 'hidden',
   },
   unlockedBadge: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -254,13 +265,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderColor: 'rgba(255,255,255,0.05)',
   },
+  iconSection: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
   badgeIconContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
     position: 'relative',
   },
   badgeIcon: {
-    fontSize: 56,
+    fontSize: 40,
     textAlign: 'center',
   },
   lockOverlay: {
@@ -270,40 +288,44 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 28,
-  },
-  badgeName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  badgeDescription: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-    flex: 1,
-  },
-  badgeFooter: {
-    alignItems: 'center',
+    borderRadius: 20,
   },
   rarityBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
-    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginTop: 4,
   },
   rarityText: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  contentSection: {
+    padding: 16,
+    flex: 1,
+  },
+  badgeName: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+    color: Colors.hopeWhite,
+  },
+  badgeDescription: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 16,
+    color: 'rgba(242, 245, 247, 0.8)',
   },
   unlockedDate: {
-    fontSize: 12,
-    color: 'rgba(242, 245, 247, 0.7)',
+    fontSize: 10,
+    color: 'rgba(242, 245, 247, 0.6)',
     fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 'auto',
   },
 });
 
