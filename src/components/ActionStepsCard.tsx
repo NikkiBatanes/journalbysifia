@@ -5,7 +5,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { Pencil } from 'lucide-react-native';
-import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter, useWindowDimensions } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -135,6 +135,11 @@ export default function ActionStepsCard({
   showCloseButton = true,
   onCollapse,
 }: ActionStepsCardProps) {
+  // ENTERPRISE: Responsive design for iPad landscape
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isTablet = width >= 768; // iPad mini width and above
+  
   const { user } = useAuth();
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const queryClient = useQueryClient();
