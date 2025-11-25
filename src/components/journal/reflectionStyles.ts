@@ -428,6 +428,12 @@ export const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
   },
+  modalPrometadataText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+  },
   modalContentText: {
     fontSize: 16,
     lineHeight: 24,

@@ -135,10 +135,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         date: dateStr,
       }, user.id);
 
-      // Force refetch to ensure UI updates
-
-      await refetch();
-
+      // PERFORMANCE: Remove blocking refetch - invalidation will trigger automatic refetch
       // PERFORMANCE: Parallel cache invalidation instead of sequential
       if (user?.id) {
         await Promise.all([

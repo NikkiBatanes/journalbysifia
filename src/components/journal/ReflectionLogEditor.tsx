@@ -94,6 +94,12 @@ const fallbackStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 4,
+  },
+  metadataTextWithLineHeight: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
     lineHeight: 20,
   },
   lastMetadataText: {
@@ -101,7 +107,6 @@ const fallbackStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 0,
-    lineHeight: 20,
   },
   header: {
     flexDirection: 'row',
@@ -1454,7 +1459,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     </ThemedText>
                   )}
                   {dayNumber && dayTitle && totalDays !== 1 && (
-                    <ThemedText style={s.metadataText}>
+                    <ThemedText style={s.metadataTextWithLineHeight}>
                       Day {dayNumber}: {(() => {
                         // Check if title includes "Bible verse" or "bible verse"
                         const lowerTitle = dayTitle.toLowerCase();
@@ -1501,7 +1506,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     </ThemedText>
                   )}
                   {dayNumber && dayTitle && (
-                    <ThemedText style={s.metadataText}>
+                    <ThemedText style={s.metadataTextWithLineHeight}>
                       Step {dayNumber}: {(() => {
                         // Check if title includes "Bible verse" or "bible verse"
                         const lowerTitle = dayTitle.toLowerCase();
