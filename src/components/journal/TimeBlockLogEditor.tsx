@@ -954,7 +954,7 @@ function TimeBlockLogEditorInner(
           >
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
-              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
+              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: titleFontSize }]}>
                 {_subtaskTitle || 'Time Block Entry'}
               </ThemedText>
               {smartJournalingGating.isLocked && (
