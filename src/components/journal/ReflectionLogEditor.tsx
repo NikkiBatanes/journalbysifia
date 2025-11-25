@@ -1562,7 +1562,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               {/* Cancel FAB */}
               <TouchableOpacity
                 style={[s.fab, s.cancelFab]}
-                onPress={handleCancel}
+                onPress={() => {
+                  triggerLightHaptic();
+                  handleCancel();
+                }}
               >
                 <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
               </TouchableOpacity>
@@ -1575,7 +1578,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   (!newEntry.title.trim() || !newEntry.content.trim() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
                 ]}
                 disabled={!newEntry.title.trim() || !newEntry.content.trim() || !hasUserMadeChanges || isLoading}
-                onPress={handleSave}
+                onPress={() => {
+                  triggerLightHaptic();
+                  handleSave();
+                }}
               >
                 {isLoading ? (
                   <ActivityIndicator size={20} color={Colors.hopeWhite} />

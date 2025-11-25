@@ -778,7 +778,10 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
           {/* Prayer mode icons - compact layout */}
           <TouchableOpacity
             style={[s.modeButton, activeTab === 'freeform' && s.activeModeButton]}
-            onPress={() => setActiveTab('freeform')}
+            onPress={() => {
+              triggerLightHaptic();
+              setActiveTab('freeform');
+            }}
             accessibilityLabel="Switch to Free Form Prayer"
           >
             <Pencil
@@ -791,6 +794,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
           <TouchableOpacity
             style={[s.modeButton, activeTab === 'people' && s.activeModeButton]}
             onPress={() => {
+              triggerLightHaptic();
               setActiveTab('people');
               // Focus the person input after switching tabs
               setTimeout(() => {
@@ -913,7 +917,10 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
               {/* Cancel FAB */}
               <TouchableOpacity
                 style={[s.fab, s.cancelFab]}
-                onPress={onCancel}
+                onPress={() => {
+                  triggerLightHaptic();
+                  onCancel();
+                }}
               >
                 <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
               </TouchableOpacity>
@@ -926,7 +933,10 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   (!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
                 ]}
                 disabled={!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading}
-                onPress={handleSavePress}
+                onPress={() => {
+                  triggerLightHaptic();
+                  handleSavePress();
+                }}
               >
                 {isLoading ? (
                   <ActivityIndicator size={20} color={Colors.hopeWhite} />

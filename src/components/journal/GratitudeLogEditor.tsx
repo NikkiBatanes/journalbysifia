@@ -486,14 +486,27 @@ const GratitudeLogEditorInner = (
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     focusInput: () => {
-      // Focus the first input and position cursor at the end
-      if (inputRefs.current[0]) {
-        inputRefs.current[0].focus();
+      // Focus the last non-empty input, or the last input if all are empty
+      const lastIndex = gratitudeItems.length - 1;
+      let lastNonEmptyIndex = -1;
+      
+      // Find last non-empty item (reverse search)
+      for (let i = gratitudeItems.length - 1; i >= 0; i--) {
+        if (gratitudeItems[i].trim().length > 0) {
+          lastNonEmptyIndex = i;
+          break;
+        }
+      }
+      
+      const targetIndex = lastNonEmptyIndex >= 0 ? lastNonEmptyIndex : lastIndex;
+      
+      if (inputRefs.current[targetIndex]) {
+        inputRefs.current[targetIndex].focus();
         // Position cursor at the end of the text
         setTimeout(() => {
-          if (inputRefs.current[0]) {
-            const text = gratitudeItems[0] || '';
-            inputRefs.current[0].setSelection(text.length, text.length);
+          if (inputRefs.current[targetIndex]) {
+            const text = gratitudeItems[targetIndex] || '';
+            inputRefs.current[targetIndex].setSelection(text.length, text.length);
           }
         }, 100);
       }
@@ -515,13 +528,20 @@ const GratitudeLogEditorInner = (
       // Fallback to title-based key with date
       const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
       const stepNum = actionStepNumber || 0;
-      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30); // Increased from 20 to 30 for better uniqueness
       const key = `@gratitude_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
       return key;
     }
 
-    // Default key with date
-    const key = `@gratitude_editor_draft_${currentDate}`;
+    // If we have subtaskTitle but no playbook, use it for uniqueness
+    if (_subtaskTitle) {
+      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+      const key = `@gratitude_editor_draft_${taskTitle}_${currentDate}`;
+      return key;
+    }
+
+    // Default key with date only (for freeform gratitude)
+    const key = `@gratitude_editor_draft_freeform_${currentDate}`;
     return key;
   }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber]);
 
@@ -605,6 +625,7 @@ const GratitudeLogEditorInner = (
   };
 
   const addGratitudeItem = () => {
+    triggerLightHaptic(); // Add haptic feedback
     const newIndex = gratitudeItems.length;
     setGratitudeItems([...gratitudeItems, '']);
     setHasUserMadeChanges(true);
@@ -859,7 +880,10 @@ const GratitudeLogEditorInner = (
               {/* Cancel FAB */}
               <TouchableOpacity
                 style={[s.fab, s.cancelFab]}
-                onPress={_onCancel}
+                onPress={() => {
+                  triggerLightHaptic(); // Add haptic feedback for FAB
+                  _onCancel();
+                }}
               >
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
@@ -873,6 +897,7 @@ const GratitudeLogEditorInner = (
                 ]}
                 disabled={!isFormValid || isLoading}
                 onPress={() => {
+                  triggerLightHaptic(); // Add haptic feedback for FAB
                   handleSave();
                 }}
               >
