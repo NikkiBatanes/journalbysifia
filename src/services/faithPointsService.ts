@@ -1112,18 +1112,34 @@ export class FaithPointsService {
 
   private async awardBadge(userId: string, badge: Badge): Promise<void> {
     try {
-      await supabase
+      // Only insert badge_id and unlocked_at (badge_data column doesn't exist in schema)
+      const { error: insertError } = await supabase
         .from('user_badges')
         .insert({
           user_id: userId,
           badge_id: badge.id,
-          badge_data: badge,
           unlocked_at: new Date().toISOString(),
         });
+
+      if (insertError) {
+        Logger.error('[FaithPointsService] Failed to save badge to database', insertError as Error, {
+          component: 'faithPointsService',
+          badgeId: badge.id,
+          errorDetails: insertError,
+        });
+        throw insertError;
+      }
+
+      Logger.info('[FaithPointsService] Badge awarded successfully', {
+        component: 'faithPointsService',
+        badgeId: badge.id,
+        badgeName: badge.name,
+      });
     } catch (error) {
       Logger.error('[FaithPointsService] Error awarding badge', error as Error, {
-      component: 'faithPointsService',
-    });
+        component: 'faithPointsService',
+        badgeId: badge.id,
+      });
     }
   }
 
