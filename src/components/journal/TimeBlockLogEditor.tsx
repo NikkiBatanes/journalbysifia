@@ -747,7 +747,7 @@ function TimeBlockLogEditorInner(
   }));
 
   // State management
-  const [title, setTitle] = React.useState(existingTimeBlock?.title || _subtaskTitle || '');
+  const [title, setTitle] = React.useState(existingTimeBlock?.title || '');
   const [startTime, setStartTime] = React.useState(() => {
     if (existingTimeBlock?.start_time) {
       return new Date(existingTimeBlock.start_time);
@@ -799,7 +799,8 @@ function TimeBlockLogEditorInner(
 
   // Dynamic title font sizing - fixed size based on line count
   // Original: 16px, reduce to 18px if > 3 lines (consistent with other editors)
-  const titleFontSize = calculateLineCount(title, 30) > 3 ? 18 : 16;
+  // Calculate based on header title (subtaskTitle), not input title
+  const titleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 16;
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
