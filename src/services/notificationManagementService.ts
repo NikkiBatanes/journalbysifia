@@ -187,11 +187,24 @@ class NotificationManagementService {
         });
 
       if (error) {
-        Logger.error('Error scheduling notification', new Error(error.message || JSON.stringify(error)), {
-      component: 'notificationManagementService',
-      action: 'schedule_notification',
-      errorDetails: error,
-    });
+        // Check if it's an RLS policy violation
+        const isRLSError = error.code === '42501' || error.message?.includes('row-level security');
+        
+        if (isRLSError) {
+          Logger.warn('Notification blocked by RLS policy - check Supabase permissions', {
+            component: 'notificationManagementService',
+            action: 'schedule_notification',
+            userId: notification.user_id,
+            notificationType: notification.type,
+            hint: 'Add RLS policy: CREATE POLICY "Users can insert notifications" ON notification_queue FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);',
+          });
+        } else {
+          Logger.error('Error scheduling notification', new Error(error.message || JSON.stringify(error)), {
+            component: 'notificationManagementService',
+            action: 'schedule_notification',
+            errorDetails: error,
+          });
+        }
         return false;
       }
 
