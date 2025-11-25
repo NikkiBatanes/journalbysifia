@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
  */
 export class SafeNetworkingManager {
   private static instance: SafeNetworkingManager;
-  
+
   static getInstance(): SafeNetworkingManager {
     if (!SafeNetworkingManager.instance) {
       SafeNetworkingManager.instance = new SafeNetworkingManager();
@@ -23,19 +23,19 @@ export class SafeNetworkingManager {
       if (Platform.OS === 'ios') {
         // Try to get MIME type first
         const mimeType = response.MIMEType || response.type;
-        
+
         // If we have a MIME type, generate a safe filename
         if (mimeType) {
           const extension = this.getExtensionFromMimeType(mimeType);
           const timestamp = Date.now();
           return `response_${timestamp}${extension}`;
         }
-        
+
         // If no MIME type, return a generic filename
         const timestamp = Date.now();
         return `response_${timestamp}.bin`;
       }
-      
+
       // On other platforms, use the original method
       return response.suggestedFilename || null;
     } catch (error) {
@@ -72,7 +72,7 @@ export class SafeNetworkingManager {
       'video/webm': '.webm',
       'video/quicktime': '.mov',
     };
-    
+
     return mimeMap[mimeType.toLowerCase()] || '.bin';
   }
 }

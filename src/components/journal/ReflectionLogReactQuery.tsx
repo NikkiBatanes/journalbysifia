@@ -604,10 +604,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   }, [entries, deleteMutation, user, dateStr]);
 
   // Refresh guided prompt gating state when editor modal opens
+  // Refresh guided prompt access when adding new entry
   useEffect(() => {
     if (isAdding) {
       guidedPromptGating.refreshAccess();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdding, guidedPromptGating.refreshAccess]); // Only depend on the function, not the whole object
 
   // Handle prompt selection with analytics

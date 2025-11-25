@@ -51,7 +51,7 @@ class PrayerRequestNotificationService {
       const scheduledFor = new Date();
       scheduledFor.setDate(scheduledFor.getDate() + 1); // Next day
       scheduledFor.setHours(9, 0, 0, 0); // 9:00 AM
-      
+
       // If it's already past 9 AM today, schedule for tomorrow at 9 AM
       // Otherwise schedule for today at 9 AM
       const now = new Date();

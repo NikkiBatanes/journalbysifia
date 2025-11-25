@@ -189,7 +189,7 @@ class NotificationManagementService {
       if (error) {
         // Check if it's an RLS policy violation
         const isRLSError = error.code === '42501' || error.message?.includes('row-level security');
-        
+
         if (isRLSError) {
           Logger.warn('Notification blocked by RLS policy - check Supabase permissions', {
             component: 'notificationManagementService',

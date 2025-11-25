@@ -119,6 +119,7 @@ export function useGuidedPromptGating({
   // Load data on mount and when user or tier changes
   useEffect(() => {
     loadDailyAllocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, currentTier]); // Use direct dependencies instead of loadDailyAllocation
 
   // Note: Removed automatic upgrade trigger - let components handle this manually

@@ -84,7 +84,8 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         propStyles.docContentContainer,
         styles.contentContainer,
         // Dynamic padding based on orientation for consistent scrolling behavior
-        { paddingBottom: isLandscape ? 140 : 250 }
+        // eslint-disable-next-line react-native/no-inline-styles
+        { paddingBottom: isLandscape ? 140 : 250 },
       ]}
       onScroll={handleScroll}
       scrollEventThrottle={scrollEventThrottle}

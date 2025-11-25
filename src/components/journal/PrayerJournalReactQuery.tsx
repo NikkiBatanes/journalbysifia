@@ -383,7 +383,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         })),
       });
     }
-  }, [filters, existingPrayers.length, displayPrayers.length]);
+  }, [filters, existingPrayers.length, displayPrayers.length, allowedTypeKeysFromFilters, existingPrayers]);
 
   // Check if we have content to display
   const hasContent = displayPrayers.length > 0;

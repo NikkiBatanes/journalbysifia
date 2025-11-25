@@ -489,7 +489,7 @@ const GratitudeLogEditorInner = (
       // Focus the last non-empty input, or the last input if all are empty
       const lastIndex = gratitudeItems.length - 1;
       let lastNonEmptyIndex = -1;
-      
+
       // Find last non-empty item (reverse search)
       for (let i = gratitudeItems.length - 1; i >= 0; i--) {
         if (gratitudeItems[i].trim().length > 0) {
@@ -497,9 +497,9 @@ const GratitudeLogEditorInner = (
           break;
         }
       }
-      
+
       const targetIndex = lastNonEmptyIndex >= 0 ? lastNonEmptyIndex : lastIndex;
-      
+
       if (inputRefs.current[targetIndex]) {
         inputRefs.current[targetIndex].focus();
         // Position cursor at the end of the text
@@ -629,7 +629,7 @@ const GratitudeLogEditorInner = (
     const newIndex = gratitudeItems.length;
     setGratitudeItems([...gratitudeItems, '']);
     setHasUserMadeChanges(true);
-    
+
     // Focus the new input after it's rendered
     setTimeout(() => {
       if (inputRefs.current[newIndex]) {

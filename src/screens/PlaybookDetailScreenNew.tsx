@@ -1879,7 +1879,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   contentContainerStyle={[
                     styles.expandedScrollContent,
                     // Dynamic padding based on orientation for better scrollability
-                    { paddingBottom: isLandscape ? 400 : 850 }
+                    // eslint-disable-next-line react-native/no-inline-styles
+                    { paddingBottom: isLandscape ? 400 : 850 },
                   ]}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={true}

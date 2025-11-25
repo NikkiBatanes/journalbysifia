@@ -29,7 +29,7 @@ export class NetworkErrorBoundary extends Component<Props, State> {
                           error.message.includes('suggestedFilename') ||
                           error.message.includes('UTType') ||
                           error.message.includes('CoreServices');
-    
+
     if (isNetworkError) {
       Logger.error('NetworkErrorBoundary: Caught network-related error', error, {
         component: 'Unknown',
@@ -37,7 +37,7 @@ export class NetworkErrorBoundary extends Component<Props, State> {
       });
       return { hasError: true, error, errorInfo: null };
     }
-    
+
     // Let other errors propagate to parent error boundaries
     return { hasError: false, error: null, errorInfo: null };
   }
@@ -47,13 +47,13 @@ export class NetworkErrorBoundary extends Component<Props, State> {
                           error.message.includes('suggestedFilename') ||
                           error.message.includes('UTType') ||
                           error.message.includes('CoreServices');
-    
+
     Logger.error('NetworkErrorBoundary: Error caught', error, {
       component: this.props.name || 'Unknown',
       errorInfo,
       isNetworkError,
     });
-    
+
     this.setState({ error, errorInfo });
   }
 
