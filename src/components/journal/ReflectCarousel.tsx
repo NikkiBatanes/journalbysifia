@@ -212,6 +212,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
         hideGuidedPromptButton={false} // Show heart icon for guided prompts
         onSave={handleReflectionModalSave}
         onCancel={handleReflectionModalCancel}
+        initialTitle="" // Ensure empty title for auto-focus
       />
     </View>
   );
