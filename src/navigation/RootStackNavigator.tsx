@@ -5,7 +5,6 @@ import {
 } from '@react-navigation/native-stack';
 // Removed CommonActions import as we navigate directly to UserProfile
 
-// import { Colors } from '../theme/colors';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';

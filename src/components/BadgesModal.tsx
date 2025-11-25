@@ -150,7 +150,13 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         unlockedAt: unlockedBadges.find(ub => ub.id === badge.id)?.unlockedAt,
       }));
 
-      console.log('Available badges with status:', availableWithStatus);
+      const unlockedCount = availableWithStatus.filter(badge => badge.unlocked).length;
+      console.log(`[BadgesModal] Badge screen count: ${unlockedCount} unlocked badges`);
+      console.log(`[BadgesModal] Total unlocked from DB: ${unlockedBadges.length} rows`);
+      console.log(`[BadgesModal] Total available badges: ${allBadges.length}`);
+      console.log(`[BadgesModal] Unlocked badge IDs:`, unlockedBadges.map(ub => ub.id));
+      console.log(`[BadgesModal] Unlocked by matching:`, availableWithStatus.filter(b => b.unlocked).map(b => b.id));
+      
       setAvailableBadges(availableWithStatus);
       setUserBadges(unlockedBadges);
     } catch (error) {
@@ -276,7 +282,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                           weight="bold"
                           style={[
                             styles.badgeName,
-                            { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' },
+                            !item.unlocked && styles.badgeNameLocked,
                           ]}
                         >
                           {item.name}
@@ -285,7 +291,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                         <ThemedText
                           style={[
                             styles.badgeDescription,
-                            { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' },
+                            !item.unlocked && styles.badgeDescriptionLocked,
                           ]}
                         >
                           {item.description}
@@ -432,11 +438,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: Colors.hopeWhite,
   },
+  badgeNameLocked: {
+    color: 'rgba(242, 245, 247, 0.6)',
+  },
   badgeDescription: {
     fontSize: 13,
     marginBottom: 6,
     lineHeight: 18,
     color: 'rgba(242, 245, 247, 0.8)',
+  },
+  badgeDescriptionLocked: {
+    color: 'rgba(242, 245, 247, 0.5)',
   },
   unlockedDate: {
     fontSize: 11,

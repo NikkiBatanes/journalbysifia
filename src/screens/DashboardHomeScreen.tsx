@@ -277,7 +277,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       color: Colors.anchorBlue,
       opacity: 1,
       marginTop: 0,
-      marginBottom: 0,
+      marginBottom: 8,
       // weight handled by ThemedText
     },
     placeholderCard: {

@@ -678,10 +678,12 @@ class UserApiService {
       try {
         const { data: ubRows, error: ubErr } = await supabase
           .from('user_badges')
-          .select('badge_id')
+          .select('*')
           .eq('user_id', userId);
         if (!ubErr && Array.isArray(ubRows)) {
           totalBadges = ubRows.length;
+          console.log(`[userApi] Profile badge count: ${totalBadges} from user_badges table`);
+          console.log(`[userApi] Badge rows:`, ubRows.map(row => ({ badge_id: row.badge_id, has_badge_data: !!row.badge_data })));
         }
       } catch {}
       // Fallback to legacy JSON array on user_profiles.badges
@@ -694,6 +696,7 @@ class UserApiService {
             .single();
           if (!profErr && profileRow) {
             totalBadges = Array.isArray(profileRow.badges) ? profileRow.badges.length : 0;
+            console.log(`[userApi] Profile badge count: ${totalBadges} from user_profiles.badges JSON fallback`);
           }
         } catch {}
       }

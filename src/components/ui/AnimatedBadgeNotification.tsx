@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { triggerSuccessHaptic } from '../../utils/haptics';
 import { Badge } from '../../services/faithPointsService';
+import ThemedText from '../common/ThemedText';
 
 const { height } = Dimensions.get('window');
 
@@ -147,22 +148,21 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
         },
       ]}
     >
-      <View style={[styles.notificationBox, { borderColor: getRarityColor() }]}>
+      <View style={styles.notificationBox}>
         <View style={styles.badgeSection}>
-          <View style={[styles.badgeIconContainer, { backgroundColor: getRarityColor() }]}>
-            <Text style={styles.badgeIcon}>{badge.icon}</Text>
+          <View style={[styles.badgeIconContainer, { backgroundColor: badge.rarity === 'common' ? Colors.growthGreen : getRarityColor() }]}>
+            <Text style={styles.badgeIcon}>{badge.rarity === 'common' ? '🙏🏼' : badge.icon}</Text>
           </View>
 
-          {/* Sparkle effects for legendary badges */}
+          {/* Sparkle effects for all badges */}
           {badge.rarity === 'legendary' && (
             <>
               <Animated.View
                 style={[
                   styles.sparkle,
+                  styles.sparkleTopRight,
                   {
-                    transform: [{ rotate: sparkleSpin }],
-                    top: -5,
-                    right: -5,
+                     transform: [{ rotate: sparkleSpin }],
                   },
                 ]}
               >
@@ -171,10 +171,9 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
               <Animated.View
                 style={[
                   styles.sparkle,
+                  styles.sparkleBottomLeft,
                   {
                     transform: [{ rotate: sparkleSpin }],
-                    bottom: -5,
-                    left: -5,
                   },
                 ]}
               >
@@ -182,19 +181,115 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
               </Animated.View>
             </>
           )}
+          {badge.rarity === 'epic' && (
+            <>
+              <Animated.View
+                style={[
+                  styles.sparkle,
+                  styles.sparkleTopRight,
+                  {
+                     transform: [{ rotate: sparkleSpin }],
+                  },
+                ]}
+              >
+                <Ionicons name="star" size={16} color="#8b5cf6" />
+              </Animated.View>
+              <Animated.View
+                style={[
+                  styles.sparkle,
+                  styles.sparkleBottomLeft,
+                  {
+                    transform: [{ rotate: sparkleSpin }],
+                  },
+                ]}
+              >
+                <Ionicons name="star" size={14} color="#8b5cf6" />
+              </Animated.View>
+            </>
+          )}
+          {badge.rarity === 'rare' && (
+            <>
+              <Animated.View
+                style={[
+                  styles.sparkle,
+                  styles.sparkleTopRight,
+                  {
+                     transform: [{ rotate: sparkleSpin }],
+                  },
+                ]}
+              >
+                <Ionicons name="diamond" size={16} color="#3b82f6" />
+              </Animated.View>
+              <Animated.View
+                style={[
+                  styles.sparkle,
+                  styles.sparkleBottomLeft,
+                  {
+                    transform: [{ rotate: sparkleSpin }],
+                  },
+                ]}
+              >
+                <Ionicons name="diamond" size={14} color="#3b82f6" />
+              </Animated.View>
+            </>
+          )}
+          {badge.rarity === 'common' && (
+            <>
+              <Animated.View
+                style={[
+                  styles.sparkle,
+                  styles.sparkleTopRight,
+                  {
+                     transform: [{ rotate: sparkleSpin }],
+                  },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
+              </Animated.View>
+              <Animated.View
+                style={[
+                  styles.sparkle,
+                  styles.sparkleBottomLeft,
+                  {
+                    transform: [{ rotate: sparkleSpin }],
+                  },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
+              </Animated.View>
+            </>
+          )}
         </View>
 
         <View style={styles.textSection}>
-          <Text style={[styles.sparkle, styles.sparkleBottomLeft, { color: getRarityColor() }]}>
+          <ThemedText weight="semiBold" style={[styles.unlockText, { color: Colors.hopeWhite }]}>
             Badge Unlocked!
-          </Text>
-          <Text style={styles.badgeName}>{badge.name}</Text>
-          <Text style={styles.badgeDescription}>{badge.description}</Text>
+          </ThemedText>
+          <ThemedText weight="bold" style={[styles.badgeName, { color: Colors.hopeWhite }]}>{badge.name}</ThemedText>
+          <ThemedText style={[styles.badgeDescription, { color: Colors.hopeWhite }]}>{badge.description}</ThemedText>
 
           {badge.rarity === 'legendary' && (
             <View style={styles.legendaryBadge}>
               <Ionicons name="trophy" size={12} color="#f59e0b" />
               <Text style={styles.legendaryText}>LEGENDARY</Text>
+            </View>
+          )}
+          {badge.rarity === 'epic' && (
+            <View style={styles.epicBadge}>
+              <Ionicons name="star" size={12} color="#8b5cf6" />
+              <Text style={styles.epicText}>EPIC</Text>
+            </View>
+          )}
+          {badge.rarity === 'rare' && (
+            <View style={styles.rareBadge}>
+              <Ionicons name="diamond" size={12} color="#3b82f6" />
+              <Text style={styles.rareText}>RARE</Text>
+            </View>
+          )}
+          {badge.rarity === 'common' && (
+            <View style={styles.commonBadge}>
+              <Ionicons name="checkmark-circle" size={12} color={Colors.growthGreen} />
+              <Text style={styles.commonText}>COMMON</Text>
             </View>
           )}
         </View>
@@ -214,10 +309,11 @@ const styles = StyleSheet.create({
     elevation: 999999999,
   },
   notificationBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
+    backgroundColor: '#1a3c6d',
+    borderRadius: 24,
     padding: 16,
-    borderWidth: 2,
+    borderWidth: 0.5,
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -263,21 +359,20 @@ const styles = StyleSheet.create({
   textSection: {
     flex: 1,
   },
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
+  unlockText: {
+    fontSize: 12,
     marginBottom: 4,
+    // Typography handled by ThemedText weight=semiBold
   },
   badgeName: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
     marginBottom: 4,
+    // Typography handled by ThemedText weight=bold
   },
   badgeDescription: {
     fontSize: 14,
-    color: '#6b7280',
     lineHeight: 20,
+    // Typography handled by ThemedText
   },
   legendaryBadge: {
     flexDirection: 'row',
@@ -285,14 +380,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef3c7',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 16,
     marginTop: 8,
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  epicBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.4)',
+  },
+  rareBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.4)',
+  },
+  commonBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.4)',
   },
   legendaryText: {
     fontSize: 10,
     fontWeight: '700',
     color: '#92400e',
+    marginLeft: 4,
+  },
+  epicText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#8b5cf6',
+    marginLeft: 4,
+  },
+  rareText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#3b82f6',
+    marginLeft: 4,
+  },
+  commonText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.growthGreen,
     marginLeft: 4,
   },
 });
