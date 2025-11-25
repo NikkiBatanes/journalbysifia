@@ -398,13 +398,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 const dateStringWithYear = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
                 return year === currentYear ? dateString : dateStringWithYear;
               })()} // Use the selected date for formatting
-              // Only pass playbook metadata when not guided
-              playbookTitle={(!isGuidedReflection && !!playbookId) ? preservedPlaybookTitle : undefined}
-              dayNumber={(!isGuidedReflection && !!playbookId) ? (() => {
-
-                return existingReflection?.day_number ?? preservedActionStepNumber;
-              })() : undefined}
-              dayTitle={(!isGuidedReflection && !!playbookId) ? (existingReflection?.day_title ?? preservedActionStepTitle) : undefined}
+              // Pass metadata from existing reflection or from props
+              playbookTitle={(!isGuidedReflection && (existingReflection?.playbook_title || playbookId)) ? (existingReflection?.playbook_title || preservedPlaybookTitle) : undefined}
+              dayNumber={(!isGuidedReflection && (existingReflection?.day_number || actionStepNumber !== undefined)) ? (existingReflection?.day_number ?? preservedActionStepNumber) : undefined}
+              dayTitle={(!isGuidedReflection && (existingReflection?.day_title || actionStepTitle)) ? (existingReflection?.day_title ?? preservedActionStepTitle) : undefined}
               subtaskId={subtaskId}
               initialEntry={existingReflection ? {
                 title: existingReflection.title || preservedSubtaskTitle,
