@@ -1291,9 +1291,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       >
                         {card.id === 'action' ? (
                           // For action cards, don't wrap in TouchableOpacity - let the card handle collapse via header/close button
-                          <>
+                          <View style={{ flex: 1 }}>
                             {card.component}
-                          </>
+                          </View>
                         ) : (
                           // For other cards, keep tap-anywhere-to-collapse behavior
                           <TouchableOpacity
