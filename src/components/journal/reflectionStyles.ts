@@ -361,28 +361,9 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    height: '90%', // Default for portrait
-    maxHeight: '90%',
+    height: '90%',
     padding: 16,
     paddingTop: 16,
-    paddingBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  // iPad landscape optimization
-  modalContainerLandscape: {
-    backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    height: '80%', // Reduced height for landscape
-    maxHeight: '80%',
-    maxWidth: 600, // Constrain width for readability
-    marginHorizontal: 'auto', // Center horizontally
-    padding: 20, // Slightly more padding
-    paddingTop: 20,
     paddingBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },

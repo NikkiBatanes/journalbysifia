@@ -17,7 +17,6 @@ import {
   Alert,
   Share,
   Dimensions,
-  useWindowDimensions,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -72,44 +71,6 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   subtaskText,
   showTimeBlock = false, // Default to false for dashboard
 }) => {
-  // ENTERPRISE: Responsive design for iPad (both portrait and landscape)
-  const { width, height } = useWindowDimensions();
-  const [currentWidth, setCurrentWidth] = useState(width);
-  const [currentHeight, setCurrentHeight] = useState(height);
-  
-  // ENTERPRISE FIX: Force dimension update when modal becomes visible
-  React.useEffect(() => {
-    if (visible) {
-      // Re-measure dimensions when modal opens
-      const { width: newWidth, height: newHeight } = Dimensions.get('window');
-      setCurrentWidth(newWidth);
-      setCurrentHeight(newHeight);
-      console.log('[JournalTypeSelectorTooltip] Modal opened, dimensions:', {
-        newWidth,
-        newHeight,
-        isLandscape: newWidth > newHeight,
-      });
-    }
-  }, [visible]);
-  
-  // Use current dimensions for calculations
-  const isLandscape = currentWidth > currentHeight;
-  const isTablet = currentWidth >= 768 || currentHeight >= 768; // iPad mini width and above
-  
-  // ENTERPRISE FIX: Apply better spacing to ALL tablet sizes, not just landscape
-  const useEnhancedSpacing = isTablet; // Changed from: isLandscape && isTablet
-  
-  // ENTERPRISE DEBUG: Log responsive state
-  React.useEffect(() => {
-    console.log('[JournalTypeSelectorTooltip] Responsive state:', {
-      width: currentWidth,
-      height: currentHeight,
-      isLandscape,
-      isTablet,
-      useEnhancedSpacing,
-    });
-  }, [currentWidth, currentHeight, isLandscape, isTablet, useEnhancedSpacing]);
-  
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   
   // Filter options based on showTimeBlock prop
@@ -121,10 +82,15 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   const [dynamicTop, setDynamicTop] = useState(0); // Will be set after screen dimensions are available
   const textMeasureRef = useRef<View>(null);
 
+  const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
+  
+  // ENTERPRISE: Responsive spacing for iPad landscape
+  const isIPadLandscape = screenWidth > 1000 && screenWidth > screenHeight;
+
   // Set initial dynamic top after screen height is available
   React.useEffect(() => {
-    setDynamicTop(currentHeight * 0.3); // Default to 30% of screen height
-  }, [currentHeight]);
+    setDynamicTop(screenHeight * 0.3); // Default to 30% of screen height
+  }, [screenHeight]);
 
   // For display only: strip surrounding straight or curly quotes from the text
   const displayText = React.useMemo(() => {
@@ -150,21 +116,21 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 
               // Calculate dynamic top position
               // Base position is 30%, but we need to ensure text doesn't overlap with picker at 50%
-              const pickerTop = currentHeight * 0.5; // Picker is at 50%
+              const pickerTop = screenHeight * 0.5; // Picker is at 50%
               const textBubbleHeight = height + 40; // Text height + padding
               const minTopPosition = pickerTop - textBubbleHeight - 120; // 120px gap for picker and buttons
 
               // Ensure text is not too high (min 20% from top) and not too low (max 40% from top)
-              const calculatedTop = Math.max(currentHeight * 0.2, Math.min(minTopPosition, currentHeight * 0.4));
+              const calculatedTop = Math.max(screenHeight * 0.2, Math.min(minTopPosition, screenHeight * 0.4));
 
               console.log('Dynamic positioning:', {
                 textHeight: height,
-                screenHeight: currentHeight,
+                screenHeight,
                 pickerTop,
                 textBubbleHeight,
                 minTopPosition,
                 calculatedTop,
-                defaultTop: currentHeight * 0.3,
+                defaultTop: screenHeight * 0.3,
               });
 
               setDynamicTop(calculatedTop);
@@ -175,7 +141,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 
       return () => clearTimeout(timeout);
     }
-  }, [visible, displayText, currentHeight]);
+  }, [visible, displayText, screenHeight]);
 
   useEffect(() => {
     if (visible) {
@@ -293,52 +259,46 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
         {/* iMessage-style horizontal pill picker */}
         <Animated.View
           style={[
-            useEnhancedSpacing ? styles.pickerPillLandscape : styles.pickerPill,
+            styles.pickerPill,
+            isIPadLandscape && styles.pickerPillIPad,
             {
               opacity: opacityAnim,
               transform: [{ scale: scaleAnim }],
             },
           ]}
         >
-          {filteredOptions.map((option, index) => {
-            const buttonStyle = useEnhancedSpacing ? styles.iconButtonLandscape : styles.iconButton;
-            const borderStyle = index < filteredOptions.length - 1 && (useEnhancedSpacing ? styles.iconButtonBorderLandscape : styles.iconButtonBorder);
-            
-            // ENTERPRISE DEBUG: Log applied styles
-            if (index === 0) {
-              console.log('[JournalTypeSelectorTooltip] Button styles:', {
-                useEnhancedSpacing,
-                buttonStyle,
-                borderStyle,
-              });
-            }
-            
-            return (
+          {filteredOptions.map((option, index) => (
             <TouchableOpacity
               key={option.type}
               style={[
-                buttonStyle,
-                borderStyle,
+                styles.iconButton,
+                isIPadLandscape && styles.iconButtonIPad,
+                index < filteredOptions.length - 1 && styles.iconButtonBorder,
+                index < filteredOptions.length - 1 && isIPadLandscape && styles.iconButtonBorderIPad,
               ]}
               onPress={() => handleSelect(option.type)}
               activeOpacity={0.6}
             >
-              <View style={[styles.iconCircle, { backgroundColor: option.color }]}>
+              <View style={[
+                styles.iconCircle,
+                isIPadLandscape && styles.iconCircleIPad,
+                { backgroundColor: option.color },
+              ]}>
                 <MaterialCommunityIcons
                   name={option.icon}
-                  size={18}
+                  size={isIPadLandscape ? 22 : 18}
                   color={Colors.hopeWhite}
                 />
               </View>
             </TouchableOpacity>
-            );
-          })}
+          ))}
         </Animated.View>
 
         {/* Utility buttons below picker */}
         <Animated.View
           style={[
             styles.utilityButtonsContainer,
+            isIPadLandscape && styles.utilityButtonsContainerIPad,
             {
               opacity: opacityAnim,
               transform: [{ scale: scaleAnim }],
@@ -346,23 +306,23 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
           ]}
         >
           <TouchableOpacity
-            style={styles.utilityButton}
+            style={[styles.utilityButton, isIPadLandscape && styles.utilityButtonIPad]}
             onPress={handleCopy}
             activeOpacity={0.7}
           >
-            <Ionicons name="copy-outline" size={20} color={Colors.hopeWhite} />
-            <ThemedText weight="medium" style={styles.utilityButtonText}>
+            <Ionicons name="copy-outline" size={isIPadLandscape ? 24 : 20} color={Colors.hopeWhite} />
+            <ThemedText weight="medium" style={[styles.utilityButtonText, isIPadLandscape && styles.utilityButtonTextIPad]}>
               Copy
             </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.utilityButton}
+            style={[styles.utilityButton, isIPadLandscape && styles.utilityButtonIPad]}
             onPress={handleShare}
             activeOpacity={0.7}
           >
-            <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
-            <ThemedText weight="medium" style={styles.utilityButtonText}>
+            <Ionicons name="share-outline" size={isIPadLandscape ? 24 : 20} color={Colors.hopeWhite} />
+            <ThemedText weight="medium" style={[styles.utilityButtonText, isIPadLandscape && styles.utilityButtonTextIPad]}>
               Share
             </ThemedText>
           </TouchableOpacity>
@@ -430,27 +390,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  // iPad enhanced spacing (portrait and landscape)
-  pickerPillLandscape: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(50, 50, 50, 0.95)',
-    borderRadius: 40,
-    paddingHorizontal: 20, // Increased padding
-    paddingVertical: 12,   // Increased padding
-    position: 'absolute',
-    top: '50%',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
   iconButton: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -460,17 +399,6 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255, 255, 255, 0.2)',
     marginRight: 8,
     paddingRight: 16,
-  },
-  // iPad enhanced spacing (portrait and landscape)
-  iconButtonLandscape: {
-    paddingHorizontal: 16, // Double the horizontal padding
-    paddingVertical: 8,   // Double the vertical padding
-  },
-  iconButtonBorderLandscape: {
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.2)',
-    marginRight: 16, // Double the margin
-    paddingRight: 24, // More padding on the right
   },
   iconCircle: {
     width: 34,
@@ -510,6 +438,34 @@ const styles = StyleSheet.create({
   utilityButtonText: {
     fontSize: 13,
     color: Colors.hopeWhite,
+  },
+  // ENTERPRISE: iPad landscape responsive styles
+  pickerPillIPad: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  iconButtonIPad: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  iconButtonBorderIPad: {
+    marginRight: 14,
+    paddingRight: 24,
+  },
+  iconCircleIPad: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
+  utilityButtonsContainerIPad: {
+    gap: 32,
+  },
+  utilityButtonIPad: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  utilityButtonTextIPad: {
+    fontSize: 15,
   },
 });
 

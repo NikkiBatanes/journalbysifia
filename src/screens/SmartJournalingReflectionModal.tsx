@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { toLocalDateString } from '../utils/date';
-import { Modal, Alert, Keyboard, DeviceEventEmitter, useWindowDimensions, Platform } from 'react-native';
+import { Modal, Alert, Keyboard, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -54,11 +54,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   hideGuidedPromptButton = true, // Default to true for backward compatibility
   isJournalCarousel = false, // Default to false for backward compatibility
 }) => {
-  // ENTERPRISE: Responsive design for iPad landscape
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
-  const isTablet = width >= 768; // iPad mini width and above
-  
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
   const [preservedActionStepNumber, setPreservedActionStepNumber] = React.useState(actionStepNumber);
@@ -395,12 +390,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               // Guided prompts have their own separate gating system
               source={isJournalCarousel ? 'freeform' : 'thoughts'}
               initialMode="free-form"
-              styles={{
-                ...reflectionLogStyles,
-                modalContainer: isLandscape && isTablet 
-                  ? reflectionLogStyles.modalContainerLandscape 
-                  : reflectionLogStyles.modalContainer
-              }}
+              styles={reflectionLogStyles}
               dateString={(function() {
                 const year = dateToUse.getFullYear();
                 const currentYear = new Date().getFullYear();
