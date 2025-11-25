@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     marginRight: 16,
-    width: 60,
+    width: 80,
   },
   badgeIconContainer: {
     alignItems: 'center',
@@ -497,11 +497,11 @@ const styles = StyleSheet.create({
     tintColor: 'rgba(242, 245, 247, 0.4)',
   },
   rarityBadge: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
     alignSelf: 'center',
-    minWidth: 70,
+    width: 75,
   },
   rarityText: {
     fontSize: 8,
