@@ -15,7 +15,7 @@ import { faithPointsService, Badge } from '../services/faithPointsService';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface BadgesModalProps {
   visible: boolean;
@@ -162,11 +162,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 20,
     width: SCREEN_WIDTH - 32,
-    maxHeight: SCREEN_WIDTH - 32,
-    padding: 20,
+    maxHeight: SCREEN_HEIGHT * 0.85, // Use screen height for better sizing
+    padding: 24,
+    flex: 0, // Don't expand to fill all available space
   },
   modalHeader: {
     flexDirection: 'row',
@@ -176,87 +177,96 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    color: Colors.text,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.cardBackground,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    fontSize: 18,
-    color: Colors.text,
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    fontWeight: 'bold',
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 20,
+    marginBottom: 24,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.cardBackground,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   statItem: {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.growthGreen,
+    color: Colors.hopeWhite,
   },
   statLabel: {
-    fontSize: 12,
-    color: Colors.textGray,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 4,
   },
   badgesList: {
     paddingBottom: 20,
   },
   badgeItem: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
-    margin: 6,
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 16,
+    padding: 16,
+    margin: 8,
     borderWidth: 2,
     flex: 1,
-    minHeight: 140,
+    minHeight: 160,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   unlockedBadge: {
     opacity: 1,
   },
   lockedBadge: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
   badgeIcon: {
-    fontSize: 32,
+    fontSize: 40,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   badgeName: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 4,
-    color: Colors.text,
+    marginBottom: 6,
+    color: Colors.anchorBlue,
   },
   badgeDescription: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
     color: Colors.textGray,
-    marginBottom: 8,
-    lineHeight: 14,
+    marginBottom: 12,
+    lineHeight: 16,
   },
   badgeFooter: {
     alignItems: 'center',
+    marginTop: 'auto',
   },
   rarityText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   unlockedDate: {
-    fontSize: 9,
+    fontSize: 10,
     color: Colors.textGray,
   },
 });
