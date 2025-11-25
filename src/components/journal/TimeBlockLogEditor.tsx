@@ -799,9 +799,9 @@ function TimeBlockLogEditorInner(
 
   // Dynamic title font sizing - fixed size based on line count
   // Header title: Original 22px, reduce to 18px if > 3 lines
-  // Input title: Original 16px, reduce to 18px if > 3 lines (but input is for user entry, not subtask)
+  // Input title: Original 18px (consistent with other editors)
   const headerTitleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
-  const inputTitleFontSize = 16; // Input field always uses 16px (user enters their own title)
+  const inputTitleFontSize = 18; // Input field uses 18px (consistent with other editors)
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;

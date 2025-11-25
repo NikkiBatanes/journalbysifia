@@ -578,8 +578,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   };
 
   // Dynamic title font sizing - fixed size based on line count
-  // Original: 22px, reduce to 18px if > 3 lines
+  // For editable title (TextInput): Based on user's input
   const titleFontSize = calculateLineCount(newEntry.title, 30) > 3 ? 18 : 22;
+  // For locked header title (ThemedText): Based on initialTitle
+  const lockedTitleFontSize = calculateLineCount(initialTitle || '', 30) > 3 ? 18 : 22;
 
   // Refs
   const titleInputRef = useRef<TextInput>(null);
@@ -1314,6 +1316,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                         s.transparentInput,
                         s.lockedTitleText,
                         s.titleWithLock,
+                        { fontSize: lockedTitleFontSize },
                       ]}
                     >
                       {initialTitle || newEntry.title}
