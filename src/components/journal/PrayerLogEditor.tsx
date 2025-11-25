@@ -387,6 +387,19 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const regularFont = getFontFamily(fontKey, 'regular');
+
+  // Calculate estimated line count based on text length and newlines
+  const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
+    if (!text || text.trim().length === 0) return 1;
+    const newlineCount = (text.match(/\n/g) || []).length;
+    const textWithoutNewlines = text.replace(/\n/g, '');
+    const wrappedLines = Math.ceil(textWithoutNewlines.length / charsPerLine);
+    return newlineCount + wrappedLines;
+  };
+
+  // Dynamic title font sizing - fixed size based on line count
+  // Original: 22px, reduce to 18px if > 3 lines
+  const titleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
   const navigation = useNavigation();
   const { subscription } = useSubscription();
   const smartJournalingGating = useSmartJournalingGating();
@@ -826,7 +839,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             >
               {/* Title section with lock icon */}
               <View style={s.titleRow}>
-                <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
+                <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: titleFontSize }]}>
                   {_subtaskTitle || ''}
                 </ThemedText>
                 {smartJournalingGating.isLocked && (

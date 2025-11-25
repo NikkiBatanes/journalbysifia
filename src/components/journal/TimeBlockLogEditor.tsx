@@ -798,8 +798,8 @@ function TimeBlockLogEditorInner(
   };
 
   // Dynamic title font sizing - fixed size based on line count
-  // Original: 16px, reduce to 14px if > 3 lines
-  const titleFontSize = calculateLineCount(title, 30) > 3 ? 14 : 16;
+  // Original: 16px, reduce to 18px if > 3 lines (consistent with other editors)
+  const titleFontSize = calculateLineCount(title, 30) > 3 ? 18 : 16;
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
