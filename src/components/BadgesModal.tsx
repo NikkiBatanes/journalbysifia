@@ -480,6 +480,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     marginRight: 16,
+    width: 80,
   },
   badgeIconContainer: {
     alignItems: 'center',
