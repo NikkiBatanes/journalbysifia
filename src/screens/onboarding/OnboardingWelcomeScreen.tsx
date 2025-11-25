@@ -509,19 +509,17 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Terms Text */}
-        <View style={[{ width: contentWidth }, styles.centeredContainer]}>
+        <View style={[styles.termsContainer, { width: contentWidth }, styles.centeredContainer]}>
           <ThemedText style={styles.termsText}>
             By continuing, you agree to our{' '}
-          </ThemedText>
-          <TouchableOpacity onPress={() => Linking.openURL('https://sifia.app/legal/terms.html')}>
-            <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
-          </TouchableOpacity>
-          <ThemedText style={styles.termsText}>
+            <ThemedText style={styles.linkText} onPress={() => Linking.openURL('https://sifia.app/legal/terms.html')}>
+              Terms of Service
+            </ThemedText>
             {' '}and{' '}
+            <ThemedText style={styles.linkText} onPress={() => Linking.openURL('https://sifia.app/legal/privacy.html')}>
+              Privacy Policy
+            </ThemedText>
           </ThemedText>
-          <TouchableOpacity onPress={() => Linking.openURL('https://sifia.app/legal/privacy.html')}>
-            <ThemedText style={styles.linkText}>Privacy Policy</ThemedText>
-          </TouchableOpacity>
         </View>
       </View>
       </View>
@@ -660,6 +658,12 @@ const styles = StyleSheet.create({
 
   termsText: {
     ...OnboardingStyles.termsText,
+    paddingHorizontal: 24,
+    marginBottom: 20,
+    textAlign: 'center',
+    flexWrap: 'wrap',
+  },
+  termsContainer: {
     paddingHorizontal: 24,
     marginBottom: 20,
   },
