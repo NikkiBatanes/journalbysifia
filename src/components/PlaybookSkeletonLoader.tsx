@@ -31,14 +31,22 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
           duration: 1000,
           useNativeDriver: true,
         }),
-      ]).start(() => pulse());
+      ]).start((finished) => {
+        // Only continue if component is still mounted and animation finished properly
+        if (finished && !pulseAnim._finished) {
+          pulse();
+        }
+      });
     };
 
+    // Start animation
     pulse();
 
     // Cleanup function to prevent memory leaks
     return () => {
       pulseAnim.stopAnimation();
+      // Mark as finished to prevent recursive calls
+      (pulseAnim as any)._finished = true;
     };
   }, [pulseAnim]);
 

@@ -376,8 +376,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   const startStackReadBurstHaptics = useCallback(() => {
     try {
+      // Clear existing timers
       stackReadHapticTimersRef.current.forEach(id => clearTimeout(id));
       stackReadHapticTimersRef.current = [];
+      
       const schedule = [0, 250, 500, 750];
       schedule.forEach(delay => {
         const id = setTimeout(() => {
@@ -393,11 +395,15 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 ignoreAndroidSystemSettings: false,
               });
             }
-          } catch {}
+          } catch {
+            // Silently ignore haptic errors
+          }
         }, delay) as unknown as number;
         stackReadHapticTimersRef.current.push(id);
       });
-    } catch {}
+    } catch {
+      // Silently ignore timer setup errors
+    }
   }, []);
 
   const startAffirmationBurst = useCallback(() => {
@@ -1004,17 +1010,41 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     const currentGestureRefs = gestureAnimationRefs.current;
 
     return () => {
+      // Clean up requestAnimationFrame
       if (currentAnimationRefs.rafId) {
-        cancelAnimationFrame(currentAnimationRefs.rafId);
+        try {
+          cancelAnimationFrame(currentAnimationRefs.rafId);
+        } catch {
+          // Ignore invalid frame ID errors
+        }
       }
+      // Clean up header opacity animation
       if (currentAnimationRefs.headerOpacityAnimation?.cancel) {
-        currentAnimationRefs.headerOpacityAnimation.cancel();
+        try {
+          currentAnimationRefs.headerOpacityAnimation.cancel();
+        } catch {
+          // Ignore animation cancel errors
+        }
       }
+      // Clean up gesture animations
       Object.values(currentGestureRefs).forEach(anim => {
         if (anim?.cancel) {
-          anim.cancel();
+          try {
+            anim.cancel();
+          } catch {
+            // Ignore animation cancel errors
+          }
         }
       });
+      // Clean up haptic timers
+      stackReadHapticTimersRef.current.forEach(id => {
+        try {
+          clearTimeout(id);
+        } catch {
+          // Ignore timer cleanup errors
+        }
+      });
+      stackReadHapticTimersRef.current = [];
     };
   }, []);
 
@@ -1119,24 +1149,30 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         setDevotionalVisible(true);
         devotionalTimerRef.current = null;
         // Start expand/collapse animation
-        setTimeout(() => {
+        const expandTimer = setTimeout(() => {
           RNAnimated.parallel([
             RNAnimated.timing(devotionalButtonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
             RNAnimated.timing(devotionalTextOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
           ]).start(() => {
-            setTimeout(() => {
+            const collapseTimer = setTimeout(() => {
               RNAnimated.parallel([
                 RNAnimated.timing(devotionalTextOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
                 RNAnimated.timing(devotionalButtonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
               ]).start();
             }, 2500);
+            // Store collapse timer for cleanup
+            (devotionalTimerRef as any).collapseTimer = collapseTimer;
           });
         }, 100);
+        // Store expand timer for cleanup
+        (devotionalTimerRef as any).expandTimer = expandTimer;
       }, 3000); // 3 second delay
     }
     return () => {
       if (devotionalTimerRef.current) {
         clearTimeout(devotionalTimerRef.current);
+        clearTimeout((devotionalTimerRef as any).expandTimer);
+        clearTimeout((devotionalTimerRef as any).collapseTimer);
         devotionalTimerRef.current = null;
       }
     };
