@@ -19,6 +19,7 @@ import { notificationAnalyticsService } from '../services/notificationAnalyticsS
 // POST-LAUNCH: import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface NotificationsScreenProps {
   navigation: any;
@@ -569,7 +570,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => { triggerLightHaptic(); navigation.goBack(); }}
         >
           <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
