@@ -56,8 +56,12 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   }, [availableBadges]);
 
   const loadBadges = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, skipping badge loading');
+      return;
+    }
     
+    console.log('Starting badge loading for user:', user.id);
     setLoading(true);
     try {
       // Get user's unlocked badges from database
@@ -70,6 +74,8 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         console.error('Error fetching user badges:', badgeError);
         return;
       }
+
+      console.log('User badge rows from database:', badgeRows);
 
       // Parse user badges from database
       const unlockedBadges: (Badge & { unlockedAt: string })[] = badgeRows?.map(row => {
@@ -85,9 +91,40 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         }
       }).filter(Boolean) || [];
 
+      console.log('Parsed unlocked badges:', unlockedBadges);
+
       // Get all available badges
+      console.log('Calling faithPointsService.getAvailableBadges()');
       const allBadges = await faithPointsService.getAvailableBadges();
       console.log('All available badges:', allBadges);
+      
+      if (!allBadges || allBadges.length === 0) {
+        console.error('No badges returned from getAvailableBadges(), using fallback badges');
+        // Use fallback badges for testing
+        const fallbackBadges = [
+          {
+            id: 'test_badge_1',
+            name: 'Test Badge 1',
+            description: 'This is a test badge',
+            icon: '⭐',
+            rarity: 'common' as const,
+            pointsRequired: 10,
+            unlocked: false,
+          },
+          {
+            id: 'test_badge_2',
+            name: 'Test Badge 2',
+            description: 'Another test badge',
+            icon: '🎯',
+            rarity: 'rare' as const,
+            pointsRequired: 25,
+            unlocked: false,
+          },
+        ];
+        setAvailableBadges(fallbackBadges);
+        setUserBadges([]);
+        return;
+      }
       
       // Mark which badges are unlocked
       const availableWithStatus = allBadges.map(badge => ({
