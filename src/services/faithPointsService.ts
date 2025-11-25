@@ -420,11 +420,14 @@ export class FaithPointsService {
             // Show badge notification
             notificationService.showBadgeNotification(badge);
 
-            // DISABLED: Badge events cause UI freeze
-            // faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
-            //   userId,
-            //   badge,
-            // });
+            // CRITICAL: Re-enable badge events but defer them to prevent freeze
+            // Profile screen needs BADGE_UNLOCKED events to update badge count
+            setTimeout(() => {
+              faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
+                userId,
+                badge,
+              });
+            }, 100); // Small delay within the deferred processing
 
             // Award bonus points for badge unlock (non-blocking)
             return this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
