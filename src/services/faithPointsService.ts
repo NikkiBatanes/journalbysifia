@@ -380,6 +380,12 @@ export class FaithPointsService {
       // Award bonus points for level up
       if (leveledUp) {
         await this.recordTransaction(userId, 50, 'achievement', { type: 'level_up', level: newLevel });
+        
+        // Record level-specific activities for badge tracking
+        for (let level = currentLevel + 1; level <= newLevel; level++) {
+          await this.recordTransaction(userId, 0, 'achievement', { type: `level_${level}_reached` });
+        }
+        
         // Show level up notification (unless suppressed)
         if (!_metadata?.suppressNotification) {
           notificationService.showPointsNotification(50, 'level_up', 'center');
@@ -802,6 +808,79 @@ export class FaithPointsService {
         pointsRequired: 10000,
       },
     ];
+  }
+
+  /**
+   * Retroactively award level badges for existing users
+   */
+  async retroactivelyAwardLevelBadges(userId: string): Promise<void> {
+    try {
+      // Get user's current level
+      const { data: profile } = await supabase
+        .from('faith_points_profiles')
+        .select('current_level')
+        .eq('user_id', userId)
+        .single();
+
+      if (!profile) {
+        Logger.warn('[FaithPointsService] No profile found for retroactive badge awarding', {
+          component: 'faithPointsService',
+          userId,
+        });
+        return;
+      }
+
+      const currentLevel = profile.current_level || 1;
+      Logger.info('[FaithPointsService] Retroactively awarding badges for level', {
+        component: 'faithPointsService',
+        userId,
+        currentLevel,
+      });
+
+      // Get all available badges
+      const allBadges = await this.getAvailableBadges();
+      
+      // Award badges for all levels up to current level
+      for (let level = 1; level <= currentLevel; level++) {
+        const levelBadgeName = this.getLevelBadgeName(level);
+        const badge = allBadges.find(b => b.name === levelBadgeName);
+        
+        if (badge) {
+          // Record the level reached activity if it doesn't exist
+          await this.recordTransaction(userId, 0, 'achievement', { type: `level_${level}_reached` });
+          
+          // Try to award the badge
+          await this.checkAndAwardBadge(userId, badge, 'retroactive_level_up');
+        }
+      }
+
+      Logger.info('[FaithPointsService] Retroactive badge awarding completed', {
+        component: 'faithPointsService',
+        userId,
+        levelsProcessed: currentLevel,
+      });
+    } catch (error) {
+      Logger.error('[FaithPointsService] Error in retroactive badge awarding', error as Error, {
+        component: 'faithPointsService',
+        userId,
+      });
+    }
+  }
+
+  private getLevelBadgeName(level: number): string {
+    const levelNames: { [key: number]: string } = {
+      1: 'Seeker',
+      2: 'Believer', 
+      3: 'Disciple',
+      4: 'Servant',
+      5: 'Leader',
+      6: 'Teacher',
+      7: 'Mentor',
+      8: 'Elder',
+      9: 'Steward',
+      10: 'Ambassador',
+    };
+    return levelNames[level] || 'Seeker';
   }
 
   /**
