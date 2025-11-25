@@ -1027,7 +1027,7 @@ function TimeBlockLogEditorInner(
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
-                style={[s.formInput, { fontFamily: fonts.regular, fontSize: titleFontSize }]}
+                style={[s.formInput, { fontFamily: fonts.regular }, { fontSize: titleFontSize }]}
                 placeholder="Title *"
                 placeholderTextColor={Colors.alertCoral}
                 value={title}
