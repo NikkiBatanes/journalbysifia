@@ -151,11 +151,13 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     };
   }, [setContentScrollRef]);
 
-  // Reset to today's date when screen comes into focus
+  // Reset to today's date and carousel positions when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       const today = new Date();
       setCurrentDate(today);
+      // Reset all carousels to their starting positions
+      setCarouselIndices({ plan: 0, reflect: 0, pray: 0 });
       hasInitializedScroll.current = true;
     }, [])
   );
