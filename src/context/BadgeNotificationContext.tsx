@@ -54,6 +54,7 @@ export const BadgeNotificationProvider: React.FC<BadgeNotificationProviderProps>
 
   useEffect(() => {
     isMounted.current = true;
+    const currentTimeouts = notificationTimeouts.current;
     notificationService.setBadgeNotificationCallback((badge: Badge) => {
       showBadgeNotification(badge);
     });
@@ -62,9 +63,8 @@ export const BadgeNotificationProvider: React.FC<BadgeNotificationProviderProps>
       isMounted.current = false;
       notificationService.clearBadgeNotificationCallback();
       // Clear any pending timeouts
-      const timeouts = notificationTimeouts.current;
-      timeouts.forEach(timeout => clearTimeout(timeout));
-      timeouts.clear();
+      currentTimeouts.forEach(timeout => clearTimeout(timeout));
+      currentTimeouts.clear();
     };
   }, [showBadgeNotification]);
 
