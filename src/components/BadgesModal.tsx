@@ -84,7 +84,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         console.log('Database columns found:', Object.keys(badgeRows[0] || {}));
         
         // First, get all available badges once if we need them
-        let allBadges = [];
+        let allBadges: Badge[] = [];
         const needsServiceLookup = badgeRows.some(row => row.badge_id && !row.badge_data);
         if (needsServiceLookup) {
           allBadges = await faithPointsService.getAvailableBadges();
