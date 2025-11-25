@@ -788,9 +788,18 @@ function TimeBlockLogEditorInner(
   const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(null);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-  // Dynamic title font sizing based on number of lines
-  const [titleLineCount, setTitleLineCount] = useState(1);
-  const titleFontSize = titleLineCount > 3 ? 14 : 18; // Reduce from 18 to 14 if more than 3 lines
+  // Calculate estimated line count based on text length and newlines
+  const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
+    if (!text || text.trim().length === 0) return 1;
+    const newlineCount = (text.match(/\n/g) || []).length;
+    const textWithoutNewlines = text.replace(/\n/g, '');
+    const wrappedLines = Math.ceil(textWithoutNewlines.length / charsPerLine);
+    return newlineCount + wrappedLines;
+  };
+
+  // Dynamic title font sizing - fixed size based on line count
+  // Original: 16px, reduce to 14px if > 3 lines
+  const titleFontSize = calculateLineCount(title, 30) > 3 ? 14 : 16;
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
@@ -1023,12 +1032,6 @@ function TimeBlockLogEditorInner(
                 placeholderTextColor={Colors.alertCoral}
                 value={title}
                 onChangeText={(text) => handleContentChange('title', text)}
-                onContentSizeChange={(e) => {
-                  // Calculate number of lines based on content height
-                  const lineHeight = titleFontSize * 1.2; // Approximate line height
-                  const lines = Math.ceil(e.nativeEvent.contentSize.height / lineHeight);
-                  setTitleLineCount(lines);
-                }}
                 multiline={true}
               />
 
