@@ -1088,10 +1088,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-          bounces
-          alwaysBounceVertical
-          overScrollMode="always"
+          scrollEnabled={true}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
           contentInsetAdjustmentBehavior="never"
           // Keep a single sticky header (which now includes the pagination dots inside)
           stickyHeaderIndices={[0]}
@@ -1280,18 +1280,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       <ScrollView
                         style={{
                           width: STACKED_CARD_WIDTH,
-                          // Allow content to scroll under footer; we'll add a spacer to clear it
-                          // On iPad, use less offset so expanded card occupies more vertical space
-                          height: Math.max(260, windowHeight - _headerH - insets.top - (isTablet ? -120 : 100)),
+                          // Use fixed height for expanded cards to prevent scrolling issues
+                          height: Math.max(400, windowHeight * 0.5),
                           borderRadius: 30,
                         }}
-                        contentContainerStyle={{ paddingBottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700) }}
-                        contentInset={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700), left: 0, right: 0 }}
-                        scrollIndicatorInsets={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700) }}
+                        contentContainerStyle={{ paddingBottom: 20 }}
                         showsVerticalScrollIndicator={false}
-                        bounces
-                        alwaysBounceVertical
-                        overScrollMode="always"
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
                       >
@@ -1300,7 +1294,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                           <>
                             {card.component}
                             {/* Spacer to ensure bottom content clears the fixed footer */}
-                            <View style={{ height: isPortrait ? 48 : (_footerH + insets.bottom + 400) }} />
+                            <View style={{ height: 80 }} />
                           </>
                         ) : (
                           // For other cards, keep tap-anywhere-to-collapse behavior
@@ -1328,7 +1322,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                               <>
                                 {card.component}
                                 {/* Spacer to ensure bottom content clears the fixed footer */}
-                                <View style={{ height: isPortrait ? 48 : (_footerH + insets.bottom + 400) }} />
+                                <View style={{ height: 80 }} />
                               </>
                             )}
                           </TouchableOpacity>

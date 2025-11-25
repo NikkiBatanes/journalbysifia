@@ -1796,29 +1796,15 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       styles.expandedScrollView,
                       {
                         width: STACKED_CARD_WIDTH,
-                        // Allow content to scroll under footer; we'll add padding to clear it
-                        // On iPad, use less offset so expanded card occupies more vertical space
-                        maxHeight: windowHeight - playbookHeaderHeight - insets.top - (isTablet ? -120 : 100),
+                        // Use fixed height for expanded cards to prevent scrolling issues
+                        maxHeight: Math.max(600, windowHeight * 1.1),
                       },
                     ]}
                   contentContainerStyle={{
                     ...styles.expandedScrollContent,
-                    paddingBottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
-                  }}
-                  contentInset={{
-                    top: 0,
-                    bottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
-                    left: 0,
-                    right: 0,
-                  }}
-                  scrollIndicatorInsets={{
-                    top: 0,
-                    bottom: isPortrait ? (insets.bottom + 90) : (insets.bottom + 700),
+                    paddingBottom: 400,
                   }}
                   showsVerticalScrollIndicator={false}
-                  bounces={true}
-                  alwaysBounceVertical={true}
-                  overScrollMode="always"
                   nestedScrollEnabled={true}
                   scrollEnabled={true}
                   onScrollBeginDrag={() => setIsScrolling(true)}
