@@ -1087,13 +1087,13 @@ export class FaithPointsService {
 
   private async awardBadge(userId: string, badge: Badge): Promise<void> {
     try {
-      // Only insert badge_id and unlocked_at (badge_data column doesn't exist in schema)
+      // Only insert badge_id and created_at (actual schema columns)
       const { error: insertError } = await supabase
         .from('user_badges')
         .insert({
           user_id: userId,
           badge_id: badge.id,
-          unlocked_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
         });
 
       if (insertError) {
