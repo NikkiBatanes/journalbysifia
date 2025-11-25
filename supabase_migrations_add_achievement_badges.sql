@@ -65,6 +65,48 @@ BEGIN
     END IF;
 END $$;
 
+-- Enable Row Level Security (RLS) on user_badges table
+ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policy for user_badges table (idempotent)
+-- Users can only insert/view their own badges
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'user_badges' 
+        AND policyname = 'Users can insert their own badges'
+    ) THEN
+        CREATE POLICY "Users can insert their own badges" ON user_badges
+          FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'user_badges' 
+        AND policyname = 'Users can view their own badges'
+    ) THEN
+        CREATE POLICY "Users can view their own badges" ON user_badges
+          FOR SELECT USING (auth.uid() = user_id);
+    END IF;
+END $$;
+
+-- Enable RLS on badges table (read-only for authenticated users)
+ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policy for badges table (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'badges' 
+        AND policyname = 'Authenticated users can view badges'
+    ) THEN
+        CREATE POLICY "Authenticated users can view badges" ON badges
+          FOR SELECT USING (auth.role() = 'authenticated');
+    END IF;
+END $$;
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON user_badges(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_badges_earned_at ON user_badges(earned_at DESC);
