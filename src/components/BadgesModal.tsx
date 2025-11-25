@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: Colors.faithGold,
+    color: '#FF6B6B',
   },
   statLabel: {
     fontSize: 14,
