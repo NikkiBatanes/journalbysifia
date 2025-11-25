@@ -652,7 +652,7 @@ export class FaithPointsService {
       {
         id: 'prayer_warrior',
         name: 'Prayer Warrior',
-        description: 'Generated 10 devotionals',
+        description: 'Completed 25 prayer activities',
         icon: '🙏🏼',
         rarity: 'rare',
         pointsRequired: 80,
@@ -1192,8 +1192,11 @@ export class FaithPointsService {
 
       // Devotional Badges
       case 'Prayer Warrior':
-        // Award after generating 10 devotionals
-        return await this.getActivityCount(userId, 'devotional_generated') >= 10;
+        // Award after completing 25 prayer activities (devotional prayers, prayed for people, prayer requests)
+        const devotionalPrayersCount = await this.getActivityCount(userId, 'prayer_devotional_prayed');
+        const prayerListPrayedCount = await this.getActivityCount(userId, 'prayer_list_prayed');
+        const totalPrayerActivities = devotionalPrayersCount + prayerListPrayedCount;
+        return totalPrayerActivities >= 25;
 
       case 'Devotional Dedicated':
         // Award after generating 25 devotionals

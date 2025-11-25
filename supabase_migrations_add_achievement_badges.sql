@@ -134,7 +134,7 @@ ON CONFLICT (name) DO UPDATE SET
 -- Devotional Badges
 INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
-  ('Prayer Warrior', 'Generated 10 devotionals', '🙏🏼', 80, 'rare'),
+  ('Prayer Warrior', 'Completed 25 prayer activities', '🙏🏼', 80, 'rare'),
   ('Devotional Dedicated', 'Generated 25 devotionals', '📿', 200, 'epic'),
   ('Devotional Master', 'Generated 50 devotionals', '⛪', 400, 'legendary')
 ON CONFLICT (name) DO UPDATE SET
