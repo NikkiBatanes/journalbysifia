@@ -375,7 +375,7 @@ export default function ActionStepsCard({
 
         const openedFromGuidedPrompt = !stepInfo;
         _setIsGuidedPromptActive(openedFromGuidedPrompt);
-        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: subTask.isExample ? 0 : (stepInfo?.stepNumber ?? 0), stepTitle: subTask.isExample ? 'Example' : (stepInfo?.stepTitle ?? '') } });
+        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: subTask.isExample ? 0 : (stepInfo?.stepNumber ?? 0), stepTitle: subTask.isExample ? 'Suggestion' : (stepInfo?.stepTitle ?? '') } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('reflection');
 

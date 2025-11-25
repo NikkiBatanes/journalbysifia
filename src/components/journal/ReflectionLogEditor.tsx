@@ -1506,7 +1506,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   )}
                   {dayNumber && dayTitle && (
                     <ThemedText style={s.metadataTextWithLineHeight}>
-                      {dayTitle === 'Example' ? 'EXAMPLE' : (
+                      {dayTitle === 'Suggestion' ? 'SUGGESTION' : (
                       <>
                         Step {dayNumber}: {dayTitle}
                       </>
