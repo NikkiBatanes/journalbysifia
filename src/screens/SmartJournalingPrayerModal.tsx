@@ -244,6 +244,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       if (user?.id && data?.selected_date) {
         const savedDateStr = data.selected_date; // Use the actual date from the saved data
 
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, savedDateStr] }); // CRITICAL: Invalidate ACTS prayer query for PrayerJournalReactQuery
         queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });
@@ -321,6 +322,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       if (user?.id && data?.selected_date) {
         const savedDateStr = data.selected_date; // Use the actual date from the saved data
 
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, savedDateStr] }); // CRITICAL: Invalidate ACTS prayer query for PrayerJournalReactQuery
         queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] });
         queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });

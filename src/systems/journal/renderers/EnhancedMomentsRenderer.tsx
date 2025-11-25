@@ -489,6 +489,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     if (hasUnansweredOnly) {
       return {
         answeredOnly: false,
+        allowedJournalCategories: ['supplication', 'personal_prayer'], // Only show supplication and open prayers for unanswered filter
         excludeJournalCategories: ['adoration', 'confession', 'thanksgiving'],
       };
     }
