@@ -82,6 +82,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 
       // Get all available badges
       const allBadges = await faithPointsService.getAvailableBadges();
+      console.log('All available badges:', allBadges);
       
       // Mark which badges are unlocked
       const availableWithStatus = allBadges.map(badge => ({
@@ -90,6 +91,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         unlockedAt: unlockedBadges.find(ub => ub.id === badge.id)?.unlockedAt,
       }));
 
+      console.log('Available badges with status:', availableWithStatus);
       setAvailableBadges(availableWithStatus);
       setUserBadges(unlockedBadges);
     } catch (error) {
@@ -226,7 +228,13 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
           }
           showsVerticalScrollIndicator={false}
         >
-          {availableBadges.map((item: BadgeWithStatus) => (
+          {console.log('Rendering badges, availableBadges:', availableBadges)}
+          {availableBadges.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No badges available</Text>
+            </View>
+          ) : (
+            availableBadges.map((item: BadgeWithStatus) => (
             <View key={item.id} style={[
               styles.badgeItem,
               item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
@@ -284,7 +292,8 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                 )}
               </View>
             </View>
-          ))}
+          ))
+          )}
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -353,6 +362,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 0,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
   },
   badgeItem: {
     backgroundColor: 'rgba(255,255,255,0.06)',
