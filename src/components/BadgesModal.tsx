@@ -18,6 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { faithPointsService, Badge } from '../services/faithPointsService';
+import BadgeSkeletonLoader from './ui/BadgeSkeletonLoader';
 
 // Extended type for badge with unlock status
 interface BadgeWithStatus extends Badge {
@@ -290,25 +291,79 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         </View>
 
         {/* Badges List */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 20 }]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {availableBadges.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No badges available</Text>
-            </View>
-          ) : (
-            availableBadges.map((item: BadgeWithStatus) => (
-            <View key={item.id} style={[
-              styles.badgeItem,
-              item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
-            ]}>
-              {/* Left side - Icon */}
+        {loading ? (
+          <BadgeSkeletonLoader count={8} showCount={true} />
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 20 }]}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            {availableBadges.length === 0 ? (
+              <BadgeSkeletonLoader count={8} showCount={true} />
+            ) : (
+              availableBadges.map((item: BadgeWithStatus) => (
+                    <View key={item.id} style={[
+                      styles.badgeItem,
+                      item.unlocked ? styles.unlockedBadge : styles.lockedBadge,
+                    ]}>
+                      {/* Left side - Icon */}
+                      <View style={styles.iconContainer}>
+                        <View style={styles.badgeIconContainer}>
+                          {item.unlocked ? (
+                            <Text style={styles.badgeIcon}>{item.icon || '⭐'}</Text>
+                          ) : (
+                            <Image 
+                              source={require('../../assets/icons/padlock-3.png')} 
+                              style={styles.lockIcon}
+                              resizeMode="contain"
+                            />
+                          )}
+                        </View>
+                        
+                        {/* Rarity Badge */}
+                        <View style={[
+                          styles.rarityBadge,
+                          { backgroundColor: getRarityColor(item.rarity) }
+                        ]}>
+                          <ThemedText style={styles.rarityText}>
+                            {item.rarity.toUpperCase()}
+                          </ThemedText>
+                        </View>
+                      </View>
+                      
+                      {/* Right side - Content */}
+                      <View style={styles.contentContainer}>
+                        <ThemedText 
+                          weight="bold" 
+                          style={[
+                            styles.badgeName,
+                            { color: item.unlocked ? Colors.hopeWhite : 'rgba(242, 245, 247, 0.6)' }
+                          ]}
+                        >
+                          {item.name}
+                        </ThemedText>
+                        
+                        <ThemedText 
+                          style={[
+                            styles.badgeDescription,
+                            { color: item.unlocked ? 'rgba(242, 245, 247, 0.8)' : 'rgba(242, 245, 247, 0.5)' }
+                          ]}
+                        >
+                          {item.description}
+                        </ThemedText>
+                        
+                        {item.unlocked && item.unlockedAt && (
+                          <Text style={styles.unlockedDate}>
+                            Unlocked {new Date(item.unlockedAt).toLocaleDateString()}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  ))
               <View style={styles.iconContainer}>
                 <View style={styles.badgeIconContainer}>
                   {item.unlocked ? (

@@ -120,7 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_badges_rarity ON badges(rarity);
 -- Playbook Generation Badges
 INSERT INTO badges (name, description, icon, faith_points_reward, rarity)
 VALUES 
-  ('First Steps', 'Generated your first playbook', '👶🏽', 10, 'common'),
+  ('First Steps', 'Generated your first playbook', '🦶🏼', 10, 'common'),
   ('Growth Seeker', 'Generated 25 playbooks', '📈', 250, 'rare'),
   ('Playbook Master', 'Generated 50 playbooks', '🌿', 500, 'epic'),
   ('Playbook Legend', 'Generated 100 playbooks', '🌳', 1000, 'legendary')

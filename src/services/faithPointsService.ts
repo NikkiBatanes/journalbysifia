@@ -619,7 +619,7 @@ export class FaithPointsService {
         id: 'first_playbook',
         name: 'First Steps',
         description: 'Generated your first playbook',
-        icon: '👶🏽',
+        icon: '🦶🏼',
         rarity: 'common',
         pointsRequired: 10,
       },
