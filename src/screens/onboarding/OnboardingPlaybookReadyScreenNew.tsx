@@ -473,7 +473,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'truth',
         type: 'Truth in Love',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
             <TruthInLoveCard
               key="truth"
               truth={truthData.text}
@@ -517,7 +517,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'action',
         type: 'Action Steps',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
             <ActionStepsCard
               key="action"
               steps={playbook.actionSteps || []}
@@ -529,10 +529,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               preferPropSteps={false}
               expanded={expandedCardId === 'action'}
               showCloseButton={false}
-              onCollapse={() => {
-                setExpandedCardId(null);
-                animateCardTransition('action', false);
-              }}
             />
           </View>
         ),
@@ -550,7 +546,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         component: (
           <View
             key="affirmations"
-            style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}
+            style={[styles.carouselCard, styles.cardContainerLarge]}
           >
             <View style={styles.affirmationsHeader}>
               <MaterialCommunityIcons
@@ -656,7 +652,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'bible',
         type: 'Bible Verse',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
             <BibleVerseCard
               key="bible"
               verse={playbook.bibleVerse}
@@ -678,7 +674,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'challenge',
         type: 'Challenge',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
             <DirectChallengeCard
               key="challenge"
               challenge={challengeText}
@@ -1088,10 +1084,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={expandedCardId === null} // Disable outer scroll when card is expanded
-          bounces={false}
-          alwaysBounceVertical={false}
-          overScrollMode="never"
+          scrollEnabled={false}
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
           contentInsetAdjustmentBehavior="never"
           // Keep a single sticky header (which now includes the pagination dots inside)
           stickyHeaderIndices={[0]}
@@ -1200,8 +1196,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               // When a card is expanded, bring it to the very top
               const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
-              // Standard dimensions for stacked cards (match PlaybookDetailScreen)
-              const STACKED_CARD_HEIGHT = 450;
+              // Standard dimensions for stacked cards (slightly shorter on tablets)
+              const STACKED_CARD_HEIGHT = isTablet ? 330 : 400;
               const STACKED_CARD_WIDTH = ITEM_WIDTH;
 
               // Background colors for each card
@@ -1238,15 +1234,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         { scale: animValues.scale },
                       ],
                       opacity: animValues.opacity,
-                      // When expanded, position below header
-                      ...(isExpanded && {
-                        position: 'absolute',
-                        top: _headerH + (isPortrait ? 20 : 16), // header height + gap below header
-                        left: 0,
-                        right: 0,
-                        width: '100%',
-                        alignSelf: 'stretch',
-                      }),
                     },
                     isExpanded && styles.stackedCardExpanded,
                   ]}
@@ -1288,53 +1275,50 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       </View>
                       <ScrollView
                         style={{
-                          width: '100%', // Always 100% when expanded
-                          // Use responsive height for expanded cards based on orientation
-                          maxHeight: isPortrait
-                            ? Math.max(600, windowHeight * 0.8)
-                            : Math.min(windowHeight - 120, 400), // In landscape, limit to available height minus header/footer
+                          width: STACKED_CARD_WIDTH,
+                          // Allow content to scroll under footer; we'll add a spacer to clear it
+                          // On iPad, use less offset so expanded card occupies more vertical space
+                          height: Math.max(260, windowHeight - _headerH - insets.top - (isTablet ? -120 : 100)),
                           borderRadius: 30,
                         }}
-                        contentContainerStyle={{ flexGrow: 1, paddingBottom: isPortrait ? 400 : 100 }}
+                        contentContainerStyle={{ paddingBottom: isPortrait ? (_footerH + insets.bottom + 250) : (_footerH + insets.bottom + 700) }}
+                        contentInset={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700), left: 0, right: 0 }}
+                        scrollIndicatorInsets={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700) }}
                         showsVerticalScrollIndicator={false}
+                        bounces
+                        alwaysBounceVertical
+                        overScrollMode="always"
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
                       >
-                        {card.id === 'action' ? (
-                          // For action cards, don't wrap in TouchableOpacity - let the card handle collapse via header/close button
-                          <View style={{ flex: 1, width: '100%' }}>
-                            {card.component}
-                          </View>
-                        ) : (
-                          // For other cards, keep tap-anywhere-to-collapse behavior
-                          <TouchableOpacity
-                            activeOpacity={1}
-                            onPress={() => {
-                              try { triggerLightHaptic(); } catch {}
-                              setExpandedCardId(null);
-                              animateCardTransition(card.id, false);
-                            }}
-                            style={{ flex: 1, width: '100%' }}
-                          >
-                            {card.id === 'truth' && playbook.truthInLove ? (
-                              // Render TruthInLoveCard directly with expanded state
-                              <View style={{ flex: 1, width: '100%' }}>
-                                <TruthInLoveCard
-                                  truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
-                                  summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
-                                  expanded={isExpanded}
-                                  style={styles.transparentBackground}
-                                  currentUser={{ displayName: onboardingData.name }}
-                                  showCloseButton={false}
-                                />
-                              </View>
-                            ) : (
-                              <View style={{ flex: 1, width: '100%' }}>
-                                {card.component}
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        )}
+                        <TouchableOpacity
+                          activeOpacity={1}
+                          onPress={() => {
+                            try { triggerLightHaptic(); } catch {}
+                            setExpandedCardId(null);
+                            animateCardTransition(card.id, false);
+                          }}
+                        >
+                          {card.id === 'truth' && playbook.truthInLove ? (
+                            // Render TruthInLoveCard directly with expanded state
+                            <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                              <TruthInLoveCard
+                                truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
+                                summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
+                                expanded={isExpanded}
+                                style={styles.transparentBackground}
+                                currentUser={{ displayName: onboardingData.name }}
+                                showCloseButton={false}
+                              />
+                            </View>
+                          ) : (
+                            <>
+                              {card.component}
+                              {/* Spacer to ensure bottom content clears the fixed footer */}
+                              <View style={{ height: isPortrait ? 48 : (_footerH + insets.bottom + 400) }} />
+                            </>
+                          )}
+                        </TouchableOpacity>
                       </ScrollView>
                     </>
                   ) : (
@@ -1350,7 +1334,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       <View style={{ width: STACKED_CARD_WIDTH, height: STACKED_CARD_HEIGHT, overflow: 'hidden', borderRadius: 30 }}>
                         {card.id === 'truth' && playbook.truthInLove ? (
                           // Render TruthInLoveCard directly with collapsed state (summary only)
-                          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: STACKED_CARD_WIDTH }]}>
+                          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                             <TruthInLoveCard
                               truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                               summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
@@ -1546,7 +1530,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   scrollContent: {
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -2032,13 +2016,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   stackedCardExpanded: {
-    position: 'absolute',
-    top: 0, // This will be updated dynamically
-    left: 0,
-    right: 0,
+    position: 'relative',
     minHeight: 400,
     width: '100%',
-    zIndex: 9999,
   },
   stackedCardHeader: {
     flexDirection: 'row',
