@@ -9,7 +9,6 @@ import ReflectionLogEditor, { ReflectionLogEditorRef } from '../components/journ
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
-import { useActionSteps } from '../context/ActionStepsContext';
 import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
@@ -79,18 +78,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const { user } = useAuth();
 
-  // Make ActionSteps optional - modal can work without it (e.g., from Dashboard)
-  let handleToggleStep: ((stepId: string) => void) | undefined;
-  let actionSteps: any[] | undefined;
-  try {
-    const context = useActionSteps();
-    handleToggleStep = context.handleToggleStep;
-    actionSteps = context.actionSteps;
-  } catch (error) {
-    // Not in ActionStepsProvider context - that's okay, modal still works
-    handleToggleStep = undefined;
-    actionSteps = undefined;
-  }
 
   const queryClient = useQueryClient();
 

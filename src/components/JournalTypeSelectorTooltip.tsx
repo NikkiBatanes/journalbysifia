@@ -72,10 +72,10 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   showTimeBlock = false, // Default to false for dashboard
 }) => {
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
-  
+
   // Filter options based on showTimeBlock prop
-  const filteredOptions = showTimeBlock 
-    ? JOURNAL_TYPE_OPTIONS 
+  const filteredOptions = showTimeBlock
+    ? JOURNAL_TYPE_OPTIONS
     : JOURNAL_TYPE_OPTIONS.filter(option => option.type !== 'timeblock');
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [_textHeight, setTextHeight] = useState(0); // Prefixed with _ to indicate intentionally unused
@@ -94,7 +94,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 
   // Debug: log detection for iPad spacing
   if (__DEV__ && visible) {
-    // eslint-disable-next-line no-console
+
     console.log('JournalTypeSelectorTooltip device info', {
       platform: Platform.OS,
       isPad: (Platform as any).isPad,
@@ -160,7 +160,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 
       return () => clearTimeout(timeout);
     }
-  }, [visible, displayText, screenHeight]);
+  }, [visible, displayText, screenHeight, isIPad]);
 
   useEffect(() => {
     if (visible) {

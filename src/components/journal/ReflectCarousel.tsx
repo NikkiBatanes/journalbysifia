@@ -86,7 +86,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       // Notify parent of scroll index change
       onScrollIndexChange?.(newCardIndex);
     }
-  }, [handleScrollFeedback]);
+  }, [handleScrollFeedback, onScrollIndexChange]);
 
   // Handler for reflection modal (matching dashboard behavior)
   const handleReflectionModalOpen = useCallback(() => {

@@ -89,7 +89,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
       // Notify parent of scroll index change
       onScrollIndexChange?.(newCardIndex);
     }
-  }, [handleScrollFeedback]);
+  }, [handleScrollFeedback, onScrollIndexChange]);
 
   // Removed unused renderHeader
 

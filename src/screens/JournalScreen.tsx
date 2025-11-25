@@ -618,7 +618,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                     />
                   </View>
                   <View style={styles.carouselContainer}>
-                    <PrayCarousel 
+                    <PrayCarousel
                       selectedDate={currentDate}
                       initialScrollIndex={carouselIndices.pray}
                       onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, pray: index })); }}

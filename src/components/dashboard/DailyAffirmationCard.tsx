@@ -380,9 +380,9 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
             <ThemedText style={styles.errorText}>No declarations found. Create a playbook to get started.</ThemedText>
           ) : (
             <View style={[
-              styles.listContainer, 
+              styles.listContainer,
               isTablet && affirmations.length > 1 && styles.listContainerTablet,
-              isTablet && affirmations.length === 1 && styles.listContainerTabletSingle
+              isTablet && affirmations.length === 1 && styles.listContainerTabletSingle,
             ]}>
               {affirmations.map((item) => (
                 isAffirmationPressable ? (
@@ -395,9 +395,9 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                     }}
                     activeOpacity={0.7}
                     style={[
-                      styles.affirmationItem, 
+                      styles.affirmationItem,
                       isTablet && affirmations.length > 1 && styles.affirmationItemTablet,
-                      isTablet && affirmations.length === 1 && styles.affirmationItemTabletSingle
+                      isTablet && affirmations.length === 1 && styles.affirmationItemTabletSingle,
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={`Affirmation: ${item.content}`}
@@ -413,9 +413,9 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                     }}
                     activeOpacity={0.7}
                     style={[
-                      styles.affirmationItem, 
+                      styles.affirmationItem,
                       isTablet && affirmations.length > 1 && styles.affirmationItemTablet,
-                      isTablet && affirmations.length === 1 && styles.affirmationItemTabletSingle
+                      isTablet && affirmations.length === 1 && styles.affirmationItemTabletSingle,
                     ]}
                     accessibilityRole="text"
                   >

@@ -102,6 +102,12 @@ const fallbackStyles = {
     marginBottom: 4,
     lineHeight: 16,
   },
+  metadataTextSmall: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+  },
   lastMetadataText: {
     fontSize: 12,
     color: Colors.hopeWhite,
@@ -574,7 +580,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Calculate estimated line count based on text length and newlines
   const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
-    if (!text || text.trim().length === 0) return 1;
+    if (!text || text.trim().length === 0) {return 1;}
     const newlineCount = (text.match(/\n/g) || []).length;
     const textWithoutNewlines = text.replace(/\n/g, '');
     const wrappedLines = Math.ceil(textWithoutNewlines.length / charsPerLine);
@@ -1463,17 +1469,17 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                         // Check if title includes "Bible verse" or "bible verse"
                         const lowerTitle = dayTitle.toLowerCase();
                         const bibleVerseIndex = lowerTitle.indexOf('bible verse');
-                        
+
                         if (bibleVerseIndex !== -1) {
                           // Split the title into parts
                           const beforeBibleVerse = dayTitle.substring(0, bibleVerseIndex);
                           const bibleVersePart = dayTitle.substring(bibleVerseIndex, bibleVerseIndex + 11); // "Bible verse" is 11 chars
                           const afterBibleVerse = dayTitle.substring(bibleVerseIndex + 11);
-                          
+
                           return (
                             <>
                               {beforeBibleVerse}
-                              <ThemedText style={[s.metadataText, { fontSize: 10 }]}>
+                              <ThemedText style={s.metadataTextSmall}>
                                 {bibleVersePart}
                               </ThemedText>
                               {afterBibleVerse}

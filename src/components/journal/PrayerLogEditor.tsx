@@ -390,7 +390,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
   // Calculate estimated line count based on text length and newlines
   const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
-    if (!text || text.trim().length === 0) return 1;
+    if (!text || text.trim().length === 0) {return 1;}
     const newlineCount = (text.match(/\n/g) || []).length;
     const textWithoutNewlines = text.replace(/\n/g, '');
     const wrappedLines = Math.ceil(textWithoutNewlines.length / charsPerLine);

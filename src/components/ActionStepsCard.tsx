@@ -597,7 +597,7 @@ export default function ActionStepsCard({
         });
 
       }
-      
+
       // Auto-check the subtask when reflection is saved
       if (selectedSubtask?.subTask?.id && selectedSubtask?.stepInfo?.stepId) {
         handleToggleStep(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id);

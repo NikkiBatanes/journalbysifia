@@ -601,8 +601,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // Reset timing guard to allow immediate re-marking if needed
     lastMarkCompleteRef.current = 0;
     // Close this detail screen - goBack will return to Devotionals list
-    try { 
-      (navigation as any).goBack?.(); 
+    try {
+      (navigation as any).goBack?.();
     } catch (error) {
       // If goBack fails, try navigating to Devotionals tab
       try {

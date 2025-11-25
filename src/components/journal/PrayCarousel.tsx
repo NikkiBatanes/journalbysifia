@@ -80,7 +80,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
         onScrollIndexChange?.(newCardIndex);
       }
     },
-    [handleScrollFeedback]
+    [handleScrollFeedback, onScrollIndexChange]
   );
 
   const carouselItems: CarouselItem[] = [

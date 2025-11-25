@@ -11,7 +11,6 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { toLocalDateString } from '../utils/date';
 import {
   useCreateReflection,
-  useReflectionData,
 } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
 import { analytics } from '../utils/analytics';
@@ -64,7 +63,6 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
   // React Query hooks
   const createMutation = useCreateReflection();
-  const { refetch } = useReflectionData(user?.id || '', dateStr);
 
   // Save reflection using React Query system
   const saveReflection = async (entry: {

@@ -1662,8 +1662,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         subtaskTitle={selectedReflection?.question || ''}
         // Pass metadata based on sourceType
         playbookTitle={
-          selectedReflection?.sourceType === 'playbook' 
-            ? selectedReflection.source 
+          selectedReflection?.sourceType === 'playbook'
+            ? selectedReflection.source
             : selectedReflection?.sourceType === 'guided'
             ? selectedReflection.source // 'Free Guided Prompt' or 'Guided Prompt'
             : undefined
