@@ -94,14 +94,14 @@ const fallbackStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 4,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   lastMetadataText: {
     fontSize: 12,
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 0,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   header: {
     flexDirection: 'row',
@@ -1429,7 +1429,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 textAlignVertical="top"
                 autoFocus={!isEditing}
               />
-              {(source === 'devotional') && (
+              {(source === 'devotional' || (devotionalTitle && source !== 'thoughts')) && (
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
@@ -1481,7 +1481,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   </View>
                 </View>
               )}
-              {(source === 'playbook') && (
+              {(source === 'playbook' || (playbookTitle && source !== 'thoughts')) && (
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
