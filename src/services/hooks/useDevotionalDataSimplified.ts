@@ -239,11 +239,11 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
 });
       }
 
-      // Only invalidate the list query to update dashboard, NOT the detail query
-      // to prevent re-renders while the modal is open
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.list(userId),
-      });
+      // CRITICAL: DO NOT invalidate the list query here - it causes 4.5s VirtualizedList freeze
+      // The dashboard will refetch naturally when user navigates back
+      // queryClient.invalidateQueries({
+      //   queryKey: queryKeys.devotionals.list(userId),
+      // });
 
       // Use setQueryData to update the detail query data without triggering re-renders
       // This prevents the modal from reopening due to query invalidation
