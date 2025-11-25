@@ -16,7 +16,7 @@ import {
   Clipboard,
   Alert,
   Share,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -82,10 +82,27 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
   const [dynamicTop, setDynamicTop] = useState(0); // Will be set after screen dimensions are available
   const textMeasureRef = useRef<View>(null);
 
-  const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
-  
-  // ENTERPRISE: Responsive spacing for iPad landscape
-  const isIPadLandscape = screenWidth > 1000 && screenWidth > screenHeight;
+  // Use live window dimensions so orientation changes are reflected immediately
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
+
+  // ENTERPRISE: Responsive spacing for iPad (use native isPad when available)
+  // Apply the wider spacing on any iPad (portrait or landscape), keep phones compact.
+  const isIPad =
+    Platform.OS === 'ios' &&
+    // Prefer native isPad flag when available, fall back to width heuristic for simulators
+    (((Platform as any).isPad === true) || screenWidth >= 768);
+
+  // Debug: log detection for iPad spacing
+  if (__DEV__ && visible) {
+    // eslint-disable-next-line no-console
+    console.log('JournalTypeSelectorTooltip device info', {
+      platform: Platform.OS,
+      isPad: (Platform as any).isPad,
+      screenWidth,
+      screenHeight,
+      isIPad,
+    });
+  }
 
   // Set initial dynamic top after screen height is available
   React.useEffect(() => {
@@ -118,7 +135,9 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
               // Base position is 30%, but we need to ensure text doesn't overlap with picker at 50%
               const pickerTop = screenHeight * 0.5; // Picker is at 50%
               const textBubbleHeight = height + 40; // Text height + padding
-              const minTopPosition = pickerTop - textBubbleHeight - 120; // 120px gap for picker and buttons
+              // Slightly larger gap on iPad so the pill doesn't visually sit on top of the text
+              const baseGap = isIPad ? 300 : 120;
+              const minTopPosition = pickerTop - textBubbleHeight - baseGap;
 
               // Ensure text is not too high (min 20% from top) and not too low (max 40% from top)
               const calculatedTop = Math.max(screenHeight * 0.2, Math.min(minTopPosition, screenHeight * 0.4));
@@ -260,7 +279,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
         <Animated.View
           style={[
             styles.pickerPill,
-            isIPadLandscape && styles.pickerPillIPad,
+            isIPad && styles.pickerPillIPad,
             {
               opacity: opacityAnim,
               transform: [{ scale: scaleAnim }],
@@ -272,21 +291,21 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
               key={option.type}
               style={[
                 styles.iconButton,
-                isIPadLandscape && styles.iconButtonIPad,
+                isIPad && styles.iconButtonIPad,
                 index < filteredOptions.length - 1 && styles.iconButtonBorder,
-                index < filteredOptions.length - 1 && isIPadLandscape && styles.iconButtonBorderIPad,
+                index < filteredOptions.length - 1 && isIPad && styles.iconButtonBorderIPad,
               ]}
               onPress={() => handleSelect(option.type)}
               activeOpacity={0.6}
             >
               <View style={[
                 styles.iconCircle,
-                isIPadLandscape && styles.iconCircleIPad,
+                isIPad && styles.iconCircleIPad,
                 { backgroundColor: option.color },
               ]}>
                 <MaterialCommunityIcons
                   name={option.icon}
-                  size={isIPadLandscape ? 22 : 18}
+                  size={isIPad ? 22 : 18}
                   color={Colors.hopeWhite}
                 />
               </View>
@@ -298,7 +317,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
         <Animated.View
           style={[
             styles.utilityButtonsContainer,
-            isIPadLandscape && styles.utilityButtonsContainerIPad,
+            isIPad && styles.utilityButtonsContainerIPad,
             {
               opacity: opacityAnim,
               transform: [{ scale: scaleAnim }],
@@ -306,23 +325,23 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
           ]}
         >
           <TouchableOpacity
-            style={[styles.utilityButton, isIPadLandscape && styles.utilityButtonIPad]}
+            style={[styles.utilityButton, isIPad && styles.utilityButtonIPad]}
             onPress={handleCopy}
             activeOpacity={0.7}
           >
-            <Ionicons name="copy-outline" size={isIPadLandscape ? 24 : 20} color={Colors.hopeWhite} />
-            <ThemedText weight="medium" style={[styles.utilityButtonText, isIPadLandscape && styles.utilityButtonTextIPad]}>
+            <Ionicons name="copy-outline" size={isIPad ? 24 : 20} color={Colors.hopeWhite} />
+            <ThemedText weight="medium" style={[styles.utilityButtonText, isIPad && styles.utilityButtonTextIPad]}>
               Copy
             </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.utilityButton, isIPadLandscape && styles.utilityButtonIPad]}
+            style={[styles.utilityButton, isIPad && styles.utilityButtonIPad]}
             onPress={handleShare}
             activeOpacity={0.7}
           >
-            <Ionicons name="share-outline" size={isIPadLandscape ? 24 : 20} color={Colors.hopeWhite} />
-            <ThemedText weight="medium" style={[styles.utilityButtonText, isIPadLandscape && styles.utilityButtonTextIPad]}>
+            <Ionicons name="share-outline" size={isIPad ? 24 : 20} color={Colors.hopeWhite} />
+            <ThemedText weight="medium" style={[styles.utilityButtonText, isIPad && styles.utilityButtonTextIPad]}>
               Share
             </ThemedText>
           </TouchableOpacity>
