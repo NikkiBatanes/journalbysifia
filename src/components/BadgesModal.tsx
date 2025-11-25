@@ -154,9 +154,9 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       console.log(`[BadgesModal] Badge screen count: ${unlockedCount} unlocked badges`);
       console.log(`[BadgesModal] Total unlocked from DB: ${unlockedBadges.length} rows`);
       console.log(`[BadgesModal] Total available badges: ${allBadges.length}`);
-      console.log(`[BadgesModal] Unlocked badge IDs:`, unlockedBadges.map(ub => ub.id));
-      console.log(`[BadgesModal] Unlocked by matching:`, availableWithStatus.filter(b => b.unlocked).map(b => b.id));
-      
+      console.log('[BadgesModal] Unlocked badge IDs:', unlockedBadges.map(ub => ub.id));
+      console.log('[BadgesModal] Unlocked by matching:', availableWithStatus.filter(b => b.unlocked).map(b => b.id));
+
       setAvailableBadges(availableWithStatus);
       setUserBadges(unlockedBadges);
     } catch (error) {

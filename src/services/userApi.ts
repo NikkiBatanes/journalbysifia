@@ -683,7 +683,7 @@ class UserApiService {
         if (!ubErr && Array.isArray(ubRows)) {
           totalBadges = ubRows.length;
           console.log(`[userApi] Profile badge count: ${totalBadges} from user_badges table`);
-          console.log(`[userApi] Badge rows:`, ubRows.map(row => ({ badge_id: row.badge_id, has_badge_data: !!row.badge_data })));
+          console.log('[userApi] Badge rows:', ubRows.map(row => ({ badge_id: row.badge_id, has_badge_data: !!row.badge_data })));
         }
       } catch {}
       // Fallback to legacy JSON array on user_profiles.badges
