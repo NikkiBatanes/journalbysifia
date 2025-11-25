@@ -189,7 +189,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     switch (rarity) {
       case 'common': return Colors.growthGreen;
       case 'rare': return Colors.playbookBlue;
-      case 'epic': return Colors.devotionalPurple;
+      case 'epic': return '#9B59B6'; // Lighter purple
       case 'legendary': return '#FF6B35'; // Orange
       default: return Colors.growthGreen;
     }
@@ -231,7 +231,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
           { backgroundColor: getRarityColor(item.rarity) }
         ]}>
           <ThemedText style={styles.rarityText}>
-            {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+            {item.rarity.toUpperCase()}
           </ThemedText>
         </View>
       </View>
@@ -342,7 +342,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
                   { backgroundColor: getRarityColor(item.rarity) }
                 ]}>
                   <ThemedText style={styles.rarityText}>
-                    {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                    {item.rarity.toUpperCase()}
                   </ThemedText>
                 </View>
               </View>
@@ -497,18 +497,16 @@ const styles = StyleSheet.create({
     tintColor: 'rgba(242, 245, 247, 0.4)',
   },
   rarityBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
   rarityText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
   contentContainer: {
