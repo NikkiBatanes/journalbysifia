@@ -61,33 +61,21 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const [preservedPlaybookTitle, setPreservedPlaybookTitle] = React.useState(playbookTitle);
 
   // Track when metadata props change and preserve non-empty values
+  // PERFORMANCE: Combine all metadata updates into single useEffect to reduce re-renders
   React.useEffect(() => {
     if (subtaskTitle && subtaskTitle.trim() !== '') {
       setPreservedSubtaskTitle(subtaskTitle);
-
     }
-  }, [subtaskTitle]);
-
-  React.useEffect(() => {
     if (actionStepNumber !== undefined && actionStepNumber !== null) {
       setPreservedActionStepNumber(actionStepNumber);
-
     }
-  }, [actionStepNumber]);
-
-  React.useEffect(() => {
     if (actionStepTitle && actionStepTitle.trim() !== '') {
       setPreservedActionStepTitle(actionStepTitle);
-
     }
-  }, [actionStepTitle]);
-
-  React.useEffect(() => {
     if (playbookTitle && playbookTitle.trim() !== '') {
       setPreservedPlaybookTitle(playbookTitle);
-
     }
-  }, [playbookTitle]);
+  }, [subtaskTitle, actionStepNumber, actionStepTitle, playbookTitle]);
 
   const { user } = useAuth();
 
@@ -288,17 +276,19 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         throw new Error('Failed to save reflection - no ID returned');
       }
 
-      // Simple cache invalidation (revert to working approach)
+      // PERFORMANCE: Parallel cache invalidation instead of sequential
       if (user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'byDate', user.id, dateStr],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ['journal', 'reflections', user.id, dateStr],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ['journal', 'all'],
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['reflections', 'byDate', user.id, dateStr],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'reflections', user.id, dateStr],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'all'],
+          }),
+        ]);
       }
 
       // Emit event to refresh moments screen and journal screen
@@ -329,38 +319,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       }
 
       // Call parent onSave callback
+      // PERFORMANCE: Subtask toggle logic moved to ActionStepsCard for better separation of concerns
       onSave(savedReflection);
-
-      // Mark subtask as completed immediately since data is saved (only for new reflections)
-      if (!existingReflection && stepId && subtaskId && handleToggleStep && actionSteps && !isGuidedReflection && isPlaybookContext) {
-
-        // Check if the step/subtask is already completed before toggling
-        const step = actionSteps.find((s: any) => s.id === stepId);
-
-        if (step) {
-          if (subtaskId) {
-            // Check subtask completion
-            const subtask = step.subTasks?.find((st: any) => st.id === subtaskId);
-
-            if (subtask && !subtask.completed) {
-
-              handleToggleStep(stepId);
-
-            } else {
-
-            }
-          } else {
-            // Check step completion
-            if (!step.completed) {
-
-              handleToggleStep(stepId);
-
-            } else {
-
-            }
-          }
-        }
-      }
 
       // Show success modal in next render cycle to avoid React state batching issues
       const isEditing = !!existingReflection;

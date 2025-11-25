@@ -602,8 +602,8 @@ export default function ActionStepsCard({
       }
       
       // Auto-check the subtask when reflection is saved
-      if (selectedSubtask?.subTask?.id && selectedActionStep?.stepId) {
-        handleToggleStep(selectedActionStep.stepId, selectedSubtask.subTask.id);
+      if (selectedSubtask?.subTask?.id && selectedSubtask?.stepInfo?.stepId) {
+        handleToggleStep(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id);
       }
     } finally {
       // End operation protection after save completes
@@ -615,7 +615,7 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id, selectedSubtask?.subTask?.id, selectedActionStep?.stepId, handleToggleStep]);
+  }, [queryClient, user?.id, selectedSubtask, handleToggleStep]);
 
   const handleReflectionCancel = React.useCallback(() => {
 
