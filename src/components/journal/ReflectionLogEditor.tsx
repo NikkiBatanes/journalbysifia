@@ -586,9 +586,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           }
         }, 100);
       }
-      // For freeform mode with unlocked title, focus title input first
-      else if (source === 'freeform' && !lockTitle && titleInputRef.current) {
-        logFocus('focusInput method', 'title');
+      // For freeform mode with unlocked title, focus title input first only if title is empty
+      else if (source === 'freeform' && !lockTitle && titleInputRef.current && !newEntry.title.trim()) {
+        logFocus('focusInput method', 'title (empty)');
         titleInputRef.current.focus();
         // Position cursor at the end of the title
         createManagedTimeout(() => {
@@ -691,9 +691,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   logFocus('draft loading', 'content');
                   contentInputRef.current.focus();
                 }
-                // For freeform mode with unlocked title, always focus title input (even without content)
-                else if (source === 'freeform' && !lockTitle && titleInputRef.current) {
-                  logFocus('draft loading', 'title');
+                // For freeform mode with unlocked title, focus title input only if title is empty
+                else if (source === 'freeform' && !lockTitle && titleInputRef.current && !title) {
+                  logFocus('draft loading', 'title (empty)');
                   titleInputRef.current.focus();
                 } else if (content && contentInputRef.current) {
                   // For other modes, focus content input only if there's content
@@ -856,17 +856,17 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         }
       }, 300);
     }
-    // For freeform mode with unlocked title, focus title input
-    else if (!isEditing && !lockTitle && titleInputRef.current) {
+    // For freeform mode with unlocked title, focus title input only if title is empty
+    else if (!isEditing && !lockTitle && titleInputRef.current && !newEntry.title.trim()) {
       // Add a small delay to ensure the component is fully rendered
       createManagedTimeout(() => {
-        if (titleInputRef.current) {
-          logFocus('auto-focus effect', 'title');
+        if (titleInputRef.current && !newEntry.title.trim()) {
+          logFocus('auto-focus effect', 'title (empty)');
           titleInputRef.current.focus();
         }
       }, 300);
     }
-  }, [isEditing, lockTitle, source]);
+  }, [isEditing, lockTitle, source, newEntry.title]);
 
   // Refresh guided prompt gating state when component mounts
   const hasRefreshedRef = useRef(false);
