@@ -1241,7 +1241,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       // When expanded, position below header
                       ...(isExpanded && {
                         position: 'absolute',
-                        top: headerH + (isPortrait ? 20 : 16), // header height + gap below header
+                        top: _headerH + (isPortrait ? 20 : 16), // header height + gap below header
                         left: 0,
                         right: 0,
                         width: '100%',
