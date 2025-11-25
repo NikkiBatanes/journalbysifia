@@ -473,7 +473,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'truth',
         type: 'Truth in Love',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
             <TruthInLoveCard
               key="truth"
               truth={truthData.text}
@@ -517,7 +517,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'action',
         type: 'Action Steps',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
             <ActionStepsCard
               key="action"
               steps={playbook.actionSteps || []}
@@ -550,7 +550,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         component: (
           <View
             key="affirmations"
-            style={[styles.carouselCard, styles.cardContainerLarge]}
+            style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}
           >
             <View style={styles.affirmationsHeader}>
               <MaterialCommunityIcons
@@ -656,7 +656,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'bible',
         type: 'Bible Verse',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
             <BibleVerseCard
               key="bible"
               verse={playbook.bibleVerse}
@@ -678,7 +678,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'challenge',
         type: 'Challenge',
         component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: ITEM_WIDTH }]}>
             <DirectChallengeCard
               key="challenge"
               challenge={challengeText}
@@ -1200,8 +1200,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               // When a card is expanded, bring it to the very top
               const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
-              // Standard dimensions for stacked cards (slightly shorter on tablets)
-              const STACKED_CARD_HEIGHT = isTablet ? 330 : 400;
+              // Standard dimensions for stacked cards (match PlaybookDetailScreen)
+              const STACKED_CARD_HEIGHT = 450;
               const STACKED_CARD_WIDTH = ITEM_WIDTH;
 
               // Background colors for each card
@@ -1281,10 +1281,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         style={{
                           width: STACKED_CARD_WIDTH,
                           // Use fixed height for expanded cards to prevent scrolling issues
-                          height: Math.max(400, windowHeight * 0.5),
+                          maxHeight: Math.max(600, windowHeight * 1.1),
                           borderRadius: 30,
                         }}
-                        contentContainerStyle={{ paddingBottom: 20 }}
+                        contentContainerStyle={{ flexGrow: 1, paddingBottom: 400 }}
                         showsVerticalScrollIndicator={false}
                         nestedScrollEnabled={true}
                         scrollEnabled={true}
@@ -1293,8 +1293,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                           // For action cards, don't wrap in TouchableOpacity - let the card handle collapse via header/close button
                           <>
                             {card.component}
-                            {/* Spacer to ensure bottom content clears the fixed footer */}
-                            <View style={{ height: 80 }} />
                           </>
                         ) : (
                           // For other cards, keep tap-anywhere-to-collapse behavior
@@ -1308,7 +1306,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                           >
                             {card.id === 'truth' && playbook.truthInLove ? (
                               // Render TruthInLoveCard directly with expanded state
-                              <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                              <View style={[styles.carouselCard, styles.cardContainerLarge, { width: STACKED_CARD_WIDTH }]}>
                                 <TruthInLoveCard
                                   truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                                   summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
@@ -1321,8 +1319,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                             ) : (
                               <>
                                 {card.component}
-                                {/* Spacer to ensure bottom content clears the fixed footer */}
-                                <View style={{ height: 80 }} />
                               </>
                             )}
                           </TouchableOpacity>
@@ -1342,7 +1338,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       <View style={{ width: STACKED_CARD_WIDTH, height: STACKED_CARD_HEIGHT, overflow: 'hidden', borderRadius: 30 }}>
                         {card.id === 'truth' && playbook.truthInLove ? (
                           // Render TruthInLoveCard directly with collapsed state (summary only)
-                          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+                          <View style={[styles.carouselCard, styles.cardContainerLarge, { width: STACKED_CARD_WIDTH }]}>
                             <TruthInLoveCard
                               truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                               summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
