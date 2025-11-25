@@ -239,6 +239,17 @@ export async function generateDevotional(
 
       const result = await response.json();
 
+      // Log the response for debugging
+      Logger.info('Devotional API response received', {
+        component: 'modernDevotionalApi',
+        data: {
+          daysCount: result?.days?.length || 0,
+          firstDayTitle: result?.days?.[0]?.title || 'none',
+          firstDayContentLength: result?.days?.[0]?.content?.length || 0,
+          firstDayContentPreview: result?.days?.[0]?.content?.substring(0, 100) || 'none'
+        }
+      });
+
       // Validate the response structure
       if (!result || !Array.isArray(result.days) || result.days.length === 0) {
         throw new Error('Invalid devotional format received from server');
@@ -247,6 +258,24 @@ export async function generateDevotional(
       // Validate content completeness and quality
       const validationError = validateDevotionalCompleteness(result, duration);
       if (validationError) {
+        // Log detailed info about the failed validation
+        Logger.error('Devotional validation failed', {
+          component: 'modernDevotionalApi',
+          data: {
+            validationError,
+            duration,
+            daysCount: result?.days?.length,
+            dayDetails: result?.days?.map((day: any, index: number) => ({
+              day: index + 1,
+              titleLength: day?.title?.length || 0,
+              contentLength: day?.content?.length || 0,
+              hasTitle: !!day?.title,
+              hasContent: !!day?.content,
+              titlePreview: day?.title?.substring(0, 50) || 'none',
+              contentPreview: day?.content?.substring(0, 100) || 'none'
+            }))
+          }
+        });
         throw new Error(`Incomplete devotional: ${validationError}`);
       }
 
