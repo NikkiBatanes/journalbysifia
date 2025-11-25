@@ -1391,8 +1391,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <Image
                 source={{ uri: safeAvatarUrl }}
                 style={styles.profileImage}
-                onError={(error) => console.log('🖼️ Dashboard Image error:', error)}
-                onLoad={() => console.log('🖼️ Dashboard Image loaded successfully')}
+                onError={(error) => {/* Handle dashboard image error silently */}}
+                onLoad={() => {/* Handle dashboard image load silently */}}
               />
             ) : (
             <View style={styles.initialAvatar}>

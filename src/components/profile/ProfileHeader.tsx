@@ -114,14 +114,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   // Only allow local file URIs (starting with file://) - block any external URLs
   const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
 
-  // Debug logging
-  console.log('🖼️ ProfileHeader Avatar Debug:', {
-    userId: user?.id,
-    avatarUrl,
-    safeAvatarUrl,
-    userMetadata: (user as any)?.user_metadata,
-  });
-  const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
+    const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
   // Skeleton loading component
   const renderSkeleton = () => (
@@ -238,8 +231,8 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
             <Image
               source={{ uri: safeAvatarUrl }}
               style={styles.avatar}
-              onError={(error) => console.log('🖼️ ProfileHeader Image error:', error)}
-              onLoad={() => console.log('🖼️ ProfileHeader Image loaded successfully')}
+              onError={(error) => {/* Handle image error silently */}}
+              onLoad={() => {/* Handle image load silently */}}
             />
           ) : (
             <View style={[styles.avatar, styles.initialAvatar]}>

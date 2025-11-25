@@ -146,16 +146,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Use local avatar URL if available (instant), otherwise fall back to auth metadata
   const displayAvatarUrl = localAvatarUrl || safeAvatarUrl;
 
-  // Debug logging for modal avatar
-  console.log('🖼️ UserProfileScreen Modal Avatar Debug:', {
-    userId: user?.id,
-    avatarUrl,
-    safeAvatarUrl,
-    localAvatarUrl,
-    displayAvatarUrl,
-    userMetadata: (user as any)?.user_metadata,
-  });
-  const initialLetter = useMemo(() => {
+    const initialLetter = useMemo(() => {
     const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
     const last = (profileForm as any)?.lastName || (user as any)?.user_metadata?.last_name || '';
     const fallback = (user as any)?.user_metadata?.full_name || (user as any)?.email || 'U';
@@ -831,18 +822,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       if (!picked) {return;} // user cancelled
 
       const uploadedAvatarUrl = await uploadAvatar(user, picked);
-      console.log('🖼️ Avatar uploaded:', uploadedAvatarUrl);
-
+      
       // Set local avatar immediately for instant display
       setLocalAvatarUrl(uploadedAvatarUrl);
 
       // Update auth metadata in background (non-blocking)
       updateProfile({ avatar_url: uploadedAvatarUrl }).then(result => {
-        console.log('🖼️ Background update result:', result);
+        /* Background update completed */
         // Clear local state once auth is updated
         setLocalAvatarUrl(null);
       }).catch(error => {
-        console.log('🖼️ Background update failed:', error);
+        /* Handle background update error silently */
       });
     } catch (e: any) {
       const msg = e?.message || 'Unknown error';
@@ -1797,8 +1787,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Image
                   source={{ uri: displayAvatarUrl }}
                   style={styles.modalAvatar}
-                  onError={(error) => console.log('🖼️ Modal Image error:', error)}
-                  onLoad={() => console.log('🖼️ Modal Image loaded successfully')}
+                  onError={(error) => {/* Handle modal image error silently */}}
+                  onLoad={() => {/* Handle modal image load silently */}}
                 />
               ) : (
                 <View style={[styles.modalAvatar, styles.modalInitialAvatar]}>

@@ -48,8 +48,7 @@ export async function uploadAvatar(user: User, file: { uri: string; name: string
     throw new Error('Invalid file URI provided');
   }
 
-  console.log('📸 Starting avatar upload:', { uri: file.uri, name: file.name, type: file.type });
-
+  
   try {
     // For React Native, just return the file URI directly
     // React Native Image component handles local file URIs efficiently
@@ -57,12 +56,10 @@ export async function uploadAvatar(user: User, file: { uri: string; name: string
       throw new Error('Only local file URIs are allowed for avatars');
     }
 
-    console.log('📸 Using local file URI for fast loading');
-    return file.uri;
+        return file.uri;
 
   } catch (catchError) {
-    console.error('📸 File URI processing failed:', catchError);
-    Logger.error('Error processing avatar file', catchError as Error, {
+        Logger.error('Error processing avatar file', catchError as Error, {
       component: 'avatarService',
     });
     throw new Error(`Failed to process avatar: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`);

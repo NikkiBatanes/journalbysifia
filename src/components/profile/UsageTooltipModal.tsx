@@ -254,12 +254,10 @@ const UsageTooltipModal: React.FC<Props> = ({
   const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
 
   const handleUpgrade = () => {
-    console.log('🔧 Upgrade button pressed - type:', type, 'tier:', subscription?.tier);
-    triggerLightHaptic();
+        triggerLightHaptic();
 
     // Always show sales offer screen from profile usage counter
     // Users can choose trial from within the sales offer screen
-    console.log('🔧 Always showing sales offer from profile usage counter');
 
     // CRITICAL: Close tooltip modal first to ensure proper navigation context
     onClose();
@@ -267,18 +265,15 @@ const UsageTooltipModal: React.FC<Props> = ({
     // Use longer delay to ensure modal is fully closed before navigation
     // This prevents navigation context issues with React Native modals
     setTimeout(() => {
-      console.log('🔧 Attempting navigation after modal close...');
-      try {
+            try {
         const nav = navigation as any;
 
         // Check if navigation is available
         if (!nav || typeof nav.navigate !== 'function') {
-          console.error('❌ Navigation not available');
-          return;
+                    return;
         }
 
-        console.log('🔧 Navigating to OnboardingSalesOffer');
-        nav.navigate('OnboardingSalesOffer', {
+                nav.navigate('OnboardingSalesOffer', {
           upgradeMode: true,
           currentTier: subscription?.tier || 'seeker',
           skipNotificationPreference: true,
@@ -289,9 +284,9 @@ const UsageTooltipModal: React.FC<Props> = ({
           context: 'profile_settings',
           dismissBothModalsOnClose: true, // Custom flag to handle dismissal
         });
-        console.log('✅ Navigation call completed');
+        /* Navigation completed */
       } catch (error) {
-        console.error('❌ Navigation error:', error);
+        /* Handle navigation error silently */
       }
     }, 500); // Increased delay to ensure modal is fully closed
   };
