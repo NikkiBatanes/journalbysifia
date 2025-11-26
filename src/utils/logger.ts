@@ -35,20 +35,32 @@ class Logger {
   }
 
   /**
-   * Debug level - Development only
+   * Debug level - Development only (filtered for noise)
    */
   debug(message: string, meta?: LogMetadata): void {
     if (!this.isProduction) {
-      console.log(`[DEBUG] ${message}`, meta || '');
+      // Filter out noisy debug messages
+      const noisyPatterns = ['Component mounted', 'Minimum splash time', 'AUTH STATE', 'INITIAL USER CHECK', '🔍', '📋 FLOW'];
+      const isNoisy = noisyPatterns.some(pattern => message.includes(pattern));
+
+      if (!isNoisy) {
+        console.log(`[DEBUG] ${message}`, meta || '');
+      }
     }
   }
 
   /**
-   * Info level - General information
+   * Info level - General information (filtered for noise)
    */
   info(message: string, meta?: LogMetadata): void {
     if (!this.isProduction) {
-      console.log(`[INFO] ${message}`, meta || '');
+      // Filter out noisy info messages
+      const noisyPatterns = ['Navigation:', 'Starting iOS initialization', 'All iOS event listeners', 'Notifications already scheduled'];
+      const isNoisy = noisyPatterns.some(pattern => message.includes(pattern));
+
+      if (!isNoisy) {
+        console.log(`[INFO] ${message}`, meta || '');
+      }
     } else {
       // Production: Send to analytics service
       this.sendToAnalytics('info', message, meta);

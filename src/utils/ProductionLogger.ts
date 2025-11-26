@@ -114,12 +114,29 @@ class ProductionLogger {
       return;
     }
 
-    // Development: output to console with appropriate method
+    // Development: output to console with appropriate method (reduced verbosity)
     const formatted = this.formatForConsole(entry);
+
+    // Filter out noisy components in development
+    const noisyComponents = ['StoreKit', 'NotificationDeliveryService', 'DailyNotificationScheduler', 'PushNotification', 'notificationSetup', 'useNotificationBadge'];
+    const noisyPatterns = ['🧹 Clearing old cached transaction', '🔄 Checking subscription status', 'Setting up real-time notification subscription', 'Badge count updated', 'Processing pending notifications'];
+    const isNoisy = entry.component && noisyComponents.some(noisy =>
+      formatted.includes(`[${noisy}]`)
+    ) || noisyPatterns.some(pattern => formatted.includes(pattern));
+
+    // Only show WARN and ERROR in development, plus non-noisy INFO
     switch (entry.level) {
       case LogLevel.DEBUG:
+        // Only show DEBUG in development if not from noisy components
+        if (!isNoisy) {
+          console.log(formatted);
+        }
+        break;
       case LogLevel.INFO:
-        console.log(formatted);
+        // Only show INFO in development if not from noisy components
+        if (!isNoisy) {
+          console.log(formatted);
+        }
         break;
       case LogLevel.WARN:
         console.warn(formatted);
