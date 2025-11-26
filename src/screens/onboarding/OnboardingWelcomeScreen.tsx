@@ -512,11 +512,11 @@ const OnboardingWelcomeScreen: React.FC = () => {
         <View style={[styles.termsContainer, { width: contentWidth }, styles.centeredContainer]}>
           <ThemedText style={styles.termsText}>
             By continuing, you agree to our{' '}
-            <ThemedText style={styles.linkText} onPress={() => Linking.openURL('https://sifia.app/legal/terms.html')}>
+            <ThemedText style={styles.linkText} onPress={() => Linking.openURL('https://sifia.app/legal/terms')}>
               Terms of Service
             </ThemedText>
             {' '}and{' '}
-            <ThemedText style={styles.linkText} onPress={() => Linking.openURL('https://sifia.app/legal/privacy.html')}>
+            <ThemedText style={styles.linkText} onPress={() => Linking.openURL('https://sifia.app/legal/privacy')}>
               Privacy Policy
             </ThemedText>
           </ThemedText>

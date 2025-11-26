@@ -1473,7 +1473,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { openExternalLink('https://sifia.app/legal/terms.html'); }}
+          onPress={() => { openExternalLink('https://sifia.app/legal/terms'); }}
           accessibilityLabel="Open Terms of Service"
         >
           <View style={styles.menuIconBox}>
@@ -1485,7 +1485,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { openExternalLink('https://sifia.app/legal/privacy.html'); }}
+          onPress={() => { openExternalLink('https://sifia.app/legal/privacy'); }}
           accessibilityLabel="Open Privacy Policy"
         >
           <View style={styles.menuIconBox}>
