@@ -226,9 +226,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const isLandscape = windowWidth > windowHeight;
   const isTablet = windowWidth >= 768;
   // Always constrain card width, even in landscape - never full screen
-  // On iPad, match header width (windowWidth - 44) to align with progress bar and share button row
-  const cardPadding = isTablet ? 44 : 64; // 22px padding on each side for iPad header
-  const maxCardWidth = Math.min(windowWidth - cardPadding, 720);
+  // On iPad, cards should use full container width since container already has 22px padding on each side
+  const maxCardWidth = isTablet 
+    ? Math.min(windowWidth - 44, 720) // Container has 22px padding each side, so cards can use full width
+    : Math.min(windowWidth - 64, 720); // Mobile keeps 32px padding each side
   // Status bar: force light icons (white) on dark header background
   useScreenStatusBar('dark', Colors.anchorBlue);
   // Measure header height so we can place the card overlay precisely below it
@@ -1640,7 +1641,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     };
 
     return (
-      <View style={styles.cardStackContainer}>
+      <View style={[styles.cardStackContainer, isTablet && { paddingHorizontal: 22 }]}>
         {cardData.map((card, index) => {
           const isExpanded = expandedCardId === card.id;
 
