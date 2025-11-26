@@ -61,6 +61,33 @@ class NotificationDeepLinkService {
   }
 
   /**
+   * Dismiss any open notification modal
+   */
+  private dismissNotificationModal(): void {
+    try {
+      // Check if there's a Notifications screen open and dismiss it
+      const state = this.navigationRef.current?.getState();
+      if (state) {
+        const routes = state.routes;
+        const currentRoute = routes[routes.length - 1];
+        
+        // If the current route is Notifications, go back to dismiss it
+        if (currentRoute?.name === 'Notifications') {
+          Logger.info('Dismissing notification modal before navigation', {
+            component: 'notificationDeepLinkService',
+          });
+          this.navigationRef.current.goBack();
+        }
+      }
+    } catch (error) {
+      Logger.warn('Failed to dismiss notification modal', {
+        component: 'notificationDeepLinkService',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
    * Navigate to a specific deep link
    */
   navigate(deepLink: string): void {
@@ -78,6 +105,9 @@ class NotificationDeepLinkService {
         });
         return;
       }
+
+      // Dismiss any open notification modal before navigating
+      this.dismissNotificationModal();
 
       // Parse deep link URL
       // Format: sifia://screen/id or sifia://screen
