@@ -292,7 +292,11 @@ export const useUpdateReflection = () => {
         queryClient.setQueryData(['reflections', 'subtask', data.user_id, data.subtask_id], data);
       }
 
-      // No cache invalidation needed - we've already updated all relevant caches
+      // Force refresh the main query to ensure UI updates instantly
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.reflections.byDate(data.user_id, data.selected_date),
+        refetchType: 'active' // Only refetch active queries
+      });
     },
   });
 };
