@@ -16,10 +16,16 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
-const CARD_SPACING = 8; // Narrower gap between cards
-const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2; // Center items in viewport
-const PEEK = 8; // reveal a bit of next card
+const { height: screenHeight } = Dimensions.get('window');
+
+// Detect iPad vs iPhone based on screen size
+const isIPad = screenWidth >= 768 || screenHeight >= 768;
+
+// Responsive card sizing: show 1 card with peek on all devices
+const CARD_WIDTH = screenWidth * 0.8; // Consistent 80% width
+const CARD_SPACING = 8; 
+const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2; 
+const PEEK = isIPad ? 12 : 8; // Slightly larger peek on iPad for better visibility
 const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 
 interface ReflectCarouselProps {
