@@ -1641,7 +1641,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     };
 
     return (
-      <View style={[styles.cardStackContainer, isTablet && { paddingHorizontal: 22 }]}>
+      <View style={[styles.cardStackContainer, isTablet && { paddingHorizontal: 22, alignItems: 'stretch' }]}>
         {cardData.map((card, index) => {
           const isExpanded = expandedCardId === card.id;
 
