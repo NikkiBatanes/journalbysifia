@@ -1098,8 +1098,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
-        {/* Show pencil icon for playbook/devotional sources (display only) */}
-        {(source === 'devotional' || source === 'playbook') && (
+        {/* Show pencil icon for devotional/playbook/guided sources (display only) */}
+        {(source === 'devotional' || source === 'playbook' || source === 'guided') && (
           <View style={s.modeButton} pointerEvents="none">
             <Pencil
               size={22}
@@ -1110,7 +1110,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           </View>
         )}
         {/* Always show pencil toggle for freeform switching */}
-        {source !== 'devotional' && source !== 'playbook' && (
+        {source !== 'devotional' && source !== 'playbook' && source !== 'guided' && (
           <TouchableOpacity
             style={s.modeButton}
             disabled={viewMode === 'free-form' && !selectedPrompt} // Only disable when already in true free-form mode (no selected prompt)
