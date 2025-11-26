@@ -1183,8 +1183,9 @@ export class FaithPointsService {
     switch (badge.name) {
       // Playbook Generation Badges
       case 'First Steps':
-        // Award on first playbook generation
-        return activity === 'playbook_generated';
+        // Award only on the first playbook generation (count should be 0 before this one)
+        const currentCount = await this.getActivityCount(userId, 'playbook_generated');
+        return activity === 'playbook_generated' && currentCount === 0;
 
       case 'Growth Seeker':
         // Award after generating 25 playbooks
