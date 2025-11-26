@@ -80,6 +80,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
+  const [isNavigatingAway, setIsNavigatingAway] = useState(false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -174,6 +175,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Load location-adjusted pricing and currency
   const handleSuccessModalContinue = React.useCallback(() => {
+    if (isNavigatingAway) {
+      logger.debug('Already navigating away, ignoring duplicate call');
+      return;
+    }
+    
+    setIsNavigatingAway(true);
     setShowSuccessModal(false);
     setLastPurchasedTier(null);
 
@@ -209,7 +216,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
       }
     }, 100);
-  }, [navigation, isUpgradeMode, routeParams]);
+  }, [navigation, isUpgradeMode, routeParams, isNavigatingAway]);
 
   // Pre-fetch available products on mount to avoid delays during purchase
   useEffect(() => {
@@ -302,6 +309,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       isMounted = false;
     };
   }, [hasManualTierSelection, isUpgradeMode, currentUserTier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName]);
+
+  // Cleanup navigation guard on unmount
+  useEffect(() => {
+    return () => {
+      setIsNavigatingAway(false);
+    };
+  }, []);
 
   // Ensure 7-day requests always highlight Transformation when tiers already cached
   useEffect(() => {
@@ -569,6 +583,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       setShowSuccessModal(false);
       setPurchaseValidated(false);
       setLoadingStep('processing');
+      setIsNavigatingAway(false); // Reset navigation guard for new purchase
 
       if (isUpgradeMode) {
         // In upgrade mode, purchase and show success modal before going back
@@ -602,7 +617,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             setIsPurchasing(false); // Hide loading modal
             await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
             setShowSuccessModal(true);
-            // Navigation will happen when user dismisses the success modal via handleSuccessModalContinue
+            
+            // Auto-dismiss sales offer screen after successful payment
+            // Auto-navigate after a short delay to show success briefly
+            setTimeout(() => {
+              handleSuccessModalContinue();
+            }, 2000); // Show success for 2 seconds then auto-dismiss
           } else {
             throw new Error(result.error || 'Purchase failed');
           }
@@ -721,6 +741,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setPurchaseValidated(true);
           setLastPurchasedTier(purchaseTier);
           setShowSuccessModal(true);
+          
+          // Auto-dismiss sales offer screen after successful payment
+          // Auto-navigate after a short delay to show success briefly
+          setTimeout(() => {
+            handleSuccessModalContinue();
+          }, 2000); // Show success for 2 seconds then auto-dismiss
         } else {
           logger.debug('❌ Purchase not successful, throwing error');
           throw new Error(result.error || 'Purchase failed');
