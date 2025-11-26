@@ -48,10 +48,10 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       }
     };
     const config = getResponsiveConfig();
-    const SIDE_OFFSET = (screenWidth - config.cardWidth) / 2;
-    const SIDE_INSET = config.peek === 0 ? 0 : Math.max(0, SIDE_OFFSET - config.peek);
-    return { CARD_WIDTH: config.cardWidth, CARD_SPACING: config.cardSpacing, SIDE_INSET, PEEK: config.peek };
-  }, [screenWidth, screenHeight, isLandscape]);
+    const sideOffset = (screenWidth - config.cardWidth) / 2;
+    const sideInset = config.peek === 0 ? 0 : Math.max(0, sideOffset - config.peek);
+    return { CARD_WIDTH: config.cardWidth, CARD_SPACING: config.cardSpacing, SIDE_INSET: sideInset, PEEK: config.peek };
+  }, [screenWidth, isLandscape]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(initialScrollIndex); // Start with initial card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -83,18 +83,17 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
 
   // Track scroll position for feedback and auto-expansion
   const handleScroll = useCallback((event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const newCardIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
-
-    if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < 4) {
-      currentCardIndex.current = newCardIndex;
+    const contentOffset = event.nativeEvent.contentOffset;
+    const index = Math.round(contentOffset.x / (CARD_WIDTH + CARD_SPACING));
+    if (index !== currentCardIndex.current && index >= 0 && index < 4) {
+      currentCardIndex.current = index;
       // Auto-expand the currently focused card
-      setExpandedIndex(newCardIndex);
+      setExpandedIndex(index);
       handleScrollFeedback();
       // Notify parent of scroll index change
-      onScrollIndexChange?.(newCardIndex);
+      onScrollIndexChange?.(index);
     }
-  }, [handleScrollFeedback, onScrollIndexChange]);
+  }, [onScrollIndexChange, CARD_WIDTH, CARD_SPACING, handleScrollFeedback]);
 
   const carouselItems: CarouselItem[] = [
     {
@@ -178,8 +177,9 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
             <Animated.View
               key={item.id}
               style={[
-                { width: CARD_WIDTH, marginRight: CARD_SPACING, paddingHorizontal: 4 },
-                { transform: [{ scale }], opacity }
+                { width: CARD_WIDTH, marginRight: CARD_SPACING },
+                styles.carouselItemPadding,
+                { transform: [{ scale }], opacity },
               ]}
             >
               <View style={styles.touchableComponent}>
@@ -226,6 +226,9 @@ const styles = StyleSheet.create({
   scrollView: {
     // Removed fixed height for dynamic expansion
     // Centering handled by contentInset + content padding
+  },
+  carouselItemPadding: {
+    paddingHorizontal: 4,
   },
   touchableComponent: {
     flex: 1,

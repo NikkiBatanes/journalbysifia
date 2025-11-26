@@ -27,7 +27,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
         return {
           cardWidth: Math.min(screenWidth * 0.85, 800),
           cardSpacing: 12,
-          peek: 0,  // No peek for centered layout
+          peek: 180,  // No peek for centered layout
           maxCardsVisible: 1,
         };
       }
@@ -61,31 +61,28 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
     };
 
     const config = getResponsiveConfig();
-    const CARD_WIDTH = config.cardWidth;
-    const CARD_SPACING = config.cardSpacing;
-    const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2;
-    const PEEK = config.peek;
+    const cardWidth = config.cardWidth;
+    const cardSpacing = config.cardSpacing;
+    const sideOffset = (screenWidth - cardWidth) / 2;
+    const peek = config.peek;
     // When peek is 0 (iPad Portrait), center the cards by using minimal inset
-    const SIDE_INSET = PEEK === 0 ? 0 : Math.max(0, SIDE_OFFSET - PEEK);
+    const sideInset = peek === 0 ? 0 : Math.max(0, sideOffset - peek);
 
     // Debug logging
-    const finalPadding = PEEK === 0 ? (screenWidth - CARD_WIDTH) / 2 : SIDE_INSET;
     console.log('PlanCarousel Debug:', {
       screenWidth,
       screenHeight,
       isLandscape,
-      CARD_WIDTH,
-      CARD_SPACING,
-      PEEK,
-      SIDE_OFFSET,
-      SIDE_INSET,
+      CARD_WIDTH: cardWidth,
+      CARD_SPACING: cardSpacing,
+      PEEK: peek,
+      SIDE_OFFSET: sideOffset,
+      SIDE_INSET: sideInset,
       isIPad: screenWidth >= 768,
-      finalPadding,
-      contentInset: PEEK === 0 ? undefined : { left: SIDE_INSET, right: SIDE_INSET },
-      contentContainerStyle: { paddingHorizontal: finalPadding },
+      padding: peek === 0 ? (screenWidth - cardWidth) / 2 : sideInset,
     });
 
-    return { CARD_WIDTH, CARD_SPACING, SIDE_INSET, PEEK };
+    return { CARD_WIDTH: cardWidth, CARD_SPACING: cardSpacing, SIDE_INSET: sideInset, PEEK: peek };
   }, [screenWidth, screenHeight, isLandscape]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(initialScrollIndex); // Start with initial card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -104,9 +101,9 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
         hasRestoredPosition.current = true;
       }, 100);
     }
-  }, [initialScrollIndex]);
+  }, [initialScrollIndex, CARD_WIDTH, CARD_SPACING]);
 
-  const carouselItems = [
+  const carouselItems = useMemo(() => [
     {
       id: 'focus',
       title: 'FOCUS',
@@ -118,42 +115,29 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
       id: 'todos',
       title: 'TODOS',
       icon: 'checkmark-circle-outline',
-      component: <TodosReactQuery selectedDate={selectedDate} refreshKey={refreshKey} variant="carousel" />,
-      color: Colors.anchorBlue,
+      component: <TodosReactQuery selectedDate={selectedDate} refreshKey={refreshKey} />,
+      color: Colors.primary,
     },
     {
       id: 'timeblocks',
-      title: 'Time Blocks',
+      title: 'TIMEBLOCKS',
       icon: 'time-outline',
-      component: <TimeBlockReactQuery selectedDate={selectedDate} viewMode="carousel" variant="carousel" />,
-      color: Colors.growthGreen,
+      component: <TimeBlockReactQuery selectedDate={selectedDate} />,
+      color: Colors.secondary,
     },
-  ];
+  ], [selectedDate, refreshKey]);
 
   // Handle scroll feedback with sound
-  const handleScrollFeedback = useCallback(() => {
-    try {
-      // Play sound effect
-      playSound();
-    } catch (error) {
-
-    }
-  }, []);
 
   // Track scroll position for feedback and auto-expansion
   const handleScroll = useCallback((event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const newCardIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
-
-    if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < 3) {
-      currentCardIndex.current = newCardIndex;
-      // Auto-expand the currently focused card
-      setExpandedIndex(newCardIndex);
-      handleScrollFeedback();
-      // Notify parent of scroll index change
-      onScrollIndexChange?.(newCardIndex);
+    const contentOffset = event.nativeEvent.contentOffset;
+    const index = Math.round(contentOffset.x / (CARD_WIDTH + CARD_SPACING));
+    if (index !== currentCardIndex.current && index >= 0 && index < carouselItems.length) {
+      currentCardIndex.current = index;
+      onScrollIndexChange?.(index);
     }
-  }, [handleScrollFeedback, onScrollIndexChange]);
+  }, [onScrollIndexChange, CARD_WIDTH, CARD_SPACING, carouselItems]);
 
   // Removed unused renderHeader
 
@@ -162,28 +146,29 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
       <View style={styles.header}>
         <ThemedText weight="semiBold" style={styles.title}>PLAN & PREPARE</ThemedText>
       </View>
-      <View style={{ paddingHorizontal: PEEK === 0 ? (screenWidth - CARD_WIDTH) / 2 : SIDE_INSET }}>
-        <Animated.ScrollView
-          ref={scrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={CARD_WIDTH + CARD_SPACING}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          pagingEnabled={false}
-          directionalLockEnabled={true}
-          bounces={true}
-          bouncesZoom={false}
-          style={styles.scrollView}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            {
-              useNativeDriver: true,
-              listener: handleScroll,
-            }
-          )}
-          scrollEventThrottle={16}
-        >
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={CARD_WIDTH + CARD_SPACING}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        pagingEnabled={false}
+        directionalLockEnabled={true}
+        bounces={true}
+        bouncesZoom={false}
+        contentInset={PEEK === 0 ? undefined : { left: SIDE_INSET, right: SIDE_INSET }}
+        contentContainerStyle={{ paddingHorizontal: PEEK === 0 ? (screenWidth - CARD_WIDTH) / 2 : SIDE_INSET }}
+        style={styles.scrollView}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          {
+            useNativeDriver: true,
+            listener: handleScroll,
+          }
+        )}
+        scrollEventThrottle={16}
+      >
         {carouselItems.map((item, i) => {
           const inputRange = [
             (i - 1) * (CARD_WIDTH + CARD_SPACING),
@@ -204,12 +189,10 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
             <Animated.View
               key={item.id}
               style={[
-                {
-                  width: CARD_WIDTH,
-                  marginRight: CARD_SPACING,
-                  paddingHorizontal: 4,
-                },
-                { transform: [{ scale }], opacity }
+                styles.carouselItem,
+                { width: CARD_WIDTH, marginRight: CARD_SPACING },
+                styles.carouselItemPadding,
+                { transform: [{ scale }], opacity },
               ]}
             >
               <View style={styles.touchableComponent}>
@@ -225,7 +208,6 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
           );
         })}
       </Animated.ScrollView>
-      </View>
     </View>
   );
 };
@@ -256,6 +238,13 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     // Removed fixed height for dynamic expansion
+  },
+  carouselItem: {
+    width: 0, // Will be overridden by inline style
+    marginRight: 0, // Will be overridden by inline style
+  },
+  carouselItemPadding: {
+    paddingHorizontal: 4,
   },
   touchableComponent: {
     flex: 1,
