@@ -147,7 +147,7 @@ const defaultStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 4,
-    lineHeight: 12,
+    lineHeight: 16,
   },
   title: {
     fontSize: 18,
