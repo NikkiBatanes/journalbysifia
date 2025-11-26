@@ -71,7 +71,8 @@ const OnboardingTrialOfferScreen = () => {
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   // dynamicPricing removed - not used, only setDynamicPricing is called
   const [currencyInfo, setCurrencyInfo] = useState<any>(null);
-  const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [_isNavigatingAway, _setIsNavigatingAway] = useState(false);
+  const [autoDismissScheduled, setAutoDismissScheduled] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
@@ -212,7 +213,14 @@ const OnboardingTrialOfferScreen = () => {
           // Show success modal immediately since trial is already active
           setIsStartingTrial(false);
           setShowSuccessModal(true);
-          return;
+
+          // Auto-dismiss after showing success briefly
+          if (!autoDismissScheduled) {
+            setAutoDismissScheduled(true);
+            setTimeout(() => {
+              handleSuccessModalContinue();
+            }, 2000);
+          }
         }
       } catch (checkError) {
         // Continue with purchase attempt
@@ -375,6 +383,15 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
         // Minimal wait for loading modal to hide before showing success modal
         await new Promise(resolve => setTimeout(resolve, 200));
         setShowSuccessModal(true);
+
+        // Auto-dismiss trial offer screen after successful payment
+        // Auto-navigate after a short delay to show success briefly
+        if (!autoDismissScheduled) {
+          setAutoDismissScheduled(true);
+          setTimeout(() => {
+            handleSuccessModalContinue();
+          }, 2000); // Show success for 2 seconds then auto-dismiss
+        }
       } else {
         throw new Error(result.error || 'Trial subscription failed');
       }
@@ -432,7 +449,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
 
       return () => clearTimeout(safetyTimeout);
     }
-  }, [isStartingTrial]);
+  }, []);
 
   // Load pricing and currency for dynamic copy
   useEffect(() => {
@@ -605,6 +622,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
   const handleSuccessModalContinue = useCallback(() => {
     logger.info('Success modal continue button pressed');
     setShowSuccessModal(false);
+    setAutoDismissScheduled(false); // Reset auto-dismissal state
 
     // Use a more reliable navigation approach
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
@@ -632,7 +650,12 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     }, 100);
   }, [route?.params?.skipNotificationPreference, navigation, safeNavigate]);
 
-  // Error handling is now done silently without modals
+  // Reset auto-dismissal state when component unmounts
+  useEffect(() => {
+    return () => {
+      setAutoDismissScheduled(false);
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
