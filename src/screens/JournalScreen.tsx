@@ -31,6 +31,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const insets = useSafeAreaInsets();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
+  const { registerSection } = useScroll();
+  
+  // Refs for section registration
+  const reflectCarouselRef = useRef<View>(null);
 
   // Create dynamic fonts object - match Dashboard approach
   const fonts = useMemo(() => ({
@@ -611,7 +615,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               {/* Only show ReflectCarousel for today or past dates */}
               {currentDate <= new Date() && (
                 <>
-                  <View style={styles.carouselContainer}>
+                  <View style={styles.carouselContainer} ref={reflectCarouselRef}
+                       onLayout={() => {
+                         reflectCarouselRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                           registerSection('reflect-carousel', pageY);
+                         });
+                       }}>
                     <ReflectCarousel
                       selectedDate={currentDate}
                       refreshKey={refreshKey}

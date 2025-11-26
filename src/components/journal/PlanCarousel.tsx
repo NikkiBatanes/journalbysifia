@@ -86,12 +86,12 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
   const [expandedIndex, setExpandedIndex] = useState<number | null>(initialScrollIndex); // Start with initial card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-  const currentCardIndex = useRef(initialScrollIndex);
+  const currentCardIndex = useRef(0); // Start at 0 like ReflectCarousel
   const hasRestoredPosition = useRef(false);
 
   // Restore scroll position on mount
   React.useEffect(() => {
-    if (!hasRestoredPosition.current && initialScrollIndex > 0) {
+    if (!hasRestoredPosition.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({
           x: initialScrollIndex * (CARD_WIDTH + CARD_SPACING),
@@ -134,6 +134,8 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
     const index = Math.round(contentOffset.x / (CARD_WIDTH + CARD_SPACING));
     if (index !== currentCardIndex.current && index >= 0 && index < carouselItems.length) {
       currentCardIndex.current = index;
+      // Auto-expand the currently focused card
+      setExpandedIndex(index);
       onScrollIndexChange?.(index);
     }
   }, [onScrollIndexChange, CARD_WIDTH, CARD_SPACING, carouselItems]);

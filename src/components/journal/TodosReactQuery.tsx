@@ -22,6 +22,7 @@ import { getFontFamily } from '../../theme/fonts';
 import { usePlanningGating } from '../../hooks/usePlanningGating';
 import { useNavigation } from '@react-navigation/native';
 import PlanningLockIcon from '../PlanningLockIcon';
+import { useScroll } from '../../context/ScrollContext';
 
 // React Query hooks
 import {
@@ -108,6 +109,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   });
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
   const inputRef = useRef<TextInput>(null);
+  const shouldFocusInput = useRef(false); // Track when we need to focus
 
   const toggleCalendar = () => {
     triggerLightHaptic();
@@ -141,6 +143,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     return key ? map[key] ?? 0 : 0;
   }, [user]);
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
+  const { scrollToTop, scrollTo } = useScroll();
 
   // React Query hooks with enhanced retry logic
   const loadStartTime = useRef<number>(Date.now());
@@ -203,6 +206,25 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setShowOnlyPriorities(false);
   }, [dateStr, refreshKey]);
 
+  // Focus input field when it's rendered and we need to focus
+  useEffect(() => {
+    if (shouldShowAddingMode && shouldFocusInput.current && inputRef.current) {
+      inputRef.current.focus();
+      shouldFocusInput.current = false; // Reset the flag
+      
+      // Scroll to make the input field visible
+      setTimeout(() => {
+        inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          if (pageY && height) {
+            // Scroll to the input field with less padding
+            const scrollPosition = pageY - 450; // Reduced from 100px to 50px padding
+            scrollTo(Math.max(0, scrollPosition));
+          }
+        });
+      }, 100);
+    }
+  }, [shouldShowAddingMode, scrollTo]); // Add scrollTo to dependencies
+
   // Handle loading and error states
   useEffect(() => {
     if (error) {
@@ -229,6 +251,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setVisibleCount(5);
     setIsAdding(true);
     setNewTodo('');
+    // Set flag to indicate we need to focus the input
+    shouldFocusInput.current = true;
   };
 
   const cancelAdding = () => {
@@ -236,6 +260,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setVisibleCount(5);
     setIsAdding(false);
     setNewTodo('');
+    // Scroll to top when canceling
+    setTimeout(() => {
+      scrollToTop();
+    }, 100);
   };
 
   const handleSave = async () => {
@@ -273,6 +301,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         has_priority: false,
         date: dateStr,
       }, user.id);
+      
+      // Scroll to top after successful save
+      setTimeout(() => {
+        scrollToTop();
+      }, 100);
     } catch (saveError) {
       // Restore input if there was an error and reopen adding mode
       setNewTodo(todoText);
@@ -327,6 +360,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setEditingId(id);
     setEditingText(todo.text);
     closeAllSwipeables();
+    // Focus the edit input field (autoFocus should handle this, but let's ensure it)
+    setTimeout(() => {
+      // Focus the edit input - it will be the first TextInput with autoFocus
+    }, 100);
   };
 
   // Save edited todo
@@ -414,6 +451,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       if (!wasAdded) {
         // If add failed, restore the input text
         setNewTodo(originalText);
+      } else {
+        // Focus the input field directly after successful add
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
       }
     } catch (inputError) {
       // Restore input if there was an error
@@ -488,6 +530,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     triggerLightHaptic();
     closeAllSwipeables();
     setVisibleCount(5);
+    // Scroll to top when showing less
+    setTimeout(() => {
+      scrollToTop();
+    }, 100);
   };
 
   // Format selected date for display
@@ -1056,7 +1102,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               onSubmitEditing={handleAddInput}
               returnKeyType="next"
               blurOnSubmit={false}
-              autoFocus
               accessibilityRole="none"
               accessibilityLabel="Add new todo"
               accessibilityHint="Enter text for a new todo item and press next to add it"

@@ -30,6 +30,7 @@ import { analytics } from '../../utils/analytics';
 import NewSuccessModal from '../NewSuccessModal';
 import { useSuccessModal } from '../../hooks/useSuccessModal';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { useScroll } from '../../context/ScrollContext';
 
 // Define styles at the top to avoid hoisting issues
 const styles = StyleSheet.create({
@@ -393,6 +394,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+  const { scrollToTop, scrollTo, scrollToSection } = useScroll();
 
   // Guided prompt gating for consistent lock state
   const guidedPromptGating = useGuidedPromptGating({
@@ -950,7 +952,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               {visibleCount > 3 && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => { triggerLightHaptic(); setVisibleCount(3); }}
+                  onPress={() => { 
+                    triggerLightHaptic(); 
+                    setVisibleCount(3);
+                    // Scroll to the Reflect & Grow header when showing less
+                    setTimeout(() => {
+                      scrollToSection('reflect-carousel', 1300); // Scroll to reflect section with small offset
+                    }, 100);
+                  }}
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel="Show less reflections"

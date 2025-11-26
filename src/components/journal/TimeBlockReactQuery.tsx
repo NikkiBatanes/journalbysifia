@@ -679,6 +679,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const showLessBlocks = () => {
     triggerLightHaptic();
     setVisibleCount(3);
+    // Scroll to top when showing less
+    setTimeout(() => {
+      scrollToTop();
+    }, 100);
   };
 
   const addTimeBlock = async () => {

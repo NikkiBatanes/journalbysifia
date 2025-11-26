@@ -32,6 +32,7 @@ import {
   triggerSuccessHaptic,
   triggerErrorHaptic,
 } from '../../utils/haptics';
+import { useScroll } from '../../context/ScrollContext';
 
 // Pluralization helpers
 const pluralS = (count: number) => (count === 1 ? '' : 's');
@@ -86,6 +87,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Auth and date context
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+  const { scrollToSection } = useScroll();
 
   // Determine date category: today, yesterday, earlier
   const now = new Date();
@@ -431,7 +433,11 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     triggerLightHaptic();
     closeAllSwipeables();
     setVisibleCount(5);
-  }, [closeAllSwipeables]);
+    // Scroll to the Reflect & Grow header when showing less
+    setTimeout(() => {
+      scrollToSection('reflect-carousel', 400); // Scroll to reflect section with small offset
+    }, 100);
+  }, [closeAllSwipeables, scrollToSection]);
 
   const displayGratitudeList = () => {
     if (isAdding || isEditing) {return null;}
