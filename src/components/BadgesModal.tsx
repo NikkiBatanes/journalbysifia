@@ -38,6 +38,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
   const [availableBadges, setAvailableBadges] = useState<BadgeWithStatus[]>([]);
+  const [badgeCount, setBadgeCount] = useState(0); // Store consistent count
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -150,8 +151,10 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         unlockedAt: unlockedBadges.find(ub => ub.id === badge.id)?.unlockedAt,
       }));
 
-      const unlockedCount = availableWithStatus.filter(badge => badge.unlocked).length;
-      console.log(`[BadgesModal] Badge screen count: ${unlockedCount} unlocked badges`);
+      // Use the same counting method as userApi for consistency
+      const badgeCount = badgeRows?.length || 0;
+      setBadgeCount(badgeCount); // Store in state for display
+      console.log(`[BadgesModal] Badge screen count: ${badgeCount} unlocked badges (from user_badges table)`);
       console.log(`[BadgesModal] Total unlocked from DB: ${unlockedBadges.length} rows`);
       console.log(`[BadgesModal] Total available badges: ${allBadges.length}`);
       console.log('[BadgesModal] Unlocked badge IDs:', unlockedBadges.map(ub => ub.id));
@@ -222,7 +225,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, font]}>{userBadges.length}</Text>
+            <Text style={[styles.statNumber, font]}>{badgeCount}</Text>
             <ThemedText style={styles.statLabel}>Unlocked</ThemedText>
           </View>
           <View style={styles.statItem}>

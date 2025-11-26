@@ -524,7 +524,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const [newEntry, setNewEntry] = useState({
     title: '',
     content: '',
-    type: 'free' as ViewMode,
+    type: 'free-form' as ViewMode,
     prompt: '',
     tags: [] as string[],
     location: '',
@@ -751,6 +751,23 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
+    // Debug logging for playbook metadata - show ALL available fields
+    console.log('[ReflectionLogReactQuery] Full entry data:', JSON.stringify(entry, null, 2));
+    
+    if (entry.source === 'playbook') {
+      console.log('[ReflectionLogReactQuery] Playbook entry specific fields:', {
+        id: entry.id,
+        source: entry.source,
+        // Check the correct field names that exist in ReflectionLogEntry
+        playbook_title: entry.playbook_title,
+        day_number: entry.day_number,
+        day_title: entry.day_title,
+        // Show raw entry keys to see what's actually available
+        allKeys: Object.keys(entry),
+        title: entry.title,
+        content: entry.content.substring(0, 100) + '...',
+      });
+    }
 
     // Set editing state
     setEditingId(entry.id);
@@ -765,19 +782,24 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       setSelectedPrompt('');
     }
 
-    // Populate the form with existing entry data
+    // Set form data for editing
+    const getFormType = (): 'free-form' | 'guided' => {
+      if (entry.type === 'free' || entry.type === 'playbook') return 'free-form';
+      if (entry.type === 'devotional') return 'guided';
+      return 'free-form'; // fallback
+    };
+
     setNewEntry({
       title: entry.title || '',
-      content: normalizeIncoming(entry.content),
-      type: entry.type,
-      source: entry.source,
+      content: entry.content || '',
+      type: getFormType(),
       prompt: entry.prompt || '',
       tags: entry.tags || [],
       location: entry.location || '',
+      source: entry.source,
     });
 
-    // Open the editor modal
-    setIsAdding(true);
+    setIsAdding(false);
   };
 
   const renderEntries = () => {
@@ -1312,14 +1334,14 @@ return (
               title: selectedEntry.title,
               content: selectedEntry.content,
               tags: selectedEntry.tags || [],
-              type: selectedEntry.type === 'free' ? 'free-form' : selectedEntry.type === 'devotional' ? 'guided' : selectedEntry.type === 'playbook' ? 'free-form' : selectedEntry.type,
+              type: selectedEntry.type === 'free' || selectedEntry.type === 'playbook' ? 'free-form' : (selectedEntry.type === 'devotional' ? 'guided' : 'free-form') as 'free-form' | 'guided',
               source: selectedEntry.source,
               prompt: selectedEntry.prompt,
             } : {
               title: newEntry.title,
               content: newEntry.content,
               tags: newEntry.tags || [],
-              type: newEntry.type === 'free' ? 'free-form' : newEntry.type === 'devotional' ? 'guided' : newEntry.type === 'playbook' ? 'free-form' : newEntry.type,
+              type: newEntry.type === 'free' || newEntry.type === 'playbook' ? 'free-form' : (newEntry.type === 'devotional' ? 'guided' : 'free-form') as 'free-form' | 'guided',
               source: newEntry.source,
               prompt: newEntry.prompt,
             }}
@@ -1336,10 +1358,20 @@ return (
               ((newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
             }
             lockTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt)}
-            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : editingId && selectedEntry?.source === 'playbook' ? 'playbook' : (newEntry.type === 'guided' || selectedPrompt) ? 'guided' : 'freeform'}
+            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : editingId && (selectedEntry?.source === 'playbook' || selectedEntry?.type === 'playbook') ? 'playbook' : (newEntry.type === 'guided' || selectedPrompt) ? 'guided' : 'freeform'}
             // Pass devotional/playbook metadata for existing entries
             devotionalTitle={editingId && selectedEntry && selectedEntry.source === 'devotional' ? selectedEntry.devotional_title : undefined}
-            playbookTitle={editingId && selectedEntry && selectedEntry.source === 'playbook' ? selectedEntry.playbook_title : undefined}
+            playbookTitle={(() => {
+              const title = editingId && selectedEntry && (selectedEntry.source === 'playbook' || selectedEntry.type === 'playbook') ? selectedEntry.playbook_title : undefined;
+              if (selectedEntry?.source === 'playbook' || selectedEntry?.type === 'playbook') {
+                console.log('[ReflectionLogReactQuery] Passing playbookTitle to ReflectionLogEditor:', {
+                  title,
+                  selectedEntry: selectedEntry,
+                  playbook_title: selectedEntry?.playbook_title,
+                });
+              }
+              return title;
+            })()}
             dayNumber={editingId && selectedEntry ? selectedEntry.day_number : undefined}
             dayTitle={editingId && selectedEntry ? selectedEntry.day_title : undefined}
             totalDays={editingId && selectedEntry ? selectedEntry.total_days : undefined}

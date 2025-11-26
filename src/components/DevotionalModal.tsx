@@ -728,7 +728,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       onPress={() => {
         try { triggerLightHaptic(); } catch {}
         handleClose(() => {
-          navigation.navigate('OnboardingSalesOffer' as any);
+          navigation.navigate('OnboardingSalesOffer' as any, {
+            onboardingFlow: true,
+            featureType: 'devotionals',
+          });
         });
       }}
       activeOpacity={0.85}

@@ -1005,10 +1005,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.textGray,
     letterSpacing: 1,
+    lineHeight: 16,
   },
   fromTitle: {
     fontSize: 11,
     color: Colors.textGray,
+    lineHeight: 18,
   },
   showMoreButton: {
     backgroundColor: Colors.lightOverlay,

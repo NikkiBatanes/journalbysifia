@@ -18,6 +18,21 @@ import { ENV } from '../config/environment';
 // import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
 
 /**
+ * Utility function to detect network errors
+ */
+function isNetworkError(error: any): boolean {
+  return (
+    error?.message?.includes('Network request failed') ||
+    error?.message?.includes('Network Error') ||
+    error?.message?.includes('fetch') ||
+    error?.code === 'NETWORK_ERROR' ||
+    error?.code === 'ENOTFOUND' ||
+    error?.code === 'ECONNRESET' ||
+    error?.code === 'ETIMEDOUT'
+  );
+}
+
+/**
  * Robust session retrieval with retry logic
  * Handles race conditions during operation protection periods
  */
@@ -659,25 +674,57 @@ export async function updatePlaybookActionSteps(
           for (const subTask of step.subTasks) {
             // Only update if subTask has an id (exists in database)
             if (subTask.id && typeof subTask === 'object' && 'completed' in subTask) {
-              const { error: subTaskError } = await supabase
-                .from('playbook_sub_tasks')
-                .update({
-                  completed: Boolean(subTask.completed),
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', subTask.id)
-                .eq('action_step_id', step.id);
+              
+              // Add retry logic for subtask updates
+              let subTaskUpdateSuccess = false;
+              let lastSubTaskError = null;
+              const maxSubTaskRetries = 3;
+              
+              for (let subTaskRetry = 0; subTaskRetry < maxSubTaskRetries; subTaskRetry++) {
+                try {
+                  const { error: subTaskError } = await supabase
+                    .from('playbook_sub_tasks')
+                    .update({
+                      completed: Boolean(subTask.completed),
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', subTask.id)
+                    .eq('action_step_id', step.id);
 
-              if (subTaskError) {
-                Logger.error(`Error updating subtask ${subTask.id}`, new Error(subTaskError.message || JSON.stringify(subTaskError)), {
-        component: 'modernPlaybookApi',
-        errorDetails: subTaskError,
-        subtaskId: subTask.id,
-        stepId: step.id,
-      });
+                  if (subTaskError) {
+                    lastSubTaskError = subTaskError;
+                    if (subTaskRetry < maxSubTaskRetries - 1) {
+                      // Wait before retry
+                      await new Promise(resolve => setTimeout(resolve, 1000 * (subTaskRetry + 1)));
+                      continue;
+                    }
+                  } else {
+                    subTaskUpdateSuccess = true;
+                    break;
+                  }
+                } catch (networkError) {
+                  lastSubTaskError = networkError;
+                  if (subTaskRetry < maxSubTaskRetries - 1) {
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (subTaskRetry + 1)));
+                    continue;
+                  }
+                }
+              }
+
+              if (!subTaskUpdateSuccess && lastSubTaskError) {
+                const isNetworkIssue = isNetworkError(lastSubTaskError);
+                const errorMessage = lastSubTaskError?.message || JSON.stringify(lastSubTaskError);
+                Logger.error(`Error updating subtask ${subTask.id} after ${maxSubTaskRetries} attempts`, new Error(errorMessage), {
+          component: 'modernPlaybookApi',
+          errorDetails: lastSubTaskError,
+          subtaskId: subTask.id,
+          stepId: step.id,
+          retryAttempts: maxSubTaskRetries,
+          isNetworkError: isNetworkIssue,
+          errorType: isNetworkIssue ? 'NETWORK_ERROR' : 'DATABASE_ERROR',
+        });
                 // Continue with other subtasks even if one fails
-              } else {
-
               }
             }
           }

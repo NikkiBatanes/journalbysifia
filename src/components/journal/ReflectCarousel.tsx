@@ -43,25 +43,21 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   const [expandedIndex, setExpandedIndex] = useState<number | null>(initialScrollIndex); // Start with initial card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-  const currentCardIndex = useRef(initialScrollIndex);
+  const currentCardIndex = useRef(0);
   const hasRestoredPosition = useRef(false);
 
   // Restore scroll position on mount
   React.useEffect(() => {
-    if (!hasRestoredPosition.current && initialScrollIndex > 0) {
+    if (!hasRestoredPosition.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({
-          x: initialScrollIndex * (CARD_WIDTH + CARD_SPACING),
+          x: 0,
           animated: false,
         });
         hasRestoredPosition.current = true;
       }, 100);
     }
-  }, [initialScrollIndex]);
-
-  // Modal state for reflection editor (matching dashboard behavior)
-  const [showReflectionModal, setShowReflectionModal] = useState(false);
-  const queryClient = useQueryClient();
+  }, []);
 
   // Handle scroll feedback with sound
   const handleScrollFeedback = useCallback(() => {
@@ -88,24 +84,6 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
     }
   }, [handleScrollFeedback, onScrollIndexChange]);
 
-  // Handler for reflection modal (matching dashboard behavior)
-  const handleReflectionModalOpen = useCallback(() => {
-    triggerLightHaptic();
-    setShowReflectionModal(true);
-  }, []);
-
-  const handleReflectionModalSave = useCallback(() => {
-    // Don't close modal immediately - success modal will handle the flow
-    // Invalidate reflection queries to ensure real-time updates
-    queryClient.invalidateQueries({
-      queryKey: ['reflections'],
-    });
-  }, [queryClient]);
-
-  const handleReflectionModalCancel = useCallback(() => {
-    setShowReflectionModal(false);
-  }, []);
-
   const carouselItems: CarouselItem[] = [
     {
       id: 'reflection',
@@ -113,7 +91,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       icon: 'bulb-outline',
       component: <ReflectionLogReactQuery
         selectedDate={selectedDate}
-        onPencilTap={handleReflectionModalOpen}
+        // Don't provide onPencilTap - let individual entries handle their own editing
       />,
       color: Colors.alertCoral,
     },
@@ -202,18 +180,6 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
           );
         })}
       </Animated.ScrollView>
-
-      {/* Reflection Modal - Free-form mode with blank title */}
-      <SmartJournalingReflectionModal
-        visible={showReflectionModal}
-        subtaskTitle="" // Blank title with placeholder
-        isGuidedReflection={false} // Free-form mode
-        isJournalCarousel={true} // Mark as journal carousel to bypass smart journaling gating
-        selectedDate={selectedDate} // Pass the selected date from journal header
-        hideGuidedPromptButton={false} // Show heart icon for guided prompts
-        onSave={handleReflectionModalSave}
-        onCancel={handleReflectionModalCancel}
-      />
     </View>
   );
 };
