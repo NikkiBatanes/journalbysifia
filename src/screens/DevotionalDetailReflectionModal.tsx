@@ -143,44 +143,36 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         questionNumber: questionNumber,
       });
 
-      // PERFORMANCE: Remove blocking refetch - invalidation will trigger automatic refetch
-      // PERFORMANCE: Parallel cache invalidation instead of sequential
+      // PERFORMANCE: No cache invalidation needed - useCreateReflection already handles cache updates
+      // The optimized useCreateReflection hook updates cache directly without invalidation
       if (user?.id) {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ['reflections', 'byDate', user.id, dateStr],
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ['reflections', 'devotional', user.id],
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ['journal', 'reflections', user.id, dateStr],
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ['journal', 'all'],
-          }),
-        ]);
+        // Only invalidate non-critical search queries
+        queryClient.invalidateQueries({ 
+          queryKey: ['reflections', 'search'], 
+          refetchType: 'none' 
+        });
       }
 
       // Award faith points for answering devotional question (only for new entries)
+      // PERFORMANCE: Make this non-blocking to improve perceived performance
       if (!existingEntry && user?.id) {
-        try {
-          await faithPointsService.awardPoints(
-            user.id,
-            'reflection_question_answered',
-            {
-              suppressNotification: true,
-              source: 'devotional_question',
-              devotional_id: devotionalId,
-              question,
-            }
-          );
-        } catch (error) {
+        // Fire and forget - don't await to avoid blocking the save process
+        faithPointsService.awardPoints(
+          user.id,
+          'reflection_question_answered',
+          {
+            suppressNotification: true,
+            source: 'devotional_question',
+            devotional_id: devotionalId,
+            question,
+          }
+        ).catch(error => {
+          // Log error but don't fail the save process
           Logger.warn('Failed to award faith points for devotional reflection', {
             component: 'DevotionalDetailReflectionModal',
             error: error as Error,
           });
-        }
+        });
       }
 
       // Call the onSave callback to update parent state
@@ -243,18 +235,8 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       });
       }, 100);
 
-      // Invalidate cache to update journal screen
-      if (user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'byDate', user.id, dateStr],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'devotional', user.id],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ['journal', 'reflections', user.id, dateStr],
-        });
-      }
+      // No cache invalidation needed - useCreateReflection already handles cache updates
+      // The optimized hooks update cache directly without invalidation for instant performance
 
     } catch (error: any) {
       Logger.error('❌ DevotionalDetailReflectionModal: SAVE FAILED', error as Error, { component: 'DevotionalDetailReflectionModal' });
