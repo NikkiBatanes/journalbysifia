@@ -1148,6 +1148,7 @@ export default function ActionStepsCard({
       {activeModal === 'gratitude' && (
         <SmartJournalingGratitudeModal
           visible={true}
+          isActive={activeModal === 'gratitude'} // Only active when this modal is selected
           subtaskTitle={selectedSubtask?.subTask?.text || ''}
           subtaskId={selectedSubtask?.subTask?.id}
           stepId={selectedActionStep?.stepId}

@@ -18,20 +18,22 @@ import { toLocalDateString } from '../utils/date';
 
 interface SmartJournalingGratitudeModalProps {
   visible: boolean;
-  subtaskTitle: string;
+  isActive?: boolean;
+  subtaskTitle?: string;
   subtaskId?: string;
   stepId?: string;
   playbookId?: string;
   playbookTitle?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
-  existingGratitude?: any; // For editing existing gratitude entries
+  existingGratitude?: any;
   onSave: (entry: any) => void;
   onCancel: () => void;
 }
 
 const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps> = ({
   visible,
+  isActive = true, // Default to true for backward compatibility
   subtaskTitle,
   subtaskId,
   stepId,
@@ -148,10 +150,11 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // }, [visible, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, existingGratitude]);
 
   // Clear completion info when modal opens to prevent accidental triggers
-  const [prevVisible, setPrevVisible] = useState(visible);
+  const [prevActive, setPrevActive] = useState(isActive);
   useEffect(() => {
-    if (visible && !prevVisible) {
-      // Modal is opening (transition from false to true)
+    // Focus when modal becomes active (either through visibility change or isActive prop change)
+    if (isActive && !prevActive) {
+      // Modal is becoming active (transition from false to true)
 
       // Completion state checked when modal opens
 
@@ -163,8 +166,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         }
       }, 800); // Increased delay for better reliability
     }
-    setPrevVisible(visible);
-  }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
+    setPrevActive(isActive);
+  }, [isActive, prevActive, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
 
   // React Query mutations
   const createMutation = useCreateJournalEntry();
