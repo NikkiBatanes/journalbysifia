@@ -155,26 +155,13 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
       // Completion state checked when modal opens
 
-      // Determine if this is an edit session (has existing data)
-      const hasExistingData = currentGratitudeEntry?.content && (() => {
-        try {
-          const parsedContent = typeof currentGratitudeEntry.content === 'string'
-            ? JSON.parse(currentGratitudeEntry.content)
-            : currentGratitudeEntry.content;
-          return parsedContent.items && parsedContent.items.some((item: string) => item.trim());
-        } catch (error) {
-          return false;
+      // Auto-focus the first input when modal opens (for both new and existing entries)
+      // Use a longer delay to ensure modal is fully rendered and keyboard is ready
+      setTimeout(() => {
+        if (gratitudeEditorRef.current) {
+          gratitudeEditorRef.current.focusInput();
         }
-      })();
-
-      // Auto-focus the first input when modal opens for new entries
-      if (!hasExistingData) {
-        setTimeout(() => {
-          if (gratitudeEditorRef.current) {
-            gratitudeEditorRef.current.focusInput();
-          }
-        }, 500); // Delay to allow modal animation to complete
-      }
+      }, 800); // Increased delay for better reliability
     }
     setPrevVisible(visible);
   }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId]);

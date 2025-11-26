@@ -486,6 +486,12 @@ const GratitudeLogEditorInner = (
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     focusInput: () => {
+      // Ensure input refs array is properly initialized
+      if (!inputRefs.current || inputRefs.current.length === 0) {
+        // Initialize refs array if not already done
+        inputRefs.current = Array(gratitudeItems.length).fill(null);
+      }
+
       // Find the first empty input field
       let firstEmptyIndex = -1;
       for (let i = 0; i < gratitudeItems.length; i++) {
@@ -498,6 +504,8 @@ const GratitudeLogEditorInner = (
       // If all fields have content, focus on the last field and position cursor at the end
       const targetIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : gratitudeItems.length - 1;
 
+      console.log('[GratitudeLogEditor] Focusing input at index:', targetIndex, 'gratitudeItems:', gratitudeItems);
+
       if (inputRefs.current[targetIndex]) {
         inputRefs.current[targetIndex]!.focus();
         // Position cursor at the end of the text (or start if empty)
@@ -507,6 +515,14 @@ const GratitudeLogEditorInner = (
             inputRefs.current[targetIndex]!.setSelection(text.length, text.length);
           }
         }, 100);
+      } else {
+        console.warn('[GratitudeLogEditor] Input ref not available at index:', targetIndex);
+        // Retry focus after a short delay
+        setTimeout(() => {
+          if (inputRefs.current[targetIndex]) {
+            inputRefs.current[targetIndex]!.focus();
+          }
+        }, 200);
       }
     },
   }));
