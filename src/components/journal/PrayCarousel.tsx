@@ -137,8 +137,8 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
         directionalLockEnabled={true}
         bounces={true}
         bouncesZoom={false}
-        contentInset={{ left: SIDE_INSET, right: SIDE_INSET }}
-        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+        contentInset={PEEK === 0 ? undefined : { left: SIDE_INSET, right: SIDE_INSET }}
+        contentContainerStyle={{ paddingHorizontal: PEEK === 0 ? (screenWidth - CARD_WIDTH) / 2 : SIDE_INSET }}
         style={styles.scrollView}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
