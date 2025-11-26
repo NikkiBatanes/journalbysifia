@@ -150,8 +150,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // }, [visible, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, existingGratitude]);
 
   // Clear completion info when modal opens to prevent accidental triggers
-  const [prevActive, setPrevActive] = useState(isActive);
-  const [prevVisible, setPrevVisible] = useState(visible);
+  const [prevActive, setPrevActive] = useState(false); // Start with false to detect initial activation
+  const [prevVisible, setPrevVisible] = useState(false); // Start with false to detect initial visibility
 
   useEffect(() => {
     // Focus when modal becomes active (either through visibility change or isActive prop change)
