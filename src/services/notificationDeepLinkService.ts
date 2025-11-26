@@ -81,67 +81,48 @@ class NotificationDeepLinkService {
       const screen = parts[0];
       const id = parts[1];
 
-      // Navigate based on screen type - use navigate to stay within existing stack
+      // Navigate based on screen type - use simple tab navigation
       switch (screen) {
         case 'prayer':
-          // Navigate to Journal screen with prayer tab
-          this.navigationRef.navigate('MainTabs', {
-            screen: 'Journal',
-            params: {
-              initialTab: 'pray',
-              prayerId: id,
-            }
-          });
-          Logger.info('Navigated to prayer', {
+          // Navigate to Journal tab first, then handle prayer navigation
+          this.navigationRef.navigate('MainTabs', { screen: 'Journal' });
+          // Note: prayerId and initialTab will be handled by the Journal screen itself
+          Logger.info('Navigated to Journal for prayer', {
             component: 'notificationDeepLinkService',
             prayerId: id,
           });
           break;
 
         case 'playbook':
-          // Navigate to Playbook screen
-          this.navigationRef.navigate('MainTabs', {
-            screen: 'Playbook',
-            params: {
-              playbookId: id,
-            }
-          });
-          Logger.info('Navigated to playbook', {
+          // Navigate to Playbooks tab
+          this.navigationRef.navigate('MainTabs', { screen: 'Playbooks' });
+          Logger.info('Navigated to Playbooks', {
             component: 'notificationDeepLinkService',
             playbookId: id,
           });
           break;
 
         case 'devotional':
-          // Navigate to Devotional screen
-          this.navigationRef.navigate('MainTabs', {
-            screen: 'Devotional',
-            params: {
-              devotionalId: id,
-            }
-          });
-          Logger.info('Navigated to devotional', {
+          // Navigate to Devotionals tab
+          this.navigationRef.navigate('MainTabs', { screen: 'Devotionals' });
+          Logger.info('Navigated to Devotionals', {
             component: 'notificationDeepLinkService',
             devotionalId: id,
           });
           break;
 
         case 'journal':
-          // Navigate to Journal screen
-          this.navigationRef.navigate('MainTabs', {
-            screen: 'Journal'
-          });
-          Logger.info('Navigated to journal', {
+          // Navigate to Journal tab
+          this.navigationRef.navigate('MainTabs', { screen: 'Journal' });
+          Logger.info('Navigated to Journal', {
             component: 'notificationDeepLinkService',
           });
           break;
 
         case 'profile':
-          // Navigate to Profile screen
-          this.navigationRef.navigate('MainTabs', {
-            screen: 'Profile'
-          });
-          Logger.info('Navigated to profile', {
+          // Navigate to Dashboard tab (Profile is accessed within Dashboard)
+          this.navigationRef.navigate('MainTabs', { screen: 'Dashboard' });
+          Logger.info('Navigated to Dashboard for Profile', {
             component: 'notificationDeepLinkService',
           });
           break;
