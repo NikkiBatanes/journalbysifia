@@ -936,9 +936,7 @@ const GratitudeLogEditorInner = (
 // Add display name for debugging
 GratitudeLogEditorInner.displayName = 'GratitudeLogEditorInner';
 
-// Apply React.memo to the component before forwarding ref
-const GratitudeLogEditorMemoized = React.memo(GratitudeLogEditorInner);
-
-const GratitudeLogEditor = React.forwardRef(GratitudeLogEditorMemoized);
+// Apply React.memo with proper forwardRef pattern
+const GratitudeLogEditor = React.memo(React.forwardRef(GratitudeLogEditorInner));
 
 export default GratitudeLogEditor;
