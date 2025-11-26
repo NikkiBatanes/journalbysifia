@@ -1580,11 +1580,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   return;
                 }
 
-                // Check if user is on Seeker/Free trial plan and trying to enable auto-sync
+                // Check if user is on Seeker tier only (trial users should have access)
                 const { NewSubscriptionService: SubscriptionService } = await import('../services/NewSubscriptionService');
                 try {
                   const subscriptionData = await SubscriptionService.getUserSubscription(user?.id || '');
-                  if (subscriptionData.tier === 'seeker' || subscriptionData.tier === 'free_trial') {
+                  if (subscriptionData.tier === 'seeker') {
                     // Navigate to sales offer with return navigation context
                     navigation.navigate('OnboardingSalesOffer', {
                       source: 'calendar_auto_sync',
