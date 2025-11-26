@@ -43,6 +43,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
   const theme = useTheme();
   const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
   const nameInputRef = useRef<TextInput>(null);
+  const prayerInputRef = useRef<TextInput>(null);
 
   // Handle tab change and align selected type
   const handleTabChange = useCallback((tab: 'Personal' | 'Requests') => {
@@ -58,9 +59,9 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
       onSelectPrayerType('mine');
     }
 
-    // Focus the name input after tab change
+    // Focus the prayer input after tab change
     setTimeout(() => {
-      nameInputRef.current?.focus();
+      prayerInputRef.current?.focus();
     }, 150);
   }, [onSelectPrayerType]);
 
@@ -99,6 +100,11 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
         setActiveTab('Personal');
         onSelectPrayerType('mine');
       }
+      
+      // Focus the prayer input when modal opens
+      setTimeout(() => {
+        prayerInputRef.current?.focus();
+      }, 200);
     }
   }, [visible, selectedPrayerType, onSelectPrayerType]);
 
@@ -194,7 +200,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
               onChangeText={onNameChange}
               autoCapitalize="words"
               textAlignVertical="center"
-              autoFocus={true}
               textAlign="left"
             />
           </View>
@@ -202,6 +207,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
           {/* Prayer Input Section (no label, use placeholder) */}
           <View style={styles.inputSection}>
             <TextInput
+              ref={prayerInputRef}
               style={[styles.prayerInput, { fontFamily: regularFont }]}
               placeholder={getPlaceholderForType(effectiveType)}
               placeholderTextColor={Colors.textGray}
