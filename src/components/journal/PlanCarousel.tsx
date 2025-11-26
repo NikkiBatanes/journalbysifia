@@ -16,18 +16,18 @@ const getResponsiveConfig = () => {
   // iPad Landscape - show more content, larger cards
   if (screenWidth >= 1024 && isLandscape) {
     return {
-      cardWidth: Math.min(screenWidth * 0.45, 480), // Show 2 cards with peek
+      cardWidth: Math.min(screenWidth * 0.85, 800), // Show 2 cards with peek
       cardSpacing: 12,
       peek: 16,
-      maxCardsVisible: 2,
+      maxCardsVisible: 1,
     };
   }
   // iPad Portrait - larger cards, better spacing
   else if (screenWidth >= 768) {
     return {
-      cardWidth: Math.min(screenWidth * 0.77, 400), // 77% width for better iPad use
+      cardWidth: Math.min(screenWidth * 0.85, 800), // 77% width for better iPad use
       cardSpacing: 12,
-      peek: 16,
+      peek: 0,
       maxCardsVisible: 1,
     };
   }
