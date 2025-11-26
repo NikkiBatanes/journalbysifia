@@ -15,17 +15,54 @@ import { LookingForwardReactQuery } from './LookingForwardReactQuery';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 
-const { width: screenWidth } = Dimensions.get('window');
-const { height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isLandscape = screenWidth > screenHeight;
 
-// Detect iPad vs iPhone based on screen size
-const isIPad = screenWidth >= 768 || screenHeight >= 768;
+// Enhanced responsive design for different screen sizes
+const getResponsiveConfig = () => {
+  // iPad Landscape - show more content, larger cards
+  if (screenWidth >= 1024 && isLandscape) {
+    return {
+      cardWidth: Math.min(screenWidth * 0.45, 480), // Show 2 cards with peek
+      cardSpacing: 12,
+      peek: 16,
+      maxCardsVisible: 2,
+    };
+  }
+  // iPad Portrait - larger cards, better spacing
+  else if (screenWidth >= 768) {
+    return {
+      cardWidth: Math.min(screenWidth * 0.7, 400), // Slightly larger than before
+      cardSpacing: 12,
+      peek: 16,
+      maxCardsVisible: 1,
+    };
+  }
+  // Large phones (iPhone Pro Max, etc.)
+  else if (screenWidth >= 430) {
+    return {
+      cardWidth: screenWidth * 0.75, // Slightly smaller percentage for large phones
+      cardSpacing: 8,
+      peek: 8,
+      maxCardsVisible: 1,
+    };
+  }
+  // Standard phones
+  else {
+    return {
+      cardWidth: screenWidth * 0.8, // Keep original for smaller phones
+      cardSpacing: 8,
+      peek: 8,
+      maxCardsVisible: 1,
+    };
+  }
+};
 
-// Responsive card sizing: show 1 card with peek on all devices
-const CARD_WIDTH = screenWidth * 0.8; // Consistent 80% width
-const CARD_SPACING = 8;
+const config = getResponsiveConfig();
+const CARD_WIDTH = config.cardWidth;
+const CARD_SPACING = config.cardSpacing;
 const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2;
-const PEEK = isIPad ? 12 : 8; // Slightly larger peek on iPad for better visibility
+const PEEK = config.peek;
 const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 
 interface ReflectCarouselProps {
