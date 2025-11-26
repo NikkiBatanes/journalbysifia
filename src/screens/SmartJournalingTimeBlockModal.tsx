@@ -202,12 +202,29 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     isAllDay: boolean;
     date: Date;
     alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
+    alarmMinutes?: number; // For calendar sync
+    repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
+    repeatEndDate?: Date | null;
+    repeatCustomDays?: number[];
+    repeatCustomFrequency?: { value: number; unit: 'day' | 'week' | 'month' | 'year' } | null;
+    isEditing?: boolean;
+    existingId?: string;
   }) => {
     try {
       if (!user) {
         Alert.alert('Error', 'You must be logged in to save time blocks.');
         return;
       }
+
+      // Build repeat rule for calendar sync
+      const repeatRule = timeBlockData.repeatFrequency && timeBlockData.repeatFrequency !== 'never' ? {
+        frequency: timeBlockData.repeatFrequency as 'daily' | 'weekly' | 'monthly' | 'yearly',
+        endDate: timeBlockData.repeatEndDate || undefined,
+        customDays: timeBlockData.repeatCustomDays,
+        customFrequency: timeBlockData.repeatCustomFrequency,
+      } : {
+        frequency: 'never' as const,
+      };
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
         user_id: user.id,
@@ -220,6 +237,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         category: timeBlockData.category,
         description: timeBlockData.notes || '',
         alert: timeBlockData.alert || 'none',
+        repeat_rule: repeatRule,
+        repeat_until: timeBlockData.repeatEndDate?.toISOString().split('T')[0],
+        repeat_frequency: timeBlockData.repeatFrequency,
+        repeat_end_date: timeBlockData.repeatEndDate?.toISOString(),
+        alarm_minutes: timeBlockData.alarmMinutes, // Save alarm minutes for calendar sync
         is_completed: false,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         metadata: {

@@ -70,6 +70,7 @@ export interface TimeBlockApiEntry {
   location?: string;
   category: string;
   alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
+  alarm_minutes?: number; // Minutes before event for calendar alarm
   repeat_rule?: any; // jsonb
   repeat_until?: string; // date
   repeat_frequency?: string;

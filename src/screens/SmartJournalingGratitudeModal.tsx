@@ -240,61 +240,53 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
       // PERFORMANCE: Parallel cache invalidation instead of sequential
       if (user?.id) {
+        // Invalidate only the specific queries that need updating
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: ['journal', 'gratitude', user.id, dateStr],
           }),
-          queryClient.invalidateQueries({
+          // Only invalidate 'journal, all' if this is a new entry (not an update)
+          !currentGratitudeEntry?.id && queryClient.invalidateQueries({
             queryKey: ['journal', 'all'],
           }),
-        ]);
+        ].filter(Boolean));
       }
 
       // Call parent onSave callback
       onSave(result);
 
-      // Mark subtask as completed immediately since data is saved
+      // PERFORMANCE: Optimize action steps completion - only check if needed
       if (stepId && subtaskId && handleToggleStep) {
-
-        // Check if the step/subtask is already completed before toggling
-        const step = actionSteps.find(s => s.id === stepId);
-
-        if (step) {
-          if (subtaskId) {
-            // Check subtask completion
-            const subtask = step.subTasks?.find(st => st.id === subtaskId);
-
-            if (subtask && !subtask.completed) {
-
-              handleToggleStep(stepId, subtaskId);
-
-            } else {
-
-            }
-          } else {
-            // Check step completion
-            if (!step.completed) {
-
-              handleToggleStep(stepId, subtaskId);
-
-            } else {
-
-            }
-          }
-        } else {
-          Logger.warn('🙏 SmartJournalingGratitudeModal: Step not found in actionSteps', {
-  component: 'SmartJournalingGratitudeModal',
+        // Early return if we don't have action steps data
+        if (!actionSteps || actionSteps.length === 0) {
+          Logger.warn('🙏 SmartJournalingGratitudeModal: No action steps data available', {
+            component: 'SmartJournalingGratitudeModal',
             stepId,
-            availableStepIds: actionSteps?.map(s => s.id) || [],
+            subtaskId,
           });
+          return;
         }
-      } else {
-        Logger.warn('🙏 SmartJournalingGratitudeModal: Missing required data for completion', {
-  component: 'SmartJournalingGratitudeModal',
-          hasStepId: !!stepId,
-          hasSubtaskId: !!subtaskId,
-          hasHandleToggleStep: !!handleToggleStep,
-        });
+
+        // Use find with early exit for better performance
+        const step = actionSteps.find(s => s.id === stepId);
+        if (!step) {
+          Logger.warn('🙏 SmartJournalingGratitudeModal: Step not found in actionSteps', {
+            component: 'SmartJournalingGratitudeModal',
+            stepId,
+            availableStepIds: actionSteps.map(s => s.id),
+          });
+          return;
+        }
+
+        // Check completion status and toggle only if needed
+        if (subtaskId) {
+          const subtask = step.subTasks?.find(st => st.id === subtaskId);
+          if (subtask && !subtask.completed) {
+            handleToggleStep(stepId, subtaskId);
+          }
+        } else if (!step.completed) {
+          handleToggleStep(stepId, subtaskId);
+        }
       }
 
       // Show success modal after cache invalidation completes (longer delay to ensure UI updates)

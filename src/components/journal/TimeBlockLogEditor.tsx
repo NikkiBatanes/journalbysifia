@@ -42,6 +42,7 @@ interface TimeBlockLogEditorProps {
     isAllDay: boolean;
     date: Date;
     alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
+    alarmMinutes?: number; // Minutes before event for calendar sync
     // Repeat information to mirror journal TimeBlock component
     repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
     repeatEndDate?: Date | null;
@@ -849,6 +850,24 @@ function TimeBlockLogEditorInner(
       // Format notes with metadata (TODO: implement formatMetadata function)
       const notesWithMetadata = notes.trim();
 
+      // Convert alert string to alarmMinutes number for calendar sync
+      const alertToAlarmMinutes = (alertType: string): number | undefined => {
+        switch (alertType) {
+          case 'at-time': return 0;
+          case '5-min': return 5;
+          case '10-min': return 10;
+          case '15-min': return 15;
+          case '30-min': return 30;
+          case '1-hour': return 60;
+          case '2-hours': return 120;
+          case '1-day': return 1440; // 24 * 60
+          case '2-days': return 2880; // 48 * 60
+          case '1-week': return 10080; // 7 * 24 * 60
+          case 'none':
+          default: return undefined;
+        }
+      };
+
       // If editing an existing time block, pass a flag to indicate it should be unmarked/deleted
       onSave({
         title: title.trim(),
@@ -859,6 +878,7 @@ function TimeBlockLogEditorInner(
         location: location.trim(),
         isAllDay,
         alert,
+        alarmMinutes: alertToAlarmMinutes(alert), // Add converted alarm minutes for calendar sync
         date: new Date(),
         // Provide repeat info mirroring journal screen
         repeatFrequency: ((): any => {
