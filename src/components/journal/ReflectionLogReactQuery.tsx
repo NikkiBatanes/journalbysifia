@@ -1121,7 +1121,18 @@ return (
         const compareDate = dateStr?.split('T')[0] || dateStr;
         return entryDate === compareDate;
       }).length)}
-      showAddButton={hasContentForSelectedDate && !globalEditMode?.isGlobalEditMode}
+      showAddButton={(() => {
+    const shouldShow = hasContentForSelectedDate && !globalEditMode?.isGlobalEditMode;
+    console.log('🔍 FAB Visibility Debug:', { 
+      hasContentForSelectedDate, 
+      globalEditMode: globalEditMode?.isGlobalEditMode, 
+      shouldShow,
+      isAdding,
+      selectedEntry: !!selectedEntry,
+      editingId
+    });
+    return shouldShow;
+  })()}
       onAdd={() => {
         // Use carousel handler if provided (matching dashboard behavior)
         if (onPencilTap) {

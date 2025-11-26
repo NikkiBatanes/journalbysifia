@@ -189,7 +189,17 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             </View>
           </View>
           {/* Enhanced floating edit button */}
-          {showAddButton && onAdd && !isAdding && (viewMode as string) !== 'inline' && (
+          {(() => {
+            const shouldRender = showAddButton && onAdd && !isAdding && (viewMode as string) !== 'inline';
+            console.log('🔍 JournalCard FAB Render Debug:', { 
+              showAddButton, 
+              onAdd: !!onAdd, 
+              isAdding, 
+              viewMode, 
+              shouldRender 
+            });
+            return shouldRender;
+          })() && (
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity onPress={() => { triggerLightHaptic(); onAdd && onAdd(); }} style={styles.addButtonFloating}>
                 <LinearGradient
