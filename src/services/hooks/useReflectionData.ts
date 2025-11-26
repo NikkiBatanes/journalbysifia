@@ -235,19 +235,19 @@ export const useCreateReflection = () => {
       // Force refresh all relevant queries to ensure UI updates instantly for new reflections
       queryClient.invalidateQueries({
         queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date),
-        refetchType: 'active' // Only refetch active queries
+        refetchType: 'active', // Only refetch active queries
       });
-      
+
       // Also invalidate the general reflections query to ensure list refreshes
       queryClient.invalidateQueries({
         queryKey: ['reflections'],
-        refetchType: 'active'
+        refetchType: 'active',
       });
-      
+
       // And invalidate any journal-specific queries
       queryClient.invalidateQueries({
         queryKey: ['journal'],
-        refetchType: 'active'
+        refetchType: 'active',
       });
 
       // Direct refetch as a fallback to ensure UI updates
@@ -286,19 +286,19 @@ export const useUpdateReflection = () => {
 });
       // No rollback needed since we skipped optimistic updates
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data, _variables) => {
       console.log('🔍 useUpdateReflection: API response received', { data });
-      
+
       // Update the specific reflection in the main query (no refetching needed)
       const queryKey = queryKeys.reflections.byDate(data.user_id, data.selected_date);
       console.log('🔍 useUpdateReflection: Updating cache', { queryKey, dataId: data.id });
-      
+
       queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
         const updated = old.map(reflection => reflection.id === data.id ? data : reflection);
-        console.log('🔍 useUpdateReflection: Cache updated', { 
-          oldCount: old.length, 
+        console.log('🔍 useUpdateReflection: Cache updated', {
+          oldCount: old.length,
           updatedCount: updated.filter(r => r.id === data.id).length,
-          found: updated.some(r => r.id === data.id)
+          found: updated.some(r => r.id === data.id),
         });
         return updated;
       });
@@ -320,19 +320,19 @@ export const useUpdateReflection = () => {
       // Force refresh all relevant queries to ensure UI updates instantly
       queryClient.invalidateQueries({
         queryKey: queryKeys.reflections.byDate(data.user_id, data.selected_date),
-        refetchType: 'active' // Only refetch active queries
+        refetchType: 'active', // Only refetch active queries
       });
-      
+
       // Also invalidate the general reflections query to ensure list refreshes
       queryClient.invalidateQueries({
         queryKey: ['reflections'],
-        refetchType: 'active'
+        refetchType: 'active',
       });
-      
+
       // And invalidate any journal-specific queries
       queryClient.invalidateQueries({
         queryKey: ['journal'],
-        refetchType: 'active'
+        refetchType: 'active',
       });
 
       // Direct refetch as a fallback to ensure UI updates

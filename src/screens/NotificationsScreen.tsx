@@ -151,7 +151,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     try {
       // Add haptic feedback
       triggerLightHaptic();
-      
+
       // Track analytics (tapped event)
       if (notification.id) {
         await notificationAnalyticsService.trackTapped(notification.id);
@@ -164,7 +164,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         // Smart fallback navigation based on notification type
         const notificationType = notification.type || notification.notification_type;
         let targetScreen = null;
-        
+
         switch (notificationType) {
           case 'REMINDER':
             if (notification.data?.type === 'prayer_reminder') {
@@ -191,14 +191,14 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             // For notifications, navigate to Journal as default
             targetScreen = 'Journal';
         }
-        
+
         if (targetScreen) {
           // Reset to main tabs and navigate to specific tab
           navigation.reset({
             index: 0,
             routes: [{ name: 'MainTabs' }],
           });
-          
+
           // Navigate to the specific tab after reset
           setTimeout(() => {
             navigation.navigate('MainTabs', { screen: targetScreen });
@@ -217,7 +217,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
               .update({ is_read: true })
               .eq('id', notification.id)
               .eq('user_id', user.id);
-              
+
             if (error) {
               Logger.error('Failed to mark push notification as read', error, {
                 component: 'NotificationsScreen',
@@ -260,7 +260,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
     try {
       console.log('🧹 Clear All: Starting clear process...');
-      
+
       // Mark all in-app notifications as read
       const { error: notifError, data: notifData } = await supabase
         .from('notifications')
@@ -768,7 +768,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                   </ThemedText>
                 </View>
 
-                <View style={{ justifyContent: 'center' }}>
+                <View style={styles.chevronContainer}>
                   <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>
@@ -888,6 +888,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.alertCoral,
     opacity: 0.9,
+  },
+  chevronContainer: {
+    justifyContent: 'center',
   },
   invitationCode: {
     fontSize: 12,

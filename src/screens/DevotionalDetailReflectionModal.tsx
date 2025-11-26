@@ -147,9 +147,9 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       // The optimized useCreateReflection hook updates cache directly without invalidation
       if (user?.id) {
         // Only invalidate non-critical search queries
-        queryClient.invalidateQueries({ 
-          queryKey: ['reflections', 'search'], 
-          refetchType: 'none' 
+        queryClient.invalidateQueries({
+          queryKey: ['reflections', 'search'],
+          refetchType: 'none',
         });
       }
 

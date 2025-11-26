@@ -375,13 +375,13 @@ export default function ActionStepsCard({
 
         const openedFromGuidedPrompt = !stepInfo;
         _setIsGuidedPromptActive(openedFromGuidedPrompt);
-        
+
         // Create fallback stepInfo with explicit types
         const fallbackStepInfo: { stepNumber: number; stepTitle: string } = {
           stepNumber: subTask.isExample ? 0 : (stepInfo?.stepNumber ?? 0),
-          stepTitle: subTask.isExample ? 'Suggestion' : (stepInfo?.stepTitle ?? '')
+          stepTitle: subTask.isExample ? 'Suggestion' : (stepInfo?.stepTitle ?? ''),
         };
-        
+
         setSelectedSubtask({ subTask, stepInfo: stepInfo || fallbackStepInfo });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('reflection');

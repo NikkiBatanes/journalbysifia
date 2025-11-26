@@ -56,9 +56,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 }) => {
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
-  const [preservedActionStepNumber, setPreservedActionStepNumber] = React.useState(actionStepNumber);
-  const [preservedActionStepTitle, setPreservedActionStepTitle] = React.useState(actionStepTitle);
-  const [preservedPlaybookTitle, setPreservedPlaybookTitle] = React.useState(playbookTitle);
+  const [_preservedActionStepNumber, setPreservedActionStepNumber] = React.useState(actionStepNumber);
+  const [_preservedActionStepTitle, setPreservedActionStepTitle] = React.useState(actionStepTitle);
+  const [_preservedPlaybookTitle, setPreservedPlaybookTitle] = React.useState(playbookTitle);
 
   // Track when metadata props change and preserve non-empty values
   // PERFORMANCE: Combine all metadata updates into single useEffect to reduce re-renders
@@ -88,12 +88,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       // Done callback - close the main modal
       // Dismiss keyboard aggressively to prevent ghosting
       Keyboard.dismiss();
-      
+
       // Add a second dismissal after a small delay to catch any late keyboard appearances
       setTimeout(() => {
         Keyboard.dismiss();
       }, 100);
-      
+
       onCancel(); // This closes the main modal
     },
     () => {
@@ -358,7 +358,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const handleCancel = () => {
     // Dismiss keyboard immediately to prevent it from appearing after modal closes
     Keyboard.dismiss();
-    
+
     // Completion state handled by parent component
     onCancel();
   };

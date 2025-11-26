@@ -36,7 +36,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
-  const [userBadges, setUserBadges] = useState<Badge[]>([]);
+  const [_userBadges, setUserBadges] = useState<Badge[]>([]);
   const [availableBadges, setAvailableBadges] = useState<BadgeWithStatus[]>([]);
   const [badgeCount, setBadgeCount] = useState(0); // Store consistent count
   const [loading, setLoading] = useState(false);
@@ -152,8 +152,8 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       }));
 
       // Use the same counting method as userApi for consistency
-      const badgeCount = badgeRows?.length || 0;
-      setBadgeCount(badgeCount); // Store in state for display
+      const count = badgeRows?.length || 0;
+      setBadgeCount(count); // Store in state for display
 
       setAvailableBadges(availableWithStatus);
       setUserBadges(unlockedBadges);

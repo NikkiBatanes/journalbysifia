@@ -501,10 +501,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         // Remove the devotional question that was just answered
         setQuestions(prev => prev.filter(q => {
           // Match by devotional ID, day number, and question number
-          if (q.sourceType !== 'devotional') return true;
-          if (payload?.devotionalId && q.sourceId !== payload.devotionalId) return true;
-          if (payload?.dayNumber !== undefined && q.dayNumber !== payload.dayNumber) return true;
-          if (payload?.questionNumber !== undefined && q.questionIndex !== payload.questionNumber) return true;
+          if (q.sourceType !== 'devotional') {return true;}
+          if (payload?.devotionalId && q.sourceId !== payload.devotionalId) {return true;}
+          if (payload?.dayNumber !== undefined && q.dayNumber !== payload.dayNumber) {return true;}
+          if (payload?.questionNumber !== undefined && q.questionIndex !== payload.questionNumber) {return true;}
           // If all criteria match, this is the question that was answered - remove it
           return false;
         }));

@@ -755,7 +755,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
     console.log('🔍 ReflectionLog: handleEntryPress called', { entryId: entry.id, entry });
-    
+
     // Set editing state
     setEditingId(entry.id);
     setSelectedEntry(entry);
@@ -773,8 +773,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
     // Set form data for editing
     const getFormType = (): ViewMode => {
-      if (entry.type === 'free' || entry.type === 'playbook') return 'free';
-      if (entry.type === 'devotional') return 'guided';
+      if (entry.type === 'free' || entry.type === 'playbook') {return 'free';}
+      if (entry.type === 'devotional') {return 'guided';}
       return 'free'; // fallback
     };
 

@@ -674,12 +674,12 @@ export async function updatePlaybookActionSteps(
           for (const subTask of step.subTasks) {
             // Only update if subTask has an id (exists in database)
             if (subTask.id && typeof subTask === 'object' && 'completed' in subTask) {
-              
+
               // Add retry logic for subtask updates
               let subTaskUpdateSuccess = false;
               let lastSubTaskError = null;
               const maxSubTaskRetries = 3;
-              
+
               for (let subTaskRetry = 0; subTaskRetry < maxSubTaskRetries; subTaskRetry++) {
                 try {
                   const { error: subTaskError } = await supabase

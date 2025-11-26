@@ -14,8 +14,6 @@ import { TodayWinReactQuery } from './TodayWinReactQuery';
 import { LookingForwardReactQuery } from './LookingForwardReactQuery';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
-import SmartJournalingReflectionModal from '../../screens/SmartJournalingReflectionModal';
-import { useQueryClient } from '@tanstack/react-query';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
