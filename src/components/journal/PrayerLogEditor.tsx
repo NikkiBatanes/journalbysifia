@@ -466,13 +466,13 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
           }, 100);
         }
       } else {
-        // Focus the body input (prayer request) for people tab
-        if (requestInputRef.current) {
-          requestInputRef.current.focus();
+        // Focus the first input (person name) for people tab
+        if (personInputRef.current) {
+          personInputRef.current.focus();
           // Position cursor at the end of the text
           setTimeout(() => {
-            if (requestInputRef.current) {
-              requestInputRef.current.setSelection(prayerRequest.length, prayerRequest.length);
+            if (personInputRef.current) {
+              personInputRef.current.setSelection(prayerForPerson.length, prayerForPerson.length);
             }
           }, 100);
         }
@@ -600,9 +600,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
     // Small timeout to ensure the tab animation completes
     const timer = setTimeout(() => {
-      if (activeTab === 'people' && requestInputRef.current) {
-        // Focus the body input when switching to People tab
-        requestInputRef.current.focus();
+      if (activeTab === 'people' && personInputRef.current) {
+        // Focus the person input when switching to People tab
+        personInputRef.current.focus();
       } else if (activeTab === 'freeform' && inputRef.current) {
         // Focus the main input when switching to Freeform tab
         inputRef.current.focus();
@@ -611,36 +611,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
     return () => clearTimeout(timer);
   }, [activeTab, isEditing]);
-
-  // Focus the appropriate input when component mounts with initial tab
-  useEffect(() => {
-    if (!isEditing) {return;} // Skip focus if not in edit mode
-
-    // Small timeout to ensure component is fully mounted
-    const timer = setTimeout(() => {
-      if (activeTab === 'people' && requestInputRef.current) {
-        // Focus the body input when component mounts with People tab
-        requestInputRef.current.focus();
-        // Position cursor at the end of existing text
-        setTimeout(() => {
-          if (requestInputRef.current) {
-            requestInputRef.current.setSelection(prayerRequest.length, prayerRequest.length);
-          }
-        }, 100);
-      } else if (activeTab === 'freeform' && inputRef.current) {
-        // Focus the main input when component mounts with Freeform tab
-        inputRef.current.focus();
-        // Position cursor at the end of existing text
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.setSelection(prayerContent.length, prayerContent.length);
-          }
-        }, 100);
-      }
-    }, 200); // Longer timeout for initial mount
-
-    return () => clearTimeout(timer);
-  }, [activeTab, isEditing, prayerRequest.length, prayerContent.length]);
 
   // Helper function to save draft
   const saveDraftHelper = useCallback(async () => {
@@ -839,9 +809,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             onPress={() => {
               triggerLightHaptic();
               setActiveTab('people');
-              // Focus the body input after switching tabs
+              // Focus the person input after switching tabs
               setTimeout(() => {
-                requestInputRef.current?.focus();
+                personInputRef.current?.focus();
               }, 100);
             }}
             accessibilityLabel="Switch to Prayers for People"

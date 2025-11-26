@@ -221,9 +221,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   })).sort((a, b) => {
     // Sort chronologically by start time
     // All-day events should come first, then sorted by start time
-    if (a.isAllDay && !b.isAllDay) return -1;
-    if (!a.isAllDay && b.isAllDay) return 1;
-    
+    if (a.isAllDay && !b.isAllDay) {return -1;}
+    if (!a.isAllDay && b.isAllDay) {return 1;}
+
     // For both all-day or both not all-day, sort by start time
     return a.startTime.getTime() - b.startTime.getTime();
   });

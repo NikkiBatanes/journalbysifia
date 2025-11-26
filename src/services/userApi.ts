@@ -697,7 +697,7 @@ class UserApiService {
           }
         } catch {}
       }
-      
+
       // Add automatic Seeker badge (Level 1) for all users
       // All users automatically get the Seeker badge when they start
       if (totalBadges === 0) {

@@ -70,7 +70,7 @@ class NotificationDeepLinkService {
       if (state) {
         const routes = state.routes;
         const currentRoute = routes[routes.length - 1];
-        
+
         // If the current route is Notifications, go back to dismiss it
         if (currentRoute?.name === 'Notifications') {
           Logger.info('Dismissing notification modal before navigation', {

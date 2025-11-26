@@ -91,7 +91,7 @@ export function useNotificationBadge() {
           .update({ is_read: true })
           .eq('user_id', user.id)
           .eq('is_read', false),
-        
+
         // Mark all queue notifications as read
         notificationManagementService.markAllNotificationsAsRead(user.id),
       ]);
