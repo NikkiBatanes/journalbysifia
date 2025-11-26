@@ -723,13 +723,13 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                   <Pressable
                     style={[
                       styles.reflectButton,
-                      // Disable button for locked guided prompts
-                      item.sourceType === 'guided' && !item.isFree && styles.reflectButtonDisabled
+                      // Disable button for ALL guided prompts (both free and locked)
+                      item.sourceType === 'guided' && styles.reflectButtonDisabled
                     ]}
                     onPress={() => {
-                      // Only allow opening if not a locked guided prompt
-                      if (item.sourceType === 'guided' && !item.isFree) {
-                        // Don't open the editor for locked guided prompts - show upgrade flow instead
+                      // Only allow opening if not a guided prompt (all guided prompts should show upgrade flow)
+                      if (item.sourceType === 'guided') {
+                        // Show upgrade flow for all guided prompts
                         if (onUpgradeRequired) {
                           try { onUpgradeRequired(); } catch {}
                         }
@@ -748,13 +748,13 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     }}
                     accessibilityRole="button"
                     accessibilityLabel="Reflect on this question"
-                    disabled={item.sourceType === 'guided' && !item.isFree}
+                    disabled={item.sourceType === 'guided'} // Disable ALL guided prompts
                   >
                     <Pencil 
                       size={16} 
                       color={
-                        // Use alert coral for locked guided prompts, white for others
-                        item.sourceType === 'guided' && !item.isFree 
+                        // Use alert coral for ALL guided prompts, white for others
+                        item.sourceType === 'guided' 
                           ? Colors.alertCoral 
                           : Colors.hopeWhite
                       } 
