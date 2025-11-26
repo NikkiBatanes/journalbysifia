@@ -1084,7 +1084,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     const handlePointsUpdate = (_data?: any) => {
       console.log('[UserProfileScreen] handlePointsUpdate called', _data);
-      
+
       // Clear any existing timeout to prevent multiple calls
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);

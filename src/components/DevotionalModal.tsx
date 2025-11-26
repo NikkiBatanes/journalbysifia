@@ -252,6 +252,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     if (visible) {
       setIsVisible(true);
+      // Reset progress animation when modal opens
+      progressAnim.setValue(0);
+      setCurrentStep(0);
       // Small delay to ensure content is measured
       timer = setTimeout(() => {
         measureContent();
@@ -308,7 +311,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         clearTimeout(timer);
       }
     };
-  }, [visible, contentHeight, fadeAnim, translateY]);
+  }, [visible, contentHeight, fadeAnim, translateY, progressAnim]);
 
   const togglePlaybookInfo = () => {
     setShowPlaybookInfo((prev) => {
@@ -474,8 +477,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     ]).start(({ finished }) => {
       if (finished) {
         onClose();
-        // Reset translateY for next open
+        // Reset animations for next open
         translateY.setValue(SCREEN_HEIGHT);
+        progressAnim.setValue(0); // Reset progress bar to 0
+        setCurrentStep(0); // Reset step counter
         // Invoke optional callback after close completes
         if (afterClose) { afterClose(); }
       }

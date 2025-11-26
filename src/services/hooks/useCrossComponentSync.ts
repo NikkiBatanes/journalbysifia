@@ -70,93 +70,99 @@ export const useCrossComponentSync = (userId: string) => {
 
     // Guard against multiple calls within 2 seconds for the same devotional
     const guardKey = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
+    const baseGuardKey = `${devotionalId}-base`; // Base guard without currentDay
     const now = Date.now();
     const lastCall = completionGuardRef.current[guardKey];
+    const baseLastCall = completionGuardRef.current[baseGuardKey];
 
-    if (lastCall && (now - lastCall) < 2000) {
+    Logger.debug('[CrossComponentSync] 🔍 Guard check', {
+      component: 'useCrossComponentSync',
+      guardKey,
+      baseGuardKey,
+      devotionalId,
+      currentDay: completionContext?.currentDay,
+      lastCall,
+      baseLastCall,
+      now,
+      timeDiff: lastCall ? now - lastCall : 'none',
+      baseTimeDiff: baseLastCall ? now - baseLastCall : 'none',
+    });
 
+    // Check both specific day guard and base guard
+    if ((lastCall && (now - lastCall) < 2000) || (baseLastCall && (now - baseLastCall) < 1000)) {
+      Logger.debug('[CrossComponentSync] 🔍 Guard blocked duplicate call', {
+        component: 'useCrossComponentSync',
+        guardKey,
+        baseGuardKey,
+        timeDiff: lastCall ? now - lastCall : 'none',
+        baseTimeDiff: baseLastCall ? now - baseLastCall : 'none',
+      });
       return { pointsAwarded: 0 };
     }
 
     completionGuardRef.current[guardKey] = now;
+    completionGuardRef.current[baseGuardKey] = now;
 
     try {
       // Award faith points based on completion type
       const activityType = completionContext?.isFullDevotionalComplete ? 'devotional_full_completed' : 'devotional_completed';
       const isFullCompletion = completionContext?.isFullDevotionalComplete;
 
-      Logger.debug('[CrossComponentSync] 🔍 BEFORE awardPoints call', {
+      Logger.debug('[CrossComponentSync] 🔍 BEFORE Promise.all parallel operations', {
         component: 'useCrossComponentSync',
         activityType,
         isFullCompletion,
       });
 
-      // PERFORMANCE: Award points first, then batch invalidate queries
-      const pointsResult = await faithPointsService.awardPoints(userId, activityType as any, {
-        devotionalId,
-        playbookId,
-        timestamp: new Date().toISOString(),
-        suppressNotification: !isFullCompletion, // Show animation only for full completion (3/3), suppress daily (1/3, 2/3)
-        completionContext,
-      });
+      // PERFORMANCE: Non-blocking parallel operations
+      const [pointsResult] = await Promise.all([
+        faithPointsService.awardPoints(userId, activityType as any, {
+          devotionalId,
+          playbookId,
+          timestamp: new Date().toISOString(),
+          suppressNotification: !isFullCompletion, // Show animation only for full completion (3/3), suppress daily (1/3, 2/3)
+          completionContext,
+        }),
+        // Parallel: Invalidate queries without awaiting
+        (async () => {
+          // Update devotional queries
+          queryClient.invalidateQueries({
+            queryKey: ['devotionals', 'list', userId], // Fixed query key
+          });
 
-      Logger.debug('[CrossComponentSync] 🔍 AFTER awardPoints call', {
+          // Invalidate dashboard-related queries in parallel
+          queryClient.invalidateQueries({
+            queryKey: ['dashboard', 'streaks', userId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['dashboard', 'insights', userId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['dashboard', 'affirmations', userId],
+          });
+
+          // If linked to a playbook, update playbook queries
+          if (playbookId) {
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.playbooks.detail(userId, playbookId),
+            });
+
+            // Update cross-component relationship
+            queryClient.setQueryData(
+              queryKeys.playbooks.withDevotionals(userId, playbookId),
+              (oldData: any) => ({
+                ...oldData,
+                lastDevotionalCompleted: devotionalId,
+                lastSynced: new Date().toISOString(),
+              })
+            );
+          }
+        })(),
+      ]);
+
+      Logger.debug('[CrossComponentSync] 🔍 AFTER Promise.all parallel operations', {
         component: 'useCrossComponentSync',
         pointsAwarded: pointsResult?.pointsAwarded,
-      });
-
-      Logger.debug('[CrossComponentSync] 🔍 BEFORE setTimeout for query invalidation', {
-        component: 'useCrossComponentSync',
-      });
-
-      // CRITICAL: Don't invalidate queries immediately - causes 7+ second UI freeze
-      // Instead, let components refetch naturally or use optimistic updates
-      // Only invalidate dashboard queries which are lightweight
-      setTimeout(() => {
-        Logger.debug('[CrossComponentSync] 🔍 INSIDE setTimeout - starting selective invalidation', {
-          component: 'useCrossComponentSync',
-        });
-
-        // ONLY invalidate lightweight dashboard queries
-        // DO NOT invalidate devotionals list - it causes massive re-render
-        queryClient.invalidateQueries({
-          queryKey: ['dashboard', 'streaks', userId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['dashboard', 'insights', userId],
-        });
-
-        Logger.debug('[CrossComponentSync] 🔍 AFTER selective invalidation', {
-          component: 'useCrossComponentSync',
-        });
-
-        // Update cross-component relationship if linked to playbook
-        if (playbookId) {
-          Logger.debug('[CrossComponentSync] 🔍 BEFORE setQueryData for playbook', {
-            component: 'useCrossComponentSync',
-          });
-
-          queryClient.setQueryData(
-            queryKeys.playbooks.withDevotionals(userId, playbookId),
-            (oldData: any) => ({
-              ...oldData,
-              lastDevotionalCompleted: devotionalId,
-              lastSynced: new Date().toISOString(),
-            })
-          );
-
-          Logger.debug('[CrossComponentSync] 🔍 AFTER setQueryData for playbook', {
-            component: 'useCrossComponentSync',
-          });
-        }
-
-        Logger.debug('[CrossComponentSync] 🔍 setTimeout completed', {
-          component: 'useCrossComponentSync',
-        });
-      }, 0);
-
-      Logger.debug('[CrossComponentSync] 🔍 AFTER setTimeout setup', {
-        component: 'useCrossComponentSync',
       });
 
       const syncEvent: SyncEvent = {
