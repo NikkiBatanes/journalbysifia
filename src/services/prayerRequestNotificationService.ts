@@ -62,7 +62,7 @@ class PrayerRequestNotificationService {
       const success = await notificationSchedulerService.scheduleNotification({
         user_id: userId,
         type: 'prayer_request_reminder',
-        title: `🙏 Remember to Pray for ${prayerForPerson}`,
+        title: `🙏🏼 Remember to Pray for ${prayerForPerson}`,
         message: prayerRequest || `Don't forget to pray for ${prayerForPerson}`,
         scheduled_for: scheduledFor.toISOString(),
         priority: 'normal', // Normal priority for scheduled reminders
@@ -147,7 +147,7 @@ class PrayerRequestNotificationService {
         await notificationSchedulerService.scheduleNotification({
           user_id: member.user_id,
           type: 'community_prayer_alert',
-          title: `🙏 Prayer Request: ${userName}`,
+          title: `🙏🏼 Prayer Request: ${userName}`,
           message: prayerRequest,
           scheduled_for: scheduledFor.toISOString(),
           priority: 'normal',

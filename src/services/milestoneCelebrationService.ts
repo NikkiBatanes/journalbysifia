@@ -125,7 +125,7 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: `Level Up! You're Now a ${levelTitle}! 🎉`,
+        title: `Level Up! You're Now a ${levelTitle}! 🌸`,
         message: 'Your faith journey is progressing beautifully.',
         data: {
           deep_link: 'sifia://profile/stats',
@@ -175,7 +175,7 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: 'Playbook Complete! 🎉',
+        title: 'Playbook Complete! 🌸',
         message: `You finished "${playbookTitle}"! Celebrate this spiritual milestone.`,
         data: {
           deep_link: `sifia://playbooks/${playbookId}?celebrate=true`,
@@ -224,7 +224,7 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: 'God Answered Your Prayer! 🎉',
+        title: 'God Answered Your Prayer! 🌸',
         message: 'Praise God! Take a moment to reflect on how He worked in your life.',
         data: {
           deep_link: `sifia://journal/prayer?answered=true&id=${prayerId}`,

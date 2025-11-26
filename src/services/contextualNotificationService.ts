@@ -107,20 +107,20 @@ class ContextualNotificationService {
       const firstRequest = pendingRequests[0];
       const personName = firstRequest?.name || firstRequest?.title;
 
-      let title = 'Prayer Requests Awaiting 🙏';
+      let title = 'Prayer Requests Awaiting 🙏🏼';
       let message = '';
 
       if (pendingRequests.length === 1 && personName) {
-        title = `Pray for ${personName} Now 🙏`;
+        title = `Pray for ${personName} Now 🙏🏼`;
         message = 'Lift them up in prayer today.';
       } else if (pendingRequests.length === 1) {
-        title = 'Prayer Request Waiting 🙏';
+        title = 'Prayer Request Waiting 🙏🏼';
         message = 'Someone needs your prayers today.';
       } else if (personName) {
-        title = `Pray for ${personName} and ${pendingRequests.length - 1} Others 🙏`;
+        title = `Pray for ${personName} and ${pendingRequests.length - 1} Others 🙏🏼`;
         message = `${pendingRequests.length} prayer requests need your attention.`;
       } else {
-        title = 'Prayer Requests Awaiting 🙏';
+        title = 'Prayer Requests Awaiting 🙏🏼';
         message = `You have ${pendingRequests.length} prayer requests that need your prayers today.`;
       }
 
@@ -187,7 +187,7 @@ class ContextualNotificationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'devotional_reflection',
-        title: 'Complete Your Reflection ✍️',
+        title: 'Complete Your Reflection ✍🏼',
         message: `You read "${devotional.title}" - take a moment to reflect on it.`,
         data: {
           deep_link: `sifia://devotionals/${devotional.id}/reflect`,
@@ -334,7 +334,7 @@ class ContextualNotificationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'journal_reminder',
-        title: 'Time to Reflect ✍️',
+        title: 'Time to Reflect ✍🏼',
         message: 'Your journal is waiting. What\'s on your heart today?',
         data: {
           deep_link: 'sifia://journal',

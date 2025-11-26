@@ -711,9 +711,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       } else {
         // Format structured prayer for people
         if (prayerForPerson.trim() && prayerRequest.trim()) {
-          contentToSave = `🙏 Prayer for ${prayerForPerson.trim()}\n\n${prayerRequest.trim()}`;
+          contentToSave = `🙏🏼 Prayer for ${prayerForPerson.trim()}\n\n${prayerRequest.trim()}`;
         } else if (prayerForPerson.trim()) {
-          contentToSave = `🙏 Prayer for ${prayerForPerson.trim()}`;
+          contentToSave = `🙏🏼 Prayer for ${prayerForPerson.trim()}`;
         } else {
           contentToSave = prayerRequest.trim();
         }

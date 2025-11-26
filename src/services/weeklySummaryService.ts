@@ -157,10 +157,10 @@ class WeeklySummaryService {
       activeStreaks.push(`${stats.currentStreaks.prayer}-day prayer streak 🔥`);
     }
     if (stats.currentStreaks.devotional > 0) {
-      activeStreaks.push(`${stats.currentStreaks.devotional}-day devotional streak 📖`);
+      activeStreaks.push(`${stats.currentStreaks.devotional}-day devotional streak 🤲🏼`);
     }
     if (stats.currentStreaks.journal > 0) {
-      activeStreaks.push(`${stats.currentStreaks.journal}-day journal streak ✍️`);
+      activeStreaks.push(`${stats.currentStreaks.journal}-day journal streak ✍🏼`);
     }
 
     if (activeStreaks.length > 0) {

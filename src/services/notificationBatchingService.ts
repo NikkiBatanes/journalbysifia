@@ -141,7 +141,7 @@ class NotificationBatchingService {
       case 'devotional_reminder':
         return {
           type: 'batched_devotional_reminders',
-          title: `${count} Devotionals Ready 📖`,
+          title: `${count} Devotionals Ready 🤲🏼`,
           message: `${count} devotionals are waiting for you to explore.`,
           data: {
             deep_link: 'sifia://devotionals',
@@ -153,7 +153,7 @@ class NotificationBatchingService {
       case 'journal_prompt':
         return {
           type: 'batched_journal_prompts',
-          title: `${count} Journal Prompts ✍️`,
+          title: `${count} Journal Prompts ✍🏼`,
           message: `${count} reflection prompts are ready for you.`,
           data: {
             deep_link: 'sifia://journal',

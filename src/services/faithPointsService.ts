@@ -687,7 +687,7 @@ export class FaithPointsService {
         id: 'journal_keeper',
         name: 'Journal Keeper',
         description: 'Made 50 journal entries',
-        icon: '📖',
+        icon: '🤲🏼',
         rarity: 'epic',
         pointsRequired: 250,
       },

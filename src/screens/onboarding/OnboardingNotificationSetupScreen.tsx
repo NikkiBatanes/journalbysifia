@@ -225,7 +225,7 @@ const OnboardingNotificationSetupScreen = () => {
         }
 
         Alert.alert(
-          '🎉 Notifications Enabled!',
+          '🌸 Notifications Enabled!',
           'You\'ll receive personalized reminders to help you stay connected with God.',
           [
             {

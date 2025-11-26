@@ -568,7 +568,7 @@ class NotificationManagementService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'prayer_reminder',
-      title: 'Time for Prayer 🙏',
+      title: 'Time for Prayer 🙏🏼',
       message: 'Take a moment to connect with God through prayer.',
       data: {
         reminder_type: 'prayer',
@@ -588,7 +588,7 @@ class NotificationManagementService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'devotional_reminder',
-      title: 'Daily Devotional 📖',
+      title: 'Daily Devotional 🤲🏼',
       message: 'Start your day with God\'s word and guidance.',
       data: {
         reminder_type: 'devotional',
@@ -608,7 +608,7 @@ class NotificationManagementService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'journal_prompt',
-      title: 'Reflection Time ✍️',
+      title: 'Reflection Time ✍🏼',
       message: prompt || 'How did God show up in your day today?',
       data: {
         reminder_type: 'journal',
@@ -628,8 +628,8 @@ class NotificationManagementService {
   async sendStreakAlert(userId: string, streakType: string, currentStreak: number): Promise<boolean> {
     const messages = {
       prayer: `Don't break your ${currentStreak}-day prayer streak! 🔥`,
-      devotional: `Keep your ${currentStreak}-day devotional streak going! 📖`,
-      journal: `Continue your ${currentStreak}-day journaling journey! ✍️`,
+      devotional: `Keep your ${currentStreak}-day devotional streak going! 🤲🏼`,
+      journal: `Continue your ${currentStreak}-day journaling journey! ✍🏼`,
     };
 
     const notification: NotificationQueueItem = {

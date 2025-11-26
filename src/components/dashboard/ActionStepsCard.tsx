@@ -83,7 +83,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         '',
         'You\'ll see the text in a focused bubble, then choose a journal type:',
         '💡 Reflection',
-        '🙏 Prayer',
+        '🙏🏼 Prayer',
         '❤️ Gratitude',
         '⏰ Time Block',
       ].join('\n'),

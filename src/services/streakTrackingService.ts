@@ -309,13 +309,13 @@ class StreakTrackingService {
           time: '19:00', // 7 PM - earlier to give users more time
         },
         devotional: {
-          title: `Keep Your ${currentStreak}-Day Devotional Streak! 📖`,
+          title: `Keep Your ${currentStreak}-Day Devotional Streak! 🤲🏼`,
           message: 'You\'re building a powerful habit. Don\'t stop now!',
           deepLink: 'sifia://devotionals/today',
           time: '19:30', // 7:30 PM - earlier to give users more time
         },
         journal: {
-          title: `Protect Your ${currentStreak}-Day Journaling Streak! ✍️`,
+          title: `Protect Your ${currentStreak}-Day Journaling Streak! ✍🏼`,
           message: 'You\'re building consistency. Keep going!',
           deepLink: 'sifia://journal',
           time: '20:00', // 8 PM - earlier to give users more time
@@ -374,20 +374,20 @@ class StreakTrackingService {
       const milestoneMessages = {
         prayer: {
           7: '🔥 7-Day Prayer Streak! You\'re building spiritual discipline!',
-          14: '🎉 14-Day Prayer Streak! Your consistency is inspiring!',
+          14: '🌸 14-Day Prayer Streak! Your consistency is inspiring!',
           30: '🏆 30-Day Prayer Streak! You\'re a prayer warrior!',
           60: '💎 60-Day Prayer Streak! Your faith is unshakeable!',
           100: '🌟 100-Day Prayer Streak! You\'re truly devoted!',
         },
         devotional: {
-          7: '📖 7-Day Devotional Streak! Growing in wisdom daily!',
+          7: '🤲🏼 7-Day Devotional Streak! Growing in wisdom daily!',
           14: '🎯 14-Day Devotional Streak! Your spiritual journey is amazing!',
           30: '🏅 30-Day Devotional Streak! You\'re a faithful student!',
           60: '💪 60-Day Devotional Streak! Your dedication is remarkable!',
           100: '👑 100-Day Devotional Streak! You\'re a spiritual champion!',
         },
         journal: {
-          7: '✍️ 7-Day Journaling Streak! Documenting your spiritual growth!',
+          7: '✍🏼 7-Day Journaling Streak! Documenting your spiritual growth!',
           14: '📝 14-Day Journaling Streak! Your reflections are beautiful!',
           30: '📚 30-Day Journaling Streak! You\'re building a spiritual legacy!',
           60: '🖋️ 60-Day Journaling Streak! Your consistency is admirable!',
@@ -406,7 +406,7 @@ class StreakTrackingService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: `🎉 ${milestoneStreak}-Day ${streakType.charAt(0).toUpperCase() + streakType.slice(1)} Milestone!`,
+        title: `🌸 ${milestoneStreak}-Day ${streakType.charAt(0).toUpperCase() + streakType.slice(1)} Milestone!`,
         message,
         data: {
           deep_link: `sifia://journal/${streakType}`,

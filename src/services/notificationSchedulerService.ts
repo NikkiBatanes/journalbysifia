@@ -262,7 +262,7 @@ class NotificationSchedulerService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'devotional_reminder',
-      title: 'Daily Devotional Ready 📖',
+      title: 'Daily Devotional Ready 🤲🏼',
       message: 'Start your day with God\'s Word and wisdom.',
       data: {
         deep_link: 'sifia://devotionals/today',
@@ -293,7 +293,7 @@ class NotificationSchedulerService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'prayer_reminder',
-      title: 'Time to Connect with God 🙏',
+      title: 'Time to Connect with God 🙏🏼',
       message: 'Take 5 minutes to bring your heart before the Lord.',
       data: {
         deep_link: 'sifia://journal/prayer',
@@ -430,7 +430,7 @@ class NotificationSchedulerService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'payment_successful',
-      title: `Welcome to ${newTier}! 🎉`,
+      title: `Welcome to ${newTier}! 🌸`,
       message: `Your payment of ₱${amount} was successful. Enjoy your enhanced spiritual journey!`,
       data: {
         deep_link: 'sifia://dashboard',
