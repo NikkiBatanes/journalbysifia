@@ -30,14 +30,22 @@ export function useNotificationBadge() {
 
       // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
 
-      const [pendingQueue, inAppUnread] = await Promise.all([
+      const [pendingQueue, inAppUnread, pushNotificationsUnread] = await Promise.all([
         notificationManagementService.getPendingNotifications(user.id),
         // POST-LAUNCH: FamilyNotificationService.getUnreadNotifications(user.id),
         [] as any[], // Placeholder for family notifications
+        // NEW: Fetch unread push notifications from the notifications table
+        supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_read', false)
+          .order('created_at', { ascending: false }),
         // POST-LAUNCH: Family invitations count
       ]);
 
-      const count = pendingQueue.length + inAppUnread.length; // POST-LAUNCH: + familyInvites.length
+      const pushNotificationsCount = pushNotificationsUnread.data?.length || 0;
+      const count = pendingQueue.length + inAppUnread.length + pushNotificationsCount; // POST-LAUNCH: + familyInvites.length
 
       setBadgeCount(count);
 
@@ -47,6 +55,11 @@ export function useNotificationBadge() {
       Logger.info('Badge count updated', {
         component: 'useNotificationBadge',
         count,
+        breakdown: {
+          pendingQueue: pendingQueue.length,
+          inAppUnread: inAppUnread.length,
+          pushNotificationsUnread: pushNotificationsCount,
+        },
       });
     } catch (error) {
       Logger.error('Failed to fetch badge count', error as Error, {

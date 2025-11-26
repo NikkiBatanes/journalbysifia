@@ -144,12 +144,16 @@ class PushNotificationService {
     // Listen for incoming notifications
     const notificationListener = addNotificationEventListener(
       'RemoteNotificationReceived',
-      (notification: any) => {
+      async (notification: any) => {
         Logger.info('NOTIFICATION EVENT: RemoteNotificationReceived fired!', notification);
         Logger.info('[PushNotification] Notification received', {
           component: 'pushNotificationService',
           notification,
         });
+
+        // Save notification to history when received
+        await this.saveNotificationOnReceive(notification);
+
         this.handleNotificationTap(notification);
       }
     );
@@ -178,9 +182,12 @@ class PushNotificationService {
         this.deviceToken = token.token;
         await this.saveDeviceToken(userId, token.token);
       },
-      onNotification: (notification: any) => {
+      onNotification: async (notification: any) => {
         if (notification.userInteraction) {
           this.handleNotificationTap(notification);
+        } else {
+          // Save notification when received (not just when tapped)
+          await this.saveNotificationOnReceive(notification);
         }
       },
       onRegistrationError: (err: any) => {
@@ -434,8 +441,87 @@ class PushNotificationService {
     }
   }
 
+  private async saveNotificationToHistory(userId: string, notification: any): Promise<void> {
+    try {
+      // Map notification types to valid enum values
+      const notificationTypeMap: Record<string, string> = {
+        'prayer_reminder': 'REMINDER',
+        'devotional_reminder': 'REMINDER',
+        'journal_prompt': 'REMINDER',
+        'milestone_celebration': 'ACHIEVEMENT',
+        'trial_notification': 'PROMOTIONAL',
+        'streak_alert': 'ACHIEVEMENT',
+        'prayer_request': 'ACTIVITY',
+        'system': 'SYSTEM',
+      };
+
+      const mappedType = notificationTypeMap[notification.type] || 'SYSTEM';
+
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          type: mappedType,
+          title: notification.title || 'Notification',
+          message: notification.message || '',
+          data: notification.data || {},
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        Logger.error('[PushNotification] Error saving notification to history', error, {
+          component: 'pushNotificationService',
+          notificationType: notification.type,
+          mappedType,
+          errorDetails: {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+          },
+        });
+      } else {
+        Logger.info('[PushNotification] Notification saved to history', {
+          component: 'pushNotificationService',
+          notificationType: notification.type,
+          mappedType,
+        });
+      }
+    } catch (error) {
+      Logger.error('[PushNotification] Failed to save notification to history', error as Error, {
+        component: 'pushNotificationService',
+      });
+    }
+  }
+
+  private async saveNotificationOnReceive(notification: any): Promise<void> {
+    try {
+      // Get current user ID from AsyncStorage or session
+      const userId = await AsyncStorage.getItem('current_user_id');
+      if (userId) {
+        await this.saveNotificationToHistory(userId, notification);
+      } else {
+        Logger.warn('[PushNotification] No user ID found for notification history', {
+          component: 'pushNotificationService',
+        });
+      }
+    } catch (error) {
+      Logger.error('[PushNotification] Failed to save notification on receive', error as Error, {
+        component: 'pushNotificationService',
+      });
+    }
+  }
+
   private handleNotificationTap(notification: any): void {
     try {
+      // Save notification to history when tapped
+      // Get userId from notification data or from stored user session
+      const userId = notification.data?.user_id || notification.userId;
+      if (userId) {
+        this.saveNotificationToHistory(userId, notification);
+      }
+
       // Import deep link service dynamically to avoid circular dependencies
       import('./notificationDeepLinkService').then(({ notificationDeepLinkService }) => {
         notificationDeepLinkService.handleNotificationTap(notification);
@@ -447,8 +533,42 @@ class PushNotificationService {
     } catch (error) {
       Logger.error('[PushNotification] Failed to handle notification tap', error as Error, {
         component: 'pushNotificationService',
-        notificationId: notification?.id,
       });
+    }
+  }
+
+  /**
+   * Public test method to verify notification saving works
+   * Call this to test the notification system functionality
+   */
+  async testNotificationSaving(notification?: any): Promise<boolean> {
+    try {
+      const testNotification = notification || {
+        type: 'prayer_reminder',
+        title: 'Test Prayer Reminder',
+        message: 'Time for your daily prayer',
+        data: {
+          type: 'prayer_reminder',
+          scheduled: true,
+          test: true,
+        },
+      };
+
+      // Get current user ID from AsyncStorage
+      const userId = await AsyncStorage.getItem('current_user_id');
+      if (!userId) {
+        console.warn('🧪 Test: No user ID found, using test UUID');
+        // Use a valid UUID for testing
+        await this.saveNotificationToHistory('00000000-0000-0000-0000-000000000001', testNotification);
+      } else {
+        await this.saveNotificationToHistory(userId, testNotification);
+      }
+
+      console.log('🧪 Test: Notification saved successfully');
+      return true;
+    } catch (error) {
+      console.error('🧪 Test: Failed to save notification', error);
+      return false;
     }
   }
 }

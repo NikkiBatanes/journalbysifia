@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { pushNotificationService } from './pushNotificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface NotificationPreferences {
   user_id: string;
@@ -45,6 +46,23 @@ export interface UserActivityTracking {
 }
 
 class NotificationManagementService {
+  /**
+   * Set current user ID for push notification service access
+   */
+  async setCurrentUserId(userId: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem('current_user_id', userId);
+      Logger.info('[NotificationManagement] Current user ID stored', {
+        component: 'notificationManagementService',
+        userId: userId.substring(0, 8) + '...',
+      });
+    } catch (error) {
+      Logger.error('[NotificationManagement] Error storing user ID', error as Error, {
+        component: 'notificationManagementService',
+      });
+    }
+  }
+
   /**
    * Get user's notification preferences
    */

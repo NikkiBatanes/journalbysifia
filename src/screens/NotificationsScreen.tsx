@@ -16,6 +16,7 @@ import { notificationManagementService } from '../services/notificationManagemen
 // import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 // POST-LAUNCH: import { FamilyNotificationService } from '../services/FamilyNotificationService';
 import { notificationAnalyticsService } from '../services/notificationAnalyticsService';
+import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 // POST-LAUNCH: import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
@@ -40,14 +41,23 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
     try {
       setLoading(true);
+      console.log('📋 Fetch: Starting fetch process...');
 
       // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
 
-      const [queuedNotifications, inAppNotificationsRaw] = await Promise.all([
+      const [queuedNotifications, inAppNotificationsRaw, pushNotifications] = await Promise.all([
         // POST-LAUNCH: familyInvitations
         notificationManagementService.getPendingNotifications(user.id),
         // POST-LAUNCH: FamilyNotificationService.getUnreadNotifications(user.id),
         [] as any[], // Placeholder for family notifications
+        // NEW: Fetch push notifications from the notifications table
+        supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_read', false) // Only fetch unread notifications
+          .order('created_at', { ascending: false })
+          .limit(50),
         // POST-LAUNCH: Family invitations
         /* (async () => {
           if (!userEmail) {return [] as any[];}
@@ -107,9 +117,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         (n: any) => n.notification_type !== 'family_invitation'
       );
 
+      // Extract push notifications data
+      const pushNotificationsData = pushNotifications.data || [];
+
       // Merge all notification sources and sort by timestamp (newest first)
       // POST-LAUNCH: Add familyInvitations back
-      const mergedNotifications = [...inAppNotifications, ...queuedNotifications].sort((a, b) => {
+      const mergedNotifications = [...inAppNotifications, ...queuedNotifications, ...pushNotificationsData].sort((a, b) => {
         const aTime = new Date(getNotificationTimestamp(a)).getTime();
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
         return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
@@ -136,6 +149,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   // Handle notification tap
   const handleNotificationTap = async (notification: any) => {
     try {
+      // Add haptic feedback
+      triggerLightHaptic();
+      
       // Track analytics (tapped event)
       if (notification.id) {
         await notificationAnalyticsService.trackTapped(notification.id);
@@ -143,13 +159,81 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       // Navigate using deep link
       if (notification.data?.deep_link) {
-        // notificationDeepLinkService.navigate(notification.data.deep_link);
+        notificationDeepLinkService.navigate(notification.data.deep_link);
+      } else {
+        // Smart fallback navigation based on notification type
+        const notificationType = notification.type || notification.notification_type;
+        let targetScreen = null;
+        
+        switch (notificationType) {
+          case 'REMINDER':
+            if (notification.data?.type === 'prayer_reminder') {
+              targetScreen = 'Journal'; // Navigate to Journal for prayer reminders
+            } else if (notification.data?.type === 'devotional_reminder') {
+              targetScreen = 'Devotionals'; // Navigate to Devotionals for devotional reminders
+            } else {
+              targetScreen = 'Journal'; // Default for reminders
+            }
+            break;
+          case 'ACHIEVEMENT':
+            targetScreen = 'MainTabs'; // Navigate to main tabs (Dashboard is nested inside)
+            break;
+          case 'ACTIVITY':
+            targetScreen = 'Journal'; // Navigate to Journal for prayer requests
+            break;
+          case 'PROMOTIONAL':
+            targetScreen = 'MainTabs'; // Navigate to main tabs (Dashboard is nested inside)
+            break;
+          case 'SYSTEM':
+            targetScreen = 'MainTabs'; // Navigate to main tabs (Dashboard is nested inside)
+            break;
+          default:
+            // For notifications, navigate to Journal as default
+            targetScreen = 'Journal';
+        }
+        
+        if (targetScreen) {
+          // Reset to main tabs and navigate to specific tab
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' }],
+          });
+          
+          // Navigate to the specific tab after reset
+          setTimeout(() => {
+            navigation.navigate('MainTabs', { screen: targetScreen });
+          }, 100);
+        }
       }
 
       // Mark as read/opened
       try {
         if (user?.id && notification.id) {
-          await notificationManagementService.markNotificationAsRead(notification.id, user.id);
+          // Check if this is from notifications table (push notifications) or notification_queue
+          if (notification.type || notification.created_at) {
+            // This is a push notification from the notifications table
+            const { error } = await supabase
+              .from('notifications')
+              .update({ is_read: true })
+              .eq('id', notification.id)
+              .eq('user_id', user.id);
+              
+            if (error) {
+              Logger.error('Failed to mark push notification as read', error, {
+                component: 'NotificationsScreen',
+                notificationId: notification.id,
+                errorDetails: {
+                  message: error.message,
+                  details: error.details,
+                  hint: error.hint,
+                  code: error.code,
+                },
+              });
+            }
+          } else {
+            // This is from notification_queue table
+            await notificationManagementService.markNotificationAsRead(notification.id, user.id);
+          }
         }
       } catch (error) {
         Logger.error('Failed to mark notification as read', error as Error, {
@@ -171,18 +255,31 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const handleClearAll = async () => {
     if (!user?.id) {return;}
 
+    // Add haptic feedback
+    triggerLightHaptic();
+
     try {
-      // Mark all in-app notifications as read (except family_invitation type)
-      const { error: notifError } = await supabase
+      console.log('🧹 Clear All: Starting clear process...');
+      
+      // Mark all in-app notifications as read
+      const { error: notifError, data: notifData } = await supabase
         .from('notifications')
         .update({ is_read: true })
         .eq('user_id', user.id)
         .eq('is_read', false)
-        .neq('notification_type', 'family_invitation');
+        .select(); // Add select to see what was updated
+
+      console.log('🧹 Clear All: Notifications update result:', { error: notifError, data: notifData });
 
       if (notifError) {
-        Logger.error('Failed to mark notifications as read in Supabase', notifError as Error, {
+        Logger.error('Failed to mark notifications as read in Supabase', notifError, {
           component: 'NotificationsScreen',
+          errorDetails: {
+            message: notifError.message,
+            details: notifError.details,
+            hint: notifError.hint,
+            code: notifError.code,
+          },
         });
       }
 
@@ -194,34 +291,50 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         .eq('user_id', user.id)
         .eq('status', 'pending');
 
+      console.log('🧹 Clear All: Queue items found:', queueItems);
+
       if (queueItems && queueItems.length > 0) {
         const familyTypes = ['family_invitation', 'member_joined', 'member_removed', 'trial_converted'];
         const itemsToCancel = queueItems
           .filter(item => !familyTypes.includes(item.type))
           .map(item => item.id);
 
+        console.log('🧹 Clear All: Items to cancel:', itemsToCancel);
+
         if (itemsToCancel.length > 0) {
-          const { error: queueError } = await supabase
+          const { error: queueError, data: queueUpdateData } = await supabase
             .from('notification_queue')
             .update({ status: 'cancelled' })
-            .in('id', itemsToCancel);
+            .in('id', itemsToCancel)
+            .select(); // Add select to see what was updated
+
+          console.log('🧹 Clear All: Queue update result:', { error: queueError, data: queueUpdateData });
 
           if (queueError) {
-            Logger.error('Failed to cancel queued notifications during clear-all', queueError as Error, {
+            Logger.error('Failed to cancel queued notifications during clear-all', queueError, {
               component: 'NotificationsScreen',
+              errorDetails: {
+                message: queueError.message,
+                details: queueError.details,
+                hint: queueError.hint,
+                code: queueError.code,
+              },
             });
           }
         }
       }
 
       // Refresh the notification list and badge count
+      console.log('🧹 Clear All: Refreshing notifications and badge...');
       await fetchNotifications();
       await fetchBadgeCount();
 
+      console.log('🧹 Clear All: Process completed');
       Logger.info('Cleared all notifications except pending family invitations', {
         component: 'NotificationsScreen',
       });
     } catch (error) {
+      console.log('🧹 Clear All: Error occurred:', error);
       Logger.error('Failed to clear notifications', error as Error, {
         component: 'NotificationsScreen',
       });
@@ -577,19 +690,19 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
         </ThemedText>
-        {/* Only show Clear All if there are non-family-invitation notifications */}
-        {notifications.some(
-          n => n.notification_type !== 'family_invitation' && n.type !== 'family_invitation'
-        ) ? (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={handleClearAll}
-          >
-            <ThemedText weight="medium" style={styles.clearText}>
-              Clear All
-            </ThemedText>
-          </TouchableOpacity>
-        ) : null}
+        <View style={styles.headerActions}>
+          {/* Only show Clear All if there are notifications */}
+          {notifications.length > 0 ? (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearAll}
+            >
+              <ThemedText weight="medium" style={styles.clearText}>
+                Clear All
+              </ThemedText>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {/* Notifications List */}
@@ -622,9 +735,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             // POST-LAUNCH: Family invitation handling removed - restore from feature/family-subscription branch
 
             return (
-              <View
+              <TouchableOpacity
                 key={notification.id || index}
                 style={styles.notificationCard}
+                onPress={() => {
+                  handleNotificationTap(notification);
+                }}
+                activeOpacity={0.7}
               >
                 <View
                   style={[
@@ -651,10 +768,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                   </ThemedText>
                 </View>
 
-                <TouchableOpacity onPress={() => handleNotificationTap(notification)}>
+                <View style={{ justifyContent: 'center' }}>
                   <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              </View>
+                </View>
+              </TouchableOpacity>
             );
           })
         )}
@@ -679,6 +796,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  debugButton: {
+    padding: 8,
+    marginRight: 8,
   },
   headerTitle: {
     fontSize: 18,
