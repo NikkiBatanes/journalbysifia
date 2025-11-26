@@ -366,25 +366,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     return list;
   }, [existingPrayers, filters, allowedTypeKeysFromFilters]);
 
-  // Debug: log how many prayers will be displayed under current filters
-  React.useEffect(() => {
-    if (filters) {
-      console.log('[PrayerJournalReactQuery] Filters applied:', {
-        filters,
-        existingPrayersCount: existingPrayers.length,
-        displayPrayersCount: displayPrayers.length,
-        allowedTypeKeysFromFilters,
-        existingPrayers: existingPrayers.map(p => ({
-          id: p.id,
-          type: p.type,
-          is_answered: p.is_answered,
-          status: p.status,
-          answered_at: p.answered_at,
-        })),
-      });
-    }
-  }, [filters, existingPrayers.length, displayPrayers.length, allowedTypeKeysFromFilters, existingPrayers]);
-
   // Check if we have content to display
   const hasContent = displayPrayers.length > 0;
 
