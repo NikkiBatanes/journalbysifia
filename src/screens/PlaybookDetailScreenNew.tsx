@@ -1640,7 +1640,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     };
 
     return (
-      <View style={[styles.cardStackContainer, isTablet && { paddingHorizontal: 22 }]}>
+      <View style={[styles.cardStackContainer, isTablet && styles.tabletCardStackContainer]}>
         {cardData.map((card, index) => {
           const isExpanded = expandedCardId === card.id;
 
@@ -2086,6 +2086,7 @@ interface PlaybookDetailStyles {
   contentContainer: ViewStyle;
   loadingContainer: ViewStyle;
   cardStackContainer: ViewStyle;
+  tabletCardStackContainer: ViewStyle;
   swipeUpIndicatorContainer: ViewStyle;
   progressText: TextStyle;
   navButton: ViewStyle;
@@ -2209,6 +2210,9 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     paddingTop: 20,
     alignItems: 'center',
     minHeight: 600,
+  },
+  tabletCardStackContainer: {
+    paddingHorizontal: 22,
     justifyContent: 'flex-start',
   },
   swipeUpIndicatorContainer: {

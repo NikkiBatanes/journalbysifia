@@ -44,7 +44,7 @@ export const formatBibleVerse = (verse: string): string => {
 
   // 3) Remove leading punctuation (colons, dashes, quotes) that might appear after parsing
   formatted = formatted
-    .replace(/^[:\-\—\s"']+/, '') // Remove leading colons, dashes, quotes, spaces
+    .replace(/^[:—\s"']+/, '') // Remove leading colons, dashes, quotes, spaces
     .trim();
 
   // 4) Fix spacing around punctuation

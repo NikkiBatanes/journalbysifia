@@ -407,8 +407,6 @@ const GratitudeLogEditorInner = (
     onUpgradeRequired,
     initialItems = [],
     subtaskTitle: _subtaskTitle,
-    subtaskId,
-    stepId,
     playbookTitle,
     actionStepNumber,
     actionStepTitle,
