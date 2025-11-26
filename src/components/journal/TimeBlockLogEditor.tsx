@@ -1007,7 +1007,10 @@ function TimeBlockLogEditorInner(
                     <>
                       <TouchableOpacity
                         style={s.timeButton}
-                        onPress={() => setShowStartTimePicker(true)}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          setShowStartTimePicker(true);
+                        }}
                       >
                         <ThemedText weight="semiBold" style={s.timeText}>{formatTime(startTime)}</ThemedText>
                       </TouchableOpacity>
@@ -1016,7 +1019,10 @@ function TimeBlockLogEditorInner(
 
                       <TouchableOpacity
                         style={s.timeButton}
-                        onPress={() => setShowEndTimePicker(true)}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          setShowEndTimePicker(true);
+                        }}
                       >
                         <ThemedText weight="semiBold" style={s.timeText}>{formatTime(endTime)}</ThemedText>
                       </TouchableOpacity>
@@ -1030,7 +1036,10 @@ function TimeBlockLogEditorInner(
                 <View style={s.allDaySection}>
                   {!isAllDay && <ThemedText weight="medium" style={s.allDayLabel}>All Day</ThemedText>}
                   <TouchableOpacity
-                    onPress={() => handleContentChange('isAllDay', !isAllDay)}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      handleContentChange('isAllDay', !isAllDay);
+                    }}
                     style={s.switchContainer}
                   >
                     <View style={[
@@ -1538,6 +1547,7 @@ function TimeBlockLogEditorInner(
               <TouchableOpacity
                 style={[s.timePickerButton, s.timePickerConfirmButton]}
                 onPress={() => {
+                  triggerLightHaptic();
                   handleContentChange('startTime', tempStartTime);
                   // Auto-adjust end time to be 1 hour later
                   const newEndTime = new Date(tempStartTime);
@@ -1590,6 +1600,7 @@ function TimeBlockLogEditorInner(
               <TouchableOpacity
                 style={[s.timePickerButton, s.timePickerConfirmButton]}
                 onPress={() => {
+                  triggerLightHaptic();
                   handleContentChange('endTime', tempEndTime);
                   setShowEndTimePicker(false);
                 }}
