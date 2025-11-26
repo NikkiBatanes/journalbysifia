@@ -283,28 +283,28 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         });
       }
 
-      // Cancel pending push notifications
-      const queueItems = await notificationManagementService.getPendingNotifications(user.id);
+      // Clear pending notifications from notification_queue table
+      const { error: queueError } = await supabase
+        .from('notification_queue')
+        .update({ status: 'cancelled' })
+        .eq('user_id', user.id)
+        .eq('status', 'pending');
 
-      if (queueItems && queueItems.length > 0) {
-        const itemsToCancel = queueItems.filter(item =>
-          item.type === 'push_notification' &&
-          item.status === 'pending'
-        );
-
-        if (itemsToCancel.length > 0) {
-          const queueSuccess = await notificationManagementService.cancelNotifications(
-            user.id,
-            'push_notification'
-          );
-
-          if (!queueSuccess) {
-            Logger.error('Failed to cancel pending push notifications', undefined, {
-              component: 'NotificationsScreen',
-              itemsCount: itemsToCancel.length,
-            });
-          }
-        }
+      if (queueError) {
+        Logger.error('Failed to clear pending notifications from queue', queueError, {
+          component: 'NotificationsScreen',
+          errorDetails: {
+            message: queueError.message,
+            details: queueError.details,
+            hint: queueError.hint,
+            code: queueError.code,
+          },
+        });
+      } else {
+        Logger.info('Cleared pending notifications from queue', {
+          component: 'NotificationsScreen',
+          userId: user.id,
+        });
       }
 
       // Refresh the notification list and badge count
