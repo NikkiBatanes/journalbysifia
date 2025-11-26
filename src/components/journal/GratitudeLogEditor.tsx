@@ -427,8 +427,10 @@ const defaultStyles = {
   },
 };
 
-const GratitudeLogEditorInner = React.memo(
-  (props: GratitudeLogEditorProps, ref: React.Ref<GratitudeLogEditorRef>) => {
+const GratitudeLogEditorInner = (
+  props: GratitudeLogEditorProps,
+  ref: React.Ref<GratitudeLogEditorRef>
+) => {
   const {
     onSave,
     onCancel: _onCancel,
@@ -929,11 +931,14 @@ const GratitudeLogEditorInner = React.memo(
 
     </View>
   );
-  });
+};
 
 // Add display name for debugging
 GratitudeLogEditorInner.displayName = 'GratitudeLogEditorInner';
 
-const GratitudeLogEditor = React.forwardRef(GratitudeLogEditorInner);
+// Apply React.memo to the component before forwarding ref
+const GratitudeLogEditorMemoized = React.memo(GratitudeLogEditorInner);
+
+const GratitudeLogEditor = React.forwardRef(GratitudeLogEditorMemoized);
 
 export default GratitudeLogEditor;
