@@ -507,7 +507,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           title: s?.title,
           subTasksCount: Array.isArray(s?.subTasks) ? s.subTasks.length : 0,
           subTasksArray: s?.subTasks || [],
-          allSubtaskTexts: Array.isArray(s?.subTasks) ? s.subTasks.map((st: any) => st?.text || st) : [],
+          allSubtaskTexts: Array.isArray(s?.subTasks) ? s.subTasks.map((st: any) => (st?.text || st || '')) : [],
         }));
         logger.debug('🔍 ONBOARDING Action steps FULL debug:', { actionStepsDebug: dbg });
       } catch (e) {

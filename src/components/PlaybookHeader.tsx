@@ -57,7 +57,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   onExportPress,
 }) => {
   // Split title at newlines to handle title and subtitle on separate lines
-  const titleLines = title.split('\n').map(part => part.trim()).filter(part => part.length > 0);
+  const titleLines = title.split('\n').map(part => (part || '').trim()).filter(part => part.length > 0);
 
   // Generate dynamic styles
   const dynamicStyles = {

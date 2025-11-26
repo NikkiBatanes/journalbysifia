@@ -323,7 +323,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     actionSteps: playbook.actionSteps || [],
                     // Use only affirmations actually returned from the playbook; if none, leave empty
                     affirmations: (playbook.affirmations && playbook.affirmations.length > 0)
-                      ? playbook.affirmations.map((aff: any) => typeof aff === 'string' ? aff : aff.text || aff)
+                      ? playbook.affirmations.map((aff: any) => typeof aff === 'string' ? (aff || '') : (aff.text || aff || ''))
                       : [],
                     bibleVerse: playbook.bibleVerse || {
                       text: 'Cast all your anxiety on him because he cares for you.',
@@ -415,7 +415,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                         actionSteps: completePlaybook.actionSteps || [],
                         // Use only affirmations actually returned from the playbook; if none, leave empty
                         affirmations: (completePlaybook.affirmations && completePlaybook.affirmations.length > 0)
-                          ? completePlaybook.affirmations.map((aff: any) => typeof aff === 'string' ? aff : aff.text || aff)
+                          ? completePlaybook.affirmations.map((aff: any) => typeof aff === 'string' ? (aff || '') : (aff.text || aff || ''))
                           : [],
                         bibleVerse: completePlaybook.bibleVerse || {
                           text: 'Cast all your anxiety on him because he cares for you.',

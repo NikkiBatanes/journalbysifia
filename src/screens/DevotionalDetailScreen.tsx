@@ -863,7 +863,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     dayLabel: `Day ${currentDayIndex + 1} of ${devotional.totalDays}`,
                     bibleVerse: currentDay.scripture,
                     reflection: currentDay.reflection,
-                    questionsToPonder: currentDay.reflectionQuestions?.map(q => q.text).filter(Boolean),
+                    questionsToPonder: currentDay.reflectionQuestions?.map(q => q.text || '').filter(text => text.trim() !== ''),
                     prayer: currentDay.prayer,
                     createdAt: devotional.createdAt,
                   });

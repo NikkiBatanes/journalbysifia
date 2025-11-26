@@ -33,7 +33,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
   const completedTasks = playbook.actionSteps.filter(step => step.completed).length;
 
   // Handle two-line title format from the playbook
-  const titleLines = playbook.title.split('\n').map(line => line.trim()).filter(line => line);
+  const titleLines = playbook.title.split('\n').map(line => (line || '').trim()).filter(line => line !== '');
   const firstLine = titleLines[0] || '';
   const secondLine = titleLines[1] || '';
 

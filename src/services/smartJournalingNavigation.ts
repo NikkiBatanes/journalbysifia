@@ -117,7 +117,7 @@ export class SmartJournalingNavigation {
     navigation: NavigationProp<any>,
     journalTypes: string
   ) {
-    const types = journalTypes.split(',').map(type => type.trim()).filter(type => type && type !== 'none');
+    const types = journalTypes.split(',').map(type => (type || '').trim()).filter(type => type && type !== 'none');
     if (types.length > 0) {
       const navService = SmartJournalingNavigation.create(navigation);
       return navService.navigateToJournaling(types[0] as JournalType);
