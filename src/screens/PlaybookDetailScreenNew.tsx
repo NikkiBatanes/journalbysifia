@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Platform,
   View,
+  SafeAreaView,
   ViewStyle,
   TextStyle,
   ImageStyle,
