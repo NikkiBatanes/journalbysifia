@@ -171,10 +171,10 @@ export const updateTimeBlockInCalendar = async (
       allDay: timeBlock.isAllDay,
     };
 
-    // Add alarm/reminder if user has set one
-    if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes > 0) {
+    // Add alarm/reminder if user has set one (including "at time of event" when alarmMinutes is 0)
+    if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes >= 0) {
       eventDetails.alarms = [{
-        date: -timeBlock.alarmMinutes, // Negative value means minutes before event
+        date: -timeBlock.alarmMinutes, // Negative value means minutes before event, 0 means at event time
       }];
     }
 
@@ -367,10 +367,10 @@ export const syncTimeBlockToCalendar = async (
       allDay: timeBlock.isAllDay,
     };
 
-    // Add alarm/reminder if user has set one
-    if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes > 0) {
+    // Add alarm/reminder if user has set one (including "at time of event" when alarmMinutes is 0)
+    if (timeBlock.alarmMinutes !== undefined && timeBlock.alarmMinutes !== null && timeBlock.alarmMinutes >= 0) {
       eventDetails.alarms = [{
-        date: -timeBlock.alarmMinutes, // Negative value means minutes before event
+        date: -timeBlock.alarmMinutes, // Negative value means minutes before event, 0 means at event time
       }];
     }
 
