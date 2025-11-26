@@ -109,7 +109,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const updateMutation = useUpdateJournalEntry();
   const deleteMutation = useDeleteJournalEntry();
 
-  // Debug: Check for multiple entries
+  // Check for multiple entries
   if (gratitudeEntries.length > 1) {
 
   }
@@ -407,14 +407,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           updated_at: new Date().toISOString(),
         };
 
-        console.log('Gratitude: Updating cache with key:', currentQueryKey);
-        console.log('Gratitude: Current cache data:', queryClient.getQueryData(currentQueryKey));
-        console.log('Gratitude: Updated entry:', updatedEntry);
-
         // Set the cache data BEFORE the mutation
         queryClient.setQueryData(currentQueryKey, [updatedEntry]);
-
-        console.log('Gratitude: Cache after update:', queryClient.getQueryData(currentQueryKey));
 
         if (gratitudeEntries.length > 0) {
           // Update the first entry with all new content

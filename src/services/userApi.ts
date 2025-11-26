@@ -682,12 +682,15 @@ class UserApiService {
           .eq('user_id', userId);
         if (!ubErr && Array.isArray(ubRows)) {
           totalBadges = ubRows.length;
-          console.log('[UserApi] Badge count from user_badges table:', totalBadges, ubRows);
         } else {
-          console.log('[UserApi] Error querying user_badges:', ubErr);
+          Logger.error('[UserApi] Error querying user_badges:', ubErr as Error, {
+            component: 'UserApi',
+          });
         }
       } catch (err) {
-        console.log('[UserApi] Exception querying user_badges:', err);
+        Logger.error('[UserApi] Exception querying user_badges:', err as Error, {
+          component: 'UserApi',
+        });
       }
       // Fallback to legacy JSON array on user_profiles.badges
       if (totalBadges === 0) {

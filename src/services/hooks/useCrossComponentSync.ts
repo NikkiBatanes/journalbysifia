@@ -75,7 +75,7 @@ export const useCrossComponentSync = (userId: string) => {
     const lastCall = completionGuardRef.current[guardKey];
     const baseLastCall = completionGuardRef.current[baseGuardKey];
 
-    Logger.debug('[CrossComponentSync] 🔍 Guard check', {
+    Logger.debug('[CrossComponentSync] Guard check', {
       component: 'useCrossComponentSync',
       guardKey,
       baseGuardKey,
@@ -90,7 +90,7 @@ export const useCrossComponentSync = (userId: string) => {
 
     // Check both specific day guard and base guard
     if ((lastCall && (now - lastCall) < 2000) || (baseLastCall && (now - baseLastCall) < 1000)) {
-      Logger.debug('[CrossComponentSync] 🔍 Guard blocked duplicate call', {
+      Logger.debug('[CrossComponentSync] Guard blocked duplicate call', {
         component: 'useCrossComponentSync',
         guardKey,
         baseGuardKey,
@@ -108,7 +108,7 @@ export const useCrossComponentSync = (userId: string) => {
       const activityType = completionContext?.isFullDevotionalComplete ? 'devotional_full_completed' : 'devotional_completed';
       const isFullCompletion = completionContext?.isFullDevotionalComplete;
 
-      Logger.debug('[CrossComponentSync] 🔍 BEFORE Promise.all parallel operations', {
+      Logger.debug('[CrossComponentSync] BEFORE Promise.all parallel operations', {
         component: 'useCrossComponentSync',
         activityType,
         isFullCompletion,
@@ -160,7 +160,7 @@ export const useCrossComponentSync = (userId: string) => {
         })(),
       ]);
 
-      Logger.debug('[CrossComponentSync] 🔍 AFTER Promise.all parallel operations', {
+      Logger.debug('[CrossComponentSync] AFTER Promise.all parallel operations', {
         component: 'useCrossComponentSync',
         pointsAwarded: pointsResult?.pointsAwarded,
       });
@@ -177,7 +177,7 @@ export const useCrossComponentSync = (userId: string) => {
         },
       };
 
-      Logger.debug('[CrossComponentSync] 🔍 BEFORE return syncEvent', {
+      Logger.debug('[CrossComponentSync] BEFORE return syncEvent', {
         component: 'useCrossComponentSync',
       });
 

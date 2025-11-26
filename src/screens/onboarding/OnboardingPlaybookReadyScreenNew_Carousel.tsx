@@ -504,7 +504,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
     if (playbook.actionSteps && playbook.actionSteps.length > 0) {
       try {
-        // Debug: log subtask counts for steps 3-5 (0-based indices 2-4)
+        // Log subtask counts for steps 3-5 (0-based indices 2-4)
         const dbg = (playbook.actionSteps || []).slice(0, 5).map((s: any, i: number) => ({
           stepIndex: i,
           id: s?.id,
@@ -1812,7 +1812,7 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routePlaybook?.id, (playbook as any)?.id, getReadAloud, setReadAloud]); // Complex expression needed for playbook comparison
 
-  // Debug logging to check action steps data
+  // Logging to check action steps data
   logger.debug('Debug Info:', {
     isFullPlaybook,
     routeHasFullSubtasks,

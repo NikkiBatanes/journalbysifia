@@ -92,10 +92,10 @@ const DevotionalsScreen = () => {
   }, [showDevotionalModal, triggerLightHaptic]);
 
   const handleDevotionalPress = (devotional: Devotional) => {
-    // Log title extraction for debugging
+    // Log title extraction
     createTitleExtractionMemory(devotional);
 
-    // Debug logging for simulator issue
+    // Logging for user state issue
 
     triggerLightHaptic();
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });

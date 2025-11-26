@@ -67,22 +67,8 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
     // When peek is 0 (iPad Portrait), center the cards by using minimal inset
     const sideInset = peek === 0 ? 0 : Math.max(0, sideOffset - peek);
 
-    // Debug logging
-    console.log('PlanCarousel Debug:', {
-      screenWidth,
-      screenHeight,
-      isLandscape,
-      CARD_WIDTH: cardWidth,
-      CARD_SPACING: cardSpacing,
-      PEEK: peek,
-      SIDE_OFFSET: sideOffset,
-      SIDE_INSET: sideInset,
-      isIPad: screenWidth >= 768,
-      padding: peek === 0 ? (screenWidth - cardWidth) / 2 : sideInset,
-    });
-
     return { CARD_WIDTH: cardWidth, CARD_SPACING: cardSpacing, SIDE_INSET: sideInset, PEEK: peek };
-  }, [screenWidth, screenHeight, isLandscape]);
+  }, [screenWidth, isLandscape]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(initialScrollIndex); // Start with initial card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);

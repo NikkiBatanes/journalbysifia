@@ -807,15 +807,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signOut = async () => {
     try {
-      Logger.debug('[AuthContext] 🚪 Starting logout...');
+      Logger.debug('[AuthContext] Starting logout...');
 
       // Clear any persistent redirects to prevent stale routing
       try {
         await AsyncStorage.removeItem('post_auth_redirect');
         await AsyncStorage.removeItem('force_navigate_to_main');
-        Logger.debug('[AuthContext] 🧹 Cleared persistent redirects on logout');
+        Logger.debug('[AuthContext] Cleared persistent redirects on logout');
       } catch (error) {
-        Logger.warn('[AuthContext] ⚠️ Error clearing redirects on logout', {
+        Logger.warn('[AuthContext] Error clearing redirects on logout', {
           component: 'AuthContext',
           action: 'logout_cleanup',
           errorMessage: error instanceof Error ? error.message : String(error),
@@ -825,9 +825,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Clear Google session
       try {
         await GoogleSignin.signOut();
-        Logger.debug('[AuthContext] ✅ Google session cleared');
+        Logger.debug('[AuthContext] Google session cleared');
       } catch (error) {
-        Logger.warn('[AuthContext] ⚠️ Error clearing Google session', {
+        Logger.warn('[AuthContext] Error clearing Google session', {
           component: 'AuthContext',
           action: 'logout_google_cleanup',
           errorMessage: error instanceof Error ? error.message : String(error),
@@ -1240,7 +1240,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           context: 'IndustryStandardAuthContext:googleRegister',
         });
 
-        // Debug logging to identify name parsing issues
+        // Logging to identify name parsing issues
         Logger.debug('Google OAuth user data', {
           component: 'AuthContext',
           action: 'google_name_parsing',

@@ -48,14 +48,14 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   initialPersonName,
   initialPrayerRequest,
 }) => {
-  // Debug: Log all props received by SmartJournalingPrayerModal
+  // Log all props received by SmartJournalingPrayerModal
 
   const { user } = useAuth();
   const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
   const { trackPrayer } = useNotificationIntegration();
 
-  // Debug logging
+  // Logging
 
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = useState(subtaskTitle);
@@ -484,7 +484,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
   const isLoading = createPrayerMutation.isPending || updatePrayerMutation.isPending;
 
-  // Debug logging
+  // Logging
 
   return (
     <>

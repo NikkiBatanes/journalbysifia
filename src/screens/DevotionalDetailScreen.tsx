@@ -64,12 +64,12 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Feature access for PDF export
   const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
 
-  // Debug: Log subscription and export access for Growth trial users
+  // Log subscription and export access for Growth trial users
   useEffect(() => {
     if (user?.id) {
       import('../services/NewSubscriptionService').then(({ NewSubscriptionService }) => {
         NewSubscriptionService.getUserSubscription(user.id).then(sub => {
-          Logger.info('DevotionalDetail: Subscription Debug:', {
+          Logger.info('DevotionalDetail: Subscription Info:', {
             tier: sub.tier,
             trial_chosen_tier: (sub as any).trial_chosen_tier,
             hasExportAccess: pdfExportAccess.hasAccess,
@@ -95,7 +95,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const { data: devotional, isLoading: devotionalLoading, isFetching: devotionalFetching, error: devotionalError, isError } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
 
-  // Debug logging for React Query state - only on mount and error changes
+  // Logging for React Query state - only on mount and error changes
   useEffect(() => {
     if (isError) {
 
@@ -326,7 +326,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   useEffect(() => {
     // Log for debugging
 
-    // Debug title extraction
+    // Title extraction
     if (devotional?.title) {
 
     }
@@ -436,7 +436,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [rawPrayer, formattedPrayer]);
 
-  // Debug log for prayer data only when currentDay actually changes
+  // Log for prayer data only when currentDay actually changes
   useEffect(() => {
     if (currentDay) {
 
@@ -650,7 +650,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Guard: if query is not enabled yet due to missing user or invalid ID, avoid showing Not Found
   const queryEnabled = !!userId && isValidUUID(cleanDevotionalId);
 
-  // Debug logging only for critical state changes
+  // Logging only for critical state changes
   useEffect(() => {
     if (devotional) {
 

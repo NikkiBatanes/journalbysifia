@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Pencil, X } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import { Logger } from '../../utils/ProductionLogger';
 import ThemedText from '../common/ThemedText';
 import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
 import { useNavigation } from '@react-navigation/native';
@@ -470,8 +471,6 @@ const GratitudeLogEditorInner = (
       // If all fields have content, focus on the last field and position cursor at the end
       const targetIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : gratitudeItems.length - 1;
 
-      console.log('[GratitudeLogEditor] Focusing input at index:', targetIndex, 'gratitudeItems:', gratitudeItems);
-
       if (inputRefs.current[targetIndex]) {
         inputRefs.current[targetIndex]!.focus();
         // Position cursor at the end of the text (or start if empty)
@@ -482,7 +481,9 @@ const GratitudeLogEditorInner = (
           }
         }, 100);
       } else {
-        console.warn('[GratitudeLogEditor] Input ref not available at index:', targetIndex);
+        Logger.warn('[GratitudeLogEditor] Input ref not available at index: ' + targetIndex, {
+          component: 'GratitudeLogEditor',
+        });
         // Retry focus after a short delay
         setTimeout(() => {
           if (inputRefs.current[targetIndex]) {
@@ -585,8 +586,6 @@ const GratitudeLogEditorInner = (
   };
 
   const handleSave = useCallback(() => {
-    const startTime = Date.now();
-
     // Check if feature is gated for seeker accounts
     if (smartJournalingGating.isLocked) {
       try { triggerLightHaptic(); } catch {}
@@ -626,9 +625,6 @@ const GratitudeLogEditorInner = (
       date: new Date(),
     });
 
-
-    const endTime = Date.now();
-    console.log(`[GratitudeLogEditor] Save completed in ${endTime - startTime}ms`);
   }, [smartJournalingGating, onUpgradeRequired, navigation, subscription?.tier, gratitudeItems, onSave]);
 
   // Check if form is valid (has content) AND user has made changes
@@ -808,7 +804,7 @@ const GratitudeLogEditorInner = (
   );
 };
 
-// Add display name for debugging
+// Component display name
 GratitudeLogEditorInner.displayName = 'GratitudeLogEditorInner';
 
 // Apply React.memo with proper forwardRef pattern

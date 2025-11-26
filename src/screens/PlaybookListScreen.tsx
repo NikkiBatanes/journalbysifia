@@ -115,7 +115,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     } catch {}
   }, [user]);
 
-  // Debug logging for user state
+  // Logging for user state
 
   // Fetch playbooks from database using React Query with proper caching
   const { data: playbooks = [], isLoading, refetch, isFetching } = useQuery<Playbook[]>({
@@ -564,7 +564,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     );
   };
 
-  // Debug logging for render states
+  // Logging for render states
 
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {

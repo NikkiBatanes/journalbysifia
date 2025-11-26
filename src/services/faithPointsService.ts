@@ -402,14 +402,14 @@ export class FaithPointsService {
 
       // Show badge unlock notifications
       if (newBadges && newBadges.length > 0 && !_metadata?.suppressNotification) {
-        Logger.debug(`[FaithPointsService] 🔍 BEFORE badge processing - Count: ${newBadges.length}`, {
+        Logger.debug(`[FaithPointsService] BEFORE badge processing - Count: ${newBadges.length}`, {
           component: 'faithPointsService',
           badgeCount: newBadges.length,
         });
 
         // CRITICAL: Defer ALL badge processing to prevent UI freeze on full completion
         // Badge events and notifications were causing UI hangs
-        Logger.debug(`[FaithPointsService] 🔍 Deferring badge processing to prevent freeze - Count: ${newBadges.length}`, {
+        Logger.debug(`[FaithPointsService] Deferring badge processing to prevent freeze - Count: ${newBadges.length}`, {
           component: 'faithPointsService',
           badgeCount: newBadges.length,
         });
@@ -439,11 +439,6 @@ export class FaithPointsService {
             // CRITICAL: Re-enable badge events but defer them to prevent freeze
             // Profile screen needs BADGE_UNLOCKED events to update badge count
             setTimeout(() => {
-              console.log('[FaithPointsService] Emitting BADGE_UNLOCKED event', {
-                userId,
-                badgeName: badge.name,
-                badgeId: badge.id,
-              });
               faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
                 userId,
                 badge,
@@ -471,7 +466,7 @@ export class FaithPointsService {
         }, 500); // 500ms delay to let UI animations complete first
       }
 
-      Logger.debug('[FaithPointsService] 🔍 BEFORE milestone check', {
+      Logger.debug('[FaithPointsService] BEFORE milestone check', {
         component: 'faithPointsService',
       });
 
@@ -486,7 +481,7 @@ export class FaithPointsService {
         });
       });
 
-      Logger.debug('[FaithPointsService] 🔍 AFTER milestone check', {
+      Logger.debug('[FaithPointsService] AFTER milestone check', {
         component: 'faithPointsService',
       });
 
@@ -494,7 +489,7 @@ export class FaithPointsService {
       // Components will refetch data naturally via React Query
       // Only emit events if not suppressed to prevent duplicate UI updates
       if (!_metadata?.suppressNotification) {
-        Logger.debug('[FaithPointsService] 🔍 Events suppressed to prevent re-render freeze', {
+        Logger.debug('[FaithPointsService] Events suppressed to prevent re-render freeze', {
           component: 'faithPointsService',
         });
 
@@ -525,14 +520,14 @@ export class FaithPointsService {
         //   });
         // }, 100); // Small delay to ensure database transaction is complete
 
-        Logger.debug('[FaithPointsService] 🔍 Events disabled - components will refetch naturally', {
+        Logger.debug('[FaithPointsService] Events disabled - components will refetch naturally', {
           component: 'faithPointsService',
         });
       } else {
 
       }
 
-      Logger.debug('[FaithPointsService] 🔍 BEFORE return statement', {
+      Logger.debug('[FaithPointsService] BEFORE return statement', {
         component: 'faithPointsService',
         pointsAwarded,
         newLevel: leveledUp ? newLevel : undefined,

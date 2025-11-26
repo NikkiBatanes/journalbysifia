@@ -563,7 +563,6 @@ class PDFExportService {
     // Try to extract up to two numbered challenge items: "1. ... 2. ..."
     const challengeItems: string[] = [];
     if (normalizedChallenge) {
-      // Debug: Log the normalized challenge to see what we're parsing
       Logger.info('PDF Export: Normalized challenge', { challenge: normalizedChallenge });
 
       // 1st item: capture everything after "1." up to (but not including) "2." or end of string

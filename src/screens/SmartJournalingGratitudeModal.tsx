@@ -122,7 +122,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // Get the most recent gratitude entry for this subtask
   const currentGratitudeEntry = existingGratitudeEntries[0] || existingGratitude;
 
-  // Debug: Track when data becomes available
+  // Track when data becomes available
   useEffect(() => {
     if (currentGratitudeEntry) {
 
@@ -188,7 +188,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 
-  // Debug: Track mutation states
+  // Track mutation states
   useEffect(() => {
 
   }, [
@@ -200,7 +200,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     updateMutation.isError,
   ]);
 
-  // Debug: Track actionSteps changes to see if completion state is being lost
+  // Track actionSteps changes to see if completion state is being lost
   // Removed unused debug effect
 
   // Save gratitude data to database immediately and mark subtask complete

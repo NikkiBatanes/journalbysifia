@@ -252,7 +252,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
   const isFromOnboarding = (route.params as any)?.isFromOnboarding || false;
 
-  // Debug logging for playbookId
+  // Logging for playbookId
 
   const { user } = useAuth();
   const userId = user?.id;
@@ -536,11 +536,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                        [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
                        '';
 
-    // Debug action steps data
+    // Log action steps data
     const finalActionSteps = Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
           (Array.isArray(playbook?.actionSteps) ? playbook.actionSteps : []);
 
-    // Debug affirmations data - apply name replacement
+    // Log affirmations data - apply name replacement
     const finalAffirmations = Array.isArray(playbook?.affirmations)
       ? playbook.affirmations
           .filter((a): a is Required<Affirmation> =>
@@ -960,7 +960,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // ===== EFFECT HOOKS =====
 
-  // Debug logging effect
+  // Logging effect
   useEffect(() => {
 
     if (!playbookId) {

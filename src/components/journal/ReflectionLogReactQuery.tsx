@@ -401,8 +401,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     context: 'inApp',
   });
 
-  // Debug logging for date handling
-
+  // Date handling logic
   const isSelectedToday = isTodayFn(selectedDate);
   const isSelectedYesterday = isYesterdayFn(selectedDate);
   const future = isAfter(startOfDay(selectedDate), startOfToday());
@@ -580,7 +579,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 }, user.id);
               }
             } catch (deleteError) {
-              Logger.error('🔍 ReflectionLog: Error deleting reflection entry', deleteError as Error, {
+              Logger.error('ReflectionLog: Error deleting reflection entry', deleteError as Error, {
   component: 'ReflectionLogReactQuery',
 });
 
@@ -820,8 +819,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         </View>
       );
     }
-
-    // Debug logging
 
     // Filter entries to only show those from the current date
     const filteredEntries = entries.filter(entry => {
@@ -1289,7 +1286,7 @@ return (
 
                 // Keep the main modal open - success modal will handle closing via callbacks
               } catch (saveError) {
-                Logger.error('🔍 ReflectionLog: Save failed', saveError as Error, {
+                Logger.error('ReflectionLog: Save failed', saveError as Error, {
   component: 'ReflectionLogReactQuery',
 });
                 Alert.alert('Error', 'Failed to save reflection entry. Please try again.');

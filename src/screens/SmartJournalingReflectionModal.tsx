@@ -102,7 +102,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     }
   );
 
-  // Debug: Log success modal state changes
+  // Log success modal state changes
   useEffect(() => {
 
   }, [successModal.isVisible, successModal.config]);
@@ -110,11 +110,11 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const dateToUse = selectedDate || new Date();
   const dateStr = toLocalDateString(dateToUse); // Use selected date for consistency
 
-  // Debug logging for date handling
+  // Logging for date handling
 
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
 
-  // Debug: Log existing reflection prop
+  // Log existing reflection prop
   React.useEffect(() => {
 
   }, [visible, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, existingReflection]);
@@ -363,7 +363,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     onCancel();
   };
 
-  // Debug: Log main modal visibility changes
+  // Log main modal visibility changes
   useEffect(() => {
     // Dismiss keyboard when modal becomes invisible to prevent keyboard ghosting
     if (!visible) {
