@@ -25,7 +25,7 @@ const getResponsiveConfig = () => {
   // iPad Portrait - larger cards, better spacing
   else if (screenWidth >= 768) {
     return {
-      cardWidth: Math.min(screenWidth * 0.7, 400), // Slightly larger than before
+      cardWidth: Math.min(screenWidth * 0.77, 400), // 77% width for better iPad use
       cardSpacing: 12,
       peek: 16,
       maxCardsVisible: 1,
@@ -54,32 +54,9 @@ const getResponsiveConfig = () => {
 const config = getResponsiveConfig();
 const CARD_WIDTH = config.cardWidth;
 const CARD_SPACING = config.cardSpacing;
+const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2;
 const PEEK = config.peek;
-
-// Improved positioning logic to eliminate gaps
-const getCarouselPositioning = () => {
-  // For iPad Landscape showing 2 cards, center the carousel properly
-  if (config.maxCardsVisible === 2) {
-    const totalCardsWidth = CARD_WIDTH * 2 + CARD_SPACING;
-    const remainingSpace = screenWidth - totalCardsWidth;
-    return {
-      sideInset: Math.max(0, remainingSpace / 2 - PEEK),
-      sideOffset: remainingSpace / 2,
-    };
-  }
-  // For single card layouts, use original logic
-  else {
-    const sideOffset = (screenWidth - CARD_WIDTH) / 2;
-    return {
-      sideInset: Math.max(0, sideOffset - PEEK),
-      sideOffset,
-    };
-  }
-};
-
-const positioning = getCarouselPositioning();
-const SIDE_OFFSET = positioning.sideOffset;
-const SIDE_INSET = positioning.sideInset;
+const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 
 interface PlanCarouselProps {
   selectedDate: Date;
