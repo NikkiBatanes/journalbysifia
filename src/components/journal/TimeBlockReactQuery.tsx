@@ -393,27 +393,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
-            Logger.info('DELETE VIRTUAL SINGLE: Removing instance from calendar', {
-              calendarEventId: timeBlock.calendarEventId,
-              virtualId: timeBlock.id,
-              originalId,
-              instanceDate,
-            });
 
-            const calendarResult = await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
-
-            if (!calendarResult.success) {
-              Logger.warn('DELETE VIRTUAL SINGLE: Calendar removal failed', {
-                calendarEventId: timeBlock.calendarEventId,
-                calendarError: calendarResult.error,
-                virtualId: timeBlock.id,
-              });
-            } else {
-              Logger.info('DELETE VIRTUAL SINGLE: Successfully removed from calendar', {
-                calendarEventId: timeBlock.calendarEventId,
-                virtualId: timeBlock.id,
-              });
-            }
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
           }
 
           // Add exception to original recurring event
@@ -446,6 +427,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           Logger.info('DELETE FUTURE VIRTUAL: Virtual instance detected');
           Logger.info('DELETE FUTURE VIRTUAL: Virtual ID', { virtualId: timeBlock.id });
           Logger.info('DELETE FUTURE VIRTUAL: Original ID', { originalId });
+
+          // Remove future instances from native calendar
+          if (timeBlock.calendarEventId) {
+            Logger.info('DELETE FUTURE VIRTUAL: Removing future instances from calendar');
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, {
+              type: 'future',
+              date: timeBlock.startTime,
+            });
+          }
 
           // Set the end date to the day before the selected date
           const instanceDate = new Date(timeBlock.startTime);
@@ -513,26 +503,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
-            Logger.info('DELETE RECURRING SINGLE: Removing instance from calendar', {
-              calendarEventId: timeBlock.calendarEventId,
-              timeBlockId: timeBlock.id,
-              instanceDate,
-            });
 
-            const calendarResult = await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
-
-            if (!calendarResult.success) {
-              Logger.warn('DELETE RECURRING SINGLE: Calendar removal failed', {
-                calendarEventId: timeBlock.calendarEventId,
-                calendarError: calendarResult.error,
-                timeBlockId: timeBlock.id,
-              });
-            } else {
-              Logger.info('DELETE RECURRING SINGLE: Successfully removed from calendar', {
-                calendarEventId: timeBlock.calendarEventId,
-                timeBlockId: timeBlock.id,
-              });
-            }
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
           }
 
           // Add exception to this recurring event
@@ -595,6 +567,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           Logger.info('DELETE FUTURE: Adding current date to exceptions', { currentDate: currentDateStr });
           Logger.info('DELETE FUTURE: Time block ID', { timeBlockId: timeBlock.id });
 
+          // Remove future instances from native calendar
+          if (timeBlock.calendarEventId) {
+            Logger.info('DELETE FUTURE: Removing future instances from calendar');
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, {
+              type: 'future',
+              date: timeBlock.startTime,
+            });
+          }
+
           // Get current metadata
           const originalApiEntry = timeBlockEntries.find(entry => entry.id === timeBlock.id);
           const existingMetadata = originalApiEntry?.metadata || {};
@@ -638,33 +619,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Delete from calendar first if synced
           if (timeBlock.calendarEventId) {
-            Logger.info('DELETE: Removing from calendar before database deletion', {
-              calendarEventId: timeBlock.calendarEventId,
-              deleteOptions: options,
-              timeBlockTitle: timeBlock.title,
-            });
 
-            const calendarResult = await removeTimeBlockFromCalendar(timeBlock.calendarEventId, options);
-
-            if (!calendarResult.success) {
-              Logger.warn('DELETE: Calendar removal failed, but continuing with database deletion', {
-                calendarEventId: timeBlock.calendarEventId,
-                calendarError: calendarResult.error,
-                deleteOptions: options,
-              });
-              // Continue with database deletion even if calendar removal fails
-              // User can manually unsync later if needed
-            } else {
-              Logger.info('DELETE: Successfully removed from calendar', {
-                calendarEventId: timeBlock.calendarEventId,
-                deleteOptions: options,
-              });
-            }
-          } else {
-            Logger.info('DELETE: No calendar event ID to remove', {
-              timeBlockId: timeBlock.id,
-              timeBlockTitle: timeBlock.title,
-            });
+            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, options);
           }
 
           // Delete entire event from database

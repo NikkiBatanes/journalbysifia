@@ -455,18 +455,8 @@ export const removeTimeBlockFromCalendar = async (
   options?: DeleteOptions
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    Logger.info('🗓️ CALENDAR REMOVE: Starting removal', {
-      eventId,
-      options,
-      component: 'calendarSyncService',
-    });
-
     const hasPermission = await requestCalendarPermissions();
     if (!hasPermission) {
-      Logger.warn('🗓️ CALENDAR REMOVE: Permission denied', {
-        eventId,
-        component: 'calendarSyncService',
-      });
       return { success: false, error: 'Calendar permission denied' };
     }
 
@@ -481,31 +471,15 @@ export const removeTimeBlockFromCalendar = async (
       if (parts[1]) {
         instanceDate = new Date(parts[1]);
       }
-      Logger.info('🗓️ CALENDAR REMOVE: Parsed virtual event ID', {
-        originalEventId: eventId,
-        realEventId,
-        instanceDate,
-        optionsDate: options?.date,
-        component: 'calendarSyncService',
-      });
     }
 
     // Check if we actually have a real event ID to work with
     if (!realEventId || realEventId === 'undefined' || realEventId === 'null') {
-      Logger.warn('🗓️ CALENDAR REMOVE: No valid calendar event ID found', {
-        eventId,
-        realEventId,
-        component: 'calendarSyncService',
-      });
-      return { success: false, error: 'No calendar event ID available' };
-    }
-
-    Logger.info('🗓️ CALENDAR REMOVE: Processing deletion', {
-      realEventId,
-      options,
-      instanceDate,
+      Logger.warn('🗓️ No valid calendar event ID found - cannot remove from calendar', {
       component: 'calendarSyncService',
     });
+      return { success: false, error: 'No calendar event ID available' };
+    }
 
     // If we have delete options and a date, attempt granular removal (iOS supports this)
     if (options?.type === 'future' && instanceDate) {
@@ -524,32 +498,17 @@ export const removeTimeBlockFromCalendar = async (
         await RNCalendarEvents.removeEvent(realEventId);
       }
     } else if (options?.type === 'single' && instanceDate) {
-      Logger.info('🗓️ CALENDAR REMOVE: Attempting single instance removal', {
-        realEventId,
-        instanceDate,
-        instanceDateISO: instanceDate.toISOString(),
-        component: 'calendarSyncService',
-      });
-
       try {
         await (RNCalendarEvents as any).removeEvent(realEventId, {
           futureEvents: false,
           instanceStartDate: instanceDate.toISOString(),
         });
 
-        Logger.info('🗓️ CALENDAR REMOVE: Single instance removal successful', {
-          realEventId,
-          instanceDate,
-          component: 'calendarSyncService',
-        });
-
       } catch (e) {
-        Logger.warn('🗓️ CALENDAR REMOVE: Single instance removal not supported by provider', {
-          component: 'calendarSyncService',
-          errorMessage: e instanceof Error ? e.message : String(e),
-          realEventId,
-          instanceDate,
-        });
+        Logger.warn('🗓️ Single instance removal not supported by provider', {
+      component: 'calendarSyncService',
+      errorMessage: e instanceof Error ? e.message : String(e),
+    });
         // Do NOT delete the entire series when single-instance deletion isn't supported.
         return { success: false, error: 'GRANULAR_SINGLE_DELETE_UNSUPPORTED' };
       }
@@ -573,25 +532,8 @@ export const removeTimeBlockFromCalendar = async (
       }
     } else {
       // Default: remove single non-recurring event
-      Logger.info('🗓️ CALENDAR REMOVE: Using default removal (single non-recurring event)', {
-        realEventId,
-        options,
-        component: 'calendarSyncService',
-      });
-
       await RNCalendarEvents.removeEvent(realEventId);
-
-      Logger.info('🗓️ CALENDAR REMOVE: Default removal successful', {
-        realEventId,
-        component: 'calendarSyncService',
-      });
     }
-
-    Logger.info('🗓️ CALENDAR REMOVE: Operation completed successfully', {
-      realEventId,
-      options,
-      component: 'calendarSyncService',
-    });
 
     return { success: true };
   } catch (error) {
