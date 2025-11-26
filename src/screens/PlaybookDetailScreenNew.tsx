@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   Platform,
   View,
-  SafeAreaView,
   ViewStyle,
   TextStyle,
   ImageStyle,
@@ -27,7 +26,7 @@ import {
 import { GestureDetector } from 'react-native-gesture-handler';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 // import { CommonActions } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Animation
 import Animated, {
