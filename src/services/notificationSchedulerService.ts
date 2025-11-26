@@ -15,7 +15,7 @@ export interface ScheduleOptions {
  * Handles intelligent scheduling and batching
  */
 class NotificationSchedulerService {
-  private readonly MAX_NOTIFICATIONS_PER_DAY = 3;
+  private readonly MAX_NOTIFICATIONS_PER_DAY = 8;
   private appState: AppStateStatus = 'active';
 
   constructor() {
