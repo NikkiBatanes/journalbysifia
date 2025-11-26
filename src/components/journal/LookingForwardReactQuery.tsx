@@ -137,7 +137,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            console.log('DELETE DEBUG: Attempting to delete entry:', id);
             triggerSelectionHaptic();
 
             // Immediately remove from cache for instant UI update
@@ -148,34 +147,29 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             if (currentData && Array.isArray(currentData)) {
               const filteredData = currentData.filter((entryToDelete: any) => entryToDelete.id !== id);
               queryClient.setQueryData(currentQueryKey, filteredData);
-              console.log('DELETE DEBUG: Removed entry from cache, remaining entries:', filteredData.length);
 
               // CRITICAL: Also clear AsyncStorage cache to prevent entry from coming back on refresh
               try {
                 const { JournalCache } = await import('../../services/cache/journalCache');
                 await JournalCache.clearCache(userId, dateStr, 'looking_forward');
-                console.log('DELETE DEBUG: Cleared AsyncStorage cache for looking_forward');
               } catch (cacheError) {
-                console.error('DELETE DEBUG: Failed to clear AsyncStorage cache:', cacheError);
+                console.error('Failed to clear AsyncStorage cache:', cacheError);
               }
             }
 
             deleteMutation.mutate(id, {
               onSuccess: () => {
-                console.log('DELETE DEBUG: Successfully deleted entry:', id);
                 triggerSuccessHaptic();
                 // Don't refetch - trust our cache manipulation since API succeeded
-                console.log('DELETE DEBUG: API delete succeeded, keeping cache changes');
               },
               onError: (deleteError: any) => {
-                console.error('DELETE DEBUG: Failed to delete entry:', id, deleteError);
+                console.error('Failed to delete entry:', id, deleteError);
                 triggerErrorHaptic();
-                console.log('DELETE DEBUG: API delete failed, refetching to restore state...');
                 // Only refetch if delete failed to restore the original data
                 refetch();
               },
               onSettled: () => {
-                console.log('DELETE DEBUG: Delete mutation settled for entry:', id);
+                // Delete operation completed
               },
             });
           },

@@ -557,17 +557,15 @@ class PushNotificationService {
       // Get current user ID from AsyncStorage
       const userId = await AsyncStorage.getItem('current_user_id');
       if (!userId) {
-        console.warn('🧪 Test: No user ID found, using test UUID');
         // Use a valid UUID for testing
         await this.saveNotificationToHistory('00000000-0000-0000-0000-000000000001', testNotification);
       } else {
         await this.saveNotificationToHistory(userId, testNotification);
       }
 
-      console.log('🧪 Test: Notification saved successfully');
       return true;
     } catch (error) {
-      console.error('🧪 Test: Failed to save notification', error);
+      console.error('Failed to save notification', error);
       return false;
     }
   }

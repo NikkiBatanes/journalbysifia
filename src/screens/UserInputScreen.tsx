@@ -207,13 +207,13 @@ const UserInputScreen: React.FC = () => {
 
     switch (seekerType) {
       case 'fresh':
-        return 'No Playbooks Remaining';
+        return 'No Playbooks'; // Never had access to playbooks
       case 'expired_trial':
-        return 'No Playbooks Remaining';
+        return 'No Playbooks Remaining'; // Had access during trial
       case 'cancelled_subscription':
-        return 'No Playbooks Remaining';
+        return 'No Playbooks Remaining'; // Had access with paid plan
       default:
-        return 'No Playbooks Remaining';
+        return 'No Playbooks'; // Default to no access message
     }
   };
 

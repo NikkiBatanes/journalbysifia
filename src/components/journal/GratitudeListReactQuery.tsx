@@ -316,18 +316,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // editGratitudeItem removed - was defined but never called
 
   const saveGratitudeItems = async () => {
-    console.log('BULK SAVE DEBUG: Starting bulk save');
-    console.log('BULK SAVE DEBUG: isEditing:', isEditing);
-    console.log('BULK SAVE DEBUG: newItems:', newItems);
-    console.log('BULK SAVE DEBUG: gratitudeEntries:', gratitudeEntries.length);
-
     if (!user) {
       Alert.alert('Error', 'You must be logged in to save gratitude items.');
       return;
     }
 
     const validItems = newItems.filter(item => item.trim());
-    console.log('BULK SAVE DEBUG: validItems:', validItems);
 
     if (validItems.length > 0) {
       try {
@@ -342,7 +336,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             text: text.trim(),
             date: selectedDate,
           }));
-          console.log('BULK SAVE DEBUG: Editing mode - replacing all items with:', itemsToSave);
         } else {
           // When adding new (not editing), create fresh items
           itemsToSave = validItems.map((text, index) => ({
@@ -350,16 +343,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             text: text.trim(),
             date: selectedDate,
           }));
-          console.log('BULK SAVE DEBUG: Adding mode - creating new items:', itemsToSave);
         }
 
         const contentToSave = JSON.stringify({ items: itemsToSave });
-        console.log('BULK SAVE DEBUG: Content to save:', contentToSave);
 
         // CRITICAL: Immediately update cache for instant UI feedback
-        const currentQueryKey = ['journal', 'gratitude', user.id, dateStr];
-
-        // Create the entry structure that matches what the API returns
+        const currentQueryKey = ['gratitudeEntries', user.id, dateStr];
         const updatedEntry = {
           id: gratitudeEntries[0]?.id || `temp_${Date.now()}`,
           user_id: user.id,
@@ -370,12 +359,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           updated_at: new Date().toISOString(),
         };
 
-        console.log('BULK SAVE DEBUG: Updating cache with entry:', updatedEntry);
         queryClient.setQueryData(currentQueryKey, [updatedEntry]);
 
         if (gratitudeEntries.length > 0) {
           // Update the first entry with all new content
-          console.log('BULK SAVE DEBUG: Updating existing entry:', gratitudeEntries[0].id);
           await updateMutation.mutateAsync({
             id: gratitudeEntries[0].id,
             updates: {
@@ -385,7 +372,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
           // Delete any extra entries to ensure only one exists
           if (gratitudeEntries.length > 1) {
-            console.log('BULK SAVE DEBUG: Deleting extra entries:', gratitudeEntries.length - 1);
             for (let i = 1; i < gratitudeEntries.length; i++) {
               try {
                 await deleteMutation.mutateAsync(gratitudeEntries[i].id);
@@ -398,7 +384,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           }
         } else {
           // Create new entry when none exists
-          console.log('BULK SAVE DEBUG: Creating new entry');
           await createMutation.mutateAsync({
             user_id: user.id,
             selected_date: dateStr,
@@ -406,8 +391,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             content: contentToSave,
           });
         }
-
-        console.log('BULK SAVE DEBUG: Save successful');
 
         // Track successful gratitude save
         analytics.trackGratitudeEvent('gratitude_items_saved', {

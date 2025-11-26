@@ -940,14 +940,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
     if (promptToCheck) {
       // Use async canUsePrompt method
-      console.log('PROMPT GATING DEBUG:', {
-        promptToCheck,
-        freePrompts: guidedPromptGating.freePrompts,
-        isFreePrompt: guidedPromptGating.freePrompts.includes(promptToCheck),
-      });
-
       const canUseResult = await guidedPromptGating.canUsePrompt(promptToCheck);
-      console.log('CAN USE RESULT:', canUseResult);
 
       if (!canUseResult) {
         // Close the reflection modal first so the sales offer shows in front
@@ -1235,14 +1228,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         )}
         {/* Show guided prompt icon for new entries only (not when editing) */}
         {(() => {
-          console.log('HEART ICON DEBUG:', {
-            source,
-            hideGuidedPromptButton,
-            showHeart: !isEditing && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton,
-            isEditing,
-            viewMode,
-            selectedPrompt,
-          });
           return !isEditing && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton;
         })() && (
           <TouchableOpacity
@@ -1301,18 +1286,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                                        ((source === 'devotional' || source === 'playbook') && (newEntry.title || newEntry.content)) ||
                                        selectedPrompt ||
                                        (guidedPromptGating.allPrompts || []).includes(newEntry.title);
-
-                console.log('TITLE DEBUG:', {
-                  lockTitle,
-                  source,
-                  hasTitle: !!newEntry.title,
-                  hasContent: !!newEntry.content,
-                  selectedPrompt,
-                  allPrompts: guidedPromptGating.allPrompts,
-                  titleMatchesPrompt: (guidedPromptGating.allPrompts || []).includes(newEntry.title),
-                  shouldLockTitle,
-                  isEditing,
-                });
 
                 return shouldLockTitle;
               })() ? (

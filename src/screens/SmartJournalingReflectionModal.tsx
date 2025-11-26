@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { toLocalDateString } from '../utils/date';
-import { Modal, Alert, Keyboard, DeviceEventEmitter } from 'react-native';
+import { Modal, Alert, Keyboard, DeviceEventEmitter, View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -12,8 +12,9 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
-
 import { analytics } from '../utils/analytics';
+import { Colors } from '../theme';
+import ThemedText from '../components/common/ThemedText';
 
 interface SmartJournalingReflectionModalProps {
   visible: boolean;
@@ -292,23 +293,24 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       });
 
       // Award faith points for answering reflection question (only for new reflections)
+      // PERFORMANCE: Make this non-blocking to improve perceived performance
       if (!existingReflection && user?.id) {
-        try {
-          await faithPointsService.awardPoints(
-            user.id,
-            'reflection_question_answered',
-            {
-              suppressNotification: true,
-              source: finalType === 'guided' ? 'guided_prompt' : finalType === 'playbook' ? 'playbook_reflection' : 'devotional_question',
-              question: preservedSubtaskTitle || entry.title,
-            }
-          );
-        } catch (error) {
+        // Fire and forget - don't await to avoid blocking the save process
+        faithPointsService.awardPoints(
+          user.id,
+          'reflection_question_answered',
+          {
+            suppressNotification: true,
+            source: finalType === 'guided' ? 'guided_prompt' : finalType === 'playbook' ? 'playbook_reflection' : 'devotional_question',
+            question: preservedSubtaskTitle || entry.title,
+          }
+        ).catch(error => {
+          // Log error but don't fail the save process
           Logger.warn('Failed to award faith points for reflection', {
             component: 'SmartJournalingReflectionModal',
             error: error as Error,
           });
-        }
+        });
       }
 
       // Call parent onSave callback
@@ -417,9 +419,56 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           />
       </Modal>
 
-      {/* Loading overlay removed to preserve metadata visibility during save */}
+      {/* Loading overlay for save operations - shows feedback without hiding content */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color={Colors.anchorBlue} />
+            <ThemedText style={styles.loadingText}>
+              {existingReflection ? 'Updating reflection...' : 'Saving reflection...'}
+            </ThemedText>
+            <ThemedText style={styles.loadingSubText}>
+              Please wait a moment
+            </ThemedText>
+          </View>
+        </View>
+      )}
     </>
   );
+};
+
+const styles = {
+  loadingOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    zIndex: 1000,
+  },
+  loadingContent: {
+    backgroundColor: Colors.hopeWhite,
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center' as const,
+    minWidth: 200,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginTop: 12,
+    textAlign: 'center' as const,
+  },
+  loadingSubText: {
+    fontSize: 14,
+    color: Colors.textGray,
+    marginTop: 4,
+    textAlign: 'center' as const,
+  },
 };
 
 export default withErrorBoundary(SmartJournalingReflectionModal, 'SmartJournalingReflectionModal');

@@ -450,6 +450,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const updateMutation = useUpdateReflection();
   const deleteMutation = useDeleteReflection();
 
+  // Loading state for ReflectionLogEditor
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
   // Helpers to normalize HTML <br> to real newlines for RN Text/TextInput
   const normalizeIncoming = useCallback((text: string): string => {
     if (!text) {return '';}
@@ -751,24 +754,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
-    // Debug logging for playbook metadata - show ALL available fields
-    console.log('[ReflectionLogReactQuery] Full entry data:', JSON.stringify(entry, null, 2));
-    
-    if (entry.source === 'playbook') {
-      console.log('[ReflectionLogReactQuery] Playbook entry specific fields:', {
-        id: entry.id,
-        source: entry.source,
-        // Check the correct field names that exist in ReflectionLogEntry
-        playbook_title: entry.playbook_title,
-        day_number: entry.day_number,
-        day_title: entry.day_title,
-        // Show raw entry keys to see what's actually available
-        allKeys: Object.keys(entry),
-        title: entry.title,
-        content: entry.content.substring(0, 100) + '...',
-      });
-    }
-
     // Set editing state
     setEditingId(entry.id);
     setSelectedEntry(entry);
@@ -783,10 +768,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     }
 
     // Set form data for editing
-    const getFormType = (): 'free-form' | 'guided' => {
-      if (entry.type === 'free' || entry.type === 'playbook') return 'free-form';
+    const getFormType = (): ViewMode => {
+      if (entry.type === 'free' || entry.type === 'playbook') return 'free';
       if (entry.type === 'devotional') return 'guided';
-      return 'free-form'; // fallback
+      return 'free'; // fallback
     };
 
     setNewEntry({
@@ -1363,13 +1348,6 @@ return (
             devotionalTitle={editingId && selectedEntry && selectedEntry.source === 'devotional' ? selectedEntry.devotional_title : undefined}
             playbookTitle={(() => {
               const title = editingId && selectedEntry && (selectedEntry.source === 'playbook' || selectedEntry.type === 'playbook') ? selectedEntry.playbook_title : undefined;
-              if (selectedEntry?.source === 'playbook' || selectedEntry?.type === 'playbook') {
-                console.log('[ReflectionLogReactQuery] Passing playbookTitle to ReflectionLogEditor:', {
-                  title,
-                  selectedEntry: selectedEntry,
-                  playbook_title: selectedEntry?.playbook_title,
-                });
-              }
               return title;
             })()}
             dayNumber={editingId && selectedEntry ? selectedEntry.day_number : undefined}
@@ -1384,6 +1362,7 @@ return (
               const withYear: Intl.DateTimeFormatOptions = { ...base, year: 'numeric' };
               return selectedDate.toLocaleDateString('en-US', year === currentYear ? base : withYear);
             })()}
+            isLoading={isSaving}
           />
 
       </Modal>
