@@ -393,8 +393,27 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
+            Logger.info('DELETE VIRTUAL SINGLE: Removing instance from calendar', {
+              calendarEventId: timeBlock.calendarEventId,
+              virtualId: timeBlock.id,
+              originalId,
+              instanceDate,
+            });
 
-            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
+            const calendarResult = await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
+
+            if (!calendarResult.success) {
+              Logger.warn('DELETE VIRTUAL SINGLE: Calendar removal failed', {
+                calendarEventId: timeBlock.calendarEventId,
+                calendarError: calendarResult.error,
+                virtualId: timeBlock.id,
+              });
+            } else {
+              Logger.info('DELETE VIRTUAL SINGLE: Successfully removed from calendar', {
+                calendarEventId: timeBlock.calendarEventId,
+                virtualId: timeBlock.id,
+              });
+            }
           }
 
           // Add exception to original recurring event
@@ -494,8 +513,26 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Remove only this instance from native calendar
           if (timeBlock.calendarEventId) {
+            Logger.info('DELETE RECURRING SINGLE: Removing instance from calendar', {
+              calendarEventId: timeBlock.calendarEventId,
+              timeBlockId: timeBlock.id,
+              instanceDate,
+            });
 
-            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
+            const calendarResult = await removeTimeBlockFromCalendar(timeBlock.calendarEventId, { type: 'single' });
+
+            if (!calendarResult.success) {
+              Logger.warn('DELETE RECURRING SINGLE: Calendar removal failed', {
+                calendarEventId: timeBlock.calendarEventId,
+                calendarError: calendarResult.error,
+                timeBlockId: timeBlock.id,
+              });
+            } else {
+              Logger.info('DELETE RECURRING SINGLE: Successfully removed from calendar', {
+                calendarEventId: timeBlock.calendarEventId,
+                timeBlockId: timeBlock.id,
+              });
+            }
           }
 
           // Add exception to this recurring event
@@ -601,8 +638,33 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Delete from calendar first if synced
           if (timeBlock.calendarEventId) {
+            Logger.info('DELETE: Removing from calendar before database deletion', {
+              calendarEventId: timeBlock.calendarEventId,
+              deleteOptions: options,
+              timeBlockTitle: timeBlock.title,
+            });
 
-            await removeTimeBlockFromCalendar(timeBlock.calendarEventId, options);
+            const calendarResult = await removeTimeBlockFromCalendar(timeBlock.calendarEventId, options);
+
+            if (!calendarResult.success) {
+              Logger.warn('DELETE: Calendar removal failed, but continuing with database deletion', {
+                calendarEventId: timeBlock.calendarEventId,
+                calendarError: calendarResult.error,
+                deleteOptions: options,
+              });
+              // Continue with database deletion even if calendar removal fails
+              // User can manually unsync later if needed
+            } else {
+              Logger.info('DELETE: Successfully removed from calendar', {
+                calendarEventId: timeBlock.calendarEventId,
+                deleteOptions: options,
+              });
+            }
+          } else {
+            Logger.info('DELETE: No calendar event ID to remove', {
+              timeBlockId: timeBlock.id,
+              timeBlockTitle: timeBlock.title,
+            });
           }
 
           // Delete entire event from database
