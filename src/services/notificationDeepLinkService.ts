@@ -80,9 +80,7 @@ class NotificationDeepLinkService {
         }
       }
     } catch (error) {
-      Logger.warn('Failed to dismiss notification modal', error instanceof Error ? error : new Error(String(error)), {
-        component: 'notificationDeepLinkService',
-      });
+      Logger.warn('Failed to dismiss notification modal', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
