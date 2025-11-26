@@ -59,9 +59,9 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
       onSelectPrayerType('mine');
     }
 
-    // Focus the prayer input after tab change
+    // Focus the name input after tab change
     setTimeout(() => {
-      prayerInputRef.current?.focus();
+      nameInputRef.current?.focus();
     }, 150);
   }, [onSelectPrayerType]);
 
@@ -88,7 +88,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
     }
   };
 
-  // Reset tab when modal opens
+  // Reset tab when modal opens and handle focus
   React.useEffect(() => {
     if (visible) {
       if (selectedPrayerType === 'requests') {
@@ -100,13 +100,21 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
         setActiveTab('Personal');
         onSelectPrayerType('mine');
       }
-      
-      // Focus the prayer input when modal opens
+
+      // Smart focus logic:
+      // If name is already filled (Pray for now scenario), focus on prayer input
+      // Otherwise, focus on name input
       setTimeout(() => {
-        prayerInputRef.current?.focus();
-      }, 200);
+        if (name.trim()) {
+          // Name is already filled, focus on prayer body (Pray for now scenario)
+          prayerInputRef.current?.focus();
+        } else {
+          // Name is empty, focus on name input (normal scenario)
+          nameInputRef.current?.focus();
+        }
+      }, 150);
     }
-  }, [visible, selectedPrayerType, onSelectPrayerType]);
+  }, [visible, selectedPrayerType, onSelectPrayerType, name]);
 
   return (
     <Modal
