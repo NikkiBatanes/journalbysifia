@@ -154,11 +154,6 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       // Use the same counting method as userApi for consistency
       const badgeCount = badgeRows?.length || 0;
       setBadgeCount(badgeCount); // Store in state for display
-      console.log(`[BadgesModal] Badge screen count: ${badgeCount} unlocked badges (from user_badges table)`);
-      console.log(`[BadgesModal] Total unlocked from DB: ${unlockedBadges.length} rows`);
-      console.log(`[BadgesModal] Total available badges: ${allBadges.length}`);
-      console.log('[BadgesModal] Unlocked badge IDs:', unlockedBadges.map(ub => ub.id));
-      console.log('[BadgesModal] Unlocked by matching:', availableWithStatus.filter(b => b.unlocked).map(b => b.id));
 
       setAvailableBadges(availableWithStatus);
       setUserBadges(unlockedBadges);
