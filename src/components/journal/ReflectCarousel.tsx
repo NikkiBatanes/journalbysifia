@@ -135,29 +135,28 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       <View style={styles.header}>
         <ThemedText weight="semiBold" style={styles.title}>REFLECT & GROW</ThemedText>
       </View>
-      <Animated.ScrollView
-        ref={scrollViewRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + CARD_SPACING}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        pagingEnabled={false}
-        directionalLockEnabled={true}
-        bounces={true}
-        bouncesZoom={false}
-        contentInset={PEEK === 0 ? undefined : { left: SIDE_INSET, right: SIDE_INSET }}
-        contentContainerStyle={{ paddingHorizontal: PEEK === 0 ? (screenWidth - CARD_WIDTH) / 2 : SIDE_INSET }}
-        style={styles.scrollView}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          {
-            useNativeDriver: true,
-            listener: handleScroll,
-          }
-        )}
-        scrollEventThrottle={16}
-      >
+      <View style={{ paddingHorizontal: PEEK === 0 ? (screenWidth - CARD_WIDTH) / 2 : SIDE_INSET }}>
+        <Animated.ScrollView
+          ref={scrollViewRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={CARD_WIDTH + CARD_SPACING}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          pagingEnabled={false}
+          directionalLockEnabled={true}
+          bounces={true}
+          bouncesZoom={false}
+          style={styles.scrollView}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            {
+              useNativeDriver: true,
+              listener: handleScroll,
+            }
+          )}
+          scrollEventThrottle={16}
+        >
         {carouselItems.map((item, i) => {
           const inputRange = [
             (i - 1) * (CARD_WIDTH + CARD_SPACING),
@@ -195,6 +194,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
           );
         })}
       </Animated.ScrollView>
+      </View>
     </View>
   );
 };
