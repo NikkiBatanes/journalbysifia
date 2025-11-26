@@ -258,11 +258,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     triggerLightHaptic();
 
     try {
-      // Mark all in-app notifications as read
+      // Mark all unread notifications as read for this user
       const { error: notifError } = await supabase
         .from('notifications')
-        .update({ read_at: new Date().toISOString() })
-        .is('read_at', null)
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
         .select('id');
 
       if (notifError) {
@@ -274,6 +275,11 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             hint: notifError.hint,
             code: notifError.code,
           },
+        });
+      } else {
+        Logger.info('Marked notifications as read', {
+          component: 'NotificationsScreen',
+          userId: user.id,
         });
       }
 
