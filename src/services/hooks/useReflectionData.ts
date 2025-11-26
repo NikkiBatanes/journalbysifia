@@ -232,6 +232,31 @@ export const useCreateReflection = () => {
       // Only invalidate search results (not critical queries)
       queryClient.invalidateQueries({ queryKey: ['reflections', 'search'], refetchType: 'none' });
 
+      // Force refresh all relevant queries to ensure UI updates instantly for new reflections
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date),
+        refetchType: 'active' // Only refetch active queries
+      });
+      
+      // Also invalidate the general reflections query to ensure list refreshes
+      queryClient.invalidateQueries({
+        queryKey: ['reflections'],
+        refetchType: 'active'
+      });
+      
+      // And invalidate any journal-specific queries
+      queryClient.invalidateQueries({
+        queryKey: ['journal'],
+        refetchType: 'active'
+      });
+
+      // Direct refetch as a fallback to ensure UI updates
+      setTimeout(() => {
+        queryClient.refetchQueries({
+          queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date),
+        });
+      }, 100);
+
       // Track successful creation
       analytics.track('reflection_created', {
         type: variables.type,
