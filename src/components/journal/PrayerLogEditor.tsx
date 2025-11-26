@@ -466,13 +466,13 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
           }, 100);
         }
       } else {
-        // Focus the first input (person name) for people tab
-        if (personInputRef.current) {
-          personInputRef.current.focus();
+        // Focus the body input (prayer request) for people tab
+        if (requestInputRef.current) {
+          requestInputRef.current.focus();
           // Position cursor at the end of the text
           setTimeout(() => {
-            if (personInputRef.current) {
-              personInputRef.current.setSelection(prayerForPerson.length, prayerForPerson.length);
+            if (requestInputRef.current) {
+              requestInputRef.current.setSelection(prayerRequest.length, prayerRequest.length);
             }
           }, 100);
         }
@@ -600,9 +600,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
     // Small timeout to ensure the tab animation completes
     const timer = setTimeout(() => {
-      if (activeTab === 'people' && personInputRef.current) {
-        // Focus the person input when switching to People tab
-        personInputRef.current.focus();
+      if (activeTab === 'people' && requestInputRef.current) {
+        // Focus the body input when switching to People tab
+        requestInputRef.current.focus();
       } else if (activeTab === 'freeform' && inputRef.current) {
         // Focus the main input when switching to Freeform tab
         inputRef.current.focus();
@@ -809,9 +809,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             onPress={() => {
               triggerLightHaptic();
               setActiveTab('people');
-              // Focus the person input after switching tabs
+              // Focus the body input after switching tabs
               setTimeout(() => {
-                personInputRef.current?.focus();
+                requestInputRef.current?.focus();
               }, 100);
             }}
             accessibilityLabel="Switch to Prayers for People"
