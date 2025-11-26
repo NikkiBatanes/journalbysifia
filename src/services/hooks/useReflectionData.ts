@@ -261,7 +261,7 @@ export const useUpdateReflection = () => {
 });
       // No rollback needed since we skipped optimistic updates
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       console.log('🔍 useUpdateReflection: API response received', { data });
       
       // Update the specific reflection in the main query (no refetching needed)
@@ -292,11 +292,30 @@ export const useUpdateReflection = () => {
         queryClient.setQueryData(['reflections', 'subtask', data.user_id, data.subtask_id], data);
       }
 
-      // Force refresh the main query to ensure UI updates instantly
+      // Force refresh all relevant queries to ensure UI updates instantly
       queryClient.invalidateQueries({
         queryKey: queryKeys.reflections.byDate(data.user_id, data.selected_date),
         refetchType: 'active' // Only refetch active queries
       });
+      
+      // Also invalidate the general reflections query to ensure list refreshes
+      queryClient.invalidateQueries({
+        queryKey: ['reflections'],
+        refetchType: 'active'
+      });
+      
+      // And invalidate any journal-specific queries
+      queryClient.invalidateQueries({
+        queryKey: ['journal'],
+        refetchType: 'active'
+      });
+
+      // Direct refetch as a fallback to ensure UI updates
+      setTimeout(() => {
+        queryClient.refetchQueries({
+          queryKey: queryKeys.reflections.byDate(data.user_id, data.selected_date),
+        });
+      }, 100);
     },
   });
 };
