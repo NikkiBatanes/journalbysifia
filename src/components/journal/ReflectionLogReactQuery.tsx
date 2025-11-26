@@ -1045,11 +1045,16 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // renderEntryModal removed - not used in original design
 
+  // Handle errors silently - no annoying alerts
   React.useEffect(() => {
     if (error) {
-      Alert.alert('Error', 'Failed to load reflection entries.');
+      Logger.error('Failed to load reflection entries', error as Error, {
+        component: 'ReflectionLogReactQuery',
+        dateStr,
+        userId: user?.id,
+      });
     }
-  }, [error]);
+  }, [error, dateStr, user?.id]);
 
   // handleRetry removed - not used in original design
 
