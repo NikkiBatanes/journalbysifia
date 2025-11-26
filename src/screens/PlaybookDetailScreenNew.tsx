@@ -1948,7 +1948,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   }), []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <View style={styles.container}>
       {/* Status bar handled by useScreenStatusBar */}
 
       {/* In-screen header (replaces native header). Cards overlay will pass over this. */}
@@ -2072,7 +2072,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           </RNAnimated.View>
         </RNAnimated.View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -2192,9 +2192,9 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   contentContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: 720,
+    maxWidth: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 600 : 720, // Smaller max width for iOS 18.0
     alignSelf: 'center',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 20 : 0, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 40 : 0, // Much more padding for iOS 18.0 and below
   },
   loadingContainer: {
     width: '100%',
@@ -2204,11 +2204,12 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   cardStackContainer: {
     position: 'relative',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 32 : 16, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 48 : 16, // Much more padding for iOS 18.0 and below
     paddingTop: 20,
     alignItems: 'center',
     minHeight: 600,
     justifyContent: 'flex-start',
+    maxWidth: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? '90%' : '100%', // Limit width on iOS 18.0
   },
   swipeUpIndicatorContainer: {
     position: 'absolute',
@@ -2379,7 +2380,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   docContentContainer: {
     paddingTop: 0,
     paddingBottom: 32,
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 20 : 0, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 40 : 0, // Much more padding for iOS 18.0 and below
     alignItems: 'center',
   },
   docContentContainerInner: {
@@ -2813,12 +2814,13 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   // Stacked cards container
   stackedCardsContainer: {
     position: 'relative',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 32 : 16, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 48 : 16, // Much more padding for iOS 18.0 and below
     paddingTop: 28,
     paddingBottom: 24,
     alignItems: 'center',
     minHeight: 600,
     justifyContent: 'flex-start',
+    maxWidth: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? '90%' : '100%', // Limit width on iOS 18.0
   },
   stackedCardExpanded: {
     position: 'relative',
