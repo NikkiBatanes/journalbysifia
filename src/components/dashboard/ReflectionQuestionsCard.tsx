@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Pressable,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
@@ -51,11 +52,13 @@ interface ReflectionQuestion {
 interface ReflectionQuestionsCardProps {
   onQuestionPress?: (question: ReflectionQuestion) => void;
   onViewAll?: () => void;
+  onUpgradeRequired?: () => void;
 }
 
 const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   onQuestionPress,
   onViewAll: _onViewAll,
+  onUpgradeRequired,
 }) => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
@@ -717,7 +720,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 </View>
                 <ThemedText weight="bold" style={styles.questionText}>{item.question}</ThemedText>
                 <View style={styles.buttonRow}>
-                  <TouchableOpacity
+                  <Pressable
                     style={[
                       styles.reflectButton,
                       // Disable button for locked guided prompts
@@ -726,7 +729,19 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     onPress={() => {
                       // Only allow opening if not a locked guided prompt
                       if (item.sourceType === 'guided' && !item.isFree) {
-                        // Don't open the editor for locked guided prompts
+                        // Don't open the editor for locked guided prompts - show upgrade flow instead
+                        if (onUpgradeRequired) {
+                          try { onUpgradeRequired(); } catch {}
+                        }
+                        setTimeout(() => {
+                          (navigation as any).navigate('OnboardingSalesOffer', {
+                            source: 'guided_prompts_lock',
+                            feature: 'guided_prompts',
+                            tier: subscription?.tier || 'seeker',
+                            upgradeMode: false,
+                            skipNotificationPreference: true,
+                          });
+                        }, 300);
                         return;
                       }
                       onQuestionPress?.(item);
@@ -746,7 +761,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                       style={styles.buttonIcon} 
                     />
                     <ThemedText weight="medium" style={styles.reflectButtonText}>Reflect</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               </Animated.View>
             );
