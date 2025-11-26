@@ -72,6 +72,7 @@ const OnboardingTrialOfferScreen = () => {
   // dynamicPricing removed - not used, only setDynamicPricing is called
   const [currencyInfo, setCurrencyInfo] = useState<any>(null);
   const [_isNavigatingAway, _setIsNavigatingAway] = useState(false);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [autoDismissScheduled, setAutoDismissScheduled] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [purchaseValidated, setPurchaseValidated] = useState(false);
@@ -449,7 +450,7 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
 
       return () => clearTimeout(safetyTimeout);
     }
-  }, []);
+  }, [isStartingTrial]);
 
   // Load pricing and currency for dynamic copy
   useEffect(() => {
