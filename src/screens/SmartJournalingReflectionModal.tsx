@@ -350,17 +350,19 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   };
 
   const handleCancel = () => {
-
+    // Dismiss keyboard immediately to prevent it from appearing after modal closes
+    Keyboard.dismiss();
+    
     // Completion state handled by parent component
-
-    // ReflectionLogEditor already handles keyboard dismissal and delay
-    // Don't dismiss keyboard here to avoid double dismissal conflict
     onCancel();
   };
 
   // Debug: Log main modal visibility changes
   useEffect(() => {
-
+    // Dismiss keyboard when modal becomes invisible to prevent keyboard ghosting
+    if (!visible) {
+      Keyboard.dismiss();
+    }
   }, [visible]);
 
   return (
