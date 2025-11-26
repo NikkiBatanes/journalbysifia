@@ -289,7 +289,7 @@ export const useUpdateReflection = () => {
     onSuccess: (data, _variables) => {
       // Update the specific reflection in the main query (no refetching needed)
       const queryKey = queryKeys.reflections.byDate(data.user_id, data.selected_date);
-      
+
       queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
         const updated = old.map(reflection => reflection.id === data.id ? data : reflection);
         return updated;

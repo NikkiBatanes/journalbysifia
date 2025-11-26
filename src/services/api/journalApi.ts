@@ -217,7 +217,7 @@ export class JournalApi {
 
     if (!data || data.length === 0) {
       Logger.warn('No rows deleted - entry may not exist:', { id });
-    }  
+    }
   }
 
   // Bulk operations for better performance

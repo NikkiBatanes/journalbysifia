@@ -259,7 +259,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
     try {
       // Mark all in-app notifications as read
-      const { error: notifError, data: notifData } = await supabase
+      const { error: notifError } = await supabase
         .from('notifications')
         .update({ read_at: new Date().toISOString() })
         .is('read_at', null)
@@ -281,25 +281,21 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       const queueItems = await notificationManagementService.getPendingNotifications(user.id);
 
       if (queueItems && queueItems.length > 0) {
-        const itemsToCancel = queueItems.filter(item => 
-          item.type === 'push_notification' && 
+        const itemsToCancel = queueItems.filter(item =>
+          item.type === 'push_notification' &&
           item.status === 'pending'
         );
 
         if (itemsToCancel.length > 0) {
-          const { error: queueError, data: queueUpdateData } = await notificationManagementService.cancelNotifications(
-            itemsToCancel.map(item => item.id)
+          const queueSuccess = await notificationManagementService.cancelNotifications(
+            user.id,
+            'push_notification'
           );
 
-          if (queueError) {
-            Logger.error('Failed to cancel pending push notifications', queueError, {
+          if (!queueSuccess) {
+            Logger.error('Failed to cancel pending push notifications', undefined, {
               component: 'NotificationsScreen',
-              errorDetails: {
-                message: queueError.message,
-                details: queueError.details,
-                hint: queueError.hint,
-                code: queueError.code,
-              },
+              itemsCount: itemsToCancel.length,
             });
           }
         }
