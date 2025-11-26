@@ -130,7 +130,7 @@ function AppWithAuth({
   }, [bootstrapping]);
 
   // Initialize notification system (deep links, scheduling, badges)
-  useNotificationSetup(user?.id, navigationRef.current);
+  useNotificationSetup(user?.id, navigationRef);
 
   const HIDE_NETWORK_ON = React.useMemo(
     () =>

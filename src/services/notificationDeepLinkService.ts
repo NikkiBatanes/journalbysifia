@@ -81,13 +81,22 @@ class NotificationDeepLinkService {
       const screen = parts[0];
       const id = parts[1];
 
-      // Navigate based on screen type
+      // Navigate based on screen type - use reset to avoid modal overlay
       switch (screen) {
         case 'prayer':
           // Navigate to Journal screen with prayer tab
-          this.navigationRef.navigate('Journal', {
-            initialTab: 'pray',
-            prayerId: id,
+          this.navigationRef.reset({
+            index: 0,
+            routes: [
+              { name: 'MainTabs' },
+              { 
+                name: 'Journal', 
+                params: {
+                  initialTab: 'pray',
+                  prayerId: id,
+                }
+              }
+            ],
           });
           Logger.info('Navigated to prayer', {
             component: 'notificationDeepLinkService',
@@ -97,8 +106,17 @@ class NotificationDeepLinkService {
 
         case 'playbook':
           // Navigate to Playbook screen
-          this.navigationRef.navigate('Playbook', {
-            playbookId: id,
+          this.navigationRef.reset({
+            index: 0,
+            routes: [
+              { name: 'MainTabs' },
+              { 
+                name: 'Playbook', 
+                params: {
+                  playbookId: id,
+                }
+              }
+            ],
           });
           Logger.info('Navigated to playbook', {
             component: 'notificationDeepLinkService',
@@ -108,8 +126,17 @@ class NotificationDeepLinkService {
 
         case 'devotional':
           // Navigate to Devotional screen
-          this.navigationRef.navigate('Devotional', {
-            devotionalId: id,
+          this.navigationRef.reset({
+            index: 0,
+            routes: [
+              { name: 'MainTabs' },
+              { 
+                name: 'Devotional', 
+                params: {
+                  devotionalId: id,
+                }
+              }
+            ],
           });
           Logger.info('Navigated to devotional', {
             component: 'notificationDeepLinkService',
@@ -119,7 +146,13 @@ class NotificationDeepLinkService {
 
         case 'journal':
           // Navigate to Journal screen
-          this.navigationRef.navigate('Journal');
+          this.navigationRef.reset({
+            index: 0,
+            routes: [
+              { name: 'MainTabs' },
+              { name: 'Journal' }
+            ],
+          });
           Logger.info('Navigated to journal', {
             component: 'notificationDeepLinkService',
           });
@@ -127,7 +160,13 @@ class NotificationDeepLinkService {
 
         case 'profile':
           // Navigate to Profile screen
-          this.navigationRef.navigate('Profile');
+          this.navigationRef.reset({
+            index: 0,
+            routes: [
+              { name: 'MainTabs' },
+              { name: 'Profile' }
+            ],
+          });
           Logger.info('Navigated to profile', {
             component: 'notificationDeepLinkService',
           });
