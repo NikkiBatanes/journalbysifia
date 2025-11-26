@@ -56,7 +56,8 @@ const CARD_WIDTH = config.cardWidth;
 const CARD_SPACING = config.cardSpacing;
 const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2;
 const PEEK = config.peek;
-const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
+// When peek is 0 (iPad Portrait), center the cards by using minimal inset
+const SIDE_INSET = PEEK === 0 ? 0 : Math.max(0, SIDE_OFFSET - PEEK);
 
 interface PlanCarouselProps {
   selectedDate: Date;
