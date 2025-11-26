@@ -41,7 +41,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   // Responsive logo sizing for different devices
   const { width, height } = Dimensions.get('window');
   const isTablet = width >= 768 || height >= 768;
-  const logoSize = isTablet ? 180 : 120; // Larger logo for iPad, smaller for iPhone
+  const logoSize = isTablet ? 240 : 120; // Larger logo for iPad (240), smaller for iPhone (120)
 
 
   useEffect(() => {
