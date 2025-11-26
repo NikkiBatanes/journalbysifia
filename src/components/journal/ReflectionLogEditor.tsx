@@ -94,6 +94,7 @@ const fallbackStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 4,
+    lineHeight: 16,
   },
   metadataTextWithLineHeight: {
     fontSize: 12,
@@ -107,12 +108,14 @@ const fallbackStyles = {
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 4,
+    lineHeight: 14,
   },
   lastMetadataText: {
     fontSize: 12,
     color: Colors.hopeWhite,
     opacity: 0.6,
     marginBottom: 0,
+    lineHeight: 16,
   },
   header: {
     flexDirection: 'row',
