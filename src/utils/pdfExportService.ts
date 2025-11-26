@@ -1087,7 +1087,25 @@ class PDFExportService {
         bgColor: '#FFFFFF',
       };
 
-      const file = await generatePDF(options);
+      let file;
+      try {
+        file = await generatePDF(options);
+      } catch (pdfError) {
+        // Handle iOS print panel compatibility issues
+        Logger.error('[PDFExportService] PDF generation failed, trying fallback', pdfError as Error, {
+          component: 'pdfExportService',
+          errorType: 'PDF_GENERATION_ERROR',
+        });
+
+        // Fallback: try without print-specific options that might cause issues
+        const fallbackOptions = {
+          html,
+          fileName,
+          directory: 'Documents',
+        };
+
+        file = await generatePDF(fallbackOptions);
+      }
 
       Logger.debug('[PDFExportService] PDF generated successfully', {
         component: 'pdfExportService',
@@ -1141,7 +1159,25 @@ class PDFExportService {
         bgColor: '#FFFFFF',
       };
 
-      const file = await generatePDF(options);
+      let file;
+      try {
+        file = await generatePDF(options);
+      } catch (pdfError) {
+        // Handle iOS print panel compatibility issues
+        Logger.error('[PDFExportService] Playbook PDF generation failed, trying fallback', pdfError as Error, {
+          component: 'pdfExportService',
+          errorType: 'PDF_GENERATION_ERROR',
+        });
+
+        // Fallback: try without print-specific options that might cause issues
+        const fallbackOptions = {
+          html,
+          fileName,
+          directory: 'Documents',
+        };
+
+        file = await generatePDF(fallbackOptions);
+      }
 
       Logger.debug('[PDFExportService] Playbook PDF generated successfully', {
         component: 'pdfExportService',
