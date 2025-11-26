@@ -151,13 +151,12 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
   // Clear completion info when modal opens to prevent accidental triggers
   const [prevActive, setPrevActive] = useState(isActive);
+  const [prevVisible, setPrevVisible] = useState(visible);
+
   useEffect(() => {
     // Focus when modal becomes active (either through visibility change or isActive prop change)
     if (isActive && !prevActive) {
       // Modal is becoming active (transition from false to true)
-
-      // Completion state checked when modal opens
-
       // Auto-focus the first input when modal opens (for both new and existing entries)
       // Use a longer delay to ensure modal is fully rendered and keyboard is ready
       setTimeout(() => {
@@ -168,6 +167,22 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     }
     setPrevActive(isActive);
   }, [isActive, prevActive, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
+
+  // Also trigger focus when visible prop changes (for dashboard usage)
+  useEffect(() => {
+    // Focus when modal becomes visible (transition from false to true)
+    if (visible && !prevVisible) {
+      // Modal is becoming visible (transition from false to true)
+      // Auto-focus the first input when modal opens (for both new and existing entries)
+      // Use a longer delay to ensure modal is fully rendered and keyboard is ready
+      setTimeout(() => {
+        if (gratitudeEditorRef.current) {
+          gratitudeEditorRef.current.focusInput();
+        }
+      }, 800); // Increased delay for better reliability
+    }
+    setPrevVisible(visible);
+  }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
 
   // React Query mutations
   const createMutation = useCreateJournalEntry();
