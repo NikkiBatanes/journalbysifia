@@ -12,12 +12,12 @@ import { Logger } from './ProductionLogger';
  */
 export function useNotificationSetup(userId: string | undefined, navigationRef: any) {
   useEffect(() => {
-    if (!navigationRef || !navigationRef.current) {
+    if (!navigationRef) {
       return;
     }
 
-    // Set navigation reference for deep links
-    notificationDeepLinkService.setNavigationRef(navigationRef.current);
+    // Set navigation reference for deep links - pass the ref object
+    notificationDeepLinkService.setNavigationRef(navigationRef);
 
     Logger.info('Notification deep-link service initialized', {
       component: 'notificationSetup',

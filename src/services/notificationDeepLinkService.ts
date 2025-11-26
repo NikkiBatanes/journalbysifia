@@ -17,6 +17,7 @@ class NotificationDeepLinkService {
     Logger.info('Navigation reference set for deep linking', {
       component: 'notificationDeepLinkService',
       hasRef: !!ref,
+      hasCurrent: !!ref?.current,
     });
   }
 
@@ -31,9 +32,11 @@ class NotificationDeepLinkService {
         deepLink: notification?.data?.deep_link,
       });
 
-      if (!this.navigationRef) {
+      if (!this.navigationRef || !this.navigationRef.current) {
         Logger.warn('Navigation ref not set, cannot handle deep link', {
           component: 'notificationDeepLinkService',
+          hasRef: !!this.navigationRef,
+          hasCurrent: !!this.navigationRef?.current,
         });
         return;
       }
@@ -67,9 +70,11 @@ class NotificationDeepLinkService {
         deepLink,
       });
 
-      if (!this.navigationRef) {
+      if (!this.navigationRef || !this.navigationRef.current) {
         Logger.warn('Navigation ref not set, cannot navigate', {
           component: 'notificationDeepLinkService',
+          hasRef: !!this.navigationRef,
+          hasCurrent: !!this.navigationRef?.current,
         });
         return;
       }
@@ -85,7 +90,7 @@ class NotificationDeepLinkService {
       switch (screen) {
         case 'prayer':
           // Navigate to Journal screen directly with prayer parameters
-          this.navigationRef.navigate('MainTabs', { screen: 'Journal' });
+          this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
           // Journal screen will handle prayer navigation based on notification data
           Logger.info('Navigated to Journal for prayer', {
             component: 'notificationDeepLinkService',
@@ -96,10 +101,10 @@ class NotificationDeepLinkService {
         case 'playbook':
           // Navigate to specific PlaybookDetail screen
           if (id) {
-            this.navigationRef.navigate('PlaybookDetail', { playbookId: id });
+            this.navigationRef.current.navigate('PlaybookDetail', { playbookId: id });
           } else {
             // Navigate to Playbooks tab if no specific ID
-            this.navigationRef.navigate('MainTabs', { screen: 'Playbooks' });
+            this.navigationRef.current.navigate('MainTabs', { screen: 'Playbooks' });
           }
           Logger.info('Navigated to Playbook', {
             component: 'notificationDeepLinkService',
@@ -110,10 +115,10 @@ class NotificationDeepLinkService {
         case 'devotional':
           // Navigate to specific DevotionalDetail screen
           if (id) {
-            this.navigationRef.navigate('DevotionalDetail', { devotionalId: id });
+            this.navigationRef.current.navigate('DevotionalDetail', { devotionalId: id });
           } else {
             // Navigate to Devotionals tab if no specific ID
-            this.navigationRef.navigate('MainTabs', { screen: 'Devotionals' });
+            this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals' });
           }
           Logger.info('Navigated to Devotional', {
             component: 'notificationDeepLinkService',
@@ -123,7 +128,7 @@ class NotificationDeepLinkService {
 
         case 'journal':
           // Navigate to Journal screen directly
-          this.navigationRef.navigate('MainTabs', { screen: 'Journal' });
+          this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
           Logger.info('Navigated to Journal', {
             component: 'notificationDeepLinkService',
           });
@@ -131,7 +136,7 @@ class NotificationDeepLinkService {
 
         case 'profile':
           // Navigate to UserProfileModal for direct profile access
-          this.navigationRef.navigate('UserProfileModal');
+          this.navigationRef.current.navigate('UserProfileModal');
           Logger.info('Navigated to Profile', {
             component: 'notificationDeepLinkService',
           });
