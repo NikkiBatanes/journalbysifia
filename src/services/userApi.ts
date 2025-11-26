@@ -697,6 +697,15 @@ class UserApiService {
           }
         } catch {}
       }
+      
+      // Add automatic Seeker badge (Level 1) for all users
+      // All users automatically get the Seeker badge when they start
+      if (totalBadges === 0) {
+        totalBadges = 1; // At least the Seeker badge
+      } else {
+        // If user has other badges, they definitely have the Seeker badge too
+        totalBadges += 1;
+      }
 
       const profileStats = {
         faithPoints: profile.totalPoints,
