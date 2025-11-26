@@ -1885,12 +1885,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                     { paddingBottom: isLandscape ? 400 : 850 },
                   ]}
                   showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled={true}
+                  nestedScrollEnabled={false}
                   scrollEnabled={true}
                   onScrollBeginDrag={() => setIsScrolling(true)}
-                  onScrollEndDrag={() => setIsScrolling(false)}
-                  onMomentumScrollBegin={() => setIsScrolling(true)}
-                  onMomentumScrollEnd={() => setIsScrolling(false)}
+                  onScrollEndDrag={() => {
+                    // Add delay to prevent conflicts with tap gestures
+                    setTimeout(() => setIsScrolling(false), 50);
+                  }}
                 >
                   {card.type === 'action' ? (
                     // For action cards, don't wrap in TouchableOpacity - let the card handle collapse via header/close button
