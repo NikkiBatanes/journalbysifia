@@ -200,9 +200,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // Go back to reflection editor
           navigation.goBack();
         } else if (dismissBothModalsOnClose) {
-          // Dismiss both modals (e.g., from trial to sales offer)
+          // Dismiss both modals (e.g., from export restriction upgrade)
+          logger.debug('Dismissing both modals for export restriction upgrade');
           navigation.goBack();
-          setTimeout(() => navigation.goBack(), 100);
+          setTimeout(() => {
+            logger.debug('Dismissing second modal (export options modal)');
+            navigation.goBack();
+          }, 100);
         } else if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
           // Go back multiple times to return to TimeBlock screen
           navigation.goBack();
@@ -616,11 +620,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             setLastPurchasedTier(purchaseTier);
             setIsPurchasing(false); // Hide loading modal
             await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
+            
+            logger.info('Showing success modal for export restriction upgrade', {
+              purchaseTier,
+              source: routeParams?.source,
+              dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+            });
+            
             setShowSuccessModal(true);
 
             // Auto-dismiss sales offer screen after successful payment
             // Auto-navigate after a short delay to show success briefly
             setTimeout(() => {
+              logger.info('Auto-dismissing success modal and navigating back');
               handleSuccessModalContinue();
             }, 2000); // Show success for 2 seconds then auto-dismiss
           } else {
