@@ -493,6 +493,28 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     };
   }, []);
 
+  // Listen to reflection saved event and remove devotional questions immediately
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('reflection_saved', (payload: { reflectionId?: string; type?: string; source?: string; devotionalId?: string; dayNumber?: number; questionNumber?: number }) => {
+      // Only handle playbook reflections (which includes devotional questions) for immediate removal
+      if (payload?.source === 'playbook') {
+        // Remove the devotional question that was just answered
+        setQuestions(prev => prev.filter(q => {
+          // Match by devotional ID, day number, and question number
+          if (q.sourceType !== 'devotional') return true;
+          if (payload?.devotionalId && q.sourceId !== payload.devotionalId) return true;
+          if (payload?.dayNumber !== undefined && q.dayNumber !== payload.dayNumber) return true;
+          if (payload?.questionNumber !== undefined && q.questionIndex !== payload.questionNumber) return true;
+          // If all criteria match, this is the question that was answered - remove it
+          return false;
+        }));
+      }
+    });
+    return () => {
+      try { sub.remove(); } catch {}
+    };
+  }, []);
+
   // Realtime updates: refresh when devotionals change
   useEffect(() => {
     if (!user) { return; }

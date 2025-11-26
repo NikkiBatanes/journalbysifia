@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { Modal, View, StyleSheet, Keyboard, Alert } from 'react-native';
+import { Modal, View, StyleSheet, Keyboard, Alert, DeviceEventEmitter } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
@@ -132,6 +132,16 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         has_prompt: Boolean(question),
         date: dateStr,
       }, user.id);
+
+      // Emit event to refresh dashboard and remove this question immediately
+      DeviceEventEmitter.emit('reflection_saved', {
+        reflectionId: result.id,
+        type: 'devotional',
+        source: 'devotional',
+        devotionalId: devotionalId,
+        dayNumber: dayNumber,
+        questionNumber: questionNumber,
+      });
 
       // PERFORMANCE: Remove blocking refetch - invalidation will trigger automatic refetch
       // PERFORMANCE: Parallel cache invalidation instead of sequential

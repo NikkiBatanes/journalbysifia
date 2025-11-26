@@ -283,6 +283,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         reflectionId: savedReflection.id,
         type: reflectionData.type,
         source: finalSource,
+        // Include devotional metadata for precise question removal
+        ...(finalSource === 'playbook' ? {
+          devotionalId: playbookId,
+          dayNumber: actionStepNumber,
+          questionNumber: 1, // Default to 1 for single questions, could be enhanced for multiple questions
+        } : {}),
       });
 
       // Award faith points for answering reflection question (only for new reflections)

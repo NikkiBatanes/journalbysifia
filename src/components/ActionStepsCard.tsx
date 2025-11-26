@@ -375,7 +375,14 @@ export default function ActionStepsCard({
 
         const openedFromGuidedPrompt = !stepInfo;
         _setIsGuidedPromptActive(openedFromGuidedPrompt);
-        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: subTask.isExample ? 0 : (stepInfo?.stepNumber ?? 0), stepTitle: subTask.isExample ? 'Suggestion' : (stepInfo?.stepTitle ?? '') } as { stepNumber: number; stepTitle: string } });
+        
+        // Create fallback stepInfo with explicit types
+        const fallbackStepInfo: { stepNumber: number; stepTitle: string } = {
+          stepNumber: subTask.isExample ? 0 : (stepInfo?.stepNumber ?? 0),
+          stepTitle: subTask.isExample ? 'Suggestion' : (stepInfo?.stepTitle ?? '')
+        };
+        
+        setSelectedSubtask({ subTask, stepInfo: stepInfo || fallbackStepInfo });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('reflection');
 
@@ -1127,7 +1134,7 @@ export default function ActionStepsCard({
           existingReflection={existingReflection}
           selectedDate={selectedDate}
           isGuidedReflection={false} // Action steps are playbook context, not guided
-          hideGuidedPromptButton={false} // Show guided prompt button in action steps
+          hideGuidedPromptButton={true} // Hide guided prompt button in playbook detail screen context
           isJournalCarousel={false} // This is from action steps, not journal carousel
           onSave={handleReflectionSave}
           onCancel={() => {
