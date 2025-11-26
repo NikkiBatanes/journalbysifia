@@ -1,6 +1,5 @@
 import React, { useRef, useCallback, useState, useMemo } from 'react';
 import { View, Animated, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
-import { playSound } from '../../utils/soundUtils';
 import { Colors, standardColors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
 import { TodosReactQuery } from './TodosReactQuery';
