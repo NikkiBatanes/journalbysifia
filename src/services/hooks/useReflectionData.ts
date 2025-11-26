@@ -205,8 +205,7 @@ export const useCreateReflection = () => {
       });
     },
     onSuccess: (data, variables) => {
-
-      // Update the cache directly with the new data
+      // Update the cache directly with the new data (no refetching needed)
       const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
       queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
         // Remove any temporary entries and add the real one
@@ -214,18 +213,24 @@ export const useCreateReflection = () => {
         return [...filtered, data];
       });
 
-      // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.reflections.stats(variables.user_id, variables.selected_date, variables.selected_date) });
-
-      // Invalidate subtask-specific queries if subtask_id is present
-      if (variables.subtask_id) {
-        queryClient.invalidateQueries({ queryKey: ['reflections', 'subtask', variables.user_id, variables.subtask_id] });
+      // Update type-specific cache if type is specified
+      if (variables.type) {
+        queryClient.setQueryData(
+          queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type),
+          (old: ReflectionApiEntry[] = []) => {
+            const filtered = old.filter(entry => !entry.id.startsWith('temp-'));
+            return [...filtered, data];
+          }
+        );
       }
 
-      // Update search results
-      queryClient.invalidateQueries({ queryKey: ['reflections', 'search'] });
+      // Update subtask-specific queries if subtask_id is present (no refetch)
+      if (variables.subtask_id) {
+        queryClient.setQueryData(['reflections', 'subtask', variables.user_id, variables.subtask_id], data);
+      }
+
+      // Only invalidate search results (not critical queries)
+      queryClient.invalidateQueries({ queryKey: ['reflections', 'search'], refetchType: 'none' });
 
       // Track successful creation
       analytics.track('reflection_created', {
@@ -247,59 +252,23 @@ export const useUpdateReflection = () => {
       return ReflectionApi.updateReflectionEntry(id, updates);
     },
     onMutate: async ({ id, updates }) => {
-      // Find the reflection to get user_id and selected_date
-      const queries = queryClient.getQueriesData({ queryKey: ['reflections'] });
-      let reflectionToUpdate: ReflectionApiEntry | undefined;
-      let queryKey: any;
-
-      for (const [key, data] of queries) {
-        if (Array.isArray(data)) {
-          reflectionToUpdate = data.find((reflection: ReflectionApiEntry) => reflection.id === id);
-          if (reflectionToUpdate) {
-            queryKey = key;
-            break;
-          }
-        }
-      }
-
-      if (reflectionToUpdate && queryKey) {
-        // Cancel any outgoing refetches
-        await queryClient.cancelQueries({ queryKey });
-
-        // Snapshot the previous value
-        const previousReflections = queryClient.getQueryData(queryKey);
-
-        // Optimistically update the reflection
-        queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) =>
-          old.map(reflection =>
-            reflection.id === id
-              ? { ...reflection, ...updates, updated_at: new Date().toISOString() }
-              : reflection
-          )
-        );
-
-        return { previousReflections, queryKey, reflectionToUpdate };
-      }
-
+      // Skip optimistic updates for better performance - direct cache updates are sufficient
       return { id, updates };
     },
-    onError: (updateError, { id: _id }, context) => {
+    onError: (updateError, { id: _id }, _context) => {
       Logger.error('🔍 useUpdateReflection: API call failed', updateError as Error, {
   component: 'useReflectionData',
 });
-      if (context?.previousReflections && context?.queryKey) {
-        queryClient.setQueryData(context.queryKey, context.previousReflections);
-      }
+      // No rollback needed since we skipped optimistic updates
     },
     onSuccess: (data) => {
-
-      // Update the specific reflection in the main query
+      // Update the specific reflection in the main query (no refetching needed)
       const queryKey = queryKeys.reflections.byDate(data.user_id, data.selected_date);
       queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) =>
         old.map(reflection => reflection.id === data.id ? data : reflection)
       );
 
-      // Also update type-specific queries if type is specified
+      // Also update type-specific queries if type is specified (no refetching)
       if (data.type) {
         queryClient.setQueryData(
           queryKeys.reflections.byType(data.user_id, data.selected_date, data.type),
@@ -308,10 +277,12 @@ export const useUpdateReflection = () => {
         );
       }
 
-      // Invalidate subtask-specific queries if subtask_id is present
+      // Update subtask-specific queries if subtask_id is present (no refetch)
       if (data.subtask_id) {
-        queryClient.invalidateQueries({ queryKey: ['reflections', 'subtask', data.user_id, data.subtask_id] });
+        queryClient.setQueryData(['reflections', 'subtask', data.user_id, data.subtask_id], data);
       }
+
+      // No cache invalidation needed - we've already updated all relevant caches
     },
   });
 };
