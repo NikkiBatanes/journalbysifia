@@ -718,17 +718,46 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 <ThemedText weight="bold" style={styles.questionText}>{item.question}</ThemedText>
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
-                    style={styles.reflectButton}
+                    style={[
+                      styles.reflectButton,
+                      // Disable button for locked guided prompts in dashboard
+                      item.sourceType === 'guided' && guidedPromptGating.lockedPrompts.includes(item.question) && styles.lockedReflectButton
+                    ]}
                     onPress={() => {
-                      // Always allow opening the reflection editor to show the experience
-                      // The lock and upgrade flow will be handled inside the editor
+                      // Only allow tapping if it's not a locked guided prompt
+                      const isLockedGuidedPrompt = item.sourceType === 'guided' && guidedPromptGating.lockedPrompts.includes(item.question);
+                      if (isLockedGuidedPrompt) {
+                        // Don't allow interaction with locked guided prompts - they must tap the lock icon
+                        return;
+                      }
+                      
+                      // Allow opening the reflection editor for unlocked prompts
                       onQuestionPress?.(item);
                     }}
                     accessibilityRole="button"
-                    accessibilityLabel="Reflect on this question"
+                    accessibilityLabel={item.sourceType === 'guided' && guidedPromptGating.lockedPrompts.includes(item.question) ? "Locked guided prompt - tap lock icon to upgrade" : "Reflect on this question"}
+                    disabled={item.sourceType === 'guided' && guidedPromptGating.lockedPrompts.includes(item.question)}
                   >
-                    <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                    <ThemedText weight="medium" style={styles.reflectButtonText}>Reflect</ThemedText>
+                    <Pencil 
+                      size={16} 
+                      color={
+                        // Use alert coral for locked guided prompts, white for others
+                        item.sourceType === 'guided' && guidedPromptGating.lockedPrompts.includes(item.question) 
+                          ? Colors.alertCoral 
+                          : Colors.hopeWhite
+                      } 
+                      style={styles.buttonIcon} 
+                    />
+                    <ThemedText 
+                      weight="medium" 
+                      style={[
+                        styles.reflectButtonText,
+                        // Use alert coral text for locked guided prompts
+                        item.sourceType === 'guided' && guidedPromptGating.lockedPrompts.includes(item.question) && styles.lockedReflectButtonText
+                      ]}
+                    >
+                      Reflect
+                    </ThemedText>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
@@ -855,10 +884,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
   },
+  lockedReflectButton: {
+    borderColor: Colors.alertCoral,
+    opacity: 0.7,
+  },
   reflectButtonText: {
     color: Colors.hopeWhite,
     fontSize: 15,
     letterSpacing: 0.5,
+  },
+  lockedReflectButtonText: {
+    color: Colors.alertCoral,
   },
   buttonIcon: {
     marginRight: 8,
