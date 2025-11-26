@@ -565,7 +565,9 @@ class PushNotificationService {
 
       return true;
     } catch (error) {
-      console.error('Failed to save notification', error);
+      Logger.error('Failed to save notification', error as Error, {
+        component: 'pushNotificationService',
+      });
       return false;
     }
   }

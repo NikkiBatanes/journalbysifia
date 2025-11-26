@@ -41,7 +41,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
     try {
       setLoading(true);
-      console.log('📋 Fetch: Starting fetch process...');
 
       // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
 
@@ -259,17 +258,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     triggerLightHaptic();
 
     try {
-      console.log('🧹 Clear All: Starting clear process...');
-
       // Mark all in-app notifications as read
       const { error: notifError, data: notifData } = await supabase
         .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false)
-        .select(); // Add select to see what was updated
-
-      console.log('🧹 Clear All: Notifications update result:', { error: notifError, data: notifData });
+        .update({ read_at: new Date().toISOString() })
+        .is('read_at', null)
+        .select('id');
 
       if (notifError) {
         Logger.error('Failed to mark notifications as read in Supabase', notifError, {
@@ -283,35 +277,22 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         });
       }
 
-      // Cancel pending queued notifications (except family-related types)
-      // We need to fetch and filter manually since Supabase doesn't support NOT IN with arrays easily
-      const { data: queueItems } = await supabase
-        .from('notification_queue')
-        .select('id, type')
-        .eq('user_id', user.id)
-        .eq('status', 'pending');
-
-      console.log('🧹 Clear All: Queue items found:', queueItems);
+      // Cancel pending push notifications
+      const queueItems = await notificationManagementService.getPendingNotifications(user.id);
 
       if (queueItems && queueItems.length > 0) {
-        const familyTypes = ['family_invitation', 'member_joined', 'member_removed', 'trial_converted'];
-        const itemsToCancel = queueItems
-          .filter(item => !familyTypes.includes(item.type))
-          .map(item => item.id);
-
-        console.log('🧹 Clear All: Items to cancel:', itemsToCancel);
+        const itemsToCancel = queueItems.filter(item => 
+          item.type === 'push_notification' && 
+          item.status === 'pending'
+        );
 
         if (itemsToCancel.length > 0) {
-          const { error: queueError, data: queueUpdateData } = await supabase
-            .from('notification_queue')
-            .update({ status: 'cancelled' })
-            .in('id', itemsToCancel)
-            .select(); // Add select to see what was updated
-
-          console.log('🧹 Clear All: Queue update result:', { error: queueError, data: queueUpdateData });
+          const { error: queueError, data: queueUpdateData } = await notificationManagementService.cancelNotifications(
+            itemsToCancel.map(item => item.id)
+          );
 
           if (queueError) {
-            Logger.error('Failed to cancel queued notifications during clear-all', queueError, {
+            Logger.error('Failed to cancel pending push notifications', queueError, {
               component: 'NotificationsScreen',
               errorDetails: {
                 message: queueError.message,
@@ -325,16 +306,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       }
 
       // Refresh the notification list and badge count
-      console.log('🧹 Clear All: Refreshing notifications and badge...');
       await fetchNotifications();
       await fetchBadgeCount();
 
-      console.log('🧹 Clear All: Process completed');
       Logger.info('Cleared all notifications except pending family invitations', {
         component: 'NotificationsScreen',
       });
     } catch (error) {
-      console.log('🧹 Clear All: Error occurred:', error);
       Logger.error('Failed to clear notifications', error as Error, {
         component: 'NotificationsScreen',
       });

@@ -39,7 +39,9 @@ export class SafeNetworkingManager {
       // On other platforms, use the original method
       return response.suggestedFilename || null;
     } catch (error) {
-      console.warn('SafeNetworkingManager: Error getting filename:', error);
+      Logger.warn('SafeNetworkingManager: Error getting filename:', error as Error, {
+        component: 'SafeNetworkingManager',
+      });
       // Fallback to generic filename
       const timestamp = Date.now();
       return `response_${timestamp}.bin`;

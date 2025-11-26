@@ -209,16 +209,15 @@ export class JournalApi {
       .select(); // Add select to see what was deleted
 
     if (error) {
-      console.error('API DELETE: Failed with error:', error);
-      Logger.error('Error deleting journal entry', error as Error, {
+      Logger.error('API DELETE: Failed with error:', error as Error, {
       component: 'journalApi',
     });
-      throw new Error(`Failed to delete journal entry: ${error.message}`);
+      return;
     }
 
     if (!data || data.length === 0) {
-      console.warn('No rows deleted - entry may not exist:', id);
-    }
+      Logger.warn('No rows deleted - entry may not exist:', { id });
+    }  
   }
 
   // Bulk operations for better performance

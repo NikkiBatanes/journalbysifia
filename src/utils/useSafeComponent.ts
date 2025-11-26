@@ -60,7 +60,10 @@ export const useSafeIntervals = (namespace: string): { setInterval: (id: string,
       try {
         callback();
       } catch (error) {
-        console.error(`Error in interval ${fullId}:`, error);
+        Logger.error(`Error in interval ${fullId}:`, error as Error, {
+          component: 'useSafeComponent',
+          intervalId: fullId,
+        });
         // Clear this specific interval on error
         const errorInterval = intervalsRef.current.get(fullId);
         if (errorInterval) {

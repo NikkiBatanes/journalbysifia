@@ -754,13 +754,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
-    console.log('🔍 ReflectionLog: handleEntryPress called', { entryId: entry.id, entry });
-
     // Set editing state
     setEditingId(entry.id);
     setSelectedEntry(entry);
-
-    console.log('🔍 ReflectionLog: Editing state set', { editingId: entry.id, selectedEntry: entry });
 
     // For guided and devotional entries, set the selected prompt if available
     if (entry.type === 'guided' || entry.type === 'devotional') {
@@ -1212,8 +1208,6 @@ return (
                 return;
               }
 
-              console.log('🔍 ReflectionLog: onSave called', { editingId, entryData });
-
               try {
                 // Determine the type - convert 'free-form' to 'free' for database compatibility
                 const rawType = editingId ? (selectedEntry?.type || newEntry.type || 'free') : (entryData.type || newEntry.type || 'free');
@@ -1236,10 +1230,7 @@ return (
                   ...(determinedSource && { source: determinedSource }),
                 };
 
-                console.log('🔍 ReflectionLog: Save data prepared', { editingId, normalizedType, determinedSource, saveData });
-
                 if (editingId) {
-                  console.log('🔍 ReflectionLog: Updating existing reflection', { editingId, saveData });
                   // Update existing entry
                   await updateMutation.mutateAsync({ id: editingId, updates: saveData });
 
@@ -1255,7 +1246,6 @@ return (
                     date: dateStr,
                   }, user.id);
                 } else {
-                  console.log('🔍 ReflectionLog: Creating new reflection', { saveData });
                   // Create new entry
                   await createMutation.mutateAsync(saveData);
 

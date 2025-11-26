@@ -153,7 +153,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
                 const { JournalCache } = await import('../../services/cache/journalCache');
                 await JournalCache.clearCache(userId, dateStr, 'looking_forward');
               } catch (cacheError) {
-                console.error('Failed to clear AsyncStorage cache:', cacheError);
+                Logger.error('Failed to clear AsyncStorage cache:', cacheError as Error, {
+                  component: 'LookingForwardReactQuery',
+                });
               }
             }
 
@@ -163,7 +165,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
                 // Don't refetch - trust our cache manipulation since API succeeded
               },
               onError: (deleteError: any) => {
-                console.error('Failed to delete entry:', id, deleteError);
+                Logger.error('Failed to delete entry:', deleteError as Error, {
+                  component: 'LookingForwardReactQuery',
+                  entryId: id,
+                });
                 triggerErrorHaptic();
                 // Only refetch if delete failed to restore the original data
                 refetch();

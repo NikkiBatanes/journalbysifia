@@ -287,19 +287,11 @@ export const useUpdateReflection = () => {
       // No rollback needed since we skipped optimistic updates
     },
     onSuccess: (data, _variables) => {
-      console.log('🔍 useUpdateReflection: API response received', { data });
-
       // Update the specific reflection in the main query (no refetching needed)
       const queryKey = queryKeys.reflections.byDate(data.user_id, data.selected_date);
-      console.log('🔍 useUpdateReflection: Updating cache', { queryKey, dataId: data.id });
-
+      
       queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
         const updated = old.map(reflection => reflection.id === data.id ? data : reflection);
-        console.log('🔍 useUpdateReflection: Cache updated', {
-          oldCount: old.length,
-          updatedCount: updated.filter(r => r.id === data.id).length,
-          found: updated.some(r => r.id === data.id),
-        });
         return updated;
       });
 

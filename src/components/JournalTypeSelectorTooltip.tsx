@@ -94,14 +94,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
 
   // Debug: log detection for iPad spacing
   if (__DEV__ && visible) {
-
-    console.log('JournalTypeSelectorTooltip device info', {
-      platform: Platform.OS,
-      isPad: (Platform as any).isPad,
-      screenWidth,
-      screenHeight,
-      isIPad,
-    });
+    // Device info logging removed for production
   }
 
   // Set initial dynamic top after screen height is available
@@ -142,15 +135,7 @@ const JournalTypeSelectorTooltip: React.FC<JournalTypeSelectorTooltipProps> = ({
               // Ensure text is not too high (min 20% from top) and not too low (max 40% from top)
               const calculatedTop = Math.max(screenHeight * 0.2, Math.min(minTopPosition, screenHeight * 0.4));
 
-              console.log('Dynamic positioning:', {
-                textHeight: height,
-                screenHeight,
-                pickerTop,
-                textBubbleHeight,
-                minTopPosition,
-                calculatedTop,
-                defaultTop: screenHeight * 0.3,
-              });
+              // Dynamic positioning logging removed for production
 
               setDynamicTop(calculatedTop);
             }

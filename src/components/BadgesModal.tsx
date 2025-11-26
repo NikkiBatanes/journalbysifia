@@ -158,7 +158,9 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       setAvailableBadges(availableWithStatus);
       setUserBadges(unlockedBadges);
     } catch (error) {
-      console.error('Error loading badges:', error);
+      Logger.error('Error loading badges:', error as Error, {
+        component: 'BadgesModal',
+      });
     } finally {
       setLoading(false);
     }
