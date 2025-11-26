@@ -256,66 +256,50 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         result = await createMutation.mutateAsync(gratitudeEntry);
       }
 
-      // PERFORMANCE: Parallel cache invalidation instead of sequential
-      if (user?.id) {
-        // Invalidate only the specific queries that need updating
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ['journal', 'gratitude', user.id, dateStr],
-          }),
-          // Only invalidate 'journal, all' if this is a new entry (not an update)
-          !currentGratitudeEntry?.id && queryClient.invalidateQueries({
-            queryKey: ['journal', 'all'],
-          }),
-        ].filter(Boolean));
-      }
-
-      // Call parent onSave callback
+      // Call parent onSave callback immediately
       onSave(result);
 
-      // PERFORMANCE: Optimize action steps completion - only check if needed
-      if (stepId && subtaskId && handleToggleStep) {
-        // Early return if we don't have action steps data
-        if (!actionSteps || actionSteps.length === 0) {
-          Logger.warn('🙏 SmartJournalingGratitudeModal: No action steps data available', {
-            component: 'SmartJournalingGratitudeModal',
-            stepId,
-            subtaskId,
-          });
-          return;
-        }
+      // Show success modal immediately for better UX
+      const isEditing = !!currentGratitudeEntry?.id;
+      successModal.showSuccess({
+        title: isEditing ? 'Gratitude Updated' : 'Gratitude Saved',
+        message: isEditing ? 'Your gratitude has been updated.' : 'Your gratitude has been saved to your journal.',
+        showEditButton: true,
+      });
 
-        // Use find with early exit for better performance
-        const step = actionSteps.find(s => s.id === stepId);
-        if (!step) {
-          Logger.warn('🙏 SmartJournalingGratitudeModal: Step not found in actionSteps', {
-            component: 'SmartJournalingGratitudeModal',
-            stepId,
-            availableStepIds: actionSteps.map(s => s.id),
+      // PERFORMANCE: All cache invalidation is non-blocking - happens after UI updates
+      if (user?.id) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'gratitude', user.id, dateStr],
           });
-          return;
-        }
-
-        // Check completion status and toggle only if needed
-        if (subtaskId) {
-          const subtask = step.subTasks?.find(st => st.id === subtaskId);
-          if (subtask && !subtask.completed) {
-            handleToggleStep(stepId, subtaskId);
+          
+          // Also invalidate 'journal, all' for new entries
+          if (!currentGratitudeEntry?.id) {
+            queryClient.invalidateQueries({
+              queryKey: ['journal', 'all'],
+            });
           }
-        } else if (!step.completed) {
-          handleToggleStep(stepId, subtaskId);
-        }
+        }, 0);
       }
 
-      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
-      setTimeout(() => {
-        const isEditing = !!currentGratitudeEntry?.id;
-        successModal.showSuccess({
-          title: isEditing ? 'Gratitude Updated' : 'Gratitude Saved',
-          message: isEditing ? 'Your gratitude has been updated.' : 'Your gratitude has been saved to your journal.',
-          showEditButton: true,
-        });
-      }, 500);
+      // PERFORMANCE: Handle action steps completion asynchronously (non-blocking)
+      if (stepId && subtaskId && handleToggleStep && actionSteps && actionSteps.length > 0) {
+        // Run in next tick to avoid blocking UI
+        setTimeout(() => {
+          const step = actionSteps.find(s => s.id === stepId);
+          if (step) {
+            if (subtaskId) {
+              const subtask = step.subTasks?.find(st => st.id === subtaskId);
+              if (subtask && !subtask.completed) {
+                handleToggleStep(stepId, subtaskId);
+              }
+            } else if (!step.completed) {
+              handleToggleStep(stepId, subtaskId);
+            }
+          }
+        }, 0);
+      }
 
     } catch (error: any) {
       Logger.error('❌ SmartJournalingGratitudeModal: SAVE FAILED', error as Error, {

@@ -15,7 +15,7 @@ export const useGratitudeData = (userId: string, date: string, config?: Partial<
     staleTime: 1 * 60 * 1000, // Reduced to 1 minute to ensure fresher data
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
-    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnMount: false, // Don't refetch on mount to prevent skeleton loading
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
     retry: createRetryFunction(RETRY_CONFIGS.GRATITUDE_ENHANCED),
     retryDelay: createRetryDelayFunction(RETRY_CONFIGS.GRATITUDE_ENHANCED),
@@ -57,7 +57,7 @@ export const useTodosData = (userId: string, date: string, config?: Partial<Quer
     staleTime: 5 * 60 * 1000, // 5 minutes stale time
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
-    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnMount: false, // Don't refetch on mount to prevent skeleton loading
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
     retry: createRetryFunction(RETRY_CONFIGS.TODOS_ENHANCED),
     retryDelay: createRetryDelayFunction(RETRY_CONFIGS.TODOS_ENHANCED),
@@ -99,7 +99,7 @@ export const useTodaysFocusData = (userId: string, date: string, config?: Partia
     staleTime: 5 * 60 * 1000, // 5 minutes stale time
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
-    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnMount: false, // Don't refetch on mount to prevent skeleton loading
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
     retry: createRetryFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
     retryDelay: createRetryDelayFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
@@ -282,11 +282,12 @@ export const useCreateJournalEntry = () => {
         }
       }
     },
-    onSuccess: async (data, variables) => {
-      // Award faith points for journal entry
-      if (variables.user_id) {
-        try {
-          await faithPointsService.awardPoints(
+    onSuccess: (data, variables) => {
+      // PERFORMANCE: Run all background tasks asynchronously (non-blocking)
+      setTimeout(() => {
+        // Award faith points for journal entry (non-blocking)
+        if (variables.user_id) {
+          faithPointsService.awardPoints(
             variables.user_id,
             'journal_entry',
             {
@@ -294,52 +295,52 @@ export const useCreateJournalEntry = () => {
               content_type: variables.content_type,
               source: 'journal',
             }
-          );
-        } catch (error) {
-          Logger.warn('Failed to award faith points for journal entry', {
-            component: 'useJournalData',
-            error: error as Error,
+          ).catch(error => {
+            Logger.warn('Failed to award faith points for journal entry', {
+              component: 'useJournalData',
+              error: error as Error,
+            });
           });
+
+          // Update journal streak (non-blocking)
+          streakTrackingService.updateStreak(variables.user_id, 'journal')
+            .then(() => {
+              // Invalidate streak tracker to refresh UI
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.dashboard.streaks(variables.user_id),
+              });
+            })
+            .catch(error => {
+              Logger.warn('Failed to update journal streak', {
+                component: 'useJournalData',
+                error: error as Error,
+              });
+            });
         }
 
-        // Update journal streak
-        try {
-          await streakTrackingService.updateStreak(variables.user_id, 'journal');
+        // Invalidate and refetch related queries (non-blocking)
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date),
+        });
 
-          // Invalidate streak tracker to refresh UI
+        // Also invalidate content-type specific queries
+        if (variables.content_type === 'gratitude') {
           queryClient.invalidateQueries({
-            queryKey: queryKeys.dashboard.streaks(variables.user_id),
+            queryKey: queryKeys.journal.gratitude(variables.user_id, variables.selected_date),
           });
-        } catch (error) {
-          Logger.warn('Failed to update journal streak', {
-            component: 'useJournalData',
-            error: error as Error,
+        } else if (variables.content_type === 'todo') {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.journal.todos(variables.user_id, variables.selected_date),
+          });
+        } else if (variables.content_type === 'todays_focus') {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.journal.todaysFocus(variables.user_id, variables.selected_date),
           });
         }
-      }
 
-      // Invalidate and refetch related queries
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date),
-      });
-
-      // Also invalidate content-type specific queries
-      if (variables.content_type === 'gratitude') {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.journal.gratitude(variables.user_id, variables.selected_date),
-        });
-      } else if (variables.content_type === 'todo') {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.journal.todos(variables.user_id, variables.selected_date),
-        });
-      } else if (variables.content_type === 'todays_focus') {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.journal.todaysFocus(variables.user_id, variables.selected_date),
-        });
-      }
-
-      // Clear cache to force fresh data
-      JournalCache.clearCache(variables.user_id, variables.selected_date, variables.content_type);
+        // Clear cache to force fresh data
+        JournalCache.clearCache(variables.user_id, variables.selected_date, variables.content_type);
+      }, 0);
     },
   });
 };

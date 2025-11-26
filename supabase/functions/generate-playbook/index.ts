@@ -217,15 +217,29 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   const affMatch = content.match(/AFFIRMATIONS?:\s*([\s\S]*?)(?=BIBLE VERSE:|CHALLENGE:|$)/i);
   if (affMatch) {
     const affirmations = affMatch[1].split(/\n/).filter(l => l.trim().length > 0);
-    playbook.affirmations = affirmations.map((text, _idx) => {
-      // Remove any leading numbers, dots, dashes, or other punctuation
-      const cleanText = text.replace(/^[\s\d\-*•.]+/, '').trim();
-      return {
-        id: generateUUID(),
-        text: cleanText,
-        completed: false,
-      };
-    });
+    playbook.affirmations = affirmations
+      .map((text, _idx) => {
+        // Remove any leading numbers, dots, dashes, or other punctuation
+        const cleanText = text.replace(/^[\s\d\-*•.]+/, '').trim();
+        
+        // Filter out lines that are just Bible verse references (e.g., "John 3:16", "1 Peter 5:7")
+        // Pattern matches: BOOK chapter:verse or BOOK chapter:verse-verse
+        const isBibleReference = /^[A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:\s*[A-Z]+)?$/i.test(cleanText);
+        
+        // Also filter out lines that are just verse text with reference (e.g., "Cast all your anxiety... - 1 Peter 5:7")
+        const hasVerseReference = /[-—]\s*[A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:\s*[A-Z]+)?$/i.test(cleanText);
+        
+        if (isBibleReference || hasVerseReference) {
+          return null; // Filter out Bible verse references
+        }
+        
+        return {
+          id: generateUUID(),
+          text: cleanText,
+          completed: false,
+        };
+      })
+      .filter((aff): aff is { id: string; text: string; completed: boolean } => aff !== null);
   }
 
   // Parse Bible Verse with enhanced scripture patterns
@@ -299,8 +313,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       }
     }
 
-    // Clean up the verse text (remove any remaining quotes or dashes at the start/end)
-    verseText = verseText.replace(/^[\s"'`-]+|[\s"'`-]+$/g, '').trim();
+    // Clean up the verse text (remove any remaining quotes, dashes, or colons at the start/end)
+    verseText = verseText
+      .replace(/^[\s:,\-\—"'`]+|[\s.,\-\—"'`]+$/g, '') // Remove leading/trailing punctuation including colons
+      .trim();
 
     // Set the values in the playbook
     playbook.bibleVerse.text = verseText || verseContent;

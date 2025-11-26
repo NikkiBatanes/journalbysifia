@@ -42,12 +42,17 @@ export const formatBibleVerse = (verse: string): string => {
     .replace(/\s+/g, ' ')
     .trim();
 
-  // 3) Fix spacing around punctuation
+  // 3) Remove leading punctuation (colons, dashes, quotes) that might appear after parsing
+  formatted = formatted
+    .replace(/^[:\-\—\s"']+/, '') // Remove leading colons, dashes, quotes, spaces
+    .trim();
+
+  // 4) Fix spacing around punctuation
   formatted = formatted
     .replace(/\s+([.,!?;:])/g, '$1')
     .replace(/([.,!?;:])([^\s])/g, '$1 $2');
 
-  // 4) Strip trailing empty `()` artifacts in a few variants
+  // 5) Strip trailing empty `()` artifacts in a few variants
   formatted = formatted
     // Case 1: " ... " () or " ... " ()! etc.
     .replace(/"\s*\(\)\s*([.,!?;:]*)\s*$/g, '$1')

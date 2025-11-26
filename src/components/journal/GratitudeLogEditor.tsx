@@ -1,6 +1,5 @@
-import React, { useRef, useEffect, useImperativeHandle, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   TextInput,
@@ -287,35 +286,6 @@ const defaultStyles = {
     marginBottom: 2,
   },
 
-  // Draft notification styles (matching reflection editor)
-  draftNotification: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -100 }, { translateY: -25 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    width: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  draftIcon: {
-    marginRight: 8,
-  },
-  draftText: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-    fontWeight: '500',
-  },
 
   gratitudeItemContainer: {
     marginBottom: 4,
@@ -477,8 +447,6 @@ const GratitudeLogEditorInner = (
   // State for gratitude items
   const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(processedInitialItems);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
-  const [showDraftNotification, setShowDraftNotification] = React.useState(false);
-  const [isFirstLoad, setIsFirstLoad] = React.useState(true);
 
   // Refs for inputs
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -527,66 +495,7 @@ const GratitudeLogEditorInner = (
     },
   }));
 
-  // Helper function to get unique draft key for each gratitude (optimized with useMemo)
-  const getDraftKey = useMemo(() => {
-    // Get current date for uniqueness
-    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
-    if (subtaskId && stepId) {
-      // Use subtaskId and stepId for maximum uniqueness
-      return `@gratitude_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
-    }
-
-    if (_subtaskTitle && playbookTitle) {
-      // Fallback to title-based key with date
-      const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
-      const stepNum = actionStepNumber || 0;
-      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-      return `@gratitude_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
-    }
-
-    // If we have subtaskTitle but no playbook, use it for uniqueness
-    if (_subtaskTitle) {
-      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-      return `@gratitude_editor_draft_${taskTitle}_${currentDate}`;
-    }
-
-    // Default key with date only (for freeform gratitude)
-    return `@gratitude_editor_draft_freeform_${currentDate}`;
-  }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber]);
-
-  // Load draft on component mount
-  useEffect(() => {
-    const loadDraft = async () => {
-      try {
-        // Don't load draft if we already have meaningful initialItems (existing data)
-        const hasExistingData = initialItems && initialItems.some((item: string) => item.trim());
-
-        if (hasExistingData) {
-          setIsFirstLoad(false);
-          return;
-        }
-
-        const draft = await AsyncStorage.getItem(getDraftKey);
-        if (draft && isFirstLoad) {
-          const parsedDraft = JSON.parse(draft);
-          if (parsedDraft.items && parsedDraft.items.some((item: string) => item.trim())) {
-            // Apply numbering to draft items as well
-            const numberedDraftItems = addNumbersToItems(parsedDraft.items);
-            setGratitudeItems(numberedDraftItems);
-            setShowDraftNotification(true);
-            setTimeout(() => setShowDraftNotification(false), 3000);
-          }
-        }
-      } catch (error) {
-        // Error silently handled - draft loading is not critical
-      } finally {
-        setIsFirstLoad(false);
-      }
-    };
-
-    loadDraft();
-  }, [getDraftKey, isFirstLoad, initialItems, addNumbersToItems]);
 
   // Update gratitude items when initialItems changes (for React Query data loading)
   useEffect(() => {
@@ -599,30 +508,7 @@ const GratitudeLogEditorInner = (
     }
   }, [initialItems, hasUserMadeChanges, addNumbersToItems]);
 
-  // Debounced draft saving to reduce AsyncStorage operations
-  useEffect(() => {
-    if (!isFirstLoad && hasUserMadeChanges) {
-      const timeoutId = setTimeout(async () => {
-        try {
-          // Save clean items without numbers to draft
-          const cleanItems = gratitudeItems.map(item => item.replace(/^\d+\. /, ''));
-          await AsyncStorage.setItem(getDraftKey, JSON.stringify({ items: cleanItems }));
-        } catch (error) {
-          // Error silently handled - draft saving is not critical
-        }
-      }, 1000); // 1 second debounce
-      return () => clearTimeout(timeoutId);
-    }
-  }, [gratitudeItems, getDraftKey, isFirstLoad, hasUserMadeChanges]);
 
-  // Clear draft on successful save (optimized with useCallback)
-  const clearDraft = useCallback(async () => {
-    try {
-      await AsyncStorage.removeItem(getDraftKey);
-    } catch (error) {
-      // Error silently handled - draft clearing is not critical
-    }
-  }, [getDraftKey]);
 
   // Optimized text formatting function
   const formatText = useCallback((text: string, index: number): string => {
@@ -700,7 +586,7 @@ const GratitudeLogEditorInner = (
     }
   };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     const startTime = Date.now();
 
     // Check if feature is gated for seeker accounts
@@ -733,21 +619,19 @@ const GratitudeLogEditorInner = (
       return;
     }
 
-    // Clear draft before saving
-    await clearDraft();
-
     // Remove numbers from items before saving to database
     const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
 
-    // Call onSave synchronously like ReflectionLogEditor
+    // Call onSave synchronously for immediate UI response
     onSave({
       items: cleanItems,
       date: new Date(),
     });
 
+
     const endTime = Date.now();
     console.log(`[GratitudeLogEditor] Save completed in ${endTime - startTime}ms`);
-  }, [smartJournalingGating, onUpgradeRequired, navigation, subscription?.tier, gratitudeItems, onSave, clearDraft]);
+  }, [smartJournalingGating, onUpgradeRequired, navigation, subscription?.tier, gratitudeItems, onSave]);
 
   // Check if form is valid (has content) AND user has made changes
   const isFormValid = gratitudeItems.some(item => item.trim()) && hasUserMadeChanges;
@@ -755,13 +639,6 @@ const GratitudeLogEditorInner = (
   // Main render - exactly matching reflection editor layout
   return (
     <View style={s.container}>
-      {/* Draft notification */}
-      {showDraftNotification && (
-        <View style={s.draftNotification}>
-          <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
-          <ThemedText weight="medium" style={s.draftText}>Draft Restored</ThemedText>
-        </View>
-      )}
       <StatusBar hidden />
       <View style={s.backgroundContainer} />
       <View style={s.header}>
