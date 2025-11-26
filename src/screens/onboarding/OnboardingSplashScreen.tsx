@@ -11,6 +11,7 @@ import {
   StatusBar,
   Platform,
   Image,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,6 +37,9 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const isMountedRef = useRef(true);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isNavigatingRef = useRef(false);
+
+  // Consistent logo sizing across all devices
+  const logoSize = 180; // Consistent 180x180 size for all devices
 
 
   useEffect(() => {
@@ -559,7 +563,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       <View style={styles.logoSection}>
         <Image
           source={require('../../../assets/icons/siFiaTransparent.png')}
-          style={styles.logoImage}
+          style={[styles.logoImage, { width: logoSize, height: logoSize }]}
           resizeMode="contain"
         />
       </View>
