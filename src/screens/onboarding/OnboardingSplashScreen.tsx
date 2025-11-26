@@ -38,8 +38,10 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isNavigatingRef = useRef(false);
 
-  // Consistent logo sizing across all devices
-  const logoSize = 180; // Consistent 180x180 size for all devices
+  // Responsive logo sizing for different devices
+  const { width, height } = Dimensions.get('window');
+  const isTablet = width >= 768 || height >= 768;
+  const logoSize = isTablet ? 180 : 120; // Larger logo for iPad, smaller for iPhone
 
 
   useEffect(() => {
