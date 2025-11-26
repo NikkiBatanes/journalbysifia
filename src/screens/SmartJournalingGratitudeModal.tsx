@@ -273,7 +273,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           queryClient.invalidateQueries({
             queryKey: ['journal', 'gratitude', user.id, dateStr],
           });
-          
+
           // Also invalidate 'journal, all' for new entries
           if (!currentGratitudeEntry?.id) {
             queryClient.invalidateQueries({

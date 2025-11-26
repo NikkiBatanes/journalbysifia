@@ -179,7 +179,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       logger.debug('Already navigating away, ignoring duplicate call');
       return;
     }
-    
+
     setIsNavigatingAway(true);
     setShowSuccessModal(false);
     setLastPurchasedTier(null);
@@ -617,7 +617,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             setIsPurchasing(false); // Hide loading modal
             await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
             setShowSuccessModal(true);
-            
+
             // Auto-dismiss sales offer screen after successful payment
             // Auto-navigate after a short delay to show success briefly
             setTimeout(() => {
@@ -741,7 +741,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setPurchaseValidated(true);
           setLastPurchasedTier(purchaseTier);
           setShowSuccessModal(true);
-          
+
           // Auto-dismiss sales offer screen after successful payment
           // Auto-navigate after a short delay to show success briefly
           setTimeout(() => {
