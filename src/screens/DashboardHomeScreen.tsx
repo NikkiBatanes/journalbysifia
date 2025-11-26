@@ -6,7 +6,7 @@
  * Enterprise-grade dashboard home screen with comprehensive faith-based features
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import {
   View,
@@ -25,6 +25,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   PanResponder,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -89,6 +90,30 @@ interface DashboardHomeScreenProps {
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Responsive notification badge dimensions for iPad
+  const { notificationBadgeSize, notificationBadgeRadius, notificationBadgeTop, notificationBadgeRight, notificationCountFontSize } = useMemo(() => {
+    if (screenWidth >= 768) {
+      // iPad - smaller badge
+      return {
+        notificationBadgeSize: 12,
+        notificationBadgeRadius: 6,
+        notificationBadgeTop: 4,
+        notificationBadgeRight: 4,
+        notificationCountFontSize: 7,
+      };
+    } else {
+      // Phone - normal size
+      return {
+        notificationBadgeSize: 14,
+        notificationBadgeRadius: 7,
+        notificationBadgeTop: 6,
+        notificationBadgeRight: 6,
+        notificationCountFontSize: 9,
+      };
+    }
+  }, [screenWidth]);
 
   // Fonts: derive theme font for TextInput usage (placeholders inherit TextInput font)
   const { currentFont } = useTheme();
@@ -224,19 +249,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     notificationBadge: {
       position: 'absolute',
-      top: 6,
-      right: 6,
+      top: notificationBadgeTop,
+      right: notificationBadgeRight,
       backgroundColor: Colors.alertCoral,
-      borderRadius: 7,
-      minWidth: 14,
-      height: 14,
+      borderRadius: notificationBadgeRadius,
+      minWidth: notificationBadgeSize,
+      height: notificationBadgeSize,
       justifyContent: 'center',
       alignItems: 'center',
     },
     notificationCount: {
-      fontSize: 9,
+      fontSize: notificationCountFontSize,
       color: Colors.hopeWhite,
-      lineHeight: 12,
+      lineHeight: notificationBadgeSize,
     },
     profileImage: {
       width: 32,
