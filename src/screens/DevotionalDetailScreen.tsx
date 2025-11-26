@@ -1440,6 +1440,7 @@ const styles = StyleSheet.create({
   questionCardWrapper: {
     width: '100%',
     marginBottom: 8,
+    // Ensure the wrapper allows content to expand vertically
   },
   questionCardContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -1447,6 +1448,7 @@ const styles = StyleSheet.create({
     padding: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
+    minHeight: 44, // Ensure minimum height for multi-line text
   },
   questionCardNumber: {
     color: Colors.hopeWhite,
@@ -1467,6 +1469,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
+    minHeight: 20, // Ensure minimum height for single line
+    paddingTop: 2, // Add slight top padding for better alignment
   },
   fab: {
     position: 'absolute',
@@ -1640,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    overflow: 'hidden',
+    // Remove overflow: 'hidden' to prevent text clipping in question cards
   },
   journaledQuestionNumber: {
     backgroundColor: Colors.growthGreen,
