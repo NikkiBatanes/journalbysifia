@@ -26,7 +26,7 @@ import {
 import { GestureDetector } from 'react-native-gesture-handler';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 // import { CommonActions } from '@react-navigation/native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Animation
 import Animated, {
@@ -226,7 +226,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const isLandscape = windowWidth > windowHeight;
   const isTablet = windowWidth >= 768;
   // Always constrain card width, even in landscape - never full screen
-  const maxCardWidth = Math.min(windowWidth - 64, 720);
+  // On iPad, match header width (windowWidth - 44) to align with progress bar and share button row
+  const cardPadding = isTablet ? 44 : 64; // 22px padding on each side for iPad header
+  const maxCardWidth = Math.min(windowWidth - cardPadding, 720);
   // Status bar: force light icons (white) on dark header background
   useScreenStatusBar('dark', Colors.anchorBlue);
   // Measure header height so we can place the card overlay precisely below it
@@ -2192,9 +2194,8 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   contentContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 600 : 720, // Smaller max width for iOS 18.0
+    maxWidth: 720,
     alignSelf: 'center',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 40 : 0, // Much more padding for iOS 18.0 and below
   },
   loadingContainer: {
     width: '100%',
@@ -2204,12 +2205,11 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   cardStackContainer: {
     position: 'relative',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 48 : 16, // Much more padding for iOS 18.0 and below
+    paddingHorizontal: 16,
     paddingTop: 20,
     alignItems: 'center',
     minHeight: 600,
     justifyContent: 'flex-start',
-    maxWidth: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? '90%' : '100%', // Limit width on iOS 18.0
   },
   swipeUpIndicatorContainer: {
     position: 'absolute',
@@ -2380,7 +2380,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   docContentContainer: {
     paddingTop: 0,
     paddingBottom: 32,
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 40 : 0, // Much more padding for iOS 18.0 and below
+    paddingHorizontal: 0,
     alignItems: 'center',
   },
   docContentContainerInner: {
@@ -2814,13 +2814,12 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   // Stacked cards container
   stackedCardsContainer: {
     position: 'relative',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 48 : 16, // Much more padding for iOS 18.0 and below
+    paddingHorizontal: 16,
     paddingTop: 28,
     paddingBottom: 24,
     alignItems: 'center',
     minHeight: 600,
     justifyContent: 'flex-start',
-    maxWidth: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? '90%' : '100%', // Limit width on iOS 18.0
   },
   stackedCardExpanded: {
     position: 'relative',
