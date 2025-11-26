@@ -794,7 +794,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         case 5:
           return challengeDetails.trim().length > 0;
         default:
-          return false;
+          // Safeguard: allow continue if step is invalid to prevent stuck state
+          return currentStep > 0 && currentStep <= totalSteps;
       }
     } else {
       // Without name step: Age(1) -> Faith(2) -> Challenge(3) -> Details(4)
@@ -808,7 +809,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         case 4:
           return challengeDetails.trim().length > 0;
         default:
-          return false;
+          // Safeguard: allow continue if step is invalid to prevent stuck state
+          return currentStep > 0 && currentStep <= totalSteps;
       }
     }
   };
@@ -1139,21 +1141,38 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           {currentStep === (showNameStep ? 4 : 3) && renderChallengeStep()}
           {currentStep === (showNameStep ? 5 : 4) && renderChallengeDetailsStep()}
 
-          {/* Fallback with better debugging */}
+          {/* Fallback rendering to prevent stuck state */}
           {!((showNameStep && currentStep === 1) ||
              currentStep === (showNameStep ? 2 : 1) ||
              currentStep === (showNameStep ? 3 : 2) ||
              currentStep === (showNameStep ? 4 : 3) ||
              currentStep === (showNameStep ? 5 : 4)) && (
             <View style={styles.stepContainer}>
-              <ThemedText weight="bold" style={styles.stepTitle}>Debug: Step Not Found</ThemedText>
-              <ThemedText style={styles.stepSubtitle}>
-                Current Step: {currentStep}, Show Name: {showNameStep ? 'Yes' : 'No'}, Method: {registrationMethod}
-              </ThemedText>
-              <ThemedText style={styles.stepSubtitle}>Expected step range: {showNameStep ? '1-5' : '1-4'}</ThemedText>
-              {/* Force show first step as fallback */}
-              {currentStep === 1 && !showNameStep && renderAgeStep()}
-              {currentStep === 1 && showNameStep && renderNameStep()}
+              {/* Safeguard: Always show appropriate step based on current state */}
+              {(() => {
+                if (showNameStep && currentStep === 1) {
+                  return renderNameStep();
+                } else if (!showNameStep && currentStep === 1) {
+                  return renderAgeStep();
+                } else if (showNameStep && currentStep === 2) {
+                  return renderAgeStep();
+                } else if (!showNameStep && currentStep === 2) {
+                  return renderFaithJourneyStep();
+                } else if (showNameStep && currentStep === 3) {
+                  return renderFaithJourneyStep();
+                } else if (!showNameStep && currentStep === 3) {
+                  return renderChallengeStep();
+                } else if (showNameStep && currentStep === 4) {
+                  return renderChallengeStep();
+                } else if (!showNameStep && currentStep === 4) {
+                  return renderChallengeDetailsStep();
+                } else if (showNameStep && currentStep === 5) {
+                  return renderChallengeDetailsStep();
+                } else {
+                  // Ultimate fallback - show age step
+                  return renderAgeStep();
+                }
+              })()}
             </View>
           )}
         </ScrollView>
@@ -1177,7 +1196,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             disabled={!canContinue()}
           >
             <ThemedText weight="medium" style={styles.continueButtonText}>
-              {currentStep === totalSteps ? 'Create My Playbook' : 'Continue'}
+              {(() => {
+                // Safeguard to always show button text
+                if (currentStep === totalSteps) {
+                  return 'Create My Playbook';
+                } else if (currentStep > 0 && currentStep <= totalSteps) {
+                  return 'Continue';
+                } else {
+                  return 'Continue'; // Fallback
+                }
+              })()}
             </ThemedText>
           </TouchableOpacity>
         </View>
