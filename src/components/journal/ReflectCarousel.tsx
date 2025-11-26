@@ -23,8 +23,8 @@ const isIPad = screenWidth >= 768 || screenHeight >= 768;
 
 // Responsive card sizing: show 1 card with peek on all devices
 const CARD_WIDTH = screenWidth * 0.8; // Consistent 80% width
-const CARD_SPACING = 8; 
-const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2; 
+const CARD_SPACING = 8;
+const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2;
 const PEEK = isIPad ? 12 : 8; // Slightly larger peek on iPad for better visibility
 const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -427,10 +427,8 @@ const defaultStyles = {
   },
 };
 
-const GratitudeLogEditorInner = (
-  props: GratitudeLogEditorProps,
-  ref: React.Ref<GratitudeLogEditorRef>
-) => {
+const GratitudeLogEditorInner = React.memo(
+  (props: GratitudeLogEditorProps, ref: React.Ref<GratitudeLogEditorRef>) => {
   const {
     onSave,
     onCancel: _onCancel,
@@ -454,8 +452,8 @@ const GratitudeLogEditorInner = (
 
   const s = { ...defaultStyles, ...styles };
 
-  // Helper function to ensure items have proper numbering
-  const addNumbersToItems = (items: string[]): string[] => {
+  // Helper function to ensure items have proper numbering (optimized)
+  const addNumbersToItems = useCallback((items: string[]): string[] => {
     return items.map((item, index) => {
       if (!item.trim()) {
         return item; // Keep empty items as is
@@ -469,7 +467,7 @@ const GratitudeLogEditorInner = (
       }
       return item;
     });
-  };
+  }, []);
 
   // Process initial items to ensure they have numbers
   const processedInitialItems = initialItems.length > 0 ? addNumbersToItems(initialItems) : ['', '', ''];
@@ -527,36 +525,32 @@ const GratitudeLogEditorInner = (
     },
   }));
 
-  // Helper function to get unique draft key for each gratitude
-  const getDraftKey = React.useCallback(() => {
+  // Helper function to get unique draft key for each gratitude (optimized with useMemo)
+  const getDraftKey = useMemo(() => {
     // Get current date for uniqueness
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
     if (subtaskId && stepId) {
       // Use subtaskId and stepId for maximum uniqueness
-      const key = `@gratitude_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
-      return key;
+      return `@gratitude_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
     }
 
     if (_subtaskTitle && playbookTitle) {
       // Fallback to title-based key with date
       const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
       const stepNum = actionStepNumber || 0;
-      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30); // Increased from 20 to 30 for better uniqueness
-      const key = `@gratitude_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
-      return key;
+      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+      return `@gratitude_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
     }
 
     // If we have subtaskTitle but no playbook, use it for uniqueness
     if (_subtaskTitle) {
       const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-      const key = `@gratitude_editor_draft_${taskTitle}_${currentDate}`;
-      return key;
+      return `@gratitude_editor_draft_${taskTitle}_${currentDate}`;
     }
 
     // Default key with date only (for freeform gratitude)
-    const key = `@gratitude_editor_draft_freeform_${currentDate}`;
-    return key;
+    return `@gratitude_editor_draft_freeform_${currentDate}`;
   }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber]);
 
   // Load draft on component mount
@@ -571,8 +565,7 @@ const GratitudeLogEditorInner = (
           return;
         }
 
-        const draftKey = getDraftKey();
-        const draft = await AsyncStorage.getItem(draftKey);
+        const draft = await AsyncStorage.getItem(getDraftKey);
         if (draft && isFirstLoad) {
           const parsedDraft = JSON.parse(draft);
           if (parsedDraft.items && parsedDraft.items.some((item: string) => item.trim())) {
@@ -591,7 +584,7 @@ const GratitudeLogEditorInner = (
     };
 
     loadDraft();
-  }, [getDraftKey, isFirstLoad, initialItems]);
+  }, [getDraftKey, isFirstLoad, initialItems, addNumbersToItems]);
 
   // Update gratitude items when initialItems changes (for React Query data loading)
   useEffect(() => {
@@ -602,46 +595,77 @@ const GratitudeLogEditorInner = (
         setGratitudeItems(numberedItems);
       }
     }
-  }, [initialItems, hasUserMadeChanges]);
+  }, [initialItems, hasUserMadeChanges, addNumbersToItems]);
 
-  // Auto-save draft when items change
+  // Debounced draft saving to reduce AsyncStorage operations
   useEffect(() => {
     if (!isFirstLoad && hasUserMadeChanges) {
-      const saveDraft = async () => {
+      const timeoutId = setTimeout(async () => {
         try {
           // Save clean items without numbers to draft
           const cleanItems = gratitudeItems.map(item => item.replace(/^\d+\. /, ''));
-          const draftKey = getDraftKey();
-          await AsyncStorage.setItem(draftKey, JSON.stringify({ items: cleanItems }));
+          await AsyncStorage.setItem(getDraftKey, JSON.stringify({ items: cleanItems }));
         } catch (error) {
           // Error silently handled - draft saving is not critical
         }
-      };
-      saveDraft();
+      }, 1000); // 1 second debounce
+      return () => clearTimeout(timeoutId);
     }
   }, [gratitudeItems, getDraftKey, isFirstLoad, hasUserMadeChanges]);
 
-  // Clear draft on successful save
-  const clearDraft = async () => {
+  // Clear draft on successful save (optimized with useCallback)
+  const clearDraft = useCallback(async () => {
     try {
-      const draftKey = getDraftKey();
-      await AsyncStorage.removeItem(draftKey);
+      await AsyncStorage.removeItem(getDraftKey);
     } catch (error) {
       // Error silently handled - draft clearing is not critical
     }
-  };
+  }, [getDraftKey]);
 
-  const handleItemChange = (index: number, text: string) => {
-    const newItems = [...gratitudeItems];
-    newItems[index] = text;
-    setGratitudeItems(newItems);
+  // Optimized text formatting function
+  const formatText = useCallback((text: string, index: number): string => {
+    // Allow complete erasure - if text is empty or just the prefix, keep it empty
+    if (text.length === 0) {
+      return '';
+    }
+
+    const expectedPrefix = `${index + 1}. `;
+
+    // If user tries to delete the prefix (text is just the number and dot), clear completely
+    if (text === `${index + 1}.` || text === `${index + 1}`) {
+      return '';
+    }
+
+    // Auto-add numbering when user starts typing (optimized logic)
+    if (!text.startsWith(expectedPrefix)) {
+      // Check if text starts with any number pattern (e.g., "1.", "2.", etc.)
+      const numberPattern = /^\d+\. /;
+      if (!numberPattern.test(text)) {
+        return expectedPrefix + text;
+      } else {
+        // Replace existing number with correct one
+        return text.replace(/^\d+\. /, expectedPrefix);
+      }
+    }
+
+    return text;
+  }, []);
+
+  // Optimized item change handler with batched state updates
+  const handleItemChange = useCallback((index: number, text: string) => {
+    const formattedText = formatText(text, index);
+    setGratitudeItems(prev => {
+      const newItems = [...prev];
+      newItems[index] = formattedText;
+      return newItems;
+    });
     setHasUserMadeChanges(true);
-  };
+  }, [formatText]);
 
-  const addGratitudeItem = () => {
+  const addGratitudeItem = useCallback(() => {
     triggerLightHaptic(); // Add haptic feedback
     const newIndex = gratitudeItems.length;
-    setGratitudeItems([...gratitudeItems, '']);
+    setGratitudeItems(prev => [...prev, '']);
     setHasUserMadeChanges(true);
 
     // Focus the new input after it's rendered
@@ -650,7 +674,7 @@ const GratitudeLogEditorInner = (
         inputRefs.current[newIndex]?.focus();
       }
     }, 100);
-  };
+  }, [gratitudeItems.length]);
 
   const getCurrentDate = () => {
     const today = new Date();
@@ -674,7 +698,9 @@ const GratitudeLogEditorInner = (
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
+    const startTime = Date.now();
+
     // Check if feature is gated for seeker accounts
     if (smartJournalingGating.isLocked) {
       try { triggerLightHaptic(); } catch {}
@@ -716,7 +742,10 @@ const GratitudeLogEditorInner = (
       items: cleanItems,
       date: new Date(),
     });
-  };
+
+    const endTime = Date.now();
+    console.log(`[GratitudeLogEditor] Save completed in ${endTime - startTime}ms`);
+  }, [smartJournalingGating, onUpgradeRequired, navigation, subscription?.tier, gratitudeItems, onSave, clearDraft]);
 
   // Check if form is valid (has content) AND user has made changes
   const isFormValid = gratitudeItems.some(item => item.trim()) && hasUserMadeChanges;
@@ -799,36 +828,8 @@ const GratitudeLogEditorInner = (
                   placeholderTextColor="rgba(255, 255, 255, 0.4)"
                   value={item}
                   onChangeText={(text) => {
-                    // Allow complete erasure - if text is empty or just the prefix, keep it empty
-                    if (text.length === 0) {
-                      handleItemChange(index, '');
-                      return;
-                    }
-
-                    const expectedPrefix = `${index + 1}. `;
-
-                    // If user tries to delete the prefix (text is just the number and dot), clear completely
-                    if (text === `${index + 1}.` || text === `${index + 1}`) {
-                      handleItemChange(index, '');
-                      return;
-                    }
-
-                    // Auto-add numbering when user starts typing
-                    let formattedText = text;
-
-                    // If user is typing and doesn't have the number prefix, add it
-                    if (!text.startsWith(expectedPrefix)) {
-                      // Check if text starts with any number pattern (e.g., "1.", "2.", etc.)
-                      const numberPattern = /^\d+\. /;
-                      if (!numberPattern.test(text)) {
-                        formattedText = expectedPrefix + text;
-                      } else {
-                        // Replace existing number with correct one
-                        formattedText = text.replace(/^\d+\. /, expectedPrefix);
-                      }
-                    }
-
-                    handleItemChange(index, formattedText);
+                    // Use optimized text formatting
+                    handleItemChange(index, text);
                   }}
                   multiline
                   textAlignVertical="top"
@@ -928,7 +929,10 @@ const GratitudeLogEditorInner = (
 
     </View>
   );
-};
+  });
+
+// Add display name for debugging
+GratitudeLogEditorInner.displayName = 'GratitudeLogEditorInner';
 
 const GratitudeLogEditor = React.forwardRef(GratitudeLogEditorInner);
 
