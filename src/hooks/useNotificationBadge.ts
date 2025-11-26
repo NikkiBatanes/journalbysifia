@@ -92,8 +92,8 @@ export function useNotificationBadge() {
           .eq('user_id', user.id)
           .eq('is_read', false),
         
-        // Clear all pending queue notifications
-        notificationManagementService.clearAllNotifications(user.id),
+        // Mark all queue notifications as read
+        notificationManagementService.markAllNotificationsAsRead(user.id),
       ]);
 
       // Update local state and app badge
