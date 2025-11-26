@@ -28,7 +28,7 @@ interface NotificationsScreenProps {
 
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
-  const { fetchBadgeCount } = useNotificationBadge();
+  const { fetchBadgeCount, clearBadge } = useNotificationBadge();
   // POST-LAUNCH: const { acceptInvitation } = useFamilySubscription();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -307,8 +307,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         });
       }
 
-      // Refresh the notification list and badge count
+      // Clear badge immediately for instant UI update
+      await clearBadge();
+      
+      // Refresh the notification list
       await fetchNotifications();
+      
+      // Refresh badge count to ensure it's accurate
       await fetchBadgeCount();
 
       Logger.info('Cleared all notifications except pending family invitations', {
