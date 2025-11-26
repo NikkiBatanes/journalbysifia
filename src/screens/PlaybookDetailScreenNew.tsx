@@ -1948,7 +1948,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   }), []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Status bar handled by useScreenStatusBar */}
 
       {/* In-screen header (replaces native header). Cards overlay will pass over this. */}
@@ -2194,7 +2194,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 8 : 0, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 20 : 0, // Extra padding for iOS 18.0 and below
   },
   loadingContainer: {
     width: '100%',
@@ -2204,7 +2204,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   cardStackContainer: {
     position: 'relative',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 24 : 16, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 32 : 16, // Extra padding for iOS 18.0 and below
     paddingTop: 20,
     alignItems: 'center',
     minHeight: 600,
@@ -2379,7 +2379,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   docContentContainer: {
     paddingTop: 0,
     paddingBottom: 32,
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 8 : 0, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 20 : 0, // Extra padding for iOS 18.0 and below
     alignItems: 'center',
   },
   docContentContainerInner: {
@@ -2813,7 +2813,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   // Stacked cards container
   stackedCardsContainer: {
     position: 'relative',
-    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 24 : 16, // Extra padding for iOS 18.0 and below
+    paddingHorizontal: Platform.OS === 'ios' && parseInt(Platform.Version, 10) < 19 ? 32 : 16, // Extra padding for iOS 18.0 and below
     paddingTop: 28,
     paddingBottom: 24,
     alignItems: 'center',
