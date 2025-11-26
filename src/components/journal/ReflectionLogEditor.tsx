@@ -1098,7 +1098,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
-        {/* Show pencil icon for devotional/playbook/guided sources (display only) */}
+        {/* Show pencil icon for playbook/devotional/guided sources (display only) */}
         {(source === 'devotional' || source === 'playbook' || source === 'guided') && (
           <View style={s.modeButton} pointerEvents="none">
             <Pencil

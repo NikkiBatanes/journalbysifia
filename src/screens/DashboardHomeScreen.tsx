@@ -1644,10 +1644,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               triggerLightHaptic();
               navigation.navigate('Journal');
             }}
-            onUpgradeRequired={() => {
-              // Handle upgrade requirement for locked guided prompts
-              triggerLightHaptic();
-            }}
           />
           <View style={styles.sectionGap} />
 

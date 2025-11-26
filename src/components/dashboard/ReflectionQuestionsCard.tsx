@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
-  Pressable,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
@@ -52,13 +51,11 @@ interface ReflectionQuestion {
 interface ReflectionQuestionsCardProps {
   onQuestionPress?: (question: ReflectionQuestion) => void;
   onViewAll?: () => void;
-  onUpgradeRequired?: () => void;
 }
 
 const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   onQuestionPress,
   onViewAll: _onViewAll,
-  onUpgradeRequired,
 }) => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
@@ -720,48 +717,19 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 </View>
                 <ThemedText weight="bold" style={styles.questionText}>{item.question}</ThemedText>
                 <View style={styles.buttonRow}>
-                  <Pressable
-                    style={[
-                      styles.reflectButton,
-                      // Disable button for ALL guided prompts (both free and locked)
-                      item.sourceType === 'guided' && styles.reflectButtonDisabled
-                    ]}
+                  <TouchableOpacity
+                    style={styles.reflectButton}
                     onPress={() => {
-                      // Only allow opening if not a guided prompt (all guided prompts should show upgrade flow)
-                      if (item.sourceType === 'guided') {
-                        // Show upgrade flow for all guided prompts
-                        if (onUpgradeRequired) {
-                          try { onUpgradeRequired(); } catch {}
-                        }
-                        setTimeout(() => {
-                          (navigation as any).navigate('OnboardingSalesOffer', {
-                            source: 'guided_prompts_lock',
-                            feature: 'guided_prompts',
-                            tier: subscription?.tier || 'seeker',
-                            upgradeMode: false,
-                            skipNotificationPreference: true,
-                          });
-                        }, 300);
-                        return;
-                      }
+                      // Always allow opening the reflection editor to show the experience
+                      // The lock and upgrade flow will be handled inside the editor
                       onQuestionPress?.(item);
                     }}
                     accessibilityRole="button"
                     accessibilityLabel="Reflect on this question"
-                    disabled={item.sourceType === 'guided'} // Disable ALL guided prompts
                   >
-                    <Pencil 
-                      size={16} 
-                      color={
-                        // Use alert coral for ALL guided prompts, white for others
-                        item.sourceType === 'guided' 
-                          ? Colors.alertCoral 
-                          : Colors.hopeWhite
-                      } 
-                      style={styles.buttonIcon} 
-                    />
+                    <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
                     <ThemedText weight="medium" style={styles.reflectButtonText}>Reflect</ThemedText>
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               </Animated.View>
             );
