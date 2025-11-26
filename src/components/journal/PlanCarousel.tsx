@@ -1,5 +1,5 @@
-import React, { useRef, useCallback, useState } from 'react';
-import { View, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import React, { useRef, useCallback, useState, useMemo } from 'react';
+import { View, Animated, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
@@ -7,57 +7,6 @@ import { TodosReactQuery } from './TodosReactQuery';
 import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from './TimeBlockReactQuery';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isLandscape = screenWidth > screenHeight;
-
-// Enhanced responsive design for different screen sizes
-const getResponsiveConfig = () => {
-  // iPad Landscape - show more content, larger cards
-  if (screenWidth >= 1024 && isLandscape) {
-    return {
-      cardWidth: Math.min(screenWidth * 0.85, 800), // Show 2 cards with peek
-      cardSpacing: 12,
-      peek: 16,
-      maxCardsVisible: 1,
-    };
-  }
-  // iPad Portrait - larger cards, better spacing
-  else if (screenWidth >= 768) {
-    return {
-      cardWidth: Math.min(screenWidth * 0.85, 800), // 77% width for better iPad use
-      cardSpacing: 12,
-      peek: 0,
-      maxCardsVisible: 1,
-    };
-  }
-  // Large phones (iPhone Pro Max, etc.)
-  else if (screenWidth >= 430) {
-    return {
-      cardWidth: screenWidth * 0.75, // Slightly smaller percentage for large phones
-      cardSpacing: 8,
-      peek: 8,
-      maxCardsVisible: 1,
-    };
-  }
-  // Standard phones
-  else {
-    return {
-      cardWidth: screenWidth * 0.8, // Keep original for smaller phones
-      cardSpacing: 8,
-      peek: 8,
-      maxCardsVisible: 1,
-    };
-  }
-};
-
-const config = getResponsiveConfig();
-const CARD_WIDTH = config.cardWidth;
-const CARD_SPACING = config.cardSpacing;
-const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2;
-const PEEK = config.peek;
-// When peek is 0 (iPad Portrait), center the cards by using minimal inset
-const SIDE_INSET = PEEK === 0 ? 0 : Math.max(0, SIDE_OFFSET - PEEK);
 
 interface PlanCarouselProps {
   selectedDate: Date;
@@ -67,6 +16,60 @@ interface PlanCarouselProps {
 }
 
 const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, initialScrollIndex = 0, onScrollIndexChange }) => {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isLandscape = screenWidth > screenHeight;
+
+  // Enhanced responsive design for different screen sizes
+  const { CARD_WIDTH, CARD_SPACING, SIDE_INSET, PEEK } = useMemo(() => {
+    const getResponsiveConfig = () => {
+      // iPad Landscape - show more content, larger cards
+      if (screenWidth >= 1024 && isLandscape) {
+        return {
+          cardWidth: Math.min(screenWidth * 0.85, 800),
+          cardSpacing: 12,
+          peek: 16,
+          maxCardsVisible: 1,
+        };
+      }
+      // iPad Portrait - larger cards, better spacing
+      else if (screenWidth >= 768) {
+        return {
+          cardWidth: Math.min(screenWidth * 0.85, 800),
+          cardSpacing: 12,
+          peek: 0,
+          maxCardsVisible: 1,
+        };
+      }
+      // Large phones (iPhone Pro Max, etc.)
+      else if (screenWidth >= 430) {
+        return {
+          cardWidth: screenWidth * 0.75,
+          cardSpacing: 8,
+          peek: 8,
+          maxCardsVisible: 1,
+        };
+      }
+      // Standard phones
+      else {
+        return {
+          cardWidth: screenWidth * 0.8,
+          cardSpacing: 8,
+          peek: 8,
+          maxCardsVisible: 1,
+        };
+      }
+    };
+
+    const config = getResponsiveConfig();
+    const CARD_WIDTH = config.cardWidth;
+    const CARD_SPACING = config.cardSpacing;
+    const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2;
+    const PEEK = config.peek;
+    // When peek is 0 (iPad Portrait), center the cards by using minimal inset
+    const SIDE_INSET = PEEK === 0 ? 0 : Math.max(0, SIDE_OFFSET - PEEK);
+
+    return { CARD_WIDTH, CARD_SPACING, SIDE_INSET, PEEK };
+  }, [screenWidth, screenHeight, isLandscape]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(initialScrollIndex); // Start with initial card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -184,7 +187,14 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
           return (
             <Animated.View
               key={item.id}
-              style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
+              style={[
+                {
+                  width: CARD_WIDTH,
+                  marginRight: CARD_SPACING,
+                  paddingHorizontal: 4,
+                },
+                { transform: [{ scale }], opacity }
+              ]}
             >
               <View style={styles.touchableComponent}>
                 {React.cloneElement(item.component as React.ReactElement<any>, {
@@ -230,25 +240,10 @@ const styles = StyleSheet.create({
   scrollView: {
     // Removed fixed height for dynamic expansion
   },
-  carouselItem: {
-    width: CARD_WIDTH,
-    marginRight: CARD_SPACING,
-    // Add padding to expand touch area
-    paddingHorizontal: 4,
-  },
   touchableComponent: {
     flex: 1,
     // Expand touch area beyond card content
     marginHorizontal: -4,
-  },
-  // Add invisible swipe area between cards
-  swipeArea: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: CARD_SPACING,
-    right: -CARD_SPACING,
-    zIndex: -1,
   },
 });
 
