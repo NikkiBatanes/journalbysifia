@@ -677,7 +677,7 @@ export async function updatePlaybookActionSteps(
 
               // Add retry logic for subtask updates
               let subTaskUpdateSuccess = false;
-              let lastSubTaskError = null;
+              let lastSubTaskError: any = null;
               const maxSubTaskRetries = 3;
 
               for (let subTaskRetry = 0; subTaskRetry < maxSubTaskRetries; subTaskRetry++) {

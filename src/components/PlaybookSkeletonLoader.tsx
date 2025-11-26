@@ -33,7 +33,7 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
         }),
       ]).start((finished) => {
         // Only continue if component is still mounted and animation finished properly
-        if (finished && !pulseAnim._finished) {
+        if (finished) {
           pulse();
         }
       });

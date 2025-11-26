@@ -120,7 +120,7 @@ class ProductionLogger {
     // Filter out noisy components in development
     const noisyComponents = ['StoreKit', 'NotificationDeliveryService', 'DailyNotificationScheduler', 'PushNotification', 'notificationSetup', 'useNotificationBadge'];
     const noisyPatterns = ['🧹 Clearing old cached transaction', '🔄 Checking subscription status', 'Setting up real-time notification subscription', 'Badge count updated', 'Processing pending notifications'];
-    const isNoisy = entry.component && noisyComponents.some(noisy =>
+    const isNoisy = entry.metadata?.component && noisyComponents.some(noisy =>
       formatted.includes(`[${noisy}]`)
     ) || noisyPatterns.some(pattern => formatted.includes(pattern));
 

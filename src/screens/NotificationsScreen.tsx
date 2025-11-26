@@ -162,7 +162,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       } else {
         // Smart fallback navigation based on notification type
         const notificationType = notification.type || notification.notification_type;
-        let targetScreen = null;
+        let targetScreen: string | null = null;
 
         switch (notificationType) {
           case 'REMINDER':

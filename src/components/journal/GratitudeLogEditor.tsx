@@ -499,12 +499,12 @@ const GratitudeLogEditorInner = (
       const targetIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : gratitudeItems.length - 1;
 
       if (inputRefs.current[targetIndex]) {
-        inputRefs.current[targetIndex].focus();
+        inputRefs.current[targetIndex]!.focus();
         // Position cursor at the end of the text (or start if empty)
         setTimeout(() => {
           if (inputRefs.current[targetIndex]) {
             const text = gratitudeItems[targetIndex] || '';
-            inputRefs.current[targetIndex].setSelection(text.length, text.length);
+            inputRefs.current[targetIndex]!.setSelection(text.length, text.length);
           }
         }, 100);
       }

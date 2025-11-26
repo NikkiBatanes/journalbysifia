@@ -5,6 +5,7 @@
 
 import { useCallback, useRef, useEffect } from 'react';
 import { MemoryManager } from './memoryManager';
+import { Logger } from './ProductionLogger';
 
 /**
  * Hook for managing timeouts with automatic cleanup

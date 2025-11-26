@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { Logger } from './ProductionLogger';
 
 /**
  * Safe networking manager to handle blob responses that may crash
@@ -39,8 +40,9 @@ export class SafeNetworkingManager {
       // On other platforms, use the original method
       return response.suggestedFilename || null;
     } catch (error) {
-      Logger.warn('SafeNetworkingManager: Error getting filename:', error as Error, {
+      Logger.warn('SafeNetworkingManager: Error getting filename:', {
         component: 'SafeNetworkingManager',
+        error: error as Error,
       });
       // Fallback to generic filename
       const timestamp = Date.now();
