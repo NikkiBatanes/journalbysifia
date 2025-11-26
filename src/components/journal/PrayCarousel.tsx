@@ -36,7 +36,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
   const { CARD_WIDTH, CARD_SPACING, SIDE_INSET, PEEK } = useMemo(() => {
     const getResponsiveConfig = () => {
       if (screenWidth >= 1024 && isLandscape) {
-        return { cardWidth: Math.min(screenWidth * 0.85, 800), cardSpacing: 12, peek: 16, maxCardsVisible: 1 };
+        return { cardWidth: Math.min(screenWidth * 0.85, 800), cardSpacing: 12, peek: 0, maxCardsVisible: 1 };
       } else if (screenWidth >= 768) {
         return { cardWidth: Math.min(screenWidth * 0.85, 800), cardSpacing: 12, peek: 0, maxCardsVisible: 1 };
       } else if (screenWidth >= 430) {

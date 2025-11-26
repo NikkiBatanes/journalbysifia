@@ -22,12 +22,12 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
   // Enhanced responsive design for different screen sizes
   const { CARD_WIDTH, CARD_SPACING, SIDE_INSET, PEEK } = useMemo(() => {
     const getResponsiveConfig = () => {
-      // iPad Landscape - show more content, larger cards
+      // iPad Landscape - centered cards like Portrait
       if (screenWidth >= 1024 && isLandscape) {
         return {
           cardWidth: Math.min(screenWidth * 0.85, 800),
           cardSpacing: 12,
-          peek: 16,
+          peek: 0,  // No peek for centered layout
           maxCardsVisible: 1,
         };
       }
