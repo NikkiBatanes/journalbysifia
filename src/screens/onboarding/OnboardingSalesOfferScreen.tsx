@@ -620,13 +620,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             setLastPurchasedTier(purchaseTier);
             setIsPurchasing(false); // Hide loading modal
             await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
-            
+
             logger.info('Showing success modal for export restriction upgrade', {
               purchaseTier,
               source: routeParams?.source,
               dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
             });
-            
+
             setShowSuccessModal(true);
 
             // Auto-dismiss sales offer screen after successful payment

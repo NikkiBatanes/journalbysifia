@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -80,6 +80,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const [newItems, setNewItems] = useState(['', '', '']); // Start with three input fields
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
+  const inputRefs = useRef<(TextInput | null)[]>([]); // Refs for input fields
+  const shouldFocusInput = useRef(false); // Track when we need to focus
 
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
@@ -172,10 +174,31 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setVisibleCount(5);
   }, [dateStr]);
 
+  // Focus input field when it's rendered and we need to focus
+  useEffect(() => {
+    if (shouldShowAddingMode && shouldFocusInput.current && inputRefs.current[0]) {
+      inputRefs.current[0]?.focus();
+      shouldFocusInput.current = false; // Reset the flag
+    }
+  }, [shouldShowAddingMode]); // Only watch shouldShowAddingMode
+
   const startAdding = useCallback(() => {
     if (!isAdding) { triggerLightHaptic(); }
     setIsAdding(true);
     setIsEditing(false);
+    // Focus the input field with multiple attempts
+    const focusInput = () => {
+      if (inputRefs.current[0]) {
+        inputRefs.current[0].focus();
+      }
+    };
+
+    // Try immediately
+    focusInput();
+    // Try again after delay
+    setTimeout(focusInput, 100);
+    // Try one more time with longer delay
+    setTimeout(focusInput, 300);
   }, [isAdding]);
 
   const startEditing = useCallback(() => {
@@ -192,6 +215,19 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     }
 
     setNewItems(editFields);
+    // Focus the input field with multiple attempts
+    const focusInput = () => {
+      if (inputRefs.current[0]) {
+        inputRefs.current[0].focus();
+      }
+    };
+
+    // Try immediately
+    focusInput();
+    // Try again after delay
+    setTimeout(focusInput, 100);
+    // Try one more time with longer delay
+    setTimeout(focusInput, 300);
   }, [gratitudeItems, setIsEditing, setIsAdding, setNewItems, isEditing]);
 
   // Handle global edit mode activation
@@ -212,11 +248,21 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setIsAdding(false);
     setIsEditing(false);
     setNewItems(['', '', '']);
+    // Scroll to the Reflect & Grow header when canceling
+    setTimeout(() => {
+      scrollToSection('reflect-carousel', 1200);
+    }, 100);
   };
 
   const addAnotherField = useCallback(() => {
     triggerSelectionHaptic();
+    const newFieldIndex = newItems.length;
     setNewItems([...newItems, '']);
+
+    // Focus the newly added field
+    setTimeout(() => {
+      inputRefs.current[newFieldIndex]?.focus();
+    }, 100);
 
     // Track field addition
     analytics.trackGratitudeEvent('gratitude_field_added', {
@@ -350,7 +396,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         const contentToSave = JSON.stringify({ items: itemsToSave });
 
         // CRITICAL: Immediately update cache for instant UI feedback
-        const currentQueryKey = ['gratitudeEntries', user.id, dateStr];
+        const currentQueryKey = ['journal', 'gratitude', user.id, dateStr];
         const updatedEntry = {
           id: gratitudeEntries[0]?.id || `temp_${Date.now()}`,
           user_id: user.id,
@@ -361,7 +407,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           updated_at: new Date().toISOString(),
         };
 
+        console.log('Gratitude: Updating cache with key:', currentQueryKey);
+        console.log('Gratitude: Current cache data:', queryClient.getQueryData(currentQueryKey));
+        console.log('Gratitude: Updated entry:', updatedEntry);
+
+        // Set the cache data BEFORE the mutation
         queryClient.setQueryData(currentQueryKey, [updatedEntry]);
+
+        console.log('Gratitude: Cache after update:', queryClient.getQueryData(currentQueryKey));
 
         if (gratitudeEntries.length > 0) {
           // Update the first entry with all new content
@@ -371,6 +424,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               content: contentToSave,
             },
           });
+
+          // Re-set cache after mutation to ensure it persists
+          queryClient.setQueryData(currentQueryKey, [updatedEntry]);
 
           // Delete any extra entries to ensure only one exists
           if (gratitudeEntries.length > 1) {
@@ -392,6 +448,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             content_type: 'gratitude',
             content: contentToSave,
           });
+
+          // Re-set cache after mutation to ensure it persists
+          queryClient.setQueryData(currentQueryKey, [updatedEntry]);
         }
 
         // Track successful gratitude save
@@ -401,6 +460,11 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           is_editing: isEditing,
           date: dateStr,
         }, user.id);
+
+        // Scroll to the Reflect & Grow header after successful save
+        setTimeout(() => {
+          scrollToSection('reflect-carousel', 1200);
+        }, 100);
 
         setNewItems(['', '', '']);
         setIsAdding(false);
@@ -419,6 +483,52 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       });
         Alert.alert('Error', 'Failed to save gratitude items. Please try again.');
         triggerErrorHaptic();
+      }
+    } else {
+      // Handle case when all items are empty - should delete the entry
+      if (gratitudeEntries.length > 0) {
+        try {
+          // CRITICAL: Immediately update cache for instant UI feedback
+          const currentQueryKey = ['journal', 'gratitude', user.id, dateStr];
+          queryClient.setQueryData(currentQueryKey, []);
+
+          // Delete the gratitude entry when all items are empty
+          await deleteMutation.mutateAsync(gratitudeEntries[0].id);
+
+          setNewItems(['', '', '']);
+          setIsAdding(false);
+          setIsEditing(false);
+          closeAllSwipeables();
+
+          triggerSuccessHaptic();
+
+          // Scroll to the Reflect & Grow header after deletion
+          setTimeout(() => {
+            scrollToSection('reflect-carousel', 1200);
+          }, 100);
+
+          // Close global edit mode if active
+          if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
+            globalEditMode.setGlobalEditMode(false);
+          }
+        } catch (deleteError) {
+          Logger.error('Error deleting gratitude entry', deleteError as Error, {
+            component: 'GratitudeListReactQuery',
+          });
+          Alert.alert('Error', 'Failed to delete gratitude items. Please try again.');
+          triggerErrorHaptic();
+        }
+      } else {
+        // Just close the form if there's nothing to delete
+        setNewItems(['', '', '']);
+        setIsAdding(false);
+        setIsEditing(false);
+        closeAllSwipeables();
+
+        // Scroll to the Reflect & Grow header when canceling
+        setTimeout(() => {
+          scrollToSection('reflect-carousel', 1200);
+        }, 100);
       }
     }
   };
@@ -655,6 +765,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             newItems.map((item, index) => (
               <TextInput
                 key={index}
+                ref={(ref) => { inputRefs.current[index] = ref; }}
                 style={[styles.input, index > 0 && styles.inputWithTopMargin, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 value={item}
                 onChangeText={(value) => handleNewItemChange(index, value)}
@@ -662,6 +773,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 placeholderTextColor={Colors.textGray}
                 returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                 onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
+                autoFocus={index === 0}
                 accessibilityLabel={`Gratitude item ${index + 1} input`}
                 accessibilityHint={'Enter something you\'re grateful for'}
               />
@@ -671,6 +783,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               {newItems.map((item, index) => (
                 <TextInput
                   key={index}
+                  ref={(ref) => { inputRefs.current[index] = ref; }}
                   style={[styles.input, index > 0 && styles.inputWithTopMargin, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                   value={item}
                   onChangeText={(value) => handleNewItemChange(index, value)}
@@ -678,6 +791,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   placeholderTextColor={Colors.textGray}
                   returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                   onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
+                  autoFocus={index === 0}
                   accessibilityLabel={`Gratitude item ${index + 1} input`}
                   accessibilityHint={'Enter something you\'re grateful for'}
                 />

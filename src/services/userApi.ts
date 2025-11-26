@@ -700,11 +700,11 @@ class UserApiService {
 
       // Add automatic Seeker badge (Level 1) for all users
       // All users automatically get the Seeker badge when they start
+      // Ensure at least 1 badge (Seeker badge) for all users
+      // Note: The Seeker badge should already be in user_badges table
+      // So we don't need to add +1 if badges exist
       if (totalBadges === 0) {
-        totalBadges = 1; // At least the Seeker badge
-      } else {
-        // If user has other badges, they definitely have the Seeker badge too
-        totalBadges += 1;
+        totalBadges = 1; // Fallback: At least the Seeker badge
       }
 
       const profileStats = {

@@ -32,7 +32,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const { registerSection } = useScroll();
-  
+
   // Refs for section registration
   const reflectCarouselRef = useRef<View>(null);
 

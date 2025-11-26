@@ -394,7 +394,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
-  const { scrollToTop, scrollTo, scrollToSection } = useScroll();
+  const { scrollToSection } = useScroll();
 
   // Guided prompt gating for consistent lock state
   const guidedPromptGating = useGuidedPromptGating({
@@ -952,8 +952,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               {visibleCount > 3 && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => { 
-                    triggerLightHaptic(); 
+                  onPress={() => {
+                    triggerLightHaptic();
                     setVisibleCount(3);
                     // Scroll to the Reflect & Grow header when showing less
                     setTimeout(() => {

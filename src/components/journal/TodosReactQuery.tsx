@@ -211,7 +211,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     if (shouldShowAddingMode && shouldFocusInput.current && inputRef.current) {
       inputRef.current.focus();
       shouldFocusInput.current = false; // Reset the flag
-      
+
       // Scroll to make the input field visible
       setTimeout(() => {
         inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
@@ -301,7 +301,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         has_priority: false,
         date: dateStr,
       }, user.id);
-      
+
       // Scroll to top after successful save
       setTimeout(() => {
         scrollToTop();
