@@ -380,10 +380,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               // Pass subtaskTitle for all modes - freeform can have initial title too
               initialTitle={preservedSubtaskTitle || ''}
               lockTitle={isGuidedReflection || !!playbookId}
-              // Source: 'thoughts' for ALL smart journaling (enforces gating for Growth/Transformation only)
-              // Only use 'freeform' for journal carousel (not smart journaling)
-              // Guided prompts have their own separate gating system
-              source={isJournalCarousel ? 'freeform' : 'thoughts'}
+              // Source: 'thoughts' for smart journaling, 'guided' for guided prompts, 'freeform' for journal carousel
+              // Guided prompts need their own source to show correct pencil icon
+              source={isJournalCarousel ? 'freeform' : (isGuidedReflection ? 'guided' : 'thoughts')}
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
