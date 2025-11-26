@@ -1083,7 +1083,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     let refreshTimeout: NodeJS.Timeout;
 
     const handlePointsUpdate = (_data?: any) => {
-
+      console.log('[UserProfileScreen] handlePointsUpdate called', _data);
+      
       // Clear any existing timeout to prevent multiple calls
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);
@@ -1091,7 +1092,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // Single delayed refresh instead of multiple calls
       refreshTimeout = setTimeout(() => {
-
+        console.log('[UserProfileScreen] Refreshing profile data after points/badge update');
         loadProfileData();
       }, 500);
     };

@@ -439,11 +439,16 @@ export class FaithPointsService {
             // CRITICAL: Re-enable badge events but defer them to prevent freeze
             // Profile screen needs BADGE_UNLOCKED events to update badge count
             setTimeout(() => {
+              console.log('[FaithPointsService] Emitting BADGE_UNLOCKED event', {
+                userId,
+                badgeName: badge.name,
+                badgeId: badge.id,
+              });
               faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
                 userId,
                 badge,
               });
-            }, 100); // Small delay within the deferred processing
+            }, 500); // Increased delay to ensure database write completes
 
             // Award bonus points for badge unlock (non-blocking)
             return this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
