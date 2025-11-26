@@ -309,12 +309,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       // Clear badge immediately for instant UI update
       await clearBadge();
-      
+
       // Refresh the notification list
       await fetchNotifications();
-      
-      // Refresh badge count to ensure it's accurate
-      await fetchBadgeCount();
 
       Logger.info('Cleared all notifications except pending family invitations', {
         component: 'NotificationsScreen',

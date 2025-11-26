@@ -76,9 +76,44 @@ export function useNotificationBadge() {
    * Clear badge count
    */
   const clearBadge = useCallback(async () => {
-    setBadgeCount(0);
-    await pushNotificationService.setBadgeNumber(0);
-  }, []);
+    if (!user?.id) {
+      setBadgeCount(0);
+      await pushNotificationService.setBadgeNumber(0);
+      return;
+    }
+
+    try {
+      // Clear all unread notifications in database
+      await Promise.all([
+        // Mark all push notifications as read
+        supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('user_id', user.id)
+          .eq('is_read', false),
+        
+        // Clear all pending queue notifications
+        notificationManagementService.clearAllNotifications(user.id),
+      ]);
+
+      // Update local state and app badge
+      setBadgeCount(0);
+      await pushNotificationService.setBadgeNumber(0);
+
+      Logger.info('Badge cleared and all notifications marked as read', {
+        component: 'useNotificationBadge',
+        userId: user.id,
+      });
+    } catch (error) {
+      Logger.error('Failed to clear badge and notifications', error as Error, {
+        component: 'useNotificationBadge',
+        userId: user.id,
+      });
+      // Still update local state even if database update fails
+      setBadgeCount(0);
+      await pushNotificationService.setBadgeNumber(0);
+    }
+  }, [user]);
 
   /**
    * Increment badge count
