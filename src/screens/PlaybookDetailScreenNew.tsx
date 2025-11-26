@@ -2072,7 +2072,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           </RNAnimated.View>
         </RNAnimated.View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
