@@ -5,6 +5,7 @@
 
 import Share from 'react-native-share';
 import { generatePDF } from 'react-native-html-to-pdf';
+import { Platform } from 'react-native';
 import { Logger } from './ProductionLogger';
 
 export interface DevotionalPDFData {
@@ -1112,13 +1113,20 @@ class PDFExportService {
         filePath: file.filePath,
       });
 
-      // Share the PDF file
-      await Share.open({
+      // Share the PDF file with iPad-safe options
+      const shareOptions = {
         url: `file://${file.filePath}`,
         type: 'application/pdf',
         title: 'Share Devotional',
         filename: `${fileName}.pdf`,
-      });
+        // iPad-specific: exclude print option to prevent crashes
+        excludedActivityTypes: Platform.OS === 'ios' && Platform.isPad ? [
+          'com.apple.UIKit.Activity.Print',
+          'com.apple.UIKit.Activity.AirDrop',
+        ] : undefined,
+      };
+
+      await Share.open(shareOptions);
 
       Logger.debug('[PDFExportService] Devotional PDF shared successfully', {
         component: 'pdfExportService',
@@ -1184,13 +1192,20 @@ class PDFExportService {
         filePath: file.filePath,
       });
 
-      // Share the PDF file
-      await Share.open({
+      // Share the PDF file with iPad-safe options
+      const shareOptions = {
         url: `file://${file.filePath}`,
         type: 'application/pdf',
         title: 'Share Playbook',
         filename: `${fileName}.pdf`,
-      });
+        // iPad-specific: exclude print option to prevent crashes
+        excludedActivityTypes: Platform.OS === 'ios' && Platform.isPad ? [
+          'com.apple.UIKit.Activity.Print',
+          'com.apple.UIKit.Activity.AirDrop',
+        ] : undefined,
+      };
+
+      await Share.open(shareOptions);
 
       Logger.debug('[PDFExportService] Playbook PDF shared successfully', {
         component: 'pdfExportService',
