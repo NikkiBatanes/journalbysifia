@@ -10,18 +10,19 @@ export const progressBarStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    height: 16, // Fixed height for the entire row
+    height: 20, // Increased from 16 to accommodate thicker bar
   },
   progressWrapper: {
-    flex: 1,
-    marginRight: 8, // Reduced spacing to give more room for text
-    minWidth: 60, // Minimum width for the progress bar
+    flex: 1, // Reduced from 1 to make it narrower
+    marginRight: 8,
+    minWidth: 180, // Reduced from 60 to make it narrower
+    maxWidth: 280, // Add maximum width to prevent it from getting too wide
   },
   barBg: {
     width: '100%',
-    height: 6, // Thinner bar for more compact appearance
+    height: 10, // Increased from 6 to make it thicker
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 3,
+    borderRadius: 5, // Increased border radius to match new height
     overflow: 'hidden',
   },
   barFill: {
