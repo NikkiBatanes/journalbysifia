@@ -571,6 +571,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         try {
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
+          
+          logger.info('📦 Purchase result received', {
+            success: result.success,
+            hasTransactionId: !!result.transactionId,
+            transactionId: result.transactionId?.substring(0, 10) + '...',
+            error: result.error,
+          });
+          
           if (result.success) {
             setLoadingStep('validating');
             triggerSuccessHaptic();

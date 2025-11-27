@@ -545,7 +545,20 @@ export class AppleStoreKitService {
       }
 
       // Update user subscription in database
+      Logger.info('[StoreKit] 🔄 Starting database update', {
+        component: 'AppleStoreKitService',
+        userId: this.currentUserId || 'unknown',
+        tier,
+        transactionId: purchase.transactionId?.substring(0, 10) + '...',
+      });
+      
       await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
+      
+      Logger.info('[StoreKit] ✅ Database update completed successfully', {
+        component: 'AppleStoreKitService',
+        userId: this.currentUserId || 'unknown',
+        tier,
+      });
 
       // Finish the transaction
       await finishTransaction({ purchase, isConsumable: false });
