@@ -570,13 +570,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         // In upgrade mode, purchase and show success modal before going back
 
         try {
+          logger.info('🛒 SCREEN STEP 1: Initiating purchase', {
+            productId,
+            userId: user?.id,
+            selectedTier,
+            billing,
+            timestamp: new Date().toISOString(),
+          });
+          
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
           
-          logger.info('📦 Purchase result received', {
+          logger.info('📦 SCREEN STEP 2: Purchase result received from service', {
             success: result.success,
             hasTransactionId: !!result.transactionId,
             transactionId: result.transactionId?.substring(0, 10) + '...',
             error: result.error,
+            timestamp: new Date().toISOString(),
           });
           
           if (result.success) {
@@ -596,19 +605,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             // CRITICAL: Wait for AppleStoreKitService to complete server-side validation
             // The service already handles server validation in handlePurchaseUpdate
-            logger.info('⏳ Waiting for AppleStoreKitService to complete validation', {
+            logger.info('⏳ SCREEN STEP 3: Waiting for AppleStoreKitService to complete validation (UPGRADE MODE)', {
               userId: user?.id,
               selectedTier,
               transactionId: result.transactionId?.substring(0, 10) + '...',
+              waitTime: '2000ms',
+              timestamp: new Date().toISOString(),
             });
 
             // Give the service a moment to complete validation
+            const waitStartTime = Date.now();
             await new Promise(resolve => setTimeout(resolve, 2000));
+            const waitDuration = Date.now() - waitStartTime;
+            
+            logger.info(`⏱️ SCREEN STEP 4: Wait completed (${waitDuration}ms), verifying database (UPGRADE MODE)`, {
+              timestamp: new Date().toISOString(),
+            });
 
             // Verify the subscription was updated by checking the database
-            logger.info('🔄 Verifying subscription update in database', {
+            logger.info('🔄 SCREEN STEP 5: Verifying subscription update in database (UPGRADE MODE)', {
               userId: user?.id,
               selectedTier,
+              timestamp: new Date().toISOString(),
             });
 
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');

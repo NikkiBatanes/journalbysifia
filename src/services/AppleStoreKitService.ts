@@ -426,12 +426,15 @@ export class AppleStoreKitService {
    * ENTERPRISE IMPROVEMENT: Now includes server-side validation
    */
   private async handlePurchaseUpdate(purchase: ProductPurchase): Promise<void> {
+    const debugId = `${purchase.productId.substring(0, 20)}_${Date.now()}`;
+    
     try {
-      Logger.info('[StoreKit] 🔍 Processing purchase update', {
+      Logger.info(`[StoreKit][${debugId}] 🔍 STEP 1: Processing purchase update`, {
         component: 'AppleStoreKitService',
         productId: purchase.productId,
         transactionId: purchase.transactionId?.substring(0, 10) + '...',
         transactionDate: purchase.transactionDate,
+        hasPendingResolver: this.pendingPurchaseResolvers.has(purchase.productId),
       });
 
       // CRITICAL: Validate purchase freshness to prevent cached/stale purchases
@@ -441,7 +444,7 @@ export class AppleStoreKitService {
       // CRITICAL: Always reject transactions older than 5 minutes
       // This prevents old cached purchases from being processed on app restart
       if (purchaseAge > 5 * 60 * 1000) {
-        Logger.warn('[StoreKit] ⚠️ FINISHING STALE TRANSACTION - Transaction is older than 5 minutes', {
+        Logger.warn(`[StoreKit][${debugId}] ⚠️ STEP 2: STALE TRANSACTION DETECTED - Finishing and rejecting`, {
           component: 'AppleStoreKitService',
           purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
           transactionDate: new Date(purchaseTime).toISOString(),
@@ -485,7 +488,7 @@ export class AppleStoreKitService {
       // ENTERPRISE IMPROVEMENT: Server-side validation FIRST
       let serverValidation: ServerValidationResult = { success: false };
       try {
-        Logger.info('[StoreKit] Attempting server-side receipt validation', {
+        Logger.info(`[StoreKit][${debugId}] 🔄 STEP 3: Starting server-side receipt validation`, {
           component: 'AppleStoreKitService',
           userId: this.currentUserId || 'unknown',
           productId: purchase.productId,
@@ -498,14 +501,14 @@ export class AppleStoreKitService {
           purchase.productId
         );
 
-        Logger.info('[StoreKit] Server validation result', {
+        Logger.info(`[StoreKit][${debugId}] ✅ STEP 4: Server validation completed`, {
           component: 'AppleStoreKitService',
           success: serverValidation.success,
           hasData: !!serverValidation.data,
           errorMessage: serverValidation.error,
         });
       } catch (serverError) {
-        Logger.error('[StoreKit] Server validation failed, proceeding with client validation', new Error(serverValidation.error || 'Unknown server error'), {
+        Logger.error(`[StoreKit][${debugId}] ❌ STEP 4: Server validation threw error`, new Error(serverValidation.error || 'Unknown server error'), {
           component: 'AppleStoreKitService',
         });
       }
@@ -545,19 +548,24 @@ export class AppleStoreKitService {
       }
 
       // Update user subscription in database
-      Logger.info('[StoreKit] 🔄 Starting database update', {
+      Logger.info(`[StoreKit][${debugId}] 🔄 STEP 5: Starting database update`, {
         component: 'AppleStoreKitService',
         userId: this.currentUserId || 'unknown',
         tier,
         transactionId: purchase.transactionId?.substring(0, 10) + '...',
+        timestamp: new Date().toISOString(),
       });
       
+      const dbUpdateStartTime = Date.now();
       await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
+      const dbUpdateDuration = Date.now() - dbUpdateStartTime;
       
-      Logger.info('[StoreKit] ✅ Database update completed successfully', {
+      Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Database update completed successfully`, {
         component: 'AppleStoreKitService',
         userId: this.currentUserId || 'unknown',
         tier,
+        duration: dbUpdateDuration,
+        timestamp: new Date().toISOString(),
       });
 
       // Finish the transaction
@@ -580,14 +588,22 @@ export class AppleStoreKitService {
         duration: purchaseDuration,
       });
 
-      Logger.info('[StoreKit] ✅ Purchase validated and completed successfully', {
+      Logger.info(`[StoreKit][${debugId}] ✅ STEP 7: Purchase validated and completed successfully`, {
         component: 'AppleStoreKitService',
         transactionId: purchase.transactionId?.substring(0, 10) + '...',
         duration: purchaseDuration,
         tier: tier,
+        timestamp: new Date().toISOString(),
       });
 
       // Resolve the pending purchase promise
+      Logger.info(`[StoreKit][${debugId}] 🎯 STEP 8: Resolving purchase promise`, {
+        component: 'AppleStoreKitService',
+        hasPendingResolver: this.pendingPurchaseResolvers.has(purchase.productId),
+        pendingResolversCount: this.pendingPurchaseResolvers.size,
+        timestamp: new Date().toISOString(),
+      });
+      
       const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
       if (resolver) {
         resolver.resolve({
