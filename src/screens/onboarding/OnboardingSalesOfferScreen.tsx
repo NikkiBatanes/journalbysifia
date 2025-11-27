@@ -540,6 +540,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       
       let products;
       try {
+        // CRITICAL: Initialize payment service before getting products
+        if (cachedProducts.length === 0) {
+          logger.info('🔧 STEP A.1: Initializing payment service', {
+            timestamp: new Date().toISOString(),
+          });
+          await paymentService.initialize();
+          logger.info('✅ STEP A.2: Payment service initialized', {
+            timestamp: new Date().toISOString(),
+          });
+        }
+        
         products = cachedProducts.length > 0 ? cachedProducts : await paymentService.getAvailableProducts();
         
         logger.info('📦 STEP B: Products retrieved successfully', {
