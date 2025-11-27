@@ -716,8 +716,7 @@ export class AppleStoreKitService {
         await NewSubscriptionService.upgradeSubscription(finalUserId, {
           target_tier: tier as SubscriptionTier,
           platform: 'apple',
-          platform_subscription_id: purchase.productId,
-          platform_transaction_id: purchase.transactionId,
+          platform_subscription_id: purchase.transactionId || purchase.productId,
         });
 
         // Send payment success notification for new purchase/upgrade
