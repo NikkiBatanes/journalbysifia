@@ -58,6 +58,8 @@ export const formatBibleVerse = (verse: string): string => {
     .replace(/"\s*\(\)\s*([.,!?;:]*)\s*$/g, '$1')
     // Case 2: ... () or ... ()! etc.
     .replace(/\(\)\s*([.,!?;:]*)\s*$/g, '$1')
+    // Case 3: Remove "(, NASB)" and similar version artifacts
+    .replace(/\s*\(\s*,\s*[A-Z]+\s*\)\s*([.,!?;:]*)\s*$/g, '$1')
     // Final safety: if any bare () remains at the very end, drop it
     .replace(/\s*\(\)\s*$/g, '');
 

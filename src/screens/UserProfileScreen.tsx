@@ -34,6 +34,7 @@ import ProfileHeader from '../components/profile/ProfileHeader';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
+import { accountDeletionService } from '../services/accountDeletionService';
 import { UserProgress, UserPreferences } from '../types/auth';
 // Types for subscription - using inline types to avoid import issues
 interface Subscription {
@@ -180,7 +181,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Modal states
   const [editProfileModal, setEditProfileModal] = useState(false);
   const [deleteAccountModal, setDeleteAccountModal] = useState(false);
-  const [deleteBirthYear, setDeleteBirthYear] = useState<string>('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
@@ -197,49 +197,41 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     defaultDate.setFullYear(defaultDate.getFullYear() - 25);
     return defaultDate;
   });
-  // Delete Account helpers
-  const isValidBirthYear = useMemo(() => {
-    if (!deleteBirthYear) {return false;}
-    const yr = parseInt(deleteBirthYear, 10);
-    const now = new Date().getFullYear();
-    return /^(19|20)\d{2}$/.test(deleteBirthYear) && yr >= 1900 && yr <= now;
-  }, [deleteBirthYear]);
 
   const handleConfirmDeleteAccount = useCallback(async () => {
     Logger.debug('[UserProfileScreen] Delete account initiated', {
       component: 'UserProfileScreen',
-      isValidBirthYear,
       hasUser: !!user,
       userId: user?.id,
     });
 
     try {
       try { triggerLightHaptic(); } catch {}
-      if (!isValidBirthYear) {
-        Logger.warn('[UserProfileScreen] Invalid birth year', {
+
+      if (!user?.id) {
+        Logger.error('[UserProfileScreen] No user ID found', undefined, {
           component: 'UserProfileScreen',
-          birthYear: deleteBirthYear,
         });
-        Alert.alert('Enter valid year', 'Please enter your birth year (YYYY) to continue.');
+        Alert.alert('Authentication Error', 'Please sign in to continue.');
         return;
       }
 
-      Logger.debug('[UserProfileScreen] Birth year validation passed', {
+      Logger.debug('[UserProfileScreen] Starting account deletion process', {
         component: 'UserProfileScreen',
-        birthYear: deleteBirthYear,
+        userId: user.id,
       });
 
-      // Show confirmation alert before proceeding
+      // Show detailed confirmation alert
       Alert.alert(
         'Delete Account',
-        'Are you sure you want to permanently delete your account? This action cannot be undone.',
+        'This will start the account deletion process. Your account will be permanently deleted after a 30-day grace period. You can cancel anytime during this period.\n\nThis action cannot be undone.',
         [
           {
             text: 'Cancel',
             style: 'cancel',
           },
           {
-            text: 'Delete',
+            text: 'Start Deletion',
             style: 'destructive',
             onPress: async () => {
               Logger.debug('[UserProfileScreen] User confirmed deletion', {
@@ -247,121 +239,58 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               });
               setIsDeletingAccount(true);
               try {
-                if (!user?.id) {
-                  Logger.error('[UserProfileScreen] No user ID found', undefined, {
-                    component: 'UserProfileScreen',
-                  });
-                  throw new Error('User not authenticated');
-                }
-
-                Logger.debug('[UserProfileScreen] Starting account deletion process', {
-                  component: 'UserProfileScreen',
+                // Use the enterprise-grade deletion service
+                const result = await accountDeletionService.initiateAccountDeletion({
                   userId: user.id,
+                  birthYear: '', // No longer required
                 });
 
-                // Mark account for deletion in user metadata
-                Logger.debug('[UserProfileScreen] Marking account for deletion in metadata', {
-                  component: 'UserProfileScreen',
-                });
-                const { error: updateError } = await supabase.auth.updateUser({
-                  data: {
-                    account_deletion_requested: true,
-                    account_deletion_date: new Date().toISOString(),
-                  },
-                });
-
-                if (updateError) {
-                  Logger.error('Error marking account for deletion', updateError as Error, {
+                if (result.success) {
+                  Logger.info('[UserProfileScreen] Account deletion initiated successfully', {
                     component: 'UserProfileScreen',
+                    deletionId: result.deletionId,
+                    gracePeriodEnds: result.gracePeriodEnds,
                   });
-                  throw updateError;
-                }
 
-                Logger.debug('[UserProfileScreen] Successfully marked account for deletion', {
-                  component: 'UserProfileScreen',
-                });
+                  // Close modals and reset state
+                  setDeleteAccountModal(false);
+                  setEditProfileModal(false);
+                  setIsDeletingAccount(false);
 
-                // Delete all user data from tables (in order to respect foreign key constraints)
-                // First get all playbook IDs for this user
-                const { data: userPlaybooks } = await supabase
-                  .from('playbooks')
-                  .select('id')
-                  .eq('user_id', user.id);
-
-                if (userPlaybooks && userPlaybooks.length > 0) {
-                  const playbookIds = userPlaybooks.map(p => p.id);
-                  await supabase.from('playbook_action_steps').delete().in('playbook_id', playbookIds);
-                  await supabase.from('playbook_affirmations').delete().in('playbook_id', playbookIds);
-                }
-
-                await supabase.from('playbooks').delete().eq('user_id', user.id);
-                await supabase.from('devotionals').delete().eq('user_id', user.id);
-                await supabase.from('journal_entries').delete().eq('user_id', user.id);
-                await supabase.from('prayers').delete().eq('user_id', user.id);
-                await supabase.from('reflections').delete().eq('user_id', user.id);
-                await supabase.from('time_blocks').delete().eq('user_id', user.id);
-                await supabase.from('notification_preferences').delete().eq('user_id', user.id);
-                await supabase.from('faith_points_profiles').delete().eq('user_id', user.id);
-                await supabase.from('faith_points_log').delete().eq('user_id', user.id);
-                await supabase.from('user_streaks').delete().eq('user_id', user.id);
-                await supabase.from('subscriptions').delete().eq('user_id', user.id);
-                await supabase.from('user_profiles').delete().eq('id', user.id);
-
-                // Delete the auth user (this will cascade delete remaining data)
-                const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(user.id);
-                if (deleteAuthError) {
-                  Logger.warn('Could not delete auth user via admin API, continuing with sign out', {
-                    component: 'UserProfileScreen',
-                    error: deleteAuthError,
-                  });
-                }
-
-                // Sign out the user
-                Logger.debug('[UserProfileScreen] Account deletion complete, signing out', {
-                  component: 'UserProfileScreen',
-                });
-                Logger.debug('[UserProfileScreen] Signing out user after deletion', {
-                  component: 'UserProfileScreen',
-                });
-                await signOut();
-
-                // Close modals and reset state
-                setDeleteAccountModal(false);
-                setEditProfileModal(false);
-                setDeleteBirthYear('');
-                setIsDeletingAccount(false);
-
-                // Show success message
-                Logger.debug('[UserProfileScreen] Showing success message', {
-                  component: 'UserProfileScreen',
-                });
-                Alert.alert(
-                  'Account Deleted',
-                  'Your account has been permanently deleted. We\'re sorry to see you go.',
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => {
-                        // Navigation will be handled by auth state change
+                  // Show detailed success message
+                  Alert.alert(
+                    'Deletion Started',
+                    result.message || 'Your account will be permanently deleted after 30 days. You can contact support anytime to cancel this process.',
+                    [
+                      {
+                        text: 'I Understand',
+                        onPress: async () => {
+                          // Sign out the user after they acknowledge
+                          await signOut();
+                        },
                       },
-                    },
-                  ]
-                );
+                    ]
+                  );
+                } else {
+                  throw new Error(result.message || 'Failed to initiate account deletion');
+                }
               } catch (e: any) {
-                Logger.error('Error deleting account', e as Error, {
+                Logger.error('Error initiating account deletion', e as Error, {
                   component: 'UserProfileScreen',
+                  error: e.message,
                 });
+
+                let errorMessage = 'Unable to delete your account at this time. Please try again or contact support.';
+                if (e.message?.includes('already in progress')) {
+                  errorMessage = 'Account deletion is already in progress. Please contact support if you want to cancel.';
+                }
+
                 Alert.alert(
                   'Deletion Failed',
-                  'Unable to delete your account at this time. Please try again or contact support.',
+                  errorMessage,
                   [
                     {
                       text: 'OK',
-                      onPress: () => {
-                        setDeleteAccountModal(false);
-                        setEditProfileModal(false);
-                        setDeleteBirthYear('');
-                      },
                     },
                   ]
                 );
@@ -372,8 +301,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           },
         ]
       );
-    } catch {}
-  }, [isValidBirthYear, user, signOut, deleteBirthYear]);
+    } catch (error) {
+      Logger.error('Unexpected error in handleConfirmDeleteAccount', error as Error, {
+        component: 'UserProfileScreen',
+      });
+      setIsDeletingAccount(false);
+    }
+  }, [user, signOut]);
 
   const loadNotificationPreferences = useCallback(async () => {
     if (!user?.id) {return;}
@@ -1898,11 +1832,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.paddingBottom20}>
             <TouchableOpacity
               onPress={() => {
-
                 try { triggerLightHaptic(); } catch {}
-
+                // Close edit profile modal if it's open
+                setEditProfileModal(false);
                 setDeleteAccountModal(true);
-
               }}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -1910,10 +1843,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityRole="button"
               accessibilityLabel="Delete account"
             >
-              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} style={styles.iconWithMargin} />
-              <View style={styles.flex1}>
-                <Text style={[styles.deleteButtonText, font]}>Delete Account</Text>
-                <Text style={[styles.descriptionText, font]}>This will permanently delete your account and data.</Text>
+              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} style={styles.deleteAccountIcon} />
+              <View style={styles.deleteAccountTextContainer}>
+                <Text style={[styles.deleteAccountTitle, font]}>Delete Account</Text>
+                <Text style={[styles.deleteAccountDescription, font]}>This will permanently delete your account and data.</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -1924,63 +1857,56 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   // Delete Account Confirmation Modal
   const renderDeleteAccountModal = () => {
-
     return (
-    <Modal
-      visible={deleteAccountModal}
-      animationType="fade"
-      transparent={true}
-      onRequestClose={() => setDeleteAccountModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              // Don't clear the birth year when canceling - preserve user input
-              setDeleteAccountModal(false);
-            }}>
-              <Text style={[styles.cancelText, font]}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, font]}>Delete Account</Text>
-            <View style={styles.modalSpacer} />
-          </View>
+      <Modal
+        visible={deleteAccountModal}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setDeleteAccountModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setDeleteAccountModal(false);
+              }}>
+                <Text style={[styles.cancelText, font]}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, font]}>Delete Account</Text>
+              <View style={styles.modalSpacer} />
+            </View>
 
-          <View style={styles.modalDescriptionContainer}>
-          <Text style={[styles.settingDescription, font]}>For security, please confirm your birth year to proceed with account deletion.</Text>
-          <View style={styles.nameContainer}>
-            <TextInput
-              style={[styles.nameField, font]}
-              value={deleteBirthYear}
-              onChangeText={setDeleteBirthYear}
-              placeholder="Birth year (YYYY)"
-              placeholderTextColor={Colors.textGray}
-              keyboardType="number-pad"
-              maxLength={4}
-            />
-          </View>
-          <Text style={[styles.modalDescription, font]}>Enter a valid 4-digit year to continue.</Text>
-          <TouchableOpacity
-            onPress={() => {
+            <View style={styles.modalDescriptionContainer}>
+              <Text style={[styles.settingDescription, font]}>Are you sure you want to delete your account? This action cannot be undone.</Text>
 
-              if (!isValidBirthYear || isDeletingAccount) {
+              {/* Grace period information */}
+              <View style={styles.gracePeriodInfo}>
+                <Ionicons name="information-circle-outline" size={16} color={Colors.textGray} />
+                <Text style={[styles.gracePeriodText, font]}>
+                  Your account will be scheduled for deletion after a 30-day grace period. You can cancel anytime during this period by contacting support.
+                </Text>
+              </View>
 
-                return;
-              }
-              handleConfirmDeleteAccount();
-            }}
-            disabled={!isValidBirthYear || isDeletingAccount}
-            style={[
-              styles.deleteButton,
-              !isValidBirthYear || isDeletingAccount ? styles.deleteButtonDisabled : styles.deleteButtonEnabled,
-            ]}
-          >
-            <Text style={[styles.deleteButtonText, font]}>{isDeletingAccount ? 'Deleting...' : 'Delete my account'}</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  if (isDeletingAccount) {
+                    return;
+                  }
+                  handleConfirmDeleteAccount();
+                }}
+                disabled={isDeletingAccount}
+                style={[
+                  styles.deleteButton,
+                  isDeletingAccount ? styles.deleteButtonDisabled : styles.deleteButtonEnabled,
+                ]}
+              >
+                <Text style={[styles.deleteButtonText, font]}>{isDeletingAccount ? 'Starting deletion...' : 'Start account deletion'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
     );
   };
 
@@ -3251,10 +3177,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 59, 48, 0.3)',
+    borderColor: 'rgba(255, 59, 48, 0.5)',
+  },
+  deleteAccountIcon: {
+    marginRight: 8,
+  },
+  deleteAccountTextContainer: {
+    flex: 1,
+  },
+  deleteAccountTitle: {
+    color: Colors.alertCoral,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  deleteAccountDescription: {
+    color: Colors.textGray,
+    fontSize: 12,
+    marginTop: 4,
   },
   // Modal styles
   modalOverlay: {
@@ -3298,6 +3240,23 @@ const styles = StyleSheet.create({
   },
   deleteButtonEnabled: {
     backgroundColor: Colors.alertCoral,
+  },
+  gracePeriodInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+  },
+  gracePeriodText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.textGray,
+    marginLeft: 8,
   },
   // Icon styles
   iconWithMargin: {
