@@ -13,9 +13,8 @@ export const progressBarStyles = StyleSheet.create({
   },
   progressWrapper: {
     flex: 1,
-    marginRight: 16, // Increased spacing between bar and text
-    minWidth: '75%', // Use percentage for better responsiveness
-    maxWidth: '85%', // Limit maximum width
+    marginRight: 8, // Reduced spacing to give more room for text
+    minWidth: 60, // Minimum width for the progress bar
   },
   barBg: {
     width: '100%',
@@ -35,15 +34,18 @@ export const progressBarStyles = StyleSheet.create({
     elevation: 2,
   },
   textContainer: {
-    width: 72, // Slightly wider to fit "0/10 Steps" on one line
+    minWidth: 65, // Minimum width for shorter text like "0/5"
+    maxWidth: 85, // Maximum width for longer text like "12/15"
     alignItems: 'flex-end',
-    marginLeft: 'auto', // Push to the far right
+    justifyContent: 'center',
   },
   text: {
-    fontSize: 12,
+    fontSize: 11, // Slightly smaller to fit better
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'right',
-    minWidth: 72, // Ensure minimum width for text
-    flexShrink: 0, // Do not shrink, avoid wrapping
+    numberOfLines: 1, // Ensure single line
+    flexShrink: 1, // Allow shrinking but maintain readability
+    includeFontPadding: false, // Remove extra font padding
+    textAlignVertical: 'center', // Better vertical alignment
   },
 });
