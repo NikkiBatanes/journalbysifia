@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
+import { PaymentFailureLogger, PaymentFailureContext } from '../utils/paymentFailureLogger';
 import RNIap, {
   ProductPurchase,
   PurchaseError,
@@ -62,6 +63,7 @@ export class AppleStoreKitService {
   private currentUserId: string | null = null;
   private pendingPurchaseResolvers: Map<string, { resolve: (value: PurchaseResult) => void; reject: (error: any) => void }> = new Map();
   private purchaseInitiatedTimestamp: number | null = null; // Track when purchase flow started
+  private purchaseRetryCount: Map<string, number> = new Map(); // Track retry attempts
 
   // Product IDs for subscription tiers
   // Two-Screen Strategy:
@@ -199,27 +201,92 @@ export class AppleStoreKitService {
 
   /**
    * Get available subscription products from the App Store
+   * ENHANCED: Added retry logic and better error handling
    */
   async getAvailableProducts(): Promise<StoreProduct[]> {
-    try {
-      await this.initialize();
+    let lastError: Error | null = null;
+    
+    // Retry up to 3 times for network resilience
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await this.initialize();
 
-      const productIds = Object.values(AppleStoreKitService.PRODUCT_IDS);
+        const productIds = Object.values(AppleStoreKitService.PRODUCT_IDS);
 
-      const products = await getSubscriptions({ skus: productIds });
+        Logger.info(`[StoreKit] Fetching products (attempt ${attempt}/3)`, {
+          component: 'AppleStoreKitService',
+          productCount: productIds.length,
+          isSandbox: this.isSandboxEnvironment(),
+        });
 
-      return products.map((product: Subscription) => ({
-        productId: product.productId,
-        price: (product as any).price || '0',
-        currency: (product as any).currency || 'USD',
-        localizedPrice: (product as any).localizedPrice || '$0.00',
-        title: product.title || '',
-        description: product.description || '',
-        discounts: (product as any).discounts || [],
-      }));
-    } catch (error) {
-      return [];
+        const products = await getSubscriptions({ skus: productIds });
+
+        const result = products.map((product: Subscription) => ({
+          productId: product.productId,
+          price: (product as any).price || '0',
+          currency: (product as any).currency || 'USD',
+          localizedPrice: (product as any).localizedPrice || '$0.00',
+          title: product.title || '',
+          description: product.description || '',
+          discounts: (product as any).discounts || [],
+        }));
+
+        Logger.info(`[StoreKit] ✅ Products fetched successfully`, {
+          component: 'AppleStoreKitService',
+          attempt,
+          productsFound: result.length,
+          trialProducts: result.filter(p => p.productId.includes('freetrial')).length,
+          regularProducts: result.filter(p => !p.productId.includes('freetrial')).length,
+        });
+
+        return result;
+        
+      } catch (error) {
+        lastError = error as Error;
+        
+        Logger.warn(`[StoreKit] Products fetch failed (attempt ${attempt}/3)`, {
+          component: 'AppleStoreKitService',
+          attempt,
+          error: lastError.message,
+          willRetry: attempt < 3,
+        });
+
+        // Don't retry on certain errors
+        const errorMessage = lastError.message.toLowerCase();
+        const shouldNotRetry = 
+          errorMessage.includes('user cancelled') ||
+          errorMessage.includes('payment cancelled') ||
+          errorMessage.includes('invalid product id');
+
+        if (shouldNotRetry) {
+          Logger.error(`[StoreKit] Non-retryable error, stopping retries`, {
+            component: 'AppleStoreKitService',
+            error: lastError.message,
+          });
+          break;
+        }
+
+        // Wait before retry (exponential backoff)
+        if (attempt < 3) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 3000); // 1s, 2s, 3s max
+          Logger.info(`[StoreKit] Waiting ${delayMs}ms before retry`, {
+            component: 'AppleStoreKitService',
+            attempt,
+            delayMs,
+          });
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
     }
+
+    // All attempts failed
+    Logger.error(`[StoreKit] ❌ All product fetch attempts failed`, lastError as Error, {
+      component: 'AppleStoreKitService',
+      totalAttempts: 3,
+      finalError: lastError?.message,
+    });
+
+    return [];
   }
 
   /**
@@ -316,14 +383,40 @@ export class AppleStoreKitService {
       // Clear timestamp on error
       this.purchaseInitiatedTimestamp = null;
 
+      // ENHANCED: Comprehensive payment failure logging
+      const failureContext: PaymentFailureContext = {
+        userId: userId,
+        productId: productId,
+        screen: productId.includes('freetrial') ? 'trial_offer' : 'sales_offer',
+        action: 'purchase',
+        error: error instanceof Error ? error : new Error('Unknown error'),
+        timestamp: new Date(),
+        deviceInfo: {
+          platform: Platform.OS,
+          version: Platform.Version?.toString() || 'unknown',
+          isSandbox: this.isSandboxEnvironment(),
+        },
+        retryCount: this.purchaseRetryCount.get(productId) || 0,
+        userJourney: {
+          source: 'payment_flow',
+          onboardingFlow: false, // This could be enhanced to detect actual context
+        },
+      };
+
+      const analysis = PaymentFailureLogger.logPaymentFailure(failureContext);
+
       Logger.error('[StoreKit] Purchase failed', error as Error, {
         component: 'AppleStoreKitService',
         productId,
+        category: analysis.category,
+        severity: analysis.severity,
+        canRetry: analysis.canRetry,
+        userFriendlyMessage: analysis.userFriendlyMessage,
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: analysis.userFriendlyMessage, // Use user-friendly message
       };
     }
   }
@@ -460,9 +553,25 @@ export class AppleStoreKitService {
       // CRITICAL: Clear purchase timestamp after successful validation
       this.purchaseInitiatedTimestamp = null;
 
+      // ENHANCED: Log successful payment
+      const purchaseDuration = this.purchaseInitiatedTimestamp ? 
+        Date.now() - this.purchaseInitiatedTimestamp : 0;
+      
+      PaymentFailureLogger.logPaymentSuccess({
+        userId: this.currentUserId || 'unknown',
+        productId: purchase.productId,
+        screen: purchase.productId.includes('freetrial') ? 'trial_offer' : 'sales_offer',
+        transactionId: purchase.transactionId || 'unknown',
+        amount: this.getAmountFromProductId(purchase.productId),
+        currency: 'PHP', // Based on pricing in getAmountFromProductId
+        duration: purchaseDuration,
+      });
+
       Logger.info('[StoreKit] ✅ Purchase validated and completed successfully', {
         component: 'AppleStoreKitService',
         transactionId: purchase.transactionId?.substring(0, 10) + '...',
+        duration: `${purchaseDuration}ms`,
+        tier: tier,
       });
 
       // Resolve the pending purchase promise

@@ -8,7 +8,7 @@
 
 // @ts-nocheck - This is a Deno edge function, not Node.js TypeScript
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,10 +24,57 @@ interface ValidateReceiptRequest {
 
 interface AppleReceiptResponse {
   status: number;
-  receipt?: any;
-  latest_receipt_info?: any[];
-  pending_renewal_info?: any[];
+  receipt?: AppleReceipt;
+  latest_receipt_info?: AppleReceiptInfo[];
+  pending_renewal_info?: PendingRenewalInfo[];
   environment?: string;
+}
+
+interface AppleReceipt {
+  bundle_id?: string;
+  application_version?: string;
+  original_application_version?: string;
+  in_app?: AppleReceiptInfo[];
+}
+
+interface AppleReceiptInfo {
+  quantity?: string;
+  product_id?: string;
+  transaction_id?: string;
+  original_transaction_id?: string;
+  purchase_date?: string;
+  purchase_date_ms?: string;
+  original_purchase_date?: string;
+  original_purchase_date_ms?: string;
+  expires_date?: string;
+  expires_date_ms?: string;
+  web_order_line_item_id?: string;
+  is_trial_period?: string;
+  is_in_intro_offer_period?: string;
+  in_app_ownership_type?: string;
+}
+
+interface PendingRenewalInfo {
+  auto_renew_product_id?: string;
+  original_transaction_id?: string;
+  product_id?: string;
+}
+
+interface ValidationResult {
+  success: boolean;
+  data?: ValidationData;
+  error?: string;
+  statusCode?: number;
+}
+
+interface ValidationData {
+  transactionId: string;
+  productId: string;
+  purchaseDate: Date | null;
+  expiresAt: Date | null;
+  isTrialPeriod: boolean;
+  environment: string;
+  rawResponse: AppleReceiptResponse;
 }
 
 serve(async (req) => {
@@ -80,7 +127,7 @@ serve(async (req) => {
       );
     }
 
-    // Store validated receipt in database
+    // Store validated receipt in database for audit trail
     const { data: receiptRecord, error: dbError } = await supabase
       .from('validated_receipts')
       .insert({
@@ -90,7 +137,7 @@ serve(async (req) => {
         validation_response: validationResult.data,
         product_id: productId || validationResult.data?.productId,
         transaction_id: validationResult.data?.transactionId,
-        expires_at: validationResult.data?.expiresAt,
+        expires_at: validationResult.data?.expiresAt?.toISOString(),
         is_valid: true,
         validated_at: new Date().toISOString(),
       })
@@ -140,7 +187,7 @@ serve(async (req) => {
 /**
  * Validate Apple receipt with Apple servers
  */
-async function validateAppleReceipt(receiptData: string): Promise<any> {
+async function validateAppleReceipt(receiptData: string): Promise<ValidationResult> {
   const sharedSecret = Deno.env.get('APPLE_SHARED_SECRET');
 
   // Try production first
@@ -197,7 +244,7 @@ async function callAppleVerifyReceipt(
     ? 'https://sandbox.itunes.apple.com/verifyReceipt'
     : 'https://buy.itunes.apple.com/verifyReceipt';
 
-  const body: any = {
+  const body: Record<string, string | boolean> = {
     'receipt-data': receiptData,
     'exclude-old-transactions': true,
   };
@@ -212,62 +259,82 @@ async function callAppleVerifyReceipt(
     body: JSON.stringify(body),
   });
 
-  return await response.json();
+  return await response.json() as AppleReceiptResponse;
 }
 
 /**
  * Validate Google Play receipt
  */
-async function validateGoogleReceipt(_receiptData: string): Promise<any> {
+function validateGoogleReceipt(_receiptData: string): Promise<ValidationResult> {
   // TODO: Implement Google Play validation
   // Requires Google Play Developer API setup
   console.log('[ValidateReceipt] Google Play validation not yet implemented');
 
-  return {
+  return Promise.resolve({
     success: false,
     error: 'Google Play validation not yet implemented',
-  };
+  });
 }
 
 /**
  * Update user subscription in database
  */
-async function updateUserSubscription(supabase: any, userId: string, validationData: any): Promise<void> {
+async function updateUserSubscription(
+  supabaseClient: SupabaseClient, 
+  userId: string, 
+  validationData: ValidationData
+): Promise<void> {
   try {
-    // Get or create subscription
-    const { data: existingSub } = await supabase
-      .from('subscriptions')
+    // Get existing subscription from the correct table
+    const { data: existingSub } = await supabaseClient
+      .from('user_subscriptions_new')
       .select('*')
       .eq('user_id', userId)
       .single();
 
+    // Map product ID to subscription tier
+    const tier = mapProductIdToTier(validationData.productId);
+    
+    // Get tier limits
+    const tierLimits = getTierLimits(tier);
+
     const subscriptionData = {
       user_id: userId,
-      tier: mapProductIdToTier(validationData.productId),
+      tier: tier,
       status: 'active',
-      current_period_end: validationData.expiresAt,
-      platform: 'ios',
-      transaction_id: validationData.transactionId,
-      product_id: validationData.productId,
+      subscription_end_date: validationData.expiresAt?.toISOString(),
+      platform: 'apple',
+      platform_subscription_id: validationData.transactionId,
+      platform_transaction_id: validationData.transactionId,
+      subscription_display_name: getTierDisplayName(tier),
+      playbooks_limit: tierLimits.playbooks_limit,
+      devotionals_limit: tierLimits.devotionals_limit,
+      smart_journaling_enabled: tierLimits.smart_journaling_enabled,
+      show_dashboard_counts: tierLimits.show_dashboard_counts,
       is_trial: validationData.isTrialPeriod,
+      trial_start_date: validationData.isTrialPeriod ? new Date().toISOString() : null,
+      trial_end_date: validationData.isTrialPeriod ? validationData.expiresAt?.toISOString() : null,
+      trial_chosen_tier: validationData.isTrialPeriod ? tier : null,
       updated_at: new Date().toISOString(),
     };
 
     if (existingSub) {
-      await supabase
-        .from('subscriptions')
+      await supabaseClient
+        .from('user_subscriptions_new')
         .update(subscriptionData)
-        .eq('id', existingSub.id);
+        .eq('user_id', userId);
     } else {
-      await supabase
-        .from('subscriptions')
+      await supabaseClient
+        .from('user_subscriptions_new')
         .insert({
           ...subscriptionData,
           created_at: new Date().toISOString(),
+          playbooks_used: 0,
+          devotionals_used: 0,
         });
     }
 
-    console.log('[ValidateReceipt] Subscription updated for user:', userId);
+    console.log('[ValidateReceipt] Subscription updated for user:', userId, { tier, isTrial: validationData.isTrialPeriod });
   } catch (error) {
     console.error('[ValidateReceipt] Failed to update subscription:', error);
     throw error;
@@ -283,4 +350,81 @@ function mapProductIdToTier(productId: string): string {
   if (productId.includes('transformation')) {return 'transformation';}
   if (productId.includes('family')) {return 'family';}
   return 'seeker';
+}
+
+/**
+ * Get tier limits for subscription
+ */
+function getTierLimits(tier: string): {
+  playbooks_limit: number;
+  devotionals_limit: number;
+  smart_journaling_enabled: boolean;
+  show_dashboard_counts: boolean;
+} {
+  switch (tier) {
+    case 'seeker':
+      return {
+        playbooks_limit: 0,
+        devotionals_limit: 0,
+        smart_journaling_enabled: false,
+        show_dashboard_counts: true,
+      };
+    case 'free_trial':
+      return {
+        playbooks_limit: 2,
+        devotionals_limit: 2,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: true,
+      };
+    case 'spark':
+      return {
+        playbooks_limit: 8,
+        devotionals_limit: 8,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: true,
+      };
+    case 'growth':
+      return {
+        playbooks_limit: 20,
+        devotionals_limit: 20,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: true,
+      };
+    case 'transformation':
+      return {
+        playbooks_limit: 999999,
+        devotionals_limit: 999999,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: false,
+      };
+    case 'family':
+      return {
+        playbooks_limit: 999999,
+        devotionals_limit: 999999,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: false,
+      };
+    default:
+      return {
+        playbooks_limit: 0,
+        devotionals_limit: 0,
+        smart_journaling_enabled: false,
+        show_dashboard_counts: true,
+      };
+  }
+}
+
+/**
+ * Get display name for tier
+ */
+function getTierDisplayName(tier: string): string {
+  switch (tier) {
+    case 'seeker': return 'siFia Seeker';
+    case 'free_trial': return 'siFia Free Trial';
+    case 'spark': return 'siFia Spark';
+    case 'growth': return 'siFia Growth';
+    case 'transformation': return 'siFia Transformation';
+    case 'family': return 'siFia Family';
+    default: return 'siFia';
+  }
 }

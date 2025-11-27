@@ -246,24 +246,80 @@ const OnboardingTrialOfferScreen = () => {
         isAnnual,
       });
 
-      // CRITICAL: Verify the .freetrial product exists in App Store Connect
+      // ENHANCED: Verify the .freetrial product exists in App Store Connect
       // Even if configured, it might not be synced to TestFlight yet
+      let availableProducts: any[] = [];
+      let trialProduct: any = null;
+      
       try {
-        const availableProducts = await paymentService.getAvailableProducts();
+        // Initialize payment service first
+        await paymentService.initialize();
+        
+        // Get available products with retry logic
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            availableProducts = await paymentService.getAvailableProducts();
+            if (availableProducts.length > 0) break;
+            
+            logger.warn(`Trial product check attempt ${attempt} failed - no products available`, {
+              attempt,
+              totalProducts: availableProducts.length,
+            });
+            
+            if (attempt < 3) {
+              // Wait 1 second before retry
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          } catch (retryError) {
+            logger.warn(`Trial product check attempt ${attempt} failed with error`, {
+              attempt,
+              error: retryError instanceof Error ? retryError.message : 'Unknown error',
+            });
+            
+            if (attempt < 3) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              throw retryError;
+            }
+          }
+        }
 
-        const trialProduct = availableProducts.find(p => p.productId === productId);
+        // Find the specific trial product
+        trialProduct = availableProducts.find(p => p.productId === productId);
+
+        // Log all available products for debugging
+        logger.debug('Trial product availability check', {
+          expectedProductId: productId,
+          totalProducts: availableProducts.length,
+          trialProducts: availableProducts.filter(p => p.productId.includes('freetrial')).map(p => p.productId),
+          allProductIds: availableProducts.map(p => p.productId),
+        });
 
         if (!trialProduct) {
           setTrialProductAvailable(false);
 
+          // Enhanced error message with actionable guidance
           const errorMessage = `Free trial product not available.
 
 🔍 DEBUGGING INFO:
 • Expected trial product: ${productId}
 • Available products: ${availableProducts.length}
 • Selected tier: ${selectedTierId}
+• Trial products found: ${availableProducts.filter(p => p.productId.includes('freetrial')).length}
 
-Trial purchases require the .freetrial SKU. Please check App Store Connect configuration or create a new sandbox tester.`;
+🛠️ POSSIBLE SOLUTIONS:
+1. App Store Connect: Ensure .freetrial products are approved and synced to TestFlight
+2. Sandbox Testing: Use a sandbox tester account (not production Apple ID)
+3. Product Sync: Wait 5-10 minutes for new products to sync to TestFlight
+4. Bundle ID: Verify app bundle ID matches App Store Connect configuration
+
+📱 REQUIRED PRODUCTS:
+• app.sifia.com.spark.monthly.freetrial
+• app.sifia.com.growth.monthly.freetrial  
+• app.sifia.com.transformation.monthly.freetrial
+• app.sifia.com.spark.annual.freetrial
+• app.sifia.com.growth.annual.freetrial
+• app.sifia.com.transformation.annual.freetrial`;
 
           logger.error(
             'Trial product not found - blocking purchase',
@@ -271,6 +327,9 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
             {
               expectedProductId: productId,
               availableProducts: availableProducts.map(p => p.productId),
+              trialProducts: availableProducts.filter(p => p.productId.includes('freetrial')).map(p => p.productId),
+              selectedTierId,
+              isAnnual,
             }
           );
 
@@ -279,8 +338,26 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
 
         // Set UI state to show trial is available
         setTrialProductAvailable(true);
+        
+        logger.info('Trial product verified and available', {
+          productId: trialProduct.productId,
+          localizedPrice: trialProduct.localizedPrice,
+          title: trialProduct.title,
+        });
+
       } catch (productError) {
-        throw new Error(productError instanceof Error ? productError.message : 'Unable to verify trial availability. Please try again later or contact support.');
+        setTrialProductAvailable(false);
+        
+        const baseError = productError instanceof Error ? productError.message : 'Unknown error';
+        const enhancedError = `Unable to verify trial availability: ${baseError}
+
+🔄 RETRY SUGGESTIONS:
+• Check internet connection and try again
+• Ensure you're using a sandbox tester account
+• Verify App Store Connect product configuration
+• Wait a few minutes for product sync to complete`;
+
+        throw new Error(enhancedError);
       }
 
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
