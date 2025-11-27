@@ -10,19 +10,19 @@ export const progressBarStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    height: 20, // Increased from 16 to accommodate thicker bar
+    height: 20, // Keep the current height for progress bar visibility
   },
   progressWrapper: {
-    flex: 1, // Reduced from 1 to make it narrower
+    flex: 1,
     marginRight: 8,
-    minWidth: 180, // Reduced from 60 to make it narrower
-    maxWidth: 280, // Add maximum width to prevent it from getting too wide
+    minWidth: 150, // Increased minimum width for better space utilization
+    maxWidth: '85%', // Increased from 70% to use more container width
   },
   barBg: {
     width: '100%',
-    height: 10, // Increased from 6 to make it thicker
+    height: 10, // Keep the current progress bar height as requested
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 5, // Increased border radius to match new height
+    borderRadius: 5, // Keep current border radius
     overflow: 'hidden',
   },
   barFill: {
@@ -36,18 +36,19 @@ export const progressBarStyles = StyleSheet.create({
     elevation: 2,
   },
   textContainer: {
-    minWidth: 65, // Minimum width for shorter text like "0/5"
-    maxWidth: 85, // Maximum width for longer text like "12/15"
+    minWidth: 55, // Reduced to give more space to progress bar
+    maxWidth: 70, // Reduced maximum width
     alignItems: 'flex-end',
     justifyContent: 'center',
+    flexShrink: 0, // Prevent text container from shrinking too much
   },
   text: {
-    fontSize: 10, // Smaller font for more compact appearance
+    fontSize: 10, // Keep current font size
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'right',
-    flexShrink: 1, // Allow shrinking but maintain readability
-    includeFontPadding: false, // Remove extra font padding
-    textAlignVertical: 'center', // Better vertical alignment
-    lineHeight: 14, // Tighter line height
+    flexShrink: 1,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    lineHeight: 14,
   },
 });

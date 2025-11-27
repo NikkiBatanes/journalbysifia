@@ -247,7 +247,7 @@ export class AppleStoreKitService {
         Logger.warn(`[StoreKit] Products fetch failed (attempt ${attempt}/3)`, {
           component: 'AppleStoreKitService',
           attempt,
-          error: lastError.message,
+          error: lastError,
           willRetry: attempt < 3,
         });
 
@@ -570,7 +570,7 @@ export class AppleStoreKitService {
       Logger.info('[StoreKit] ✅ Purchase validated and completed successfully', {
         component: 'AppleStoreKitService',
         transactionId: purchase.transactionId?.substring(0, 10) + '...',
-        duration: `${purchaseDuration}ms`,
+        duration: purchaseDuration,
         tier: tier,
       });
 

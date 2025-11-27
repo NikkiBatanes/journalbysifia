@@ -877,6 +877,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
+    paddingHorizontal: 16, // Add responsive padding
   },
   containerEmpty: {
     // Remove default container padding so heroCard width matches Devotionals (90% of screen)
@@ -980,6 +981,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 32,
     paddingHorizontal: 20,
     alignItems: 'center',
+    marginHorizontal: 'auto', // Center the card
   },
   heroIcon: {
     marginBottom: 12,
@@ -1089,7 +1091,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontSize: 14,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0, // Remove padding since pageInner handles it
     paddingBottom: 20,
   },
   // SectionList container and extra padding
@@ -1141,6 +1143,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
     gap: 6,
+    flexWrap: 'wrap', // Allow tabs to wrap on smaller screens
   },
   filterTabOnWhite: {
     paddingVertical: 6,

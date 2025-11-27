@@ -113,10 +113,12 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    justifyContent: 'space-between',
   },
   titleContainer: {
     marginBottom: 4,
     width: '100%',
+    flexShrink: 1,
   },
   date: {
     fontSize: 10,
@@ -136,6 +138,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     lineHeight: 20,
     paddingVertical: 1,
     flexShrink: 1,
+    minWidth: 0, // Allow text to shrink properly
   },
 });
 
