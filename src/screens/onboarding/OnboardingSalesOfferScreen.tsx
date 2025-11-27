@@ -477,6 +477,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   };
 
   const handleUnlockPlan = async () => {
+    logger.info('🚀 FUNCTION CALLED: handleUnlockPlan started', {
+      isPurchasing,
+      isUpgradeMode,
+      selectedTier,
+      isAnnual,
+      timestamp: new Date().toISOString(),
+    });
+    
     // Prevent multiple simultaneous purchases
     if (isPurchasing) {
       logger.debug('Purchase already in progress, ignoring');
@@ -1316,7 +1324,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             isPurchasing && styles.dimmedOpacity,
           ]}
           onPress={() => {
+            logger.info('🔥 BUTTON TAPPED: Unlock Plan button pressed', {
+              isPurchasing,
+              selectedTier,
+              isAnnual,
+              timestamp: new Date().toISOString(),
+            });
+            
             if (isPurchasing) {
+              logger.debug('Button disabled - purchase already in progress');
               return;
             }
             try { triggerSuccessHaptic(); } catch {}
