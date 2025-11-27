@@ -263,15 +263,23 @@ export default function ActionStepsCard({
           }
 
           // Award faith points once per completed action step (idempotent via AsyncStorage)
+          // ✅ FIX: Debounce to prevent rapid-fire transactions causing phone heating
           (async () => {
             try {
               if (!user?.id) { return; }
               const awardKey = `fp_awarded_action_step:${user.id}:${playbookId || 'unknown_playbook'}:${stepId}`;
+              
+              // ✅ FIX: Check AsyncStorage first to prevent race condition
               const alreadyAwarded = await AsyncStorage.getItem(awardKey);
               if (alreadyAwarded) {
-
                 return;
               }
+              
+              // ✅ FIX: Set flag BEFORE awarding to prevent duplicate calls
+              await AsyncStorage.setItem(awardKey, '1');
+              
+              // ✅ FIX: Add 500ms delay to debounce rapid completions
+              await new Promise(resolve => setTimeout(resolve, 500));
 
               await faithPointsService.awardPoints(user.id, 'action_step_completed', {
                 stepId,
@@ -279,8 +287,6 @@ export default function ActionStepsCard({
                 playbookId,
                 source: 'ActionStepsCard.onToggleSubTask',
               });
-
-              await AsyncStorage.setItem(awardKey, '1');
 
               // If that was the final incomplete step for this playbook, award a one-time playbook completion bonus
               try {
@@ -297,16 +303,15 @@ export default function ActionStepsCard({
                     const playbookAwardKey = `fp_awarded_playbook_completed:${user.id}:${playbookId}`;
                     const playbookAlready = await AsyncStorage.getItem(playbookAwardKey);
                     if (!playbookAlready) {
+                      // ✅ FIX: Set flag BEFORE awarding to prevent race condition
+                      await AsyncStorage.setItem(playbookAwardKey, '1');
+                      
                       await faithPointsService.awardPoints(user.id, 'playbook_completed', {
                         playbookId,
                         stepId,
                         subTaskId,
                         source: 'ActionStepsCard.onToggleSubTask',
                       });
-                      await AsyncStorage.setItem(playbookAwardKey, '1');
-
-                    } else {
-
                     }
                   }
                 }

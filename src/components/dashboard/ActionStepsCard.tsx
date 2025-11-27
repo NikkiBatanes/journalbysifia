@@ -278,13 +278,13 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       const stepsToAutoComplete = ranked.filter(step => step.shouldAutoComplete);
       if (stepsToAutoComplete.length > 0) {
 
-        // Process auto-completion after state is set
-        setTimeout(() => {
-          stepsToAutoComplete.forEach(step => {
-
+        // ✅ FIX: Process auto-completion with staggered delays to prevent rapid-fire transactions
+        stepsToAutoComplete.forEach((step, index) => {
+          // Stagger each completion by 1 second to prevent phone heating
+          setTimeout(() => {
             checkAndCompleteStep(step.id);
-          });
-        }, 200);
+          }, 200 + (index * 1000)); // 200ms initial + 1s per step
+        });
       }
 
     } catch (fetchError) {
