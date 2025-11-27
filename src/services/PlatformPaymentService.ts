@@ -83,10 +83,42 @@ export class PlatformPaymentService {
    */
   async initialize(): Promise<boolean> {
     try {
+      Logger.info('[PlatformPayment] 🔧 Starting platform payment initialization', {
+        component: 'PlatformPaymentService',
+        platform: Platform.OS,
+        timestamp: new Date().toISOString(),
+      });
+      
       if (Platform.OS === 'ios') {
-        return await this.appleService.initialize();
+        Logger.info('[PlatformPayment] 🔌 Calling AppleStoreKitService.initialize()', {
+          component: 'PlatformPaymentService',
+          timestamp: new Date().toISOString(),
+        });
+        
+        const result = await this.appleService.initialize();
+        
+        Logger.info('[PlatformPayment] ✅ AppleStoreKitService.initialize() completed', {
+          component: 'PlatformPaymentService',
+          result,
+          timestamp: new Date().toISOString(),
+        });
+        
+        return result;
       } else if (Platform.OS === 'android') {
-        return await this.googleService.initialize();
+        Logger.info('[PlatformPayment] 🔌 Calling GooglePlayBillingService.initialize()', {
+          component: 'PlatformPaymentService',
+          timestamp: new Date().toISOString(),
+        });
+        
+        const result = await this.googleService.initialize();
+        
+        Logger.info('[PlatformPayment] ✅ GooglePlayBillingService.initialize() completed', {
+          component: 'PlatformPaymentService',
+          result,
+          timestamp: new Date().toISOString(),
+        });
+        
+        return result;
       }
 
       Logger.warn('[PlatformPayment] Unsupported platform', {
@@ -97,6 +129,8 @@ export class PlatformPaymentService {
     } catch (error) {
       Logger.error('[PlatformPayment] Initialization failed', error as Error, {
       component: 'PlatformPaymentService',
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
     });
       return false;
     }
