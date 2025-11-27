@@ -482,6 +482,8 @@
 				ENABLE_BITCODE = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = siFia/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = siFia;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -521,6 +523,8 @@
 				DEVELOPMENT_TEAM = L2AT73KSY8;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = siFia/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = siFia;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

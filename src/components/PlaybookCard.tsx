@@ -115,7 +115,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
   },
   titleContainer: {
-    marginBottom: 6,
+    marginBottom: 4,
     width: '100%',
   },
   date: {
