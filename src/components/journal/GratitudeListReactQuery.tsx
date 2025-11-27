@@ -10,7 +10,7 @@ import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { Check, HandHeart as LuHandHeart, X } from 'lucide-react-native';
+import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -582,7 +582,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             accessibilityRole="button"
             accessibilityLabel={(isYesterday || isEarlier) ? 'Revisit gratitude list' : 'Begin gratitude list'}
           >
-            <Ionicons name="create-outline" size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
             <ThemedText style={styles.emptyStateButtonText}>
               {(isYesterday || isEarlier) ? 'Revisit' : 'Begin'}
             </ThemedText>
