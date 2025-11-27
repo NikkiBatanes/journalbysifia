@@ -41,33 +41,16 @@ export const formatBibleVerse = (verse: string): string => {
     .replace(/\s+/g, ' ')
     .trim();
 
-  // 3) Only remove wrapping quotes if they enclose the ENTIRE verse
-  // This preserves quotes that are part of the actual verse text (e.g., "Father and I are one")
-  if (formatted.startsWith('"') && formatted.endsWith('"') && formatted.length > 2) {
-    // Check if this is a wrapping quote (not part of the verse)
-    // by seeing if removing them leaves valid text
-    const withoutWrappers = formatted.slice(1, -1).trim();
-    if (withoutWrappers.length > 0 && !withoutWrappers.startsWith('"')) {
-      formatted = withoutWrappers;
-    }
-  }
-
-  // 4) Remove orphaned trailing quotes (quotes at end without matching opening quote)
-  // Example: "And we know that..." → "And we know that..."
-  if (!formatted.startsWith('"') && formatted.endsWith('"')) {
-    formatted = formatted.slice(0, -1).trim();
-  }
-
-  // 5) Remove orphaned leading quotes (quotes at start without matching closing quote)
-  // Example: "Father and I are one → Father and I are one
-  if (formatted.startsWith('"') && !formatted.endsWith('"')) {
-    formatted = formatted.slice(1).trim();
-  }
-
-  // 6) Remove leading punctuation (colons, dashes) but NOT quotes
-  // Quotes might be part of the actual verse text
+  // 3) Remove ALL quotes from Bible verses
+  // This ensures clean verse display without any quote marks
   formatted = formatted
-    .replace(/^[:—\s]+/, '') // Remove leading colons, dashes, spaces (but NOT quotes)
+    .replace(/"/g, '') // Remove all double quotes
+    .replace(/'/g, '') // Remove all single quotes
+    .trim();
+
+  // 4) Remove leading punctuation (colons, dashes)
+  formatted = formatted
+    .replace(/^[:—\s]+/, '') // Remove leading colons, dashes, spaces
     .trim();
 
   // 4) Fix spacing around punctuation
