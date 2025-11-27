@@ -403,12 +403,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
       logger.info('Returning to user profile from feature gating');
       // Check if user is eligible for trial and should see trial before returning to profile
-      if (canOfferTrial) {
-        logger.info('User eligible for trial - showing trial before returning to profile', {
-          currentSelectedTier,
-          currentBilling,
-          dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
-        });
+      // DEBUG: Force bypass trial eligibility for testing sales offer flow
+      const DEBUG_FORCE_SALES_OFFER = true; // Set to false to enable normal trial flow
+      const isEligibleForTrial = DEBUG_FORCE_SALES_OFFER ? false : (canOfferTrial && !isUpgradeMode);
+      
+      if (isEligibleForTrial) {
+        logger.info('🔄 Redirecting to trial offer (eligible)', {
+          selectedTierId: selectedTier,
+          billing: currentBilling,
+          DEBUG_FORCE_SALES_OFFER,
+        }); 
         setTimeout(() => {
           (navigation as any).navigate('OnboardingTrialOffer', {
             selectedTierId: currentSelectedTier,
@@ -506,7 +510,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       const billing = isAnnual ? 'annual' : 'monthly';
 
       // Check if user is eligible for free trial (only in onboarding, not upgrade)
-      const isEligibleForTrial = canOfferTrial && !isUpgradeMode;
+      // DEBUG: Force bypass trial eligibility for testing sales offer flow
+      const DEBUG_FORCE_SALES_OFFER = true; // Set to false to enable normal trial flow
+      const isEligibleForTrial = DEBUG_FORCE_SALES_OFFER ? false : (canOfferTrial && !isUpgradeMode);
 
       logger.debug('Product ID selection:', {
         selectedTier,
@@ -514,6 +520,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         isEligibleForTrial,
         canOfferTrial,
         isUpgradeMode,
+        DEBUG_FORCE_SALES_OFFER,
       });
 
       // Use cached products if available, otherwise fetch
