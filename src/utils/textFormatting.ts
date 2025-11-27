@@ -52,7 +52,19 @@ export const formatBibleVerse = (verse: string): string => {
     }
   }
 
-  // 4) Remove leading punctuation (colons, dashes) but NOT quotes
+  // 4) Remove orphaned trailing quotes (quotes at end without matching opening quote)
+  // Example: "And we know that..." → "And we know that..."
+  if (!formatted.startsWith('"') && formatted.endsWith('"')) {
+    formatted = formatted.slice(0, -1).trim();
+  }
+
+  // 5) Remove orphaned leading quotes (quotes at start without matching closing quote)
+  // Example: "Father and I are one → Father and I are one
+  if (formatted.startsWith('"') && !formatted.endsWith('"')) {
+    formatted = formatted.slice(1).trim();
+  }
+
+  // 6) Remove leading punctuation (colons, dashes) but NOT quotes
   // Quotes might be part of the actual verse text
   formatted = formatted
     .replace(/^[:—\s]+/, '') // Remove leading colons, dashes, spaces (but NOT quotes)
