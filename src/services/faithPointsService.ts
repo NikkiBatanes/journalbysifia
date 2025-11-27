@@ -1362,6 +1362,14 @@ export class FaithPointsService {
         badgeId: badgeRecord.id,
         badgeName: badge.name,
       });
+
+      // Emit BADGE_UNLOCKED event to update badge count in profile
+      setTimeout(() => {
+        faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
+          userId,
+          badge,
+        });
+      }, 300); // Small delay to ensure database write completes
     } catch (error) {
       Logger.error('[FaithPointsService] Error awarding badge', error as Error, {
         component: 'faithPointsService',
