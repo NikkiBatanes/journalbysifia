@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   contentContainerPortrait: {
     alignSelf: 'center',
-    marginTop: 0,
+    marginTop: -40,
   },
   contentContainerLandscape: {
     alignSelf: 'center',

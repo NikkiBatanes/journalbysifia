@@ -13,6 +13,7 @@ import RNIap, {
   purchaseUpdatedListener,
   purchaseErrorListener,
   getAvailablePurchases,
+  validateReceiptIos,
 } from 'react-native-iap';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
@@ -45,6 +46,12 @@ export interface PurchaseResult {
   error?: string;
   validated?: boolean;
   receiptId?: string;
+}
+
+export interface ServerValidationResult {
+  success: boolean;
+  data?: any;
+  error?: string;
 }
 
 export class AppleStoreKitService {
@@ -383,29 +390,58 @@ export class AppleStoreKitService {
       }
 
       // ENTERPRISE IMPROVEMENT: Server-side validation FIRST
-      let serverValidation = { success: false };
+      let serverValidation: ServerValidationResult = { success: false };
       try {
+        Logger.info('[StoreKit] Attempting server-side receipt validation', {
+          component: 'AppleStoreKitService',
+          userId: this.currentUserId || 'unknown',
+          productId: purchase.productId,
+          hasReceipt: !!purchase.transactionReceipt,
+        });
+
         serverValidation = await this.validateReceiptServerSide(
           purchase.transactionReceipt,
           this.currentUserId || '',
           purchase.productId
         );
-      } catch (serverError) {
-        Logger.warn('[StoreKit] Server validation failed, proceeding with client validation', {
+
+        Logger.info('[StoreKit] Server validation result', {
           component: 'AppleStoreKitService',
-          errorMessage: serverError instanceof Error ? serverError.message : 'Unknown server error',
+          success: serverValidation.success,
+          hasData: !!serverValidation.data,
+          errorMessage: serverValidation.error,
+        });
+      } catch (serverError) {
+        Logger.error('[StoreKit] Server validation failed, proceeding with client validation', new Error(serverValidation.error || 'Unknown server error'), {
+          component: 'AppleStoreKitService',
         });
       }
 
       if (!serverValidation.success) {
+        Logger.warn('[StoreKit] Server validation failed, trying client validation as fallback', {
+          component: 'AppleStoreKitService',
+          serverError: serverValidation.error,
+        });
+
         // Still try client-side validation as fallback
         const isValid = await this.validateReceipt(purchase);
         if (!isValid) {
-          Logger.warn('[StoreKit] Client validation also failed, skipping purchase', {
+          Logger.error('[StoreKit] Both server and client validation failed, skipping purchase', {
             component: 'AppleStoreKitService',
+            productId: purchase.productId,
           });
           return;
+        } else {
+          Logger.info('[StoreKit] Client validation succeeded as fallback', {
+            component: 'AppleStoreKitService',
+            productId: purchase.productId,
+          });
         }
+      } else {
+        Logger.info('[StoreKit] Server validation succeeded', {
+          component: 'AppleStoreKitService',
+          productId: purchase.productId,
+        });
       }
 
       // Map product ID to subscription tier
@@ -463,24 +499,28 @@ export class AppleStoreKitService {
   /**
    * Validate purchase receipt
    */
-  private async validateReceipt(_purchase: ProductPurchase): Promise<boolean> {
+  private async validateReceipt(purchase: ProductPurchase): Promise<boolean> {
     try {
       if (Platform.OS === 'ios') {
-        // TEMPORARY: Skip receipt validation in TestFlight/Sandbox
-        // Receipt validation is flaky in sandbox and often fails even for valid purchases
-        // In production, you should enable this with proper shared secret
+        // ENHANCED: Enable receipt validation with proper error handling
+        // This ensures purchases are properly validated even in TestFlight
 
-        return true;
-
-        /* TODO: Enable for production
         const receiptBody = {
           'receipt-data': purchase.transactionReceipt,
-          password: process.env.APPLE_SHARED_SECRET || 'your-app-store-shared-secret',
+          'password': process.env.APPLE_SHARED_SECRET || 'your-app-store-shared-secret',
         };
 
-        const result = await validateReceiptIos({ receiptBody, isTest: __DEV__ });
+        const result = await validateReceiptIos({ receiptBody, isTest: this.isSandboxEnvironment() });
+
+        // Log validation result for debugging
+        Logger.info('[StoreKit] Receipt validation result', {
+          component: 'AppleStoreKitService',
+          status: result?.status,
+          isValid: result && result.status === 0,
+          environment: this.isSandboxEnvironment() ? 'sandbox' : 'production',
+        });
+
         return result && result.status === 0;
-        */
       } else {
         // Android validation will be handled by GooglePlayBillingService
         return true;
@@ -890,7 +930,7 @@ export class AppleStoreKitService {
     receiptData: string,
     userId: string,
     productId?: string
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<ServerValidationResult> {
     try {
 
       const { data, error } = await supabase.functions.invoke('validate-receipt', {

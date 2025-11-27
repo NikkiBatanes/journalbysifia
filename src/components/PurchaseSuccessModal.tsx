@@ -247,10 +247,15 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           </ThemedText>
 
           {/* Validation Badge */}
-          {isValidated && (
+          {isValidated ? (
             <View style={styles.validationBadge}>
               <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
               <ThemedText style={styles.validationText}>Verified by Apple</ThemedText>
+            </View>
+          ) : (
+            <View style={styles.validationBadge}>
+              <Ionicons name="warning" size={16} color="#FFA500" />
+              <ThemedText style={[styles.validationText, styles.warningText]}>Processing payment...</ThemedText>
             </View>
           )}
 
@@ -354,6 +359,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4CAF50',
     marginLeft: 6,
+  },
+  warningText: {
+    color: '#FFA500',
   },
   benefitsContainer: {
     width: '100%',

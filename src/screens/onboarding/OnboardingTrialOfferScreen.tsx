@@ -23,6 +23,7 @@ import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { getFontFamily } from '../../theme/fonts';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
 import { logger } from '../../utils/logger';
+import { notificationService } from '../../services/notificationService';
 import { useQueryClient } from '@tanstack/react-query';
 
 const OnboardingTrialOfferScreen = () => {
@@ -383,6 +384,9 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
 
         // Minimal wait for loading modal to hide before showing success modal
         await new Promise(resolve => setTimeout(resolve, 200));
+
+        // CRITICAL: Suppress faith points notifications during success modal to prevent z-index conflicts
+        notificationService.suppressPointsNotifications(true);
         setShowSuccessModal(true);
 
         // Auto-dismiss trial offer screen after successful payment
@@ -624,6 +628,9 @@ Trial purchases require the .freetrial SKU. Please check App Store Connect confi
     logger.info('Success modal continue button pressed');
     setShowSuccessModal(false);
     setAutoDismissScheduled(false); // Reset auto-dismissal state
+
+    // Re-enable faith points notifications after modal is hidden
+    notificationService.suppressPointsNotifications(false);
 
     // Use a more reliable navigation approach
     const skipNotificationPreference = route?.params?.skipNotificationPreference;

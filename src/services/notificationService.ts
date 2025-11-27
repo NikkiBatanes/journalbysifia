@@ -5,18 +5,25 @@
 
 import { Badge } from './faithPointsService';
 
-type NotificationCallback = (points: number, activityType: string, position?: 'top' | 'center' | 'bottom') => void;
 type BadgeNotificationCallback = (badge: Badge) => void;
 
 class NotificationService {
-  private pointsNotificationCallback: NotificationCallback | null = null;
+  private pointsNotificationCallback: ((points: number, activityType: string, position?: 'top' | 'center' | 'bottom') => void) | null = null;
+  private _suppressPointsNotifications = false;
   private badgeNotificationCallback: BadgeNotificationCallback | null = null;
 
   /**
    * Register the points notification callback from the context
    */
-  setPointsNotificationCallback(callback: NotificationCallback) {
+  setPointsNotificationCallback(callback: (points: number, activityType: string, position?: 'top' | 'center' | 'bottom') => void) {
     this.pointsNotificationCallback = callback;
+  }
+
+  /**
+   * Suppress points notifications (used during purchase success modal)
+   */
+  suppressPointsNotifications(suppress: boolean) {
+    this._suppressPointsNotifications = suppress;
   }
 
   /**
@@ -30,12 +37,15 @@ class NotificationService {
    * Show animated points notification
    */
   showPointsNotification(points: number, activityType: string, position?: 'top' | 'center' | 'bottom') {
+    // Don't show if notifications are suppressed (e.g., during purchase success modal)
+    if (this._suppressPointsNotifications) {
+      return;
+    }
 
     if (this.pointsNotificationCallback) {
-
       this.pointsNotificationCallback(points, activityType, position);
     } else {
-
+      // Fallback: could log or store for later
     }
   }
 

@@ -479,10 +479,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
         <View
           style={[
             styles.buttonSection,
+            isSmallPhone ? styles.buttonSectionSmallPhone : (isTablet ? styles.buttonSectionTablet : styles.buttonSectionRegularPhone),
             {
               width: contentWidth,
-              // Device-specific button positioning based on actual screen dimensions
-              marginTop: isTablet ? styles.dynamicMarginTop.marginTop : (isSmallPhone ? styles.smallPhoneMarginTop.marginTop : (isRegularPhone ? styles.regularPhoneMarginTop.marginTop : styles.zeroMarginTop.marginTop)),
             },
             styles.centeredContainer,
           ]}
@@ -537,14 +536,14 @@ const styles = StyleSheet.create({
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,
     marginTop: 20,
-    marginBottom: -100,
+    marginBottom: -90,
   },
   logoImage: {
     width: 120,
     height: 120,
   },
   logoLottieContainer: {
-    marginTop: 50,
+    marginTop: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -567,7 +566,7 @@ const styles = StyleSheet.create({
 
   // Slide Content Styles
   lottieContainer: {
-    marginBottom: 16,
+    marginBottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -614,7 +613,7 @@ const styles = StyleSheet.create({
   dotsContainer: {
     ...OnboardingStyles.dotsContainer,
     marginTop: -50,
-    marginBottom: 40,
+    marginBottom: 20,
     paddingHorizontal: 24,
   },
   dot: OnboardingStyles.dot,
@@ -624,7 +623,16 @@ const styles = StyleSheet.create({
   buttonSection: {
     width: '100%',
     paddingHorizontal: 24,
-    marginBottom: OnboardingSpacing.lg,
+    marginBottom: 20,
+  },
+  buttonSectionSmallPhone: {
+    marginTop: 20,
+  },
+  buttonSectionRegularPhone: {
+    marginTop: 10,
+  },
+  buttonSectionTablet: {
+    marginTop: 40,
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
@@ -659,13 +667,13 @@ const styles = StyleSheet.create({
   termsText: {
     ...OnboardingStyles.termsText,
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: 'center',
     flexWrap: 'wrap',
   },
   termsContainer: {
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   linkText: OnboardingStyles.linkText,
   iconMarginTop: {

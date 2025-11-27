@@ -26,6 +26,7 @@ import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
 import { logger } from '../../utils/logger';
 import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
+import { notificationService } from '../../services/notificationService';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
 import { useQueryClient } from '@tanstack/react-query';
@@ -81,7 +82,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
-  const [isNavigatingAway, setIsNavigatingAway] = useState(false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -176,14 +176,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Load location-adjusted pricing and currency
   const handleSuccessModalContinue = React.useCallback(() => {
-    if (isNavigatingAway) {
-      logger.debug('Already navigating away, ignoring duplicate call');
-      return;
-    }
-
-    setIsNavigatingAway(true);
+    logger.info('Success modal continue button pressed');
     setShowSuccessModal(false);
     setLastPurchasedTier(null);
+
+    // Re-enable faith points notifications after modal is hidden
+    notificationService.suppressPointsNotifications(false);
 
     setTimeout(() => {
       if (isUpgradeMode) {
@@ -221,7 +219,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
       }
     }, 100);
-  }, [navigation, isUpgradeMode, routeParams, isNavigatingAway]);
+  }, [navigation, isUpgradeMode, routeParams]);
 
   // Pre-fetch available products on mount to avoid delays during purchase
   useEffect(() => {
@@ -318,7 +316,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Cleanup navigation guard on unmount
   useEffect(() => {
     return () => {
-      setIsNavigatingAway(false);
+      // Cleanup if needed
     };
   }, []);
 
@@ -567,7 +565,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       setShowSuccessModal(false);
       setPurchaseValidated(false);
       setLoadingStep('processing');
-      setIsNavigatingAway(false); // Reset navigation guard for new purchase
 
       if (isUpgradeMode) {
         // In upgrade mode, purchase and show success modal before going back
@@ -732,6 +729,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setLastPurchasedTier(purchaseTier);
           setIsPurchasing(false); // Hide loading modal
           await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
+
+          // CRITICAL: Suppress faith points notifications during success modal to prevent z-index conflicts
+          notificationService.suppressPointsNotifications(true);
           setShowSuccessModal(true);
 
           // Auto-dismiss sales offer screen after successful payment
