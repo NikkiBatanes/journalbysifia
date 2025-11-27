@@ -165,6 +165,10 @@ function AppWithAuth({
 
     // CRITICAL: Initialize IAP system on app start
     const initializeIAP = async () => {
+      if (__DEV__) {
+        console.log('[App] IAP Init Check - isAuthenticated:', isAuthenticated, 'user?.id:', user?.id);
+      }
+      
       if (isAuthenticated && user?.id) {
         try {
           const {PlatformPaymentService} = await import(
@@ -195,6 +199,10 @@ function AppWithAuth({
           }, 2000);
         } catch (error) {
           console.error('[App] IAP initialization failed:', error);
+        }
+      } else {
+        if (__DEV__) {
+          console.log('[App] Skipping IAP init - not authenticated');
         }
       }
     };
