@@ -53,12 +53,30 @@ export const formatBibleVerse = (verse: string): string => {
     .replace(/^[:—\s]+/, '') // Remove leading colons, dashes, spaces
     .trim();
 
-  // 4) Fix spacing around punctuation
+  // 5) Handle multiple verses separated by parentheses
+  // If there's a "(" that's not at the very end (not just version info),
+  // it likely means there are two verses. Take only the first one.
+  const parenIndex = formatted.indexOf('(');
+  if (parenIndex > 0) {
+    // Check if this looks like a second verse (has substantial text before the paren)
+    // and not just a version marker at the end
+    const beforeParen = formatted.substring(0, parenIndex).trim();
+    const afterParen = formatted.substring(parenIndex);
+    
+    // If there's substantial text before the paren and the paren isn't just a version marker
+    // (version markers are usually short like "(NASB)" at the very end)
+    if (beforeParen.length > 20 && !afterParen.match(/^\(\s*[A-Z]{2,5}\s*\)$/)) {
+      // Take only the first verse (before the parenthesis)
+      formatted = beforeParen;
+    }
+  }
+
+  // 6) Fix spacing around punctuation
   formatted = formatted
     .replace(/\s+([.,!?;:])/g, '$1')
     .replace(/([.,!?;:])([^\s])/g, '$1 $2');
 
-  // 5) Strip trailing empty `()` artifacts in a few variants
+  // 7) Strip trailing empty `()` artifacts in a few variants
   formatted = formatted
     // Case 1: " ... " () or " ... " ()! etc.
     .replace(/"\s*\(\)\s*([.,!?;:]*)\s*$/g, '$1')
