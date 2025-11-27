@@ -307,11 +307,16 @@ export class NewSubscriptionService {
       updated_at: new Date().toISOString(),
     };
 
-    // Temporarily skip platform field to avoid schema issues
-    // TODO: Re-enable once database schema is updated
-    // if (platform) {
-    //   updateData.platform = platform;
-    // }
+    // Add platform info if provided
+    if (options.platform) {
+      updateData.platform = options.platform;
+    }
+    if (options.platform_subscription_id) {
+      updateData.platform_subscription_id = options.platform_subscription_id;
+    }
+    if (options.platform_transaction_id) {
+      updateData.platform_transaction_id = options.platform_transaction_id;
+    }
 
     // Reset usage counters when upgrading from seeker or converting from trial
     // Onboarding and trial usage should not reduce the new paid plan's limits
