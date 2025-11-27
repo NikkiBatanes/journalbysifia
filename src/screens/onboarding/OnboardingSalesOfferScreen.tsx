@@ -593,8 +593,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         // In upgrade mode, purchase and show success modal before going back
 
         try {
-          setIsPurchasing(true);
-          setLoadingStep('processing');
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
           if (result.success) {
             setLoadingStep('validating');
@@ -651,6 +649,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           if (isCancelled) {
             logger.debug('User cancelled upgrade - silently continuing');
             setIsPurchasing(false);
+            setLoadingStep('processing');
             return;
           }
 
@@ -670,9 +669,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         });
 
         try {
-          setIsPurchasing(true);
-          setLoadingStep('processing');
-
           // Show Apple's payment sheet and process purchase
           logger.debug('Calling purchaseSubscription', {});
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
@@ -752,6 +748,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setLoadingStep('completing');
           setPurchaseValidated(true);
           setLastPurchasedTier(purchaseTier);
+          setIsPurchasing(false); // Hide loading modal
+          await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
           setShowSuccessModal(true);
 
           // Auto-dismiss sales offer screen after successful payment
