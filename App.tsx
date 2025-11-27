@@ -163,6 +163,44 @@ function AppWithAuth({
       console.log(' siFia App initialized');
     }
 
+    // CRITICAL: Initialize IAP system on app start
+    const initializeIAP = async () => {
+      if (isAuthenticated && user?.id) {
+        try {
+          const {PlatformPaymentService} = await import(
+            './src/services/PlatformPaymentService'
+          );
+          
+          if (__DEV__) {
+            console.log('[App] Initializing IAP system...');
+          }
+          
+          const paymentService = PlatformPaymentService.getInstance();
+          await paymentService.initialize();
+          
+          if (__DEV__) {
+            console.log('[App] ✅ IAP system initialized');
+          }
+          
+          // Preload products in background after 2 seconds
+          setTimeout(async () => {
+            try {
+              await paymentService.preloadProducts();
+              if (__DEV__) {
+                console.log('[App] ✅ Products preloaded');
+              }
+            } catch (preloadError) {
+              console.warn('[App] Product preload failed:', preloadError);
+            }
+          }, 2000);
+        } catch (error) {
+          console.error('[App] IAP initialization failed:', error);
+        }
+      }
+    };
+
+    initializeIAP();
+
     // ENTERPRISE: Sync subscription status on app launch
     const syncSubscriptionStatus = async () => {
       if (isAuthenticated && user?.id) {
