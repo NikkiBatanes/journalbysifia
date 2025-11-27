@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
@@ -29,6 +29,7 @@ import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
 import { useQueryClient } from '@tanstack/react-query';
+import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 
 // removed Dimensions width as unused
 
@@ -473,27 +474,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   };
 
-  // Optimized subscription refresh to prevent redundant calls
-  const optimizedRefreshSubscription = useCallback(async (userId: string) => {
-    try {
-      // Invalidate cache first to trigger fresh fetch
-      await queryClient.invalidateQueries({
-        queryKey: ['subscription', userId],
-        refetchType: 'active',
-      });
-
-      // Batch all refresh operations in parallel
-      await Promise.all([
-        devotionalGating.refreshSubscription(),
-        refreshNewSubscription().catch(() => {}),
-      ]);
-
-      logger.debug('✅ Optimized subscription refresh completed');
-    } catch (error) {
-      logger.error('Optimized refresh failed:', error as Error);
-    }
-  }, [queryClient, devotionalGating, refreshNewSubscription]);
-
   const handleUnlockPlan = async () => {
     // Prevent multiple simultaneous purchases
     if (isPurchasing) {
@@ -609,8 +589,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               transactionId: result.transactionId?.substring(0, 10) + '...',
             });
 
-            // Optimized: Use single refresh function
-            await optimizedRefreshSubscription(user?.id || '');
+            // OPTIMIZED: Direct database update with transaction ID (skip Apple sync)
+            // We already have the transaction ID from successful purchase - no need to query Apple again
+            await NewSubscriptionService.upgradeSubscription(user?.id || '', {
+              target_tier: selectedTier as any,
+              platform: 'apple',
+              platform_subscription_id: result.transactionId,
+            });
+
+            // OPTIMIZED: Single cache invalidation and parallel refresh
+            await Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: ['subscription', user?.id],
+                refetchType: 'active',
+              }),
+              devotionalGating.refreshSubscription(),
+              refreshNewSubscription().catch(() => {}),
+            ]);
 
             // Show success modal immediately after validation
             setLoadingStep('completing');
@@ -695,54 +690,31 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               transactionId: result.transactionId?.substring(0, 10) + '...',
             });
 
-            // CRITICAL: Wait for subscription to refresh BEFORE navigating
-            logger.debug('Syncing subscription with Apple...');
+            // OPTIMIZED: Direct database update with transaction ID (skip Apple sync)
+            // We already have the transaction ID from successful purchase - no need to query Apple again
+            logger.debug('Updating subscription directly with transaction ID...');
             try {
-              const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
-              const storeKitService = AppleStoreKitService.getInstance();
-
-              // NOTE: Stale purchase validation now handled in AppleStoreKitService.handlePurchaseUpdate
-              // No need to check here - the service will reject purchases older than 5 minutes
-
-              await storeKitService.checkAndSyncSubscriptionStatus(user?.id || '', false);
-              logger.info('✅ Subscription synced with Apple');
-
-              // CRITICAL: Invalidate subscription cache to trigger UI updates
-              logger.debug('Invalidating subscription cache for immediate UI update');
-              await queryClient.invalidateQueries({
-                queryKey: ['subscription', user?.id],
-                refetchType: 'active', // Force immediate refetch of active queries
+              await NewSubscriptionService.upgradeSubscription(user?.id || '', {
+                target_tier: selectedTier as any,
+                platform: 'apple',
+                platform_subscription_id: result.transactionId,
               });
+              logger.info('✅ Subscription upgraded in database');
 
-              // Optimized: Use single refresh function
-              await optimizedRefreshSubscription(user?.id || '');
-              logger.info('✅ Local subscription state refreshed');
-
-              // Verify the subscription was actually updated
-              const newTier = devotionalGating.tier;
-              logger.debug('New tier after refresh', { newTier });
-
-              if (newTier === 'seeker') {
-                logger.warn('⚠️ Still showing seeker after purchase!');
-                logger.warn('This means the database was not updated by the purchase listener');
-                logger.warn('Attempting manual purchase restoration...');
-
-                // Try to restore purchases to trigger the listener
-                try {
-                  const { AppleStoreKitService: AppleStoreKit } = await import('../../services/AppleStoreKitService');
-                  const storeKit = AppleStoreKit.getInstance();
-                  await storeKit.restorePurchases(user?.id || '');
-                  logger.info('Restore purchases completed');
-                  // Optimized: Single refresh after restore
-                  await devotionalGating.refreshSubscription();
-                  logger.debug('Second refresh - tier', { tier: devotionalGating.tier });
-                } catch (restoreError) {
-                  logger.error('Restore failed', restoreError as Error);
-                }
-              }
+              // OPTIMIZED: Single cache invalidation with parallel refresh
+              logger.debug('Refreshing subscription cache...');
+              await Promise.all([
+                queryClient.invalidateQueries({
+                  queryKey: ['subscription', user?.id],
+                  refetchType: 'active',
+                }),
+                devotionalGating.refreshSubscription(),
+                refreshNewSubscription().catch(() => {}),
+              ]);
+              logger.info('✅ Subscription state refreshed');
           } catch (refreshError) {
-            logger.error('Failed to refresh subscription', refreshError as Error);
-            // Continue to navigation even if refresh fails
+            logger.error('Failed to update subscription', refreshError as Error);
+            // Continue to success modal even if refresh fails - purchase succeeded
           }
 
           setLoadingStep('completing');
