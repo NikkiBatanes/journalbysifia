@@ -586,8 +586,34 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               transactionId: result.transactionId?.substring(0, 10) + '...',
             });
 
-            // OPTIMIZED: Direct database update with transaction ID (skip Apple sync)
-            // We already have the transaction ID from successful purchase - no need to query Apple again
+            // CRITICAL: Server-side receipt validation for security
+            logger.info('🔄 Starting server-side receipt validation for upgrade', {
+              userId: user?.id,
+              selectedTier,
+              transactionId: result.transactionId?.substring(0, 10) + '...',
+            });
+
+            const paymentService = PlatformPaymentService.getInstance();
+            const validationResult = await (paymentService as any).appleService.validateReceiptServerSide(
+              result.receipt || '',
+              user?.id || '',
+              productId
+            );
+
+            if (!validationResult.success) {
+              Logger.error('❌ Server-side validation failed for upgrade', new Error(validationResult.error || 'Unknown validation error'), {
+                component: 'OnboardingSalesOfferScreen',
+                transactionId: result.transactionId?.substring(0, 10) + '...',
+              });
+              throw new Error(`Receipt validation failed: ${validationResult.error}`);
+            }
+
+            logger.info('✅ Server-side validation successful for upgrade', {
+              validatedTransactionId: validationResult.data?.transactionId?.substring(0, 10) + '...',
+              expiresAt: validationResult.data?.expiresAt,
+            });
+
+            // Now update database after successful validation
             logger.info('🔄 Starting database subscription upgrade', {
               userId: user?.id,
               selectedTier,
@@ -697,19 +723,49 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               transactionId: result.transactionId?.substring(0, 10) + '...',
             });
 
-            // OPTIMIZED: Direct database update with transaction ID (skip Apple sync)
-            // We already have the transaction ID from successful purchase - no need to query Apple again
-            logger.debug('Updating subscription directly with transaction ID...');
-            try {
-              await NewSubscriptionService.upgradeSubscription(user?.id || '', {
-                target_tier: selectedTier as any,
-                platform: 'apple',
-                platform_subscription_id: result.transactionId,
-              });
-              logger.info('✅ Subscription upgraded in database');
+            // CRITICAL: Server-side receipt validation for security
+            logger.info('🔄 Starting server-side receipt validation', {
+              userId: user?.id,
+              selectedTier,
+              transactionId: result.transactionId?.substring(0, 10) + '...',
+            });
 
-              // OPTIMIZED: Single cache invalidation with parallel refresh
-              logger.debug('Refreshing subscription cache...');
+            const paymentService = PlatformPaymentService.getInstance();
+            const validationResult = await (paymentService as any).appleService.validateReceiptServerSide(
+              result.receipt || '',
+              user?.id || '',
+              productId
+            );
+
+            if (!validationResult.success) {
+              Logger.error('❌ Server-side validation failed', new Error(validationResult.error || 'Unknown validation error'), {
+                component: 'OnboardingSalesOfferScreen',
+                transactionId: result.transactionId?.substring(0, 10) + '...',
+              });
+              throw new Error(`Receipt validation failed: ${validationResult.error}`);
+            }
+
+            logger.info('✅ Server-side validation successful', {
+              validatedTransactionId: validationResult.data?.transactionId?.substring(0, 10) + '...',
+              expiresAt: validationResult.data?.expiresAt,
+            });
+
+            // Now update database after successful validation
+            logger.info('🔄 Starting database subscription upgrade', {
+              userId: user?.id,
+              selectedTier,
+              transactionId: result.transactionId?.substring(0, 10) + '...',
+            });
+
+            await NewSubscriptionService.upgradeSubscription(user?.id || '', {
+              target_tier: selectedTier as any,
+              platform: 'apple',
+              platform_subscription_id: result.transactionId,
+            });
+
+            // OPTIMIZED: Single cache invalidation with parallel refresh
+            logger.debug('Refreshing subscription cache...');
+            try {
               await Promise.all([
                 queryClient.invalidateQueries({
                   queryKey: ['subscription', user?.id],
@@ -719,10 +775,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 refreshNewSubscription().catch(() => {}),
               ]);
               logger.info('✅ Subscription state refreshed');
-          } catch (refreshError) {
-            logger.error('Failed to update subscription', refreshError as Error);
-            // Continue to success modal even if refresh fails - purchase succeeded
-          }
+            } catch (refreshError) {
+              logger.error('Failed to update subscription', refreshError as Error);
+              // Continue to success modal even if refresh fails - purchase succeeded
+            }
 
           setLoadingStep('completing');
           setPurchaseValidated(true);
@@ -767,13 +823,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setIsPurchasing(false);
         }
       }
-    } catch (error) {
-      logger.error('Error in handleUnlockPlan', error as Error);
-      Alert.alert(
-        'Error',
-        'Something went wrong. Please try again.',
-        [{ text: 'OK' }]
-      );
     } finally {
       clearTimeout(safetyTimeout);
       setIsPurchasing(false);
