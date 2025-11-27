@@ -43,7 +43,6 @@ export const progressBarStyles = StyleSheet.create({
     fontSize: 11, // Slightly smaller to fit better
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'right',
-    numberOfLines: 1, // Ensure single line
     flexShrink: 1, // Allow shrinking but maintain readability
     includeFontPadding: false, // Remove extra font padding
     textAlignVertical: 'center', // Better vertical alignment
