@@ -591,11 +591,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             // OPTIMIZED: Direct database update with transaction ID (skip Apple sync)
             // We already have the transaction ID from successful purchase - no need to query Apple again
+            logger.info('🔄 Starting database subscription upgrade', {
+              userId: user?.id,
+              selectedTier,
+              transactionId: result.transactionId?.substring(0, 10) + '...'
+            });
+
             await NewSubscriptionService.upgradeSubscription(user?.id || '', {
               target_tier: selectedTier as any,
               platform: 'apple',
               platform_subscription_id: result.transactionId,
             });
+
+            logger.info('✅ Database upgrade completed, starting cache refresh');
 
             // OPTIMIZED: Single cache invalidation and parallel refresh
             await Promise.all([
@@ -607,6 +615,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               refreshNewSubscription().catch(() => {}),
             ]);
 
+            logger.info('✅ Cache refresh completed, preparing success modal');
+
             // Show success modal immediately after validation
             setLoadingStep('completing');
             setPurchaseValidated(true);
@@ -614,7 +624,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             setIsPurchasing(false); // Hide loading modal
             await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
 
-            logger.info('Showing success modal for export restriction upgrade', {
+            logger.info('🎉 Showing success modal for upgrade', {
               purchaseTier,
               source: routeParams?.source,
               dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
