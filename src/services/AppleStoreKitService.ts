@@ -114,21 +114,71 @@ export class AppleStoreKitService {
    */
   async initialize(): Promise<boolean> {
     try {
+      Logger.info('[StoreKit] 🔧 Starting IAP initialization', {
+        component: 'AppleStoreKitService',
+        isInitialized: this.isInitialized,
+        timestamp: new Date().toISOString(),
+      });
+      
       if (this.isInitialized) {
+        Logger.info('[StoreKit] ✅ Already initialized', {
+          component: 'AppleStoreKitService',
+        });
         return true;
       }
 
+      Logger.info('[StoreKit] 🔌 Step 1: Calling initConnection()', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
+      
       await initConnection();
+      
+      Logger.info('[StoreKit] ✅ Step 1: initConnection() completed', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
 
       // Set up purchase listeners
+      Logger.info('[StoreKit] 🔌 Step 2: Setting up purchase listeners', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
+      
       this.setupPurchaseListeners();
+      
+      Logger.info('[StoreKit] ✅ Step 2: Purchase listeners set up', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
 
       // Clear any old cached transactions on startup
+      Logger.info('[StoreKit] 🔌 Step 3: Clearing old transactions', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
+      
       await this.clearOldTransactions();
+      
+      Logger.info('[StoreKit] ✅ Step 3: Old transactions cleared', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
 
       this.isInitialized = true;
+      
+      Logger.info('[StoreKit] 🎉 IAP initialization completed successfully', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
+      
       return true;
     } catch (error) {
+      Logger.error('[StoreKit] ❌ IAP initialization failed', error as Error, {
+        component: 'AppleStoreKitService',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      });
       return false;
     }
   }
@@ -139,11 +189,32 @@ export class AppleStoreKitService {
    */
   private async clearOldTransactions(): Promise<void> {
     try {
+      Logger.info('[StoreKit] 🔍 Step 3.1: Getting available purchases', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
+      
       const availablePurchases = await getAvailablePurchases();
+      
+      Logger.info('[StoreKit] ✅ Step 3.1: Available purchases retrieved', {
+        component: 'AppleStoreKitService',
+        count: availablePurchases.length,
+        timestamp: new Date().toISOString(),
+      });
 
       if (availablePurchases.length === 0) {
+        Logger.info('[StoreKit] ✅ Step 3.2: No old transactions to clear', {
+          component: 'AppleStoreKitService',
+          timestamp: new Date().toISOString(),
+        });
         return;
       }
+
+      Logger.info('[StoreKit] 🔍 Step 3.2: Processing old transactions', {
+        component: 'AppleStoreKitService',
+        count: availablePurchases.length,
+        timestamp: new Date().toISOString(),
+      });
 
       Logger.info('[StoreKit] Checking for old cached transactions', {
         component: 'AppleStoreKitService',
