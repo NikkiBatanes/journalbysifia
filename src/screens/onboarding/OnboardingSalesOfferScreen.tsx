@@ -532,7 +532,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       });
 
       // Use cached products if available, otherwise fetch
-      const products = cachedProducts.length > 0 ? cachedProducts : await paymentService.getAvailableProducts();
+      logger.info('📦 STEP A: Getting available products', {
+        cachedCount: cachedProducts.length,
+        willFetch: cachedProducts.length === 0,
+        timestamp: new Date().toISOString(),
+      });
+      
+      let products;
+      try {
+        products = cachedProducts.length > 0 ? cachedProducts : await paymentService.getAvailableProducts();
+        
+        logger.info('📦 STEP B: Products retrieved successfully', {
+          count: products.length,
+          cached: cachedProducts.length > 0,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (productError) {
+        logger.error('❌ STEP B: Failed to get products', productError as Error, {
+          cachedCount: cachedProducts.length,
+          timestamp: new Date().toISOString(),
+        });
+        throw new Error('Failed to load products. Please try again.');
+      }
 
       // DEBUG: Log all available products to verify App Store Connect configuration
       logger.debug('📦 Using products for purchase:', {
