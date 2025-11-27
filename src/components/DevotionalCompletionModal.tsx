@@ -117,7 +117,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       };
     });
 
-    setBurstParticles(prev => [...prev, ...particles]);
+    // ✅ FIX: Use requestAnimationFrame to defer state updates outside animation callback
+    requestAnimationFrame(() => {
+      setBurstParticles(prev => [...prev, ...particles]);
+    });
 
     particles.forEach((p) => {
       Animated.timing(p.progress, {
@@ -142,7 +145,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
     // Cleanup after the burst completes
     setTimeout(() => {
-      setBurstParticles(prev => prev.filter(h => !particles.find(n => n.id === h.id)));
+      requestAnimationFrame(() => {
+        setBurstParticles(prev => prev.filter(h => !particles.find(n => n.id === h.id)));
+      });
     }, 1000); // Reduced cleanup delay
   }, []);
 
@@ -157,8 +162,26 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const lastVisibleState = useRef(false);
   const animationKeyRef = useRef<string | null>(null);
 
+  // ✅ FIX: Use refs for stable references to avoid dependency issues
+  const startBurstRef = useRef(startBurst);
+  const onCheckRevealRef = useRef(onCheckReveal);
+  const isLastDayRef = useRef(isLastDay);
+  const currentDayNumberRef = useRef(currentDayNumber);
+  const devotionalIdRef = useRef(devotional?.id);
+
+  // Update refs when values change
+  useEffect(() => {
+    startBurstRef.current = startBurst;
+    onCheckRevealRef.current = onCheckReveal;
+    isLastDayRef.current = isLastDay;
+    currentDayNumberRef.current = currentDayNumber;
+    devotionalIdRef.current = devotional?.id;
+  });
+
   // Run the slide-in and initial animations only when visibility changes to true
   useEffect(() => {
+    // ✅ FIX: Store timeout IDs for cleanup
+    const timeouts: NodeJS.Timeout[] = [];
 
     // CRITICAL: Only run animations when visibility changes from false to true
     if (visible && !lastVisibleState.current && !hasOpenedRef.current) {
@@ -187,7 +210,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       ]).start();
 
       // Kick off initial progress animation shortly after opening (snappier)
-      setTimeout(() => {
+      timeouts.push(setTimeout(() => {
         progressAnim.setValue(0);
         Animated.timing(progressAnim, {
           toValue: progress,
@@ -195,53 +218,51 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           useNativeDriver: false, // Cannot use native driver for width animations
           easing: Easing.out(Easing.quad),
         }).start();
-      }, 80); // Minimal delay
+      }, 80)); // Minimal delay
 
       // Checkmark reveal sequence (earlier)
-      setTimeout(() => {
+      timeouts.push(setTimeout(() => {
         Animated.timing(checkAnim, {
           toValue: 1,
           duration: 260, // Slightly faster
           useNativeDriver: true,
           easing: Easing.out(Easing.back(1.2)), // Smoother than bounce
         }).start(() => {
-          // Subtle success haptic when check appears
-          triggerSuccessHaptic();
-          // Fire celebratory burst when checkmark appears
-          startBurst(8); // Reduced particle count from 12 to 8
-          // Show local FP notification above this modal content for guaranteed visibility
-          // Only show once per modal open to prevent flashing
-          if (!pointsShownRef.current) {
+          // ✅ FIX: Use requestAnimationFrame to defer state updates
+          requestAnimationFrame(() => {
+            // Subtle success haptic when check appears
+            triggerSuccessHaptic();
+            // Fire celebratory burst when checkmark appears
+            startBurstRef.current(8); // Reduced particle count from 12 to 8
+            // Show local FP notification above this modal content for guaranteed visibility
+            // Only show once per modal open to prevent flashing
+            if (!pointsShownRef.current) {
 
-            pointsShownRef.current = true;
-            try {
-              // Use different activity type based on whether this is the last day
-              const activityType = isLastDay ? 'devotional_full_completed' : 'devotional_completed';
-              const pts = faithPointsService.getPointsForActivity(activityType as any);
+              pointsShownRef.current = true;
+              try {
+                // Use different activity type based on whether this is the last day
+                const activityType = isLastDayRef.current ? 'devotional_full_completed' : 'devotional_completed';
+                const pts = faithPointsService.getPointsForActivity(activityType as any);
 
-              setLocalPoints(pts);
+                setLocalPoints(pts);
 
-              // Set unique animation key to prevent re-renders
-              animationKeyRef.current = `${devotional?.id}-${currentDayNumber}-${Date.now()}`;
+                // Set unique animation key to prevent re-renders
+                animationKeyRef.current = `${devotionalIdRef.current}-${currentDayNumberRef.current}-${Date.now()}`;
 
-              // Delay showing points slightly to ensure modal is fully visible
-              setTimeout(() => {
+                // Delay showing points slightly to ensure modal is fully visible
+                setTimeout(() => {
 
-                setShowLocalPoints(true);
-              }, 100);
-            } catch (e) {
-              Logger.error('[DevotionalCompletionModal] Error showing points', e as Error, { component: 'DevotionalCompletionModal' });
+                  setShowLocalPoints(true);
+                }, 100);
+              } catch (e) {
+                Logger.error('[DevotionalCompletionModal] Error showing points', e as Error, { component: 'DevotionalCompletionModal' });
+              }
             }
-          } else {
-
-          }
-          // Notify parent that check reveal completed
-
-          try { onCheckReveal && onCheckReveal(); } catch {}
+            // Notify parent that check reveal completed
+            try { onCheckRevealRef.current && onCheckRevealRef.current(); } catch {}
+          });
         });
-      }, 500); // Faster reveal
-    } else if (visible && hasOpenedRef.current) {
-
+      }, 500)); // Faster reveal
     } else if (!visible && lastVisibleState.current) {
 
       // Allow animations to run again next time it's opened
@@ -251,7 +272,12 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       animationKeyRef.current = null;
       setShowLocalPoints(false);
     }
-  }, [visible, backdropAnim, slideAnim, checkAnim, progressAnim, startBurst, onCheckReveal, devotional, currentDayNumber, isLastDay, progress]); // All animation dependencies
+
+    // ✅ FIX: Cleanup timeouts on unmount or when visibility changes
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [visible, progress, slideAnim, backdropAnim, checkAnim, progressAnim]); // ✅ FIX: Include animation refs (stable, won't cause re-renders)
   //   Animated.timing(progressAnim, {
   //     toValue: progress,
   //     duration: 500,

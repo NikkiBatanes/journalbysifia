@@ -592,7 +592,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   };
 
   // Handle closing the modal by pressing the X button or backdrop
-  const handleModalClose = () => {
+  const handleModalClose = async () => {
 
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
@@ -600,14 +600,38 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     modalOpenedRef.current = false;
     // Reset timing guard to allow immediate re-marking if needed
     lastMarkCompleteRef.current = 0;
+
+    // ✅ FIX: Add delay for modal close animation
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     // Close this detail screen - goBack will return to Devotionals list
     try {
-      (navigation as any).goBack?.();
+      if (navigation.canGoBack()) {
+        Logger.debug('[DevotionalDetail] Closing modal and navigating back', {
+          component: 'DevotionalDetailScreen',
+        });
+        navigation.goBack();
+      } else {
+        Logger.debug('[DevotionalDetail] No back stack, navigating to Devotionals', {
+          component: 'DevotionalDetailScreen',
+        });
+        (navigation as any).navigate('Devotionals');
+      }
     } catch (error) {
+      Logger.error('[DevotionalDetail] Navigation failed on modal close', error as Error, {
+        component: 'DevotionalDetailScreen',
+      });
       // If goBack fails, try navigating to Devotionals tab
       try {
-        (navigation as any).getParent?.()?.navigate?.('Devotionals');
-      } catch {}
+        const parent = navigation.getParent();
+        if (parent) {
+          parent.navigate('Devotionals' as never);
+        }
+      } catch (fallbackError) {
+        Logger.error('[DevotionalDetail] Fallback navigation failed', fallbackError as Error, {
+          component: 'DevotionalDetailScreen',
+        });
+      }
     }
   };
 
