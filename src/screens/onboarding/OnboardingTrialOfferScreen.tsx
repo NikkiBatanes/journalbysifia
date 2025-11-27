@@ -367,7 +367,23 @@ const OnboardingTrialOfferScreen = () => {
         await paymentService.initialize();
 
         // Now initiate purchase
+        logger.info('🛒 TRIAL STEP 1: Initiating trial purchase', {
+          productId,
+          userId: user.id,
+          selectedTierId,
+          billing,
+          timestamp: new Date().toISOString(),
+        });
+        
         result = await paymentService.purchaseSubscription(productId, user.id);
+        
+        logger.info('📦 TRIAL STEP 2: Trial purchase result received', {
+          success: result.success,
+          hasTransactionId: !!result.transactionId,
+          transactionId: result.transactionId?.substring(0, 10) + '...',
+          error: result.error,
+          timestamp: new Date().toISOString(),
+        });
       } catch (purchaseError) {
         // Provide more specific error messages
         if (purchaseError instanceof Error) {
@@ -403,6 +419,15 @@ const OnboardingTrialOfferScreen = () => {
         // CRITICAL: Now that Apple has authorized, set up the trial in database
         // This activates the trial with 2 playbooks + 2 devotionals
         try {
+          logger.info('🔄 TRIAL STEP 3: Starting trial setup in database', {
+            userId: user.id,
+            durationDays: 3,
+            chosenTier: selectedTierId,
+            billingCycle: isAnnual ? 'annual' : 'monthly',
+            timestamp: new Date().toISOString(),
+          });
+          
+          const trialSetupStartTime = Date.now();
           const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
 
           // Start the trial in database - this creates the subscription record with:
@@ -418,7 +443,19 @@ const OnboardingTrialOfferScreen = () => {
             trial_chosen_tier: selectedTierId as any, // Remember which tier they want after trial
             billing_cycle: isAnnual ? 'annual' : 'monthly',
           });
+          
+          const trialSetupDuration = Date.now() - trialSetupStartTime;
+          logger.info(`✅ TRIAL STEP 4: Trial setup completed successfully (${trialSetupDuration}ms)`, {
+            userId: user.id,
+            duration: trialSetupDuration,
+            timestamp: new Date().toISOString(),
+          });
+          
         } catch (trialSetupError) {
+          logger.error('❌ TRIAL STEP 4: Trial setup failed', trialSetupError as Error, {
+            userId: user.id,
+            timestamp: new Date().toISOString(),
+          });
           // Don't throw - Apple purchase already succeeded, just log the error
         }
 
@@ -427,6 +464,12 @@ const OnboardingTrialOfferScreen = () => {
 
         // Sync subscription
         try {
+          logger.info('🔄 TRIAL STEP 5: Starting subscription sync', {
+            userId: user.id,
+            timestamp: new Date().toISOString(),
+          });
+          
+          const syncStartTime = Date.now();
           const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
           const storeKitService = AppleStoreKitService.getInstance();
 
@@ -435,16 +478,36 @@ const OnboardingTrialOfferScreen = () => {
           // This ensures only fresh trial activations are processed
 
           await storeKitService.checkAndSyncSubscriptionStatus(user.id, false);
+          
+          const syncDuration = Date.now() - syncStartTime;
+          logger.info(`✅ TRIAL STEP 6: Subscription sync completed (${syncDuration}ms)`, {
+            userId: user.id,
+            duration: syncDuration,
+            timestamp: new Date().toISOString(),
+          });
 
           // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
-          logger.debug('Invalidating subscription cache for immediate UI update after trial start');
+          logger.debug('🔄 TRIAL STEP 7: Invalidating subscription cache for immediate UI update', {
+            userId: user.id,
+            timestamp: new Date().toISOString(),
+          });
+          
           await queryClient.invalidateQueries({
             queryKey: ['subscription', user.id],
             refetchType: 'active', // Force immediate refetch of active queries
           });
+          
+          logger.info('✅ TRIAL STEP 8: All trial steps completed successfully', {
+            userId: user.id,
+            selectedTierId,
+            timestamp: new Date().toISOString(),
+          });
 
         } catch (syncError) {
-          logger.error('Trial sync error', syncError as Error);
+          logger.error('❌ TRIAL STEP 6: Subscription sync failed', syncError as Error, {
+            userId: user.id,
+            timestamp: new Date().toISOString(),
+          });
         }
 
         // Final step

@@ -813,7 +813,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.debug('❌ Purchase not successful, throwing error');
           throw new Error(result.error || 'Purchase failed');
         }
-      } catch (purchaseError: any) {
+        } catch (purchaseError: any) {
           logger.error('Purchase failed:', purchaseError);
 
           // Check if user cancelled (multiple ways to detect)
