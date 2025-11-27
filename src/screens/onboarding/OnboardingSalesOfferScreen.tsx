@@ -594,7 +594,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             logger.info('🔄 Starting database subscription upgrade', {
               userId: user?.id,
               selectedTier,
-              transactionId: result.transactionId?.substring(0, 10) + '...'
+              transactionId: result.transactionId?.substring(0, 10) + '...',
             });
 
             await NewSubscriptionService.upgradeSubscription(user?.id || '', {

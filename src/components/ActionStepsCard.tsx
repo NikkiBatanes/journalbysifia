@@ -268,16 +268,16 @@ export default function ActionStepsCard({
             try {
               if (!user?.id) { return; }
               const awardKey = `fp_awarded_action_step:${user.id}:${playbookId || 'unknown_playbook'}:${stepId}`;
-              
+
               // ✅ FIX: Check AsyncStorage first to prevent race condition
               const alreadyAwarded = await AsyncStorage.getItem(awardKey);
               if (alreadyAwarded) {
                 return;
               }
-              
+
               // ✅ FIX: Set flag BEFORE awarding to prevent duplicate calls
               await AsyncStorage.setItem(awardKey, '1');
-              
+
               // ✅ FIX: Add 500ms delay to debounce rapid completions
               await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -305,7 +305,7 @@ export default function ActionStepsCard({
                     if (!playbookAlready) {
                       // ✅ FIX: Set flag BEFORE awarding to prevent race condition
                       await AsyncStorage.setItem(playbookAwardKey, '1');
-                      
+
                       await faithPointsService.awardPoints(user.id, 'playbook_completed', {
                         playbookId,
                         stepId,

@@ -345,8 +345,9 @@ export class NewSubscriptionService {
       target_tier: to_tier,
       platform: options.platform,
       platform_subscription_id: options.platform_subscription_id,
-      updateData_keys: Object.keys(updateData)
-    }, { component: 'NewSubscriptionService' });
+      updateData_keys: Object.keys(updateData),
+      component: 'NewSubscriptionService',
+    });
 
     const { data, error } = await supabase
       .from('user_subscriptions_new')
@@ -362,9 +363,9 @@ export class NewSubscriptionService {
         error_hint: error.hint,
         error_code: error.code,
         updateData_keys: Object.keys(updateData),
-        userId
+        userId,
       }, { component: 'NewSubscriptionService' });
-      
+
       // Handle specific schema cache errors
       if (error.message?.includes('Could not find') && error.message?.includes('platform')) {
         Logger.error('❌ Database schema issue: platform column not found. Please apply the subscription schema.', undefined, { component: 'NewSubscriptionService' });
@@ -381,8 +382,9 @@ export class NewSubscriptionService {
       subscription_id: data.id,
       new_tier: data.tier,
       platform: data.platform,
-      platform_subscription_id: data.platform_subscription_id
-    }, { component: 'NewSubscriptionService' });
+      platform_subscription_id: data.platform_subscription_id,
+      component: 'NewSubscriptionService',
+    });
 
     return this.enrichSubscriptionData(data);
   }

@@ -62,7 +62,7 @@ export const formatBibleVerse = (verse: string): string => {
     // and not just a version marker at the end
     const beforeParen = formatted.substring(0, parenIndex).trim();
     const afterParen = formatted.substring(parenIndex);
-    
+
     // If there's substantial text before the paren and the paren isn't just a version marker
     // (version markers are usually short like "(NASB)" at the very end)
     if (beforeParen.length > 20 && !afterParen.match(/^\(\s*[A-Z]{2,5}\s*\)$/)) {
