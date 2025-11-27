@@ -35,16 +35,27 @@ export const formatBibleVerse = (verse: string): string => {
 
   // 2) Normalize quotes and spaces
   formatted = formatted
-    .replace(/^"+|"+$/g, '')
     .replace(/"/g, '"')
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
 
-  // 3) Remove leading punctuation (colons, dashes, quotes) that might appear after parsing
+  // 3) Only remove wrapping quotes if they enclose the ENTIRE verse
+  // This preserves quotes that are part of the actual verse text (e.g., "Father and I are one")
+  if (formatted.startsWith('"') && formatted.endsWith('"') && formatted.length > 2) {
+    // Check if this is a wrapping quote (not part of the verse)
+    // by seeing if removing them leaves valid text
+    const withoutWrappers = formatted.slice(1, -1).trim();
+    if (withoutWrappers.length > 0 && !withoutWrappers.startsWith('"')) {
+      formatted = withoutWrappers;
+    }
+  }
+
+  // 4) Remove leading punctuation (colons, dashes) but NOT quotes
+  // Quotes might be part of the actual verse text
   formatted = formatted
-    .replace(/^[:—\s"']+/, '') // Remove leading colons, dashes, quotes, spaces
+    .replace(/^[:—\s]+/, '') // Remove leading colons, dashes, spaces (but NOT quotes)
     .trim();
 
   // 4) Fix spacing around punctuation
