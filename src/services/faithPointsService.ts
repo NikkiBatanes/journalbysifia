@@ -1236,25 +1236,57 @@ export class FaithPointsService {
 
   private async getUserBadges(userId: string): Promise<Badge[]> {
     try {
-      const { data: badges } = await supabase
+      // CRITICAL FIX: Join with badges table to get actual badge data
+      // user_badges table only has badge_id (UUID), not badge_data
+      const { data: userBadgeRecords, error } = await supabase
         .from('user_badges')
-        .select('badge_data')
+        .select(`
+          badge_id,
+          earned_at,
+          badges (
+            id,
+            name,
+            description,
+            icon,
+            rarity,
+            points_required
+          )
+        `)
         .eq('user_id', userId);
 
-      return badges?.map(b => {
-        try {
-          // Parse the JSON string back to object
-          return typeof b.badge_data === 'string' ? JSON.parse(b.badge_data) : b.badge_data;
-        } catch (parseError) {
-          Logger.error('[FaithPointsService] Failed to parse badge data', parseError as Error, {
-            component: 'faithPointsService',
-            badgeData: b.badge_data,
-          });
-          return null;
-        }
-      }).filter(Boolean) || [];
+      if (error) {
+        Logger.error('[FaithPointsService] Error fetching user badges', error as Error, {
+          component: 'faithPointsService',
+          userId,
+        });
+        return [];
+      }
+
+      // Transform to Badge interface format
+      const badges: Badge[] = (userBadgeRecords || [])
+        .filter(record => record.badges && typeof record.badges === 'object') // Filter out any bad joins
+        .map(record => {
+          const badgeData = record.badges as any; // Supabase returns badges as object
+          return {
+            id: badgeData.id,
+            name: badgeData.name,
+            description: badgeData.description,
+            icon: badgeData.icon,
+            rarity: badgeData.rarity as 'common' | 'rare' | 'epic' | 'legendary',
+            pointsRequired: badgeData.points_required,
+            unlockedAt: record.earned_at,
+          };
+        });
+
+      Logger.debug(`[FaithPointsService] Found ${badges.length} badges for user`, {
+        component: 'faithPointsService',
+        userId,
+        badgeNames: badges.map(b => b.name),
+      });
+
+      return badges;
     } catch (error) {
-      Logger.error('[FaithPointsService] Error getting user badges', error as Error, {
+      Logger.error('[FaithPointsService] Exception getting user badges', error as Error, {
         component: 'faithPointsService',
         userId,
       });
