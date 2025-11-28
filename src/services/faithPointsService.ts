@@ -409,12 +409,32 @@ export class FaithPointsService {
 
       }
 
+      // DEBUG: Log before any badge checking logic
+      Logger.debug('[FaithPointsService] DEBUG: About to check badge conditions', {
+        component: 'faithPointsService',
+        userId,
+        activity,
+        suppressNotification: _metadata?.suppressNotification,
+        totalPoints: newTotalPoints,
+        timestamp: new Date().toISOString(),
+      });
+
       // ENTERPRISE-GRADE: Defer badge checking with debouncing to prevent UI freeze and duplicates
       // Use lightweight queries and longer delay for critical operations
       if (!_metadata?.suppressNotification) {
+        Logger.debug('[FaithPointsService] DEBUG: Badge checking not suppressed, setting up timer', {
+          component: 'faithPointsService',
+          userId,
+          activity,
+        });
+        
         // Clear any existing timer for this user
         const existingTimer = FaithPointsService.badgeCheckTimers.get(userId);
         if (existingTimer) {
+          Logger.debug('[FaithPointsService] DEBUG: Clearing existing timer', {
+            component: 'faithPointsService',
+            userId,
+          });
           clearTimeout(existingTimer);
         }
         
@@ -424,11 +444,12 @@ export class FaithPointsService {
             // Clean up timer reference
             FaithPointsService.badgeCheckTimers.delete(userId);
             
-            Logger.debug('[FaithPointsService] Starting deferred badge check', {
+            Logger.debug('[FaithPointsService] DEBUG: Timer fired, starting deferred badge check', {
               component: 'faithPointsService',
               userId,
               activity,
               totalPoints: newTotalPoints,
+              timestamp: new Date().toISOString(),
             });
             
             // Now check for badges asynchronously
@@ -614,11 +635,27 @@ export class FaithPointsService {
    */
   async getAvailableBadges(): Promise<Badge[]> {
     try {
+      Logger.debug('[FaithPointsService] DEBUG: getAvailableBadges starting', {
+        component: 'faithPointsService',
+        timestamp: new Date().toISOString(),
+      });
+      
       // Fetch badges from the actual badges table in database
+      // OPTIMIZATION: Only fetch specific fields needed for badge checking
+      const startTime = Date.now();
       const { data: badges, error } = await supabase
         .from('badges')
-        .select('*')
+        .select('id, name, description, icon, rarity, faith_points_reward')
         .order('rarity, faith_points_reward');
+      
+      const queryTime = Date.now() - startTime;
+      Logger.debug('[FaithPointsService] DEBUG: getAvailableBadges query completed', {
+        component: 'faithPointsService',
+        queryTime,
+        badgeCount: badges?.length || 0,
+        error: error?.message,
+        timestamp: new Date().toISOString(),
+      });
 
       if (error) {
         Logger.error('[FaithPointsService] Error fetching badges from database', error, {
@@ -1176,11 +1213,27 @@ export class FaithPointsService {
       );
 
       if (hasActivityBasedBadges) {
+        Logger.debug('[FaithPointsService] DEBUG: Fetching activity counts', {
+          component: 'faithPointsService',
+          userId,
+          timestamp: new Date().toISOString(),
+        });
+        
         // Batch fetch all relevant activity counts in one query
+        const startTime = Date.now();
         const { data: transactions } = await supabase
           .from('faith_points_transactions')
           .select('activity_type')
           .eq('user_id', userId);
+        
+        const queryTime = Date.now() - startTime;
+        Logger.debug('[FaithPointsService] DEBUG: Activity counts query completed', {
+          component: 'faithPointsService',
+          userId,
+          queryTime,
+          transactionCount: transactions?.length || 0,
+          timestamp: new Date().toISOString(),
+        });
 
         if (transactions) {
           activityCounts = transactions.reduce((counts, t) => {
@@ -1242,12 +1295,29 @@ export class FaithPointsService {
 
   private async getUserBadges(userId: string): Promise<Badge[]> {
     try {
+      Logger.debug('[FaithPointsService] DEBUG: getUserBadges starting', {
+        component: 'faithPointsService',
+        userId,
+        timestamp: new Date().toISOString(),
+      });
+      
       // PERFORMANCE FIX: Lightweight join to get only badge names
       // We need names for comparison since available badges use names
+      const startTime = Date.now();
       const { data: userBadgeRecords, error } = await supabase
         .from('user_badges')
         .select('badge_id, badges!inner(name)')
         .eq('user_id', userId);
+      
+      const queryTime = Date.now() - startTime;
+      Logger.debug('[FaithPointsService] DEBUG: getUserBadges query completed', {
+        component: 'faithPointsService',
+        userId,
+        queryTime,
+        recordCount: userBadgeRecords?.length || 0,
+        error: error?.message,
+        timestamp: new Date().toISOString(),
+      });
 
       if (error) {
         Logger.error('[FaithPointsService] Error fetching user badges', error as Error, {
