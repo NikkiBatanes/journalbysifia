@@ -48,7 +48,7 @@ export interface Achievement {
   completedAt?: string;
 }
 
-export interface PointsTransaction {
+export interface FaithPointsTransaction {
   id: string;
   userId: string;
   points: number;
@@ -68,6 +68,13 @@ export interface LevelInfo {
 }
 
 export class FaithPointsService {
+  // ENTERPRISE-GRADE: In-memory guard to prevent race conditions
+  // Tracks badges currently being awarded to prevent duplicates
+  private static badgesBeingAwarded: Map<string, Set<string>> = new Map();
+  // Map<userId, Set<badgeName>>
+  
+  // ENTERPRISE-GRADE: Debounce timer for badge checking per user
+  private static badgeCheckTimers: Map<string, NodeJS.Timeout> = new Map();
 
   // Level progression system
   private readonly LEVELS: LevelInfo[] = [
@@ -402,12 +409,22 @@ export class FaithPointsService {
 
       }
 
-      // CRITICAL: Defer badge checking AND processing completely to prevent UI freeze
+      // ENTERPRISE-GRADE: Defer badge checking with debouncing to prevent UI freeze and duplicates
       // Even the database query to check badges was blocking the UI thread
-      // Check badges asynchronously after UI has settled
+      // Debounce badge checks per user to prevent rapid-fire duplicates
       if (!_metadata?.suppressNotification) {
-        setTimeout(async () => {
+        // Clear any existing timer for this user
+        const existingTimer = FaithPointsService.badgeCheckTimers.get(userId);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
+        
+        // Debounce: Only check badges after 500ms of no new activity
+        const timer = setTimeout(async () => {
           try {
+            // Clean up timer reference
+            FaithPointsService.badgeCheckTimers.delete(userId);
+            
             // Now check for badges asynchronously
             const deferredBadges = await this.checkForNewBadges(userId, newTotalPoints, activity);
             
@@ -478,6 +495,9 @@ export class FaithPointsService {
             });
           }
         }, 500); // 500ms delay to let UI animations complete first
+        
+        // Store timer reference for cleanup
+        FaithPointsService.badgeCheckTimers.set(userId, timer);
       }
 
       Logger.debug('[FaithPointsService] BEFORE milestone check', {
@@ -565,7 +585,7 @@ export class FaithPointsService {
   /**
    * Get user's recent transactions
    */
-  async getRecentTransactions(userId: string, limit: number = 10): Promise<PointsTransaction[]> {
+  async getRecentTransactions(userId: string, limit: number = 10): Promise<FaithPointsTransaction[]> {
     try {
       const { data: transactions } = await supabase
         .from('faith_points_log')
@@ -1533,40 +1553,60 @@ export class FaithPointsService {
 
   private async awardBadge(userId: string, badge: Badge): Promise<void> {
     try {
-      // PREVENT DUPLICATES: Check if user already has this badge
-      // First get the badge UUID from badges table
-      const { data: badgeRecord, error: lookupError } = await supabase
-        .from('badges')
-        .select('id')
-        .eq('name', badge.name)
-        .single();
-
-      if (lookupError || !badgeRecord) {
-        Logger.error('[FaithPointsService] Badge not found in badges table', lookupError as Error, {
+      // ENTERPRISE-GRADE: In-memory guard prevents race conditions
+      // Check if this badge is currently being awarded to prevent duplicates
+      if (!FaithPointsService.badgesBeingAwarded.has(userId)) {
+        FaithPointsService.badgesBeingAwarded.set(userId, new Set());
+      }
+      
+      const userBadges = FaithPointsService.badgesBeingAwarded.get(userId)!;
+      if (userBadges.has(badge.name)) {
+        Logger.info('[FaithPointsService] Badge currently being awarded (race condition prevented)', {
           component: 'faithPointsService',
           badgeName: badge.name,
-          badgeId: badge.id,
-          errorDetails: lookupError,
+          userId,
         });
         return;
       }
+      
+      // Mark badge as being awarded
+      userBadges.add(badge.name);
+      
+      try {
+        // PREVENT DUPLICATES: Check if user already has this badge
+        // First get the badge UUID from badges table
+        const { data: badgeRecord, error: lookupError } = await supabase
+          .from('badges')
+          .select('id')
+          .eq('name', badge.name)
+          .single();
 
-      // Now check if user already has this badge
-      const { data: existingBadge } = await supabase
-        .from('user_badges')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('badge_id', badgeRecord.id)
-        .single();
+        if (lookupError || !badgeRecord) {
+          Logger.error('[FaithPointsService] Badge not found in badges table', lookupError as Error, {
+            component: 'faithPointsService',
+            badgeName: badge.name,
+            badgeId: badge.id,
+            errorDetails: lookupError,
+          });
+          return;
+        }
 
-      if (existingBadge) {
-        Logger.info('[FaithPointsService] Badge already exists for user, skipping award', {
-          component: 'faithPointsService',
-          badgeId: badgeRecord.id,
-          badgeName: badge.name,
-        });
-        return;
-      }
+        // Now check if user already has this badge in database
+        const { data: existingBadge } = await supabase
+          .from('user_badges')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('badge_id', badgeRecord.id)
+          .single();
+
+        if (existingBadge) {
+          Logger.info('[FaithPointsService] Badge already exists for user (database check), skipping award', {
+            component: 'faithPointsService',
+            badgeId: badgeRecord.id,
+            badgeName: badge.name,
+          });
+          return;
+        }
 
       // Insert with the actual UUID from badges table
       const { error: insertError } = await supabase
@@ -1604,12 +1644,30 @@ export class FaithPointsService {
       });
 
       // Emit BADGE_UNLOCKED event to update badge count in profile
-      setTimeout(() => {
-        faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
-          userId,
-          badge,
+        setTimeout(() => {
+          faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
+            userId,
+            badge,
+          });
+        }, 300); // Small delay to ensure database write completes
+        
+      } catch (innerError) {
+        Logger.error('[FaithPointsService] Error in badge insertion', innerError as Error, {
+          component: 'faithPointsService',
+          badgeId: badge.id,
+          badgeName: badge.name,
         });
-      }, 300); // Small delay to ensure database write completes
+        throw innerError;
+      } finally {
+        // ENTERPRISE-GRADE: Always clean up the guard, even on error
+        // Remove badge from the "being awarded" set
+        userBadges.delete(badge.name);
+        
+        // Clean up empty sets to prevent memory leaks
+        if (userBadges.size === 0) {
+          FaithPointsService.badgesBeingAwarded.delete(userId);
+        }
+      }
     } catch (error) {
       Logger.error('[FaithPointsService] Error awarding badge', error as Error, {
         component: 'faithPointsService',
