@@ -248,16 +248,16 @@ class CircuitBreakerRegistry {
       const isDev = __DEV__;
       const defaultConfig: CircuitBreakerConfig = isDev ? {
         // Development: More lenient for testing
-        failureThreshold: 10,
+        failureThreshold: 15,
         successThreshold: 2,
         timeout: 30000, // 30 seconds
         monitoringPeriod: 300000, // 5 minutes
       } : {
-        // Production: Optimized for 2000 concurrent users
-        failureThreshold: 20, // Higher threshold for production
-        successThreshold: 3, // Require more successes to close
-        timeout: 15000, // 15 seconds (faster recovery)
-        monitoringPeriod: 600000, // 10 minutes (longer window)
+        // Production: Very lenient - we have retry logic now
+        failureThreshold: 50, // Much higher threshold - retry logic handles failures
+        successThreshold: 5, // More successes needed to regain trust
+        timeout: 30000, // 30 seconds (allow retries to complete)
+        monitoringPeriod: 900000, // 15 minutes (longer window)
       };
 
       const finalConfig = { ...defaultConfig, ...config };

@@ -424,51 +424,167 @@ export class EnhancedQueueService {
   }
 
   /**
-   * Generate playbook via Supabase Edge Function
+   * Generate playbook via Supabase Edge Function with timeout and retry
    */
   private async generatePlaybook(item: QueueItem): Promise<any> {
-    const { data, error } = await supabase.functions.invoke('generate-playbook', {
-      body: {
-        userInput: item.userInput,
-        userName: item.userName,
-        userId: item.userId,
-      },
-    });
+    const maxRetries = 3;
+    const timeout = 120000; // 120 seconds for AI generation
+    let lastError: any = null;
 
-    if (error) {
-      throw new Error('We couldn\'t create your playbook right now. Please try again.');
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        Logger.info(`Generating playbook attempt ${attempt}/${maxRetries}`, {
+          component: 'enhancedQueueService',
+          data: { userId: item.userId, attempt }
+        });
+
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), timeout)
+        );
+
+        // Race between actual call and timeout
+        const result = await Promise.race([
+          supabase.functions.invoke('generate-playbook', {
+            body: {
+              userInput: item.userInput,
+              userName: item.userName,
+              userId: item.userId,
+            },
+          }),
+          timeoutPromise
+        ]) as any;
+
+        const { data, error } = result;
+
+        if (error) {
+          lastError = error;
+          Logger.warn(`Playbook generation failed attempt ${attempt}`, {
+            component: 'enhancedQueueService',
+            data: { error: error.message, attempt }
+          });
+          
+          // Don't retry on last attempt
+          if (attempt < maxRetries) {
+            // Exponential backoff: 2s, 4s, 8s
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            continue;
+          }
+          throw new Error('We couldn\'t create your playbook right now. Please try again.');
+        }
+
+        if (!data) {
+          throw new Error('We couldn\'t create your playbook. Please try again.');
+        }
+
+        Logger.info(`Playbook generated successfully on attempt ${attempt}`, {
+          component: 'enhancedQueueService',
+          data: { userId: item.userId, attempt }
+        });
+
+        return data;
+      } catch (error: any) {
+        lastError = error;
+        Logger.warn(`Playbook generation error attempt ${attempt}`, {
+          component: 'enhancedQueueService',
+          data: { error: error.message, attempt }
+        });
+
+        // Don't retry on last attempt
+        if (attempt < maxRetries) {
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          continue;
+        }
+
+        throw new Error('We couldn\'t create your playbook right now. Please try again.');
+      }
     }
 
-    if (!data) {
-      throw new Error('We couldn\'t create your playbook. Please try again.');
-    }
-
-    return data;
+    throw lastError || new Error('Failed to generate playbook after all retries');
   }
 
   /**
-   * Generate devotional via Supabase Edge Function
+   * Generate devotional via Supabase Edge Function with timeout and retry
    */
   private async generateDevotional(item: QueueItem): Promise<any> {
-    const { data, error } = await supabase.functions.invoke('generate-devotional', {
-      body: {
-        userInput: item.userInput,
-        userName: item.userName,
-        duration: item.contextData?.duration || 1,
-        bibleVersion: item.contextData?.bibleVersion || 'NASB',
-        playbookId: item.contextData?.playbookId,
-      },
-    });
+    const maxRetries = 3;
+    const timeout = 90000; // 90 seconds for devotional generation
+    let lastError: any = null;
 
-    if (error) {
-      throw new Error('We couldn\'t create your devotional right now. Please try again.');
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        Logger.info(`Generating devotional attempt ${attempt}/${maxRetries}`, {
+          component: 'enhancedQueueService',
+          data: { userId: item.userId, attempt }
+        });
+
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), timeout)
+        );
+
+        // Race between actual call and timeout
+        const result = await Promise.race([
+          supabase.functions.invoke('generate-devotional', {
+            body: {
+              userInput: item.userInput,
+              userName: item.userName,
+              duration: item.contextData?.duration || 1,
+              bibleVersion: item.contextData?.bibleVersion || 'NASB',
+              playbookId: item.contextData?.playbookId,
+            },
+          }),
+          timeoutPromise
+        ]) as any;
+
+        const { data, error } = result;
+
+        if (error) {
+          lastError = error;
+          Logger.warn(`Devotional generation failed attempt ${attempt}`, {
+            component: 'enhancedQueueService',
+            data: { error: error.message, attempt }
+          });
+          
+          // Don't retry on last attempt
+          if (attempt < maxRetries) {
+            // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            continue;
+          }
+          throw new Error('We couldn\'t create your devotional right now. Please try again.');
+        }
+
+        if (!data) {
+          throw new Error('We couldn\'t create your devotional. Please try again.');
+        }
+
+        Logger.info(`Devotional generated successfully on attempt ${attempt}`, {
+          component: 'enhancedQueueService',
+          data: { userId: item.userId, attempt }
+        });
+
+        return data;
+      } catch (error: any) {
+        lastError = error;
+        Logger.warn(`Devotional generation error attempt ${attempt}`, {
+          component: 'enhancedQueueService',
+          data: { error: error.message, attempt }
+        });
+
+        // Don't retry on last attempt
+        if (attempt < maxRetries) {
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          continue;
+        }
+
+        throw new Error('We couldn\'t create your devotional right now. Please try again.');
+      }
     }
 
-    if (!data) {
-      throw new Error('We couldn\'t create your devotional. Please try again.');
-    }
-
-    return data;
+    throw lastError || new Error('Failed to generate devotional after all retries');
   }
 
   /**
