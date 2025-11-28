@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "siFia.png",
+      "filename" : "siFiaTransparent.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -16,17 +16,17 @@
       "scale" : "3x"
     },
     {
-      "filename" : "siFiaTransparent_1x.png",
+      "filename" : "siFiaTransparent.png",
       "idiom" : "iphone",
       "scale" : "1x"
     },
     {
-      "filename" : "siFiaTransparent_2x.png",
+      "filename" : "siFiaTransparent@2x.png",
       "idiom" : "iphone",
       "scale" : "2x"
     },
     {
-      "filename" : "siFiaTransparent_3x.png",
+      "filename" : "siFiaTransparent@3x.png",
       "idiom" : "iphone",
       "scale" : "3x"
     },
