@@ -58,6 +58,25 @@
 		<string>Poppins-Medium.ttf</string>
 		<string>Poppins-Regular.ttf</string>
 		<string>Poppins-SemiBold.ttf</string>
+		<string>AntDesign.ttf</string>
+		<string>Entypo.ttf</string>
+		<string>EvilIcons.ttf</string>
+		<string>Feather.ttf</string>
+		<string>FontAwesome.ttf</string>
+		<string>FontAwesome5_Brands.ttf</string>
+		<string>FontAwesome5_Regular.ttf</string>
+		<string>FontAwesome5_Solid.ttf</string>
+		<string>FontAwesome6_Brands.ttf</string>
+		<string>FontAwesome6_Regular.ttf</string>
+		<string>FontAwesome6_Solid.ttf</string>
+		<string>Fontisto.ttf</string>
+		<string>Foundation.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>MaterialCommunityIcons.ttf</string>
+		<string>MaterialIcons.ttf</string>
+		<string>Octicons.ttf</string>
+		<string>SimpleLineIcons.ttf</string>
+		<string>Zocial.ttf</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -138,19 +157,6 @@
 	<string>This app needs access to your photo library to let you choose a profile picture.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>siFia sends you helpful reminders for your daily devotionals, prayer requests, and spiritual practices to support your faith journey.</string>
-	<key>UIAppFonts</key>
-	<array>
-		<string>Lexend-Regular.ttf</string>
-		<string>Lexend-Medium.ttf</string>
-		<string>Lexend-SemiBold.ttf</string>
-		<string>Lexend-Bold.ttf</string>
-		<string>Lexend-ExtraBold.ttf</string>
-		<string>Antonio-Regular.ttf</string>
-		<string>Antonio-Bold.ttf</string>
-		<string>SF-Pro-Display-Regular.otf</string>
-		<string>SF-Pro-Display-Medium.otf</string>
-		<string>SF-Pro-Display-Bold.otf</string>
-	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIRequiredDeviceCapabilities</key>
