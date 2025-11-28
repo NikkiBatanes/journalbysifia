@@ -944,6 +944,27 @@ export class FaithPointsService {
           last_activity_date: new Date().toISOString(),
         });
 
+      // Award the Seeker badge immediately for new users
+      // This prevents the badge from being re-awarded later when points are earned
+      try {
+        const seekerBadge = (await this.getAvailableBadges()).find(b => b.id === 'seeker');
+        if (seekerBadge) {
+          await this.awardBadge(userId, seekerBadge);
+          // Record the level_1_reached event for badge tracking
+          await this.recordTransaction(userId, 0, 'achievement', { type: 'level_1_reached' });
+          Logger.info('[FaithPointsService] Seeker badge awarded to new user', {
+            component: 'faithPointsService',
+            userId,
+          });
+        }
+      } catch (badgeError) {
+        Logger.warn('[FaithPointsService] Failed to award Seeker badge to new user', badgeError as Error, {
+          component: 'faithPointsService',
+          userId,
+        });
+        // Continue even if badge awarding fails
+      }
+
       return newProfile;
 
     } catch (error) {
@@ -1248,6 +1269,8 @@ export class FaithPointsService {
       // Level Achievement Badges
       case 'Seeker':
         // Award after reaching level 1
+        // Note: This method is only called if user doesn't already have the badge
+        // So we don't need to check userBadgeIds here
         return await this.getActivityCount(userId, 'level_1_reached') >= 1;
 
       case 'Believer':
