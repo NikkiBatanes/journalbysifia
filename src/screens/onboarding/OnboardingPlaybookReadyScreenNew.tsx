@@ -1281,9 +1281,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                           height: Math.max(260, windowHeight - _headerH - insets.top - (isTablet ? -120 : 100)),
                           borderRadius: 30,
                         }}
-                        contentContainerStyle={{ paddingBottom: isPortrait ? (_footerH + insets.bottom + 250) : (_footerH + insets.bottom + 700) }}
-                        contentInset={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700), left: 0, right: 0 }}
-                        scrollIndicatorInsets={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 90) : (_footerH + insets.bottom + 700) }}
+                        contentContainerStyle={{ paddingBottom: isPortrait ? (_footerH + insets.bottom + 100) : (_footerH + insets.bottom + 400) }}
+                        contentInset={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 50) : (_footerH + insets.bottom + 200), left: 0, right: 0 }}
+                        scrollIndicatorInsets={{ top: 0, bottom: isPortrait ? (_footerH + insets.bottom + 50) : (_footerH + insets.bottom + 200) }}
                         showsVerticalScrollIndicator={false}
                         bounces
                         alwaysBounceVertical
