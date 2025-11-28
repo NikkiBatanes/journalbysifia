@@ -11,7 +11,7 @@ import { Devotional, DevotionalCategory } from '../interfaces/devotional';
 import { ENV } from '../config/environment';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
 import { enterpriseResilience } from '../utils/enterpriseResilience';
-import { withTimeout, TIMEOUT_CONFIGS } from '../utils/apiTimeout';
+import { withTimeout } from '../utils/apiTimeout';
 import { monitoring } from '../utils/monitoring';
 
 interface DevotionalGenerationParams {

@@ -4,7 +4,7 @@
  * Ensures vector icons are properly loaded in TestFlight/production environments
  */
 
-import { Platform } from 'react-native';
+import { Platform as _Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -71,7 +71,7 @@ export class FontLoader {
     }
   }
 
-  private static async loadFont(name: string, lib: any): Promise<void> {
+  private static async loadFont(name: string, _lib: any): Promise<void> {
     // Check if already loading/loaded
     if (this.fontPromises.has(name)) {
       return this.fontPromises.get(name)!;

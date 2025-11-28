@@ -82,7 +82,7 @@ export class PaymentFailureLogger {
    */
   private static analyzePaymentFailure(context: PaymentFailureContext): PaymentFailureAnalysis {
     const errorMessage = context.error.message.toLowerCase();
-    const errorStack = context.error.stack?.toLowerCase() || '';
+    const _errorStack = context.error.stack?.toLowerCase() || '';
     
     // Network-related failures
     if (this.containsAny(errorMessage, ['network', 'connection', 'timeout', 'unreachable', 'dns', 'socket'])) {
