@@ -22,7 +22,7 @@ import { ENV } from '../config/environment';
  * Utility function to detect network errors
  */
 function isNetworkError(error: any): boolean {
-  return (
+  const isNetwork = (
     error?.message?.includes('Network request failed') ||
     error?.message?.includes('Network Error') ||
     error?.message?.includes('fetch') ||
@@ -31,6 +31,22 @@ function isNetworkError(error: any): boolean {
     error?.code === 'ECONNRESET' ||
     error?.code === 'ETIMEDOUT'
   );
+  
+  // Temporary debug logging for TestFlight network issues
+  if (isNetwork) {
+    Logger.error('Network error detected in TestFlight', {
+      component: 'modernPlaybookApi',
+      data: {
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        errorStack: error?.stack,
+        apiBaseUrl: ENV.API_BASE_URL,
+        appEnv: ENV.APP_ENV,
+      }
+    });
+  }
+  
+  return isNetwork;
 }
 
 /**
