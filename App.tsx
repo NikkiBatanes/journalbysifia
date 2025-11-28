@@ -168,37 +168,37 @@ function AppWithAuth({
       if (__DEV__) {
         console.log('[App] IAP Init Check - isAuthenticated:', isAuthenticated, 'user?.id:', user?.id);
       }
-      
+
       if (isAuthenticated && user?.id) {
         try {
           if (__DEV__) {
             console.log('[App] About to import PlatformPaymentService...');
           }
-          
+
           const {PlatformPaymentService} = await import(
             './src/services/PlatformPaymentService'
           );
-          
+
           if (__DEV__) {
             console.log('[App] PlatformPaymentService imported successfully');
           }
-          
+
           if (__DEV__) {
             console.log('[App] Initializing IAP system...');
           }
-          
+
           const paymentService = PlatformPaymentService.getInstance();
-          
+
           if (__DEV__) {
             console.log('[App] About to call paymentService.initialize()...');
           }
-          
+
           await paymentService.initialize();
-          
+
           if (__DEV__) {
             console.log('[App] ✅ IAP system initialized');
           }
-          
+
           // Preload products in background after 2 seconds
           setTimeout(async () => {
             try {

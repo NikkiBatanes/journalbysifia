@@ -1116,8 +1116,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     styles.questionCardNumber,
                     isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
                   ]}>{idx + 1}</ThemedText>
-                  <ThemedText 
-                    style={styles.questionCardText} 
+                  <ThemedText
+                    style={styles.questionCardText}
                     selectable={true}
                     numberOfLines={0}
                     adjustsFontSizeToFit={false}

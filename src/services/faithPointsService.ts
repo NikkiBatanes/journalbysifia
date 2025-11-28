@@ -72,10 +72,10 @@ export class FaithPointsService {
   // Tracks badges currently being awarded to prevent duplicates
   private static badgesBeingAwarded: Map<string, Set<string>> = new Map();
   // Map<userId, Set<badgeName>>
-  
+
   // ENTERPRISE-GRADE: Debounce timer for badge checking per user
   private static badgeCheckTimers: Map<string, NodeJS.Timeout> = new Map();
-  
+
   // RATE LIMITER: Track last faith points award time per user to prevent rapid completion spam
   private static lastAwardTimes: Map<string, number> = new Map();
 
@@ -256,7 +256,7 @@ export class FaithPointsService {
       const now = Date.now();
       const lastAwardTime = FaithPointsService.lastAwardTimes.get(userId) || 0;
       const timeSinceLastAward = now - lastAwardTime;
-      
+
       // Block rapid completions: require at least 1 second between faith points awards
       if (timeSinceLastAward < 1000 && activity === 'devotional_completed') {
         Logger.debug('[FaithPointsService] Rate limiting rapid devotional completions', {
@@ -267,7 +267,7 @@ export class FaithPointsService {
         });
         return { pointsAwarded: 0 };
       }
-      
+
       // Update last award time
       FaithPointsService.lastAwardTimes.set(userId, now);
 
@@ -449,7 +449,7 @@ export class FaithPointsService {
           userId,
           activity,
         });
-        
+
         // Clear any existing timer for this user
         const existingTimer = FaithPointsService.badgeCheckTimers.get(userId);
         if (existingTimer) {
@@ -459,13 +459,13 @@ export class FaithPointsService {
           });
           clearTimeout(existingTimer);
         }
-        
+
         // Debounce: Only check badges after 2000ms of no new activity (increased from 500ms for rapid completion scenarios)
         const timer = setTimeout(async () => {
           try {
             // Clean up timer reference
             FaithPointsService.badgeCheckTimers.delete(userId);
-            
+
             Logger.debug('[FaithPointsService] DEBUG: Timer fired, starting deferred badge check', {
               component: 'faithPointsService',
               userId,
@@ -473,10 +473,10 @@ export class FaithPointsService {
               totalPoints: newTotalPoints,
               timestamp: new Date().toISOString(),
             });
-            
+
             // Now check for badges asynchronously
             const deferredBadges = await this.checkForNewBadges(userId, newTotalPoints, activity);
-            
+
             if (deferredBadges && deferredBadges.length > 0) {
               Logger.debug(`[FaithPointsService] Deferred badge check complete - Count: ${deferredBadges.length}`, {
                 component: 'faithPointsService',
@@ -544,7 +544,7 @@ export class FaithPointsService {
             });
           }
         }, 500); // 500ms delay to let UI animations complete first
-        
+
         // Store timer reference for cleanup
         FaithPointsService.badgeCheckTimers.set(userId, timer);
       }
@@ -661,7 +661,7 @@ export class FaithPointsService {
         component: 'faithPointsService',
         timestamp: new Date().toISOString(),
       });
-      
+
       // Fetch badges from the actual badges table in database
       // OPTIMIZATION: Only fetch specific fields needed for badge checking
       const startTime = Date.now();
@@ -669,7 +669,7 @@ export class FaithPointsService {
         .from('badges')
         .select('id, name, description, icon, rarity, faith_points_reward')
         .order('rarity, faith_points_reward');
-      
+
       const queryTime = Date.now() - startTime;
       Logger.debug('[FaithPointsService] DEBUG: getAvailableBadges query completed', {
         component: 'faithPointsService',
@@ -1227,7 +1227,7 @@ export class FaithPointsService {
 
       // Pre-fetch activity counts to avoid multiple database calls
       let activityCounts: Record<string, number> = {};
-      const hasActivityBasedBadges = availableBadges.some(badge => 
+      const hasActivityBasedBadges = availableBadges.some(badge =>
         ['First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
          'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
          'Journal Keeper', 'Journal Scribe',
@@ -1240,14 +1240,14 @@ export class FaithPointsService {
           userId,
           timestamp: new Date().toISOString(),
         });
-        
+
         // Batch fetch all relevant activity counts in one query
         const startTime = Date.now();
         const { data: transactions } = await supabase
           .from('faith_points_transactions')
           .select('activity_type')
           .eq('user_id', userId);
-        
+
         const queryTime = Date.now() - startTime;
         Logger.debug('[FaithPointsService] DEBUG: Activity counts query completed', {
           component: 'faithPointsService',
@@ -1322,7 +1322,7 @@ export class FaithPointsService {
         userId,
         timestamp: new Date().toISOString(),
       });
-      
+
       // PERFORMANCE FIX: Lightweight join to get only badge names
       // We need names for comparison since available badges use names
       const startTime = Date.now();
@@ -1330,7 +1330,7 @@ export class FaithPointsService {
         .from('user_badges')
         .select('badge_id, badges!inner(name)')
         .eq('user_id', userId);
-      
+
       const queryTime = Date.now() - startTime;
       Logger.debug('[FaithPointsService] DEBUG: getUserBadges query completed', {
         component: 'faithPointsService',
@@ -1383,131 +1383,131 @@ export class FaithPointsService {
       // Playbook Generation Badges
       case 'First Steps':
         // Award only on the first playbook generation (count should be 0 before this one)
-        const currentCount = activityCounts['playbook_generated'] || 0;
+        const currentCount = activityCounts.playbook_generated || 0;
         return activity === 'playbook_generated' && currentCount === 0;
 
       case 'Growth Seeker':
         // Award after generating 25 playbooks - ONLY check during playbook generation
         if (activity !== 'playbook_generated') { return false; }
-        return (activityCounts['playbook_generated'] || 0) >= 25;
+        return (activityCounts.playbook_generated || 0) >= 25;
 
       case 'Playbook Master':
         // Award after generating 50 playbooks - ONLY check during playbook generation
         if (activity !== 'playbook_generated') { return false; }
-        return (activityCounts['playbook_generated'] || 0) >= 50;
+        return (activityCounts.playbook_generated || 0) >= 50;
 
       case 'Playbook Legend':
         // Award after generating 100 playbooks - ONLY check during playbook generation
         if (activity !== 'playbook_generated') { return false; }
-        return (activityCounts['playbook_generated'] || 0) >= 100;
+        return (activityCounts.playbook_generated || 0) >= 100;
 
       // Devotional Badges
       case 'Prayer Warrior':
         // Award after completing 25 prayer activities - ONLY check during prayer activities
         if (!activity.includes('prayer')) { return false; }
-        const devotionalPrayersCount = activityCounts['prayer_devotional_prayed'] || 0;
-        const prayerListPrayedCount = activityCounts['prayer_list_prayed'] || 0;
+        const devotionalPrayersCount = activityCounts.prayer_devotional_prayed || 0;
+        const prayerListPrayedCount = activityCounts.prayer_list_prayed || 0;
         const totalPrayerActivities = devotionalPrayersCount + prayerListPrayedCount;
         return totalPrayerActivities >= 25;
 
       case 'Faithful Witness':
         // Award after documenting 15 answered prayers - ONLY check during prayer activities
         if (activity !== 'prayer_answered') { return false; }
-        return (activityCounts['prayer_answered'] || 0) >= 15;
+        return (activityCounts.prayer_answered || 0) >= 15;
 
       case 'Devotional Dedicated':
         // Award after generating 25 devotionals - ONLY check during devotional generation
         if (activity !== 'devotional_generated') { return false; }
-        return (activityCounts['devotional_generated'] || 0) >= 25;
+        return (activityCounts.devotional_generated || 0) >= 25;
 
       case 'Devotional Master':
         // Award after generating 50 devotionals - ONLY check during devotional generation
         if (activity !== 'devotional_generated') { return false; }
-        return (activityCounts['devotional_generated'] || 0) >= 50;
+        return (activityCounts.devotional_generated || 0) >= 50;
 
       // Journal Badges
       case 'Journal Keeper':
         // Award after making 50 journal entries - ONLY check during journal activities
         if (!activity.includes('journal')) { return false; }
-        return (activityCounts['journal_entry'] || 0) >= 50;
+        return (activityCounts.journal_entry || 0) >= 50;
 
       case 'Journal Scribe':
         // Award after making 100 journal entries - ONLY check during journal activities
         if (!activity.includes('journal')) { return false; }
-        return (activityCounts['journal_entry'] || 0) >= 100;
+        return (activityCounts.journal_entry || 0) >= 100;
 
       // Streak Badges
       case 'Faithful Week':
         // Award after 7-day streak - ONLY check during streak-related activities
         if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
-        return (activityCounts['daily_streak'] || 0) >= 7;
+        return (activityCounts.daily_streak || 0) >= 7;
 
       case 'Streak Warrior':
         // Award after 14-day streak - ONLY check during streak-related activities
         if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
-        return (activityCounts['daily_streak'] || 0) >= 14;
+        return (activityCounts.daily_streak || 0) >= 14;
 
       case 'Streak Master':
         // Award after 30-day streak - ONLY check during streak-related activities
         if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
-        return (activityCounts['daily_streak'] || 0) >= 30;
+        return (activityCounts.daily_streak || 0) >= 30;
 
       case 'Streak Legend':
         // Award after 60-day streak - ONLY check during streak-related activities
         if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
-        return (activityCounts['daily_streak'] || 0) >= 60;
+        return (activityCounts.daily_streak || 0) >= 60;
 
       // Level Achievement Badges
       case 'Seeker':
         // Award after reaching level 1 - ONLY check during achievement/level activities
         // This is given automatically to new users in createUserProfile
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_1_reached'] || 0) >= 1;
+        return (activityCounts.level_1_reached || 0) >= 1;
 
       case 'Believer':
         // Award after reaching level 2 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_2_reached'] || 0) >= 1;
+        return (activityCounts.level_2_reached || 0) >= 1;
 
       case 'Disciple':
         // Award after reaching level 3 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_3_reached'] || 0) >= 1;
+        return (activityCounts.level_3_reached || 0) >= 1;
 
       case 'Servant':
         // Award after reaching level 4 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_4_reached'] || 0) >= 1;
+        return (activityCounts.level_4_reached || 0) >= 1;
 
       case 'Leader':
         // Award after reaching level 5 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_5_reached'] || 0) >= 1;
+        return (activityCounts.level_5_reached || 0) >= 1;
 
       case 'Teacher':
         // Award after reaching level 6 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_6_reached'] || 0) >= 1;
+        return (activityCounts.level_6_reached || 0) >= 1;
 
       case 'Mentor':
         // Award after reaching level 7 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_7_reached'] || 0) >= 1;
+        return (activityCounts.level_7_reached || 0) >= 1;
 
       case 'Elder':
         // Award after reaching level 8 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_8_reached'] || 0) >= 1;
+        return (activityCounts.level_8_reached || 0) >= 1;
 
       case 'Steward':
         // Award after reaching level 9 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_9_reached'] || 0) >= 1;
+        return (activityCounts.level_9_reached || 0) >= 1;
 
       case 'Ambassador':
         // Award after reaching level 10 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
-        return (activityCounts['level_10_reached'] || 0) >= 1;
+        return (activityCounts.level_10_reached || 0) >= 1;
 
       default:
         return false;
@@ -1673,7 +1673,7 @@ export class FaithPointsService {
       if (!FaithPointsService.badgesBeingAwarded.has(userId)) {
         FaithPointsService.badgesBeingAwarded.set(userId, new Set());
       }
-      
+
       const userBadges = FaithPointsService.badgesBeingAwarded.get(userId)!;
       if (userBadges.has(badge.name)) {
         Logger.info('[FaithPointsService] Badge currently being awarded (race condition prevented)', {
@@ -1683,10 +1683,10 @@ export class FaithPointsService {
         });
         return;
       }
-      
+
       // Mark badge as being awarded
       userBadges.add(badge.name);
-      
+
       try {
         // PREVENT DUPLICATES: Check if user already has this badge
         // First get the badge UUID from badges table
@@ -1765,7 +1765,7 @@ export class FaithPointsService {
             badge,
           });
         }, 300); // Small delay to ensure database write completes
-        
+
       } catch (innerError) {
         Logger.error('[FaithPointsService] Error in badge insertion', innerError as Error, {
           component: 'faithPointsService',
@@ -1777,7 +1777,7 @@ export class FaithPointsService {
         // ENTERPRISE-GRADE: Always clean up the guard, even on error
         // Remove badge from the "being awarded" set
         userBadges.delete(badge.name);
-        
+
         // Clean up empty sets to prevent memory leaks
         if (userBadges.size === 0) {
           FaithPointsService.badgesBeingAwarded.delete(userId);
