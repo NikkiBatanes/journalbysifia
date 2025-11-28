@@ -1120,30 +1120,53 @@ export class FaithPointsService {
 
       const newBadges: Badge[] = [];
 
+      // Pre-fetch activity counts to avoid multiple database calls
+      let activityCounts: Record<string, number> = {};
+      const hasActivityBasedBadges = availableBadges.some(badge => 
+        ['First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
+         'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
+         'Journal Keeper', 'Journal Scribe',
+         'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend'].includes(badge.name)
+      );
+
+      if (hasActivityBasedBadges) {
+        // Batch fetch all relevant activity counts in one query
+        const { data: transactions } = await supabase
+          .from('faith_points_transactions')
+          .select('activity_type')
+          .eq('user_id', userId);
+
+        if (transactions) {
+          activityCounts = transactions.reduce((counts, t) => {
+            counts[t.activity_type] = (counts[t.activity_type] || 0) + 1;
+            return counts;
+          }, {} as Record<string, number>);
+        }
+      }
+
       for (const badge of availableBadges) {
         if (!userBadgeIds.includes(badge.id)) {
-          // Check specific badge requirements first
-          const earned = await this.checkBadgeRequirement(userId, badge, activity);
+          // For activity-based badges, use pre-fetched counts
+          const isActivityBasedBadge = [
+            'First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
+            'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
+            'Journal Keeper', 'Journal Scribe',
+            'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend',
+          ].includes(badge.name);
 
-          if (earned) {
-            // For activity-based badges (like First Steps), award immediately
-            // For point-based badges (like level badges), also check points requirement
-            const isActivityBasedBadge = [
-              'First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
-              'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
-              'Journal Keeper', 'Journal Scribe',
-              'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend',
-            ].includes(badge.name);
+          const pointsRequirementMet = totalPoints >= badge.pointsRequired;
 
-            const pointsRequirementMet = totalPoints >= badge.pointsRequired;
-
-            // Award if:
-            // 1. It's an activity-based badge (no points check needed)
-            // 2. OR it's a point-based badge and points requirement is met
-            if (isActivityBasedBadge || pointsRequirementMet) {
+          // Quick check using pre-fetched counts
+          if (isActivityBasedBadge) {
+            const earned = await this.checkBadgeRequirementWithCounts(userId, badge, activity, activityCounts);
+            if (earned) {
               newBadges.push(badge);
               await this.awardBadge(userId, badge);
             }
+          } else if (pointsRequirementMet) {
+            // For point-based badges, just check points (no database calls needed)
+            newBadges.push(badge);
+            await this.awardBadge(userId, badge);
           }
         }
       }
@@ -1196,6 +1219,143 @@ export class FaithPointsService {
         userId,
       });
       return [];
+    }
+  }
+
+  private async checkBadgeRequirementWithCounts(userId: string, badge: Badge, activity: string, activityCounts: Record<string, number>): Promise<boolean> {
+    // Use pre-fetched counts to avoid database calls
+    switch (badge.name) {
+      // Playbook Generation Badges
+      case 'First Steps':
+        // Award only on the first playbook generation (count should be 0 before this one)
+        const currentCount = activityCounts['playbook_generated'] || 0;
+        return activity === 'playbook_generated' && currentCount === 0;
+
+      case 'Growth Seeker':
+        // Award after generating 25 playbooks - ONLY check during playbook generation
+        if (activity !== 'playbook_generated') { return false; }
+        return (activityCounts['playbook_generated'] || 0) >= 25;
+
+      case 'Playbook Master':
+        // Award after generating 50 playbooks - ONLY check during playbook generation
+        if (activity !== 'playbook_generated') { return false; }
+        return (activityCounts['playbook_generated'] || 0) >= 50;
+
+      case 'Playbook Legend':
+        // Award after generating 100 playbooks - ONLY check during playbook generation
+        if (activity !== 'playbook_generated') { return false; }
+        return (activityCounts['playbook_generated'] || 0) >= 100;
+
+      // Devotional Badges
+      case 'Prayer Warrior':
+        // Award after completing 25 prayer activities - ONLY check during prayer activities
+        if (!activity.includes('prayer')) { return false; }
+        const devotionalPrayersCount = activityCounts['prayer_devotional_prayed'] || 0;
+        const prayerListPrayedCount = activityCounts['prayer_list_prayed'] || 0;
+        const totalPrayerActivities = devotionalPrayersCount + prayerListPrayedCount;
+        return totalPrayerActivities >= 25;
+
+      case 'Faithful Witness':
+        // Award after documenting 15 answered prayers - ONLY check during prayer activities
+        if (activity !== 'prayer_answered') { return false; }
+        return (activityCounts['prayer_answered'] || 0) >= 15;
+
+      case 'Devotional Dedicated':
+        // Award after generating 25 devotionals - ONLY check during devotional generation
+        if (activity !== 'devotional_generated') { return false; }
+        return (activityCounts['devotional_generated'] || 0) >= 25;
+
+      case 'Devotional Master':
+        // Award after generating 50 devotionals - ONLY check during devotional generation
+        if (activity !== 'devotional_generated') { return false; }
+        return (activityCounts['devotional_generated'] || 0) >= 50;
+
+      // Journal Badges
+      case 'Journal Keeper':
+        // Award after making 50 journal entries - ONLY check during journal activities
+        if (!activity.includes('journal')) { return false; }
+        return (activityCounts['journal_entry'] || 0) >= 50;
+
+      case 'Journal Scribe':
+        // Award after making 100 journal entries - ONLY check during journal activities
+        if (!activity.includes('journal')) { return false; }
+        return (activityCounts['journal_entry'] || 0) >= 100;
+
+      // Streak Badges
+      case 'Faithful Week':
+        // Award after 7-day streak - ONLY check during streak-related activities
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
+        return (activityCounts['daily_streak'] || 0) >= 7;
+
+      case 'Streak Warrior':
+        // Award after 14-day streak - ONLY check during streak-related activities
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
+        return (activityCounts['daily_streak'] || 0) >= 14;
+
+      case 'Streak Master':
+        // Award after 30-day streak - ONLY check during streak-related activities
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
+        return (activityCounts['daily_streak'] || 0) >= 30;
+
+      case 'Streak Legend':
+        // Award after 60-day streak - ONLY check during streak-related activities
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
+        return (activityCounts['daily_streak'] || 0) >= 60;
+
+      // Level Achievement Badges
+      case 'Seeker':
+        // Award after reaching level 1 - ONLY check during achievement/level activities
+        // This is given automatically to new users in createUserProfile
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_1_reached'] || 0) >= 1;
+
+      case 'Believer':
+        // Award after reaching level 2 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_2_reached'] || 0) >= 1;
+
+      case 'Disciple':
+        // Award after reaching level 3 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_3_reached'] || 0) >= 1;
+
+      case 'Servant':
+        // Award after reaching level 4 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_4_reached'] || 0) >= 1;
+
+      case 'Leader':
+        // Award after reaching level 5 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_5_reached'] || 0) >= 1;
+
+      case 'Teacher':
+        // Award after reaching level 6 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_6_reached'] || 0) >= 1;
+
+      case 'Mentor':
+        // Award after reaching level 7 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_7_reached'] || 0) >= 1;
+
+      case 'Elder':
+        // Award after reaching level 8 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_8_reached'] || 0) >= 1;
+
+      case 'Steward':
+        // Award after reaching level 9 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_9_reached'] || 0) >= 1;
+
+      case 'Ambassador':
+        // Award after reaching level 10 - ONLY check during achievement/level activities
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
+        return (activityCounts['level_10_reached'] || 0) >= 1;
+
+      default:
+        return false;
     }
   }
 
