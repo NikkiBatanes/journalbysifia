@@ -3,12 +3,9 @@ module.exports = {
     ios: {},
     android: {},
   },
-  assets: ['./assets/fonts/'],
-  dependencies: {
-    'react-native-vector-icons': {
-      platforms: {
-        ios: null, // disable iOS platform
-      },
-    },
-  },
+  assets: [
+    './assets/fonts/',
+  ],
+  // RNVectorIcons pod now handles font bundling automatically
+  // No need to include vector icons fonts in assets
 };

@@ -613,6 +613,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       setPurchaseValidated(false);
       setLoadingStep('processing');
 
+      // CRITICAL: Wait for modal to render before starting purchase
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       if (isUpgradeMode) {
         // In upgrade mode, purchase and show success modal before going back
 

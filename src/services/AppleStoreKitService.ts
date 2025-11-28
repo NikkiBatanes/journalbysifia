@@ -1,11 +1,16 @@
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import { PaymentFailureLogger, PaymentFailureContext } from '../utils/paymentFailureLogger';
-import RNIap, {
+import * as RNIapModule from 'react-native-iap';
+import type {
   ProductPurchase,
   PurchaseError,
   Subscription,
   SubscriptionOffer,
+} from 'react-native-iap';
+
+// Destructure with fallbacks for better error handling
+const {
   initConnection,
   endConnection,
   getSubscriptions,
@@ -15,7 +20,9 @@ import RNIap, {
   purchaseErrorListener,
   getAvailablePurchases,
   validateReceiptIos,
-} from 'react-native-iap';
+} = RNIapModule;
+
+const RNIap = RNIapModule;
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
 import { ENV } from '../config/environment';
@@ -101,6 +108,14 @@ export class AppleStoreKitService {
   static getInstance(): AppleStoreKitService {
     if (!AppleStoreKitService.instance) {
       AppleStoreKitService.instance = new AppleStoreKitService();
+      // Log module availability on first instantiation
+      console.log('[StoreKit] 🔍 Module check:', {
+        hasRNIapModule: !!RNIapModule,
+        hasInitConnection: !!initConnection,
+        hasGetSubscriptions: !!getSubscriptions,
+        hasGetAvailablePurchases: !!getAvailablePurchases,
+        nativeModuleKeys: Object.keys(NativeModules).filter(k => k.toLowerCase().includes('iap')),
+      });
     }
     return AppleStoreKitService.instance;
   }
@@ -130,7 +145,7 @@ export class AppleStoreKitService {
       // CRITICAL: Add timeout to prevent hanging
       const initPromise = this.doInitialize();
       const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('IAP initialization timeout after 10 seconds')), 10000);
+        setTimeout(() => reject(new Error('IAP initialization timeout after 15 seconds')), 15000);
       });
 
       try {
@@ -155,43 +170,67 @@ export class AppleStoreKitService {
   }
 
   private async doInitialize(): Promise<boolean> {
+    console.log('[StoreKit] 🔍 Pre-init check:', {
+      hasInitConnection: !!initConnection,
+      typeOfInitConnection: typeof initConnection,
+      initConnectionValue: initConnection,
+      platform: Platform.OS,
+      isDev: __DEV__,
+      isSandbox: this.isSandboxEnvironment(),
+    });
+    
     Logger.info('[StoreKit] 🔌 Step 1: Calling initConnection()', {
       component: 'AppleStoreKitService',
       timestamp: new Date().toISOString(),
     });
     
-    await initConnection();
+    if (!initConnection) {
+      throw new Error('initConnection is not available from react-native-iap');
+    }
     
-    Logger.info('[StoreKit] ✅ Step 1: initConnection() completed', {
-      component: 'AppleStoreKitService',
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      console.log('[StoreKit] ⏳ About to call initConnection()...');
+      const startTime = Date.now();
+      await initConnection();
+      const endTime = Date.now();
+      console.log(`[StoreKit] ✅ initConnection() completed in ${endTime - startTime}ms`);
+      
+      Logger.info('[StoreKit] ✅ Step 1: initConnection() completed', {
+        component: 'AppleStoreKitService',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      Logger.error('[StoreKit] ❌ initConnection() failed', error as Error, {
+        component: 'AppleStoreKitService',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+
+    console.log('[StoreKit] 🔍 About to proceed to Step 2...');
 
     // Set up purchase listeners
-    Logger.info('[StoreKit] 🔌 Step 2: Setting up purchase listeners', {
-      component: 'AppleStoreKitService',
-      timestamp: new Date().toISOString(),
-    });
+    console.log('[StoreKit] 🔌 Step 2: Setting up purchase listeners');
     
     this.setupPurchaseListeners();
     
-    Logger.info('[StoreKit] ✅ Step 2: Purchase listeners set up', {
-      component: 'AppleStoreKitService',
-      timestamp: new Date().toISOString(),
-    });
+    console.log('[StoreKit] ✅ Step 2: Purchase listeners set up');
 
-    // Clear any old cached transactions on startup
-    Logger.info('[StoreKit] 🔌 Step 3: Clearing old transactions', {
-      component: 'AppleStoreKitService',
-      timestamp: new Date().toISOString(),
-    });
+    // Clear any old cached transactions on startup (with timeout)
+    console.log('[StoreKit] 🔌 Step 3: Clearing old transactions');
     
-    await this.clearOldTransactions();
-    
-    Logger.info('[StoreKit] ✅ Step 3: Old transactions cleared', {
-      component: 'AppleStoreKitService',
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      const clearPromise = this.clearOldTransactions();
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error('clearOldTransactions timeout')), 3000);
+      });
+      
+      await Promise.race([clearPromise, timeoutPromise]);
+      console.log('[StoreKit] ✅ Step 3: Old transactions cleared');
+    } catch (error) {
+      console.log('[StoreKit] ⚠️ Step 3: Skipping old transaction cleanup (timeout or error)');
+      // Continue anyway - this is not critical for IAP to work
+    }
 
     this.isInitialized = true;
     
@@ -209,37 +248,18 @@ export class AppleStoreKitService {
    */
   private async clearOldTransactions(): Promise<void> {
     try {
-      Logger.info('[StoreKit] 🔍 Step 3.1: Getting available purchases', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
-      });
+      console.log('[StoreKit] 🔍 Step 3.1: Getting available purchases');
       
       const availablePurchases = await getAvailablePurchases();
       
-      Logger.info('[StoreKit] ✅ Step 3.1: Available purchases retrieved', {
-        component: 'AppleStoreKitService',
-        count: availablePurchases.length,
-        timestamp: new Date().toISOString(),
-      });
+      console.log(`[StoreKit] ✅ Step 3.1: Available purchases retrieved (${availablePurchases.length})`);
 
       if (availablePurchases.length === 0) {
-        Logger.info('[StoreKit] ✅ Step 3.2: No old transactions to clear', {
-          component: 'AppleStoreKitService',
-          timestamp: new Date().toISOString(),
-        });
+        console.log('[StoreKit] ✅ Step 3.2: No old transactions to clear');
         return;
       }
 
-      Logger.info('[StoreKit] 🔍 Step 3.2: Processing old transactions', {
-        component: 'AppleStoreKitService',
-        count: availablePurchases.length,
-        timestamp: new Date().toISOString(),
-      });
-
-      Logger.info('[StoreKit] Checking for old cached transactions', {
-        component: 'AppleStoreKitService',
-        count: availablePurchases.length,
-      });
+      console.log(`[StoreKit] 🔍 Step 3.2: Processing ${availablePurchases.length} old transactions`);
 
       for (const purchase of availablePurchases) {
         const purchaseTime = new Date(purchase.transactionDate).getTime();
@@ -247,12 +267,7 @@ export class AppleStoreKitService {
 
         // Clear transactions older than 5 minutes
         if (purchaseAge > 5 * 60 * 1000) {
-          Logger.info('[StoreKit] 🧹 Clearing old cached transaction', {
-            component: 'AppleStoreKitService',
-            productId: purchase.productId,
-            purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
-            transactionDate: new Date(purchaseTime).toISOString(),
-          });
+          console.log(`[StoreKit] 🧹 Clearing old cached transaction: ${purchase.productId} (${Math.round(purchaseAge / 60000)} minutes old)`);
 
           await finishTransaction({ purchase, isConsumable: false });
         }
@@ -308,7 +323,13 @@ export class AppleStoreKitService {
           component: 'AppleStoreKitService',
           productCount: productIds.length,
           isSandbox: this.isSandboxEnvironment(),
+          productIds: productIds.slice(0, 3), // Log first 3 for debugging
         });
+
+        // Add additional validation before calling getSubscriptions
+        if (!RNIap?.getSubscriptions) {
+          throw new Error('RNIap.getSubscriptions not available - library not properly initialized');
+        }
 
         const products = await getSubscriptions({ skus: productIds });
 
@@ -328,6 +349,7 @@ export class AppleStoreKitService {
           productsFound: result.length,
           trialProducts: result.filter(p => p.productId.includes('freetrial')).length,
           regularProducts: result.filter(p => !p.productId.includes('freetrial')).length,
+          productIds: result.map(p => p.productId),
         });
 
         return result;
@@ -339,6 +361,8 @@ export class AppleStoreKitService {
           component: 'AppleStoreKitService',
           attempt,
           error: lastError,
+          errorMessage: lastError.message,
+          errorCode: (lastError as any).code,
           willRetry: attempt < 3,
         });
 
@@ -347,19 +371,21 @@ export class AppleStoreKitService {
         const shouldNotRetry = 
           errorMessage.includes('user cancelled') ||
           errorMessage.includes('payment cancelled') ||
-          errorMessage.includes('invalid product id');
+          errorMessage.includes('invalid product id') ||
+          (lastError as any).code === 'E_CANCELED';
 
         if (shouldNotRetry) {
           Logger.error(`[StoreKit] Non-retryable error, stopping retries`, {
             component: 'AppleStoreKitService',
             error: lastError.message,
+            errorCode: (lastError as any).code,
           });
           break;
         }
 
         // Wait before retry (exponential backoff)
         if (attempt < 3) {
-          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 3000); // 1s, 2s, 3s max
+          const delayMs = Math.min(2000 * Math.pow(2, attempt - 1), 8000); // 2s, 4s, 8s max
           Logger.info(`[StoreKit] Waiting ${delayMs}ms before retry`, {
             component: 'AppleStoreKitService',
             attempt,
@@ -370,7 +396,19 @@ export class AppleStoreKitService {
       }
     }
 
-    // All attempts failed
+    // All attempts failed - return mock products for development
+    if (__DEV__) {
+      Logger.warn(`[StoreKit] 🧪 All product fetch attempts failed, returning mock products for development`, {
+        component: 'AppleStoreKitService',
+        totalAttempts: 3,
+        finalError: lastError?.message,
+        errorDetails: lastError?.message,
+      });
+
+      return this.getMockProducts();
+    }
+
+    // In production, return empty array
     Logger.error(`[StoreKit] ❌ All product fetch attempts failed`, lastError as Error, {
       component: 'AppleStoreKitService',
       totalAttempts: 3,
@@ -378,6 +416,47 @@ export class AppleStoreKitService {
     });
 
     return [];
+  }
+
+  /**
+   * Get mock products for development testing
+   */
+  private getMockProducts(): StoreProduct[] {
+    const mockProducts: StoreProduct[] = [];
+    
+    Object.entries(AppleStoreKitService.PRODUCT_IDS).forEach(([key, productId]) => {
+      const tier = this.getSubscriptionTierFromProductId(productId);
+      const isAnnual = productId.includes('annual');
+      const isTrial = productId.includes('freetrial');
+      
+      if (tier) {
+        const pricing: Record<string, { monthly: number; annual: number }> = {
+          spark: { monthly: 199, annual: 1990 },
+          growth: { monthly: 499, annual: 4990 },
+          transformation: { monthly: 999, annual: 9990 },
+          family: { monthly: 1499, annual: 14990 },
+        };
+        
+        const amount = pricing[tier]?.[isAnnual ? 'annual' : 'monthly'] || 0;
+        
+        mockProducts.push({
+          productId,
+          price: amount.toString(),
+          currency: 'PHP',
+          localizedPrice: `₱${amount.toLocaleString()}`,
+          title: `${tier.charAt(0).toUpperCase() + tier.slice(1)} ${isAnnual ? 'Annual' : 'Monthly'} ${isTrial ? '(Free Trial)' : ''}`,
+          description: `Mock ${tier} subscription for development`,
+          discounts: [],
+        });
+      }
+    });
+    
+    Logger.info(`[StoreKit] 🧪 Generated ${mockProducts.length} mock products`, {
+      component: 'AppleStoreKitService',
+      productIds: mockProducts.map(p => p.productId),
+    });
+    
+    return mockProducts;
   }
 
   /**
@@ -995,12 +1074,30 @@ export class AppleStoreKitService {
       });
 
       // Get all available purchases from Apple
-      if (!RNIap.getAvailablePurchases) {
-        Logger.error('[StoreKit] RNIap not properly initialized', undefined, {
+      if (!RNIap?.getAvailablePurchases) {
+        Logger.error('[StoreKit] RNIap not properly initialized - getAvailablePurchases missing', undefined, {
           component: 'AppleStoreKitService',
           action: 'error',
+          hasRNIap: !!RNIap,
+          hasInitConnection: !!RNIap?.initConnection,
         });
-        throw new Error('In-app purchase library not available');
+        
+        // Try to reinitialize once
+        Logger.info('[StoreKit] Attempting to reinitialize RNIap...', {
+          component: 'AppleStoreKitService',
+        });
+        
+        try {
+          await this.initialize();
+          if (!RNIap?.getAvailablePurchases) {
+            throw new Error('In-app purchase library not available after reinitialization');
+          }
+        } catch (reinitError) {
+          Logger.error('[StoreKit] Reinitialization failed', reinitError as Error, {
+            component: 'AppleStoreKitService',
+          });
+          throw new Error('In-app purchase library not available');
+        }
       }
 
       const availablePurchases = await RNIap.getAvailablePurchases();

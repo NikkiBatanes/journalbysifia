@@ -8,6 +8,8 @@ const {withSentryConfig} = require('@sentry/react-native/metro');
  *
  * @type {import('@react-native/metro-config').MetroConfig}
  */
+const defaultConfig = getDefaultConfig(__dirname);
+
 const config = {
   server: {
     port: 8081,
@@ -21,12 +23,13 @@ const config = {
       },
     }),
   },
-  // Add asset extensions
+  // Configure for react-native-svg (Lucide icons)
   resolver: {
-    assetExts: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'],
+    assetExts: defaultConfig.resolver.assetExts.filter(ext => ext !== 'svg'),
+    sourceExts: [...defaultConfig.resolver.sourceExts, 'svg'],
   },
 };
 
 module.exports = withSentryConfig(
-  mergeConfig(getDefaultConfig(__dirname), config),
+  mergeConfig(defaultConfig, config),
 );

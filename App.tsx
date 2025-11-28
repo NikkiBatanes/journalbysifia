@@ -65,11 +65,11 @@ initializeLogger();
 
 // Main App Component
 function App(): React.JSX.Element {
-  const [fontsLoaded] = useState(true); // Vector icons are auto-linked
+  const [fontsLoaded] = useState(true); // Fonts are auto-linked via RNVectorIcons pod
   const [playbook] = useState<{actionSteps: any[]}>({actionSteps: []});
 
-  // Vector icons are automatically loaded through native linking in modern versions
-  // No need for manual font loading
+  // Vector icon fonts are automatically bundled by RNVectorIcons pod
+  // No manual loading required in modern React Native
 
   return (
     <QueryClientProvider client={queryClient}>
