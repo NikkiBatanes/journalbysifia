@@ -653,7 +653,7 @@ export class FaithPointsService {
         component: 'faithPointsService',
         queryTime,
         badgeCount: badges?.length || 0,
-        error: error?.message,
+        errorMessage: error?.message,
         timestamp: new Date().toISOString(),
       });
 
@@ -1315,7 +1315,7 @@ export class FaithPointsService {
         userId,
         queryTime,
         recordCount: userBadgeRecords?.length || 0,
-        error: error?.message,
+        errorMessage: error?.message,
         timestamp: new Date().toISOString(),
       });
 
