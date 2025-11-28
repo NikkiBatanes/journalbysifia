@@ -118,10 +118,10 @@ function transformPlaybookRow(
 export async function getPlaybooks(userId: string): Promise<Playbook[]> {
 
   try {
-    // Fetch playbooks
+    // Fetch playbooks - only select existing columns to avoid schema errors
     const { data: playbooks, error: playbooksError } = await supabase
       .from('playbooks')
-      .select('*')
+      .select('id, title, user_id, created_at, updated_at, completed, category, categories, progress, current_step, total_steps')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 

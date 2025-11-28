@@ -623,7 +623,7 @@ class AnalyticsService {
       // Get basic metrics from existing tables
       const [subscriptions, playbooks, devotionals] = await Promise.all([
         supabase.from('subscriptions').select('*').eq('status', 'active'),
-        supabase.from('playbooks').select('*').gte('created_at', startDate),
+        supabase.from('playbooks').select('id, title, user_id, created_at, updated_at, completed, category, categories, progress, current_step, total_steps').gte('created_at', startDate),
         supabase.from('devotionals').select('*').gte('created_at', startDate),
       ]);
 

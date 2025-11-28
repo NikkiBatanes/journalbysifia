@@ -67,7 +67,7 @@ async function fetchPlaybookData(playbookId: string) {
   try {
     const { data: playbook, error } = await supabase
       .from('playbooks')
-      .select('id, title, description, truth_in_love')
+      .select('id, title, truth_in_love')
       .eq('id', playbookId)
       .single();
 
@@ -1087,7 +1087,7 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
             },
           ],
           temperature: 0.7,
-          max_tokens: 6000, // Increased from 4000 to accommodate 400-600 word reflections with detailed stories
+          max_tokens: duration === 7 ? 8000 : 6000, // Increase tokens for 7-day devotionals to prevent truncation
         }),
       },
       OPENAI_RETRY_CONFIG
