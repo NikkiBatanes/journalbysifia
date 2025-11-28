@@ -256,12 +256,13 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 // ✅ FIX: Actually award the points and check for badge eligibility
                 // This was missing - points were only shown but never awarded
                 if (userIdRef.current) {
-                  faithPointsService.addPoints(userIdRef.current, pts, activityType as any, {
+                  faithPointsService.awardPoints(userIdRef.current, activityType as any, {
+                    suppressNotification: true, // We already show points in this modal
                     devotionalId: devotionalIdRef.current,
                     dayNumber: currentDayNumberRef.current,
                     isLastDay: isLastDayRef.current,
-                  }).catch(error => {
-                    Logger.error('[DevotionalCompletionModal] Error awarding points', error as Error, { 
+                  }).catch((error: Error) => {
+                    Logger.error('[DevotionalCompletionModal] Error awarding points', error, { 
                       component: 'DevotionalCompletionModal',
                       activityType,
                       points: pts,

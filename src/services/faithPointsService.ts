@@ -958,7 +958,8 @@ export class FaithPointsService {
           });
         }
       } catch (badgeError) {
-        Logger.warn('[FaithPointsService] Failed to award Seeker badge to new user', badgeError as Error, {
+        Logger.warn('[FaithPointsService] Failed to award Seeker badge to new user', {
+          error: badgeError,
           component: 'faithPointsService',
           userId,
         });
