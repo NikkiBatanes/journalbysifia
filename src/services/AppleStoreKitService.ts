@@ -134,7 +134,7 @@ export class AppleStoreKitService {
         isInitialized: this.isInitialized,
         timestamp: new Date().toISOString(),
       });
-      
+
       if (this.isInitialized) {
         Logger.info('[StoreKit] ✅ Already initialized', {
           component: 'AppleStoreKitService',
@@ -178,23 +178,23 @@ export class AppleStoreKitService {
       isDev: __DEV__,
       isSandbox: this.isSandboxEnvironment(),
     });
-    
+
     Logger.info('[StoreKit] 🔌 Step 1: Calling initConnection()', {
       component: 'AppleStoreKitService',
       timestamp: new Date().toISOString(),
     });
-    
+
     if (!initConnection) {
       throw new Error('initConnection is not available from react-native-iap');
     }
-    
+
     try {
       console.log('[StoreKit] ⏳ About to call initConnection()...');
       const startTime = Date.now();
       await initConnection();
       const endTime = Date.now();
       console.log(`[StoreKit] ✅ initConnection() completed in ${endTime - startTime}ms`);
-      
+
       Logger.info('[StoreKit] ✅ Step 1: initConnection() completed', {
         component: 'AppleStoreKitService',
         timestamp: new Date().toISOString(),
@@ -211,20 +211,20 @@ export class AppleStoreKitService {
 
     // Set up purchase listeners
     console.log('[StoreKit] 🔌 Step 2: Setting up purchase listeners');
-    
+
     this.setupPurchaseListeners();
-    
+
     console.log('[StoreKit] ✅ Step 2: Purchase listeners set up');
 
     // Clear any old cached transactions on startup (with timeout)
     console.log('[StoreKit] 🔌 Step 3: Clearing old transactions');
-    
+
     try {
       const clearPromise = this.clearOldTransactions();
       const timeoutPromise = new Promise<void>((_, reject) => {
         setTimeout(() => reject(new Error('clearOldTransactions timeout')), 3000);
       });
-      
+
       await Promise.race([clearPromise, timeoutPromise]);
       console.log('[StoreKit] ✅ Step 3: Old transactions cleared');
     } catch (error) {
@@ -233,12 +233,12 @@ export class AppleStoreKitService {
     }
 
     this.isInitialized = true;
-    
+
     Logger.info('[StoreKit] 🎉 IAP initialization completed successfully', {
       component: 'AppleStoreKitService',
       timestamp: new Date().toISOString(),
     });
-    
+
     return true;
   }
 
@@ -249,9 +249,9 @@ export class AppleStoreKitService {
   private async clearOldTransactions(): Promise<void> {
     try {
       console.log('[StoreKit] 🔍 Step 3.1: Getting available purchases');
-      
+
       const availablePurchases = await getAvailablePurchases();
-      
+
       console.log(`[StoreKit] ✅ Step 3.1: Available purchases retrieved (${availablePurchases.length})`);
 
       if (availablePurchases.length === 0) {
@@ -311,7 +311,7 @@ export class AppleStoreKitService {
    */
   async getAvailableProducts(): Promise<StoreProduct[]> {
     let lastError: Error | null = null;
-    
+
     // Retry up to 3 times for network resilience
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -343,7 +343,7 @@ export class AppleStoreKitService {
           discounts: (product as any).discounts || [],
         }));
 
-        Logger.info(`[StoreKit] ✅ Products fetched successfully`, {
+        Logger.info('[StoreKit] ✅ Products fetched successfully', {
           component: 'AppleStoreKitService',
           attempt,
           productsFound: result.length,
@@ -353,10 +353,10 @@ export class AppleStoreKitService {
         });
 
         return result;
-        
+
       } catch (error) {
         lastError = error as Error;
-        
+
         Logger.warn(`[StoreKit] Products fetch failed (attempt ${attempt}/3)`, {
           component: 'AppleStoreKitService',
           attempt,
@@ -368,14 +368,14 @@ export class AppleStoreKitService {
 
         // Don't retry on certain errors
         const errorMessage = lastError.message.toLowerCase();
-        const shouldNotRetry = 
+        const shouldNotRetry =
           errorMessage.includes('user cancelled') ||
           errorMessage.includes('payment cancelled') ||
           errorMessage.includes('invalid product id') ||
           (lastError as any).code === 'E_CANCELED';
 
         if (shouldNotRetry) {
-          Logger.error(`[StoreKit] Non-retryable error, stopping retries`, {
+          Logger.error('[StoreKit] Non-retryable error, stopping retries', {
             component: 'AppleStoreKitService',
             error: lastError.message,
             errorCode: (lastError as any).code,
@@ -398,7 +398,7 @@ export class AppleStoreKitService {
 
     // All attempts failed - return mock products for development
     if (__DEV__) {
-      Logger.warn(`[StoreKit] 🧪 All product fetch attempts failed, returning mock products for development`, {
+      Logger.warn('[StoreKit] 🧪 All product fetch attempts failed, returning mock products for development', {
         component: 'AppleStoreKitService',
         totalAttempts: 3,
         finalError: lastError?.message,
@@ -409,7 +409,7 @@ export class AppleStoreKitService {
     }
 
     // In production, return empty array
-    Logger.error(`[StoreKit] ❌ All product fetch attempts failed`, lastError as Error, {
+    Logger.error('[StoreKit] ❌ All product fetch attempts failed', lastError as Error, {
       component: 'AppleStoreKitService',
       totalAttempts: 3,
       finalError: lastError?.message,
@@ -423,12 +423,12 @@ export class AppleStoreKitService {
    */
   private getMockProducts(): StoreProduct[] {
     const mockProducts: StoreProduct[] = [];
-    
-    Object.entries(AppleStoreKitService.PRODUCT_IDS).forEach(([key, productId]) => {
+
+    Object.entries(AppleStoreKitService.PRODUCT_IDS).forEach(([_key, productId]) => {
       const tier = this.getSubscriptionTierFromProductId(productId);
       const isAnnual = productId.includes('annual');
       const isTrial = productId.includes('freetrial');
-      
+
       if (tier) {
         const pricing: Record<string, { monthly: number; annual: number }> = {
           spark: { monthly: 199, annual: 1990 },
@@ -436,9 +436,9 @@ export class AppleStoreKitService {
           transformation: { monthly: 999, annual: 9990 },
           family: { monthly: 1499, annual: 14990 },
         };
-        
+
         const amount = pricing[tier]?.[isAnnual ? 'annual' : 'monthly'] || 0;
-        
+
         mockProducts.push({
           productId,
           price: amount.toString(),
@@ -450,12 +450,12 @@ export class AppleStoreKitService {
         });
       }
     });
-    
+
     Logger.info(`[StoreKit] 🧪 Generated ${mockProducts.length} mock products`, {
       component: 'AppleStoreKitService',
       productIds: mockProducts.map(p => p.productId),
     });
-    
+
     return mockProducts;
   }
 
@@ -597,7 +597,7 @@ export class AppleStoreKitService {
    */
   private async handlePurchaseUpdate(purchase: ProductPurchase): Promise<void> {
     const debugId = `${purchase.productId.substring(0, 20)}_${Date.now()}`;
-    
+
     try {
       Logger.info(`[StoreKit][${debugId}] 🔍 STEP 1: Processing purchase update`, {
         component: 'AppleStoreKitService',
@@ -725,11 +725,11 @@ export class AppleStoreKitService {
         transactionId: purchase.transactionId?.substring(0, 10) + '...',
         timestamp: new Date().toISOString(),
       });
-      
+
       const dbUpdateStartTime = Date.now();
       await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
       const dbUpdateDuration = Date.now() - dbUpdateStartTime;
-      
+
       Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Database update completed successfully`, {
         component: 'AppleStoreKitService',
         userId: this.currentUserId || 'unknown',
@@ -745,9 +745,9 @@ export class AppleStoreKitService {
       this.purchaseInitiatedTimestamp = null;
 
       // ENHANCED: Log successful payment
-      const purchaseDuration = this.purchaseInitiatedTimestamp ? 
+      const purchaseDuration = this.purchaseInitiatedTimestamp ?
         Date.now() - this.purchaseInitiatedTimestamp : 0;
-      
+
       PaymentFailureLogger.logPaymentSuccess({
         userId: this.currentUserId || 'unknown',
         productId: purchase.productId,
@@ -773,7 +773,7 @@ export class AppleStoreKitService {
         pendingResolversCount: this.pendingPurchaseResolvers.size,
         timestamp: new Date().toISOString(),
       });
-      
+
       const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
       if (resolver) {
         resolver.resolve({
@@ -1081,12 +1081,12 @@ export class AppleStoreKitService {
           hasRNIap: !!RNIap,
           hasInitConnection: !!RNIap?.initConnection,
         });
-        
+
         // Try to reinitialize once
         Logger.info('[StoreKit] Attempting to reinitialize RNIap...', {
           component: 'AppleStoreKitService',
         });
-        
+
         try {
           await this.initialize();
           if (!RNIap?.getAvailablePurchases) {

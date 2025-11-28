@@ -233,7 +233,7 @@ async function generateDevotionalInternal(
 
     } catch (error: any) {
       lastError = error;
-      
+
       // Convert circuit breaker errors to user-friendly messages
       if (error.message?.includes('Circuit breaker is OPEN')) {
         Logger.warn('Circuit breaker triggered for devotional generation', {
@@ -242,7 +242,7 @@ async function generateDevotionalInternal(
         });
         throw new Error('We\'re experiencing high demand right now. Please try again in a few moments.');
       }
-      
+
       Logger.error(`Attempt ${attempt + 1} failed:`, error, {
         component: 'modernDevotionalApi',
         data: JSON.stringify({ errorMessage: error.message }),
@@ -286,7 +286,7 @@ export async function generateDevotional(
   // Get userId and tier for enterprise resilience
   let userId: string;
   let userTier = 'seeker'; // default
-  
+
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) {

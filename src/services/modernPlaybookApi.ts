@@ -395,7 +395,7 @@ export async function generatePlaybook(
   // Get userId and tier for enterprise resilience
   let userId: string;
   let userTier = 'seeker'; // default
-  
+
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) {

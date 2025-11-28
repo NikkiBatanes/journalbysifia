@@ -250,22 +250,22 @@ const OnboardingTrialOfferScreen = () => {
       // Even if configured, it might not be synced to TestFlight yet
       let availableProducts: any[] = [];
       let trialProduct: any = null;
-      
+
       try {
         // Initialize payment service first
         await paymentService.initialize();
-        
+
         // Get available products with retry logic
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
             availableProducts = await paymentService.getAvailableProducts();
-            if (availableProducts.length > 0) break;
-            
+            if (availableProducts.length > 0) {break;}
+
             logger.warn(`Trial product check attempt ${attempt} failed - no products available`, {
               attempt,
               totalProducts: availableProducts.length,
             });
-            
+
             if (attempt < 3) {
               // Wait 1 second before retry
               await new Promise(resolve => setTimeout(resolve, 1000));
@@ -275,7 +275,7 @@ const OnboardingTrialOfferScreen = () => {
               attempt,
               error: retryError instanceof Error ? retryError.message : 'Unknown error',
             });
-            
+
             if (attempt < 3) {
               await new Promise(resolve => setTimeout(resolve, 1000));
             } else {
@@ -338,7 +338,7 @@ const OnboardingTrialOfferScreen = () => {
 
         // Set UI state to show trial is available
         setTrialProductAvailable(true);
-        
+
         logger.info('Trial product verified and available', {
           productId: trialProduct.productId,
           localizedPrice: trialProduct.localizedPrice,
@@ -347,7 +347,7 @@ const OnboardingTrialOfferScreen = () => {
 
       } catch (productError) {
         setTrialProductAvailable(false);
-        
+
         const baseError = productError instanceof Error ? productError.message : 'Unknown error';
         const enhancedError = `Unable to verify trial availability: ${baseError}
 
@@ -374,9 +374,9 @@ const OnboardingTrialOfferScreen = () => {
           billing,
           timestamp: new Date().toISOString(),
         });
-        
+
         result = await paymentService.purchaseSubscription(productId, user.id);
-        
+
         logger.info('📦 TRIAL STEP 2: Trial purchase result received', {
           success: result.success,
           hasTransactionId: !!result.transactionId,
@@ -426,7 +426,7 @@ const OnboardingTrialOfferScreen = () => {
             billingCycle: isAnnual ? 'annual' : 'monthly',
             timestamp: new Date().toISOString(),
           });
-          
+
           const trialSetupStartTime = Date.now();
           const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
 
@@ -443,14 +443,14 @@ const OnboardingTrialOfferScreen = () => {
             trial_chosen_tier: selectedTierId as any, // Remember which tier they want after trial
             billing_cycle: isAnnual ? 'annual' : 'monthly',
           });
-          
+
           const trialSetupDuration = Date.now() - trialSetupStartTime;
           logger.info(`✅ TRIAL STEP 4: Trial setup completed successfully (${trialSetupDuration}ms)`, {
             userId: user.id,
             duration: trialSetupDuration,
             timestamp: new Date().toISOString(),
           });
-          
+
         } catch (trialSetupError) {
           logger.error('❌ TRIAL STEP 4: Trial setup failed', trialSetupError as Error, {
             userId: user.id,
@@ -468,7 +468,7 @@ const OnboardingTrialOfferScreen = () => {
             userId: user.id,
             timestamp: new Date().toISOString(),
           });
-          
+
           const syncStartTime = Date.now();
           const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
           const storeKitService = AppleStoreKitService.getInstance();
@@ -478,7 +478,7 @@ const OnboardingTrialOfferScreen = () => {
           // This ensures only fresh trial activations are processed
 
           await storeKitService.checkAndSyncSubscriptionStatus(user.id, false);
-          
+
           const syncDuration = Date.now() - syncStartTime;
           logger.info(`✅ TRIAL STEP 6: Subscription sync completed (${syncDuration}ms)`, {
             userId: user.id,
@@ -491,12 +491,12 @@ const OnboardingTrialOfferScreen = () => {
             userId: user.id,
             timestamp: new Date().toISOString(),
           });
-          
+
           await queryClient.invalidateQueries({
             queryKey: ['subscription', user.id],
             refetchType: 'active', // Force immediate refetch of active queries
           });
-          
+
           logger.info('✅ TRIAL STEP 8: All trial steps completed successfully', {
             userId: user.id,
             selectedTierId,

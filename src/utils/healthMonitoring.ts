@@ -48,12 +48,12 @@ export interface SystemHealth {
  */
 export function getSystemHealth(): SystemHealth {
   const alerts: SystemHealth['alerts'] = [];
-  
+
   // Get queue status
   const queueStatus = enterpriseResilience.getSystemStatus();
   const queueHealth = queueStatus.queue;
   const utilizationPercent = (queueHealth.processing / queueHealth.capacity) * 100;
-  
+
   let queueComponentStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
   if (utilizationPercent > 90) {
     queueComponentStatus = 'unhealthy';
@@ -187,39 +187,39 @@ export function getSystemHealth(): SystemHealth {
  */
 export function logSystemHealth(): void {
   const health = getSystemHealth();
-  
+
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📊 SYSTEM HEALTH DASHBOARD');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
+
   // Overall status
-  const statusEmoji = health.overall === 'healthy' ? '✅' : 
+  const statusEmoji = health.overall === 'healthy' ? '✅' :
                       health.overall === 'degraded' ? '⚠️' : '❌';
   console.log(`\n${statusEmoji} Overall Status: ${health.overall.toUpperCase()}`);
-  
+
   // Queue
   console.log('\n📦 Request Queue:');
   console.log(`   Status: ${health.components.queue.status}`);
   console.log(`   Queue Size: ${health.components.queue.queueSize}`);
   console.log(`   Processing: ${health.components.queue.processing}/${health.components.queue.capacity}`);
   console.log(`   Utilization: ${health.components.queue.utilizationPercent.toFixed(1)}%`);
-  
+
   // Circuit Breakers
   console.log('\n🔌 Circuit Breakers:');
   console.log(`   Status: ${health.components.circuitBreakers.status}`);
   health.components.circuitBreakers.breakers.forEach(breaker => {
-    const emoji = breaker.state === 'CLOSED' ? '✅' : 
+    const emoji = breaker.state === 'CLOSED' ? '✅' :
                   breaker.state === 'HALF_OPEN' ? '⚠️' : '❌';
     console.log(`   ${emoji} ${breaker.name}: ${breaker.state} (${breaker.failures} failures)`);
   });
-  
+
   // API Health
   console.log('\n🌐 API Health:');
   console.log(`   Status: ${health.components.apiHealth.status}`);
   console.log(`   Avg Response: ${(health.components.apiHealth.avgResponseTime / 1000).toFixed(2)}s`);
   console.log(`   Success Rate: ${health.components.apiHealth.successRate.toFixed(1)}%`);
   console.log(`   Consecutive Failures: ${health.components.apiHealth.consecutiveFailures}`);
-  
+
   // Alerts
   if (health.alerts.length > 0) {
     console.log('\n⚠️  Active Alerts:');
@@ -228,9 +228,9 @@ export function logSystemHealth(): void {
       console.log(`   ${emoji} [${alert.component}] ${alert.message}`);
     });
   }
-  
+
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   // Log to monitoring system
   monitoring.trackMetric('system_health_check', 1, {
     overall: health.overall,
@@ -252,7 +252,7 @@ export function startHealthMonitoring(intervalMs: number = 60000): () => void {
 
   const intervalId = setInterval(() => {
     const health = getSystemHealth();
-    
+
     // Log if not healthy
     if (health.overall !== 'healthy') {
       Logger.warn('⚠️ System health degraded', {
@@ -290,14 +290,14 @@ export function startHealthMonitoring(intervalMs: number = 60000): () => void {
  */
 export function getStatusMessage(): string {
   const health = getSystemHealth();
-  
+
   if (health.overall === 'healthy') {
     return 'All systems operational';
   }
-  
+
   if (health.overall === 'degraded') {
     return 'Some services experiencing issues. Your request may take longer than usual.';
   }
-  
+
   return 'We\'re experiencing high demand. Please try again in a few moments.';
 }

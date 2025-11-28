@@ -1,6 +1,6 @@
 /**
  * Payment Failure Logger - Comprehensive Payment Error Tracking
- * 
+ *
  * This utility provides detailed logging for payment failures to help with debugging
  * and monitoring of Apple Store Kit payment issues.
  */
@@ -41,13 +41,13 @@ export interface PaymentFailureAnalysis {
 }
 
 export class PaymentFailureLogger {
-  
+
   /**
    * Log comprehensive payment failure with analysis
    */
   static logPaymentFailure(context: PaymentFailureContext): PaymentFailureAnalysis {
     const analysis = this.analyzePaymentFailure(context);
-    
+
     // Log the failure with full context
     Logger.error('[PaymentLogger] 💳 Payment failure detected', context.error, {
       component: 'PaymentFailureLogger',
@@ -82,8 +82,7 @@ export class PaymentFailureLogger {
    */
   private static analyzePaymentFailure(context: PaymentFailureContext): PaymentFailureAnalysis {
     const errorMessage = context.error.message.toLowerCase();
-    const _errorStack = context.error.stack?.toLowerCase() || '';
-    
+
     // Network-related failures
     if (this.containsAny(errorMessage, ['network', 'connection', 'timeout', 'unreachable', 'dns', 'socket'])) {
       return {

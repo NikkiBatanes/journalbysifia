@@ -88,36 +88,36 @@ export class PlatformPaymentService {
         platform: Platform.OS,
         timestamp: new Date().toISOString(),
       });
-      
+
       if (Platform.OS === 'ios') {
         Logger.info('[PlatformPayment] 🔌 Calling AppleStoreKitService.initialize()', {
           component: 'PlatformPaymentService',
           timestamp: new Date().toISOString(),
         });
-        
+
         const result = await this.appleService.initialize();
-        
+
         Logger.info('[PlatformPayment] ✅ AppleStoreKitService.initialize() completed', {
           component: 'PlatformPaymentService',
           result,
           timestamp: new Date().toISOString(),
         });
-        
+
         return result;
       } else if (Platform.OS === 'android') {
         Logger.info('[PlatformPayment] 🔌 Calling GooglePlayBillingService.initialize()', {
           component: 'PlatformPaymentService',
           timestamp: new Date().toISOString(),
         });
-        
+
         const result = await this.googleService.initialize();
-        
+
         Logger.info('[PlatformPayment] ✅ GooglePlayBillingService.initialize() completed', {
           component: 'PlatformPaymentService',
           result,
           timestamp: new Date().toISOString(),
         });
-        
+
         return result;
       }
 

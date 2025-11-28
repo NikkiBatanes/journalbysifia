@@ -378,12 +378,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
           pollForCompletion().catch((error) => {
             Logger.error('❌ Playbook generation failed', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
             // Convert technical errors to user-friendly messages
-            const userMessage = error.message?.includes('Circuit breaker is OPEN') 
+            const userMessage = error.message?.includes('Circuit breaker is OPEN')
               ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
               : error.message || 'Failed to generate playbook. Please try again.';
             setGenerationError(userMessage);
             setIsGenerating(false);
-            
+
             // Development: Reset circuit breaker if it's a circuit breaker error
             if (__DEV__ && error.message?.includes('Circuit breaker is OPEN')) {
               import('../../utils/circuitBreaker').then(({ resetCircuit }) => {
@@ -465,7 +465,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         component: 'OnboardingPlaybookGenerationScreen',
       });
               // Convert technical errors to user-friendly messages
-              const userMessage = (directError as Error).message?.includes('Circuit breaker is OPEN') 
+              const userMessage = (directError as Error).message?.includes('Circuit breaker is OPEN')
                 ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
                 : 'Unable to generate your playbook. Please try again.';
               setGenerationError(userMessage);
@@ -480,7 +480,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     } catch (error) {
       Logger.error('❌ Error generating playbook', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
       // Convert technical errors to user-friendly messages
-      const userMessage = (error as Error).message?.includes('Circuit breaker is OPEN') 
+      const userMessage = (error as Error).message?.includes('Circuit breaker is OPEN')
         ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
         : 'Unable to generate your playbook. Please try again.';
       setGenerationError(userMessage);

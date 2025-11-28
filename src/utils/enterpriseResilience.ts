@@ -1,7 +1,7 @@
 /**
  * Enterprise-Grade Resilience System
  * Designed for 2000+ concurrent users with 99.9% uptime
- * 
+ *
  * Prevents circuit breaker failures through:
  * 1. Adaptive rate limiting per user tier
  * 2. Intelligent request queuing with priority
@@ -22,21 +22,21 @@ export interface ResilienceConfig {
   // Rate limiting
   maxConcurrentRequests: number; // Global concurrent requests
   maxRequestsPerMinute: number; // Per-user rate limit
-  
+
   // Retry logic
   maxRetries: number;
   baseRetryDelayMs: number;
   maxRetryDelayMs: number;
-  
+
   // Health monitoring
   healthCheckIntervalMs: number;
   unhealthyThreshold: number; // Failed health checks before marking unhealthy
-  
+
   // Circuit breaker
   failureThreshold: number;
   successThreshold: number;
   circuitOpenDurationMs: number;
-  
+
   // Queue management
   maxQueueSize: number;
   queueTimeoutMs: number;
@@ -130,8 +130,8 @@ class RequestQueue {
       this.queue.push(request);
       this.queue.sort((a, b) => b.priority - a.priority);
 
-      monitoring.trackMetric('queue_add', 1, { 
-        tier, 
+      monitoring.trackMetric('queue_add', 1, {
+        tier,
         queueSize: this.queue.length,
         priority,
       });
@@ -157,7 +157,7 @@ class RequestQueue {
     const waitTime = Date.now() - request.timestamp;
     if (waitTime > this.config.queueTimeoutMs) {
       request.reject(new Error('Request timed out in queue'));
-      monitoring.trackMetric('queue_timeout', 1, { 
+      monitoring.trackMetric('queue_timeout', 1, {
         tier: request.tier,
         waitTime,
       });
@@ -170,15 +170,15 @@ class RequestQueue {
     try {
       const result = await request.fn();
       request.resolve(result);
-      
-      monitoring.trackMetric('queue_success', 1, { 
+
+      monitoring.trackMetric('queue_success', 1, {
         tier: request.tier,
         waitTime,
       });
     } catch (error) {
       request.reject(error as Error);
-      
-      monitoring.trackMetric('queue_failure', 1, { 
+
+      monitoring.trackMetric('queue_failure', 1, {
         tier: request.tier,
         error: (error as Error).message,
       });
@@ -226,8 +226,8 @@ class RateLimiter {
 
     if (entry.count >= maxRequests) {
       const waitSeconds = Math.ceil((entry.resetTime - now) / 1000);
-      monitoring.trackMetric('rate_limit_hit', 1, { 
-        tier, 
+      monitoring.trackMetric('rate_limit_hit', 1, {
+        tier,
         userId,
         waitSeconds,
       });
@@ -241,7 +241,7 @@ class RateLimiter {
   getRemainingRequests(userId: string, tier: string): number {
     const entry = this.limits.get(userId);
     const maxRequests = TIER_CONFIGS[tier]?.maxRequestsPerMinute || DEFAULT_CONFIG.maxRequestsPerMinute;
-    
+
     if (!entry || Date.now() > entry.resetTime) {
       return maxRequests;
     }
@@ -261,10 +261,10 @@ export function calculateBackoff(
 ): number {
   // Exponential backoff: delay = baseDelay * 2^attempt
   const exponentialDelay = baseDelay * Math.pow(2, attempt);
-  
+
   // Add jitter (random ±25%) to prevent thundering herd
   const jitter = exponentialDelay * (0.75 + Math.random() * 0.5);
-  
+
   // Cap at maxDelay
   return Math.min(jitter, maxDelay);
 }
@@ -321,7 +321,7 @@ class HealthMonitor {
     // Check health
     if (!success) {
       this.status.consecutiveFailures++;
-      
+
       if (this.status.consecutiveFailures >= DEFAULT_CONFIG.unhealthyThreshold) {
         this.status.isHealthy = false;
         Logger.warn('⚠️ System marked as unhealthy', {
@@ -331,7 +331,7 @@ class HealthMonitor {
             successRate: this.status.metrics.successRate,
           },
         });
-        
+
         monitoring.trackMetric('system_unhealthy', 1, {
           consecutiveFailures: this.status.consecutiveFailures,
         });
@@ -341,14 +341,14 @@ class HealthMonitor {
       if (this.status.consecutiveFailures > 0) {
         this.status.consecutiveFailures--;
       }
-      
+
       // Mark healthy if we had enough successes
       if (this.status.consecutiveFailures === 0 && !this.status.isHealthy) {
         this.status.isHealthy = true;
         Logger.info('✅ System marked as healthy', {
           component: 'healthMonitor',
         });
-        
+
         monitoring.trackMetric('system_healthy', 1);
       }
     }
@@ -359,13 +359,13 @@ class HealthMonitor {
   private updateMetrics(): void {
     // Average response time
     if (this.responseTimes.length > 0) {
-      this.status.metrics.avgResponseTime = 
+      this.status.metrics.avgResponseTime =
         this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length;
     }
 
     // Success rate (last 100 requests)
     const recentSuccesses = this.recentRequests.filter(r => r.success).length;
-    this.status.metrics.successRate = 
+    this.status.metrics.successRate =
       (recentSuccesses / Math.max(1, this.recentRequests.length)) * 100;
   }
 
@@ -442,7 +442,7 @@ export class EnterpriseResilience {
 
           // Record success
           this.healthMonitor.recordRequest(true, responseTime);
-          
+
           monitoring.trackMetric('request_success', 1, {
             tier,
             operationName,
@@ -482,7 +482,7 @@ export class EnterpriseResilience {
 
           // Calculate backoff delay
           const delay = calculateBackoff(attempt);
-          
+
           Logger.info(`🔄 Retrying ${operationName} in ${delay}ms...`, {
             component: 'enterpriseResilience',
           });
@@ -500,7 +500,7 @@ export class EnterpriseResilience {
     // 5. Cache if deduplication key provided
     if (deduplicationKey) {
       this.requestCache.set(deduplicationKey, promise);
-      
+
       // Clear cache after completion
       promise.finally(() => {
         setTimeout(() => {

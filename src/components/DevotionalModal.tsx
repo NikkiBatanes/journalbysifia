@@ -448,11 +448,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     } catch (err) {
       // Convert technical errors to user-friendly messages
       const error = err as Error;
-      const userFriendlyError = error.message?.includes('Circuit breaker is OPEN') || 
+      const userFriendlyError = error.message?.includes('Circuit breaker is OPEN') ||
                                 error.message?.includes('experiencing high demand')
         ? new Error('We\'re experiencing high demand right now. Please try again in a few moments.')
         : error;
-      
+
       setCreationError(userFriendlyError);
       Logger.error('[DevotionalModal] Error creating devotional', error, { component: 'DevotionalModal' });
       Logger.error('[DevotionalModal] Error details', undefined, {

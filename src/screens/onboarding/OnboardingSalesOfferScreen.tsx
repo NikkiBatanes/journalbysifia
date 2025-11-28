@@ -406,13 +406,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // DEBUG: Force bypass trial eligibility for testing sales offer flow
       const DEBUG_FORCE_SALES_OFFER = true; // Set to false to enable normal trial flow
       const isEligibleForTrial = DEBUG_FORCE_SALES_OFFER ? false : (canOfferTrial && !isUpgradeMode);
-      
+
       if (isEligibleForTrial) {
         logger.info('🔄 Redirecting to trial offer (eligible)', {
           selectedTierId: selectedTier,
           billing: currentBilling,
           DEBUG_FORCE_SALES_OFFER,
-        }); 
+        });
         setTimeout(() => {
           (navigation as any).navigate('OnboardingTrialOffer', {
             selectedTierId: currentSelectedTier,
@@ -484,7 +484,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       isAnnual,
       timestamp: new Date().toISOString(),
     });
-    
+
     // Prevent multiple simultaneous purchases
     if (isPurchasing) {
       logger.debug('Purchase already in progress, ignoring');
@@ -537,7 +537,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         willFetch: cachedProducts.length === 0,
         timestamp: new Date().toISOString(),
       });
-      
+
       let products;
       try {
         // CRITICAL: Initialize payment service before getting products
@@ -550,9 +550,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             timestamp: new Date().toISOString(),
           });
         }
-        
+
         products = cachedProducts.length > 0 ? cachedProducts : await paymentService.getAvailableProducts();
-        
+
         logger.info('📦 STEP B: Products retrieved successfully', {
           count: products.length,
           cached: cachedProducts.length > 0,
@@ -627,9 +627,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             billing,
             timestamp: new Date().toISOString(),
           });
-          
+
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
-          
+
           logger.info('📦 SCREEN STEP 2: Purchase result received from service', {
             success: result.success,
             hasTransactionId: !!result.transactionId,
@@ -637,7 +637,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             error: result.error,
             timestamp: new Date().toISOString(),
           });
-          
+
           if (result.success) {
             setLoadingStep('validating');
             triggerSuccessHaptic();
@@ -667,7 +667,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             const waitStartTime = Date.now();
             await new Promise(resolve => setTimeout(resolve, 2000));
             const waitDuration = Date.now() - waitStartTime;
-            
+
             logger.info(`⏱️ SCREEN STEP 4: Wait completed (${waitDuration}ms), verifying database (UPGRADE MODE)`, {
               timestamp: new Date().toISOString(),
             });
@@ -680,7 +680,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             });
 
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
-            
+
             if (!updatedSubscription || updatedSubscription.tier !== selectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
@@ -811,7 +811,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             });
 
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
-            
+
             if (!updatedSubscription || updatedSubscription.tier !== selectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
@@ -1365,7 +1365,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               isAnnual,
               timestamp: new Date().toISOString(),
             });
-            
+
             if (isPurchasing) {
               logger.debug('Button disabled - purchase already in progress');
               return;

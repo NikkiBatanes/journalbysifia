@@ -1211,23 +1211,23 @@ export class FaithPointsService {
 
       case 'Growth Seeker':
         // Award after generating 25 playbooks - ONLY check during playbook generation
-        if (activity !== 'playbook_generated') return false;
+        if (activity !== 'playbook_generated') { return false; }
         return await this.getActivityCount(userId, 'playbook_generated') >= 25;
 
       case 'Playbook Master':
         // Award after generating 50 playbooks - ONLY check during playbook generation
-        if (activity !== 'playbook_generated') return false;
+        if (activity !== 'playbook_generated') { return false; }
         return await this.getActivityCount(userId, 'playbook_generated') >= 50;
 
       case 'Playbook Legend':
         // Award after generating 100 playbooks - ONLY check during playbook generation
-        if (activity !== 'playbook_generated') return false;
+        if (activity !== 'playbook_generated') { return false; }
         return await this.getActivityCount(userId, 'playbook_generated') >= 100;
 
       // Devotional Badges
       case 'Prayer Warrior':
         // Award after completing 25 prayer activities - ONLY check during prayer activities
-        if (!activity.includes('prayer')) return false;
+        if (!activity.includes('prayer')) {return false;}
         const devotionalPrayersCount = await this.getActivityCount(userId, 'prayer_devotional_prayed');
         const prayerListPrayedCount = await this.getActivityCount(userId, 'prayer_list_prayed');
         const totalPrayerActivities = devotionalPrayersCount + prayerListPrayedCount;
@@ -1235,101 +1235,101 @@ export class FaithPointsService {
 
       case 'Faithful Witness':
         // Award after documenting 15 answered prayers - ONLY check during prayer activities
-        if (activity !== 'prayer_answered') return false;
+        if (activity !== 'prayer_answered') { return false; }
         return await this.getActivityCount(userId, 'prayer_answered') >= 15;
 
       case 'Devotional Dedicated':
         // Award after generating 25 devotionals - ONLY check during devotional generation
-        if (activity !== 'devotional_generated') return false;
+        if (activity !== 'devotional_generated') { return false; }
         return await this.getActivityCount(userId, 'devotional_generated') >= 25;
 
       case 'Devotional Master':
         // Award after generating 50 devotionals - ONLY check during devotional generation
-        if (activity !== 'devotional_generated') return false;
+        if (activity !== 'devotional_generated') { return false; }
         return await this.getActivityCount(userId, 'devotional_generated') >= 50;
 
       // Journal Badges
       case 'Journal Keeper':
         // Award after making 50 journal entries - ONLY check during journal activities
-        if (!activity.includes('journal')) return false;
+        if (!activity.includes('journal')) { return false; }
         return await this.getActivityCount(userId, 'journal_entry') >= 50;
 
       case 'Journal Scribe':
         // Award after making 100 journal entries - ONLY check during journal activities
-        if (!activity.includes('journal')) return false;
+        if (!activity.includes('journal')) { return false; }
         return await this.getActivityCount(userId, 'journal_entry') >= 100;
 
       // Streak Badges
       case 'Faithful Week':
         // Award after 7-day streak - ONLY check during streak-related activities
-        if (!activity.includes('streak') && !activity.includes('daily')) return false;
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
         return await this.getActivityCount(userId, 'daily_streak') >= 7;
 
       case 'Streak Warrior':
         // Award after 14-day streak - ONLY check during streak-related activities
-        if (!activity.includes('streak') && !activity.includes('daily')) return false;
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
         return await this.getActivityCount(userId, 'daily_streak') >= 14;
 
       case 'Streak Master':
         // Award after 30-day streak - ONLY check during streak-related activities
-        if (!activity.includes('streak') && !activity.includes('daily')) return false;
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
         return await this.getActivityCount(userId, 'daily_streak') >= 30;
 
       case 'Streak Legend':
         // Award after 60-day streak - ONLY check during streak-related activities
-        if (!activity.includes('streak') && !activity.includes('daily')) return false;
+        if (!activity.includes('streak') && !activity.includes('daily')) { return false; }
         return await this.getActivityCount(userId, 'daily_streak') >= 60;
 
       // Level Achievement Badges
       case 'Seeker':
         // Award after reaching level 1 - ONLY check during achievement/level activities
         // This is given automatically to new users in createUserProfile
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_1_reached') >= 1;
 
       case 'Believer':
         // Award after reaching level 2 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_2_reached') >= 1;
 
       case 'Disciple':
         // Award after reaching level 3 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_3_reached') >= 1;
 
       case 'Servant':
         // Award after reaching level 4 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_4_reached') >= 1;
 
       case 'Leader':
         // Award after reaching level 5 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_5_reached') >= 1;
 
       case 'Teacher':
         // Award after reaching level 6 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_6_reached') >= 1;
 
       case 'Mentor':
         // Award after reaching level 7 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_7_reached') >= 1;
 
       case 'Elder':
         // Award after reaching level 8 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_8_reached') >= 1;
 
       case 'Steward':
         // Award after reaching level 9 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_9_reached') >= 1;
 
       case 'Ambassador':
         // Award after reaching level 10 - ONLY check during achievement/level activities
-        if (activity !== 'achievement' && !activity.includes('level')) return false;
+        if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_10_reached') >= 1;
 
       default:

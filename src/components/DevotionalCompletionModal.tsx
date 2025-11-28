@@ -262,7 +262,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                     dayNumber: currentDayNumberRef.current,
                     isLastDay: isLastDayRef.current,
                   }).catch((error: Error) => {
-                    Logger.error('[DevotionalCompletionModal] Error awarding points', error, { 
+                    Logger.error('[DevotionalCompletionModal] Error awarding points', error, {
                       component: 'DevotionalCompletionModal',
                       activityType,
                       points: pts,
