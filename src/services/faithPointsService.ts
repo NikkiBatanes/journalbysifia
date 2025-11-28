@@ -410,8 +410,7 @@ export class FaithPointsService {
       }
 
       // ENTERPRISE-GRADE: Defer badge checking with debouncing to prevent UI freeze and duplicates
-      // Even the database query to check badges was blocking the UI thread
-      // Debounce badge checks per user to prevent rapid-fire duplicates
+      // Use lightweight queries and longer delay for critical operations
       if (!_metadata?.suppressNotification) {
         // Clear any existing timer for this user
         const existingTimer = FaithPointsService.badgeCheckTimers.get(userId);
@@ -424,6 +423,13 @@ export class FaithPointsService {
           try {
             // Clean up timer reference
             FaithPointsService.badgeCheckTimers.delete(userId);
+            
+            Logger.debug('[FaithPointsService] Starting deferred badge check', {
+              component: 'faithPointsService',
+              userId,
+              activity,
+              totalPoints: newTotalPoints,
+            });
             
             // Now check for badges asynchronously
             const deferredBadges = await this.checkForNewBadges(userId, newTotalPoints, activity);
@@ -1150,12 +1156,12 @@ export class FaithPointsService {
     try {
       const availableBadges = await this.getAvailableBadges();
       const userBadges = await this.getUserBadges(userId);
-      const userBadgeIds = userBadges.map(b => b.id);
+      const userBadgeNames = userBadges.map(b => b.name); // Use names for comparison
 
       Logger.debug(`[FaithPointsService] Badge check started - Available: ${availableBadges.length}, User has: ${userBadges.length}`, {
         component: 'faithPointsService',
-        availableBadgeIds: availableBadges.map(b => b.id),
-        userBadgeIds,
+        availableBadgeNames: availableBadges.map(b => b.name),
+        userBadgeNames,
       });
 
       const newBadges: Badge[] = [];
@@ -1185,7 +1191,7 @@ export class FaithPointsService {
       }
 
       for (const badge of availableBadges) {
-        if (!userBadgeIds.includes(badge.id)) {
+        if (!userBadgeNames.includes(badge.name)) { // Compare by name, not ID
           // For activity-based badges, use pre-fetched counts
           const isActivityBasedBadge = [
             'First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
@@ -1236,22 +1242,11 @@ export class FaithPointsService {
 
   private async getUserBadges(userId: string): Promise<Badge[]> {
     try {
-      // CRITICAL FIX: Join with badges table to get actual badge data
-      // user_badges table only has badge_id (UUID), not badge_data
+      // PERFORMANCE FIX: Lightweight join to get only badge names
+      // We need names for comparison since available badges use names
       const { data: userBadgeRecords, error } = await supabase
         .from('user_badges')
-        .select(`
-          badge_id,
-          earned_at,
-          badges (
-            id,
-            name,
-            description,
-            icon,
-            rarity,
-            points_required
-          )
-        `)
+        .select('badge_id, badges!inner(name)')
         .eq('user_id', userId);
 
       if (error) {
@@ -1262,21 +1257,17 @@ export class FaithPointsService {
         return [];
       }
 
-      // Transform to Badge interface format
+      // Return minimal Badge objects with names for duplicate checking
       const badges: Badge[] = (userBadgeRecords || [])
-        .filter(record => record.badges && typeof record.badges === 'object') // Filter out any bad joins
-        .map(record => {
-          const badgeData = record.badges as any; // Supabase returns badges as object
-          return {
-            id: badgeData.id,
-            name: badgeData.name,
-            description: badgeData.description,
-            icon: badgeData.icon,
-            rarity: badgeData.rarity as 'common' | 'rare' | 'epic' | 'legendary',
-            pointsRequired: badgeData.points_required,
-            unlockedAt: record.earned_at,
-          };
-        });
+        .filter(record => record.badges)
+        .map(record => ({
+          id: record.badge_id,
+          name: (record.badges as any).name || '',
+          description: '',
+          icon: '',
+          rarity: 'common' as const,
+          pointsRequired: 0,
+        }));
 
       Logger.debug(`[FaithPointsService] Found ${badges.length} badges for user`, {
         component: 'faithPointsService',
