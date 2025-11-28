@@ -813,6 +813,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             const currentDayAlreadyCompleted = devotional.days[(completedDayIndex ?? 0)]?.completed;
             return currentCompletedCount + (currentDayAlreadyCompleted ? 0 : 1);
           })()}
+          userId={userId}
           onContinue={handleCompletionContinue}
           onClose={handleModalClose}
           onRatingSubmit={handleRatingSubmit}

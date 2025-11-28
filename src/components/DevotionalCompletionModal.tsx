@@ -55,6 +55,7 @@ interface DevotionalCompletionModalProps {
   devotional: Devotional;
   currentDayNumber: number;
   completedDays: number;
+  userId?: string; // User ID for awarding points and badges
   onContinue: () => void;
   onClose: () => void;
   onRatingSubmit: (rating: number) => Promise<void>;
@@ -66,6 +67,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   devotional,
   currentDayNumber,
   completedDays: propCompletedDays,
+  userId,
   onContinue,
   onClose,
   onRatingSubmit,
@@ -168,6 +170,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const isLastDayRef = useRef(isLastDay);
   const currentDayNumberRef = useRef(currentDayNumber);
   const devotionalIdRef = useRef(devotional?.id);
+  const userIdRef = useRef(userId);
 
   // Update refs when values change
   useEffect(() => {
@@ -176,6 +179,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     isLastDayRef.current = isLastDay;
     currentDayNumberRef.current = currentDayNumber;
     devotionalIdRef.current = devotional?.id;
+    userIdRef.current = userId;
   });
 
   // Run the slide-in and initial animations only when visibility changes to true
@@ -248,6 +252,22 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
                 // Set unique animation key to prevent re-renders
                 animationKeyRef.current = `${devotionalIdRef.current}-${currentDayNumberRef.current}-${Date.now()}`;
+
+                // ✅ FIX: Actually award the points and check for badge eligibility
+                // This was missing - points were only shown but never awarded
+                if (userIdRef.current) {
+                  faithPointsService.addPoints(userIdRef.current, pts, activityType as any, {
+                    devotionalId: devotionalIdRef.current,
+                    dayNumber: currentDayNumberRef.current,
+                    isLastDay: isLastDayRef.current,
+                  }).catch(error => {
+                    Logger.error('[DevotionalCompletionModal] Error awarding points', error as Error, { 
+                      component: 'DevotionalCompletionModal',
+                      activityType,
+                      points: pts,
+                    });
+                  });
+                }
 
                 // Delay showing points slightly to ensure modal is fully visible
                 setTimeout(() => {
