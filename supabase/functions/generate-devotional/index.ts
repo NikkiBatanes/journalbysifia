@@ -3,7 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from './persona.config.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
-import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRateLimitHeaders } from '../_shared/simpleRateLimiter.ts';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRateLimitHeaders as _createRateLimitHeaders } from '../_shared/simpleRateLimiter.ts';
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
 
