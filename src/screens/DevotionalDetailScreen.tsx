@@ -1116,9 +1116,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     styles.questionCardNumber,
                     isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
                   ]}>{idx + 1}</ThemedText>
-                  <ThemedText style={styles.questionCardText} selectable={true}>
-                    {question.text || 'Reflection question'}
-                  </ThemedText>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText 
+                      style={styles.questionCardText} 
+                      selectable={true}
+                    >
+                      {question.text || 'Reflection question'}
+                    </ThemedText>
+                  </View>
                 </View>
               </Pressable>
                 ))
@@ -1488,11 +1493,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   questionCardText: {
-    flex: 1,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-    paddingTop: 2, // Add slight top padding for better alignment
   },
   fab: {
     position: 'absolute',
