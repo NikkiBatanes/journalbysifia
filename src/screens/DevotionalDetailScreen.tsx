@@ -1116,14 +1116,12 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     styles.questionCardNumber,
                     isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
                   ]}>{idx + 1}</ThemedText>
-                  <View style={{ flex: 1 }}>
-                    <ThemedText 
-                      style={styles.questionCardText} 
-                      selectable={true}
-                    >
-                      {question.text || 'Reflection question'}
-                    </ThemedText>
-                  </View>
+                  <ThemedText 
+                    style={styles.questionCardText} 
+                    selectable={true}
+                  >
+                    {question.text || 'Reflection question'}
+                  </ThemedText>
                 </View>
               </Pressable>
                 ))
@@ -1469,8 +1467,7 @@ const styles = StyleSheet.create({
   },
   questionCardWrapper: {
     width: '100%',
-    marginBottom: 8,
-    // Ensure the wrapper allows content to expand vertically
+    marginBottom: 12,        // space between questions
   },
   questionCardContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -1478,24 +1475,24 @@ const styles = StyleSheet.create({
     padding: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    minHeight: 44, // Ensure minimum height for multi-line text
+    paddingVertical: 16,
+    gap: 12,
   },
   questionCardNumber: {
     color: Colors.hopeWhite,
-    marginRight: 12,
     fontSize: 14,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     textAlign: 'center',
-    lineHeight: 20,
-    overflow: 'hidden',
+    lineHeight: 24,
   },
   questionCardText: {
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
+    flex: 1,                 // make sure text can wrap
   },
   fab: {
     position: 'absolute',
