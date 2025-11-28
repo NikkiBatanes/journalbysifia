@@ -35,6 +35,11 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState<string>('');
   const { signIn, loading } = useAuth();
 
+  // Responsive logo sizing for different devices
+  const { width } = Dimensions.get('window');
+  const isTablet = width >= 768;
+  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
+
   const handleLogin = async () => {
     triggerLightHaptic();
     // clear previous error
@@ -94,7 +99,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.header}>
           <Image
             source={require('../../assets/icons/siFiaTransparent.png')}
-            style={styles.logo}
+            style={[styles.logo, { width: logoSize, height: logoSize }]}
             resizeMode="contain"
           />
           <LottieView
@@ -228,11 +233,8 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   logo: {
-    width: 120,
-    height: 120,
     alignSelf: 'flex-start',
     marginTop: 0,
-    marginBottom: 10,
   },
   titleContainer: {
     alignItems: 'center',

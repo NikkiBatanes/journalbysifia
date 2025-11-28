@@ -58,6 +58,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [screen, setScreen] = React.useState({ width: win.width, height: win.height });
   const isLandscape = screen.width > screen.height;
   const isTablet = screen.width >= 768;
+  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
   // Treat SE-class and other very small phones as small; threshold mirrors onboarding welcome screen
   const isSmallPhone = !isTablet && screen.height <= 850;
   const contentWidth = Math.min(isLandscape ? screen.width * 0.6 : screen.width * 0.92, 600);
@@ -198,7 +199,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Logo */}
         <Image
           source={require('../../assets/icons/siFiaTransparent.png')}
-          style={styles.logo}
+          style={[styles.logo, { width: logoSize, height: logoSize }]}
           resizeMode="contain"
         />
 
@@ -332,11 +333,8 @@ const styles = StyleSheet.create({
     maxWidth: 720,
   },
   logo: {
-    width: 120,
-    height: 120,
     alignSelf: 'center',
     marginTop: 0,
-    marginBottom: 10,
   },
   illustrationContainer: {
     width: '100%',

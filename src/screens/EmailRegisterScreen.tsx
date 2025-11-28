@@ -47,6 +47,11 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const scrollRef = useRef<ScrollView | null>(null);
   const { signUp, loading } = useAuth(); // Removed unused user variable
 
+  // Responsive logo sizing for different devices
+  const { width } = Dimensions.get('window');
+  const isTablet = width >= 768;
+  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
+
   // Maximum scroll based on content size (prevents blank space past the end)
   const maxScrollableY = useMemo(() => Math.max(0, contentH - svH), [contentH, svH]);
 
@@ -184,7 +189,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.header}>
           <Image
             source={require('../../assets/icons/siFiaTransparent.png')}
-            style={styles.logo}
+            style={[styles.logo, { width: logoSize, height: logoSize }]}
             resizeMode="contain"
           />
           <LottieView
@@ -411,8 +416,7 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   logo: {
-    width: 120,
-    height: 120,
+    // Remove fixed dimensions to allow dynamic sizing
     alignSelf: 'flex-start',
     marginTop: 0,
     marginBottom: 10,
