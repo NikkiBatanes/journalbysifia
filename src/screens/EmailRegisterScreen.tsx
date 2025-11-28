@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  Dimensions,
   Platform,
   ScrollView,
   KeyboardAvoidingView,

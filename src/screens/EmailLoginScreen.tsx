@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   StatusBar,
   Image,
+  Dimensions,
 } from 'react-native';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
