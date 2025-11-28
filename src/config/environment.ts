@@ -58,12 +58,12 @@ export const validateEnvironment = () => {
   const missingOptional = optional.filter(key => !(ENV as any)[key] || (ENV as any)[key].includes('your_'));
 
   if (missing.length > 0) {
-    Logger.error('❌ CRITICAL: Missing required environment variables', { component: 'environment', data: missing });
+    Logger.error('CRITICAL: Missing required environment variables', { component: 'environment', data: missing });
     Logger.error('App cannot function without these variables. Please check your .env file.', { component: 'environment' });
   }
 
   if (missingOptional.length > 0) {
-    Logger.warn('⚠️ Missing optional environment variables', { component: 'environment', data: missingOptional });
+    Logger.warn('Missing optional environment variables', { component: 'environment', data: missingOptional });
     Logger.warn('Some features may not work without these variables.', { component: 'environment' });
   }
 

@@ -193,8 +193,8 @@ export function logSystemHealth(): void {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   // Overall status
-  const statusEmoji = health.overall === 'healthy' ? '✅' :
-                      health.overall === 'degraded' ? '⚠️' : '❌';
+  const statusEmoji = health.overall === 'healthy' ? '' :
+                      health.overall === 'degraded' ? '' : '';
   console.log(`\n${statusEmoji} Overall Status: ${health.overall.toUpperCase()}`);
 
   // Queue
@@ -205,11 +205,11 @@ export function logSystemHealth(): void {
   console.log(`   Utilization: ${health.components.queue.utilizationPercent.toFixed(1)}%`);
 
   // Circuit Breakers
-  console.log('\n🔌 Circuit Breakers:');
+  console.log('\n Circuit Breakers:');
   console.log(`   Status: ${health.components.circuitBreakers.status}`);
   health.components.circuitBreakers.breakers.forEach(breaker => {
-    const emoji = breaker.state === 'CLOSED' ? '✅' :
-                  breaker.state === 'HALF_OPEN' ? '⚠️' : '❌';
+    const emoji = breaker.state === 'CLOSED' ? '' :
+                  breaker.state === 'HALF_OPEN' ? '' : '';
     console.log(`   ${emoji} ${breaker.name}: ${breaker.state} (${breaker.failures} failures)`);
   });
 
@@ -222,9 +222,9 @@ export function logSystemHealth(): void {
 
   // Alerts
   if (health.alerts.length > 0) {
-    console.log('\n⚠️  Active Alerts:');
+    console.log('\n  Active Alerts:');
     health.alerts.forEach(alert => {
-      const emoji = alert.severity === 'critical' ? '🔴' : '⚠️';
+      const emoji = alert.severity === 'critical' ? '🔴' : '';
       console.log(`   ${emoji} [${alert.component}] ${alert.message}`);
     });
   }
@@ -255,7 +255,7 @@ export function startHealthMonitoring(intervalMs: number = 60000): () => void {
 
     // Log if not healthy
     if (health.overall !== 'healthy') {
-      Logger.warn('⚠️ System health degraded', {
+      Logger.warn(' System health degraded', {
         component: 'healthMonitoring',
         data: {
           overall: health.overall,

@@ -104,7 +104,7 @@ export const generateProgressReport = async (userId: string): Promise<ProgressRe
     return report;
 
   } catch (error) {
-    Logger.error('❌ Failed to generate progress report', error as Error, { component: 'progressReport' });
+    Logger.error(' Failed to generate progress report', error as Error, { component: 'progressReport' });
     throw error;
   }
 };

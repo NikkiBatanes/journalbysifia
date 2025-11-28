@@ -178,7 +178,7 @@ export class PaymentFailureLogger {
     currency?: string;
     duration: number; // Time in ms from start to success
   }): void {
-    Logger.info('[PaymentLogger] ✅ Payment successful', {
+    Logger.info('[PaymentLogger]  Payment successful', {
       component: 'PaymentFailureLogger',
       userId: context.userId.substring(0, 10) + '...', // Privacy
       productId: context.productId,
@@ -195,7 +195,7 @@ export class PaymentFailureLogger {
    * Log retry attempt for monitoring
    */
   static logRetryAttempt(context: PaymentFailureContext, attemptNumber: number, maxAttempts: number): void {
-    Logger.info('[PaymentLogger] 🔄 Payment retry attempt', {
+    Logger.info('[PaymentLogger]  Payment retry attempt', {
       component: 'PaymentFailureLogger',
       userId: context.userId.substring(0, 10) + '...',
       productId: context.productId,

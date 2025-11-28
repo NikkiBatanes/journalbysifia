@@ -1,4 +1,6 @@
-import { Platform, NativeModules } from 'react-native';
+import {
+  Platform,
+} from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import { PaymentFailureLogger, PaymentFailureContext } from '../utils/paymentFailureLogger';
 import * as RNIapModule from 'react-native-iap';
@@ -108,14 +110,6 @@ export class AppleStoreKitService {
   static getInstance(): AppleStoreKitService {
     if (!AppleStoreKitService.instance) {
       AppleStoreKitService.instance = new AppleStoreKitService();
-      // Log module availability on first instantiation
-      console.log('[StoreKit] 🔍 Module check:', {
-        hasRNIapModule: !!RNIapModule,
-        hasInitConnection: !!initConnection,
-        hasGetSubscriptions: !!getSubscriptions,
-        hasGetAvailablePurchases: !!getAvailablePurchases,
-        nativeModuleKeys: Object.keys(NativeModules).filter(k => k.toLowerCase().includes('iap')),
-      });
     }
     return AppleStoreKitService.instance;
   }
@@ -181,6 +175,7 @@ export class AppleStoreKitService {
 
     Logger.info('[StoreKit] 🔌 Step 1: Calling initConnection()', {
       component: 'AppleStoreKitService',
+      isSandbox: this.isSandboxEnvironment(),
       timestamp: new Date().toISOString(),
     });
 

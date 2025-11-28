@@ -324,7 +324,7 @@ class HealthMonitor {
 
       if (this.status.consecutiveFailures >= DEFAULT_CONFIG.unhealthyThreshold) {
         this.status.isHealthy = false;
-        Logger.warn('⚠️ System marked as unhealthy', {
+        Logger.warn(' System marked as unhealthy', {
           component: 'healthMonitor',
           data: {
             consecutiveFailures: this.status.consecutiveFailures,
@@ -345,7 +345,7 @@ class HealthMonitor {
       // Mark healthy if we had enough successes
       if (this.status.consecutiveFailures === 0 && !this.status.isHealthy) {
         this.status.isHealthy = true;
-        Logger.info('✅ System marked as healthy', {
+        Logger.info(' System marked as healthy', {
           component: 'healthMonitor',
         });
 
@@ -459,7 +459,7 @@ export class EnterpriseResilience {
           // Record failure
           this.healthMonitor.recordRequest(false, responseTime);
 
-          Logger.warn(`⚠️ ${operationName} attempt ${attempt + 1} failed`, {
+          Logger.warn(` ${operationName} attempt ${attempt + 1} failed`, {
             component: 'enterpriseResilience',
             data: {
               userId,
@@ -483,7 +483,7 @@ export class EnterpriseResilience {
           // Calculate backoff delay
           const delay = calculateBackoff(attempt);
 
-          Logger.info(`🔄 Retrying ${operationName} in ${delay}ms...`, {
+          Logger.info(` Retrying ${operationName} in ${delay}ms...`, {
             component: 'enterpriseResilience',
           });
 
