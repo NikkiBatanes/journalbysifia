@@ -56,6 +56,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const isLandscape = screenSize.width > screenSize.height;
   const isTablet = screenSize.width >= 768;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
+  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -117,7 +118,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         <View style={styles.logoSection}>
           <Image
             source={require('../../../assets/icons/siFiaTransparent.png')}
-            style={styles.logoImage}
+            style={[styles.logoImage, { width: logoSize, height: logoSize }]}
             resizeMode="contain"
           />
 
@@ -203,8 +204,8 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.05 }],
   },
   logoImage: {
-    width: 120,
-    height: 120,
+    // Remove fixed dimensions to allow dynamic sizing
+    overflow: 'hidden',
   },
   mainContent: {
     flex: 1,
