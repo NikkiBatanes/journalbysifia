@@ -1119,6 +1119,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   <ThemedText 
                     style={styles.questionCardText} 
                     selectable={true}
+                    numberOfLines={0}
+                    adjustsFontSizeToFit={false}
                   >
                     {question.text || 'Reflection question'}
                   </ThemedText>
@@ -1472,10 +1474,10 @@ const styles = StyleSheet.create({
   questionCardContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 10,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 16,
     gap: 12,
   },
   questionCardNumber: {
