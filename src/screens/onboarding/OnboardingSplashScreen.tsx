@@ -585,8 +585,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoImage: {
-    width: 120,
-    height: 120,
+    // Remove fixed dimensions to allow dynamic sizing
     overflow: 'hidden',
   },
 });
