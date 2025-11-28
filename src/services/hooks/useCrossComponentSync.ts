@@ -68,7 +68,7 @@ export const useCrossComponentSync = (userId: string) => {
     currentDay?: number;
   }) => {
 
-    // Guard against multiple calls within 2 seconds for the same devotional
+    // Guard against multiple calls within 3 seconds for the same devotional (increased from 2s)
     const guardKey = `${devotionalId}-${completionContext?.currentDay || 'unknown'}`;
     const baseGuardKey = `${devotionalId}-base`; // Base guard without currentDay
     const now = Date.now();
@@ -88,8 +88,8 @@ export const useCrossComponentSync = (userId: string) => {
       baseTimeDiff: baseLastCall ? now - baseLastCall : 'none',
     });
 
-    // Check both specific day guard and base guard
-    if ((lastCall && (now - lastCall) < 2000) || (baseLastCall && (now - baseLastCall) < 1000)) {
+    // Check both specific day guard and base guard with stricter timing
+    if ((lastCall && (now - lastCall) < 3000) || (baseLastCall && (now - baseLastCall) < 2000)) {
       Logger.debug('[CrossComponentSync] Guard blocked duplicate call', {
         component: 'useCrossComponentSync',
         guardKey,

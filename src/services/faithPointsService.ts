@@ -75,6 +75,9 @@ export class FaithPointsService {
   
   // ENTERPRISE-GRADE: Debounce timer for badge checking per user
   private static badgeCheckTimers: Map<string, NodeJS.Timeout> = new Map();
+  
+  // RATE LIMITER: Track last faith points award time per user to prevent rapid completion spam
+  private static lastAwardTimes: Map<string, number> = new Map();
 
   // Level progression system
   private readonly LEVELS: LevelInfo[] = [
@@ -249,6 +252,25 @@ export class FaithPointsService {
   ): Promise<{ pointsAwarded: number; newLevel?: number; newBadges?: Badge[] }> {
 
     try {
+      // RATE LIMITER: Prevent rapid faith points awarding during devotional completion sprees
+      const now = Date.now();
+      const lastAwardTime = FaithPointsService.lastAwardTimes.get(userId) || 0;
+      const timeSinceLastAward = now - lastAwardTime;
+      
+      // Block rapid completions: require at least 1 second between faith points awards
+      if (timeSinceLastAward < 1000 && activity === 'devotional_completed') {
+        Logger.debug('[FaithPointsService] Rate limiting rapid devotional completions', {
+          component: 'faithPointsService',
+          userId,
+          activity,
+          timeSinceLastAward,
+        });
+        return { pointsAwarded: 0 };
+      }
+      
+      // Update last award time
+      FaithPointsService.lastAwardTimes.set(userId, now);
+
       const pointsAwarded = this.POINTS_SYSTEM[activity];
       const isOnboarding = _metadata?.isOnboarding || false;
 
@@ -438,7 +460,7 @@ export class FaithPointsService {
           clearTimeout(existingTimer);
         }
         
-        // Debounce: Only check badges after 500ms of no new activity
+        // Debounce: Only check badges after 2000ms of no new activity (increased from 500ms for rapid completion scenarios)
         const timer = setTimeout(async () => {
           try {
             // Clean up timer reference
