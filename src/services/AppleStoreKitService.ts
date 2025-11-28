@@ -127,52 +127,23 @@ export class AppleStoreKitService {
         return true;
       }
 
-      Logger.info('[StoreKit] 🔌 Step 1: Calling initConnection()', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
-      });
-      
-      await initConnection();
-      
-      Logger.info('[StoreKit] ✅ Step 1: initConnection() completed', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
+      // CRITICAL: Add timeout to prevent hanging
+      const initPromise = this.doInitialize();
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        setTimeout(() => reject(new Error('IAP initialization timeout after 10 seconds')), 10000);
       });
 
-      // Set up purchase listeners
-      Logger.info('[StoreKit] 🔌 Step 2: Setting up purchase listeners', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
-      });
-      
-      this.setupPurchaseListeners();
-      
-      Logger.info('[StoreKit] ✅ Step 2: Purchase listeners set up', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
-      });
-
-      // Clear any old cached transactions on startup
-      Logger.info('[StoreKit] 🔌 Step 3: Clearing old transactions', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
-      });
-      
-      await this.clearOldTransactions();
-      
-      Logger.info('[StoreKit] ✅ Step 3: Old transactions cleared', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
-      });
-
-      this.isInitialized = true;
-      
-      Logger.info('[StoreKit] 🎉 IAP initialization completed successfully', {
-        component: 'AppleStoreKitService',
-        timestamp: new Date().toISOString(),
-      });
-      
-      return true;
+      try {
+        const result = await Promise.race([initPromise, timeoutPromise]);
+        return result;
+      } catch (error) {
+        Logger.error('[StoreKit] ❌ IAP initialization failed or timed out', error as Error, {
+          component: 'AppleStoreKitService',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString(),
+        });
+        return false;
+      }
     } catch (error) {
       Logger.error('[StoreKit] ❌ IAP initialization failed', error as Error, {
         component: 'AppleStoreKitService',
@@ -181,6 +152,55 @@ export class AppleStoreKitService {
       });
       return false;
     }
+  }
+
+  private async doInitialize(): Promise<boolean> {
+    Logger.info('[StoreKit] 🔌 Step 1: Calling initConnection()', {
+      component: 'AppleStoreKitService',
+      timestamp: new Date().toISOString(),
+    });
+    
+    await initConnection();
+    
+    Logger.info('[StoreKit] ✅ Step 1: initConnection() completed', {
+      component: 'AppleStoreKitService',
+      timestamp: new Date().toISOString(),
+    });
+
+    // Set up purchase listeners
+    Logger.info('[StoreKit] 🔌 Step 2: Setting up purchase listeners', {
+      component: 'AppleStoreKitService',
+      timestamp: new Date().toISOString(),
+    });
+    
+    this.setupPurchaseListeners();
+    
+    Logger.info('[StoreKit] ✅ Step 2: Purchase listeners set up', {
+      component: 'AppleStoreKitService',
+      timestamp: new Date().toISOString(),
+    });
+
+    // Clear any old cached transactions on startup
+    Logger.info('[StoreKit] 🔌 Step 3: Clearing old transactions', {
+      component: 'AppleStoreKitService',
+      timestamp: new Date().toISOString(),
+    });
+    
+    await this.clearOldTransactions();
+    
+    Logger.info('[StoreKit] ✅ Step 3: Old transactions cleared', {
+      component: 'AppleStoreKitService',
+      timestamp: new Date().toISOString(),
+    });
+
+    this.isInitialized = true;
+    
+    Logger.info('[StoreKit] 🎉 IAP initialization completed successfully', {
+      component: 'AppleStoreKitService',
+      timestamp: new Date().toISOString(),
+    });
+    
+    return true;
   }
 
   /**
