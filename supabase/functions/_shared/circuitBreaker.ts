@@ -31,12 +31,13 @@ export interface CircuitBreakerState {
 
 /**
  * Default circuit breaker configuration for OpenAI API
+ * Aligned with frontend enterprise resilience system
  */
 export const DEFAULT_CIRCUIT_CONFIG: CircuitBreakerConfig = {
-  failureThreshold: 5, // Open circuit after 5 consecutive failures
-  successThreshold: 2, // Close circuit after 2 consecutive successes
-  timeout: 60000, // Wait 60 seconds before trying again
-  monitoringPeriod: 120000, // Track failures over 2 minutes
+  failureThreshold: 20, // Open circuit after 20 consecutive failures (aligned with frontend)
+  successThreshold: 3, // Close circuit after 3 consecutive successes
+  timeout: 15000, // Wait 15 seconds before trying again (faster recovery)
+  monitoringPeriod: 600000, // Track failures over 10 minutes (longer window for production)
 };
 
 /**

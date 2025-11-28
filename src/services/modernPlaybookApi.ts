@@ -13,6 +13,7 @@ import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeou
 import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
 import { monitoring } from '../utils/monitoring';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
+import { enterpriseResilience } from '../utils/enterpriseResilience';
 import { ENV } from '../config/environment';
 // Offline queue utilities available but not currently used
 // import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
@@ -391,14 +392,27 @@ export async function generatePlaybook(
   userName: string,
   maxRetries: number = API_RETRY_ATTEMPTS
 ): Promise<Playbook> {
-  // Get userId for deduplication
+  // Get userId and tier for enterprise resilience
   let userId: string;
+  let userTier = 'seeker'; // default
+  
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) {
       throw new Error('User not authenticated');
     }
     userId = user.id;
+
+    // Get user tier for rate limiting and priority
+    try {
+      const { subscriptionService } = await import('./subscriptionService');
+      const subscription = await subscriptionService.getUserSubscription(userId);
+      userTier = subscription.tier;
+    } catch (tierError) {
+      Logger.warn('Failed to get user tier, using default', {
+        component: 'modernPlaybookApi',
+      });
+    }
   } catch (error) {
     Logger.error('Failed to get user for deduplication', error as Error, {
       component: 'modernPlaybookApi',
@@ -406,11 +420,32 @@ export async function generatePlaybook(
     throw error;
   }
 
-  // Wrap with deduplication
-  return deduplicatePlaybookGeneration(
-    userId,
-    userInput,
-    () => generatePlaybookInternal(userInput, userName, userId, maxRetries)
+  // Get priority based on tier
+  const tierPriority: Record<string, number> = {
+    transformation: 10,
+    growth: 7,
+    spark: 5,
+    seeker: 3,
+  };
+  const priority = tierPriority[userTier] || 3;
+
+  // Create deduplication key
+  const deduplicationKey = `playbook-${userId}-${userInput.substring(0, 50)}`;
+
+  // Wrap with enterprise resilience (includes queuing, rate limiting, retries, health checks)
+  return enterpriseResilience.executeWithResilience(
+    () => deduplicatePlaybookGeneration(
+      userId,
+      userInput,
+      () => generatePlaybookInternal(userInput, userName, userId, maxRetries)
+    ),
+    {
+      userId,
+      tier: userTier,
+      operationName: 'playbook-generation',
+      priority,
+      deduplicationKey,
+    }
   );
 }
 

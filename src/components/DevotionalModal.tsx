@@ -446,13 +446,20 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }
       }
     } catch (err) {
-      setCreationError(err as Error);
-      Logger.error('[DevotionalModal] Error creating devotional', err as Error, { component: 'DevotionalModal' });
+      // Convert technical errors to user-friendly messages
+      const error = err as Error;
+      const userFriendlyError = error.message?.includes('Circuit breaker is OPEN') || 
+                                error.message?.includes('experiencing high demand')
+        ? new Error('We\'re experiencing high demand right now. Please try again in a few moments.')
+        : error;
+      
+      setCreationError(userFriendlyError);
+      Logger.error('[DevotionalModal] Error creating devotional', error, { component: 'DevotionalModal' });
       Logger.error('[DevotionalModal] Error details', undefined, {
         component: 'DevotionalModal',
-        message: (err as any)?.message,
-        stack: (err as any)?.stack,
-        name: (err as any)?.name,
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
       });
     }
   };

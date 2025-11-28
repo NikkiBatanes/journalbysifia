@@ -9,6 +9,10 @@ import { Logger } from '../utils/ProductionLogger';
 import { AUTH_ERROR_MESSAGES, API_RETRY_DELAY } from '../constants/sessionConstants';
 import { Devotional, DevotionalCategory } from '../interfaces/devotional';
 import { ENV } from '../config/environment';
+import { withCircuitBreaker } from '../utils/circuitBreaker';
+import { enterpriseResilience } from '../utils/enterpriseResilience';
+import { withTimeout, TIMEOUT_CONFIGS } from '../utils/apiTimeout';
+import { monitoring } from '../utils/monitoring';
 
 interface DevotionalGenerationParams {
   duration: number;
@@ -22,12 +26,13 @@ interface DevotionalGenerationParams {
 type GeneratedDevotional = Devotional;
 
 /**
- * Generate a new devotional using modern Supabase session
- * This replaces the legacy generateDevotional function
+ * Internal devotional generation function
+ * Wrapped by public API with enterprise resilience
  */
-export async function generateDevotional(
+async function generateDevotionalInternal(
   params: DevotionalGenerationParams,
-  maxRetries: number = 5 // Increased from 3 to 5 retries
+  userId: string,
+  maxRetries: number = 5
 ): Promise<GeneratedDevotional> {
   const { duration, playbookId, userInput, isOnboarding, bibleVersion } = params;
 
@@ -74,29 +79,31 @@ export async function generateDevotional(
         }
       } catch {}
 
-      // Create AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout (increased for longer reflections)
-
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': ENV.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          duration,
-          playbookId,
-          userInput: userInput || 'General spiritual growth',
-          bibleVersion: bibleVersion || 'NASB',
-          dateOfBirth,
-          ageGroup,
-        }),
-        signal: controller.signal,
+      // Wrap with circuit breaker and timeout for resilience
+      const response = await withCircuitBreaker('openai-generation', async () => {
+        return withTimeout(
+          fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': ENV.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              duration,
+              playbookId,
+              userInput: userInput || 'General spiritual growth',
+              bibleVersion: bibleVersion || 'NASB',
+              dateOfBirth,
+              ageGroup,
+            }),
+          }),
+          {
+            timeoutMs: 120000, // 120 seconds for devotionals
+            operationName: 'Devotional Generation',
+          }
+        );
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -199,6 +206,14 @@ export async function generateDevotional(
         // Don't fail the generation if tracking fails
       }
 
+      // Track successful generation
+      monitoring.trackEvent('devotional_generated', {
+        success: true,
+        attempts: attempt + 1,
+        userId,
+        duration,
+      }, userId);
+
       // Return the complete devotional object matching the Devotional interface
       return {
         ...result,
@@ -218,18 +233,20 @@ export async function generateDevotional(
 
     } catch (error: any) {
       lastError = error;
+      
+      // Convert circuit breaker errors to user-friendly messages
+      if (error.message?.includes('Circuit breaker is OPEN')) {
+        Logger.warn('Circuit breaker triggered for devotional generation', {
+          component: 'modernDevotionalApi',
+          data: { attempt: attempt + 1 },
+        });
+        throw new Error('We\'re experiencing high demand right now. Please try again in a few moments.');
+      }
+      
       Logger.error(`Attempt ${attempt + 1} failed:`, error, {
         component: 'modernDevotionalApi',
         data: JSON.stringify({ errorMessage: error.message }),
       });
-
-      // Handle timeout errors
-      if (error.name === 'AbortError') {
-        Logger.error('Request timed out after 120 seconds', undefined, {
-          component: 'modernDevotionalApi',
-        });
-        throw new Error('Devotional generation is taking longer than expected. Please try again.');
-      }
 
       // Don't retry on certain errors
       if (error.message.includes('401') || error.message.includes('403')) {
@@ -253,6 +270,70 @@ export async function generateDevotional(
   component: 'modernDevotionalApi',
 });
   throw new Error(errorMessage);
+}
+
+/**
+ * Public API: Generate devotional with enterprise resilience
+ * Includes queuing, rate limiting, retries, and circuit breaker protection
+ */
+export async function generateDevotional(
+  params: DevotionalGenerationParams,
+  maxRetries: number = 5
+): Promise<GeneratedDevotional> {
+  // Validate params first
+  validateDevotionalParams(params);
+
+  // Get userId and tier for enterprise resilience
+  let userId: string;
+  let userTier = 'seeker'; // default
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+    userId = user.id;
+
+    // Get user tier for rate limiting and priority
+    try {
+      const { subscriptionService } = await import('./subscriptionService');
+      const subscription = await subscriptionService.getUserSubscription(userId);
+      userTier = subscription.tier;
+    } catch (tierError) {
+      Logger.warn('Failed to get user tier for devotional, using default', {
+        component: 'modernDevotionalApi',
+      });
+    }
+  } catch (error) {
+    Logger.error('Failed to get user for devotional generation', error as Error, {
+      component: 'modernDevotionalApi',
+    });
+    throw error;
+  }
+
+  // Get priority based on tier
+  const tierPriority: Record<string, number> = {
+    transformation: 10,
+    growth: 7,
+    spark: 5,
+    seeker: 3,
+  };
+  const priority = tierPriority[userTier] || 3;
+
+  // Create deduplication key
+  const deduplicationKey = `devotional-${userId}-${params.duration}-${params.userInput?.substring(0, 30) || 'default'}`;
+
+  // Wrap with enterprise resilience (includes queuing, rate limiting, retries, health checks)
+  return enterpriseResilience.executeWithResilience(
+    () => generateDevotionalInternal(params, userId, maxRetries),
+    {
+      userId,
+      tier: userTier,
+      operationName: 'devotional-generation',
+      priority,
+      deduplicationKey,
+    }
+  );
 }
 
 /**

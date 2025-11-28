@@ -377,8 +377,20 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
           pollForCompletion().catch((error) => {
             Logger.error('❌ Playbook generation failed', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
-            setGenerationError(error.message || 'Failed to generate playbook. Please try again.');
+            // Convert technical errors to user-friendly messages
+            const userMessage = error.message?.includes('Circuit breaker is OPEN') 
+              ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
+              : error.message || 'Failed to generate playbook. Please try again.';
+            setGenerationError(userMessage);
             setIsGenerating(false);
+            
+            // Development: Reset circuit breaker if it's a circuit breaker error
+            if (__DEV__ && error.message?.includes('Circuit breaker is OPEN')) {
+              import('../../utils/circuitBreaker').then(({ resetCircuit }) => {
+                resetCircuit('openai-generation');
+                console.log('🔄 Circuit breaker reset for development');
+              });
+            }
           });
 
         } else {
@@ -452,7 +464,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               Logger.error('❌ Direct generation check failed', directError as Error, {
         component: 'OnboardingPlaybookGenerationScreen',
       });
-              setGenerationError('Unable to generate your playbook. Please try again.');
+              // Convert technical errors to user-friendly messages
+              const userMessage = (directError as Error).message?.includes('Circuit breaker is OPEN') 
+                ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
+                : 'Unable to generate your playbook. Please try again.';
+              setGenerationError(userMessage);
               setIsGenerating(false);
             }
           }, 2000); // Wait 2 seconds for database to be ready
@@ -463,7 +479,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
     } catch (error) {
       Logger.error('❌ Error generating playbook', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
-      setGenerationError('Unable to generate your playbook. Please try again.');
+      // Convert technical errors to user-friendly messages
+      const userMessage = (error as Error).message?.includes('Circuit breaker is OPEN') 
+        ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
+        : 'Unable to generate your playbook. Please try again.';
+      setGenerationError(userMessage);
       setIsGenerating(false);
     }
   }, [params, user, navigation, progressAnim]);

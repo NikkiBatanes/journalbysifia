@@ -244,11 +244,20 @@ class CircuitBreakerRegistry {
     config?: Partial<CircuitBreakerConfig>
   ): CircuitBreaker {
     if (!this.breakers.has(name)) {
-      const defaultConfig: CircuitBreakerConfig = {
-        failureThreshold: 5, // Open after 5 failures
-        successThreshold: 2, // Close after 2 successes
-        timeout: 60000, // Try again after 60 seconds
-        monitoringPeriod: 120000, // Count failures in 2-minute window
+      // Environment-aware configuration for production scale
+      const isDev = __DEV__;
+      const defaultConfig: CircuitBreakerConfig = isDev ? {
+        // Development: More lenient for testing
+        failureThreshold: 10,
+        successThreshold: 2,
+        timeout: 30000, // 30 seconds
+        monitoringPeriod: 300000, // 5 minutes
+      } : {
+        // Production: Optimized for 2000 concurrent users
+        failureThreshold: 20, // Higher threshold for production
+        successThreshold: 3, // Require more successes to close
+        timeout: 15000, // 15 seconds (faster recovery)
+        monitoringPeriod: 600000, // 10 minutes (longer window)
       };
 
       const finalConfig = { ...defaultConfig, ...config };
