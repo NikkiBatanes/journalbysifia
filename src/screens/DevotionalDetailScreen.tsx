@@ -1489,12 +1489,9 @@ const styles = StyleSheet.create({
   },
   questionCardText: {
     flex: 1,
-    flexShrink: 1,
-    flexWrap: 'wrap',
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-    minHeight: 20, // Ensure minimum height for single line
     paddingTop: 2, // Add slight top padding for better alignment
   },
   fab: {
