@@ -430,6 +430,12 @@ export class FaithPointsService {
 
                 // Save badge to database (using awardBadge method which has correct schema)
                 try {
+                  Logger.debug(`[FaithPointsService] Awarding badge: ${badge.name} (ID: ${badge.id})`, {
+                    component: 'faithPointsService',
+                    userId,
+                    badgeId: badge.id,
+                    badgeName: badge.name,
+                  });
                   await this.awardBadge(userId, badge);
                 } catch (saveErr) {
                   Logger.error('[FaithPointsService] Exception saving badge to database (deferred)', saveErr as Error, {
@@ -1126,6 +1132,12 @@ export class FaithPointsService {
       const userBadges = await this.getUserBadges(userId);
       const userBadgeIds = userBadges.map(b => b.id);
 
+      Logger.debug(`[FaithPointsService] Badge check started - Available: ${availableBadges.length}, User has: ${userBadges.length}`, {
+        component: 'faithPointsService',
+        availableBadgeIds: availableBadges.map(b => b.id),
+        userBadgeIds,
+      });
+
       const newBadges: Badge[] = [];
 
       // Pre-fetch activity counts to avoid multiple database calls
@@ -1169,12 +1181,12 @@ export class FaithPointsService {
             const earned = await this.checkBadgeRequirementWithCounts(userId, badge, activity, activityCounts);
             if (earned) {
               newBadges.push(badge);
-              await this.awardBadge(userId, badge);
+              // NOTE: Don't award here - awarding happens in deferred processing
             }
           } else if (pointsRequirementMet) {
             // For point-based badges, just check points (no database calls needed)
             newBadges.push(badge);
-            await this.awardBadge(userId, badge);
+            // NOTE: Don't award here - awarding happens in deferred processing
           }
         }
       }
@@ -1521,9 +1533,8 @@ export class FaithPointsService {
 
   private async awardBadge(userId: string, badge: Badge): Promise<void> {
     try {
-      // ENTERPRISE FIX: Query badges table to get UUID for the badge
-      // The user_badges.badge_id is a foreign key to badges.id (UUID)
-      // We need to look up the badge by name to get its UUID
+      // PREVENT DUPLICATES: Check if user already has this badge
+      // First get the badge UUID from badges table
       const { data: badgeRecord, error: lookupError } = await supabase
         .from('badges')
         .select('id')
@@ -1537,8 +1548,23 @@ export class FaithPointsService {
           badgeId: badge.id,
           errorDetails: lookupError,
         });
-        // Badge doesn't exist in badges table - skip insertion
-        // This prevents UUID type errors
+        return;
+      }
+
+      // Now check if user already has this badge
+      const { data: existingBadge } = await supabase
+        .from('user_badges')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('badge_id', badgeRecord.id)
+        .single();
+
+      if (existingBadge) {
+        Logger.info('[FaithPointsService] Badge already exists for user, skipping award', {
+          component: 'faithPointsService',
+          badgeId: badgeRecord.id,
+          badgeName: badge.name,
+        });
         return;
       }
 
