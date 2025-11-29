@@ -79,9 +79,18 @@ async function generateDevotionalInternal(
         }
       } catch {}
 
-      // Wrap with circuit breaker and timeout for resilience
-      const response = await withCircuitBreaker('openai-generation', async () => {
-        return withTimeout(
+      // CRITICAL FIX: Bypass circuit breaker for TestFlight reliability
+      // Onboarding bypasses circuit breaker via queueService, regular generation should too
+      const shouldBypassCircuitBreaker = !__DEV__; // Production/TestFlight only
+      
+      let response;
+      if (shouldBypassCircuitBreaker) {
+        // Direct call without circuit breaker (like onboarding does)
+        Logger.info('Bypassing circuit breaker for production reliability', {
+          component: 'modernDevotionalApi',
+          data: { operation: 'devotional-generation' }
+        });
+        response = await withTimeout(
           fetch(functionUrl, {
             method: 'POST',
             headers: {
@@ -103,7 +112,33 @@ async function generateDevotionalInternal(
             operationName: 'Devotional Generation',
           }
         );
-      });
+      } else {
+        // Development mode: Use circuit breaker as normal
+        response = await withCircuitBreaker('openai-generation', async () => {
+          return withTimeout(
+            fetch(functionUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': ENV.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                duration,
+                playbookId,
+                userInput: userInput || 'General spiritual growth',
+                bibleVersion: bibleVersion || 'NASB',
+                dateOfBirth,
+                ageGroup,
+              }),
+            }),
+            {
+              timeoutMs: 120000, // 120 seconds for devotionals
+              operationName: 'Devotional Generation',
+            }
+          );
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();

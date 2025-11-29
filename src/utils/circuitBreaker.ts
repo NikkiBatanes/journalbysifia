@@ -253,11 +253,11 @@ class CircuitBreakerRegistry {
         timeout: 30000, // 30 seconds
         monitoringPeriod: 300000, // 5 minutes
       } : {
-        // Production: Very lenient - we have retry logic now
-        failureThreshold: 50, // Much higher threshold - retry logic handles failures
-        successThreshold: 5, // More successes needed to regain trust
-        timeout: 30000, // 30 seconds (allow retries to complete)
-        monitoringPeriod: 900000, // 15 minutes (longer window)
+        // Production: Extremely lenient for TestFlight reliability
+        failureThreshold: 200, // Very high threshold - TestFlight network issues
+        successThreshold: 10, // More successes needed to regain trust
+        timeout: 60000, // 60 seconds (allow all retries to complete)
+        monitoringPeriod: 1800000, // 30 minutes (very long window)
       };
 
       const finalConfig = { ...defaultConfig, ...config };
