@@ -248,9 +248,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setIsAdding(false);
     setIsEditing(false);
     setNewItems(['', '', '']);
-    // Scroll to the Reflect & Grow header when canceling
+    // Scroll to reflect section (contains gratitude) when canceling
     setTimeout(() => {
-      scrollToSection('reflect-carousel', 1200);
+      scrollToSection('reflect-carousel', -100);
     }, 100);
   };
 
@@ -321,6 +321,22 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   }, user?.id);
                 }
 
+                // CRITICAL: Optimistic cache update BEFORE API calls
+                const currentQueryKey = ['journal', 'gratitude', user?.id, dateStr];
+
+                if (updatedItems.length > 0) {
+                  // Optimistically update with remaining items
+                  const optimisticEntry = {
+                    ...entryToDelete,
+                    content: JSON.stringify({ items: updatedItems }),
+                    updated_at: new Date().toISOString(),
+                  };
+                  queryClient.setQueryData(currentQueryKey, [optimisticEntry]);
+                } else {
+                  // Optimistically remove the entire entry if no items remain
+                  queryClient.setQueryData(currentQueryKey, []);
+                }
+
                 // Always delete the old entry first
                 await deleteMutation.mutateAsync(entryToDelete.id);
 
@@ -332,12 +348,18 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                     date: selectedDate,
                   }));
 
-                  await createMutation.mutateAsync({
+                  const newEntry = await createMutation.mutateAsync({
                     user_id: user?.id || '',
                     selected_date: dateStr,
                     content_type: 'gratitude',
                     content: JSON.stringify({ items: itemsToSave }),
                   });
+
+                  // Update cache with the new entry data
+                  queryClient.setQueryData(currentQueryKey, [newEntry]);
+                } else {
+                  // Ensure cache remains empty since no items left
+                  queryClient.setQueryData(currentQueryKey, []);
                 }
                 triggerSuccessHaptic();
               }
@@ -345,6 +367,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               Logger.error('Error deleting gratitude item', deleteError as Error, {
         component: 'GratitudeListReactQuery',
       });
+
+              // Refetch to restore correct state on error
+              queryClient.invalidateQueries({
+                queryKey: ['journal', 'gratitude', user?.id, dateStr],
+              });
+
               Alert.alert('Error', 'Failed to delete gratitude item. Please try again.');
               triggerErrorHaptic();
             }
@@ -358,7 +386,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       ],
       { cancelable: true }
     );
-  }, [gratitudeItems, gratitudeEntries, deleteMutation, createMutation, visibleCount, user, selectedDate, dateStr]);
+  }, [gratitudeItems, gratitudeEntries, deleteMutation, createMutation, visibleCount, user, selectedDate, dateStr, queryClient]);
 
   // Individual item edit handlers
   // editGratitudeItem removed - was defined but never called
@@ -455,9 +483,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           date: dateStr,
         }, user.id);
 
-        // Scroll to the Reflect & Grow header after successful save
+        // Scroll to reflect section (contains gratitude) after successful save
         setTimeout(() => {
-          scrollToSection('reflect-carousel', 1200);
+          scrollToSection('reflect-carousel', -100);
         }, 100);
 
         setNewItems(['', '', '']);
@@ -496,9 +524,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
           triggerSuccessHaptic();
 
-          // Scroll to the Reflect & Grow header after deletion
+          // Scroll to reflect section (contains gratitude) after deletion
           setTimeout(() => {
-            scrollToSection('reflect-carousel', 1200);
+            scrollToSection('reflect-carousel', -100);
           }, 100);
 
           // Close global edit mode if active
@@ -519,9 +547,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         setIsEditing(false);
         closeAllSwipeables();
 
-        // Scroll to the Reflect & Grow header when canceling
+        // Scroll to reflect section (contains gratitude) when canceling
         setTimeout(() => {
-          scrollToSection('reflect-carousel', 1200);
+          scrollToSection('reflect-carousel', -100);
         }, 100);
       }
     }
@@ -537,9 +565,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     triggerLightHaptic();
     closeAllSwipeables();
     setVisibleCount(5);
-    // Scroll to the Reflect & Grow header when showing less
+    // Scroll to reflect section (contains gratitude) when showing less
     setTimeout(() => {
-      scrollToSection('reflect-carousel', 400); // Scroll to reflect section with small offset
+      scrollToSection('reflect-carousel', -100);
     }, 100);
   }, [closeAllSwipeables, scrollToSection]);
 

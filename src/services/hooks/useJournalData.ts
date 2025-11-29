@@ -871,7 +871,7 @@ export const useDeleteTodoEntry = () => {
 
       // Get all todo queries from the cache
       const queryCache = queryClient.getQueryCache();
-      const todoQueries = queryCache.getAll().filter(query => 
+      const todoQueries = queryCache.getAll().filter(query =>
         query.queryKey[0] === 'journal' && query.queryKey[1] === 'todos'
       );
 
@@ -887,23 +887,23 @@ export const useDeleteTodoEntry = () => {
       }
 
       // Snapshot the previous value for the specific query
-      const previousEntries = queryKeyToDelete 
-        ? queryClient.getQueryData(queryKeyToDelete) 
+      const previousEntries = queryKeyToDelete
+        ? queryClient.getQueryData(queryKeyToDelete)
         : undefined;
 
       // Optimistically remove the entry from all todo queries
       if (queryKeyToDelete) {
-        queryClient.setQueryData(queryKeyToDelete, (old: JournalApiEntry[] = []) => 
+        queryClient.setQueryData(queryKeyToDelete, (old: JournalApiEntry[] = []) =>
           old.filter(entry => entry.id !== entryId)
         );
       }
 
       // Return context for rollback
-      return { 
-        entryId, 
-        entryToDelete, 
-        queryKeyToDelete, 
-        previousEntries 
+      return {
+        entryId,
+        entryToDelete,
+        queryKeyToDelete,
+        previousEntries,
       };
     },
     onError: (err, entryId, context) => {
@@ -927,8 +927,8 @@ export const useDeleteTodoEntry = () => {
       if (context?.entryToDelete) {
         try {
           JournalCache.clearCache(
-            context.entryToDelete.user_id, 
-            context.entryToDelete.selected_date, 
+            context.entryToDelete.user_id,
+            context.entryToDelete.selected_date,
             'todo'
           );
         } catch (error) {
