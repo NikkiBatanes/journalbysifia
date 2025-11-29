@@ -79,42 +79,50 @@ async function generateDevotionalInternal(
         }
       } catch {}
 
-      // CRITICAL FIX: Bypass circuit breaker for TestFlight reliability
-      // Onboarding bypasses circuit breaker via queueService, regular generation should too
-      const shouldBypassCircuitBreaker = !__DEV__; // Production/TestFlight only
+      // CRITICAL FIX: Use Supabase SDK instead of raw fetch for TestFlight reliability
+      // Onboarding works because it uses supabase.functions.invoke(), not fetch()
+      // Raw fetch() has iOS networking issues in TestFlight builds
+      const shouldUseSupabaseSDK = !__DEV__; // Production/TestFlight only
 
-      let response;
-      if (shouldBypassCircuitBreaker) {
-        // Direct call without circuit breaker (like onboarding does)
-        Logger.info('Bypassing circuit breaker for production reliability', {
+      let result;
+      if (shouldUseSupabaseSDK) {
+        // Use Supabase SDK (like onboarding does) - handles iOS networking gracefully
+        Logger.info('Using Supabase SDK for production reliability', {
           component: 'modernDevotionalApi',
           data: { operation: 'devotional-generation' },
         });
-        response = await withTimeout(
-          fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': ENV.SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
+
+        const sdkResponse = await withTimeout(
+          supabase.functions.invoke('generate-devotional', {
+            body: {
               duration,
               playbookId,
               userInput: userInput || 'General spiritual growth',
               bibleVersion: bibleVersion || 'NASB',
               dateOfBirth,
               ageGroup,
-            }),
+            },
           }),
           {
             timeoutMs: 180000, // 180 seconds (3 minutes) for TestFlight reliability
             operationName: 'Devotional Generation',
           }
         );
+
+        // Transform Supabase SDK response
+        if (sdkResponse.error) {
+          throw new Error(sdkResponse.error.message || 'Devotional generation failed');
+        }
+
+        if (!sdkResponse.data) {
+          throw new Error('No data returned from devotional generation');
+        }
+
+        // Supabase SDK already parsed JSON, use data directly
+        result = sdkResponse.data;
       } else {
-        // Development mode: Use circuit breaker as normal
-        response = await withCircuitBreaker('openai-generation', async () => {
+        // Development mode: Use raw fetch with circuit breaker
+        const response = await withCircuitBreaker('openai-generation', async () => {
           return withTimeout(
             fetch(functionUrl, {
               method: 'POST',
@@ -138,9 +146,8 @@ async function generateDevotionalInternal(
             }
           );
         });
-      }
 
-      if (!response.ok) {
+        if (!response.ok) {
         const errorText = await response.text();
 
         // Handle specific error cases
@@ -158,9 +165,10 @@ async function generateDevotionalInternal(
         } else {
           throw new Error(errorText || `HTTP error! status: ${response.status}`);
         }
-      }
+        }
 
-      const result = await response.json();
+        result = await response.json();
+      }
 
       // Validate the response structure
       if (!result || !Array.isArray(result.days) || result.days.length === 0) {

@@ -288,39 +288,47 @@ async function generatePlaybookInternal(
         }
       } catch {}
 
-      // CRITICAL FIX: Bypass circuit breaker for TestFlight reliability
-      // Onboarding bypasses circuit breaker via queueService, regular generation should too
-      const shouldBypassCircuitBreaker = !__DEV__; // Production/TestFlight only
+      // CRITICAL FIX: Use Supabase SDK instead of raw fetch for TestFlight reliability
+      // Onboarding works because it uses supabase.functions.invoke(), not fetch()
+      // Raw fetch() has iOS networking issues in TestFlight builds
+      const shouldUseSupabaseSDK = !__DEV__; // Production/TestFlight only
 
-      let response;
-      if (shouldBypassCircuitBreaker) {
-        // Direct call without circuit breaker (like onboarding does)
-        Logger.info('Bypassing circuit breaker for production reliability', {
+      let result;
+      if (shouldUseSupabaseSDK) {
+        // Use Supabase SDK (like onboarding does) - handles iOS networking gracefully
+        Logger.info('Using Supabase SDK for production reliability', {
           component: 'modernPlaybookApi',
           data: { operation: 'playbook-generation' },
         });
-        response = await withTimeout(
-          fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': ENV.SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
+
+        const sdkResponse = await withTimeout(
+          supabase.functions.invoke('generate-playbook', {
+            body: {
               userInput,
               userName,
               bibleVersion,
               userId: userIdForGeneration,
               dateOfBirth,
               ageGroup,
-            }),
+            },
           }),
           TIMEOUT_CONFIGS.AI_GENERATION
         );
+
+        // Transform Supabase SDK response
+        if (sdkResponse.error) {
+          throw new Error(sdkResponse.error.message || 'Playbook generation failed');
+        }
+
+        if (!sdkResponse.data) {
+          throw new Error('No data returned from playbook generation');
+        }
+
+        // Supabase SDK already parsed JSON, use data directly
+        result = sdkResponse.data;
       } else {
-        // Development mode: Use circuit breaker as normal
-        response = await withCircuitBreaker('openai-generation', async () => {
+        // Development mode: Use raw fetch with circuit breaker
+        const response = await withCircuitBreaker('openai-generation', async () => {
           return withTimeout(
             fetch(functionUrl, {
               method: 'POST',
@@ -341,24 +349,24 @@ async function generatePlaybookInternal(
             TIMEOUT_CONFIGS.AI_GENERATION
           );
         });
-      }
 
-      if (!response.ok) {
-        const errorText = await response.text();
+        if (!response.ok) {
+          const errorText = await response.text();
 
-        // Handle specific error cases
-        if (response.status === 401) {
-          throw new Error(AUTH_ERROR_MESSAGES.SESSION_EXPIRED);
-        } else if (response.status === 403) {
-          throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
-        } else if (response.status >= 500) {
-          throw new Error(`Server error: ${response.status}. Please try again.`);
-        } else {
-          throw new Error(errorText || `HTTP error! status: ${response.status}`);
+          // Handle specific error cases
+          if (response.status === 401) {
+            throw new Error(AUTH_ERROR_MESSAGES.SESSION_EXPIRED);
+          } else if (response.status === 403) {
+            throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
+          } else if (response.status >= 500) {
+            throw new Error(`Server error: ${response.status}. Please try again.`);
+          } else {
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
+          }
         }
-      }
 
-      const result = await response.json();
+        result = await response.json();
+      }
 
       // Enhanced validation for complete playbook content
       if (!result || !result.title || !Array.isArray(result.actionSteps)) {
