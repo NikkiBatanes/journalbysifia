@@ -935,6 +935,7 @@ const styles = StyleSheet.create({
   },
   prayerContentContainer: {
     marginBottom: 8,
+    width: '100%',
   },
 
   prayerHeader: {
@@ -975,6 +976,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     // font handled by ThemedText
     marginBottom: 4,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   notesText: {
     color: 'rgba(255, 255, 255, 0.8)',
@@ -986,6 +989,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     padding: 8,
     borderRadius: 8,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   notesRow: {
     flexDirection: 'row',
@@ -998,17 +1003,21 @@ const styles = StyleSheet.create({
   },
   notesBox: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     padding: 8,
     borderRadius: 8,
     marginTop: 8,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   notesTextInside: {
     backgroundColor: 'transparent',
     padding: 0,
     marginTop: 0,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   addButton: {
     flexDirection: 'row',
