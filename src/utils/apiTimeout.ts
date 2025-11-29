@@ -110,8 +110,9 @@ export async function withTimeoutAndRetry<T>(
  */
 export const TIMEOUT_CONFIGS = {
   // AI generation can take time, especially for full playbooks with many action steps
+  // TestFlight needs much longer timeout due to real-world network latency
   AI_GENERATION: {
-    timeoutMs: 90000, // 90 seconds
+    timeoutMs: 180000, // 180 seconds (3 minutes) for TestFlight reliability
     operationName: 'AI Generation',
     retryOnTimeout: false, // Don't retry AI generation on timeout
   },

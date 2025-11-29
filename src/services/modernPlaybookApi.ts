@@ -31,7 +31,7 @@ function isNetworkError(error: any): boolean {
     error?.code === 'ECONNRESET' ||
     error?.code === 'ETIMEDOUT'
   );
-  
+
   // Temporary debug logging for TestFlight network issues
   if (isNetwork) {
     Logger.error('Network error detected in TestFlight', {
@@ -42,10 +42,10 @@ function isNetworkError(error: any): boolean {
         errorStack: error?.stack,
         apiBaseUrl: ENV.API_BASE_URL,
         appEnv: ENV.APP_ENV,
-      }
+      },
     });
   }
-  
+
   return isNetwork;
 }
 
@@ -291,13 +291,13 @@ async function generatePlaybookInternal(
       // CRITICAL FIX: Bypass circuit breaker for TestFlight reliability
       // Onboarding bypasses circuit breaker via queueService, regular generation should too
       const shouldBypassCircuitBreaker = !__DEV__; // Production/TestFlight only
-      
+
       let response;
       if (shouldBypassCircuitBreaker) {
         // Direct call without circuit breaker (like onboarding does)
         Logger.info('Bypassing circuit breaker for production reliability', {
           component: 'modernPlaybookApi',
-          data: { operation: 'playbook-generation' }
+          data: { operation: 'playbook-generation' },
         });
         response = await withTimeout(
           fetch(functionUrl, {

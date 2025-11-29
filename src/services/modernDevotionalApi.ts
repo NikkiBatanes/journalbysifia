@@ -82,13 +82,13 @@ async function generateDevotionalInternal(
       // CRITICAL FIX: Bypass circuit breaker for TestFlight reliability
       // Onboarding bypasses circuit breaker via queueService, regular generation should too
       const shouldBypassCircuitBreaker = !__DEV__; // Production/TestFlight only
-      
+
       let response;
       if (shouldBypassCircuitBreaker) {
         // Direct call without circuit breaker (like onboarding does)
         Logger.info('Bypassing circuit breaker for production reliability', {
           component: 'modernDevotionalApi',
-          data: { operation: 'devotional-generation' }
+          data: { operation: 'devotional-generation' },
         });
         response = await withTimeout(
           fetch(functionUrl, {
@@ -108,7 +108,7 @@ async function generateDevotionalInternal(
             }),
           }),
           {
-            timeoutMs: 120000, // 120 seconds for devotionals
+            timeoutMs: 180000, // 180 seconds (3 minutes) for TestFlight reliability
             operationName: 'Devotional Generation',
           }
         );
@@ -133,7 +133,7 @@ async function generateDevotionalInternal(
               }),
             }),
             {
-              timeoutMs: 120000, // 120 seconds for devotionals
+              timeoutMs: 180000, // 180 seconds (3 minutes) for TestFlight reliability
               operationName: 'Devotional Generation',
             }
           );

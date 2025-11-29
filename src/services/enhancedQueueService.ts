@@ -428,18 +428,18 @@ export class EnhancedQueueService {
    */
   private async generatePlaybook(item: QueueItem): Promise<any> {
     const maxRetries = 3;
-    const timeout = 120000; // 120 seconds for AI generation
+    const timeout = 180000; // 180 seconds (3 minutes) for TestFlight reliability
     let lastError: any = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         Logger.info(`Generating playbook attempt ${attempt}/${maxRetries}`, {
           component: 'enhancedQueueService',
-          data: { userId: item.userId, attempt }
+          data: { userId: item.userId, attempt },
         });
 
         // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Request timeout')), timeout)
         );
 
@@ -452,7 +452,7 @@ export class EnhancedQueueService {
               userId: item.userId,
             },
           }),
-          timeoutPromise
+          timeoutPromise,
         ]) as any;
 
         const { data, error } = result;
@@ -461,9 +461,9 @@ export class EnhancedQueueService {
           lastError = error;
           Logger.warn(`Playbook generation failed attempt ${attempt}`, {
             component: 'enhancedQueueService',
-            data: { error: error.message, attempt }
+            data: { error: error.message, attempt },
           });
-          
+
           // Don't retry on last attempt
           if (attempt < maxRetries) {
             // Exponential backoff: 2s, 4s, 8s
@@ -479,7 +479,7 @@ export class EnhancedQueueService {
 
         Logger.info(`Playbook generated successfully on attempt ${attempt}`, {
           component: 'enhancedQueueService',
-          data: { userId: item.userId, attempt }
+          data: { userId: item.userId, attempt },
         });
 
         return data;
@@ -487,7 +487,7 @@ export class EnhancedQueueService {
         lastError = error;
         Logger.warn(`Playbook generation error attempt ${attempt}`, {
           component: 'enhancedQueueService',
-          data: { error: error.message, attempt }
+          data: { error: error.message, attempt },
         });
 
         // Don't retry on last attempt
@@ -509,18 +509,18 @@ export class EnhancedQueueService {
    */
   private async generateDevotional(item: QueueItem): Promise<any> {
     const maxRetries = 3;
-    const timeout = 90000; // 90 seconds for devotional generation
+    const timeout = 180000; // 180 seconds (3 minutes) for TestFlight reliability
     let lastError: any = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         Logger.info(`Generating devotional attempt ${attempt}/${maxRetries}`, {
           component: 'enhancedQueueService',
-          data: { userId: item.userId, attempt }
+          data: { userId: item.userId, attempt },
         });
 
         // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Request timeout')), timeout)
         );
 
@@ -535,7 +535,7 @@ export class EnhancedQueueService {
               playbookId: item.contextData?.playbookId,
             },
           }),
-          timeoutPromise
+          timeoutPromise,
         ]) as any;
 
         const { data, error } = result;
@@ -544,9 +544,9 @@ export class EnhancedQueueService {
           lastError = error;
           Logger.warn(`Devotional generation failed attempt ${attempt}`, {
             component: 'enhancedQueueService',
-            data: { error: error.message, attempt }
+            data: { error: error.message, attempt },
           });
-          
+
           // Don't retry on last attempt
           if (attempt < maxRetries) {
             // Exponential backoff
@@ -562,7 +562,7 @@ export class EnhancedQueueService {
 
         Logger.info(`Devotional generated successfully on attempt ${attempt}`, {
           component: 'enhancedQueueService',
-          data: { userId: item.userId, attempt }
+          data: { userId: item.userId, attempt },
         });
 
         return data;
@@ -570,7 +570,7 @@ export class EnhancedQueueService {
         lastError = error;
         Logger.warn(`Devotional generation error attempt ${attempt}`, {
           component: 'enhancedQueueService',
-          data: { error: error.message, attempt }
+          data: { error: error.message, attempt },
         });
 
         // Don't retry on last attempt
