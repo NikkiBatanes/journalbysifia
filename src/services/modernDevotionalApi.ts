@@ -156,10 +156,9 @@ async function generateDevotionalInternal(
         } else if (response.status === 403) {
           throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
         } else if (response.status >= 500) {
-          const serverErrorText = await response.text();
           Logger.error('Backend server error', new Error(`Server error: ${response.status}`), {
             component: 'modernDevotionalApi',
-            data: { status: response.status, errorText: serverErrorText, url: functionUrl },
+            data: { status: response.status, errorText, url: functionUrl },
           });
           throw new Error(`Server error: ${response.status}. Please try again.`);
         } else {

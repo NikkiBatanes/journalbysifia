@@ -1414,9 +1414,12 @@ export class FaithPointsService {
     switch (badge.name) {
       // Playbook Generation Badges
       case 'First Steps':
-        // Award only on the first playbook generation (count should be 0 before this one)
+        // Award only on the first playbook generation
         const currentCount = activityCounts.playbook_generated || 0;
-        return activity === 'playbook_generated' && currentCount === 0;
+        // CRITICAL FIX: For onboarding timing issues, accept count 0 or 1
+        // The !userBadgeNames.includes check above prevents duplicate awards
+        if (activity !== 'playbook_generated') { return false; }
+        return currentCount <= 1;
 
       case 'Growth Seeker':
         // Award after generating 25 playbooks - ONLY check during playbook generation
