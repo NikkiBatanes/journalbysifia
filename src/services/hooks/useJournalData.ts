@@ -862,16 +862,84 @@ export const useDeleteTodoEntry = () => {
   return useMutation({
     mutationFn: JournalApi.deleteJournalEntry,
     onMutate: async (entryId: string) => {
-      // We need to find the entry first to get user_id and selected_date
-      // This is a limitation of the current API design
-      return { entryId };
+      // Cancel any outgoing refetches for all todo queries to prevent race conditions
+      await queryClient.cancelQueries({ queryKey: ['journal', 'todos'] });
+
+      // Find the entry in any todo query to get user_id and selected_date for proper cache management
+      let entryToDelete: JournalApiEntry | undefined;
+      let queryKeyToDelete: any[] | undefined;
+
+      // Get all todo queries from the cache
+      const queryCache = queryClient.getQueryCache();
+      const todoQueries = queryCache.getAll().filter(query => 
+        query.queryKey[0] === 'journal' && query.queryKey[1] === 'todos'
+      );
+
+      // Find the entry in the cached data
+      for (const query of todoQueries) {
+        const entries = query.state.data as JournalApiEntry[] || [];
+        const found = entries.find(entry => entry.id === entryId);
+        if (found) {
+          entryToDelete = found;
+          queryKeyToDelete = [...query.queryKey]; // Create a mutable copy
+          break;
+        }
+      }
+
+      // Snapshot the previous value for the specific query
+      const previousEntries = queryKeyToDelete 
+        ? queryClient.getQueryData(queryKeyToDelete) 
+        : undefined;
+
+      // Optimistically remove the entry from all todo queries
+      if (queryKeyToDelete) {
+        queryClient.setQueryData(queryKeyToDelete, (old: JournalApiEntry[] = []) => 
+          old.filter(entry => entry.id !== entryId)
+        );
+      }
+
+      // Return context for rollback
+      return { 
+        entryId, 
+        entryToDelete, 
+        queryKeyToDelete, 
+        previousEntries 
+      };
     },
-    onSuccess: (_, _deletedId, _context: any) => {
-      // Remove the entry from todos queries
-      // Since we don't have user_id and selected_date, we invalidate all todos queries
-      queryClient.invalidateQueries({
-        queryKey: ['journal', 'todos'],
+    onError: (err, entryId, context) => {
+      Logger.error('Error deleting todo entry', err as Error, {
+        component: 'useJournalData',
       });
+
+      // Rollback on error
+      if (context?.previousEntries && context?.queryKeyToDelete) {
+        try {
+          queryClient.setQueryData(context.queryKeyToDelete, context.previousEntries);
+        } catch (rollbackError) {
+          Logger.error('Error rolling back todo entry deletion', rollbackError as Error, {
+            component: 'useJournalData',
+          });
+        }
+      }
+    },
+    onSuccess: (_, entryId, context) => {
+      // Clear cache for the specific entry if we have the details
+      if (context?.entryToDelete) {
+        try {
+          JournalCache.clearCache(
+            context.entryToDelete.user_id, 
+            context.entryToDelete.selected_date, 
+            'todo'
+          );
+        } catch (error) {
+          Logger.error('Error clearing cache after successful todo deletion', error as Error, {
+            component: 'useJournalData',
+          });
+        }
+      }
+
+      // Don't invalidate queries here since we're doing optimistic updates
+      // The cache is already updated with the entry removed
     },
   });
 };
