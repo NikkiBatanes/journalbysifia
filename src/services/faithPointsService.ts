@@ -460,90 +460,20 @@ export class FaithPointsService {
           clearTimeout(existingTimer);
         }
 
-        // Debounce: Only check badges after 2000ms of no new activity (increased from 500ms for rapid completion scenarios)
-        const timer = setTimeout(async () => {
-          try {
-            // Clean up timer reference
-            FaithPointsService.badgeCheckTimers.delete(userId);
+        // CRITICAL FIX: Use setImmediate for React Native non-blocking execution
+        // This ensures badge checking only runs when the UI is truly idle
+        const scheduleBadgeCheck = () => {
+          // React Native doesn't have requestIdleCallback, use setImmediate instead
+          // setImmediate runs on the next tick of the event loop, making it truly non-blocking
+          setImmediate(async () => {
+            await this.performBadgeCheck(userId, newTotalPoints, activity, timer);
+          });
+        };
 
-            Logger.debug('[FaithPointsService] DEBUG: Timer fired, starting deferred badge check', {
-              component: 'faithPointsService',
-              userId,
-              activity,
-              totalPoints: newTotalPoints,
-              timestamp: new Date().toISOString(),
-            });
-
-            // Now check for badges asynchronously
-            const deferredBadges = await this.checkForNewBadges(userId, newTotalPoints, activity);
-
-            if (deferredBadges && deferredBadges.length > 0) {
-              Logger.debug(`[FaithPointsService] Deferred badge check complete - Count: ${deferredBadges.length}`, {
-                component: 'faithPointsService',
-                badgeCount: deferredBadges.length,
-              });
-
-              // Process each badge
-              const badgePromises = deferredBadges.map(async (badge) => {
-                Logger.debug(`[FaithPointsService] Badge unlocked (deferred): ${badge.name}`, {
-                  component: 'faithPointsService',
-                  badgeId: badge.id,
-                  userId,
-                });
-
-                // Show badge notification
-                notificationService.showBadgeNotification(badge);
-
-                // Save badge to database (using awardBadge method which has correct schema)
-                try {
-                  Logger.debug(`[FaithPointsService] Awarding badge: ${badge.name} (ID: ${badge.id})`, {
-                    component: 'faithPointsService',
-                    userId,
-                    badgeId: badge.id,
-                    badgeName: badge.name,
-                  });
-                  await this.awardBadge(userId, badge);
-                } catch (saveErr) {
-                  Logger.error('[FaithPointsService] Exception saving badge to database (deferred)', saveErr as Error, {
-                    component: 'faithPointsService',
-                    badgeId: badge.id,
-                  });
-                }
-
-                // CRITICAL: Re-enable badge events but defer them to prevent freeze
-                // Profile screen needs BADGE_UNLOCKED events to update badge count
-                setTimeout(() => {
-                  faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
-                    userId,
-                    badge,
-                  });
-                }, 500); // Increased delay to ensure database write completes
-
-                // Award bonus points for badge unlock (non-blocking)
-                return this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
-                  type: 'badge_unlocked',
-                  badgeId: badge.id,
-                  badgeName: badge.name,
-                }).catch(err => {
-                  Logger.error('[FaithPointsService] Failed to record badge transaction', err as Error, {
-                    component: 'faithPointsService',
-                    badgeId: badge.id,
-                  });
-                });
-              });
-
-              Promise.all(badgePromises).catch(err => {
-                Logger.error('[FaithPointsService] Failed to process badges', err as Error, {
-                  component: 'faithPointsService',
-                });
-              });
-            }
-          } catch (badgeCheckError) {
-            Logger.error('[FaithPointsService] Failed to check badges (deferred)', badgeCheckError as Error, {
-              component: 'faithPointsService',
-            });
-          }
-        }, 500); // 500ms delay to let UI animations complete first
+        // Enhanced debouncing for rapid completion scenarios
+        const timer = setTimeout(() => {
+          scheduleBadgeCheck();
+        }, 3000); // INCREASED: 3000ms delay for rapid completion scenarios
 
         // Store timer reference for cleanup
         FaithPointsService.badgeCheckTimers.set(userId, timer);
@@ -1207,6 +1137,108 @@ export class FaithPointsService {
   /**
    * Check for new badges earned
    */
+  private async performBadgeCheck(
+    userId: string,
+    totalPoints: number,
+    activity: string,
+    timer: NodeJS.Timeout
+  ): Promise<void> {
+    try {
+      // Clean up timer reference
+      FaithPointsService.badgeCheckTimers.delete(userId);
+
+      Logger.debug('[FaithPointsService] DEBUG: Timer fired, starting deferred badge check', {
+        component: 'faithPointsService',
+        userId,
+        activity,
+        totalPoints: totalPoints,
+        timestamp: new Date().toISOString(),
+      });
+
+      // CRITICAL: Check if this timer is still valid (not superseded by newer activity)
+      const currentTimer = FaithPointsService.badgeCheckTimers.get(userId);
+      if (currentTimer !== timer) {
+        Logger.debug('[FaithPointsService] DEBUG: Timer superseded by newer activity, skipping badge check', {
+          component: 'faithPointsService',
+          userId,
+        });
+        return;
+      }
+
+      // Now check for badges asynchronously (non-blocking)
+      const deferredBadges = await this.checkForNewBadges(userId, totalPoints, activity);
+
+      if (deferredBadges && deferredBadges.length > 0) {
+        Logger.debug(`[FaithPointsService] Deferred badge check complete - Count: ${deferredBadges.length}`, {
+          component: 'faithPointsService',
+          badgeCount: deferredBadges.length,
+        });
+
+        // Process each badge with additional non-blocking delays
+        const badgePromises = deferredBadges.map(async (badge, index) => {
+          // Add staggered delays to prevent database overload
+          await new Promise(resolve => setTimeout(resolve, index * 200));
+
+          Logger.debug(`[FaithPointsService] Badge unlocked (deferred): ${badge.name}`, {
+            component: 'faithPointsService',
+            badgeId: badge.id,
+            userId,
+          });
+
+          // Show badge notification
+          notificationService.showBadgeNotification(badge);
+
+          // Save badge to database (using awardBadge method which has correct schema)
+          try {
+            Logger.debug(`[FaithPointsService] Awarding badge: ${badge.name} (ID: ${badge.id})`, {
+              component: 'faithPointsService',
+              userId,
+              badgeId: badge.id,
+              badgeName: badge.name,
+            });
+            await this.awardBadge(userId, badge);
+          } catch (saveErr) {
+            Logger.error('[FaithPointsService] Exception saving badge to database (deferred)', saveErr as Error, {
+              component: 'faithPointsService',
+              badgeId: badge.id,
+            });
+          }
+
+          // CRITICAL: Re-enable badge events but defer them to prevent freeze
+          // Profile screen needs BADGE_UNLOCKED events to update badge count
+          setTimeout(() => {
+            faithPointsEvents.emit(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, {
+              userId,
+              badge,
+            });
+          }, 500); // Increased delay to ensure database write completes
+
+          // Award bonus points for badge unlock (non-blocking)
+          return this.recordTransaction(userId, badge.pointsRequired, 'achievement', {
+            type: 'badge_unlocked',
+            badgeId: badge.id,
+            badgeName: badge.name,
+          }).catch(err => {
+            Logger.error('[FaithPointsService] Failed to record badge transaction', err as Error, {
+              component: 'faithPointsService',
+              badgeId: badge.id,
+            });
+          });
+        });
+
+        Promise.all(badgePromises).catch(err => {
+          Logger.error('[FaithPointsService] Failed to process badges', err as Error, {
+            component: 'faithPointsService',
+          });
+        });
+      }
+    } catch (badgeCheckError) {
+      Logger.error('[FaithPointsService] Failed to check badges (deferred)', badgeCheckError as Error, {
+        component: 'faithPointsService',
+      });
+    }
+  }
+
   private async checkForNewBadges(
     userId: string,
     totalPoints: number,

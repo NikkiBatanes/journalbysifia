@@ -149,6 +149,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       setShowPlaybookInfo(false);
       // Reset chevron rotation to collapsed state
       try { rotateAnim.setValue(0); } catch {}
+      // CRITICAL FIX: Reset selected duration when modal opens
+      setSelectedDuration(null);
     }
   }, [visible, rotateAnim]);
 
