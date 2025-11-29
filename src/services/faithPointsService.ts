@@ -76,6 +76,9 @@ export class FaithPointsService {
   // ENTERPRISE-GRADE: Debounce timer for badge checking per user
   private static badgeCheckTimers: Map<string, NodeJS.Timeout> = new Map();
 
+  // ONBOARDING: Track badge checks during onboarding to prevent duplicates
+  private static onboardingBadgeChecks: Set<string> = new Set();
+
   // RATE LIMITER: Track last faith points award time per user to prevent rapid completion spam
   private static lastAwardTimes: Map<string, number> = new Map();
 
@@ -460,23 +463,49 @@ export class FaithPointsService {
           clearTimeout(existingTimer);
         }
 
-        // CRITICAL FIX: Use setImmediate for React Native non-blocking execution
-        // This ensures badge checking only runs when the UI is truly idle
-        const scheduleBadgeCheck = () => {
-          // React Native doesn't have requestIdleCallback, use setImmediate instead
-          // setImmediate runs on the next tick of the event loop, making it truly non-blocking
-          setImmediate(async () => {
-            await this.performBadgeCheck(userId, newTotalPoints, activity, timer);
+        // CRITICAL FIX: For onboarding, check badges immediately to ensure First Steps badge is awarded
+        // But prevent duplicate checks during the same onboarding session
+        if (isOnboarding && activity === 'playbook_generated') {
+          Logger.debug('[FaithPointsService] DEBUG: Immediate badge check for onboarding playbook generation', {
+            component: 'faithPointsService',
+            userId,
+            activity,
           });
-        };
+          
+          // Prevent duplicate badge checks during onboarding
+          const onboardingBadgeKey = `onboarding_badge_check_${userId}`;
+          if (!FaithPointsService.onboardingBadgeChecks.has(onboardingBadgeKey)) {
+            FaithPointsService.onboardingBadgeChecks.add(onboardingBadgeKey);
+            
+            // Run immediately for onboarding to ensure First Steps badge
+            setImmediate(async () => {
+              await this.performBadgeCheck(userId, newTotalPoints, activity, undefined);
+            });
+          } else {
+            Logger.debug('[FaithPointsService] DEBUG: Skipping duplicate onboarding badge check', {
+              component: 'faithPointsService',
+              userId,
+            });
+          }
+        } else {
+          // CRITICAL FIX: Use setImmediate for React Native non-blocking execution
+          // This ensures badge checking only runs when the UI is truly idle
+          const scheduleBadgeCheck = () => {
+            // React Native doesn't have requestIdleCallback, use setImmediate instead
+            // setImmediate runs on the next tick of the event loop, making it truly non-blocking
+            setImmediate(async () => {
+              await this.performBadgeCheck(userId, newTotalPoints, activity, timer);
+            });
+          };
 
-        // Enhanced debouncing for rapid completion scenarios
-        const timer = setTimeout(() => {
-          scheduleBadgeCheck();
-        }, 3000); // INCREASED: 3000ms delay for rapid completion scenarios
+          // Enhanced debouncing for rapid completion scenarios
+          const timer = setTimeout(() => {
+            scheduleBadgeCheck();
+          }, 3000); // INCREASED: 3000ms delay for rapid completion scenarios
 
-        // Store timer reference for cleanup
-        FaithPointsService.badgeCheckTimers.set(userId, timer);
+          // Store timer reference for cleanup
+          FaithPointsService.badgeCheckTimers.set(userId, timer);
+        }
       }
 
       Logger.debug('[FaithPointsService] BEFORE milestone check', {
@@ -1141,7 +1170,7 @@ export class FaithPointsService {
     userId: string,
     totalPoints: number,
     activity: string,
-    timer: NodeJS.Timeout
+    timer: NodeJS.Timeout | undefined
   ): Promise<void> {
     try {
       // Clean up timer reference
