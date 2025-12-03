@@ -420,6 +420,17 @@ export const useUpdateSubTask = () => {
         );
       }
 
+      // CRITICAL: Also update the individual playbook cache for detail screen
+      const individualPlaybookKey = ['playbook', playbookId, userId];
+      const previousIndividualPlaybook = queryClient.getQueryData<Playbook>(individualPlaybookKey);
+      
+      if (previousIndividualPlaybook) {
+        const updatedIndividualPlaybook = updatePlaybooksCache([previousIndividualPlaybook])?.[0];
+        if (updatedIndividualPlaybook) {
+          queryClient.setQueryData(individualPlaybookKey, updatedIndividualPlaybook);
+        }
+      }
+
       timer.end();
 
       return { previousPlaybooks: previousPlaybooksFull };
