@@ -276,12 +276,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }
   }, [playbooks.length]);
 
-  // Reset animations when screen comes into focus and set to In Progress tab
+  // Reset animations when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
 
-      // Don't reset filter - preserve user's selection when navigating back
-      // setFilter('ongoing'); // REMOVED: This was resetting filter on every focus
+      // Check if we're coming from a tab navigation (not from detail screen)
+      // Tab navigation has no previous route, while detail screen navigation does
+      const state = navigation.getState();
+      const previousRoute = state?.routes?.[state.index - 1];
+      const isFromTabNavigation = !previousRoute || previousRoute.name === 'Playbooks';
+      
+      // Only reset filter to 'ongoing' when coming from tab press
+      if (isFromTabNavigation) {
+        setFilter('ongoing');
+      }
 
       // Safely reset animation values if they exist
       if (animatedValues.current && Array.isArray(animatedValues.current)) {
