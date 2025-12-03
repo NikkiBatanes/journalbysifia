@@ -109,6 +109,9 @@ const CustomTabBarComponent = ({
             if (route.name === 'Dashboard') {
               // Always route Home tab to the DashboardHome screen
               navigation.navigate('Dashboard', { screen: 'DashboardHome' });
+            } else if (route.name === 'Playbooks') {
+              // Pass fromTab parameter when navigating to Playbooks
+              navigation.navigate('Playbooks', { fromTab: true });
             } else {
               // Default behavior for other tabs
               navigation.navigate(route.name);

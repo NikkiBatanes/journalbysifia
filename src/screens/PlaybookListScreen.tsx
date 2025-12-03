@@ -280,15 +280,22 @@ const PlaybookListScreen = ({ navigation }: any) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
 
-      // Check if we're coming from a tab navigation (not from detail screen)
-      // Tab navigation has no previous route, while detail screen navigation does
-      const state = navigation.getState();
-      const previousRoute = state?.routes?.[state.index - 1];
-      const isFromTabNavigation = !previousRoute || previousRoute.name === 'Playbooks';
+      // Check if we have a parameter indicating we came from tab navigation
+      const params = route.params as any;
+      const fromTab = params?.fromTab;
       
-      // Only reset filter to 'ongoing' when coming from tab press
-      if (isFromTabNavigation) {
+      // Debug logging
+      console.log('Focus event - fromTab:', fromTab, 'params:', params);
+      
+      // Reset filter only when explicitly coming from tab navigation
+      if (fromTab === true) {
+        console.log('Resetting filter to ongoing - coming from tab');
         setFilter('ongoing');
+        
+        // Clear the parameter so it doesn't trigger again
+        navigation.setParams({ fromTab: undefined });
+      } else {
+        console.log('Preserving filter - not from tab navigation');
       }
 
       // Safely reset animation values if they exist
