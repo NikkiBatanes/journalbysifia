@@ -116,12 +116,55 @@ function transformPlaybookRow(
  * Get all playbooks for a user with their related data
  */
 export async function getPlaybooks(userId: string): Promise<Playbook[]> {
-
   try {
-    // Fetch playbooks - select all required columns for PlaybookRow interface
-    const { data: playbooks, error: playbooksError } = await supabase
+    // OPTIMIZED: Single query with joins to fetch all related data
+    const { data: playbooksData, error: playbooksError } = await supabase
       .from('playbooks')
-      .select('id, user_id, title, user_input, truth_in_love, bible_verse, direct_challenge, challenge_cta, status, created_at, updated_at')
+      .select(`
+        id,
+        user_id,
+        title,
+        user_input,
+        truth_in_love,
+        bible_verse,
+        direct_challenge,
+        challenge_cta,
+        status,
+        progress,
+        total_tasks,
+        completed_at,
+        created_at,
+        updated_at,
+        playbook_action_steps (
+          id,
+          text,
+          description,
+          examples,
+          example_interactive,
+          completed,
+          order_index,
+          created_at,
+          updated_at,
+          playbook_sub_tasks (
+            id,
+            text,
+            completed,
+            is_example,
+            example_interactive,
+            order_index,
+            created_at,
+            updated_at
+          )
+        ),
+        playbook_affirmations (
+          id,
+          text,
+          completed,
+          order_index,
+          created_at,
+          updated_at
+        )
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -133,80 +176,64 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       throw playbooksError;
     }
 
-    if (!playbooks || playbooks.length === 0) {
-
+    if (!playbooksData || playbooksData.length === 0) {
       return [];
     }
 
-    const playbookIds = playbooks.map(p => p.id);
+    // Transform the nested data into Playbook interface
+    return playbooksData.map((playbookRow: any) => {
+      // Transform action steps with their sub-tasks
+      const actionSteps: ActionStep[] = (playbookRow.playbook_action_steps || [])
+        .sort((a: any, b: any) => a.order_index - b.order_index)
+        .map((step: any) => ({
+          id: step.id,
+          title: step.text,
+          description: step.description,
+          examples: step.examples,
+          example_interactive: step.example_interactive,
+          completed: step.completed,
+          orderIndex: step.order_index,
+          subTasks: (step.playbook_sub_tasks || [])
+            .sort((a: any, b: any) => a.order_index - b.order_index)
+            .map((subTask: any) => ({
+              id: subTask.id,
+              text: subTask.text,
+              completed: subTask.completed,
+              is_example: subTask.is_example,
+              example_interactive: subTask.example_interactive,
+              orderIndex: subTask.order_index,
+            })),
+        }));
 
-    // Fetch all action steps for these playbooks
-    const { data: actionSteps, error: actionStepsError } = await supabase
-      .from('playbook_action_steps')
-      .select('*')
-      .in('playbook_id', playbookIds)
-      .order('order_index', { ascending: true });
+      // Transform affirmations
+      const affirmations: Affirmation[] = (playbookRow.playbook_affirmations || [])
+        .sort((a: any, b: any) => a.order_index - b.order_index)
+        .map((affirmation: any) => ({
+          id: affirmation.id,
+          text: affirmation.text,
+          completed: affirmation.completed,
+          orderIndex: affirmation.order_index,
+        }));
 
-    if (actionStepsError) {
-      Logger.error('[getPlaybooks] Error fetching action steps', actionStepsError as Error, {
-      component: 'supabaseApiNormalized',
-      action: 'getPlaybooks',
+      return {
+        id: playbookRow.id,
+        user_id: playbookRow.user_id,
+        title: playbookRow.title,
+        userInput: playbookRow.user_input || '',
+        truthInLove: playbookRow.truth_in_love || { text: '', summary: '' },
+        bibleVerse: playbookRow.bible_verse || { text: '', reference: '' },
+        directChallenge: playbookRow.direct_challenge,
+        challengeCTA: playbookRow.challenge_cta,
+        status: playbookRow.status,
+        progress: playbookRow.progress || 0,
+        totalTasks: playbookRow.total_tasks || 0,
+        completedAt: playbookRow.completed_at,
+        actionSteps,
+        affirmations,
+        createdAt: playbookRow.created_at,
+        updatedAt: playbookRow.updated_at,
+      } as Playbook;
     });
-      throw actionStepsError;
-    }
-
-    // Debug: Log fetched action steps
-
-    if (actionSteps && actionSteps.length > 0) {
-
-    }
-
-    // Fetch all sub-tasks for these action steps
-    const actionStepIds = actionSteps?.map(step => step.id) || [];
-    let subTasks: SubTaskRow[] = [];
-
-    if (actionStepIds.length > 0) {
-      const { data: subTasksData, error: subTasksError } = await supabase
-        .from('playbook_sub_tasks')
-        .select('*')
-        .in('action_step_id', actionStepIds)
-        .order('order_index', { ascending: true });
-
-      if (subTasksError) {
-        Logger.error('[getPlaybooks] Error fetching sub-tasks', subTasksError as Error, {
-      component: 'supabaseApiNormalized',
-      action: 'getPlaybooks',
-    });
-        throw subTasksError;
-      }
-
-      subTasks = subTasksData || [];
-    }
-
-    // Fetch all affirmations for these playbooks
-    const { data: affirmations, error: affirmationsError } = await supabase
-      .from('playbook_affirmations')
-      .select('*')
-      .in('playbook_id', playbookIds)
-      .order('order_index', { ascending: true });
-
-    if (affirmationsError) {
-      Logger.error('[getPlaybooks] Error fetching affirmations', affirmationsError as Error, {
-      component: 'supabaseApiNormalized',
-      action: 'getPlaybooks',
-    });
-      throw affirmationsError;
-    }
-
-    // Transform and group data by playbook
-    const result = playbooks.map(playbook => {
-      const playbookActionSteps = actionSteps?.filter(step => step.playbook_id === playbook.id) || [];
-      const playbookAffirmations = affirmations?.filter(aff => aff.playbook_id === playbook.id) || [];
-
-      return transformPlaybookRow(playbook, playbookActionSteps, subTasks, playbookAffirmations);
-    });
-
-    return result;
 
   } catch (error) {
     Logger.error('[getPlaybooks] Unexpected error', error as Error, {
