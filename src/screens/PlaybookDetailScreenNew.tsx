@@ -553,16 +553,18 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // 11. Gesture handler will be defined after navigation functions
 
   // 12. Memoized values
+  // Get user metadata at component level for access throughout the component
+  const userMeta: any = (user as any)?.user_metadata || {};
+  const firstName = userMeta.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+  const displayName = (user as any)?.displayName ||
+                     userMeta.full_name ||
+                     [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
+                     '';
+  // Get user's preferred Bible translation
+  const preferredBibleTranslation = userMeta?.preferences?.content?.bibleVersion;
+
   const cardData: CardData[] = useMemo(() => {
     if (!playbook) {return [];}
-
-    // Get user name for dynamic replacement
-    const userMeta: any = (user as any)?.user_metadata || {};
-    const firstName = userMeta.first_name || (user as any)?.displayName?.split(' ')[0] || '';
-    const displayName = (user as any)?.displayName ||
-                       userMeta.full_name ||
-                       [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
-                       '';
 
     // Log action steps data
     const finalActionSteps = Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
@@ -637,7 +639,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       tappable: false,
     },
   ];
-  }, [playbook, actionSteps, user]);
+  }, [playbook, actionSteps, firstName, displayName]);
 
   // Vertical separation between stacked cards (document vs stack)
   const STACK_OFFSET = 56;
@@ -1891,6 +1893,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                       verse={card.verse || { text: '', reference: '' }}
                       expanded={isExpanded}
                       showCloseButton={false}
+                      preferredBibleTranslation={preferredBibleTranslation}
                     />
                   </View>
                 );

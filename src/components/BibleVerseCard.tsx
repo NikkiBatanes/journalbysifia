@@ -21,14 +21,25 @@ type BibleVerseCardProps = {
   expanded?: boolean;
   collapsedLines?: number;
   showCloseButton?: boolean;
+  preferredBibleTranslation?: string; // User's preferred Bible translation
 };
 
-export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = '#274673', expanded = true, collapsedLines = 4, showCloseButton = true }: BibleVerseCardProps) {
-  // Default translation/version for onboarding and playbook views
+export default function BibleVerseCard({ 
+  verse, 
+  style, 
+  textColor = Colors.hopeWhite, 
+  backgroundColor = '#274673', 
+  expanded = true, 
+  collapsedLines = 4, 
+  showCloseButton = true,
+  preferredBibleTranslation 
+}: BibleVerseCardProps) {
   const [showCopyright, setShowCopyright] = useState(false);
-  const bibleVersion = (verse as any)?.version || 'NASB';
-  const cleanReference = (verse.reference || '').trim().toUpperCase();
-  const referenceIncludesVersion = cleanReference.toUpperCase().includes(bibleVersion.toUpperCase());
+  // Use user's preferred translation if provided, otherwise fall back to verse version or NASB
+  const bibleVersion = preferredBibleTranslation || (verse as any)?.version || 'NASB';
+  const rawReference = (verse.reference || '').trim();
+  // Remove any trailing version marker like (ESV), (AMP), etc. for display
+  const cleanReference = rawReference.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').toUpperCase();
   return (
     <View style={[styles.container, style, { backgroundColor }]}>
       <View style={styles.headerContainer}>
@@ -76,11 +87,6 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         <View style={styles.scriptureReferenceContainer}>
           <ThemedText weight="bold" style={styles.scriptureReference}>
             {cleanReference}
-            {!referenceIncludesVersion && (
-              <ThemedText weight="bold" style={styles.bibleVersion}>
-                {' '}{bibleVersion}
-              </ThemedText>
-            )}
           </ThemedText>
           <TouchableOpacity
             style={styles.infoIcon}

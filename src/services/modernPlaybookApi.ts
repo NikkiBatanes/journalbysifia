@@ -10,7 +10,8 @@ import { Playbook } from '../interfaces/playbook';
 import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
 import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
 import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeout';
-import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
+// Deduplication disabled for fresh personalized generation
+// import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
 import { monitoring } from '../utils/monitoring';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
 import { enterpriseResilience } from '../utils/enterpriseResilience';
@@ -200,11 +201,11 @@ function validatePlaybookCompleteness(playbook: any): string | null {
   // Check bible verse if present
   if (playbook.bibleVerse) {
     if (typeof playbook.bibleVerse === 'string') {
-      if (playbook.bibleVerse.trim().length > 0 && playbook.bibleVerse.length < 5) {
+      if (playbook.bibleVerse.trim().length > 0 && playbook.bibleVerse.length < 10) {
         return 'Bible verse is too short';
       }
     } else if (typeof playbook.bibleVerse === 'object' && playbook.bibleVerse.text) {
-      if (playbook.bibleVerse.text.trim().length > 0 && playbook.bibleVerse.text.length < 5) {
+      if (playbook.bibleVerse.text.trim().length > 0 && playbook.bibleVerse.text.length < 10) {
         return 'Bible verse is too short';
       }
     }
@@ -265,6 +266,10 @@ async function generatePlaybookInternal(
         const { data: { user } } = await supabase.auth.getUser();
         userIdForGeneration = user?.id; // ENTERPRISE: Pass userId for context-aware generation
         const fromMeta = (user as any)?.user_metadata?.preferences?.content?.bibleVersion;
+        Logger.info('Bible version from user metadata:', {
+          component: 'modernPlaybookApi',
+          data: { fromMeta, willUse: fromMeta || 'NASB (default)' },
+        });
         if (typeof fromMeta === 'string' && fromMeta.trim()) {
           bibleVersion = fromMeta.trim();
         }
@@ -298,7 +303,7 @@ async function generatePlaybookInternal(
         // Use Supabase SDK (like onboarding does) - handles iOS networking gracefully
         Logger.info('Using Supabase SDK for production reliability', {
           component: 'modernPlaybookApi',
-          data: { operation: 'playbook-generation' },
+          data: { operation: 'playbook-generation', bibleVersion },
         });
 
         const sdkResponse = await withTimeout(
@@ -306,7 +311,7 @@ async function generatePlaybookInternal(
             body: {
               userInput,
               userName,
-              bibleVersion,
+              bibleVersion, // Sending Bible version to Supabase function
               userId: userIdForGeneration,
               dateOfBirth,
               ageGroup,
@@ -485,22 +490,16 @@ export async function generatePlaybook(
   };
   const priority = tierPriority[userTier] || 3;
 
-  // Create deduplication key
-  const deduplicationKey = `playbook-${userId}-${userInput.substring(0, 50)}`;
-
   // Wrap with enterprise resilience (includes queuing, rate limiting, retries, health checks)
+  // NOTE: Deduplication DISABLED to ensure every generation is fresh and personalized
+  // Each playbook should be unique even with same input (Bible translations, personalization, etc.)
   return enterpriseResilience.executeWithResilience(
-    () => deduplicatePlaybookGeneration(
-      userId,
-      userInput,
-      () => generatePlaybookInternal(userInput, userName, userId, maxRetries)
-    ),
+    () => generatePlaybookInternal(userInput, userName, userId, maxRetries),
     {
       userId,
       tier: userTier,
       operationName: 'playbook-generation',
-      priority,
-      deduplicationKey,
+      priority: priority,
     }
   );
 }

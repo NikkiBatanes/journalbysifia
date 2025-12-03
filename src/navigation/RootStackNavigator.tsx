@@ -11,6 +11,7 @@ import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
+import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -126,6 +127,21 @@ const MainTabsScreen: React.FC = React.memo(() => {
 });
 
 const Stack = createNativeStackNavigator();
+
+// Wrap PlaybookDetailScreen with ActionStepsProvider to fix context error
+const PlaybookDetailScreenWithProvider: React.FC<any> = (props) => {
+  const playbook = props.route?.params?.playbook;
+  const playbookId = props.route?.params?.playbookId || playbook?.id;
+  
+  return (
+    <ActionStepsProviderWrapper 
+      initialSteps={playbook?.actionSteps || []} 
+      playbookId={playbookId}
+    >
+      <PlaybookDetailScreen {...props} />
+    </ActionStepsProviderWrapper>
+  );
+};
 
 // Screen options functions
 
@@ -298,7 +314,7 @@ export default function RootStackNavigator({
           {/* Main App Detail Screens */}
           <Stack.Screen
             name="PlaybookDetail"
-            component={PlaybookDetailScreen as React.ComponentType}
+            component={PlaybookDetailScreenWithProvider as React.ComponentType}
             options={{
               headerShown: false,
               presentation: 'modal',

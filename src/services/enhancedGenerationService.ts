@@ -351,6 +351,9 @@ export class EnhancedGenerationService {
         });
       }
 
+      // Resolve bible version preference (default NASB)
+      const bibleVersion = await this.getPreferredBibleVersion();
+
       // 4. Add to intelligent queue
       const queueId = await queueService.addToQueue({
         userId: request.userId,
@@ -361,6 +364,7 @@ export class EnhancedGenerationService {
           duration: request.duration || 7,
           playbookId: request.playbookId,
           userInput: request.userInput,
+          bibleVersion,
         },
       });
 

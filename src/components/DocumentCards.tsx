@@ -46,6 +46,10 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
 
+  // Get user's preferred Bible translation
+  const userMeta: any = (user as any)?.user_metadata || {};
+  const preferredBibleTranslation = userMeta?.preferences?.content?.bibleVersion;
+
   // DEBUG: Log actionSteps received by DocumentCards
 
   // Log first action step details if available
@@ -144,6 +148,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         style={[propStyles.docCard, propStyles.bibleCard, styles.bibleVerseCard, maxCardWidth ? { width: maxCardWidth } : undefined]}
         expanded={true}
         showCloseButton={false}
+        preferredBibleTranslation={preferredBibleTranslation}
       />
       <View
         key="challenge"

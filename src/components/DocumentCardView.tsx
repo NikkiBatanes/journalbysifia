@@ -51,6 +51,10 @@ interface DocumentCardViewProps {
 const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId, userInput, expanded = false }) => {
   const { user } = useAuth();
 
+  // Get user's preferred Bible translation
+  const userMeta: any = (user as any)?.user_metadata || {};
+  const preferredBibleTranslation = userMeta?.preferences?.content?.bibleVersion;
+
   // Shared Read Aloud state across views
   const hasRead = usePlaybookStoreReactQuery(state => playbookId ? !!state.readAloudMap[playbookId] : false);
   const setReadAloud = usePlaybookStoreReactQuery(state => state.setReadAloud);
@@ -240,6 +244,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
           reference: card.verse?.reference ?? 'Unknown',
         }}
         expanded={expanded}
+        preferredBibleTranslation={preferredBibleTranslation}
       />
     );
   }

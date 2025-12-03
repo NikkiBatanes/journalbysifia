@@ -66,7 +66,7 @@ interface OpenAIData {
   }>;
 }
 
-function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: string): Playbook {
+function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: string, bibleVersion?: string): Playbook {
   const content = aiData.choices[0]?.message?.content || '';
 
   // Extract playbook title and subtitle
@@ -248,55 +248,89 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     const verseContent = verseMatch[1].trim();
 
     // Define scripture patterns to try in order of specificity
+    // Updated to handle the formats specified in the AI prompt
     const scripturePatterns = [
+      // Format: "verse" (BOOK 1:19) (VERSION) - AI output with version
+      {
+        pattern: /['"]([^'"\n]+)['"]\s*\(\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*\)\s*\(\s*([A-Z]+)\s*\)/i,
+        name: 'format "verse" (reference) (version)',
+      },
+      // Format: BOOK 1:19: "verse" (reference first, with colon)
+      {
+        pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*:\s*['"]([^'"\n]+)['"]/i,
+        name: 'format reference: "verse" (with colon)',
+      },
+      // Format: BOOK 1:19-20: "verse" (with dash)
+      {
+        pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*:\s*['"]([^'"\n]+)['"]/i,
+        name: 'format reference: "verse" (with dash)',
+      },
+      // Format: "verse" (BOOK 1:19-20) (reference in parentheses)
+      {
+        pattern: /['"]([^'"\n]+)['"]\s*\(\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*\)/i,
+        name: 'format "verse" (reference)',
+      },
       // Format: "verse" - BOOK 1:19-20 (with dash)
       {
         pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
-        name: 'format 1 ("verse" - BOOK 1:19-20 with dash)',
+        name: 'format "verse" - reference (with dash)',
       },
       // Format: BOOK 1:19-20 - "verse"
       {
         pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
-        name: 'format 2 (BOOK 1:19-20 - "verse")',
+        name: 'format reference - "verse"',
       },
       // Format: BOOK 1:19-20 verse (without quotes)
       {
         pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s+([^\n]+)/i,
-        name: 'format 3 (BOOK 1:19-20 verse)',
-      },
-      // Fallback: Just look for a verse reference pattern
-      {
-        pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
-        name: 'format 4 (just verse reference)',
+        name: 'format reference verse (no quotes)',
       },
     ];
 
     let verseText = '';
     let verseRef = '';
 
-    // Try each pattern until we find a match
+    // Try each pattern to extract verse text and reference
     for (const { pattern, name } of scripturePatterns) {
       const match = verseContent.match(pattern);
       if (match) {
-        console.log(`Matched scripture format: ${name}`, match);
-
-        // Determine which group is the text and which is the reference
-        if (match[1] && match[2]) {
-          // If the first group looks like a reference, use it as such
-          if (match[1].match(/[A-Za-z]+\s*\d+[\s:]/i)) {
-            verseRef = match[1].trim().toUpperCase();
-            verseText = match[2].trim();
-          } else {
-            verseText = match[1].trim();
-            verseRef = match[2].trim().toUpperCase();
-          }
-          break;
-        } else if (match[1]) {
-          // If we only have one group, assume it's a reference
-          verseRef = match[1].trim().toUpperCase();
-          verseText = verseContent.replace(match[0], '').trim();
+        console.log(`[BIBLE VERSE] Matched pattern: ${name}`);
+        
+        // For patterns where reference comes first (groups 1=ref, 2=text)
+        if (name.includes('reference:')) {
+          verseRef = match[1]?.trim() || '';
+          verseText = match[2]?.trim() || '';
+        } 
+        // For patterns with text, reference, and version (groups 1=text, 2=ref, 3=version)
+        else if (name.includes('(version)')) {
+          verseText = match[1]?.trim() || '';
+          verseRef = match[2]?.trim() || '';
+          // The version (match[3]) is captured but not used since we handle version separately
+        }
+        // For patterns where text comes first (groups 1=text, 2=ref)
+        else if (name.includes('"verse"')) {
+          verseText = match[1]?.trim() || '';
+          verseRef = match[2]?.trim() || '';
+        }
+        // For fallback pattern (just reference)
+        else if (name.includes('just verse reference')) {
+          verseRef = match[1]?.trim() || '';
+          verseText = verseContent.replace(verseRef, '').trim();
+        }
+        
+        // If we found both text and reference, break
+        if (verseText && verseRef) {
           break;
         }
+      }
+    }
+
+    // If no pattern matched, try to extract reference from the content
+    if (!verseRef) {
+      const refMatch = verseContent.match(/([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i);
+      if (refMatch) {
+        verseRef = refMatch[1]?.trim() || '';
+        verseText = verseContent.replace(verseRef, '').trim();
       }
     }
 
@@ -313,14 +347,23 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       }
     }
 
-    // Clean up the verse text (remove any remaining quotes, dashes, or colons at the start/end)
-    verseText = verseText
-      .replace(/^[\s:,\-\—"'`]+|[\s.,\-\—"'`]+$/g, '') // Remove leading/trailing punctuation including colons
-      .trim();
+    // NO CLEANING - Preserve exact Bible verse text as provided by AI
+    // AMP and other translations require exact formatting including brackets and quotes
+    // Only trim whitespace and remove version markers if present at the very end
+    verseText = verseText.trim();
 
-    // Set the values in the playbook
+    // Remove version marker like (AMP), ( AMP), (NASB) etc. from the end of verse text
+    verseText = verseText.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
+
+    // Set the values in the playbook (text is the raw verse text, reference is just book/chapter/verse)
     playbook.bibleVerse.text = verseText || verseContent;
-    playbook.bibleVerse.reference = verseRef || '';
+
+    // Clean the reference and strip any trailing version marker like (AMP), (NASB) etc.
+    let cleanVerseRef = verseRef ? verseRef.trim() : '';
+    if (cleanVerseRef) {
+      cleanVerseRef = cleanVerseRef.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
+    }
+    playbook.bibleVerse.reference = cleanVerseRef;
   }
 
   // Parse Direct Challenge
@@ -360,6 +403,9 @@ serve(async (req: Request) => {
   }
 
   const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion } = requestBody;
+
+  // Log received Bible version for debugging
+  console.log('[Generate-Playbook] Received Bible version from request:', bibleVersion || 'NOT PROVIDED - will default to NASB');
 
   // Extract user ID from authorization header for rate limiting
   const authHeader = req.headers.get('authorization');
@@ -475,29 +521,40 @@ serve(async (req: Request) => {
       }
     }
 
-    // Persona context is applied through the system prompt
-    // Keeping the function call for future use
-    applyPersonaContext(strategicAdvisorPersona, userInput);
-
-    // ENTERPRISE FEATURE: Build recent titles context for uniqueness
-    const recentTitlesContext = recentTitles.length > 0
-      ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. Do NOT reuse or slightly modify any of these titles.`
-      : '';
-
+    // Initialize contextual prompt
+    let contextualPrompt = '';
+    
+    // Apply persona context with Bible version
+    contextualPrompt = applyPersonaContext(strategicAdvisorPersona, userInput, bibleVersion);
+    
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
     // Build contextual prompt with title uniqueness check and age personalization
-    let contextualPrompt = `User Name: ${userName}\nUser Request: ${userInput}
+    // Add unique timestamp to ensure no caching and fresh generation every time
+    const generationTimestamp = new Date().toISOString();
+    contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${userInput}\nGeneration ID: ${generationTimestamp}
 
-${recentTitlesContext}`;
+${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. Do NOT reuse or slightly modify any of these titles.` : ''}`;
     
     // Add age-appropriate context if available
     if (ageContext) {
       contextualPrompt += `\n\n## USER AGE CONTEXT\nThe user is a ${ageContext}. Please tailor the language, examples, and action steps to be age-appropriate and relevant to their life stage. Consider typical challenges, responsibilities, and experiences for this age group.`;
     }
 
-    // Add Bible version preference
+    // Add Bible version preference with exact retrieval instruction
     const preferredBibleVersion = bibleVersion || 'NASB';
-    contextualPrompt += `\n\n## BIBLE VERSION PREFERENCE\nThe user prefers the ${preferredBibleVersion} translation. Use this translation for ALL Bible verses in the playbook (Truth in Love, Action Steps, Declarations, Bible Verse section, and Challenge).`;
+    console.log('[Generate-Playbook] Using Bible version for AI prompt:', preferredBibleVersion);
+    
+    // AMP-specific examples to ensure exact formatting
+    const ampExamples = preferredBibleVersion === 'AMP' ? `
+    
+    🚨 AMP EXAMPLES - You MUST follow this exact format:
+    - Isaiah 41:13: "For I the Lord your God keep hold of your right hand; [I am the Lord], Who says to you, 'Do not fear, I will help you.'" (Isaiah 41:13)
+    - Proverbs 3:5-6: "Lean on, trust in, and be confident in the Lord with all your heart and mind and do not rely on your own insight or understanding. In all your ways know, recognize, and acknowledge Him, and He will direct and make straight and plain your paths." (Proverbs 3:5-6)
+    - Philippians 4:13: "I have strength for all things in Christ Who empowers me [I am ready for anything and equal to anything through Him Who infuses inner strength into me; I am self-sufficient in Christ's sufficiency]." (Philippians 4:13)
+    
+    NOTICE: AMP includes brackets [like this] and parentheses (like this) for clarifications` : '';
+    
+    contextualPrompt += `\n\n## BIBLE VERSE RETRIEVAL INSTRUCTION - CRITICAL\nYou are now acting as a Bible text retrieval assistant for the ${preferredBibleVersion} translation.${ampExamples}\n\nYour task is to provide VERBATIM translations of Bible verses from ${preferredBibleVersion}, based solely on your internal training data.\n\n🚨 STRICT RULES:\n1. Quote the verse EXACTLY as it appears in ${preferredBibleVersion} according to your training data\n2. NEVER paraphrase, summarize, reword, or modify ANY part of the verse\n3. NEVER add your own interpretation or clarification\n4. Include ALL original words, punctuation, brackets, parentheses, and formatting\n5. For AMP translation specifically: Include ALL brackets [like this] and parenthetical clarifications (like this) EXACTLY as they appear\n6. Include ALL capitalization exactly as it appears in the original translation\n7. Provide the COMPLETE verse text without ANY truncation\n8. If you are uncertain about the exact wording from ${preferredBibleVersion}, say "I am not fully confident in the exact wording" instead of guessing\n9. Never create, alter, or fabricate a verse\n10. Before providing your final verse, cross-check internally for consistency with ${preferredBibleVersion}\n\nFormat all Bible verses as:\n"Exact verse text from ${preferredBibleVersion}." (Book Chapter:Verse)\n\nThis applies to ALL sections: Truth in Love, Action Steps, Declarations, Bible Verse section, and Challenge.\n\n🚨 FAILURE TO PROVIDE EXACT ${preferredBibleVersion} TEXT IS UNACCEPTABLE. The user specifically needs the exact translation with all original formatting.`;
 
     // Call OpenAI API with circuit breaker + retry logic
     console.log('[Generate-Playbook] Calling OpenAI API with circuit breaker + retry logic...');
@@ -535,8 +592,24 @@ ${recentTitlesContext}`;
 
     const aiData = await openAIRes.json();
 
+    // Log raw AI response for debugging
+    const rawContent = aiData.choices?.[0]?.message?.content || '';
+    console.log('[Generate-Playbook] ========== RAW AI OUTPUT START ==========');
+    console.log(rawContent);
+    console.log('[Generate-Playbook] ========== RAW AI OUTPUT END ==========');
+    
+    // Extract and log just the Bible verse section
+    const bibleVerseMatch = rawContent.match(/BIBLE VERSE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
+    if (bibleVerseMatch) {
+      console.log('[Generate-Playbook] ========== BIBLE VERSE SECTION START ==========');
+      console.log(bibleVerseMatch[1].trim());
+      console.log('[Generate-Playbook] ========== BIBLE VERSE SECTION END ==========');
+    } else {
+      console.log('[Generate-Playbook] ⚠️ WARNING: No BIBLE VERSE section found in AI response');
+    }
+
     // Parse the playbook
-    let playbook = parseOpenAIResponse(aiData, userName, userInput);
+    let playbook = parseOpenAIResponse(aiData, userName, userInput, preferredBibleVersion);
 
     // Enforce persona rules on the response
     if (aiData.choices?.[0]?.message?.content) {
@@ -550,7 +623,8 @@ ${recentTitlesContext}`;
         playbook = parseOpenAIResponse(
           { choices: [{ message: { content: enforcedContent } }] },
           userName,
-          userInput
+          userInput,
+          preferredBibleVersion
         );
       }
     }

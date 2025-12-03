@@ -174,6 +174,45 @@ function cleanMarkdown(text: unknown): string {
 }
 
 /**
+ * Safely cleans scripture text while preserving ALL authentic translation elements
+ * @param text - Scripture text that might contain markdown
+ * @returns Scripture text with exact translation preserved
+ */
+function cleanScripture(text: unknown): string {
+  const safeString = (value: unknown): string => {
+    if (value === null || value === undefined) {return '';}
+    if (typeof value === 'string') {return value;}
+    if (typeof value.toString === 'function') {return value.toString();}
+    return '';
+  };
+
+  try {
+    const str = safeString(text);
+    if (typeof str !== 'string') {
+      console.warn('cleanScripture: Failed to convert input to string. Type:', typeof text);
+      return '';
+    }
+    if (!str.trim()) {return '';}
+
+    // MINIMAL CLEANUP - Only handle line breaks and excessive whitespace
+    // Preserve ALL translation elements including brackets, quotes, punctuation
+    let result = str
+      .replace(/\n+/g, ' ') // Convert line breaks to spaces
+      .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
+      .trim(); // Remove leading/trailing whitespace only
+
+    return result;
+  } catch (error) {
+    console.error('Unexpected error in cleanScripture:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      inputType: typeof text,
+      inputValue: text,
+    });
+    return '';
+  }
+}
+
+/**
  * Safely parses the OpenAI response into a structured devotional format
  * Enhanced with comprehensive error handling, input validation, and detailed logging
  */
@@ -673,8 +712,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         }
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, { text: scriptureText, reference: scriptureRef });
         const scripture = {
-          text: cleanMarkdown(scriptureText),
-          reference: cleanMarkdown(scriptureRef),
+          text: cleanScripture(scriptureText),
+          reference: cleanScripture(scriptureRef),
         };
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, scripture);
 
