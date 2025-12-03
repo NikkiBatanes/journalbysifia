@@ -269,12 +269,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Removed loadPlaybooksCallback - React Query handles data fetching automatically
 
-  // Initialize animations on mount and when playbooks change
-  useEffect(() => {
-    if (playbooks.length > 0) {
-      initAnimations(playbooks.length);
-    }
-  }, [playbooks.length]);
+  // DISABLED: Entrance animations cause ghosting/fading during data updates
+  // Since we've optimized data loading to be instant, animations are unnecessary
+  // const hasInitializedAnimations = useRef(false);
+  // useEffect(() => {
+  //   if (playbooks.length > 0 && !hasInitializedAnimations.current) {
+  //     hasInitializedAnimations.current = true;
+  //     initAnimations(playbooks.length);
+  //   }
+  // }, [playbooks.length]);
 
   // Reset animations when screen comes into focus and set to In Progress tab
   useEffect(() => {
@@ -284,25 +287,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
       setFilter('ongoing');
 
-      // Safely reset animation values if they exist
-      if (animatedValues.current && Array.isArray(animatedValues.current)) {
-        animatedValues.current.forEach(value => {
-          if (value && typeof value.setValue === 'function') {
-            value.setValue(0);
-          }
-        });
-      }
+      // DISABLED: No need to reset entrance animations since they're disabled
+      // if (animatedValues.current && Array.isArray(animatedValues.current)) {
+      //   animatedValues.current.forEach(value => {
+      //     if (value && typeof value.setValue === 'function') {
+      //       value.setValue(0);
+      //     }
+      //   });
+      // }
 
-      // Reinitialize animations after a short delay
+      // Refetch and reset floating button animation
       const timer = setTimeout(() => {
-        if (playbooks.length > 0) {
-          initAnimations(playbooks.length);
-        }
-
         // Force refetch on focus to ensure fresh data
         // This bypasses React Query's stale time and ensures we always get fresh data
         if (userId) {
-
           refetch();
         }
         // Reset and run floating button expand animation
@@ -539,26 +537,17 @@ const PlaybookListScreen = ({ navigation }: any) => {
       rowRefs.current[item.id] = createRef();
     }
 
-    // FIXED: Reuse animated values, don't create new ones
-    const currentAnimatedValue = Array.isArray(animatedValues.current) ? animatedValues.current[index] : null;
-    const hasAnimation = currentAnimatedValue !== null && currentAnimatedValue !== undefined;
-    const translateY = hasAnimation ? currentAnimatedValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: [50, 0],
-    }) : 0;
-
-    const opacity = hasAnimation ? currentAnimatedValue : 1;
+    // DISABLED: No entrance animations - instant display for better UX
+    // const currentAnimatedValue = Array.isArray(animatedValues.current) ? animatedValues.current[index] : null;
+    // const hasAnimation = currentAnimatedValue !== null && currentAnimatedValue !== undefined;
+    // const translateY = hasAnimation ? currentAnimatedValue.interpolate({
+    //   inputRange: [0, 1],
+    //   outputRange: [50, 0],
+    // }) : 0;
+    // const opacity = hasAnimation ? currentAnimatedValue : 1;
 
     return (
-      <Animated.View
-        style={[
-          styles.swipeableContainer,
-          {
-            opacity,
-            transform: [{ translateY }],
-          },
-        ]}
-      >
+      <View style={styles.swipeableContainer}>
         <Swipeable
           ref={rowRefs.current[item.id]}
           onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
@@ -576,7 +565,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
             style={styles.card}
           />
         </Swipeable>
-      </Animated.View>
+      </View>
     );
   }, [handleCardPress, handleCardLongPress, renderRightActions, styles]);
 
