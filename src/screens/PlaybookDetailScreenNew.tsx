@@ -264,12 +264,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Only use route playbook if it has the full playbook structure (not lightweight)
   // Lightweight mode sets truthInLove.text and bibleVerse.text to empty strings
   // So check if these critical fields have content to determine if it's full data
-  const isFullPlaybook = routePlaybook && 
-    typeof routePlaybook === 'object' && 
-    'title' in routePlaybook && 
+  const isFullPlaybook = routePlaybook &&
+    typeof routePlaybook === 'object' &&
+    'title' in routePlaybook &&
     'actionSteps' in routePlaybook &&
     'truthInLove' in routePlaybook &&
-    routePlaybook.truthInLove && 
+    routePlaybook.truthInLove &&
     typeof routePlaybook.truthInLove === 'object' &&
     (routePlaybook.truthInLove as any).text && // Has actual text content (not empty)
     (routePlaybook.truthInLove as any).text.length > 0;
@@ -335,8 +335,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // 5. Callback hooks
   const handleToggleSubTaskMutation = React.useCallback(async (stepId: string, subTaskId: string, completed: boolean) => {
-    if (!playbook?.id || !userId) return;
-    
+    if (!playbook?.id || !userId) {return;}
+
     // Persist the new completed state to database
     await updateSubTaskMutation.mutateAsync({
       playbookId: playbook.id,
@@ -555,16 +555,19 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // 12. Memoized values
   // Get user metadata at component level for access throughout the component
   const userMeta: any = (user as any)?.user_metadata || {};
-  const firstName = userMeta.first_name || (user as any)?.displayName?.split(' ')[0] || '';
-  const displayName = (user as any)?.displayName ||
-                     userMeta.full_name ||
-                     [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
-                     '';
   // Get user's preferred Bible translation
   const preferredBibleTranslation = userMeta?.preferences?.content?.bibleVersion;
 
   const cardData: CardData[] = useMemo(() => {
     if (!playbook) {return [];}
+
+    // Get user metadata for name replacement
+    const metaUser: any = (user as any)?.user_metadata || {};
+    const metaFirstName = metaUser.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+    const metaDisplayName = (user as any)?.displayName ||
+                          metaUser.full_name ||
+                          [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
+                          '';
 
     // Log action steps data
     const finalActionSteps = Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
@@ -582,7 +585,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             ...a,
             text: replaceAllNamePlaceholders(
               a.text,
-              { firstName, displayName },
+              { firstName: metaFirstName, displayName: metaDisplayName },
               { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
             ),
           }))
@@ -594,12 +597,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       type: 'truth' as const,
       truth: replaceAllNamePlaceholders(
         playbook.truthInLove?.text ?? '',
-        { firstName, displayName },
+        { firstName: metaFirstName, displayName: metaDisplayName },
         { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
       ),
       summary: replaceAllNamePlaceholders(
         playbook.truthInLove?.summary ?? '',
-        { firstName, displayName },
+        { firstName: metaFirstName, displayName: metaDisplayName },
         { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
       ),
       tappable: false,
@@ -632,14 +635,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         typeof playbook.directChallenge === 'string'
           ? playbook.directChallenge
           : playbook.directChallenge?.text ?? '',
-        { firstName, displayName },
+        { firstName: metaFirstName, displayName: metaDisplayName },
         { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
       ),
       challengeCTA: playbook.challengeCTA,
       tappable: false,
     },
   ];
-  }, [playbook, actionSteps, firstName, displayName]);
+  }, [playbook, actionSteps]);
 
   // Vertical separation between stacked cards (document vs stack)
   const STACK_OFFSET = 56;
@@ -669,7 +672,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     cardData.forEach((card, index) => {
       if (!cardAnimations[card.id]) {
         const initialOffset = (cardData.length - index - 1) * STACK_OFFSET;
-        
+
         // Start from below and fade in
         cardAnimations[card.id] = {
           translateY: new RNAnimated.Value(initialOffset + 100), // Start 100px below
@@ -679,7 +682,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
         // Animate to final position with staggered delay
         const delay = index * 80; // 80ms delay between each card
-        
+
         setTimeout(() => {
           RNAnimated.parallel([
             RNAnimated.spring(cardAnimations[card.id].translateY, {
@@ -1041,17 +1044,17 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       Logger.debug('Loading playbook data', { component: 'PlaybookDetailScreenNew', playbookId });
       return;
     } else if (error || !playbook) {
-      Logger.error('Error loading playbook or no playbook data', error as Error, { 
-        component: 'PlaybookDetailScreenNew', 
+      Logger.error('Error loading playbook or no playbook data', error as Error, {
+        component: 'PlaybookDetailScreenNew',
         playbookId,
-        hasPlaybook: !!playbook 
+        hasPlaybook: !!playbook,
       });
       return;
     } else {
-      Logger.debug('Playbook loaded successfully', { 
-        component: 'PlaybookDetailScreenNew', 
+      Logger.debug('Playbook loaded successfully', {
+        component: 'PlaybookDetailScreenNew',
         playbookId,
-        title: playbook?.title 
+        title: playbook?.title,
       });
       return;
     }
@@ -1073,11 +1076,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Playbook data debug effect
   useEffect(() => {
-    Logger.debug('Playbook data updated', { 
-      component: 'PlaybookDetailScreenNew', 
+    Logger.debug('Playbook data updated', {
+      component: 'PlaybookDetailScreenNew',
       playbookId: playbook?.id,
       title: playbook?.title,
-      hasActionSteps: !!playbook?.actionSteps?.length
+      hasActionSteps: !!playbook?.actionSteps?.length,
     });
   }, [playbook]);
 
@@ -1347,11 +1350,11 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     }
 
     // Get user name for dynamic replacement (same as cardData)
-    const userMeta: any = (user as any)?.user_metadata || {};
-    const firstName = userMeta.first_name || (user as any)?.displayName?.split(' ')[0] || '';
-    const displayName = (user as any)?.displayName ||
-                       userMeta.full_name ||
-                       [userMeta.first_name, userMeta.last_name].filter(Boolean).join(' ').trim() ||
+    const metaUser: any = (user as any)?.user_metadata || {};
+    const metaFirstName = metaUser.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+    const metaDisplayName = (user as any)?.displayName ||
+                          metaUser.full_name ||
+                          [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
                        '';
 
     // Get bible version from user preferences or default to NASB
@@ -1361,12 +1364,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       title: playbook.title,
       truthInLove: replaceAllNamePlaceholders(
         typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text || '',
-        { firstName, displayName },
+        { firstName: metaFirstName, displayName: metaDisplayName },
         { replaceHardcodedNames: true }
       ),
       truthInLoveSummary: replaceAllNamePlaceholders(
         typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove?.summary || '',
-        { firstName, displayName },
+        { firstName: metaFirstName, displayName: metaDisplayName },
         { replaceHardcodedNames: true }
       ),
       bibleVerse: {
@@ -1401,13 +1404,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       affirmations: playbook.affirmations?.map(a =>
         replaceAllNamePlaceholders(
           a.text,
-          { firstName, displayName },
+          { firstName: metaFirstName, displayName: metaDisplayName },
           { replaceHardcodedNames: true }
         )
       ) || [],
       directChallenge: replaceAllNamePlaceholders(
         typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text || '',
-        { firstName, displayName },
+        { firstName: metaFirstName, displayName: metaDisplayName },
         { replaceHardcodedNames: true }
       ),
       createdAt: playbook.createdAt,

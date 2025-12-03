@@ -471,12 +471,12 @@ export class FaithPointsService {
             userId,
             activity,
           });
-          
+
           // Prevent duplicate badge checks during onboarding
           const onboardingBadgeKey = `onboarding_badge_check_${userId}`;
           if (!FaithPointsService.onboardingBadgeChecks.has(onboardingBadgeKey)) {
             FaithPointsService.onboardingBadgeChecks.add(onboardingBadgeKey);
-            
+
             // Run immediately for onboarding to ensure First Steps badge
             setImmediate(async () => {
               await this.performBadgeCheck(userId, newTotalPoints, activity, undefined);

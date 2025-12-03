@@ -132,10 +132,10 @@ const Stack = createNativeStackNavigator();
 const PlaybookDetailScreenWithProvider: React.FC<any> = (props) => {
   const playbook = props.route?.params?.playbook;
   const playbookId = props.route?.params?.playbookId || playbook?.id;
-  
+
   return (
-    <ActionStepsProviderWrapper 
-      initialSteps={playbook?.actionSteps || []} 
+    <ActionStepsProviderWrapper
+      initialSteps={playbook?.actionSteps || []}
       playbookId={playbookId}
     >
       <PlaybookDetailScreen {...props} />

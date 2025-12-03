@@ -466,12 +466,12 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
     } catch (err) {
       const errorMessage = (err as Error)?.message || '';
-      const isNetworkError = errorMessage.includes('network') || 
+      const isNetworkError = errorMessage.includes('network') ||
                             errorMessage.includes('connection') ||
                             errorMessage.includes('gateway');
-      
+
       if (isNetworkError) {
-        Logger.warn('Network error fetching reflection questions - will retry on next refresh', { 
+        Logger.warn('Network error fetching reflection questions - will retry on next refresh', {
           component: 'ReflectionQuestionsCard',
           errorMessage,
         });

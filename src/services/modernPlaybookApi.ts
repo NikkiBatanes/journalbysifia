@@ -620,7 +620,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
               const words = subTaskText.split(' ');
               let currentText = '';
               let partIndex = 0;
-              
+
               words.forEach(word => {
                 if ((currentText + ' ' + word).length > MAX_LENGTH && currentText) {
                   // Add current part as a separate sub-task
@@ -639,7 +639,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
                   currentText += (currentText ? ' ' : '') + word;
                 }
               });
-              
+
               // Add remaining text
               if (currentText.trim()) {
                 subTasksToInsert.push({

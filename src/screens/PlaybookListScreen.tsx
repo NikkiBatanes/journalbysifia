@@ -224,48 +224,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Component renders with current state
 
   // Refs
-  const animatedValues = useRef<Animated.Value[]>([]);
   const rowRefs = useRef<{ [key: string]: any }>({});
 
-  // Initialize animation values
-  const initAnimations = (count: number) => {
-    try {
-      // Clear any existing animations
-      if (animatedValues.current) {
-        animatedValues.current.forEach(value => {
-          if (value && typeof value.stopAnimation === 'function') {
-            value.stopAnimation();
-          }
-        });
-      }
-
-      // Create new animated values
-      const initialValues = Array(Math.max(0, count)).fill(0).map(() => new Animated.Value(0));
-      animatedValues.current = initialValues;
-
-      // Only start animations if we have values to animate
-      if (initialValues.length > 0) {
-        // Start animations after a small delay
-        const timer = setTimeout(() => {
-          const animations = initialValues.map((value, index) =>
-            Animated.spring(value, {
-              toValue: 1,
-              useNativeDriver: true,
-              delay: index * 100,
-            })
-          );
-          Animated.stagger(100, animations).start();
-        }, 100);
-
-        return () => clearTimeout(timer);
-      }
-
-      return () => {}; // No-op cleanup function
-    } catch (err) {
-      Logger.error('Error initializing animations', err as Error, { component: 'PlaybookListScreen' });
-      return () => {}; // Ensure we always return a cleanup function
-    }
-  };
 
   // Removed loadPlaybooksCallback - React Query handles data fetching automatically
 
@@ -466,7 +426,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   useScreenStatusBar(isEmptyState ? 'light' : 'auto', isEmptyState ? Colors.anchorBlue : undefined);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (!userId) {
       Alert.alert('Error', 'User not authenticated');
       return;
@@ -501,7 +461,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         },
       ]
     );
-  };
+  }, [userId, triggerLightHaptic, user?.id, refetch]);
 
   // Move handleCardPress outside of renderItem
   const handleCardPress = useCallback((playbook: Playbook) => {
@@ -516,6 +476,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [triggerLightHaptic]);
 
   // OPTIMIZED: Memoize renderRightActions to avoid recreation
+  // eslint-disable-next-line react/no-unstable-nested-components
   const renderRightActions = useCallback((itemId: string) => () => (
     <RectButton
       style={styles.deleteButton}
@@ -523,9 +484,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
     >
       <Ionicons name="trash-outline" size={24} color="white" />
     </RectButton>
-  ), [handleDelete, styles.deleteButton]);
+  ), [handleDelete, styles.deleteButton, triggerLightHaptic]);
 
-  const renderItem = useCallback(({ item, index }: { item: Playbook; index: number }) => {
+  const renderItem = useCallback(({ item, index: _index }: { item: Playbook; index: number }) => {
     // Safety check for item
     if (!item || typeof item !== 'object') {
       Logger.warn('Invalid item in renderItem', { component: 'PlaybookListScreen', data: item });
@@ -567,7 +528,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         </Swipeable>
       </View>
     );
-  }, [handleCardPress, handleCardLongPress, renderRightActions, styles]);
+  }, [handleCardPress, handleCardLongPress, renderRightActions, styles, triggerLightHaptic]);
 
   // Logging for render states
 

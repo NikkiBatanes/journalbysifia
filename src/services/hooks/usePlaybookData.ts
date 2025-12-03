@@ -312,7 +312,7 @@ export const useUpdateSubTask = () => {
         userId: string;
       }) => {
         const { updatePlaybookSubTask } = await import('../supabaseApiNormalized');
-        
+
         // Call actual API to persist to database (optimized - no refetch)
         await updatePlaybookSubTask(
           userId,
@@ -346,7 +346,7 @@ export const useUpdateSubTask = () => {
 
       // Update function for both caches
       const updatePlaybooksCache = (previousPlaybooks: Playbook[] | undefined) => {
-        if (!previousPlaybooks) return null;
+        if (!previousPlaybooks) {return null;}
 
         return previousPlaybooks.map(playbook => {
           if (playbook.id !== playbookId) {return playbook;}
@@ -376,21 +376,21 @@ export const useUpdateSubTask = () => {
           // Recalculate overall progress using subtask-aware calculation
           let totalTasks = 0;
           let completedTasks = 0;
-          
+
           for (const step of updatedActionSteps) {
             if (step.subTasks && step.subTasks.length > 0) {
               // Count subtasks for steps that have them
               for (const subTask of step.subTasks) {
-                if (subTask.completed) completedTasks++;
+                if (subTask.completed) {completedTasks++;}
                 totalTasks++;
               }
             } else {
               // Count the step itself if no subtasks
-              if (step.completed) completedTasks++;
+              if (step.completed) {completedTasks++;}
               totalTasks++;
             }
           }
-          
+
           const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
           const status = progress >= 100 ? 'completed' : 'inProgress';
 
@@ -423,7 +423,7 @@ export const useUpdateSubTask = () => {
       // CRITICAL: Also update the individual playbook cache for detail screen
       const individualPlaybookKey = ['playbook', playbookId, userId];
       const previousIndividualPlaybook = queryClient.getQueryData<Playbook>(individualPlaybookKey);
-      
+
       if (previousIndividualPlaybook) {
         const updatedIndividualPlaybook = updatePlaybooksCache([previousIndividualPlaybook])?.[0];
         if (updatedIndividualPlaybook) {

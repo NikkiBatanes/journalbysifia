@@ -222,15 +222,43 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
         // Remove any leading numbers, dots, dashes, or other punctuation
         const cleanText = text.replace(/^[\s\d\-*•.]+/, '').trim();
         
-        // Filter out lines that are just Bible verse references (e.g., "John 3:16", "1 Peter 5:7")
-        // Pattern matches: BOOK chapter:verse or BOOK chapter:verse-verse
-        const isBibleReference = /^[A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:\s*[A-Z]+)?$/i.test(cleanText);
+        // Check if affirmation contains a Bible verse reference
+        const verseRefMatches = cleanText.match(/([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/gi);
         
-        // Also filter out lines that are just verse text with reference (e.g., "Cast all your anxiety... - 1 Peter 5:7")
-        const hasVerseReference = /[-—]\s*[A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:\s*[A-Z]+)?$/i.test(cleanText);
+        if (verseRefMatches) {
+          // Get unique references to avoid duplicates
+          const uniqueRefs = Array.from(new Set(verseRefMatches.map(ref => ref.trim())));
+          const reference = uniqueRefs[0]; // Use the first unique reference
+          
+          // Remove all Bible verse text and references, keeping only the affirmation part
+          // First, remove everything after the first "as he promised/said/declares"
+          let affirmationText = cleanText.replace(/\s+as he (promised|promises|said|says|declares).*$/gi, '').trim();
+          
+          // Then remove any remaining parenthetical references at the end
+          affirmationText = affirmationText.replace(/\s*\([^)]*\)\s*$/, '').trim();
+          
+          // If there's still text before the references, keep it with the reference
+          if (affirmationText && affirmationText.length > 0) {
+            return {
+              id: generateUUID(),
+              text: `${affirmationText} (${reference})`,
+              completed: false,
+            };
+          } else {
+            // Just return the reference in parentheses
+            return {
+              id: generateUUID(),
+              text: `(${reference})`,
+              completed: false,
+            };
+          }
+        }
         
-        if (isBibleReference || hasVerseReference) {
-          return null; // Filter out Bible verse references
+        // Filter out lines that are just Bible verse references without any affirmation text
+        const isBibleReferenceOnly = /^[A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:\s*[A-Z]+)?$/i.test(cleanText);
+        
+        if (isBibleReferenceOnly) {
+          return null; // Filter out standalone Bible verse references
         }
         
         return {

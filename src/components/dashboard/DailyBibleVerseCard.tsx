@@ -382,7 +382,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               onPress={handleVersePress}
               onLongPress={() => {
                 triggerLightHaptic();
-                onLongPress?.(`${formatBibleVerse(verse?.verse || '')}\n\n— ${(verse?.reference || '').toUpperCase()} (${verse?.version || 'NASB'})`);
+                onLongPress?.(`${formatBibleVerse(verse?.verse || '')}\n\n— ${(verse?.reference || '').toUpperCase()} ${verse?.version || 'NASB'}`);
               }}
               style={styles.verseContent}
               accessibilityRole="button"
@@ -420,7 +420,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
             <TouchableOpacity
               onLongPress={() => {
                 triggerLightHaptic();
-                onLongPress?.(`${formatBibleVerse(verse?.verse || '')}\n\n— ${(verse?.reference || '').toUpperCase()} (${verse?.version || 'NASB'})`);
+                onLongPress?.(`${formatBibleVerse(verse?.verse || '')}\n\n— ${(verse?.reference || '').toUpperCase()} ${verse?.version || 'NASB'}`);
               }}
               activeOpacity={0.7}
               style={styles.verseContent}

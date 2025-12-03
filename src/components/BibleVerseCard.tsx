@@ -24,15 +24,15 @@ type BibleVerseCardProps = {
   preferredBibleTranslation?: string; // User's preferred Bible translation
 };
 
-export default function BibleVerseCard({ 
-  verse, 
-  style, 
-  textColor = Colors.hopeWhite, 
-  backgroundColor = '#274673', 
-  expanded = true, 
-  collapsedLines = 4, 
+export default function BibleVerseCard({
+  verse,
+  style,
+  textColor = Colors.hopeWhite,
+  backgroundColor = '#274673',
+  expanded = true,
+  collapsedLines = 4,
   showCloseButton = true,
-  preferredBibleTranslation 
+  preferredBibleTranslation,
 }: BibleVerseCardProps) {
   const [showCopyright, setShowCopyright] = useState(false);
   // Extract version from reference if stored version is missing
@@ -40,14 +40,14 @@ export default function BibleVerseCard({
     const match = ref.match(/\(([^)]+)\)$/);
     return match ? match[1] : null;
   };
-  
+
   // Use the actual verse version first, then try to extract from reference, then user's preferred translation, then default to NASB
   const extractedVersion = getVersionFromReference(verse.reference || '');
   const bibleVersion = verse.version || extractedVersion || preferredBibleTranslation || 'NASB';
   const rawReference = (verse.reference || '').trim();
   // Always show version if available, either from stored version or extracted from reference
   let cleanReference = rawReference.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').toUpperCase();
-  
+
   // Add version if we have it
   if (bibleVersion) {
     cleanReference += ` ${bibleVersion}`;

@@ -102,10 +102,10 @@ const AnimatedProgressBarSkeleton = () => {
     <Animated.View
       style={[
         styles.progressBarFill,
+        styles.progressBarFillLight,
         {
-          backgroundColor: "rgba(255, 255, 255, 0.20)",
           opacity: progressAnim,
-        }
+        },
       ]}
     />
   );
@@ -290,6 +290,9 @@ const styles = StyleSheet.create({
   },
   textLine: {
     marginBottom: 6,
+  },
+  progressBarFillLight: {
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
   },
 });
 

@@ -2022,8 +2022,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 { key: 'NKJV', label: 'NKJV', description: 'New King James Version' },
                 { key: 'NASB', label: 'NASB', description: 'New American Standard Bible' },
                 { key: 'CSB', label: 'CSB', description: 'Christian Standard Bible' },
-                { key: 'NRSV', label: 'NRSV', description: 'New Revised Standard Version' },
-                { key: 'MSG', label: 'MSG', description: 'The Message (paraphrase)' },
+                                { key: 'MSG', label: 'MSG', description: 'The Message (paraphrase)' },
                 { key: 'AMP', label: 'AMP', description: 'Amplified Bible' },
               ].sort((a, b) => a.label.localeCompare(b.label));
               return versions.map((ver) => {

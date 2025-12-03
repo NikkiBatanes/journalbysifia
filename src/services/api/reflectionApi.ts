@@ -293,10 +293,10 @@ export class ReflectionApi {
 
     if (error) {
       // Check if it's a network error
-      const isNetworkError = error.message?.includes('network') || 
+      const isNetworkError = error.message?.includes('network') ||
                             error.message?.includes('connection') ||
                             error.message?.includes('gateway');
-      
+
       if (isNetworkError) {
         Logger.warn('Network error searching reflections - returning empty results', {
           component: 'reflectionApi',
@@ -305,7 +305,7 @@ export class ReflectionApi {
         // Return empty array instead of throwing for network errors
         return [];
       }
-      
+
       Logger.error('Error searching reflections', error as Error, {
         component: 'reflectionApi',
       });
