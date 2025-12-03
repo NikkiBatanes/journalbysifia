@@ -138,9 +138,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
         playbook_action_steps (
           id,
           text,
-          description,
           examples,
-          example_interactive,
           completed,
           order_index,
           created_at,
@@ -188,9 +186,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
         .map((step: any) => ({
           id: step.id,
           title: step.text,
-          description: step.description,
           examples: step.examples,
-          example_interactive: step.example_interactive,
           completed: step.completed,
           orderIndex: step.order_index,
           subTasks: (step.playbook_sub_tasks || [])
