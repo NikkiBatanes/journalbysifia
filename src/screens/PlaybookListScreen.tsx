@@ -340,21 +340,34 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // React Query will automatically refetch when userId changes due to queryKey dependency
 
-  // Filter and sort playbooks by completion status (simplified)
-  const filteredPlaybooks = useMemo(() => {
-    // Early return for empty playbooks
+  // OPTIMIZED: Cache progress calculations to avoid recalculating on every filter change
+  const playbooksWithProgress = useMemo(() => {
     if (!Array.isArray(playbooks) || playbooks.length === 0) {
       return [];
     }
 
-    // Simple filtering logic
-    const filtered = playbooks.filter(playbook => {
-      if (!playbook?.actionSteps) {return false;}
+    return playbooks.map(playbook => {
+      if (!playbook?.actionSteps) {
+        return { playbook, progress: 0, isCompleted: false };
+      }
 
       const { completed, total } = calculateTaskStats(playbook.actionSteps);
       const progress = total > 0 ? (completed / total) * 100 : 0;
       const isCompleted = progress >= 100;
 
+      return { playbook, progress, isCompleted };
+    });
+  }, [playbooks]);
+
+  // Filter and sort playbooks by completion status (optimized with cached progress)
+  const filteredPlaybooks = useMemo(() => {
+    // Early return for empty playbooks
+    if (playbooksWithProgress.length === 0) {
+      return [];
+    }
+
+    // Simple filtering logic using cached progress
+    const filtered = playbooksWithProgress.filter(({ isCompleted }) => {
       switch (filter) {
         case 'all':
           return true;
@@ -369,13 +382,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
     // Sort by most recent
     const sorted = filtered.sort((a, b) => {
-      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      const dateA = new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime();
+      const dateB = new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime();
       return dateB - dateA;
     });
 
-    return sorted;
-  }, [playbooks, filter]);
+    return sorted.map(({ playbook }) => playbook);
+  }, [playbooksWithProgress, filter]);
 
   // Intelligent prefetching: prefetch visible playbooks for instant navigation
   useEffect(() => {
@@ -504,7 +517,17 @@ const PlaybookListScreen = ({ navigation }: any) => {
     setDevotionalModalVisible(true);
   }, [triggerLightHaptic]);
 
-  const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
+  // OPTIMIZED: Memoize renderRightActions to avoid recreation
+  const renderRightActions = useCallback((itemId: string) => () => (
+    <RectButton
+      style={styles.deleteButton}
+      onPress={() => { try { triggerLightHaptic(); } catch {} handleDelete(itemId); }}
+    >
+      <Ionicons name="trash-outline" size={24} color="white" />
+    </RectButton>
+  ), [handleDelete, styles.deleteButton]);
+
+  const renderItem = useCallback(({ item, index }: { item: Playbook; index: number }) => {
     // Safety check for item
     if (!item || typeof item !== 'object') {
       Logger.warn('Invalid item in renderItem', { component: 'PlaybookListScreen', data: item });
@@ -516,15 +539,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
       rowRefs.current[item.id] = createRef();
     }
 
-    // Safely handle cases where animatedValues.current might not be initialized yet
+    // FIXED: Reuse animated values, don't create new ones
     const currentAnimatedValue = Array.isArray(animatedValues.current) ? animatedValues.current[index] : null;
-    const translateY = currentAnimatedValue?.interpolate?.({
+    const hasAnimation = currentAnimatedValue !== null && currentAnimatedValue !== undefined;
+    const translateY = hasAnimation ? currentAnimatedValue.interpolate({
       inputRange: [0, 1],
       outputRange: [50, 0],
-    }) || new Animated.Value(0);
+    }) : 0;
 
-    // Fix: Ensure opacity is always 1 if animation value is not available
-    const opacity = currentAnimatedValue || new Animated.Value(1);
+    const opacity = hasAnimation ? currentAnimatedValue : 1;
 
     return (
       <Animated.View
@@ -539,14 +562,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <Swipeable
           ref={rowRefs.current[item.id]}
           onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
-          renderRightActions={() => (
-            <RectButton
-              style={styles.deleteButton}
-              onPress={() => { try { triggerLightHaptic(); } catch {} handleDelete(item.id); }}
-            >
-              <Ionicons name="trash-outline" size={24} color="white" />
-            </RectButton>
-          )}
+          renderRightActions={renderRightActions(item.id)}
           rightThreshold={40}
           friction={2}
           overshootRight={false}
@@ -562,7 +578,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         </Swipeable>
       </Animated.View>
     );
-  };
+  }, [handleCardPress, handleCardLongPress, renderRightActions, styles]);
 
   // Logging for render states
 

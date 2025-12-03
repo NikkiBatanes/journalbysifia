@@ -23,7 +23,7 @@ const getProgressBarStyle = (progress: number): ViewStyle => ({
   minWidth: progress > 0 ? 1 : 0,
 });
 
-const PlaybookCard: React.FC<PlaybookCardProps> = ({
+const PlaybookCard: React.FC<PlaybookCardProps> = React.memo(({
   playbook,
   onPress,
   containerStyle,
@@ -93,7 +93,9 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
       </View>
     </TouchableOpacity>
   );
-};
+});
+
+PlaybookCard.displayName = 'PlaybookCard';
 
 const createStyles = (_theme: any) => StyleSheet.create({
   card: {

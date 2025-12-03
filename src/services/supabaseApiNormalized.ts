@@ -113,14 +113,34 @@ function transformPlaybookRow(
 }
 
 /**
- * Get all playbooks for a user with their related data
+ * Get all playbooks for a user with their related data (lightweight for list view)
  */
-export async function getPlaybooks(userId: string): Promise<Playbook[]> {
+export async function getPlaybooks(userId: string, lightweight: boolean = true): Promise<Playbook[]> {
   try {
-    // OPTIMIZED: Single query with joins to fetch all related data
-    const { data: playbooksData, error: playbooksError } = await supabase
-      .from('playbooks')
-      .select(`
+    // OPTIMIZED: Lightweight query for list view (no affirmations, minimal fields)
+    const selectFields = lightweight
+      ? `
+        id,
+        user_id,
+        title,
+        status,
+        progress,
+        total_tasks,
+        created_at,
+        updated_at,
+        playbook_action_steps (
+          id,
+          completed,
+          order_index,
+          playbook_sub_tasks (
+            id,
+            completed,
+            is_example,
+            order_index
+          )
+        )
+      `
+      : `
         id,
         user_id,
         title,
@@ -161,7 +181,11 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
           created_at,
           updated_at
         )
-      `)
+      `;
+
+    const { data: playbooksData, error: playbooksError } = await supabase
+      .from('playbooks')
+      .select(selectFields)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -184,24 +208,24 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
         .sort((a: any, b: any) => a.order_index - b.order_index)
         .map((step: any) => ({
           id: step.id,
-          title: step.text,
-          examples: step.examples,
+          title: lightweight ? '' : (step.text || ''),
+          examples: lightweight ? '' : (step.examples || ''),
           completed: step.completed,
           orderIndex: step.order_index,
           subTasks: (step.playbook_sub_tasks || [])
             .sort((a: any, b: any) => a.order_index - b.order_index)
             .map((subTask: any) => ({
               id: subTask.id,
-              text: subTask.text,
+              text: lightweight ? '' : (subTask.text || ''),
               completed: subTask.completed,
               is_example: subTask.is_example,
-              example_interactive: subTask.example_interactive,
+              example_interactive: lightweight ? false : (subTask.example_interactive || false),
               orderIndex: subTask.order_index,
             })),
         }));
 
-      // Transform affirmations
-      const affirmations: Affirmation[] = (playbookRow.playbook_affirmations || [])
+      // Transform affirmations (skip in lightweight mode)
+      const affirmations: Affirmation[] = lightweight ? [] : (playbookRow.playbook_affirmations || [])
         .sort((a: any, b: any) => a.order_index - b.order_index)
         .map((affirmation: any) => ({
           id: affirmation.id,
@@ -214,11 +238,11 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
         id: playbookRow.id,
         user_id: playbookRow.user_id,
         title: playbookRow.title,
-        userInput: playbookRow.user_input || '',
-        truthInLove: playbookRow.truth_in_love || { text: '', summary: '' },
-        bibleVerse: playbookRow.bible_verse || { text: '', reference: '' },
-        directChallenge: playbookRow.direct_challenge,
-        challengeCTA: playbookRow.challenge_cta,
+        userInput: lightweight ? '' : (playbookRow.user_input || ''),
+        truthInLove: lightweight ? { text: '', summary: '' } : (playbookRow.truth_in_love || { text: '', summary: '' }),
+        bibleVerse: lightweight ? { text: '', reference: '' } : (playbookRow.bible_verse || { text: '', reference: '' }),
+        directChallenge: lightweight ? '' : (playbookRow.direct_challenge || ''),
+        challengeCTA: lightweight ? '' : (playbookRow.challenge_cta || ''),
         status: playbookRow.status,
         progress: playbookRow.progress || 0,
         totalTasks: playbookRow.total_tasks || 0,
