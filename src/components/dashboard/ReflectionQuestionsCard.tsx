@@ -473,7 +473,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       if (isNetworkError) {
         Logger.warn('Network error fetching reflection questions - will retry on next refresh', { 
           component: 'ReflectionQuestionsCard',
-          error: errorMessage,
+          errorMessage,
         });
         setError('Network connection issue. Pull to refresh.');
       } else {

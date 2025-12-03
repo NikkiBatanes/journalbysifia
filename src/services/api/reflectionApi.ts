@@ -300,7 +300,7 @@ export class ReflectionApi {
       if (isNetworkError) {
         Logger.warn('Network error searching reflections - returning empty results', {
           component: 'reflectionApi',
-          error: error.message,
+          errorMessage: error.message,
         });
         // Return empty array instead of throwing for network errors
         return [];

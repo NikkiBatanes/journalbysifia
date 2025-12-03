@@ -268,6 +268,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     typeof routePlaybook === 'object' && 
     'title' in routePlaybook && 
     'actionSteps' in routePlaybook &&
+    'truthInLove' in routePlaybook &&
     routePlaybook.truthInLove && 
     typeof routePlaybook.truthInLove === 'object' &&
     (routePlaybook.truthInLove as any).text && // Has actual text content (not empty)
