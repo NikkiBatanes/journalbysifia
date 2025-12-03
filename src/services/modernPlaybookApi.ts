@@ -262,6 +262,7 @@ async function generatePlaybookInternal(
       let userIdForGeneration: string | undefined;
       let dateOfBirth: string | undefined;
       let ageGroup: string | undefined;
+      let location: string | undefined;
       try {
         const { data: { user } } = await supabase.auth.getUser();
         userIdForGeneration = user?.id; // ENTERPRISE: Pass userId for context-aware generation
@@ -291,6 +292,9 @@ async function generatePlaybookInternal(
         if (!dateOfBirth) {
           ageGroup = (user as any)?.user_metadata?.ageGroup;
         }
+
+        // Get location from user preferences
+        location = (user as any)?.user_metadata?.preferences?.location;
       } catch {}
 
       // CRITICAL FIX: Use Supabase SDK instead of raw fetch for TestFlight reliability
@@ -315,6 +319,7 @@ async function generatePlaybookInternal(
               userId: userIdForGeneration,
               dateOfBirth,
               ageGroup,
+              location, // Send location for regional hotlines
             },
           }),
           TIMEOUT_CONFIGS.AI_GENERATION
@@ -349,6 +354,7 @@ async function generatePlaybookInternal(
                 userId: userIdForGeneration,
                 dateOfBirth,
                 ageGroup,
+                location,
               }),
             }),
             TIMEOUT_CONFIGS.AI_GENERATION

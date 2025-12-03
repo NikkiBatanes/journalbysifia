@@ -250,6 +250,11 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     // Define scripture patterns to try in order of specificity
     // Updated to handle the formats specified in the AI prompt
     const scripturePatterns = [
+      // Format: "verse" (BOOK 1:19-20) (reference in parentheses) - most common AI output
+      {
+        pattern: /['"]([^'"\n]+)['"]\s*\(\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*\)/i,
+        name: 'format "verse" (reference)',
+      },
       // Format: "verse" (BOOK 1:19) (VERSION) - AI output with version
       {
         pattern: /['"]([^'"\n]+)['"]\s*\(\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*\)\s*\(\s*([A-Z]+)\s*\)/i,
@@ -265,11 +270,6 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
         pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*:\s*['"]([^'"\n]+)['"]/i,
         name: 'format reference: "verse" (with dash)',
       },
-      // Format: "verse" (BOOK 1:19-20) (reference in parentheses)
-      {
-        pattern: /['"]([^'"\n]+)['"]\s*\(\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*\)/i,
-        name: 'format "verse" (reference)',
-      },
       // Format: "verse" - BOOK 1:19-20 (with dash)
       {
         pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
@@ -284,6 +284,11 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       {
         pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s+([^\n]+)/i,
         name: 'format reference verse (no quotes)',
+      },
+      // Format: "verse" (just quoted verse without reference) - must be substantial text
+      {
+        pattern: /^['"]([^'"\n]{50,})['"]$/i,
+        name: 'format "verse" (no reference)',
       },
     ];
 
@@ -309,8 +314,13 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
         }
         // For patterns where text comes first (groups 1=text, 2=ref)
         else if (name.includes('"verse"')) {
-          verseText = match[1]?.trim() || '';
-          verseRef = match[2]?.trim() || '';
+          if (name.includes('(no reference)')) {
+            verseText = match[1]?.trim() || '';
+            verseRef = 'Philippians 4:6'; // Default reference from context
+          } else {
+            verseText = match[1]?.trim() || '';
+            verseRef = match[2]?.trim() || '';
+          }
         }
         // For fallback pattern (just reference)
         else if (name.includes('just verse reference')) {
@@ -327,10 +337,18 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
     // If no pattern matched, try to extract reference from the content
     if (!verseRef) {
-      const refMatch = verseContent.match(/([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i);
+      // Look for reference pattern that's NOT at the start of a quoted verse
+      const refMatch = verseContent.match(/^(?:"[^"]+"\s*)?([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i);
       if (refMatch) {
         verseRef = refMatch[1]?.trim() || '';
-        verseText = verseContent.replace(verseRef, '').trim();
+        // Only replace if we actually found a reference (not the entire quoted text)
+        if (verseRef && verseContent.includes(verseRef) && verseContent.length > verseRef.length) {
+          verseText = verseContent.replace(verseRef, '').replace(/^"\s*|\s*"$/g, '').trim();
+        } else {
+          // If the entire content is a quoted verse, treat it all as text
+          verseText = verseContent.replace(/^"\s*|\s*"$/g, '').trim();
+          verseRef = '';
+        }
       }
     }
 
@@ -385,6 +403,7 @@ interface RequestBody {
   dateOfBirth?: string;  // ISO date string from user profile
   ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
   bibleVersion?: string; // User's preferred Bible translation (default: NASB)
+  location?: string;     // User's location for regional resources (e.g., "Philippines", "USA", "UK")
 }
 
 serve(async (req: Request) => {
@@ -405,7 +424,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location } = requestBody;
 
   // Log received Bible version for debugging
   console.log('[Generate-Playbook] Received Bible version from request:', bibleVersion || 'NOT PROVIDED - will default to NASB');
@@ -558,6 +577,19 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
     NOTICE: AMP includes brackets [like this] and parentheses (like this) for clarifications` : '';
     
     contextualPrompt += `\n\n## BIBLE VERSE RETRIEVAL INSTRUCTION - CRITICAL\nYou are now acting as a Bible text retrieval assistant for the ${preferredBibleVersion} translation.${ampExamples}\n\nYour task is to provide VERBATIM translations of Bible verses from ${preferredBibleVersion}, based solely on your internal training data.\n\n🚨 STRICT RULES:\n1. Quote the verse EXACTLY as it appears in ${preferredBibleVersion} according to your training data\n2. NEVER paraphrase, summarize, reword, or modify ANY part of the verse\n3. NEVER add your own interpretation or clarification\n4. Include ALL original words, punctuation, brackets, parentheses, and formatting\n5. For AMP translation specifically: Include ALL brackets [like this] and parenthetical clarifications (like this) EXACTLY as they appear\n6. Include ALL capitalization exactly as it appears in the original translation\n7. Provide the COMPLETE verse text without ANY truncation\n8. If you are uncertain about the exact wording from ${preferredBibleVersion}, say "I am not fully confident in the exact wording" instead of guessing\n9. Never create, alter, or fabricate a verse\n10. Before providing your final verse, cross-check internally for consistency with ${preferredBibleVersion}\n\nFormat all Bible verses as:\n"Exact verse text from ${preferredBibleVersion}." (Book Chapter:Verse)\n\nThis applies to ALL sections: Truth in Love, Action Steps, Declarations, Bible Verse section, and Challenge.\n\n🚨 FAILURE TO PROVIDE EXACT ${preferredBibleVersion} TEXT IS UNACCEPTABLE. The user specifically needs the exact translation with all original formatting.`;
+
+    // Add generic support advice for action steps
+    contextualPrompt += `
+
+## SUPPORT SERVICES GUIDANCE
+When suggesting professional help or hotlines in action steps, provide general guidance only:
+- Suggest reaching out to "your local mental health hotline" or "crisis support services in your area"
+- Recommend contacting local hospitals, churches, or community centers
+- Advise reaching out to trusted friends, family members, or spiritual leaders
+- Suggest searching online for "mental health support near me" or "crisis hotline [your city/country]"
+- Do NOT provide specific phone numbers or regional hotlines - keep it general and applicable to any location
+
+IMPORTANT: Always use generic language like "your local hotline" or "support services in your area" rather than specific numbers or regional resources.`;
 
     // Call OpenAI API with circuit breaker + retry logic
     console.log('[Generate-Playbook] Calling OpenAI API with circuit breaker + retry logic...');
