@@ -132,7 +132,6 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
         status,
         progress,
         total_tasks,
-        completed_at,
         created_at,
         updated_at,
         playbook_action_steps (
@@ -223,7 +222,6 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
         status: playbookRow.status,
         progress: playbookRow.progress || 0,
         totalTasks: playbookRow.total_tasks || 0,
-        completedAt: playbookRow.completed_at,
         actionSteps,
         affirmations,
         createdAt: playbookRow.created_at,
