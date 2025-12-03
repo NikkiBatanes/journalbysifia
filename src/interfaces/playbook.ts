@@ -1,6 +1,7 @@
 export interface BibleVerse {
   text: string;
   reference: string;
+  version?: string;
 }
 
 export interface SubTask {

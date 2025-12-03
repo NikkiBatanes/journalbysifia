@@ -47,7 +47,7 @@ interface Playbook {
   };
   actionSteps: ActionStep[];
   affirmations: { id: string; text: string; completed: boolean }[];
-  bibleVerse: { text: string; reference: string };
+  bibleVerse: { text: string; reference: string; version?: string };
   directChallenge: string;
   createdAt: string;
   updatedAt: string;
@@ -364,6 +364,9 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       cleanVerseRef = cleanVerseRef.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
     }
     playbook.bibleVerse.reference = cleanVerseRef;
+    
+    // Store the Bible version that was used for generation
+    playbook.bibleVerse.version = bibleVersion || 'NASB';
   }
 
   // Parse Direct Challenge

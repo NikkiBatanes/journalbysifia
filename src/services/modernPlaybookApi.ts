@@ -599,23 +599,65 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
             .delete()
             .eq('action_step_id', step.id);
 
-          // Insert new sub-tasks
-          const subTasksToInsert = step.subTasks.map((subTask, subIndex) => {
+          // Insert new sub-tasks, splitting long ones if needed
+          const subTasksToInsert: any[] = [];
+          step.subTasks.forEach((subTask, subIndex) => {
             // Handle both string and object formats for subtasks
             const subTaskText = typeof subTask === 'string' ? subTask : subTask.text;
             const subTaskId = typeof subTask === 'object' && subTask.id ? subTask.id : ensureValidUUID(generateUUID());
             const isExample = typeof subTask === 'object' ? subTask.is_example : false;
             const exampleInteractive = typeof subTask === 'object' ? subTask.example_interactive : false;
 
-            return {
-              id: subTaskId,
-              action_step_id: step.id,
-              text: subTaskText,
-              completed: typeof subTask === 'object' ? subTask.completed : false,
-              order_index: subIndex,
-              is_example: isExample,
-              example_interactive: exampleInteractive,
-            };
+            // Split long text into multiple sub-tasks if needed (approx 500 chars per sub-task)
+            const MAX_LENGTH = 500;
+            if (subTaskText.length > MAX_LENGTH) {
+              const words = subTaskText.split(' ');
+              let currentText = '';
+              let partIndex = 0;
+              
+              words.forEach(word => {
+                if ((currentText + ' ' + word).length > MAX_LENGTH && currentText) {
+                  // Add current part as a separate sub-task
+                  subTasksToInsert.push({
+                    id: partIndex === 0 ? subTaskId : ensureValidUUID(generateUUID()),
+                    action_step_id: step.id,
+                    text: currentText.trim(),
+                    completed: typeof subTask === 'object' ? subTask.completed : false,
+                    order_index: subIndex + partIndex * 0.1, // Keep original order
+                    is_example: isExample,
+                    example_interactive: exampleInteractive,
+                  });
+                  currentText = word;
+                  partIndex++;
+                } else {
+                  currentText += (currentText ? ' ' : '') + word;
+                }
+              });
+              
+              // Add remaining text
+              if (currentText.trim()) {
+                subTasksToInsert.push({
+                  id: partIndex === 0 ? subTaskId : ensureValidUUID(generateUUID()),
+                  action_step_id: step.id,
+                  text: currentText.trim(),
+                  completed: typeof subTask === 'object' ? subTask.completed : false,
+                  order_index: subIndex + partIndex * 0.1,
+                  is_example: isExample,
+                  example_interactive: exampleInteractive,
+                });
+              }
+            } else {
+              // Add as-is if within limit
+              subTasksToInsert.push({
+                id: subTaskId,
+                action_step_id: step.id,
+                text: subTaskText,
+                completed: typeof subTask === 'object' ? subTask.completed : false,
+                order_index: subIndex,
+                is_example: isExample,
+                example_interactive: exampleInteractive,
+              });
+            }
           });
 
           const { error: subTasksError } = await supabase
