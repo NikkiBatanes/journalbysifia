@@ -332,16 +332,23 @@ export const useUpdateSubTask = () => {
     onMutate: async ({ playbookId, stepId, subTaskId, completed, userId }) => {
       const timer = performanceMonitor.startTiming('optimisticUpdate:subTask', 'mutation');
 
+      // Cancel any outgoing refetches for both full and lightweight queries
       await queryClient.cancelQueries({
         queryKey: queryKeys.playbooks.all(userId),
       });
 
-      const previousPlaybooks = queryClient.getQueryData<Playbook[]>(
+      // Snapshot the previous value (try lightweight first, then full)
+      const lightweightKey = [...queryKeys.playbooks.all(userId), 'lightweight'];
+      const previousPlaybooksLightweight = queryClient.getQueryData<Playbook[]>(lightweightKey);
+      const previousPlaybooksFull = queryClient.getQueryData<Playbook[]>(
         queryKeys.playbooks.all(userId)
       );
 
-      if (previousPlaybooks) {
-        const updatedPlaybooks = previousPlaybooks.map(playbook => {
+      // Update function for both caches
+      const updatePlaybooksCache = (previousPlaybooks: Playbook[] | undefined) => {
+        if (!previousPlaybooks) return null;
+
+        return previousPlaybooks.map(playbook => {
           if (playbook.id !== playbookId) {return playbook;}
 
           const updatedActionSteps = playbook.actionSteps.map(step => {
@@ -396,16 +403,26 @@ export const useUpdateSubTask = () => {
             updatedAt: new Date().toISOString(),
           };
         });
+      };
 
+      // Update both lightweight and full caches
+      const updatedLightweight = updatePlaybooksCache(previousPlaybooksLightweight);
+      const updatedFull = updatePlaybooksCache(previousPlaybooksFull);
+
+      if (updatedLightweight) {
+        queryClient.setQueryData(lightweightKey, updatedLightweight);
+      }
+
+      if (updatedFull) {
         queryClient.setQueryData(
           queryKeys.playbooks.all(userId),
-          updatedPlaybooks
+          updatedFull
         );
       }
 
       timer.end();
 
-      return { previousPlaybooks };
+      return { previousPlaybooks: previousPlaybooksFull };
     },
 
     onSuccess: (data, variables) => {

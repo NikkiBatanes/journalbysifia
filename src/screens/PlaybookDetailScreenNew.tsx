@@ -754,19 +754,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           velocity: 2,
         }),
         RNAnimated.spring(cardAnimations[cardId].scale, {
-          toValue: 1.02, // Slight scale up for emphasis
+          toValue: 1, // Keep scale at 1.0 (no bounce)
           useNativeDriver: true,
           friction: 10,
           tension: 50,
         }),
-      ]).start(() => {
-        // Settle back to 1.0 scale
-        RNAnimated.spring(cardAnimations[cardId].scale, {
-          toValue: 1,
-          useNativeDriver: true,
-          friction: 8,
-        }).start();
-      });
+      ]).start();
 
       // Animate other cards based on their position relative to tapped card
       cardData.forEach((card, index) => {
