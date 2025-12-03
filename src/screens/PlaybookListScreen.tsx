@@ -280,9 +280,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
 
-      // Always reset to 'ongoing' (In Progress) tab when navigating to this screen
-
-      setFilter('ongoing');
+      // Don't reset filter - preserve user's selection when navigating back
+      // setFilter('ongoing'); // REMOVED: This was resetting filter on every focus
 
       // Safely reset animation values if they exist
       if (animatedValues.current && Array.isArray(animatedValues.current)) {
