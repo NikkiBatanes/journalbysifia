@@ -578,10 +578,10 @@ export async function updatePlaybookSubTask(
   stepId: string,
   subTaskId: string,
   completed: boolean
-): Promise<Playbook> {
+): Promise<{ playbookId: string; stepId: string; subTaskId: string; completed: boolean }> {
 
   try {
-    // Update the sub-task
+    // OPTIMIZED: Just update the database - optimistic update handles UI
     const { error: updateError } = await supabase
       .from('playbook_sub_tasks')
       .update({ completed, updated_at: new Date().toISOString() })
@@ -596,13 +596,9 @@ export async function updatePlaybookSubTask(
       throw updateError;
     }
 
-    // Fetch and return the updated playbook
-    const updatedPlaybook = await getPlaybook(userId, playbookId);
-    if (!updatedPlaybook) {
-      throw new Error('Failed to fetch updated playbook');
-    }
-
-    return updatedPlaybook;
+    // PERFORMANCE: Don't fetch entire playbook - let optimistic update handle UI
+    // Return minimal data for confirmation
+    return { playbookId, stepId, subTaskId, completed };
 
   } catch (error) {
     Logger.error('[updatePlaybookSubTask] Unexpected error', error as Error, {

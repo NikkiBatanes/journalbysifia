@@ -310,8 +310,8 @@ export const useUpdateSubTask = () => {
       }) => {
         const { updatePlaybookSubTask } = await import('../supabaseApiNormalized');
         
-        // Call actual API to persist to database
-        const updatedPlaybook = await updatePlaybookSubTask(
+        // Call actual API to persist to database (optimized - no refetch)
+        await updatePlaybookSubTask(
           userId,
           playbookId,
           stepId,
@@ -319,7 +319,8 @@ export const useUpdateSubTask = () => {
           completed
         );
 
-        return { playbookId, stepId, subTaskId, completed, updatedPlaybook };
+        // Return confirmation - optimistic update already handled UI
+        return { playbookId, stepId, subTaskId, completed };
       },
       'updateSubTask'
     ),
