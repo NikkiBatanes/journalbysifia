@@ -66,7 +66,7 @@ type ActionStepsCardProps = {
   // Callback to collapse the card (for parent screens)
   onCollapse?: () => void;
   // Callback to handle subtask toggle mutations
-  onToggleSubTaskMutation?: (stepId: string, subTaskId: string) => Promise<void>;
+  onToggleSubTaskMutation?: (stepId: string, subTaskId: string, completed: boolean) => Promise<void>;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -341,13 +341,18 @@ export default function ActionStepsCard({
     });
     }
 
+    // Calculate new completed state BEFORE updating context
+    const step = steps.find(s => s.id === stepId);
+    const subTask = step?.subTasks?.find(st => st.id === subTaskId);
+    const newCompletedState = subTask ? !subTask.completed : true;
+
     // Proceed with actual toggle update in context
     handleToggleStep(stepId, subTaskId);
 
     // Persist to database if mutation callback is provided
     if (onToggleSubTaskMutation) {
       try {
-        await onToggleSubTaskMutation(stepId, subTaskId);
+        await onToggleSubTaskMutation(stepId, subTaskId, newCompletedState);
       } catch (error) {
         Logger.error('[ActionStepsCard] Failed to persist subtask toggle', error as Error, {
           component: 'ActionStepsCard',
@@ -366,7 +371,7 @@ export default function ActionStepsCard({
     DeviceEventEmitter.emit('playbookProgressUpdate', {
       stepId, subTaskId, type: 'playbook_detail_toggle',
     });
-  }, [handleToggleStep, steps, user?.id, playbookId, queryClient]);
+  }, [handleToggleStep, steps, user?.id, playbookId, queryClient, onToggleSubTaskMutation]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
 

@@ -300,7 +300,7 @@ export const useUpdateSubTask = () => {
         stepId,
         subTaskId,
         completed,
-        userId: _userId,
+        userId,
       }: {
         playbookId: string;
         stepId: string;
@@ -308,12 +308,18 @@ export const useUpdateSubTask = () => {
         completed: boolean;
         userId: string;
       }) => {
+        const { updatePlaybookSubTask } = await import('../supabaseApiNormalized');
+        
+        // Call actual API to persist to database
+        const updatedPlaybook = await updatePlaybookSubTask(
+          userId,
+          playbookId,
+          stepId,
+          subTaskId,
+          completed
+        );
 
-        // TODO: Implement sub-task specific API call
-        // For now, we'll use the existing action step API
-        // This will be enhanced when we migrate to the new database schema
-
-        return { playbookId, stepId, subTaskId, completed };
+        return { playbookId, stepId, subTaskId, completed, updatedPlaybook };
       },
       'updateSubTask'
     ),

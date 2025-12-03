@@ -324,24 +324,18 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [currentCard, setCurrentCard] = useState(0);
 
   // 5. Callback hooks
-  const handleToggleSubTaskMutation = React.useCallback(async (stepId: string, subTaskId: string) => {
+  const handleToggleSubTaskMutation = React.useCallback(async (stepId: string, subTaskId: string, completed: boolean) => {
     if (!playbook?.id || !userId) return;
     
-    // Find current completed state
-    const step = actionSteps.find(s => s.id === stepId);
-    const subTask = step?.subTasks?.find(st => st.id === subTaskId);
-    if (!subTask) return;
-    
-    const newCompletedState = !subTask.completed;
-    
+    // Persist the new completed state to database
     await updateSubTaskMutation.mutateAsync({
       playbookId: playbook.id,
       stepId,
       subTaskId,
-      completed: newCompletedState,
+      completed,
       userId,
     });
-  }, [playbook?.id, userId, actionSteps, updateSubTaskMutation]);
+  }, [playbook?.id, userId, updateSubTaskMutation]);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
   const [showCompactHeader, setShowCompactHeader] = useState(false);
