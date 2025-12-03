@@ -113,9 +113,10 @@ function transformPlaybookRow(
 }
 
 /**
- * Get all playbooks for a user with their related data (lightweight for list view)
+ * Get all playbooks for a user with their related data
+ * @param lightweight - When true, fetches minimal data for list views. Default false for full data.
  */
-export async function getPlaybooks(userId: string, lightweight: boolean = true): Promise<Playbook[]> {
+export async function getPlaybooks(userId: string, lightweight: boolean = false): Promise<Playbook[]> {
   try {
     // OPTIMIZED: Lightweight query for list view (no affirmations, minimal fields)
     const selectFields = lightweight

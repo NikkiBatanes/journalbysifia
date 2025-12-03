@@ -121,8 +121,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const { data: playbooks = [], isLoading, refetch, isFetching } = useQuery<Playbook[]>({
     queryKey: ['playbooks', userId],
     queryFn: () => {
-
-      return getPlaybooks(userId || '');
+      // Use lightweight mode for list view (80% data reduction)
+      return getPlaybooks(userId || '', { lightweight: true });
     },
     enabled: !!userId && isAuthenticated, // Only run when we have a valid userId and are authenticated
     staleTime: 2 * 60 * 1000, // 2 minutes - reduced for more frequent updates

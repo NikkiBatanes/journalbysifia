@@ -250,9 +250,10 @@ export async function getPlaybooks(
   options: {
     showUserFeedback?: boolean;
     onAuthRequired?: () => void;
+    lightweight?: boolean;
   } = {}
 ): Promise<any[]> {
-  const { showUserFeedback = false, onAuthRequired } = options;
+  const { showUserFeedback = false, onAuthRequired, lightweight = false } = options;
 
   try {
 
@@ -282,7 +283,7 @@ export async function getPlaybooks(
 
     // Use normalized playbook API for accurate progress calculation
     try {
-      const result = await normalizedGetPlaybooks(userId);
+      const result = await normalizedGetPlaybooks(userId, lightweight);
 
       return result;
     } catch (error: any) {
