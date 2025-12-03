@@ -1031,15 +1031,26 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Logging effect
   useEffect(() => {
-
     if (!playbookId) {
-
+      Logger.warn('No playbookId provided', { component: 'PlaybookDetailScreenNew' });
+      return;
     } else if (isLoading) {
-
+      Logger.debug('Loading playbook data', { component: 'PlaybookDetailScreenNew', playbookId });
+      return;
     } else if (error || !playbook) {
-
+      Logger.error('Error loading playbook or no playbook data', error as Error, { 
+        component: 'PlaybookDetailScreenNew', 
+        playbookId,
+        hasPlaybook: !!playbook 
+      });
+      return;
     } else {
-
+      Logger.debug('Playbook loaded successfully', { 
+        component: 'PlaybookDetailScreenNew', 
+        playbookId,
+        title: playbook?.title 
+      });
+      return;
     }
   }, [playbookId, userId, playbook, isLoading, error, route.params]);
 
@@ -1050,16 +1061,21 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       // Prefetch adjacent playbooks and related data
       prefetchForCurrentPlaybook(playbookId).catch(prefetchError => {
         Logger.warn('[PlaybookDetailScreen] Prefetching failed', {
-      component: 'PlaybookDetailScreenNew',
-      data: prefetchError,
-    });
+          component: 'PlaybookDetailScreenNew',
+          data: prefetchError,
+        });
       });
     }
   }, [playbookId, userId, playbook, prefetchForCurrentPlaybook]);
 
   // Playbook data debug effect
   useEffect(() => {
-
+    Logger.debug('Playbook data updated', { 
+      component: 'PlaybookDetailScreenNew', 
+      playbookId: playbook?.id,
+      title: playbook?.title,
+      hasActionSteps: !!playbook?.actionSteps?.length
+    });
   }, [playbook]);
 
   // Auto-refetch if playbook data is incomplete
@@ -2079,7 +2095,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 triggerLightHaptic();
                 navigation.goBack();
               } catch (err) {
-
+                Logger.error('Error navigating back', err as Error, { component: 'PlaybookDetailScreenNew' });
               }
             }}
           >
