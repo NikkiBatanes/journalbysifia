@@ -20,8 +20,9 @@ import {
 /**
  * Hook for getting all playbooks for a user
  * Uses React Query for caching and background updates
+ * @param lightweight - Use lightweight mode for list views (default: true for performance)
  */
-export const usePlaybooksData = (userId: string, config?: Partial<QueryConfig>) => {
+export const usePlaybooksData = (userId: string, lightweight: boolean = true, config?: Partial<QueryConfig>) => {
   const defaultConfig: QueryConfig = {
     staleTime: 5 * 60 * 1000, // 5 minutes stale time
     gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
@@ -36,12 +37,12 @@ export const usePlaybooksData = (userId: string, config?: Partial<QueryConfig>) 
   const finalConfig = { ...defaultConfig, ...config };
 
   return useQuery({
-    queryKey: queryKeys.playbooks.all(userId),
+    queryKey: lightweight ? [...queryKeys.playbooks.all(userId), 'lightweight'] : queryKeys.playbooks.all(userId),
     queryFn: withQueryPerformance(
       async () => {
         try {
 
-          const playbooks = await getPlaybooksApi(userId, { lightweight: false });
+          const playbooks = await getPlaybooksApi(userId, { lightweight });
 
           return playbooks;
         } catch (error) {
@@ -100,10 +101,12 @@ export const usePlaybookData = (userId: string, playbookId: string, config?: Par
 
 /**
  * Hook for getting playbooks by status
+ * @param lightweight - Use lightweight mode for list views (default: true for performance)
  */
 export const usePlaybooksByStatus = (
   userId: string,
   status: 'inProgress' | 'completed',
+  lightweight: boolean = true,
   config?: Partial<QueryConfig>
 ) => {
   const defaultConfig: QueryConfig = {
@@ -117,11 +120,11 @@ export const usePlaybooksByStatus = (
   const finalConfig = { ...defaultConfig, ...config };
 
   return useQuery({
-    queryKey: queryKeys.playbooks.byStatus(userId, status),
+    queryKey: lightweight ? [...queryKeys.playbooks.byStatus(userId, status), 'lightweight'] : queryKeys.playbooks.byStatus(userId, status),
     queryFn: withQueryPerformance(
       async () => {
         try {
-          const playbooks = await getPlaybooksApi(userId, { lightweight: false });
+          const playbooks = await getPlaybooksApi(userId, { lightweight });
           return playbooks.filter(p => p.status === status);
         } catch (error) {
           Logger.error('[usePlaybooksByStatus] Error', error as Error, {
