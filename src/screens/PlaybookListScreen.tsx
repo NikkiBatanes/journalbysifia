@@ -284,18 +284,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
       const params = route.params as any;
       const fromTab = params?.fromTab;
       
-      // Debug logging
-      console.log('Focus event - fromTab:', fromTab, 'params:', params);
-      
       // Reset filter only when explicitly coming from tab navigation
       if (fromTab === true) {
-        console.log('Resetting filter to ongoing - coming from tab');
         setFilter('ongoing');
         
         // Clear the parameter so it doesn't trigger again
         navigation.setParams({ fromTab: undefined });
-      } else {
-        console.log('Preserving filter - not from tab navigation');
       }
 
       // Safely reset animation values if they exist
