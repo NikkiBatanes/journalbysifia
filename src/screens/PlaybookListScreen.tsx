@@ -276,21 +276,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }
   }, [playbooks.length]);
 
-  // Reset animations when screen comes into focus
+  // Reset animations when screen comes into focus and set to In Progress tab
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
 
-      // Check if we have a parameter indicating we came from tab navigation
-      const params = route.params as any;
-      const fromTab = params?.fromTab;
-      
-      // Reset filter only when explicitly coming from tab navigation
-      if (fromTab === true) {
-        setFilter('ongoing');
-        
-        // Clear the parameter so it doesn't trigger again
-        navigation.setParams({ fromTab: undefined });
-      }
+      // Always reset to 'ongoing' (In Progress) tab when navigating to this screen
+
+      setFilter('ongoing');
 
       // Safely reset animation values if they exist
       if (animatedValues.current && Array.isArray(animatedValues.current)) {
