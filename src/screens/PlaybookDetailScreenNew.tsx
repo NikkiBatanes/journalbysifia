@@ -641,7 +641,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Vertical separation between stacked cards (document vs stack)
   const STACK_OFFSET = 56;
 
-  // Initialize animated values for each card
+  // Initialize animated values for each card with entrance animation
   useEffect(() => {
     const cardAnimations = cardAnimationsRef.current;
 
@@ -662,15 +662,43 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       }
     });
 
-    // Initialize animations for new cards
+    // Initialize animations for new cards with entrance animation
     cardData.forEach((card, index) => {
       if (!cardAnimations[card.id]) {
         const initialOffset = (cardData.length - index - 1) * STACK_OFFSET;
+        
+        // Start from below and fade in
         cardAnimations[card.id] = {
-          translateY: new RNAnimated.Value(initialOffset),
-          scale: new RNAnimated.Value(1),
-          opacity: new RNAnimated.Value(1),
+          translateY: new RNAnimated.Value(initialOffset + 100), // Start 100px below
+          scale: new RNAnimated.Value(0.9), // Start slightly smaller
+          opacity: new RNAnimated.Value(0), // Start invisible
         };
+
+        // Animate to final position with staggered delay
+        const delay = index * 80; // 80ms delay between each card
+        
+        setTimeout(() => {
+          RNAnimated.parallel([
+            RNAnimated.spring(cardAnimations[card.id].translateY, {
+              toValue: initialOffset,
+              useNativeDriver: true,
+              tension: 50,
+              friction: 8,
+            }),
+            RNAnimated.spring(cardAnimations[card.id].scale, {
+              toValue: 1,
+              useNativeDriver: true,
+              tension: 50,
+              friction: 7,
+            }),
+            RNAnimated.timing(cardAnimations[card.id].opacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+              easing: RNEasing.out(RNEasing.ease),
+            }),
+          ]).start();
+        }, delay);
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -707,25 +735,38 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedCardId]);
 
-  // Smooth animation handler for card transitions
+  // Smooth animation handler for card transitions with improved physics
   const animateCardTransition = useCallback((cardId: string, isExpanding: boolean) => {
     const cardAnimations = cardAnimationsRef.current;
     const cardIndex = cardData.findIndex(c => c.id === cardId);
 
     if (isExpanding) {
-      // Animate selected card to expanded position (top)
-      RNAnimated.spring(cardAnimations[cardId].translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        friction: 8,
-        tension: 40,
-      }).start();
+      // Haptic feedback for expansion
+      try { triggerLightHaptic(); } catch {}
 
-      RNAnimated.spring(cardAnimations[cardId].scale, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 8,
-      }).start();
+      // Animate selected card to expanded position (top) with smooth spring
+      RNAnimated.parallel([
+        RNAnimated.spring(cardAnimations[cardId].translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 10,
+          tension: 50,
+          velocity: 2,
+        }),
+        RNAnimated.spring(cardAnimations[cardId].scale, {
+          toValue: 1.02, // Slight scale up for emphasis
+          useNativeDriver: true,
+          friction: 10,
+          tension: 50,
+        }),
+      ]).start(() => {
+        // Settle back to 1.0 scale
+        RNAnimated.spring(cardAnimations[cardId].scale, {
+          toValue: 1,
+          useNativeDriver: true,
+          friction: 8,
+        }).start();
+      });
 
       // Animate other cards based on their position relative to tapped card
       cardData.forEach((card, index) => {
@@ -735,31 +776,38 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           // Cards with higher index (visually below) should slide DOWN (negative Y)
           const isVisuallyAbove = index < cardIndex;
           const targetY = isVisuallyAbove ? 600 : -600;
+          const delay = Math.abs(index - cardIndex) * 30; // Stagger based on distance
 
-          RNAnimated.parallel([
-            RNAnimated.spring(cardAnimations[card.id].translateY, {
-              toValue: targetY,
-              useNativeDriver: true,
-              friction: 8,
-              tension: 40,
-            }),
-            RNAnimated.timing(cardAnimations[card.id].opacity, {
-              toValue: 0,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-            RNAnimated.spring(cardAnimations[card.id].scale, {
-              toValue: 0.9,
-              useNativeDriver: true,
-              friction: 8,
-            }),
-          ]).start();
+          setTimeout(() => {
+            RNAnimated.parallel([
+              RNAnimated.spring(cardAnimations[card.id].translateY, {
+                toValue: targetY,
+                useNativeDriver: true,
+                friction: 10,
+                tension: 45,
+              }),
+              RNAnimated.timing(cardAnimations[card.id].opacity, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+                easing: RNEasing.out(RNEasing.ease),
+              }),
+              RNAnimated.spring(cardAnimations[card.id].scale, {
+                toValue: 0.85,
+                useNativeDriver: true,
+                friction: 10,
+              }),
+            ]).start();
+          }, delay);
         }
       });
     } else {
-      // Collapse - return all cards to original stacked position
+      // Collapse - return all cards to original stacked position with staggered animation
       cardData.forEach((card, index) => {
-        const initialOffset = (cardData.length - index - 1) * 50;
+        const initialOffset = (cardData.length - index - 1) * STACK_OFFSET;
+        const delay = index * 40; // Stagger collapse animation
+
+        setTimeout(() => {
 
         RNAnimated.parallel([
           RNAnimated.spring(cardAnimations[card.id].translateY, {
@@ -779,9 +827,10 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             friction: 8,
           }),
         ]).start();
+        }, delay);
       });
     }
-  }, [cardData]);
+  }, [cardData, STACK_OFFSET]);
 
   // Navigation callbacks that depend on cardData
   const goToNextCard = useCallback(() => {
@@ -1949,9 +1998,26 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 </>
               ) : (
                 <TouchableOpacity
-                  activeOpacity={1}
+                  activeOpacity={0.95}
+                  onPressIn={() => {
+                    // Subtle scale down on press
+                    RNAnimated.spring(animValues.scale, {
+                      toValue: 0.98,
+                      useNativeDriver: true,
+                      friction: 10,
+                      tension: 100,
+                    }).start();
+                  }}
+                  onPressOut={() => {
+                    // Return to normal scale
+                    RNAnimated.spring(animValues.scale, {
+                      toValue: 1,
+                      useNativeDriver: true,
+                      friction: 10,
+                      tension: 100,
+                    }).start();
+                  }}
                   onPress={() => {
-                    triggerLightHaptic();
                     setExpandedCardId(card.id);
                     animateCardTransition(card.id, true);
                   }}
