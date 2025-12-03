@@ -854,7 +854,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.modalContent}>
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           <Text style={[styles.sectionLabel, font]}>Category</Text>
           <View style={styles.settingChipsRow}>
             {FEATURE_CATEGORIES.map(cat => {
@@ -882,7 +882,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             textAlignVertical="top"
           />
           <Text style={[styles.bugHint, font]}>Picking a category helps us triage suggestions faster.</Text>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -904,7 +904,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.modalContent}>
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           <Text style={[styles.settingDescription, font]}>
             Choose your preferred theme and font. Changes will apply when you tap Save.
           </Text>
@@ -961,7 +961,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <Text style={[styles.fontNote, font]}>Lexend font is specially designed to improve reading proficiency</Text>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -1999,17 +1999,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          style={styles.bibleModalScrollView}
-          contentContainerStyle={styles.bibleModalScrollContent}
-          contentInset={styles.bibleModalScrollInset}
-          scrollIndicatorInsets={{ bottom: (insets?.bottom || 0), top: 0, left: 0, right: 0 }}
-          contentInsetAdjustmentBehavior="never"
-          automaticallyAdjustContentInsets={false}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.bibleVersionNoteContainer}>
+            <Ionicons name="information-circle" size={16} color={Colors.faithGold} style={styles.bibleVersionNoteIcon} />
+            <Text style={[styles.bibleVersionNote, font]}>
+              Changing your Bible version only applies to content you generate from now on.
+              Existing playbooks and devotionals will keep the version they were created with.
+            </Text>
+          </View>
+          <View style={styles.spacer} />
           <Text style={[styles.settingDescription, font]}>
-            Choose your preferred Bible translation. This will be used across devotionals and verses.
+            Choose your preferred Bible translation. This will be used across new playbooks and devotionals.
           </Text>
 
           <View style={styles.weekStartOptions}>
@@ -3282,7 +3282,27 @@ const styles = StyleSheet.create({
   paddingTop22: {
     paddingTop: 22,
   },
-  // Removed test button styles
-});
+  bibleVersionNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.faithGold,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+  },
+  bibleVersionNoteIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  bibleVersionNote: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.hopeWhite,
+    flex: 1,
+  },
+});  // Removed test button styles
 
 export default withErrorBoundary(UserProfileScreen, 'UserProfileScreen');
