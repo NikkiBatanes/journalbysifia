@@ -362,16 +362,32 @@ export const useUpdateSubTask = () => {
             return step;
           });
 
-          // Recalculate overall progress
-          const totalSteps = updatedActionSteps.length;
-          const completedSteps = updatedActionSteps.filter(step => step.completed).length;
-          const progress = totalSteps > 0 ? completedSteps / totalSteps : 0;
-          const status = progress === 1 ? 'completed' : 'inProgress';
+          // Recalculate overall progress using subtask-aware calculation
+          let totalTasks = 0;
+          let completedTasks = 0;
+          
+          for (const step of updatedActionSteps) {
+            if (step.subTasks && step.subTasks.length > 0) {
+              // Count subtasks for steps that have them
+              for (const subTask of step.subTasks) {
+                if (subTask.completed) completedTasks++;
+                totalTasks++;
+              }
+            } else {
+              // Count the step itself if no subtasks
+              if (step.completed) completedTasks++;
+              totalTasks++;
+            }
+          }
+          
+          const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          const status = progress >= 100 ? 'completed' : 'inProgress';
 
           return {
             ...playbook,
             actionSteps: updatedActionSteps,
             progress,
+            totalTasks,
             status,
             updatedAt: new Date().toISOString(),
           };
