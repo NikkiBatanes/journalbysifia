@@ -65,6 +65,8 @@ type ActionStepsCardProps = {
   showCloseButton?: boolean;
   // Callback to collapse the card (for parent screens)
   onCollapse?: () => void;
+  // Callback to handle subtask toggle mutations
+  onToggleSubTaskMutation?: (stepId: string, subTaskId: string) => Promise<void>;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -134,6 +136,7 @@ export default function ActionStepsCard({
   expanded = false,
   showCloseButton = true,
   onCollapse,
+  onToggleSubTaskMutation,
 }: ActionStepsCardProps) {
   const { user } = useAuth();
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
@@ -221,7 +224,7 @@ export default function ActionStepsCard({
     }
   }, [steps]);
 
-  const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
+  const onToggleSubTask = React.useCallback(async (stepId: string, subTaskId: string) => {
 
     // Light haptic for any toggle action
     triggerLightHaptic();
@@ -340,6 +343,18 @@ export default function ActionStepsCard({
 
     // Proceed with actual toggle update in context
     handleToggleStep(stepId, subTaskId);
+
+    // Persist to database if mutation callback is provided
+    if (onToggleSubTaskMutation) {
+      try {
+        await onToggleSubTaskMutation(stepId, subTaskId);
+      } catch (error) {
+        Logger.error('[ActionStepsCard] Failed to persist subtask toggle', error as Error, {
+          component: 'ActionStepsCard',
+          data: { stepId, subTaskId },
+        });
+      }
+    }
 
     // Invalidate queries immediately for dashboard sync
     queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });

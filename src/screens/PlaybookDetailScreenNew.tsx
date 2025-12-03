@@ -74,6 +74,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
+import { useUpdateSubTask } from '../services/hooks/usePlaybookData';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { pdfExportService } from '../utils/pdfExportService';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
@@ -316,8 +317,31 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // 3. Context hooks
   const { actionSteps, setActionSteps, saveActionSteps } = useActionSteps();
 
+  // 4. Mutation hooks
+  const updateSubTaskMutation = useUpdateSubTask();
+
   // 4. State hooks - UI state
   const [currentCard, setCurrentCard] = useState(0);
+
+  // 5. Callback hooks
+  const handleToggleSubTaskMutation = React.useCallback(async (stepId: string, subTaskId: string) => {
+    if (!playbook?.id || !userId) return;
+    
+    // Find current completed state
+    const step = actionSteps.find(s => s.id === stepId);
+    const subTask = step?.subTasks?.find(st => st.id === subTaskId);
+    if (!subTask) return;
+    
+    const newCompletedState = !subTask.completed;
+    
+    await updateSubTaskMutation.mutateAsync({
+      playbookId: playbook.id,
+      stepId,
+      subTaskId,
+      completed: newCompletedState,
+      userId,
+    });
+  }, [playbook?.id, userId, actionSteps, updateSubTaskMutation]);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
   const [showCompactHeader, setShowCompactHeader] = useState(false);
@@ -1696,6 +1720,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                         setExpandedCardId(null);
                         animateCardTransition(card.id, false);
                       }}
+                      onToggleSubTaskMutation={handleToggleSubTaskMutation}
                     />
                   </View>
                 );
