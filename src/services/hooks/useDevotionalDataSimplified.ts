@@ -388,7 +388,7 @@ export const useDevotionalOperations = (userId: string) => {
       const { getPlaybooks } = await import('../apiIntegration');
 
       // Get all playbooks and find the specific one
-      const playbooks = await getPlaybooks(userId);
+      const playbooks = await getPlaybooks(userId, { lightweight: false });
       const playbook = playbooks.find(p => p.id === playbookId);
 
       if (!playbook) {

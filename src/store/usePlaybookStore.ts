@@ -41,7 +41,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
       loadPlaybooks: async (userId: string) => {
         set({ isLoading: true });
         try {
-          const remotePlaybooks = await getPlaybooks(userId);
+          const remotePlaybooks = await getPlaybooks(userId, { lightweight: false });
           set((state) => {
             const merged = mergePlaybooks(state.playbooks, remotePlaybooks);
 

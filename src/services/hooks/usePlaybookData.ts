@@ -41,7 +41,7 @@ export const usePlaybooksData = (userId: string, config?: Partial<QueryConfig>) 
       async () => {
         try {
 
-          const playbooks = await getPlaybooksApi(userId);
+          const playbooks = await getPlaybooksApi(userId, { lightweight: false });
 
           return playbooks;
         } catch (error) {
@@ -121,7 +121,7 @@ export const usePlaybooksByStatus = (
     queryFn: withQueryPerformance(
       async () => {
         try {
-          const playbooks = await getPlaybooksApi(userId);
+          const playbooks = await getPlaybooksApi(userId, { lightweight: false });
           return playbooks.filter(p => p.status === status);
         } catch (error) {
           Logger.error('[usePlaybooksByStatus] Error', error as Error, {
