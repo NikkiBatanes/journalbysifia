@@ -261,8 +261,17 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // 2. Data fetching hooks - Use route params first, then fetch from database
   const routePlaybook = route.params?.playbook;
-  // Only use route playbook if it has the full playbook structure (not just id)
-  const isFullPlaybook = routePlaybook && typeof routePlaybook === 'object' && 'title' in routePlaybook && 'actionSteps' in routePlaybook;
+  // Only use route playbook if it has the full playbook structure (not lightweight)
+  // Lightweight mode sets truthInLove.text and bibleVerse.text to empty strings
+  // So check if these critical fields have content to determine if it's full data
+  const isFullPlaybook = routePlaybook && 
+    typeof routePlaybook === 'object' && 
+    'title' in routePlaybook && 
+    'actionSteps' in routePlaybook &&
+    routePlaybook.truthInLove && 
+    typeof routePlaybook.truthInLove === 'object' &&
+    (routePlaybook.truthInLove as any).text && // Has actual text content (not empty)
+    (routePlaybook.truthInLove as any).text.length > 0;
   const shouldFetchFromDB = !isFullPlaybook && !!playbookId && !!userId;
 
   const { data: fetchedPlaybook, isLoading, error, refetch } = useQuery<Playbook | null>({

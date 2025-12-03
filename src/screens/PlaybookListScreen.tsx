@@ -119,7 +119,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Fetch playbooks from database using React Query with proper caching
   const { data: playbooks = [], isLoading, refetch, isFetching } = useQuery<Playbook[]>({
-    queryKey: ['playbooks', userId],
+    queryKey: ['playbooks', userId, 'lightweight'],
     queryFn: () => {
       // Use lightweight mode for list view (80% data reduction)
       return getPlaybooks(userId || '', { lightweight: true });
