@@ -66,6 +66,51 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
   );
 };
 
+// Animated progress bar skeleton component
+const AnimatedProgressBarSkeleton = () => {
+  const progressAnim = useRef(new Animated.Value(0.25)).current;
+
+  useEffect(() => {
+    const animateProgress = () => {
+      Animated.sequence([
+        Animated.timing(progressAnim, {
+          toValue: 0.6,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(progressAnim, {
+          toValue: 0.25,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]).start((finished) => {
+        if (finished) {
+          animateProgress();
+        }
+      });
+    };
+
+    animateProgress();
+
+    return () => {
+      progressAnim.stopAnimation();
+      (progressAnim as any)._finished = true;
+    };
+  }, [progressAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.progressBarFill,
+        {
+          backgroundColor: "rgba(255, 255, 255, 0.20)",
+          opacity: progressAnim,
+        }
+      ]}
+    />
+  );
+};
+
 const PlaybookSkeletonLoader = () => {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -91,12 +136,7 @@ const PlaybookSkeletonLoader = () => {
               <View style={styles.progressContainer}>
                 <View style={styles.progressRow}>
                   <View style={styles.progressBarBg}>
-                    <SkeletonBox
-                      width="100%"
-                      height={12}
-                      style={styles.progressBarFill}
-                      backgroundColor="rgba(255, 255, 255, 0.20)"
-                    />
+                    <AnimatedProgressBarSkeleton />
                   </View>
 
                   {/* Tasks */}
