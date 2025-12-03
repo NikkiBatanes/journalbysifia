@@ -465,8 +465,21 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       setQuestions([...limitedDevotionalQuestions, ...guidedQuestions.slice(0, 3)]);
 
     } catch (err) {
-      Logger.error('Error fetching reflection questions', err as Error, { component: 'ReflectionQuestionsCard' });
-      setError('Unable to load reflection questions');
+      const errorMessage = (err as Error)?.message || '';
+      const isNetworkError = errorMessage.includes('network') || 
+                            errorMessage.includes('connection') ||
+                            errorMessage.includes('gateway');
+      
+      if (isNetworkError) {
+        Logger.warn('Network error fetching reflection questions - will retry on next refresh', { 
+          component: 'ReflectionQuestionsCard',
+          error: errorMessage,
+        });
+        setError('Network connection issue. Pull to refresh.');
+      } else {
+        Logger.error('Error fetching reflection questions', err as Error, { component: 'ReflectionQuestionsCard' });
+        setError('Unable to load reflection questions');
+      }
       setQuestions([]);
     } finally {
       // Mark initial load complete and stop showing skeletons on future refreshes
