@@ -351,27 +351,23 @@ const _FAITH_HEROES = [
 export const applyPersonaContext = (persona: string, userInput: string, bibleVersion?: string): string => {
   let contextualPersona = persona.replace(/\[USER_INPUT\]/g, userInput);
 
-  // Add Bible version context if provided
-  if (bibleVersion && bibleVersion !== 'NASB') {
-    contextualPersona += `\n\n🚨 CRITICAL - EXACT BIBLE TRANSLATION REQUIRED:
-- You MUST retrieve and provide verses VERBATIM from the ${bibleVersion} translation
-- Quote the verse WORD-FOR-WORD exactly as it appears in ${bibleVersion}
+  const targetVersion = bibleVersion || 'NASB';
+  const ampExamples = targetVersion === 'AMP'
+    ? `\n\n📌 AMP REFERENCE EXAMPLES (COPY FORMAT EXACTLY):
+"Ephesians 2:10:" "For we are His workmanship [His own master work, a work of art], created in Christ Jesus [reborn from above—spiritually transformed, renewed, ready to be used] for good works, which God prepared [for us] beforehand [taking paths which He set], so that we would walk in them [living the good life which He prearranged and made ready for us]." (Ephesians 2:10)
+"Isaiah 41:13:" "For I the Lord your God keep hold of your right hand; [I am the Lord], Who says to you, 'Do not fear, I will help you.'" (Isaiah 41:13)
+NOTICE: Every bracket [ ], em dash —, and parenthetical note MUST be preserved. AMP verses almost always include clarifying brackets—do NOT remove them.`
+    : '';
+
+  contextualPersona += `\n\n🚨 CRITICAL - EXACT BIBLE TRANSLATION REQUIRED:
+- You MUST retrieve and provide verses VERBATIM from the ${targetVersion} translation
+- Quote the verse WORD-FOR-WORD exactly as it appears in ${targetVersion}
 - Do NOT paraphrase, summarize, reword, or modify ANY word
-- Include ALL brackets [like this], parenthetical clarifications (like this), punctuation, and capitalization EXACTLY as they appear in the official ${bibleVersion} translation
+- Include ALL brackets [like this], parenthetical clarifications (like this), punctuation, and capitalization EXACTLY as they appear in the official ${targetVersion} translation
 - Do NOT truncate or use ellipsis (...)
 - If the verse is long, include the FULL text
 - Cross-check internally for accuracy before providing the verse
-- If uncertain about exact wording, do not guess - retrieve the exact ${bibleVersion} text`;
-  } else {
-    contextualPersona += `\n\n🚨 CRITICAL - EXACT BIBLE TRANSLATION REQUIRED:
-- You MUST retrieve and provide verses VERBATIM from the NASB translation
-- Quote the verse WORD-FOR-WORD exactly as it appears in NASB
-- Do NOT paraphrase, summarize, reword, or modify ANY word
-- Include ALL brackets [like this], parenthetical clarifications (like this), punctuation, and capitalization EXACTLY as they appear in the official NASB translation
-- Do NOT truncate or use ellipsis (...)
-- If the verse is long, include the FULL text
-- Cross-check internally for accuracy before providing the verse`;
-  }
+- If uncertain about exact wording, do not guess - retrieve the exact ${targetVersion} text${ampExamples}`;
 
   return contextualPersona;
 };

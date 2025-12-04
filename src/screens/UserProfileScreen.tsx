@@ -2038,7 +2038,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 { key: 'NASB', label: 'NASB', description: 'New American Standard Bible' },
                 { key: 'CSB', label: 'CSB', description: 'Christian Standard Bible' },
                                 { key: 'MSG', label: 'MSG', description: 'The Message (paraphrase)' },
-                { key: 'AMP', label: 'AMP', description: 'Amplified Bible' },
               ].sort((a, b) => a.label.localeCompare(b.label));
               return versions.map((ver) => {
                 const isSelected = bibleVersionDraft === ver.key;

@@ -647,37 +647,37 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         const scripturePatterns = [
           // Format: SCRIPTURE:\n"verse" - BOOK 1:19-20 (with dash and optional newlines)
           {
-            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"][\s\n]*[-—][\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            pattern: /SCRIPTURE:[\s\n]*["'“”]([\s\S]+?)["'“”][\s\n]*[-—][\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 1a (SCRIPTURE:\n"verse" - BOOK 1:19-20 with dash)',
           },
           // Format: SCRIPTURE:\n"verse" BOOK 1:19-20 (without dash)
           {
-            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"]\s+([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            pattern: /SCRIPTURE:[\s\n]*["'“”]([\s\S]+?)["'“”]\s+([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 1b (SCRIPTURE:\n"verse" BOOK 1:19-20 without dash)',
           },
           // Format: SCRIPTURE:\nBOOK 1:19-20 - "verse"
           {
-            pattern: /SCRIPTURE:[\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
+            pattern: /SCRIPTURE:[\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*["'“”]([\s\S]+?)["'“”]/i,
             name: 'format 2 (SCRIPTURE:\nBOOK 1:19-20 - "verse")',
           },
           // Format: SCRIPTURE: verse - BOOK 1:19-20 (all on one line)
           {
-            pattern: /SCRIPTURE:[\s\n]*([^\n"']+?)\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            pattern: /SCRIPTURE:[\s\n]*([\s\S]+?)\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 3 (SCRIPTURE: verse - BOOK 1:19-20)',
           },
           // More flexible format: Any line containing "SCRIPTURE"
           {
-            pattern: /SCRIPTURE:[\s\n]*([^\n]+?)\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            pattern: /SCRIPTURE:[\s\n]*([\s\S]+?)\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 4 (flexible SCRIPTURE: verse - BOOK 1:19-20)',
           },
-          // Just look for any verse reference pattern
+          // Reference followed by quoted verse (allows multiline verse)
           {
-            pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
+            pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*["'“”]([\s\S]+?)["'“”]/i,
             name: 'format 5 (BOOK 1:19-20 - "verse")',
           },
-          // Look for quoted text followed by a reference
+          // Quoted verse followed by reference
           {
-            pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            pattern: /["'“”]([\s\S]+?)["'“”]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 6 ("verse" - BOOK 1:19-20)',
           },
         ];
@@ -1154,6 +1154,8 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
       userInput,
       bibleVersion
     );
+
+    await enforceExactScriptures(devotional, bibleVersion || 'NASB');
 
     // Cache the successful response
     ResponseCache.set(cacheKey, devotional, CACHE_CONFIGS.devotional);
