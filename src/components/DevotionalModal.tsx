@@ -376,7 +376,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }
 
     // Check if this duration is locked for current tier
-    const accessCheck = devotionalGating.checkAccess(days, playbookId ? 'onboarding' : 'inApp');
+    // Use 'onboarding' context only if explicitly in onboarding flow, otherwise use 'inApp'
+    const accessCheck = devotionalGating.checkAccess(days, isOnboarding ? 'onboarding' : 'inApp');
 
     if (accessCheck.isLocked) {
 
@@ -401,7 +402,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       }
 
       // If no onSelectDuration provided, handle devotional creation here
-      if (playbookId && userInput) {
+      if (playbookId) {
 
         // Haptic feedback when generation starts (parity with playbook generation)
         try { triggerLightHaptic(); } catch {}
@@ -416,7 +417,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         const devotional = await createDevotional({
           duration: days,
           playbookId,
-          userInput,
+          userInput: userInput || '', // Pass empty string if undefined
         });
 
         if (progressTimeout) {
@@ -665,7 +666,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   ) : (
     <View style={styles.optionsContainer}>
                 {DURATION_OPTIONS.map((option) => {
-                  const accessCheck = devotionalGating.checkAccess(option.days, playbookId ? 'onboarding' : 'inApp');
+                  const accessCheck = devotionalGating.checkAccess(option.days, isOnboarding ? 'onboarding' : 'inApp');
                   const isLocked = accessCheck.isLocked;
 
                   return (
@@ -706,7 +707,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                         <DevotionalLockIcon
                           tier={devotionalGating.tier}
                           duration={option.days}
-                          context={playbookId ? 'onboarding' : 'inApp'}
+                          context={isOnboarding ? 'onboarding' : 'inApp'}
                           onLockTap={() => {
                             if (isOnboarding) {
                               // In onboarding, lock icon should not trigger sales offer
