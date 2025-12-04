@@ -516,6 +516,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const [bibleVersionModal, setBibleVersionModal] = useState(false);
   const [bibleVersionDraft, setBibleVersionDraft] = useState<string>('NASB');
+  const [isSavingBibleVersion, setIsSavingBibleVersion] = useState(false);
   // Appearance modal and drafts
   const [appearanceModal, setAppearanceModal] = useState(false);
   const [themeDraft, setThemeDraft] = useState<'default'>('default');
@@ -1159,28 +1160,37 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Save handler for Bible Version (no success alert)
   const handleSaveBibleVersion = async () => {
     try {
-
+      setIsSavingBibleVersion(true);
+      
       const updatedPreferences = {
         ...preferences,
         content: { ...preferences.content, bibleVersion: bibleVersionDraft },
       };
 
-      const result = await updatePreferences(updatedPreferences);
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Network timeout')), 5000); // 5 second timeout
+      });
+
+      const result = await Promise.race([updatePreferences(updatedPreferences), timeoutPromise]) as any;
+      
       if (result.success) {
         setPreferences(updatedPreferences);
         setBibleVersionModal(false);
-
       } else {
         Logger.error('[UserProfile] Failed to save Bible version', result.error as Error, {
         component: 'UserProfileScreen',
-      });
+        });
         Alert.alert('Error', result.error?.message || 'Failed to update Bible version');
       }
     } catch (_error) {
       Logger.error('[UserProfile] Error saving Bible version', _error as Error, {
-      component: 'UserProfileScreen',
-    });
-      Alert.alert('Error', 'Failed to update Bible version');
+        component: 'UserProfileScreen',
+      });
+      // Show error immediately instead of waiting
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setIsSavingBibleVersion(false);
     }
   };
 
@@ -1994,8 +2004,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Bible Version</Text>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleSaveBibleVersion(); }}>
-            <Text style={[styles.saveText, font]}>Save</Text>
+          <TouchableOpacity 
+            onPress={() => { try { triggerLightHaptic(); } catch {} handleSaveBibleVersion(); }}
+            disabled={isSavingBibleVersion}
+          >
+            <Text style={[styles.saveText, font, isSavingBibleVersion && styles.saveTextDisabled]}>
+              {isSavingBibleVersion ? 'Saving...' : 'Save'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -2632,6 +2647,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     fontWeight: '600',
+  },
+  saveTextDisabled: {
+    opacity: 0.5,
   },
   modalContent: {
     flex: 1,

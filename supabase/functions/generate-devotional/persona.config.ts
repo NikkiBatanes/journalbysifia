@@ -353,7 +353,24 @@ export const applyPersonaContext = (persona: string, userInput: string, bibleVer
 
   // Add Bible version context if provided
   if (bibleVersion && bibleVersion !== 'NASB') {
-    contextualPersona += `\n\nIMPORTANT: Use ${bibleVersion} Bible translation for all Scripture references. When citing verses, use the ${bibleVersion} version text.`;
+    contextualPersona += `\n\n🚨 CRITICAL - EXACT BIBLE TRANSLATION REQUIRED:
+- You MUST retrieve and provide verses VERBATIM from the ${bibleVersion} translation
+- Quote the verse WORD-FOR-WORD exactly as it appears in ${bibleVersion}
+- Do NOT paraphrase, summarize, reword, or modify ANY word
+- Include ALL brackets [like this], parenthetical clarifications (like this), punctuation, and capitalization EXACTLY as they appear in the official ${bibleVersion} translation
+- Do NOT truncate or use ellipsis (...)
+- If the verse is long, include the FULL text
+- Cross-check internally for accuracy before providing the verse
+- If uncertain about exact wording, do not guess - retrieve the exact ${bibleVersion} text`;
+  } else {
+    contextualPersona += `\n\n🚨 CRITICAL - EXACT BIBLE TRANSLATION REQUIRED:
+- You MUST retrieve and provide verses VERBATIM from the NASB translation
+- Quote the verse WORD-FOR-WORD exactly as it appears in NASB
+- Do NOT paraphrase, summarize, reword, or modify ANY word
+- Include ALL brackets [like this], parenthetical clarifications (like this), punctuation, and capitalization EXACTLY as they appear in the official NASB translation
+- Do NOT truncate or use ellipsis (...)
+- If the verse is long, include the FULL text
+- Cross-check internally for accuracy before providing the verse`;
   }
 
   return contextualPersona;
