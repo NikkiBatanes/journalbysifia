@@ -230,37 +230,38 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
           const uniqueRefs = Array.from(new Set(verseRefMatches.map(ref => ref.trim())));
           const reference = uniqueRefs[0]; // Use the first unique reference
           
-          // Remove all Bible verse text and references, keeping only the affirmation part
-          // First, remove everything after "as he promised/said/declares"
-          let affirmationText = cleanText.replace(/\s+as he (promised|promises|said|says|declares).*$/gi, '').trim();
+          // Check if the reference is already in the text
+          const hasReferenceInText = cleanText.includes(`(${reference})`);
           
-          // Remove quoted Bible verses with their references
-          affirmationText = affirmationText.replace(/"[^"]*"[^"]*\([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?[^)]*\)/gi, '').trim();
-          
-          // Remove parenthetical Bible references
-          affirmationText = affirmationText.replace(/\s*\([^)]*\d+:\d+[^)]*\)\s*/g, ' ').trim();
-          
-          // Remove standalone Bible references
-          affirmationText = affirmationText.replace(/[A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*/gi, '').trim();
-          
-          // Clean up extra spaces and trailing connecting words
-          affirmationText = affirmationText.replace(/\s+(as|in|like|from|according to)\s+.*$/gi, '').trim();
-          affirmationText = affirmationText.replace(/\s{2,}/g, ' ').trim();
-          
-          // If there's still text before the references, keep it with the reference
-          if (affirmationText && affirmationText.length > 0) {
+          if (hasReferenceInText) {
+            // Reference already exists, just return the clean text as-is
             return {
               id: generateUUID(),
-              text: `${affirmationText} (${reference})`,
+              text: cleanText,
               completed: false,
             };
           } else {
-            // Just return the reference in parentheses
-            return {
-              id: generateUUID(),
-              text: `(${reference})`,
-              completed: false,
-            };
+            // Remove parenthetical Bible references at the end only
+            let affirmationText = cleanText.replace(/\s*\([^)]*\d+:\d+[^)]*\)\s*$/g, '').trim();
+            
+            // Clean up extra whitespace
+            affirmationText = affirmationText.replace(/\s{2,}/g, ' ').trim();
+            
+            // If there's still text before the references, keep it with the reference
+            if (affirmationText && affirmationText.length > 0) {
+              return {
+                id: generateUUID(),
+                text: `${affirmationText} (${reference})`,
+                completed: false,
+              };
+            } else {
+              // Just return the reference in parentheses
+              return {
+                id: generateUUID(),
+                text: `(${reference})`,
+                completed: false,
+              };
+            }
           }
         }
         
