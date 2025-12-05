@@ -359,6 +359,28 @@ export const applyPersonaContext = (persona: string, userInput: string, bibleVer
 NOTICE: Every bracket [ ], em dash —, and parenthetical note MUST be preserved. AMP verses almost always include clarifying brackets—do NOT remove them.`
     : '';
 
+  const reflectionStyleGuidance = (() => {
+    switch (targetVersion) {
+      case 'AMP':
+        return `\n\n📝 REFLECTION STYLE - AMPLIFIED (AMP):
+- Mirror AMP's explanatory tone with clarifying brackets and parenthetical notes.
+- When referencing concepts from the verse, include bracketed expansions like [God's abiding presence] exactly as AMP would.
+- Avoid simplifying the language—retain the richer descriptive phrases to match AMP's cadence.`;
+      case 'MSG':
+        return `\n\n📝 REFLECTION STYLE - THE MESSAGE (MSG):
+- Use conversational, contemporary language that feels like a personal story.
+- Favor short sentences, everyday metaphors, and modern phrasing.
+- Avoid churchy jargon; keep the tone warm, direct, and highly relatable.`;
+      case 'NLT':
+        return `\n\n📝 REFLECTION STYLE - NEW LIVING TRANSLATION (NLT):
+- Write with clear, modern language that emphasizes readability and heart-level application.
+- Use compassionate, encouraging sentences that mirror NLT's devotional tone.
+- Keep theological explanations simple, focusing on practical transformation.`;
+      default:
+        return '';
+    }
+  })();
+
   contextualPersona += `\n\n🚨 CRITICAL - EXACT BIBLE TRANSLATION REQUIRED:
 - You MUST retrieve and provide verses VERBATIM from the ${targetVersion} translation
 - Quote the verse WORD-FOR-WORD exactly as it appears in ${targetVersion}
@@ -367,7 +389,7 @@ NOTICE: Every bracket [ ], em dash —, and parenthetical note MUST be preserved
 - Do NOT truncate or use ellipsis (...)
 - If the verse is long, include the FULL text
 - Cross-check internally for accuracy before providing the verse
-- If uncertain about exact wording, do not guess - retrieve the exact ${targetVersion} text${ampExamples}`;
+- If uncertain about exact wording, do not guess - retrieve the exact ${targetVersion} text${ampExamples}${reflectionStyleGuidance}`;
 
   return contextualPersona;
 };

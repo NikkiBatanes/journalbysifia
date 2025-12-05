@@ -6,6 +6,7 @@ import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
+import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -64,6 +65,34 @@ interface OpenAIData {
       content: string;
     };
   }>;
+}
+
+async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): Promise<void> {
+  console.log(`[Playbook Scripture] Enforcing exact verse for ${version}`);
+
+  if (!playbook.bibleVerse?.reference) {
+    console.warn('[Playbook Scripture] No reference found on playbook, skipping enforcement');
+    return;
+  }
+
+  if (!BibleVerseService.requiresScraping(version)) {
+    console.log(`[Playbook Scripture] ${version} does not require scraping. Skipping enforcement.`);
+    return;
+  }
+
+  try {
+    const exactVerse = await bibleVerseService.fetchVerse(playbook.bibleVerse.reference, version);
+    playbook.bibleVerse.text = exactVerse.text;
+    playbook.bibleVerse.version = version;
+
+    console.log('[Playbook Scripture] Verse enforced successfully:', {
+      reference: playbook.bibleVerse.reference,
+      source: exactVerse.source,
+      textLength: exactVerse.text.length,
+    });
+  } catch (error) {
+    console.error('[Playbook Scripture] Failed to enforce verse text:', error);
+  }
 }
 
 function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: string, bibleVersion?: string): Playbook {
@@ -531,26 +560,10 @@ serve(async (req: Request) => {
   
   console.log('[Generate-Playbook] Age context:', ageContext || 'not provided');
 
-  // Generate cache key (exclude userName - it's just a placeholder that gets replaced)
-  // Include ageContext in cache key for age-appropriate content
-  const cacheKey = generateCacheKey('playbook', {
-    userInput,
-    ageContext: ageContext || 'general',
-  });
-
-  // Check cache first
-  console.log('[Generate-Playbook] Checking cache...');
-  const cachedResponse = ResponseCache.get(cacheKey, CACHE_CONFIGS.playbook);
-  if (cachedResponse) {
-    console.log('[Generate-Playbook] Returning cached response');
-    return new Response(JSON.stringify(cachedResponse), {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Cache': 'HIT',
-      },
-    });
-  }
-  console.log('[Generate-Playbook] Cache miss, generating new playbook...');
+  // DISABLE CACHING for personalized content
+  // Each user should get unique, personalized playbooks
+  console.log('[Generate-Playbook] Caching disabled for personalized content');
+  console.log('[Generate-Playbook] Generating new playbook for user:', userName);
 
   try {
     // ENTERPRISE FEATURE: Fetch user's recent playbook titles to ensure uniqueness
@@ -703,14 +716,16 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       }
     }
 
+    // Enforce exact scripture text for playbook verse using scraper when needed
+    await enforcePlaybookBibleVerse(playbook, preferredBibleVersion);
+
     // Set totalTasks to the number of main action steps
     playbook.totalTasks = playbook.actionSteps.length;
     playbook.progress = 0; // Reset progress to 0 since no tasks are completed yet
     playbook.persona = strategicAdvisorPersona.role; // Track which persona was used
 
-    // Cache the successful response
-    ResponseCache.set(cacheKey, playbook, CACHE_CONFIGS.playbook);
-    console.log('[Generate-Playbook] Response cached successfully');
+    // Caching disabled for personalized content
+    console.log('[Generate-Playbook] Response generated (not cached)');
 
     return new Response(JSON.stringify(playbook, null, 2), {
       headers: {

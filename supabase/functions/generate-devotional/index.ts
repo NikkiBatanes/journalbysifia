@@ -1081,32 +1081,10 @@ serve(async (req: Request): Promise<Response> => {
   
   console.log('[Generate-Devotional] Age context:', ageContext || 'not provided');
 
-  // Generate cache key for this request
-  // Include ageContext in cache key for age-appropriate content
-  const cacheKey = generateCacheKey('devotional', {
-    userInput,
-    duration,
-    bibleVersion,
-    playbookId: playbookId || 'none',
-    ageContext: ageContext || 'general',
-  });
-
-  // Check cache first
-  console.log('[Generate-Devotional] Checking cache...');
-  const cachedResponse = ResponseCache.get(cacheKey, CACHE_CONFIGS.devotional);
-  if (cachedResponse) {
-    console.log('[Generate-Devotional] Returning cached response');
-    return new Response(JSON.stringify(cachedResponse), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        'X-Cache': 'HIT',
-      },
-    });
-  }
-  console.log('[Generate-Devotional] Cache miss, generating new devotional...');
+  // DISABLE CACHING for personalized content
+  // Each user should get unique, personalized devotionals
+  console.log('[Generate-Devotional] Caching disabled for personalized content');
+  console.log('[Generate-Devotional] Generating new devotional for user:', userName);
 
   // Add anti-repetition context to user input
   const enhancedUserInput = `${userInput}
@@ -1208,9 +1186,8 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
     // Enforce exact scriptures using BibleGateway scraper for problematic translations
     await enforceExactScriptures(devotional, bibleVersion || 'NASB');
 
-    // Cache the successful response
-    ResponseCache.set(cacheKey, devotional, CACHE_CONFIGS.devotional);
-    console.log('[Generate-Devotional] Response cached successfully');
+    // Caching disabled for personalized content
+    console.log('[Generate-Devotional] Response generated (not cached)');
 
     return new Response(JSON.stringify(devotional), {
       headers: {

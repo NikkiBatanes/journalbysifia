@@ -5,6 +5,9 @@
 
 import { DOMParser } from 'https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts';
 
+// Import DOM types
+import type { Element, Node } from 'https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts';
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -12,7 +15,7 @@ import { DOMParser } from 'https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts
 const BIBLE_GATEWAY_BASE_URL = 'https://www.biblegateway.com/passage/';
 
 // Translations that require scraping (problematic with AI)
-export const SCRAPE_REQUIRED_TRANSLATIONS = ['AMP', 'MSG', 'TPT'];
+export const SCRAPE_REQUIRED_TRANSLATIONS = ['AMP', 'MSG', 'NLT', 'CSB'];
 
 // Rate limiting configuration
 const RATE_LIMIT = {
@@ -269,6 +272,16 @@ class BibleGatewayScraper {
       throw new Error('Could not find passage content in HTML');
     }
 
+    // Remove passage title first
+    const passageTitle = passageDiv.querySelector('.passage-title');
+    if (passageTitle) {
+      passageTitle.remove();
+    }
+
+    // Remove any heading elements that might contain titles
+    const headings = passageDiv.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach((heading: Node) => (heading as Element).remove());
+
     // Get all verse spans
     const verseSpans = passageDiv.querySelectorAll('.text');
     if (!verseSpans || verseSpans.length === 0) {
@@ -278,16 +291,18 @@ class BibleGatewayScraper {
     let verseText = '';
 
     for (const span of verseSpans) {
+      const spanElement = span as Element;
+      
       // Remove verse numbers
-      const verseNumbers = span.querySelectorAll('.versenum, .chapternum');
-      verseNumbers.forEach(num => num.remove());
+      const verseNumbers = spanElement.querySelectorAll('.versenum, .chapternum');
+      verseNumbers.forEach((num: Node) => (num as Element).remove());
 
       // Remove footnotes
-      const footnotes = span.querySelectorAll('.footnote, .crossreference');
-      footnotes.forEach(note => note.remove());
+      const footnotes = spanElement.querySelectorAll('.footnote, .crossreference');
+      footnotes.forEach((note: Node) => (note as Element).remove());
 
       // Get text content
-      const text = span.textContent?.trim() || '';
+      const text = spanElement.textContent?.trim() || '';
       if (text) {
         verseText += (verseText ? ' ' : '') + text;
       }

@@ -2037,7 +2037,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 { key: 'NKJV', label: 'NKJV', description: 'New King James Version' },
                 { key: 'NASB', label: 'NASB', description: 'New American Standard Bible' },
                 { key: 'CSB', label: 'CSB', description: 'Christian Standard Bible' },
-                                { key: 'MSG', label: 'MSG', description: 'The Message' },
+                { key: 'AMP', label: 'AMP', description: 'Amplified Bible' },
+                { key: 'MSG', label: 'MSG', description: 'The Message' },
               ].sort((a, b) => a.label.localeCompare(b.label));
               return versions.map((ver) => {
                 const isSelected = bibleVersionDraft === ver.key;

@@ -22,10 +22,10 @@ export interface BibleVerse {
 // ============================================================================
 
 // Translations that require BibleGateway scraping
-const SCRAPE_TRANSLATIONS = ['AMP', 'MSG', 'TPT'];
+const SCRAPE_TRANSLATIONS = ['AMP', 'MSG', 'NLT', 'CSB'];
 
 // Translations that can use OpenAI as fallback
-const OPENAI_FALLBACK_TRANSLATIONS = ['NIV', 'ESV', 'NASB', 'NLT', 'KJV', 'NKJV', 'CSB'];
+const OPENAI_FALLBACK_TRANSLATIONS = ['NIV', 'ESV', 'NASB', 'KJV', 'NKJV'];
 
 // ============================================================================
 // DATABASE CACHE
