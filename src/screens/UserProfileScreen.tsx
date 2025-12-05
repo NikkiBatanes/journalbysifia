@@ -168,6 +168,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
           const storeKit = AppleStoreKitService.getInstance();
           await storeKit.checkAndSyncSubscriptionStatus(user.id);
+
+          // CRITICAL: Force refresh subscription data from database after sync
+          // This ensures the UI shows the correct tier, especially after cancellation
+          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+          setSubscription(subscriptionData as any);
+
+          Logger.info('[UserProfileScreen] Subscription refreshed on focus', {
+            component: 'UserProfileScreen',
+            tier: subscriptionData.tier,
+            status: subscriptionData.status,
+          });
         } catch (_error) {
           Logger.error('[UserProfileScreen] Failed to sync subscription status on focus', _error as Error, {
             component: 'UserProfileScreen',

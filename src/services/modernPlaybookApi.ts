@@ -542,13 +542,18 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
     // Ensure playbook has a proper UUID
     playbook.id = ensureValidUUID(playbook.id, 'savePlaybook');
 
+    // Truncate title to meet database constraint (max 100 characters)
+    const truncatedTitle = playbook.title.length > 100
+      ? playbook.title.substring(0, 97) + '...'
+      : playbook.title;
+
     // Save to Supabase using the actual database schema
     const { error } = await supabase
       .from('playbooks')
       .upsert({
         id: playbook.id,
         user_id: userId,
-        title: playbook.title,
+        title: truncatedTitle,
         user_input: playbook.userInput, // Use the actual user_input column
         truth_in_love: playbook.truthInLove,
         bible_verse: playbook.bibleVerse,

@@ -400,7 +400,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         logger.debug('Awarding faith points for playbook generation');
         await faithPointsService.awardPoints(user.id, 'playbook_generated', {
           isOnboarding: true,
-          suppressNotification: false,
+          suppressNotification: false, // Let faithPointsService handle the notification
         });
         logger.debug('Faith points awarded successfully');
       } else {

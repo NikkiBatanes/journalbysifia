@@ -28,7 +28,8 @@ import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPer
 // New Simplified Onboarding Flow Screens
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
-import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
+// DISABLED: Trial Offer screen removed to comply with Apple guidelines
+// import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
@@ -248,7 +249,9 @@ export default function RootStackNavigator({
               gestureDirection: 'vertical',
             }}
           />
-          <Stack.Screen
+          {/* DISABLED: Trial Offer screen removed to comply with Apple guidelines */}
+          {/* Trial functionality now handled via .freetrial products in Sales Offer */}
+          {/* <Stack.Screen
             name="OnboardingTrialOffer"
             component={OnboardingTrialOfferScreen as React.ComponentType}
             options={{
@@ -259,7 +262,7 @@ export default function RootStackNavigator({
               gestureEnabled: true,
               gestureDirection: 'vertical',
             }}
-          />
+          /> */}
           <Stack.Screen
             name="OnboardingNotificationSetup"
             component={OnboardingNotificationSetupScreen as React.ComponentType}

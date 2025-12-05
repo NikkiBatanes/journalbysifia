@@ -31,16 +31,17 @@ export const getReplacementMode = (currentTier: SubscriptionTier, targetTier: Su
 };
 
 // Platform-specific product IDs
+// iOS: All products now use .freetrial SKUs; App Store enforces trial eligibility.
 export const SUBSCRIPTION_SKUS = {
   ios: {
-    spark_monthly: 'app.sifia.com.spark.monthly',
-    spark_annual: 'app.sifia.com.spark.annual',
-    growth_monthly: 'app.sifia.com.growth.monthly',
-    growth_annual: 'app.sifia.com.growth.annual',
-    transformation_monthly: 'app.sifia.com.transformation.monthly',
-    transformation_annual: 'app.sifia.com.transformation.annual',
-    // POST-LAUNCH: family_monthly: 'app.sifia.com.family.monthly',
-    // POST-LAUNCH: family_annual: 'app.sifia.com.family.annual',
+    spark_monthly: 'app.sifia.com.spark.monthly.freetrial',
+    spark_annual: 'app.sifia.com.spark.annual.freetrial',
+    growth_monthly: 'app.sifia.com.growth.monthly.freetrial',
+    growth_annual: 'app.sifia.com.growth.annual.freetrial',
+    transformation_monthly: 'app.sifia.com.transformation.monthly.freetrial',
+    transformation_annual: 'app.sifia.com.transformation.annual.freetrial',
+    // POST-LAUNCH: family_monthly: 'app.sifia.com.family.monthly.freetrial',
+    // POST-LAUNCH: family_annual: 'app.sifia.com.family.annual.freetrial',
   },
   android: {
     spark_monthly: 'spark_monthly',

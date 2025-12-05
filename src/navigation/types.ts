@@ -32,10 +32,12 @@ export type RootStackParamList = {
     feature?: string;
     tier?: string;
   } | undefined;
-  OnboardingTrialOffer: {
-    source?: string;
-    feature?: string;
-  } | undefined;
+  // DISABLED: Trial Offer screen removed to comply with Apple guidelines
+  // Trial functionality now handled via .freetrial products in Sales Offer
+  // OnboardingTrialOffer: {
+  //   source?: string;
+  //   feature?: string;
+  // } | undefined;
   OnboardingPaymentConfirmation: {
     userType: 'trial' | 'paid' | 'freemium';
     selectedTier?: string;

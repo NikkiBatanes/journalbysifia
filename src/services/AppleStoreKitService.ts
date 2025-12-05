@@ -75,34 +75,19 @@ export class AppleStoreKitService {
   private purchaseRetryCount: Map<string, number> = new Map(); // Track retry attempts
 
   // Product IDs for subscription tiers
-  // Two-Screen Strategy:
-  // - Sales Offer Screen: Uses products WITHOUT .trial (no free trial)
-  // - Trial Offer Screen: Uses products WITH .trial (3-day free trial)
-  // Both give the same subscription (same subscription group in App Store Connect)
+  // All iOS products now use .freetrial SKUs; App Store enforces one-time trials.
   private static readonly PRODUCT_IDS = {
-    // Monthly subscriptions (NO trial) - for Sales Offer Screen
-    spark: 'app.sifia.com.spark.monthly',
-    growth: 'app.sifia.com.growth.monthly',
-    transformation: 'app.sifia.com.transformation.monthly',
-    family: 'app.sifia.com.family.monthly',
+    // Monthly subscriptions WITH 3-day trial (Sales Offer & Trial Offer Screens)
+    spark: 'app.sifia.com.spark.monthly.freetrial',
+    growth: 'app.sifia.com.growth.monthly.freetrial',
+    transformation: 'app.sifia.com.transformation.monthly.freetrial',
+    family: 'app.sifia.com.family.monthly.freetrial',
 
-    // Annual subscriptions (NO trial) - for Sales Offer Screen
-    spark_annual: 'app.sifia.com.spark.annual',
-    growth_annual: 'app.sifia.com.growth.annual',
-    transformation_annual: 'app.sifia.com.transformation.annual',
-    family_annual: 'app.sifia.com.family.annual',
-
-    // Monthly subscriptions WITH 3-day trial - for Trial Offer Screen
-    spark_trial: 'app.sifia.com.spark.monthly.freetrial',
-    growth_trial: 'app.sifia.com.growth.monthly.freetrial',
-    transformation_trial: 'app.sifia.com.transformation.monthly.freetrial',
-    family_trial: 'app.sifia.com.family.monthly.freetrial',
-
-    // Annual subscriptions WITH 3-day trial - for Trial Offer Screen
-    spark_annual_trial: 'app.sifia.com.spark.annual.freetrial',
-    growth_annual_trial: 'app.sifia.com.growth.annual.freetrial',
-    transformation_annual_trial: 'app.sifia.com.transformation.annual.freetrial',
-    family_annual_trial: 'app.sifia.com.family.annual.freetrial',
+    // Annual subscriptions WITH 3-day trial (Sales Offer & Trial Offer Screens)
+    spark_annual: 'app.sifia.com.spark.annual.freetrial',
+    growth_annual: 'app.sifia.com.growth.annual.freetrial',
+    transformation_annual: 'app.sifia.com.transformation.annual.freetrial',
+    family_annual: 'app.sifia.com.family.annual.freetrial',
   };
 
   private constructor() {}
@@ -1115,8 +1100,32 @@ export class AppleStoreKitService {
         return;
       }
 
+      // CRITICAL: Filter out OLD cancelled/expired transactions
+      // Apple's getAvailablePurchases returns ALL purchases ever made, including cancelled ones
+      // Only process transactions from the last 60 days
+      const sixtyDaysAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
+      const recentPurchases = availablePurchases.filter(p => {
+        const transactionDate = new Date(p.transactionDate || 0).getTime();
+        return transactionDate > sixtyDaysAgo;
+      });
+
+      Logger.info('[StoreKit] Filtered old transactions', {
+        component: 'AppleStoreKitService',
+        totalPurchases: availablePurchases.length,
+        recentPurchases: recentPurchases.length,
+        oldestTransaction: availablePurchases[0]?.transactionDate,
+      });
+
+      if (recentPurchases.length === 0) {
+        Logger.info('[StoreKit] No recent active purchases - treating as no subscription', {
+          component: 'AppleStoreKitService',
+        });
+        await this.handleNoActiveSubscription(userId);
+        return;
+      }
+
       // Get the most recent subscription purchase
-      const latestPurchase = this.getMostRecentPurchase(availablePurchases);
+      const latestPurchase = this.getMostRecentPurchase(recentPurchases);
 
       Logger.info('[StoreKit] Latest purchase identified', {
         component: 'AppleStoreKitService',
@@ -1311,7 +1320,7 @@ export class AppleStoreKitService {
       // FIRST: Check if user still exists in database
       const { data: userProfile, error: userCheckError } = await supabase
         .from('user_profiles')
-        .select('id')
+        .select('id, onboarding_completed')
         .eq('id', userId)
         .single();
 
@@ -1322,6 +1331,7 @@ export class AppleStoreKitService {
 
       // Get current database status
       const currentSub = await NewSubscriptionService.getUserSubscription(userId);
+      const onboardingCompleted = (userProfile as any)?.onboarding_completed === true;
 
       // CRITICAL: If user is already on free_trial and this is a trial product, don't update
       // This prevents overwriting the trial tier that was just set by startFreeTrial()
@@ -1344,6 +1354,40 @@ export class AppleStoreKitService {
           currentTier: currentSub?.tier,
           statusTier: status.tier,
           isTrialProduct: status.isTrialProduct,
+        });
+        return;
+      }
+
+      // CRITICAL: Prevent overwriting seeker subscriptions with stale Apple receipt data
+      // If user is seeker and Apple receipt shows no active subscription, skip sync
+      if (currentSub?.tier === 'seeker' && status.status !== 'active') {
+        Logger.info('[StoreKit] User is seeker with no active Apple subscription - skipping sync to prevent transformation tier bug', {
+          component: 'AppleStoreKitService',
+          currentTier: currentSub.tier,
+          appleStatus: status.status,
+          appleTier: status.tier,
+        });
+        return;
+      }
+
+      if (!onboardingCompleted && currentSub?.tier === 'seeker' && status.status === 'active') {
+        Logger.info('[StoreKit] Skipping Apple auto-upgrade for seeker during onboarding to prevent transformation tier bug', {
+          component: 'AppleStoreKitService',
+          currentTier: currentSub.tier,
+          appleStatus: status.status,
+          appleTier: status.tier,
+          onboardingCompleted,
+        });
+        return;
+      }
+
+      if (currentSub?.tier === 'seeker' && !currentSub?.platform_subscription_id && status.status === 'active') {
+        Logger.info('[StoreKit] Skipping Apple auto-upgrade for seeker with no prior purchase - user must explicitly purchase first', {
+          component: 'AppleStoreKitService',
+          currentTier: currentSub.tier,
+          appleStatus: status.status,
+          appleTier: status.tier,
+          hasPlatformSubId: !!currentSub?.platform_subscription_id,
         });
         return;
       }
@@ -1425,16 +1469,24 @@ export class AppleStoreKitService {
 
       // If user is already seeker, no need to update
       if (currentSub?.tier === 'seeker') {
-
+        Logger.info('[StoreKit] User already seeker - no action needed', {
+          component: 'AppleStoreKitService',
+        });
         return;
       }
 
-      // Downgrade to seeker (free tier)
-      await NewSubscriptionService.upgradeSubscription(userId, {
-          target_tier: 'seeker',
-          platform: 'apple',
-          platform_subscription_id: undefined,
-        });
+      // CRITICAL: Use cancelSubscription instead of upgradeSubscription for proper seeker downgrade
+      // This ensures all limits and fields are correctly reset with built-in failsafes
+      Logger.info('[StoreKit] No active subscription found - downgrading to seeker', {
+        component: 'AppleStoreKitService',
+        currentTier: currentSub?.tier,
+      });
+
+      await NewSubscriptionService.cancelSubscription(userId);
+
+      Logger.info('[StoreKit] Successfully downgraded to seeker', {
+        component: 'AppleStoreKitService',
+      });
 
     } catch (error) {
       Logger.error('[StoreKit] Failed to handle no subscription', error as Error, {

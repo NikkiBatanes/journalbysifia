@@ -339,6 +339,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     // For Seeker users, skip popup and go directly to sales offer
     if (isSeeker && hasNoRemaining) {
 
+      Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from seeker/no-remaining gating', {
+        component: 'DevotionalModal',
+        context: 'seeker_no_remaining',
+        requestedDuration: days,
+      });
+
       onClose(); // Close the devotional modal
       navigation.navigate('OnboardingSalesOffer' as any, {
         upgradeMode: true,
@@ -380,6 +386,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     const accessCheck = devotionalGating.checkAccess(days, isOnboarding ? 'onboarding' : 'inApp');
 
     if (accessCheck.isLocked) {
+
+      Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from locked-duration gating', {
+        component: 'DevotionalModal',
+        context: 'duration_locked',
+        tier: devotionalGating.tier,
+        requestedDuration: days,
+        isOnboarding,
+      });
 
       onClose(); // Close the devotional modal first
       navigation.navigate('OnboardingSalesOffer' as any, {
@@ -713,6 +727,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                               // In onboarding, lock icon should not trigger sales offer
                               return;
                             }
+                            Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from lock icon tap', {
+                              component: 'DevotionalModal',
+                              context: 'lock_icon',
+                              tier: devotionalGating.tier,
+                              requestedDuration: option.days,
+                              isOnboarding,
+                            });
+
                             onClose();
                             navigation.navigate('OnboardingSalesOffer' as any, {
                               upgradeMode: true,
@@ -742,6 +764,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       style={styles.continueJourneyButton}
       onPress={() => {
         try { triggerLightHaptic(); } catch {}
+        Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from Continue My Journey (onboarding)', {
+          component: 'DevotionalModal',
+          context: 'continue_journey',
+        });
         handleClose(() => {
           navigation.navigate('OnboardingSalesOffer' as any, {
             onboardingFlow: true,
@@ -768,6 +794,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           style={styles.countBadgeContainer}
           onPress={() => {
             try { triggerLightHaptic(); } catch {}
+            Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from seeker badge tap', {
+              component: 'DevotionalModal',
+              context: 'seeker_badge',
+              tier: devotionalGating.tier,
+            });
             handleClose(() => {
               navigation.navigate('OnboardingSalesOffer' as any, {
                 upgradeMode: true,
@@ -918,6 +949,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   <TouchableOpacity
                     style={styles.upgradeButtonFull}
                     onPress={() => {
+                      Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from usage limit modal primary CTA', {
+                        component: 'DevotionalModal',
+                        context: 'usage_limit_modal_primary',
+                        tier,
+                        isOnTrial,
+                        recommendedTier: salesCopy.recommendedTier,
+                      });
+
                       setShowUsageLimitModal(false);
                       setUsageLimitModalData(null);
                       onClose();

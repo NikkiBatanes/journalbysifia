@@ -71,14 +71,20 @@ export const BadgeNotificationProvider: React.FC<BadgeNotificationProviderProps>
   const handleAnimationComplete = useCallback((id: string) => {
     if (!isMounted.current) {return;}
 
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    // Schedule state update for next tick to avoid useInsertionEffect warning
+    // This prevents scheduling updates during the animation completion phase
+    requestAnimationFrame(() => {
+      if (!isMounted.current) {return;}
 
-    // Clear the timeout for this notification
-    const timeout = notificationTimeouts.current.get(id);
-    if (timeout) {
-      clearTimeout(timeout);
-      notificationTimeouts.current.delete(id);
-    }
+      setNotifications(prev => prev.filter(n => n.id !== id));
+
+      // Clear the timeout for this notification
+      const timeout = notificationTimeouts.current.get(id);
+      if (timeout) {
+        clearTimeout(timeout);
+        notificationTimeouts.current.delete(id);
+      }
+    });
   }, []);
 
   const contextValue: BadgeNotificationContextType = {

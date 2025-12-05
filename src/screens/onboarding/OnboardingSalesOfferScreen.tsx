@@ -68,7 +68,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   useScreenStatusBar('light', Colors.hopeWhite);
 
   const [isAnnual, setIsAnnual] = useState(false);
-  const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' : 'growth';
+  const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' :
+                              (route.params as any)?.requestedDuration ? 'growth' :
+                              'spark'; // Default to spark for onboarding to prevent transformation tier bug
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
   const [showDynamicModal, setShowDynamicModal] = useState(false);
@@ -104,6 +106,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
   const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
+  const shouldUseTrialProduct = canOfferTrial;
 
   // Detect if coming from devotional gating
   // Use explicit featureType if provided, otherwise fall back to requestedDuration logic
@@ -340,140 +343,102 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
 
-    // Note: Even for seeker users in upgrade mode, we continue to trial logic below if eligible
+    logger.info('Sales offer cancelled - navigating based on context');
+    logger.debug('Sales offer cancel debug state', {
+      routeParams,
+      isUpgradeMode,
+      currentUserTier,
+      requestedDuration,
+      selectedTier,
+      subscriptionTier: subscription?.tier,
+    });
 
-    logger.info('Sales offer cancelled - navigating to notification setup');
+    // Reset subscription to seeker when user cancels sales offer (only in onboarding, not upgrade)
+    if (!isUpgradeMode && user?.id) {
+      try {
+        logger.debug('Resetting subscription to seeker for cancelled sales offer');
 
-    // CRITICAL: Capture current state values before any async operations
-    // This ensures we pass the correct tier/billing to trial screen
-    const currentSelectedTier = selectedTier;
-    const currentBilling = isAnnual ? 'annual' : 'monthly';
-    logger.debug('Captured state for navigation', { currentSelectedTier, currentBilling });
+        // Reset user to seeker tier using cancelSubscription method
+        await NewSubscriptionService.cancelSubscription(user.id);
+        logger.debug('Successfully reset subscription to seeker');
 
-    // If we're in onboarding flow, skip dynamic pricing and go straight to Trial/Notifications
-    const isOnboardingFlow = (routeParams as any)?.onboardingFlow === true;
-    if (isOnboardingFlow) {
-      if (canOfferTrial) {
+        // Reset UI state immediately to prevent any race conditions
+        setSelectedTier('spark');
+        logger.debug('Reset UI selectedTier to spark');
+
+        // Suppress faith points notifications temporarily to prevent duplicates
+        notificationService.suppressPointsNotifications(true);
+        logger.debug('Suppressed faith points notifications to prevent duplicates');
+
         setTimeout(() => {
-          (navigation as any).navigate('OnboardingTrialOffer', {
-            selectedTierId: currentSelectedTier,
-            billing: currentBilling,
-            onboardingFlow: true,
-          });
-        }, 50);
-      } else {
-        setTimeout(() => {
-          (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'freemium', fromCancelledSales: true });
-        }, 50);
+          notificationService.suppressPointsNotifications(false);
+        }, 3000);
+      } catch (error) {
+        logger.error('Failed to reset subscription to seeker:', error as Error);
+        // Continue to navigation even if reset fails
       }
-      return;
     }
 
-    // Check for dynamic discount eligibility first
-    try {
-      logger.debug('Checking dynamic discount eligibility:', {
-        userId: user?.id,
-        selectedTier,
-        billing: isAnnual ? 'annual' : 'monthly',
-        isUpgradeMode,
-      });
+    // Check for dynamic discount eligibility first (only in onboarding, not upgrade)
+    if (!isUpgradeMode) {
+      try {
+        logger.debug('Checking dynamic discount eligibility:', {
+          userId: user?.id,
+          selectedTier,
+          billing: isAnnual ? 'annual' : 'monthly',
+        });
 
-      // First, track this opt-out to increment the count
-      await pricingService.trackOptOut(user?.id);
-      logger.debug('Tracked opt-out, checking discount...');
+        // Track this opt-out to increment the count
+        await pricingService.trackOptOut(user?.id);
+        logger.debug('Tracked opt-out, checking discount...');
 
-      const discount = await pricingService.getDynamicDiscount();
+        const discount = await pricingService.getDynamicDiscount();
 
-      logger.debug('Dynamic discount result', { discount });
+        logger.debug('Dynamic discount result', { discount });
 
-      if (discount && !isUpgradeMode) {
-        logger.info('Showing dynamic discount modal');
-        setDynamicDiscount(discount);
-        setShowDynamicModal(true);
-        return;
-      } else {
-        logger.debug('No discount or upgrade mode - proceeding to notification');
+        if (discount) {
+          logger.info('Showing dynamic discount modal');
+          setDynamicDiscount(discount);
+          setShowDynamicModal(true);
+          return;
+        }
+      } catch (error) {
+        logger.error('Error checking dynamic discount', error as Error);
+        // Continue to navigation even if discount check fails
       }
-    } catch (error) {
-      logger.error('Error checking dynamic discount', error as Error);
-      // Continue to navigation even if discount check fails
     }
 
     // Check if we came from a specific screen (e.g., UserProfile) - prioritize returning there
     if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
       logger.info('Returning to user profile from feature gating');
-      // Check if user is eligible for trial and should see trial before returning to profile
-      // DEBUG: Force bypass trial eligibility for testing sales offer flow
-      const DEBUG_FORCE_SALES_OFFER = true; // Set to false to enable normal trial flow
-      const isEligibleForTrial = DEBUG_FORCE_SALES_OFFER ? false : (canOfferTrial && !isUpgradeMode);
+      setTimeout(() => {
+        navigation.goBack();
+      }, 50);
+      return;
+    }
 
-      if (isEligibleForTrial) {
-        logger.info('🔄 Redirecting to trial offer (eligible)', {
-          selectedTierId: selectedTier,
-          billing: currentBilling,
-          DEBUG_FORCE_SALES_OFFER,
-        });
-        setTimeout(() => {
-          (navigation as any).navigate('OnboardingTrialOffer', {
-            selectedTierId: currentSelectedTier,
-            billing: currentBilling,
-            skipNotificationPreference: routeParams?.skipNotificationPreference,
-            closeAllOnDismiss: true,
-            onboardingFlow: (routeParams as any)?.onboardingFlow === true,
-            returnTo: routeParams?.returnTo,
-            context: routeParams?.context,
-            dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
-          });
-        }, 100);
-        return;
-      } else {
-        // No trial eligible, just go back to profile
-        logger.info('No trial eligible - returning directly to profile');
-        setTimeout(() => {
-          navigation.goBack();
-        }, 50);
+    // Default navigation based on context
+    logger.info('Navigating based on skipNotificationPreference');
+    setTimeout(() => {
+      if (isUpgradeMode) {
+        // In feature gating / upgrade mode, never open notification setup again
+        // Simply go back to the previous screen or modal stack
+        navigation.goBack();
         return;
       }
-    }
 
-    // Always show trial if eligible for cancelled sales offer (regardless of upgrade/onboarding)
-    logger.info('Sales offer cancelled - checking trial eligibility');
-    if (canOfferTrial) {
-      logger.info('User eligible for trial - navigating to trial offer', {
-        selectedTierId: currentSelectedTier,
-        billing: currentBilling,
-      });
-      setTimeout(() => {
-        (navigation as any).navigate('OnboardingTrialOffer', {
-          selectedTierId: currentSelectedTier,
-          billing: currentBilling,
-          skipNotificationPreference: routeParams?.skipNotificationPreference,
-          // Always close both Trial and Sales Offer when user cancels Sales Offer
-          closeAllOnDismiss: true,
-          // Forward onboarding flow flag so Trial can route to Notifications on dismiss
-          onboardingFlow: (routeParams as any)?.onboardingFlow === true,
-          returnTo: routeParams?.returnTo,
-          context: routeParams?.context,
-          // Forward the dismissBothModalsOnClose flag from profile usage counter
-          dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+      if (!routeParams?.skipNotificationPreference) {
+        // During onboarding flow, go to notification setup
+        logger.debug('Onboarding flow - navigating to notification setup');
+        (navigation as any).navigate('OnboardingNotificationSetup', {
+          userType: 'freemium',
+          fromCancelledSales: true,
         });
-      }, 100);
-    } else {
-      logger.info('No trial eligible - checking navigation context');
-      setTimeout(() => {
-        if (!routeParams?.skipNotificationPreference) {
-          // During onboarding flow, go to notification setup
-          logger.debug('Onboarding flow - navigating to notification setup');
-          (navigation as any).navigate('OnboardingNotificationSetup', {
-            userType: 'freemium',
-            fromCancelledSales: true,
-          });
-        } else {
-          // If skip pref set, go back
-          navigation.goBack();
-        }
-      }, 100);
-    }
+      } else {
+        // If skip pref set, go back
+        navigation.goBack();
+      }
+    }, 100);
   };
 
   const handleUnlockPlan = async () => {
@@ -513,22 +478,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Get payment service instance (already imported at top)
       const paymentService = PlatformPaymentService.getInstance();
 
-      // Determine product ID based on trial eligibility and billing period
+      // Determine product ID based on billing period (always uses .freetrial SKUs)
       let productId: string;
       const billing = isAnnual ? 'annual' : 'monthly';
-
-      // Check if user is eligible for free trial (only in onboarding, not upgrade)
-      // DEBUG: Force bypass trial eligibility for testing sales offer flow
-      const DEBUG_FORCE_SALES_OFFER = true; // Set to false to enable normal trial flow
-      const isEligibleForTrial = DEBUG_FORCE_SALES_OFFER ? false : (canOfferTrial && !isUpgradeMode);
 
       logger.debug('Product ID selection:', {
         selectedTier,
         billing,
-        isEligibleForTrial,
         canOfferTrial,
         isUpgradeMode,
-        DEBUG_FORCE_SALES_OFFER,
+        hasEverStartedTrial,
       });
 
       // Use cached products if available, otherwise fetch
@@ -577,34 +536,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         })),
       });
 
-      // CRITICAL: Sales Offer Screen must EXCLUDE .freetrial products
-      // Match tier AND billing period AND ensure NO .freetrial suffix
-      const targetProduct = products.find(p =>
+      // NEW LOGIC: Always use .freetrial products; App Store enforces trial eligibility
+      const trialProduct = products.find(p =>
         p.tier === selectedTier &&
         p.productId.includes(billing) &&
-        !p.productId.includes('.freetrial')
+        p.productId.includes('.freetrial')
       );
 
-      if (targetProduct) {
-        productId = targetProduct.productId;
-        logger.debug('✅ Found non-trial product for Sales Offer', { productId });
+      if (trialProduct) {
+        productId = trialProduct.productId;
+        logger.debug('✅ Using .freetrial product', { productId });
       } else {
-        // Log what we were looking for and what we found
-        logger.warn('❌ No non-trial product found!', {
-          lookingFor: {
-            tier: selectedTier,
-            billing,
-            pattern: `app.sifia.com.${selectedTier}.${billing}`,
-          },
-          matchingTier: products.filter(p => p.tier === selectedTier).map(p => p.productId),
-          matchingBilling: products.filter(p => p.productId.includes(billing)).map(p => p.productId),
-        });
-
-        // Construct product ID - NO trial suffix for sales offer (always paid)
-        productId = `app.sifia.com.${selectedTier}.${billing}`;
-        Logger.warn(`[OnboardingSalesOffer] ⚠️ No product found for tier ${selectedTier} with billing ${billing}, using constructed ID: ${productId}`, {
-        component: 'OnboardingSalesOfferScreen',
-      });
+        // Construct trial product ID
+        productId = `app.sifia.com.${selectedTier}.${billing}.freetrial`;
+        logger.warn('⚠️ No .freetrial product found, using constructed ID', { productId });
       }
 
       // NOW show loading modal right before Apple sheet
@@ -915,6 +860,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       newExpanded.add(tierId);
     }
     setExpandedCards(newExpanded);
+  };
+
+  const getTierDisplayName = (tierId: string) => {
+    switch (tierId) {
+      case 'seeker':
+      case 'basic': return 'siFia Seeker';
+      case 'spark':
+      case 'starter': return 'siFia Spark';
+      case 'growth': return 'siFia Growth';
+      case 'transformation': return 'siFia Transformation';
+      default: return tierId;
+    }
   };
 
   const renderPricingCard = (tier: PricingTier) => {
@@ -1332,6 +1289,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               )
             )}
           </View>
+
+          {/* Trial Benefits Section - show whenever user is trial-eligible */}
+          {shouldUseTrialProduct && (
+            <View style={styles.trialBenefitsContainer}>
+              <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
+                What you get during your trial:
+              </ThemedText>
+              <View style={styles.trialBenefitItem}>
+                <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
+                <ThemedText style={styles.trialBenefitText}>
+                  2 playbooks + 2 devotionals to get you started
+                </ThemedText>
+              </View>
+              <View style={styles.trialBenefitItem}>
+                <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
+                <ThemedText style={styles.trialBenefitText}>
+                  Full access to {getTierDisplayName(selectedTier)} features
+                </ThemedText>
+              </View>
+                          </View>
+          )}
+
           {isAnnual && (
             <View style={styles.freeBannerContainer}>
               <ThemedText weight="semiBold" style={styles.freeBannerText}>2 months free</ThemedText>
@@ -1379,21 +1358,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <ThemedText weight="bold" style={styles.unlockButtonText}>
             {isPurchasing
               ? 'Processing...'
-              : fromExportRestriction
-                ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
-                : fromSmartJournalingLock
-                  ? 'Upgrade to Smart Journaling'
-                  : isUpgradeMode
-                    ? 'Upgrade and Continue'
-                    : fromPlanningLock
-                      ? 'Start Planning Ahead'
-                      : fromCopyTodosLock
-                        ? 'Upgrade to Copy To-Dos'
-                        : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                          ? 'Upgrade to Repeat Options'
-                          : fromCalendarAutoSync
-                            ? 'Upgrade to Auto-Sync'
-                            : 'Continue My Journey'}
+              : shouldUseTrialProduct
+                ? 'Start your free 3-day trial'
+                : fromExportRestriction
+                  ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
+                  : fromSmartJournalingLock
+                    ? 'Upgrade to Smart Journaling'
+                    : isUpgradeMode
+                      ? 'Upgrade and Continue'
+                      : fromPlanningLock
+                        ? 'Start Planning Ahead'
+                        : fromCopyTodosLock
+                          ? 'Upgrade to Copy To-Dos'
+                          : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                            ? 'Upgrade to Repeat Options'
+                            : fromCalendarAutoSync
+                              ? 'Upgrade to Auto-Sync'
+                              : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
@@ -1409,36 +1390,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           visible={showDynamicModal}
           onClose={() => {
             setShowDynamicModal(false);
-            if (isUpgradeMode) {
-              // No trial in upgrade mode
-              const source = routeParams?.source;
-              if (source === 'guided_prompts_lock') {
-                navigation.navigate('Dashboard' as any);
-              } else {
-                navigation.goBack();
-              }
-            } else if (canOfferTrial) {
-              // Capture current state before navigation
-              const currentSelectedTier = selectedTier;
-              const currentBilling = isAnnual ? 'annual' : 'monthly';
-              navigation.navigate('OnboardingTrialOffer' as any, {
-                selectedTierId: currentSelectedTier,
-                billing: currentBilling,
-                skipNotificationPreference: routeParams?.skipNotificationPreference,
-                closeAllOnDismiss: true,
-                source: routeParams?.source,
-                feature: routeParams?.feature,
-                returnTo: routeParams?.returnTo,
-                context: routeParams?.context,
-                dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+            // After dismissing dynamic pricing, go to notification setup or back
+            const source = routeParams?.source;
+            if (source === 'guided_prompts_lock') {
+              navigation.navigate('Dashboard' as any);
+            } else if (!isUpgradeMode && !routeParams?.skipNotificationPreference) {
+              // Only in main onboarding flow should we open notification setup
+              (navigation as any).navigate('OnboardingNotificationSetup', {
+                userType: 'freemium',
+                fromCancelledSales: true,
               });
             } else {
-              const source = routeParams?.source;
-              if (source === 'guided_prompts_lock') {
-                navigation.navigate('Dashboard' as any);
-              } else {
-                navigation.goBack();
-              }
+              // In upgrade/feature-gating flows or when skipNotificationPreference is set, just go back
+              navigation.goBack();
             }
           }}
           discountPercentage={dynamicDiscount.percentage}
@@ -1902,6 +1866,31 @@ const styles = StyleSheet.create({
     height: 30,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     marginHorizontal: 16,
+  },
+  // Trial benefits styles
+  trialBenefitsContainer: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderRadius: 30,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.3)',
+  },
+  trialBenefitsTitle: {
+    fontSize: 16,
+    color: Colors.growthGreen,
+    marginBottom: 12,
+  },
+  trialBenefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  trialBenefitText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginLeft: 10,
+    flex: 1,
   },
 });
 

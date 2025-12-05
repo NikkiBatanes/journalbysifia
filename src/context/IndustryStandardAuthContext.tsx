@@ -254,6 +254,39 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                 component: 'AuthContext',
                 userId: user.id,
               });
+
+              // CRITICAL FAILSAFE: Verify tier is seeker after creation
+              try {
+                const { data: verifySubscription } = await supabase
+                  .from('user_subscriptions_new')
+                  .select('tier')
+                  .eq('user_id', user.id)
+                  .single();
+
+                if (verifySubscription && verifySubscription.tier !== 'seeker') {
+                  Logger.error('[AuthContext] Database created wrong tier - forcing to seeker', new Error('Wrong tier created'), {
+                    component: 'AuthContext',
+                    userId: user.id,
+                    wrongTier: verifySubscription.tier,
+                  });
+
+                  // Force correct the tier to seeker
+                  await supabase
+                    .from('user_subscriptions_new')
+                    .update({ tier: 'seeker' })
+                    .eq('user_id', user.id);
+
+                  Logger.info('[AuthContext] Corrected tier to seeker', {
+                    component: 'AuthContext',
+                    userId: user.id,
+                  });
+                }
+              } catch (verifyError) {
+                Logger.error('[AuthContext] Failed to verify/correct tier', verifyError as Error, {
+                  component: 'AuthContext',
+                  userId: user.id,
+                });
+              }
             }
           } catch (e) {
             Logger.error('Failed to create default subscription', e as Error, {

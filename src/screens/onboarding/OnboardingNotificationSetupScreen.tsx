@@ -314,6 +314,16 @@ const OnboardingNotificationSetupScreen = () => {
   };
 
   const getWelcomeMessage = () => {
+    // If user cancelled sales offer, they should be seeker regardless of subscription tier
+    const fromCancelledSales = (route.params as any)?.fromCancelledSales;
+    if (fromCancelledSales) {
+      return {
+        title: 'Welcome, Seeker',
+        subtitle: 'Get started with basic access and upgrade anytime.',
+        badge: 'Seeker Freemium',
+      };
+    }
+
     const currentTier = subscription?.tier || tier || 'seeker';
 
     switch (currentTier) {
@@ -373,7 +383,7 @@ const OnboardingNotificationSetupScreen = () => {
         {/* Welcome Message */}
         <View style={styles.welcomeSection}>
           {/* Subscription Badge */}
-          <View style={styles.badgeContainer}>
+          <View key="subscription-badge" style={styles.badgeContainer}>
             <ThemedText weight="semiBold" style={styles.badgeText}>{welcomeData.badge}</ThemedText>
           </View>
 

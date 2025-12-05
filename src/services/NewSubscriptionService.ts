@@ -122,7 +122,34 @@ export class NewSubscriptionService {
     }
 
     // Fetch the created subscription
-    return await this.getUserSubscription(userId);
+    const subscription = await this.getUserSubscription(userId);
+
+    // CRITICAL FAILSAFE: Verify tier is seeker, fix if not
+    if (subscription.tier !== 'seeker') {
+      Logger.error('[NewSubscriptionService] Database RPC created wrong tier - forcing to seeker', new Error('Wrong tier created'), {
+        component: 'NewSubscriptionService',
+        userId,
+        wrongTier: subscription.tier,
+      });
+
+      // Force correct the tier to seeker
+      const { error: updateError } = await supabase
+        .from('user_subscriptions_new')
+        .update({ tier: 'seeker' })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        Logger.error('[NewSubscriptionService] Failed to correct tier to seeker', updateError as Error, {
+          component: 'NewSubscriptionService',
+          userId,
+        });
+      }
+
+      // Refetch to get corrected subscription
+      return await this.getUserSubscription(userId);
+    }
+
+    return subscription;
   }
 
   /**
@@ -441,6 +468,36 @@ export class NewSubscriptionService {
 
     if (error) {
       throw new SubscriptionError(`Failed to cancel subscription: ${error.message}`, 'CANCELLATION_ERROR', error);
+    }
+
+    // CRITICAL FAILSAFE: Verify tier is seeker after cancellation
+    if (data.tier !== 'seeker') {
+      Logger.error('[NewSubscriptionService] Cancel subscription set wrong tier - forcing to seeker', new Error('Wrong tier after cancel'), {
+        component: 'NewSubscriptionService',
+        userId,
+        wrongTier: data.tier,
+      });
+
+      // Force correct the tier to seeker
+      const { data: correctedData, error: correctionError } = await supabase
+        .from('user_subscriptions_new')
+        .update({ tier: 'seeker' })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (correctionError) {
+        Logger.error('[NewSubscriptionService] Failed to correct tier after cancel', correctionError as Error, {
+          component: 'NewSubscriptionService',
+          userId,
+        });
+      } else {
+        Logger.info('[NewSubscriptionService] Corrected tier to seeker after cancel', {
+          component: 'NewSubscriptionService',
+          userId,
+        });
+        return this.enrichSubscriptionData(correctedData);
+      }
     }
 
     // Generate dynamic discount code for re-engagement
