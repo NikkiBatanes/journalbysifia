@@ -6,6 +6,7 @@ import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRateLimitHeaders as _createRateLimitHeaders } from '../_shared/simpleRateLimiter.ts';
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
+import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
 
 interface Scripture {
   text: string;
@@ -210,6 +211,55 @@ function cleanScripture(text: unknown): string {
     });
     return '';
   }
+}
+
+/**
+ * Enforce exact Bible verse text using BibleVerseService
+ * Replaces AI-generated verse text with scraped exact text for problematic translations
+ */
+async function enforceExactScriptures(devotional: Devotional, version: string): Promise<void> {
+  console.log(`[EnforceScriptures] Starting enforcement for ${version}`);
+  
+  // Only enforce for translations that require scraping
+  if (!BibleVerseService.requiresScraping(version)) {
+    console.log(`[EnforceScriptures] ${version} does not require scraping, skipping`);
+    return;
+  }
+
+  console.log(`[EnforceScriptures] ${version} requires scraping, fetching exact verses...`);
+
+  for (const day of devotional.days) {
+    if (!day.scripture || !day.scripture.reference) {
+      console.warn(`[EnforceScriptures] Day ${day.dayNumber} missing scripture reference`);
+      continue;
+    }
+
+    try {
+      console.log(`[EnforceScriptures] Fetching ${version} ${day.scripture.reference} for day ${day.dayNumber}`);
+      
+      const exactVerse = await bibleVerseService.fetchVerse(
+        day.scripture.reference,
+        version
+      );
+
+      // Replace AI-generated text with exact scraped text
+      const oldText = day.scripture.text;
+      day.scripture.text = exactVerse.text;
+      day.scripture.version = version;
+
+      console.log(`[EnforceScriptures] Day ${day.dayNumber} updated:`, {
+        reference: day.scripture.reference,
+        oldLength: oldText.length,
+        newLength: exactVerse.text.length,
+        source: exactVerse.source,
+      });
+    } catch (error) {
+      console.error(`[EnforceScriptures] Failed to fetch exact verse for day ${day.dayNumber}:`, error);
+      // Keep AI-generated text as fallback
+    }
+  }
+
+  console.log(`[EnforceScriptures] Completed enforcement for ${version}`);
 }
 
 /**
@@ -1155,6 +1205,7 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
       bibleVersion
     );
 
+    // Enforce exact scriptures using BibleGateway scraper for problematic translations
     await enforceExactScriptures(devotional, bibleVersion || 'NASB');
 
     // Cache the successful response
