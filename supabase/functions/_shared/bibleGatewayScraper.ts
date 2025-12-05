@@ -260,7 +260,7 @@ class BibleGatewayScraper {
   /**
    * Extract verse text from HTML
    */
-  private extractVerseText(html: string, version: string): string {
+  private extractVerseText(html: string): { text: string; startVerse?: number; endVerse?: number } {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     if (!doc) {
       throw new Error('Failed to parse HTML');
@@ -289,11 +289,64 @@ class BibleGatewayScraper {
     }
 
     let verseText = '';
+    let startVerse: number | undefined;
+    let endVerse: number | undefined;
 
+    // For MSG, verse filtering is complex and can fail - just get all text
+    // BibleGateway's context is actually helpful for understanding
     for (const span of verseSpans) {
       const spanElement = span as Element;
+
+      // Capture ALL verse numbers BEFORE removing them so we can detect full ranges
+      const allVerseElements = spanElement.querySelectorAll('.versenum');
       
-      // Remove verse numbers
+      if (allVerseElements.length > 0) {
+        console.log(`[BibleGateway] Found ${allVerseElements.length} verse number elements in this span`);
+      }
+      
+      allVerseElements.forEach((verseElement: Node) => {
+        const verseText = (verseElement as Element).textContent?.trim() || '';
+        
+        // Handle range format like "5-6" or single numbers like "5"
+        if (verseText.includes('-')) {
+          // It's a range like "5-6"
+          const parts = verseText.split('-');
+          const rangeStart = parseInt(parts[0], 10);
+          const rangeEnd = parseInt(parts[1], 10);
+          
+          console.log(`[BibleGateway] Verse element is RANGE: "${verseText}" (${rangeStart}-${rangeEnd})`);
+          
+          if (!isNaN(rangeStart)) {
+            if (startVerse === undefined || rangeStart < startVerse) {
+              startVerse = rangeStart;
+              console.log(`[BibleGateway] Updated startVerse to ${startVerse}`);
+            }
+          }
+          if (!isNaN(rangeEnd)) {
+            if (endVerse === undefined || rangeEnd > endVerse) {
+              endVerse = rangeEnd;
+              console.log(`[BibleGateway] Updated endVerse to ${endVerse}`);
+            }
+          }
+        } else {
+          // It's a single number like "5"
+          const verseNum = parseInt(verseText, 10);
+          console.log(`[BibleGateway] Verse element is SINGLE: "${verseText}" (${verseNum})`);
+          
+          if (!isNaN(verseNum)) {
+            if (startVerse === undefined || verseNum < startVerse) {
+              startVerse = verseNum;
+              console.log(`[BibleGateway] Updated startVerse to ${startVerse}`);
+            }
+            if (endVerse === undefined || verseNum > endVerse) {
+              endVerse = verseNum;
+              console.log(`[BibleGateway] Updated endVerse to ${endVerse}`);
+            }
+          }
+        }
+      });
+
+      // Remove verse numbers after capturing them
       const verseNumbers = spanElement.querySelectorAll('.versenum, .chapternum');
       verseNumbers.forEach((num: Node) => (num as Element).remove());
 
@@ -308,17 +361,21 @@ class BibleGatewayScraper {
       }
     }
 
-    // Clean up whitespace
+    // Clean up whitespace and MSG artifacts
     verseText = verseText
       .replace(/\s+/g, ' ')
       .replace(/\s+([.,;:!?])/g, '$1')
+      .replace(/\*\*\*/g, '') // Remove *** markers from MSG
+      .replace(/^[“"']+/, '') // Strip leading smart/straight quotes
+      .replace(/[”"']+$/, '') // Strip trailing smart/straight quotes
       .trim();
 
     if (!verseText) {
       throw new Error('Extracted verse text is empty');
     }
 
-    return verseText;
+    console.log(`[BibleGateway] Extracted verse - detected range: ${startVerse}-${endVerse || startVerse}`);
+    return { text: verseText, startVerse, endVerse };
   }
 
   /**
@@ -347,11 +404,25 @@ class BibleGatewayScraper {
     const html = await response.text();
 
     // Extract verse text
-    const text = this.extractVerseText(html, version);
+    const { text, startVerse, endVerse } = this.extractVerseText(html);
+
+    let actualReference = reference;
+    if (startVerse !== undefined) {
+      const bookChapterMatch = reference.match(/^([1-3]?\s?[A-Za-z ]+\s\d+)/);
+      const bookChapter = bookChapterMatch?.[1]?.trim();
+
+      if (bookChapter) {
+        const finalEndVerse = endVerse ?? startVerse;
+        actualReference = `${bookChapter}:${startVerse}${finalEndVerse !== startVerse ? `-${finalEndVerse}` : ''}`;
+        console.log(`[BibleGateway] Reference adjusted: ${reference} → ${actualReference} (detected verses ${startVerse}-${finalEndVerse})`);
+      }
+    } else {
+      console.warn(`[BibleGateway] Could not detect verse numbers, keeping original reference: ${reference}`);
+    }
 
     const result: ScrapedVerse = {
       text,
-      reference,
+      reference: actualReference,
       version,
       timestamp: Date.now(),
     };

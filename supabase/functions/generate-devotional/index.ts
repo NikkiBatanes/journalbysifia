@@ -220,13 +220,9 @@ function cleanScripture(text: unknown): string {
 async function enforceExactScriptures(devotional: Devotional, version: string): Promise<void> {
   console.log(`[EnforceScriptures] Starting enforcement for ${version}`);
   
-  // Only enforce for translations that require scraping
-  if (!BibleVerseService.requiresScraping(version)) {
-    console.log(`[EnforceScriptures] ${version} does not require scraping, skipping`);
-    return;
-  }
-
-  console.log(`[EnforceScriptures] ${version} requires scraping, fetching exact verses...`);
+  // ALWAYS enforce exact verses for ALL translations to ensure consistency
+  // The service will use scraper for MSG/AMP/NLT/CSB and OpenAI for others
+  console.log(`[EnforceScriptures] Fetching exact verses for ${version}...`);
 
   for (const day of devotional.days) {
     if (!day.scripture || !day.scripture.reference) {
@@ -243,14 +239,19 @@ async function enforceExactScriptures(devotional: Devotional, version: string): 
       );
 
       // Replace AI-generated text with exact scraped text
-      const oldText = day.scripture.text;
+      const aiGeneratedReference = day.scripture.reference;
+      const aiGeneratedText = day.scripture.text;
+      
       day.scripture.text = exactVerse.text;
+      day.scripture.reference = exactVerse.reference; // Update reference to match actual scraped range
       day.scripture.version = version;
 
       console.log(`[EnforceScriptures] Day ${day.dayNumber} updated:`, {
-        reference: day.scripture.reference,
-        oldLength: oldText.length,
-        newLength: exactVerse.text.length,
+        aiGeneratedReference,
+        scrapedReference: exactVerse.reference,
+        referenceChanged: aiGeneratedReference !== exactVerse.reference,
+        aiTextLength: aiGeneratedText.length,
+        scrapedTextLength: exactVerse.text.length,
         source: exactVerse.source,
       });
     } catch (error) {
@@ -1036,50 +1037,32 @@ serve(async (req: Request): Promise<Response> => {
   
   console.log('[Generate-Devotional] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
-  // Calculate age context for personalization
-  let ageContext = '';
-  let userAge: number | null = null;
+  // Simplified age check: only adjust language for teens (13-16)
+  let isTeenUser = false;
   
   if (dateOfBirth) {
     try {
       const birthDate = new Date(dateOfBirth);
       const today = new Date();
-      userAge = today.getFullYear() - birthDate.getFullYear();
+      let userAge = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         userAge--;
       }
       
-      // Determine age group from calculated age
-      if (userAge >= 13 && userAge <= 17) {
-        ageContext = 'teen (13-17)';
-      } else if (userAge >= 18 && userAge <= 25) {
-        ageContext = 'young adult (18-25)';
-      } else if (userAge >= 26 && userAge <= 35) {
-        ageContext = 'adult (26-35)';
-      } else if (userAge >= 36 && userAge <= 55) {
-        ageContext = 'middle-aged (36-55)';
-      } else if (userAge >= 56) {
-        ageContext = 'senior (56+)';
-      }
+      // Only flag teens (13-16) for simplified language
+      isTeenUser = userAge >= 13 && userAge <= 16;
     } catch (error) {
-      console.log('[Generate-Devotional] Error calculating age from dateOfBirth:', error);
+      console.log('[Generate-Devotional] Error calculating age:', error);
     }
   }
   
-  // Fallback to age group from onboarding if no birthday
-  if (!ageContext && ageGroup) {
-    const ageGroupMap: Record<string, string> = {
-      'teen': 'teen (13-17)',
-      'young-adult': 'young adult (18-25)',
-      'adult': 'adult (26-35)',
-      'middle-aged': 'middle-aged (36-55)',
-      'senior': 'senior (56+)',
-    };
-    ageContext = ageGroupMap[ageGroup] || '';
+  // Fallback to age group from onboarding
+  if (!isTeenUser && ageGroup === 'teen') {
+    isTeenUser = true;
   }
   
-  console.log('[Generate-Devotional] Age context:', ageContext || 'not provided');
+  console.log('[Generate-Devotional] Teen user (simplified language):', isTeenUser);
 
   // DISABLE CACHING for personalized content
   // Each user should get unique, personalized devotionals
@@ -1087,13 +1070,8 @@ serve(async (req: Request): Promise<Response> => {
   console.log('[Generate-Devotional] Generating new devotional for user:', userName);
 
   // Add anti-repetition context to user input
-  const enhancedUserInput = `${userInput}
-
-CRITICAL INSTRUCTION: You MUST NOT use these overused verses: Jeremiah 29:11, Philippians 4:13, Romans 8:28, Psalm 119:105, Proverbs 3:5-6, Isaiah 40:31. 
-
-REQUIRED: Use verses from lesser-known books like Zephaniah, Haggai, Malachi, Nahum, Obadiah, Joel, Amos, Micah, or narrative books like Ruth, Esther, Nehemiah, 1-2 Chronicles.
-
-Choose an obscure but meaningful verse that relates to the topic above.`;
+  // Phase 5: Remove anti-repetition logic for faster generation
+  const enhancedUserInput = userInput;
 
   if (typeof duration !== 'number' || duration < 1 || duration > 7) {
     return createErrorResponse(400, 'Please choose a devotional length between 1 and 7 days.');
@@ -1150,11 +1128,11 @@ Choose an obscure but meaningful verse that relates to the topic above.`;
             },
             {
               role: 'user',
-              content: `User: ${userName}\nRequest: ${userInput}\nDuration: ${duration} day${duration > 1 ? 's' : ''}${ageContext ? `\nUser Age Group: ${ageContext} - Please tailor the devotional content, language, examples, and application steps to be age-appropriate and relevant to this life stage.` : ''}`,
+              content: `User: ${userName}\nRequest: ${userInput}\nDuration: ${duration} day${duration > 1 ? 's' : ''}${isTeenUser ? '\n\nIMPORTANT: This user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep sentences straightforward.' : ''}`,
             },
           ],
           temperature: 0.7,
-          max_tokens: duration === 7 ? 8000 : 6000, // Increase tokens for 7-day devotionals to prevent truncation
+          max_tokens: duration === 7 ? 8000 : 6000, // Ensure complete responses
         }),
       },
       OPENAI_RETRY_CONFIG

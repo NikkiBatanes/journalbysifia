@@ -68,30 +68,56 @@ interface OpenAIData {
 }
 
 async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): Promise<void> {
-  console.log(`[Playbook Scripture] Enforcing exact verse for ${version}`);
+  console.log(`[Playbook Scripture] ============ ENFORCEMENT START ============`);
+  console.log(`[Playbook Scripture] Version: ${version}`);
+  console.log(`[Playbook Scripture] Current verse text (first 100 chars): ${playbook.bibleVerse?.text?.substring(0, 100)}`);
+  console.log(`[Playbook Scripture] Current reference: ${playbook.bibleVerse?.reference}`);
 
   if (!playbook.bibleVerse?.reference) {
-    console.warn('[Playbook Scripture] No reference found on playbook, skipping enforcement');
+    console.warn('[Playbook Scripture] ❌ No reference found, skipping enforcement');
     return;
   }
 
-  if (!BibleVerseService.requiresScraping(version)) {
-    console.log(`[Playbook Scripture] ${version} does not require scraping. Skipping enforcement.`);
-    return;
-  }
+  // Check if this version requires scraping
+  const requiresScraping = ['MSG', 'AMP', 'NLT', 'CSB'].includes(version.toUpperCase());
+  console.log(`[Playbook Scripture] Requires scraping: ${requiresScraping}`);
 
   try {
-    const exactVerse = await bibleVerseService.fetchVerse(playbook.bibleVerse.reference, version);
+    const originalReference = playbook.bibleVerse.reference;
+    const originalText = playbook.bibleVerse.text;
+    
+    console.log(`[Playbook Scripture] Calling bibleVerseService.fetchVerse...`);
+    const exactVerse = await bibleVerseService.fetchVerse(originalReference, version);
+    
+    console.log(`[Playbook Scripture] ✅ Fetch successful - Source: ${exactVerse.source}`);
+    console.log(`[Playbook Scripture] Scraped text (first 100 chars): ${exactVerse.text.substring(0, 100)}`);
+    console.log(`[Playbook Scripture] Scraped reference: ${exactVerse.reference}`);
+    
     playbook.bibleVerse.text = exactVerse.text;
+    playbook.bibleVerse.reference = exactVerse.reference;
     playbook.bibleVerse.version = version;
 
-    console.log('[Playbook Scripture] Verse enforced successfully:', {
-      reference: playbook.bibleVerse.reference,
+    console.log(`[Playbook Scripture] Verse text replaced:`, {
+      wasAIText: originalText !== exactVerse.text,
+      aiTextLength: originalText.length,
+      scrapedTextLength: exactVerse.text.length,
+      referenceChanged: originalReference !== exactVerse.reference,
       source: exactVerse.source,
-      textLength: exactVerse.text.length,
     });
+    console.log(`[Playbook Scripture] FINAL playbook.bibleVerse:`, {
+      text: playbook.bibleVerse.text.substring(0, 100),
+      reference: playbook.bibleVerse.reference,
+      version: playbook.bibleVerse.version,
+    });
+    console.log(`[Playbook Scripture] ============ ENFORCEMENT END ============`);
   } catch (error) {
-    console.error('[Playbook Scripture] Failed to enforce verse text:', error);
+    console.error('[Playbook Scripture] ❌ ENFORCEMENT FAILED:', error);
+    console.error('[Playbook Scripture] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    console.log('[Playbook Scripture] ⚠️  Keeping AI-generated text as fallback');
+    console.log(`[Playbook Scripture] ============ ENFORCEMENT END (FAILED) ============`);
   }
 }
 
@@ -314,6 +340,7 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   const verseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
   if (verseMatch) {
     const verseContent = verseMatch[1].trim();
+    console.log('[BIBLE VERSE PARSER] Raw content:', verseContent.substring(0, 200));
 
     // Define scripture patterns to try in order of specificity
     // Updated to handle the formats specified in the AI prompt
@@ -449,6 +476,29 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     if (cleanVerseRef) {
       cleanVerseRef = cleanVerseRef.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
     }
+    
+    console.log('[BIBLE VERSE PARSER] Extracted values:', {
+      verseText: verseText.substring(0, 100),
+      verseRef,
+      cleanVerseRef,
+      hasReference: !!cleanVerseRef,
+    });
+    
+    // FALLBACK: If no reference found in BIBLE VERSE section, scan the entire AI output
+    if (!cleanVerseRef) {
+      console.warn('[BIBLE VERSE PARSER] No reference in BIBLE VERSE section, scanning full content...');
+      
+      // Look for scripture references anywhere in the full content
+      const fullRefMatch = content.match(/([A-Za-z0-9]+\s+\d+:\d+(?:-\d+)?)/);
+      if (fullRefMatch) {
+        cleanVerseRef = fullRefMatch[1].trim();
+        console.log('[BIBLE VERSE PARSER] Found reference in full content:', cleanVerseRef);
+      } else {
+        console.error('[BIBLE VERSE PARSER] ❌ No scripture reference found anywhere in AI output!');
+        console.error('[BIBLE VERSE PARSER] AI must include reference like: "verse text" (Book 1:1)');
+      }
+    }
+    
     playbook.bibleVerse.reference = cleanVerseRef;
     
     // Store the Bible version that was used for generation
@@ -515,50 +565,32 @@ serve(async (req: Request) => {
   
   console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
-  // Calculate age context for personalization
-  let ageContext = '';
-  let userAge: number | null = null;
+  // Simplified age check: only adjust language for teens (13-16)
+  let isTeenUser = false;
   
   if (dateOfBirth) {
     try {
       const birthDate = new Date(dateOfBirth);
       const today = new Date();
-      userAge = today.getFullYear() - birthDate.getFullYear();
+      let userAge = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         userAge--;
       }
       
-      // Determine age group from calculated age
-      if (userAge >= 13 && userAge <= 17) {
-        ageContext = 'teen (13-17)';
-      } else if (userAge >= 18 && userAge <= 25) {
-        ageContext = 'young adult (18-25)';
-      } else if (userAge >= 26 && userAge <= 35) {
-        ageContext = 'adult (26-35)';
-      } else if (userAge >= 36 && userAge <= 55) {
-        ageContext = 'middle-aged (36-55)';
-      } else if (userAge >= 56) {
-        ageContext = 'senior (56+)';
-      }
+      // Only flag teens (13-16) for simplified language
+      isTeenUser = userAge >= 13 && userAge <= 16;
     } catch (error) {
-      console.log('[Generate-Playbook] Error calculating age from dateOfBirth:', error);
+      console.log('[Generate-Playbook] Error calculating age:', error);
     }
   }
   
-  // Fallback to age group from onboarding if no birthday
-  if (!ageContext && ageGroup) {
-    const ageGroupMap: Record<string, string> = {
-      'teen': 'teen (13-17)',
-      'young-adult': 'young adult (18-25)',
-      'adult': 'adult (26-35)',
-      'middle-aged': 'middle-aged (36-55)',
-      'senior': 'senior (56+)',
-    };
-    ageContext = ageGroupMap[ageGroup] || '';
+  // Fallback to age group from onboarding
+  if (!isTeenUser && ageGroup === 'teen') {
+    isTeenUser = true;
   }
   
-  console.log('[Generate-Playbook] Age context:', ageContext || 'not provided');
+  console.log('[Generate-Playbook] Teen user (simplified language):', isTeenUser);
 
   // DISABLE CACHING for personalized content
   // Each user should get unique, personalized playbooks
@@ -609,9 +641,9 @@ serve(async (req: Request) => {
 
 ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. Do NOT reuse or slightly modify any of these titles.` : ''}`;
     
-    // Add age-appropriate context if available
-    if (ageContext) {
-      contextualPrompt += `\n\n## USER AGE CONTEXT\nThe user is a ${ageContext}. Please tailor the language, examples, and action steps to be age-appropriate and relevant to their life stage. Consider typical challenges, responsibilities, and experiences for this age group.`;
+    // Add simplified language instruction for teens only
+    if (isTeenUser) {
+      contextualPrompt += `\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.`;
     }
 
     // Add Bible version preference with exact retrieval instruction

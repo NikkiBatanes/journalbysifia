@@ -147,9 +147,49 @@ export class BibleVerseService {
    * Fetch exact Bible verse using the most appropriate method
    */
   async fetchVerse(reference: string, version: string): Promise<BibleVerse> {
-    console.log(`[BibleVerseService] Fetching ${version} ${reference}`);
+    console.log(`[BibleVerseService] ============ FETCH START ============`);
+    console.log(`[BibleVerseService] Request: ${version} ${reference}`);
 
-    // Step 1: Check database cache
+    // Step 1: For scrape-required translations, always use scraper (it has its own cache)
+    // This ensures consistent reference correction
+    const needsScraping = SCRAPE_TRANSLATIONS.includes(version.toUpperCase());
+    console.log(`[BibleVerseService] Needs scraping: ${needsScraping} (checking if ${version} in ${SCRAPE_TRANSLATIONS.join(', ')})`);
+
+    if (needsScraping) {
+      // Use BibleGateway scraper for problematic translations
+      try {
+        console.log(`[BibleVerseService] Calling scraper for ${version} ${reference}...`);
+        const scraped = await bibleGatewayScraper.scrapeVerse(reference, version);
+        console.log(`[BibleVerseService] ✅ Scraper success - got ${scraped.text.length} chars, ref: ${scraped.reference}`);
+        
+        // Cache in database with BOTH original and corrected references
+        // This allows cache hits regardless of which reference is used
+        await this.dbCache.set(reference, version, scraped.text);
+        if (scraped.reference !== reference) {
+          console.log(`[BibleVerseService] Reference changed: ${reference} → ${scraped.reference}`);
+          await this.dbCache.set(scraped.reference, version, scraped.text);
+        }
+
+        console.log(`[BibleVerseService] ============ FETCH END (scraper) ============`);
+        return {
+          text: scraped.text,
+          reference: scraped.reference, // Use scraper's corrected reference
+          version,
+          source: 'scraper',
+        };
+      } catch (error) {
+        console.error(`[BibleVerseService] ❌ Scraper failed for ${version} ${reference}:`, error);
+        console.error(`[BibleVerseService] Error details:`, {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        
+        // Fall through to OpenAI fallback
+        console.log(`[BibleVerseService] Trying OpenAI fallback...`);
+      }
+    }
+
+    // Step 2: Check database cache for non-scraping translations
     const cachedText = await this.dbCache.get(reference, version);
     if (cachedText) {
       return {
@@ -158,30 +198,6 @@ export class BibleVerseService {
         version,
         source: 'database',
       };
-    }
-
-    // Step 2: Determine which provider to use
-    const needsScraping = SCRAPE_TRANSLATIONS.includes(version.toUpperCase());
-
-    if (needsScraping) {
-      // Use BibleGateway scraper for problematic translations
-      try {
-        const scraped = await bibleGatewayScraper.scrapeVerse(reference, version);
-        
-        // Cache in database
-        await this.dbCache.set(reference, version, scraped.text);
-
-        return {
-          text: scraped.text,
-          reference,
-          version,
-          source: 'scraper',
-        };
-      } catch (error) {
-        console.error(`[BibleVerseService] Scraper failed for ${version} ${reference}:`, error);
-        
-        // Fall through to OpenAI fallback
-      }
     }
 
     // Step 3: Try OpenAI fallback
