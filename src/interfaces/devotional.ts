@@ -91,4 +91,6 @@ export interface DevotionalCreationParams {
   duration: number;
   playbookId?: string;
   userInput?: string;
+  dateOfBirth?: string;
+  ageGroup?: string;
 }

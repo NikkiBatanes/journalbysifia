@@ -847,7 +847,25 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               styles.ageOption,
               selectedAgeGroup === ageGroup.value && styles.selectedAgeOption,
             ]}
-            onPress={() => { try { triggerLightHaptic(); } catch {} setSelectedAgeGroup(ageGroup.value); }}
+            onPress={async () => {
+              try { triggerLightHaptic(); } catch {}
+              setSelectedAgeGroup(ageGroup.value);
+              // Persist ageGroup to Supabase auth metadata
+              try {
+                await supabase.auth.updateUser({
+                  data: { ageGroup: ageGroup.value }
+                });
+                Logger.info('Age group saved to auth metadata', {
+                  component: 'OnboardingPersonalizationScreen',
+                  data: { ageGroup: ageGroup.value }
+                });
+              } catch (err) {
+                Logger.warn('Failed to save ageGroup to auth metadata', err as Error, {
+                  component: 'OnboardingPersonalizationScreen',
+                  data: { ageGroup: ageGroup.value }
+                });
+              }
+            }}
           >
             <ThemedText weight="semiBold" style={styles.ageOptionTitle}>{ageGroup.label}</ThemedText>
           </TouchableOpacity>

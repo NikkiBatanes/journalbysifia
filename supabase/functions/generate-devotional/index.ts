@@ -218,35 +218,42 @@ function cleanScripture(text: unknown): string {
  * Replaces AI-generated verse text with scraped exact text for problematic translations
  */
 async function enforceExactScriptures(devotional: Devotional, version: string): Promise<void> {
-  console.log(`[EnforceScriptures] Starting enforcement for ${version}`);
+  console.log(`[EnforceScriptures] ============ ENFORCEMENT START ============`);
+  console.log(`[EnforceScriptures] Version: ${version}`);
+  console.log(`[EnforceScriptures] Total days: ${devotional.days.length}`);
   
-  // ALWAYS enforce exact verses for ALL translations to ensure consistency
-  // The service will use scraper for MSG/AMP/NLT/CSB and OpenAI for others
-  console.log(`[EnforceScriptures] Fetching exact verses for ${version}...`);
+  // Check if this version requires scraping
+  const requiresScraping = ['MSG', 'AMP', 'NLT', 'CSB'].includes(version.toUpperCase());
+  console.log(`[EnforceScriptures] Requires scraping: ${requiresScraping}`);
 
   for (const day of devotional.days) {
+    console.log(`[EnforceScriptures] ---------- Day ${day.dayNumber} ----------`);
+    
     if (!day.scripture || !day.scripture.reference) {
-      console.warn(`[EnforceScriptures] Day ${day.dayNumber} missing scripture reference`);
+      console.warn(`[EnforceScriptures] ❌ Day ${day.dayNumber} missing scripture reference`);
       continue;
     }
 
-    try {
-      console.log(`[EnforceScriptures] Fetching ${version} ${day.scripture.reference} for day ${day.dayNumber}`);
-      
-      const exactVerse = await bibleVerseService.fetchVerse(
-        day.scripture.reference,
-        version
-      );
+    console.log(`[EnforceScriptures] Current: ${day.scripture.reference}`);
+    console.log(`[EnforceScriptures] Current text (first 100 chars): ${day.scripture.text.substring(0, 100)}`);
 
-      // Replace AI-generated text with exact scraped text
+    try {
       const aiGeneratedReference = day.scripture.reference;
       const aiGeneratedText = day.scripture.text;
       
+      console.log(`[EnforceScriptures] Calling bibleVerseService.fetchVerse...`);
+      const exactVerse = await bibleVerseService.fetchVerse(aiGeneratedReference, version);
+      
+      console.log(`[EnforceScriptures] ✅ Fetch successful - Source: ${exactVerse.source}`);
+      console.log(`[EnforceScriptures] Scraped text (first 100 chars): ${exactVerse.text.substring(0, 100)}`);
+      console.log(`[EnforceScriptures] Scraped reference: ${exactVerse.reference}`);
+      
       day.scripture.text = exactVerse.text;
-      day.scripture.reference = exactVerse.reference; // Update reference to match actual scraped range
+      day.scripture.reference = exactVerse.reference;
       day.scripture.version = version;
 
       console.log(`[EnforceScriptures] Day ${day.dayNumber} updated:`, {
+        wasAIText: aiGeneratedText !== exactVerse.text,
         aiGeneratedReference,
         scrapedReference: exactVerse.reference,
         referenceChanged: aiGeneratedReference !== exactVerse.reference,
@@ -254,13 +261,23 @@ async function enforceExactScriptures(devotional: Devotional, version: string): 
         scrapedTextLength: exactVerse.text.length,
         source: exactVerse.source,
       });
+      
+      console.log(`[EnforceScriptures] FINAL day ${day.dayNumber} scripture:`, {
+        text: day.scripture.text.substring(0, 100),
+        reference: day.scripture.reference,
+        version: day.scripture.version,
+      });
     } catch (error) {
-      console.error(`[EnforceScriptures] Failed to fetch exact verse for day ${day.dayNumber}:`, error);
-      // Keep AI-generated text as fallback
+      console.error(`[EnforceScriptures] ❌ Day ${day.dayNumber} FAILED:`, error);
+      console.error(`[EnforceScriptures] Error details:`, {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      console.log(`[EnforceScriptures] ⚠️  Keeping AI-generated text for day ${day.dayNumber}`);
     }
   }
 
-  console.log(`[EnforceScriptures] Completed enforcement for ${version}`);
+  console.log(`[EnforceScriptures] ============ ENFORCEMENT END ============`);
 }
 
 /**
@@ -1038,7 +1055,12 @@ serve(async (req: Request): Promise<Response> => {
   console.log('[Generate-Devotional] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
   // Simplified age check: only adjust language for teens (13-16)
+  console.log('[Generate-Devotional] ========== AGE DETECTION START ==========');
+  console.log('[Generate-Devotional] Received dateOfBirth:', dateOfBirth);
+  console.log('[Generate-Devotional] Received ageGroup:', ageGroup);
+  
   let isTeenUser = false;
+  let calculatedAge: number | null = null;
   
   if (dateOfBirth) {
     try {
@@ -1050,19 +1072,30 @@ serve(async (req: Request): Promise<Response> => {
         userAge--;
       }
       
-      // Only flag teens (13-16) for simplified language
-      isTeenUser = userAge >= 13 && userAge <= 16;
+      calculatedAge = userAge;
+      console.log('[Generate-Devotional] Calculated age from dateOfBirth:', userAge);
+      
+      // Flag ALL youth (age <= 16) for simplified language
+      isTeenUser = userAge >= 0 && userAge <= 16;
+      console.log('[Generate-Devotional] Is youth (<=16):', isTeenUser);
     } catch (error) {
-      console.log('[Generate-Devotional] Error calculating age:', error);
+      console.log('[Generate-Devotional] ❌ Error calculating age:', error);
+    }
+  } else {
+    console.log('[Generate-Devotional] No dateOfBirth provided, checking ageGroup...');
+  }
+  
+  // Fallback to age group from onboarding (accept broader labels)
+  if (!isTeenUser && typeof ageGroup === 'string') {
+    const simplifiedGroups = ['teen', 'teens', 'child', 'children', 'kid', 'youth', 'preteen'];
+    if (simplifiedGroups.includes(ageGroup.toLowerCase())) {
+      console.log('[Generate-Devotional] Using ageGroup fallback:', ageGroup);
+      isTeenUser = true;
     }
   }
   
-  // Fallback to age group from onboarding
-  if (!isTeenUser && ageGroup === 'teen') {
-    isTeenUser = true;
-  }
-  
-  console.log('[Generate-Devotional] Teen user (simplified language):', isTeenUser);
+  console.log('[Generate-Devotional] FINAL: Teen user (simplified language):', isTeenUser);
+  console.log('[Generate-Devotional] ========== AGE DETECTION END ==========');
 
   // DISABLE CACHING for personalized content
   // Each user should get unique, personalized devotionals

@@ -566,7 +566,12 @@ serve(async (req: Request) => {
   console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
   // Simplified age check: only adjust language for teens (13-16)
+  console.log('[Generate-Playbook] ========== AGE DETECTION START ==========');
+  console.log('[Generate-Playbook] Received dateOfBirth:', dateOfBirth);
+  console.log('[Generate-Playbook] Received ageGroup:', ageGroup);
+  
   let isTeenUser = false;
+  let calculatedAge: number | null = null;
   
   if (dateOfBirth) {
     try {
@@ -578,19 +583,30 @@ serve(async (req: Request) => {
         userAge--;
       }
       
-      // Only flag teens (13-16) for simplified language
-      isTeenUser = userAge >= 13 && userAge <= 16;
+      calculatedAge = userAge;
+      console.log('[Generate-Playbook] Calculated age from dateOfBirth:', userAge);
+      
+      // Flag ALL youth (age <= 16) for simplified language
+      isTeenUser = userAge >= 0 && userAge <= 16;
+      console.log('[Generate-Playbook] Is youth (<=16):', isTeenUser);
     } catch (error) {
-      console.log('[Generate-Playbook] Error calculating age:', error);
+      console.log('[Generate-Playbook] ❌ Error calculating age:', error);
+    }
+  } else {
+    console.log('[Generate-Playbook] No dateOfBirth provided, checking ageGroup...');
+  }
+  
+  // Fallback to age group from onboarding (accept broader labels)
+  if (!isTeenUser && typeof ageGroup === 'string') {
+    const simplifiedGroups = ['teen', 'teens', 'child', 'children', 'kid', 'youth', 'preteen'];
+    if (simplifiedGroups.includes(ageGroup.toLowerCase())) {
+      console.log('[Generate-Playbook] Using ageGroup fallback:', ageGroup);
+      isTeenUser = true;
     }
   }
   
-  // Fallback to age group from onboarding
-  if (!isTeenUser && ageGroup === 'teen') {
-    isTeenUser = true;
-  }
-  
-  console.log('[Generate-Playbook] Teen user (simplified language):', isTeenUser);
+  console.log('[Generate-Playbook] FINAL: Teen user (simplified language):', isTeenUser);
+  console.log('[Generate-Playbook] ========== AGE DETECTION END ==========');
 
   // DISABLE CACHING for personalized content
   // Each user should get unique, personalized playbooks

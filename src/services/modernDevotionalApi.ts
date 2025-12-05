@@ -20,6 +20,8 @@ interface DevotionalGenerationParams {
   userInput?: string;
   isOnboarding?: boolean;
   bibleVersion?: string;
+  dateOfBirth?: string;
+  ageGroup?: string;
 }
 
 // Use the standard Devotional interface
@@ -61,20 +63,36 @@ async function generateDevotionalInternal(
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
+        Logger.info('Devotional user metadata snapshot for age detection', {
+          component: 'modernDevotionalApi',
+          data: {
+            userMetadata: (user as any)?.user_metadata,
+          },
+        });
+
         if (user?.id) {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('date_of_birth')
-            .eq('id', user.id)
-            .single();
+          // First try user_profiles table (where date_of_birth is stored)
+          try {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('date_of_birth')
+              .eq('id', user.id)
+              .single();
 
-          if (profile?.date_of_birth) {
-            dateOfBirth = profile.date_of_birth;
+            if (profile?.date_of_birth) {
+              dateOfBirth = profile.date_of_birth;
+            }
+          } catch (profileError) {
+            // Profile might not exist, continue to fallback
           }
-        }
 
-        // Fallback to age group from user metadata (onboarding)
-        if (!dateOfBirth && user) {
+          // Fallback to user_metadata (onboarding data)
+          if (!dateOfBirth) {
+            const metadata = (user as any)?.user_metadata;
+            dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date;
+          }
+
+          // Get age group from user metadata (onboarding)
           ageGroup = (user as any)?.user_metadata?.ageGroup;
         }
       } catch {}
@@ -345,6 +363,14 @@ export async function generateDevotional(
       Logger.warn('Failed to get user tier for devotional, using default', {
         component: 'modernDevotionalApi',
       });
+    }
+
+    // Get age data from user metadata (onboarding)
+    if (!params.dateOfBirth && user?.user_metadata?.dateOfBirth) {
+      params.dateOfBirth = user.user_metadata.dateOfBirth;
+    }
+    if (!params.ageGroup && user?.user_metadata?.ageGroup) {
+      params.ageGroup = user.user_metadata.ageGroup;
     }
   } catch (error) {
     Logger.error('Failed to get user for devotional generation', error as Error, {

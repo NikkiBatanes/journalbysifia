@@ -275,23 +275,39 @@ async function generatePlaybookInternal(
           bibleVersion = fromMeta.trim();
         }
 
+        Logger.info('User metadata snapshot for age detection', {
+          component: 'modernPlaybookApi',
+          data: {
+            userMetadata: (user as any)?.user_metadata,
+          },
+        });
+
         // Get user profile for age data
         if (user?.id) {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('date_of_birth')
-            .eq('id', user.id)
-            .single();
+          // First try user_profiles table (where date_of_birth is stored)
+          try {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('date_of_birth')
+              .eq('id', user.id)
+              .single();
 
-          if (profile?.date_of_birth) {
-            dateOfBirth = profile.date_of_birth;
+            if (profile?.date_of_birth) {
+              dateOfBirth = profile.date_of_birth;
+            }
+          } catch (profileError) {
+            // Profile might not exist, continue to fallback
+          }
+
+          // Fallback to user_metadata (onboarding data)
+          if (!dateOfBirth) {
+            const metadata = (user as any)?.user_metadata;
+            dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date;
           }
         }
 
-        // Fallback to age group from user metadata (onboarding)
-        if (!dateOfBirth) {
-          ageGroup = (user as any)?.user_metadata?.ageGroup;
-        }
+        // Get age group from user metadata (onboarding)
+        ageGroup = (user as any)?.user_metadata?.ageGroup;
 
         // Get location from user preferences
         location = (user as any)?.user_metadata?.preferences?.location;
