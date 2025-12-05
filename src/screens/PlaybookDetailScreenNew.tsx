@@ -642,7 +642,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       tappable: false,
     },
   ];
-  }, [playbook, actionSteps]);
+  }, [playbook, actionSteps, user]);
 
   // Vertical separation between stacked cards (document vs stack)
   const STACK_OFFSET = 56;

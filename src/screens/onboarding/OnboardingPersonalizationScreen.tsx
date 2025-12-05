@@ -853,16 +853,17 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               // Persist ageGroup to Supabase auth metadata
               try {
                 await supabase.auth.updateUser({
-                  data: { ageGroup: ageGroup.value }
+                  data: { ageGroup: ageGroup.value },
                 });
                 Logger.info('Age group saved to auth metadata', {
                   component: 'OnboardingPersonalizationScreen',
-                  data: { ageGroup: ageGroup.value }
+                  data: { ageGroup: ageGroup.value },
                 });
               } catch (err) {
-                Logger.warn('Failed to save ageGroup to auth metadata', err as Error, {
+                Logger.warn('Failed to save ageGroup to auth metadata', {
                   component: 'OnboardingPersonalizationScreen',
-                  data: { ageGroup: ageGroup.value }
+                  data: { ageGroup: ageGroup.value },
+                  error: err as Error,
                 });
               }
             }}

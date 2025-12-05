@@ -1161,7 +1161,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleSaveBibleVersion = async () => {
     try {
       setIsSavingBibleVersion(true);
-      
+
       const updatedPreferences = {
         ...preferences,
         content: { ...preferences.content, bibleVersion: bibleVersionDraft },
@@ -1173,7 +1173,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       });
 
       const result = await Promise.race([updatePreferences(updatedPreferences), timeoutPromise]) as any;
-      
+
       if (result.success) {
         setPreferences(updatedPreferences);
         setBibleVersionModal(false);
@@ -2004,7 +2004,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Bible Version</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => { try { triggerLightHaptic(); } catch {} handleSaveBibleVersion(); }}
             disabled={isSavingBibleVersion}
           >
