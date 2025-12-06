@@ -2,6 +2,47 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { bibleVerseService } from '../_shared/bibleVerseService.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
+import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
+
+// Define persona locally
+const strategicAdvisorPersona = {
+  role: 'Strategic Spiritual Advisor',
+  systemPrompt: `You are a wise, compassionate spiritual advisor who provides personalized guidance rooted in Christian faith. Your role is to:
+
+1. Create personalized playbooks that help users navigate their spiritual journey
+2. Provide practical, actionable steps grounded in biblical wisdom
+3. Offer encouragement and hope through scripture
+4. Maintain a warm, supportive, and non-judgmental tone
+5. Respect the user's specific situation and needs
+
+Always structure your response with these exact sections:
+PLAYBOOK TITLE: [Main Title]
+[Subtitle]
+
+TRUTH SUMMARY:
+[2-3 sentence summary of the truth]
+
+TRUTH IN LOVE:
+[Expanded explanation of the truth with biblical context]
+
+ACTION STEPS:
+1. [Specific action step]
+2. [Specific action step]
+3. [Specific action step]
+
+AFFIRMATIONS:
+1. [Biblical affirmation]
+2. [Biblical affirmation]
+3. [Biblical affirmation]
+
+BIBLE VERSE:
+[Scripture reference and text]
+
+CHALLENGE:
+[Thought-provoking challenge for growth]`
+};
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -625,6 +666,95 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   return playbook;
 }
 
+// Paraphrasing function (only used if AI refuses)
+function paraphraseInput(input: string): string {
+  let paraphrased = input;
+
+  // Soften direct action statements to contemplative ones
+  paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
+  paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
+  paraphrased = paraphrased.replace(/\bnow\b/gi, '');
+  paraphrased = paraphrased.replace(/\bimmediately\b/gi, '');
+  paraphrased = paraphrased.replace(/\btoday\b/gi, '');
+
+  // Soften "trapped" language to "struggling with"
+  paraphrased = paraphrased.replace(/\b(trapped|stuck)\b/gi, 'struggling with');
+  paraphrased = paraphrased.replace(/\bin a (girl|boy|male|female) body\b/gi, 'my gender identity');
+
+  // Soften medical/surgical terms
+  paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
+  paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
+
+  // Clean up extra spaces
+  paraphrased = paraphrased.replace(/\s+/g, ' ').trim();
+
+  return paraphrased;
+}
+
+// Apply persona context to the prompt
+function applyPersonaContext(persona: any, userInput: string, bibleVersion?: string): string {
+  const version = bibleVersion || 'NASB';
+  return `As ${persona.role}, create a personalized spiritual growth playbook for the following request:
+
+User Request: "${userInput}"
+
+Please create a comprehensive playbook that addresses their specific needs with biblical wisdom and practical guidance. Use ${version} for any scripture references.
+
+Remember to:
+- Be compassionate and understanding
+- Provide actionable steps
+- Include relevant scripture
+- Maintain biblical accuracy
+- Keep the tone supportive and encouraging`;
+}
+
+// Enforce persona compliance in the response
+function enforcePersona(content: string, persona: any): string {
+  // Basic persona enforcement - ensure the content aligns with the spiritual advisor role
+  if (content.toLowerCase().includes('i cannot') || content.toLowerCase().includes('i\'m sorry')) {
+    return content; // Let refusals pass through for paraphrasing
+  }
+  
+  // Ensure the content maintains a spiritual, supportive tone
+  return content;
+}
+
+// Helper function for hybrid OpenAI API call
+async function callOpenAIWithFallback(model: string, contextualPrompt: string, strategicAdvisorPersona: any): Promise<Response> {
+  console.log(`[Generate-Playbook] Calling OpenAI API with model: ${model}`);
+  return await CircuitBreaker.execute(
+    CIRCUIT_KEYS.OPENAI_PLAYBOOK,
+    async () => await fetchWithRetry(
+    'https://api.openai.com/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: strategicAdvisorPersona.systemPrompt,
+          },
+          {
+            role: 'user',
+            content: contextualPrompt,
+          },
+        ],
+        temperature: 0.85, // Increased from 0.7 for more creative variation
+        max_tokens: 1500,
+        frequency_penalty: 0.1,
+        presence_penalty: 0.1,
+      }),
+    },
+    OPENAI_RETRY_CONFIG
+    )
+  );
+}
+
 interface RequestBody {
   userInput: string;
   userName: string;
@@ -755,31 +885,6 @@ serve(async (req: Request) => {
       }
     }
 
-    // Paraphrasing function (only used if AI refuses)
-    function paraphraseInput(input: string): string {
-      let paraphrased = input;
-
-      // Soften direct action statements to contemplative ones
-      paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
-      paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
-      paraphrased = paraphrased.replace(/\bnow\b/gi, '');
-      paraphrased = paraphrased.replace(/\bimmediately\b/gi, '');
-      paraphrased = paraphrased.replace(/\btoday\b/gi, '');
-
-      // Soften "trapped" language to "struggling with"
-      paraphrased = paraphrased.replace(/\b(trapped|stuck)\b/gi, 'struggling with');
-      paraphrased = paraphrased.replace(/\bin a (girl|boy|male|female) body\b/gi, 'my gender identity');
-
-      // Soften medical/surgical terms
-      paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
-      paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
-
-      // Clean up extra spaces
-      paraphrased = paraphrased.replace(/\s+/g, ' ').trim();
-
-      return paraphrased;
-    }
-
     // Use a mutable variable for input (may be paraphrased later)
     let effectiveUserInput = userInput;
 
@@ -833,43 +938,7 @@ When suggesting professional help or hotlines in action steps, provide general g
 
 IMPORTANT: Always use generic language like "your local hotline" or "support services in your area" rather than specific numbers or regional resources.`;
 
-    // Helper function for hybrid OpenAI API call
-    async function callOpenAIWithFallback(model: string): Promise<Response> {
-      console.log(`[Generate-Playbook] Calling OpenAI API with model: ${model}`);
-      return await CircuitBreaker.execute(
-        CIRCUIT_KEYS.OPENAI_PLAYBOOK,
-        async () => await fetchWithRetry(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'system',
-                content: strategicAdvisorPersona.systemPrompt,
-              },
-              {
-                role: 'user',
-                content: contextualPrompt,
-              },
-            ],
-            temperature: 0.85, // Increased from 0.7 for more creative variation
-            max_tokens: 1500,
-            frequency_penalty: 0.1,
-            presence_penalty: 0.1,
-          }),
-        },
-        OPENAI_RETRY_CONFIG
-        )
-      );
-    }
-
-    // Try with gpt-4o-mini, paraphrase and retry if refused
+    // Try with gpt-4o-mini
     let openAIRes: Response;
     let aiData: any;
     let rawContent: string;
@@ -877,7 +946,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
 
     try {
       // First try with original input
-      openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+      openAIRes = await callOpenAIWithFallback('gpt-4o-mini', contextualPrompt, strategicAdvisorPersona);
       aiData = await openAIRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
 
@@ -915,7 +984,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
 
         // Retry with paraphrased input
         usedParaphrasing = true;
-        openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+        openAIRes = await callOpenAIWithFallback('gpt-4o-mini', contextualPrompt, strategicAdvisorPersona);
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
       }
