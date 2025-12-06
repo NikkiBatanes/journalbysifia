@@ -301,11 +301,11 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
   const handleClose = useCallback(() => {
     console.log('[DevotionalCompletionModal] handleClose invoked');
-    
+
     // CRITICAL: Clear all burst timers immediately to prevent state updates after unmount
     burstTimersRef.current.forEach(timer => clearTimeout(timer));
     burstTimersRef.current = [];
-    
+
     // Haptic on close action
     triggerLightHaptic();
     Animated.parallel([

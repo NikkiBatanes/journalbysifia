@@ -68,7 +68,7 @@ const DevotionalsScreen = () => {
     useCallback(() => {
       const focusTime = Date.now();
       console.log('[DevotionalsScreen] Screen focused at', focusTime);
-      
+
       // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
       // This prevents blocking the UI thread during screen transitions
       const raf = typeof requestAnimationFrame === 'function'
@@ -651,7 +651,7 @@ const DevotionalsScreen = () => {
     useCallback(() => {
       const focusTime = Date.now();
       console.log('[DevotionalsScreen] Scroll focus effect triggered at', focusTime);
-      
+
       // ENTERPRISE-GRADE: Defer scroll operation to after navigation transition completes
       const raf = typeof requestAnimationFrame === 'function'
         ? requestAnimationFrame

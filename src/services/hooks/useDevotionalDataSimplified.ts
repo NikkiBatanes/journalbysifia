@@ -316,7 +316,7 @@ export const useSubmitDevotionalRatingReactQuery = () => {
       queryClient.setQueryData(
         queryKeys.devotionals.list(userId),
         (oldData: any) => {
-          if (!oldData) return oldData;
+          if (!oldData) {return oldData;}
           return oldData.map((devo: any) =>
             devo.id === devotionalId ? { ...devo, rating } : devo
           );

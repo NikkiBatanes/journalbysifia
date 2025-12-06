@@ -14,7 +14,6 @@ import {
   NativeModules,
   StatusBar,
   Platform,
-  InteractionManager,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -96,7 +95,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   const { data: devotional, isLoading: devotionalLoading, isFetching: devotionalFetching, error: devotionalError, isError } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
-  
+
   // Cancel queries on unmount to prevent refetch during navigation
   const queryClient = useQueryClient();
   useEffect(() => {
@@ -635,7 +634,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       const navEndTime = Date.now();
       console.log('[DevotionalDetail] navigation.goBack() completed', { duration: navEndTime - navStartTime });
       isNavigatingRef.current = false;
-      
+
       // Clear timer refs after navigation
       navigationTimersRef.current = {};
     };
@@ -714,7 +713,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     Logger.debug('[DevotionalDetail] Closing modal and requesting immediate navigation', {
       component: 'DevotionalDetailScreen',
     });
-    
+
     // Use requestAnimationFrame to ensure navigation happens on the next frame after modal state update
     const raf = typeof requestAnimationFrame === 'function'
       ? requestAnimationFrame

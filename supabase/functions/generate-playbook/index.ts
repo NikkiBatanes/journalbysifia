@@ -121,7 +121,7 @@ async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): P
   }
 }
 
-function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: string, bibleVersion?: string): Playbook {
+function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: string, bibleVersion?: string): Playbook {
   const content = aiData.choices[0]?.message?.content || '';
 
   // Extract playbook title and subtitle
@@ -627,6 +627,17 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     }
   }
 
+  if (!playbook.directChallenge || playbook.directChallenge.trim().length === 0) {
+    console.warn('[CHALLENGE PARSER] Missing CHALLENGE section. Injecting fallback challenge.');
+    playbook.directChallenge = [
+      `${userName}, complete this two-part challenge exactly as written:`,
+      '',
+      'SPIRITUAL: Within the next 24 hours, block 20 minutes to pray Psalm 139:23-24, asking God to reveal truth and align your identity with His design. Journal what the Holy Spirit shows you inside the app before you stand up.',
+      '',
+      'TACTICAL (48-72 HOURS): Within 72 hours schedule a 30-minute check-in with a trusted pastor, mentor, or accountability partner. Share one concrete action you will take, request their covering prayer, and text them a summary plus the date of your next follow-up meeting.',
+    ].join('\n');
+  }
+
   return playbook;
 }
 
@@ -788,6 +799,11 @@ serve(async (req: Request) => {
       paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
       paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
 
+      // Soften severe violence/self-harm language
+      paraphrased = paraphrased.replace(/\brape\b/gi, 'sexual assault');
+      paraphrased = paraphrased.replace(/\bmurder\b/gi, 'taking a life');
+      paraphrased = paraphrased.replace(/\bsuicide\b/gi, 'ending my life');
+
       // Clean up extra spaces
       paraphrased = paraphrased.replace(/\s+/g, ' ').trim();
 
@@ -839,10 +855,6 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
 
 ## SUPPORT SERVICES GUIDANCE
 When suggesting professional help or hotlines in action steps, provide general guidance only:
-- Suggest reaching out to "your local mental health hotline" or "crisis support services in your area"
-- Recommend contacting local hospitals, churches, or community centers
-- Advise reaching out to trusted friends, family members, or spiritual leaders
-- Suggest searching online for "mental health support near me" or "crisis hotline [your city/country]"
 - Do NOT provide specific phone numbers or regional hotlines - keep it general and applicable to any location
 
 IMPORTANT: Always use generic language like "your local hotline" or "support services in your area" rather than specific numbers or regional resources.`;

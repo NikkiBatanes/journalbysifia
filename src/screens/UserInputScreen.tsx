@@ -38,6 +38,8 @@ type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ma
   reset: (state: any) => void; // Add reset method to navigation prop
 };
 
+const MAX_USER_INPUT_LENGTH = 2000;
+
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
   const route = useRoute<RouteProp<RootStackParamList, 'UserInput'>>();
@@ -365,6 +367,13 @@ const UserInputScreen: React.FC = () => {
   // Use the real generatePlaybook from the API service
   // Remove the local mock implementation.
 
+  const handleInputChange = (text: string) => {
+    if (text.length > MAX_USER_INPUT_LENGTH) {
+      text = text.slice(0, MAX_USER_INPUT_LENGTH);
+    }
+    setUserInput(text);
+  };
+
   const handleGeneratePlaybook = async () => {
     try { triggerLightHaptic(); } catch {}
     animateButton();
@@ -503,7 +512,7 @@ const UserInputScreen: React.FC = () => {
                     placeholder={placeholderText}
                     placeholderTextColor={'rgba(255,255,255,0.7)'}
                     value={userInput}
-                    onChangeText={setUserInput}
+                    onChangeText={handleInputChange}
                     multiline
                     textAlignVertical="top"
                     scrollEnabled={true}
@@ -536,6 +545,11 @@ const UserInputScreen: React.FC = () => {
                       </View>
                     )}
                     <View style={styles.actionsRight}>
+                      <View style={styles.charCounterWrapper}>
+                        <Text style={[styles.charCounterText, font]}>
+                          {userInput.length}/{MAX_USER_INPUT_LENGTH}
+                        </Text>
+                      </View>
                       <TouchableOpacity
                         onPress={onPressHint}
                         activeOpacity={0.9}
@@ -775,6 +789,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginLeft: 'auto',
+  },
+  charCounterWrapper: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  charCounterText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: '600',
   },
   askInput: {
     width: '100%',
