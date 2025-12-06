@@ -557,6 +557,61 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation]);
 
+  const isNavigatingRef = useRef(false);
+
+  const navigateBackSafely = useCallback((reason: string, extraDelay = 0) => {
+    if (isNavigatingRef.current) {
+      Logger.warn('[DevotionalDetail] Navigation already in progress, skipping duplicate request', {
+        component: 'DevotionalDetailScreen',
+        reason,
+      });
+      return;
+    }
+
+    isNavigatingRef.current = true;
+    Logger.debug('[DevotionalDetail] navigateBackSafely scheduled', {
+      component: 'DevotionalDetailScreen',
+      reason,
+      extraDelay,
+    });
+
+    const forceNavigate = () => {
+      if (!isNavigatingRef.current) {return;} // Already navigated
+      const navStartTime = Date.now();
+      Logger.debug('[DevotionalDetail] navigateBackSafely executing navigation', {
+        component: 'DevotionalDetailScreen',
+        reason,
+      });
+      console.log('[DevotionalDetail] Starting navigation.goBack() at', navStartTime);
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        (navigation as any).navigate('Devotionals');
+      }
+      const navEndTime = Date.now();
+      console.log('[DevotionalDetail] navigation.goBack() completed', { duration: navEndTime - navStartTime });
+      isNavigatingRef.current = false;
+    };
+
+    const watchdogTimer = setTimeout(() => {
+      Logger.warn('[DevotionalDetail] Watchdog forcing navigation to prevent freeze', {
+        component: 'DevotionalDetailScreen',
+        reason,
+      });
+      forceNavigate();
+    }, 2500);
+
+    setTimeout(() => {
+      const raf = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+      raf(() => {
+        clearTimeout(watchdogTimer);
+        forceNavigate();
+      });
+    }, extraDelay);
+  }, [navigation]);
+
   // Handle continuing after completion modal
   const handleCompletionContinue = () => {
     if (!devotional) {
@@ -574,38 +629,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     // If we're on the last day, navigate back to previous screen
     if (currentDayIndex === devotional.days.length - 1) {
-      // Use InteractionManager to defer navigation until after modal animations
-      // Add extra delay to ensure all background sync operations complete
-
-      // Wait for all sync operations to complete before navigating
-      // This prevents race conditions with query invalidations
       const isOneDayDevotional = devotional.days.length === 1;
       const navigationDelay = isOneDayDevotional ? 800 : 500;
-
-      // Watchdog timer: Force navigation if it doesn't happen within 3 seconds
-      let navigationCompleted = false;
-      const watchdogTimer = setTimeout(() => {
-        if (!navigationCompleted && navigation.canGoBack()) {
-          Logger.warn('[DevotionalDetail] Watchdog triggered - forcing navigation to prevent freeze', {
-            component: 'DevotionalDetailScreen',
-            isOneDayDevotional,
-            delay: navigationDelay,
-          });
-          navigation.goBack();
-        }
-      }, 3000); // 3 second watchdog (increased from 2s)
-
-      // Wait for ALL InteractionManager callbacks to complete
-      InteractionManager.runAfterInteractions(() => {
-        // Additional delay to ensure sync operations finish
-        setTimeout(() => {
-          if (navigation.canGoBack()) {
-            navigationCompleted = true;
-            clearTimeout(watchdogTimer);
-            navigation.goBack();
-          }
-        }, navigationDelay);
-      });
+      navigateBackSafely('last-day-completion-continue', navigationDelay);
       return;
     }
 
@@ -625,8 +651,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   };
 
   // Handle closing the modal by pressing the X button or backdrop
-  const handleModalClose = async () => {
-
+  const handleModalClose = () => {
+    // ENTERPRISE-GRADE FIX: Immediately close modal and navigate without waiting for any async operations
+    // All background sync operations (DB writes, faith points, invalidations) will complete independently
     setShowCompletionModal(false);
     setCompletedDayIndex(null);
     setIsMarkingComplete(false);
@@ -634,38 +661,18 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // Reset timing guard to allow immediate re-marking if needed
     lastMarkCompleteRef.current = 0;
 
-    // ✅ FIX: Add delay for modal close animation
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    // Close this detail screen - goBack will return to Devotionals list
-    try {
-      if (navigation.canGoBack()) {
-        Logger.debug('[DevotionalDetail] Closing modal and navigating back', {
-          component: 'DevotionalDetailScreen',
-        });
-        navigation.goBack();
-      } else {
-        Logger.debug('[DevotionalDetail] No back stack, navigating to Devotionals', {
-          component: 'DevotionalDetailScreen',
-        });
-        (navigation as any).navigate('Devotionals');
-      }
-    } catch (error) {
-      Logger.error('[DevotionalDetail] Navigation failed on modal close', error as Error, {
-        component: 'DevotionalDetailScreen',
-      });
-      // If goBack fails, try navigating to Devotionals tab
-      try {
-        const parent = navigation.getParent();
-        if (parent) {
-          parent.navigate('Devotionals' as never);
-        }
-      } catch (fallbackError) {
-        Logger.error('[DevotionalDetail] Fallback navigation failed', fallbackError as Error, {
-          component: 'DevotionalDetailScreen',
-        });
-      }
-    }
+    // Navigate immediately - no delays, no awaits, no blocking operations
+    Logger.debug('[DevotionalDetail] Closing modal and requesting immediate navigation', {
+      component: 'DevotionalDetailScreen',
+    });
+    
+    // Use requestAnimationFrame to ensure navigation happens on the next frame after modal state update
+    const raf = typeof requestAnimationFrame === 'function'
+      ? requestAnimationFrame
+      : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+    raf(() => {
+      navigateBackSafely('modal-close', 0);
+    });
   };
 
   // handleModalContinue removed - was defined but never called

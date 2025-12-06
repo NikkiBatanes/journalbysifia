@@ -114,51 +114,60 @@ export const useCrossComponentSync = (userId: string) => {
         isFullCompletion,
       });
 
-      // PERFORMANCE: Non-blocking parallel operations
-      const [pointsResult] = await Promise.all([
-        faithPointsService.awardPoints(userId, activityType as any, {
-          devotionalId,
-          playbookId,
-          timestamp: new Date().toISOString(),
-          suppressNotification: !isFullCompletion, // Show animation only for full completion (3/3), suppress daily (1/3, 2/3)
-          completionContext,
-        }),
-        // Parallel: Invalidate queries without awaiting
-        (async () => {
-          // Update devotional queries
-          queryClient.invalidateQueries({
-            queryKey: ['devotionals', 'list', userId], // Fixed query key
-          });
+      // 1. Award points first (critical path)
+      const pointsResult = await faithPointsService.awardPoints(userId, activityType as any, {
+        devotionalId,
+        playbookId,
+        timestamp: new Date().toISOString(),
+        suppressNotification: !isFullCompletion,
+        completionContext,
+      });
 
-          // Invalidate dashboard-related queries in parallel
-          queryClient.invalidateQueries({
-            queryKey: ['dashboard', 'streaks', userId],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ['dashboard', 'insights', userId],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ['dashboard', 'affirmations', userId],
-          });
-
-          // If linked to a playbook, update playbook queries
-          if (playbookId) {
+      // 2. Defer all query invalidations with a longer delay to ensure navigation completes first
+      const deferInvalidations = () => {
+        // Use a 500ms delay to ensure navigation is fully complete before invalidating
+        setTimeout(() => {
+          try {
+            console.log('[CrossComponentSync] Starting deferred invalidations');
+            // Update devotional queries
             queryClient.invalidateQueries({
-              queryKey: queryKeys.playbooks.detail(userId, playbookId),
+              queryKey: ['devotionals', 'list', userId],
             });
 
-            // Update cross-component relationship
-            queryClient.setQueryData(
-              queryKeys.playbooks.withDevotionals(userId, playbookId),
-              (oldData: any) => ({
-                ...oldData,
-                lastDevotionalCompleted: devotionalId,
-                lastSynced: new Date().toISOString(),
-              })
-            );
+            // Invalidate dashboard-related queries in parallel
+            queryClient.invalidateQueries({
+              queryKey: ['dashboard', 'streaks', userId],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ['dashboard', 'insights', userId],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ['dashboard', 'affirmations', userId],
+            });
+
+            // If linked to a playbook, update playbook queries
+            if (playbookId) {
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.playbooks.detail(userId, playbookId),
+              });
+
+              // Update cross-component relationship
+              queryClient.setQueryData(
+                queryKeys.playbooks.withDevotionals(userId, playbookId),
+                (oldData: any) => ({
+                  ...oldData,
+                  lastDevotionalCompleted: devotionalId,
+                  lastSynced: new Date().toISOString(),
+                })
+              );
+            }
+            console.log('[CrossComponentSync] Deferred invalidations complete');
+          } catch (e) {
+            Logger.error('[CrossComponentSync] Deferred invalidations failed', e as Error, { component: 'useCrossComponentSync' });
           }
-        })(),
-      ]);
+        }, 500); // 500ms delay to ensure navigation completes first
+      };
+      deferInvalidations();
 
       Logger.debug('[CrossComponentSync] AFTER Promise.all parallel operations', {
         component: 'useCrossComponentSync',

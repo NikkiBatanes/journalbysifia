@@ -295,6 +295,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   // }, [progress, visible, progressAnim]);
 
   const handleClose = useCallback(() => {
+    console.log('[DevotionalCompletionModal] handleClose invoked');
     // Haptic on close action
     triggerLightHaptic();
     Animated.parallel([
@@ -311,6 +312,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         easing: Easing.in(Easing.cubic),
       }),
     ]).start(() => {
+      console.log('[DevotionalCompletionModal] handleClose animation complete - calling onClose');
       onClose();
       setRating(0);
       setShowLocalPoints(false);
@@ -319,12 +321,20 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   }, [onClose, slideAnim, backdropAnim]);
 
   const handleStarPress = useCallback((index: number) => {
+    console.log('[DevotionalCompletionModal] handleStarPress', { index });
     const selectedRating = index + 1;
     // Update the UI state immediately
     triggerLightHaptic();
     setRating(selectedRating);
     // Submit the rating in the background
-    onRatingSubmit(selectedRating).catch((e) => Logger.error('Async error', e as Error, { component: 'DevotionalCompletionModal' }));
+    onRatingSubmit(selectedRating)
+      .then(() => {
+        console.log('[DevotionalCompletionModal] Rating submitted successfully', { selectedRating });
+      })
+      .catch((e) => {
+        console.log('[DevotionalCompletionModal] Rating submission failed', e);
+        Logger.error('Async error', e as Error, { component: 'DevotionalCompletionModal' });
+      });
   }, [onRatingSubmit]);
 
   const renderStars = () => {

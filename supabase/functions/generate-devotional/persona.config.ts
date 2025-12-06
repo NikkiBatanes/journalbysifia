@@ -378,8 +378,8 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
     }
   }
 
-  // Remove hardcoded Psalm 119:105 fallback - force AI to provide proper scripture
-  const scriptureRegex = /SCRIPTURE:\s*"([^"]+)"\s*-\s*([A-Z0-9\s:]+)/i;
+  // Use the same pattern as the parser for validation
+  const scriptureRegex = /SCRIPTURE:[\s\n]*["'""']([\s\S]+?)["'""'][\s\n]*[-—][\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i;
   if (!scriptureRegex.test(enforcedResponse)) {
     throw new Error('AI failed to provide properly formatted scripture - no fallback allowed');
   }

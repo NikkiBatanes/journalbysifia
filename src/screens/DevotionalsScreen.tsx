@@ -66,8 +66,21 @@ const DevotionalsScreen = () => {
   // Ensure latest playbooks are shown when returning to this screen
   useFocusEffect(
     useCallback(() => {
-      // Force a refetch regardless of staleTime, so newly created playbooks are visible
-      refetchPlaybooks();
+      const focusTime = Date.now();
+      console.log('[DevotionalsScreen] Screen focused at', focusTime);
+      
+      // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
+      // This prevents blocking the UI thread during screen transitions
+      const raf = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+      raf(() => {
+        const rafTime = Date.now();
+        console.log('[DevotionalsScreen] RAF fired, refetching playbooks', { delay: rafTime - focusTime });
+        // Force a refetch regardless of staleTime, so newly created playbooks are visible
+        refetchPlaybooks();
+        console.log('[DevotionalsScreen] Playbooks refetch triggered');
+      });
     }, [refetchPlaybooks])
   );
 
@@ -636,12 +649,29 @@ const DevotionalsScreen = () => {
   // Fallback: whenever this screen gains focus, ensure it's at the top
   useFocusEffect(
     useCallback(() => {
-      try {
-        const hasData = Array.isArray(sections) && sections.length > 0 && Array.isArray(sections[0]?.data) && sections[0].data.length > 0;
-        if (hasData) {
-          sectionListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated: false, viewPosition: 0 });
+      const focusTime = Date.now();
+      console.log('[DevotionalsScreen] Scroll focus effect triggered at', focusTime);
+      
+      // ENTERPRISE-GRADE: Defer scroll operation to after navigation transition completes
+      const raf = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+      raf(() => {
+        const rafTime = Date.now();
+        console.log('[DevotionalsScreen] RAF fired for scroll', { delay: rafTime - focusTime });
+        try {
+          const hasData = Array.isArray(sections) && sections.length > 0 && Array.isArray(sections[0]?.data) && sections[0].data.length > 0;
+          if (hasData) {
+            console.log('[DevotionalsScreen] Scrolling to top');
+            sectionListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated: false, viewPosition: 0 });
+            console.log('[DevotionalsScreen] Scroll complete');
+          } else {
+            console.log('[DevotionalsScreen] No data to scroll');
+          }
+        } catch (e) {
+          console.log('[DevotionalsScreen] Scroll error', e);
         }
-      } catch {}
+      });
       return () => {};
     }, [sections])
   );

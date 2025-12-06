@@ -4,6 +4,7 @@
  * NO UI changes - integrates with existing components
  */
 
+import { InteractionManager } from 'react-native';
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { notificationService } from './notificationService';
@@ -488,12 +489,13 @@ export class FaithPointsService {
             });
           }
         } else {
-          // CRITICAL FIX: Use setImmediate for React Native non-blocking execution
-          // This ensures badge checking only runs when the UI is truly idle
+          // CRITICAL FIX: Defer badge check to next idle frame to prevent blocking navigation
           const scheduleBadgeCheck = () => {
-            // React Native doesn't have requestIdleCallback, use setImmediate instead
-            // setImmediate runs on the next tick of the event loop, making it truly non-blocking
-            setImmediate(async () => {
+            // Use requestAnimationFrame (or setTimeout fallback) to ensure badge check runs on the next idle frame
+            const raf = typeof requestAnimationFrame === 'function'
+              ? requestAnimationFrame
+              : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+            raf(async () => {
               await this.performBadgeCheck(userId, newTotalPoints, activity, timer);
             });
           };
@@ -1193,6 +1195,12 @@ export class FaithPointsService {
         });
         return;
       }
+
+      // PERFORMANCE FIX: Wait for navigation animations to complete before heavy DB work
+      // This prevents UI freezes when badge check fires during screen transitions
+      await new Promise<void>(resolve => {
+        InteractionManager.runAfterInteractions(() => resolve());
+      });
 
       // Now check for badges asynchronously (non-blocking)
       const deferredBadges = await this.checkForNewBadges(userId, totalPoints, activity);
