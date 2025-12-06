@@ -205,7 +205,11 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   }
 
   // Parse Action Steps with Smart Journaling (handle bold formatting)
-  const actionStepsMatch = content.match(/\*\*ACTION STEPS:\*\*\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let actionStepsMatch = content.match(/\*\*ACTION STEPS:\*\*\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  if (!actionStepsMatch) {
+    // Fallback to non-bold formatting
+    actionStepsMatch = content.match(/ACTION STEPS:\s*([\s\S]*?)(?=AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
   if (actionStepsMatch) {
     const stepBlocks = actionStepsMatch[1]
       .split(/\n(?=\d+\.\s)/)
