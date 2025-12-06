@@ -719,7 +719,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
           'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
