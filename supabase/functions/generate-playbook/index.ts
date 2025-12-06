@@ -1005,8 +1005,8 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
       throw new Error('AI content policy prevented generation - please rephrase your request');
     }
 
-    // Parse the playbook (use effectiveUserInput which may be paraphrased)
-    let playbook = parseOpenAIResponse(aiData, userName, effectiveUserInput, preferredBibleVersion);
+    // Parse the playbook (store original userInput for display, not paraphrased)
+    let playbook = parseOpenAIResponse(aiData, userName, userInput, preferredBibleVersion);
     
     console.log('[Generate-Playbook] Parsed playbook structure:', {
       hasTitle: !!playbook.title,
@@ -1041,7 +1041,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         playbook = parseOpenAIResponse(
           { choices: [{ message: { content: enforcedContent } }] },
           userName,
-          effectiveUserInput,
+          userInput,
           preferredBibleVersion
         );
       }
