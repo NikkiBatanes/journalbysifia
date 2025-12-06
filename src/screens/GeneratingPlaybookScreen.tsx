@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Animated, Image, Alert, StatusBar, ScrollView, NativeModules } from 'react-native';
+import { View, StyleSheet, Animated, Alert, StatusBar, ScrollView, NativeModules, Easing } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
@@ -68,6 +68,10 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentTitle = generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title || '';
   const baseTitle = currentTitle.replace(/(…|\.{1,3})\s*$/, '').trimEnd();
 
+  // Logo animation
+  const logoScale = useRef(new Animated.Value(0.5)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+
   // Bottom sun concentric rings animation
   const aura1Scale = useRef(new Animated.Value(0.9)).current;
   const aura2Scale = useRef(new Animated.Value(0.9)).current;
@@ -81,7 +85,25 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const [dotCount, setDotCount] = useState(0);
   const [dotsWidth, setDotsWidth] = useState<number | null>(null);
 
-  // No fade-in; show UI instantly
+  // Animate logo immediately on mount
+  useEffect(() => {
+    const logoAnimation = Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    logoAnimation.start();
+  }, [logoOpacity, logoScale]);
 
   // Generate playbook when component mounts
   useEffect(() => {
@@ -332,9 +354,15 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.centerBlockContainer}>
           <View style={styles.centerBlock}>
             <View style={styles.logoContainer}>
-              <Image
+              <Animated.Image
                 source={require('../../assets/icons/siFiaAppIcon.png')}
-                style={styles.logo}
+                style={[
+                  styles.logo,
+                  {
+                    opacity: logoOpacity,
+                    transform: [{ scale: logoScale }],
+                  },
+                ]}
                 resizeMode="contain"
               />
             </View>
