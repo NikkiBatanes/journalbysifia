@@ -764,6 +764,23 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       throw new Error('AI returned empty response - no playbook content generated');
     }
 
+    // Pre-check for topics that commonly trigger AI refusals
+    const sensitiveTopics = [
+      /gender.*transition|transition.*gender|gender.*identity/i,
+      /sex.*change|change.*sex/i,
+      /hormone.*therapy|hrt/i,
+      /surgery.*gender|gender.*surgery/i,
+      /self.*harm|harm.*self/i,
+      /suicide|kill.*myself/i,
+      /eating.*disorder|anorexia|bulimia/i,
+      /abuse|trauma/i
+    ];
+    
+    if (sensitiveTopics.some(pattern => pattern.test(userInput))) {
+      console.warn('[Generate-Playbook] Potentially sensitive topic detected:', userInput);
+      // Continue with request but be prepared for refusal
+    }
+
     // Check for AI refusal responses (more specific patterns)
     const refusalPatterns = [
       /i'm sorry, but i can't assist with that/i,
@@ -779,6 +796,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
     
     if (refusalPatterns.some(pattern => pattern.test(rawContent))) {
       console.error('[Generate-Playbook] AI refused to generate content:', rawContent);
+      console.error('[Generate-Playbook] User input that triggered refusal:', userInput);
       throw new Error('AI content policy prevented generation - please rephrase your request');
     }
 
