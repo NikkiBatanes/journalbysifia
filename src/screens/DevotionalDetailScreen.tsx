@@ -872,6 +872,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                           navigation.navigate('OnboardingSalesOffer', {
                             source: 'pdf_export_restriction',
                             feature: 'export_pdf',
+                            skipNotificationPreference: true,
                           });
                         },
                       },

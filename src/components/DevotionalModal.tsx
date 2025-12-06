@@ -741,6 +741,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                               currentTier: devotionalGating.tier,
                               requestedDuration: option.days,
                               featureType: 'devotionals',
+                              skipNotificationPreference: true,
                             });
                           }}
                           size={20}
@@ -804,6 +805,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 upgradeMode: true,
                 currentTier: devotionalGating.tier,
                 featureType: 'devotionals',
+                skipNotificationPreference: true,
               });
             });
           }}

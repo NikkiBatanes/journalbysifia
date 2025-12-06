@@ -1341,6 +1341,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 source: 'pdf_export_restriction',
                 feature: 'export_pdf',
                 dismissBothModalsOnClose: true, // Ensure both modals dismiss after upgrade
+                skipNotificationPreference: true,
               });
             },
           },

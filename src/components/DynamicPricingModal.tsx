@@ -105,6 +105,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
       isAnnual,
       isDiscounted: true,
       discountPercentage,
+      skipNotificationPreference: true,
     });
   };
 

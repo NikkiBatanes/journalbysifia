@@ -31,6 +31,7 @@ export type RootStackParamList = {
     source?: string;
     feature?: string;
     tier?: string;
+    skipNotificationPreference?: boolean;
   } | undefined;
   // DISABLED: Trial Offer screen removed to comply with Apple guidelines
   // Trial functionality now handled via .freetrial products in Sales Offer

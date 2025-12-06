@@ -83,11 +83,16 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
     const used = subscription.devotionals_used || 0;
     const limit = subscription.devotionals_limit === -1 ? 'Unlimited' : subscription.devotionals_limit;
 
+    // PHASE 5: Grace period check - block token generation if billing issue
+    const isInGracePeriod = (subscription as any).billing_issue === true;
+    const gracePeriodEnd = (subscription as any).grace_period_end_date;
+    const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
+
     let remaining: number | 'Unlimited';
     if (limit === 'Unlimited') {
-      remaining = 'Unlimited';
+      remaining = isGracePeriodActive ? 0 : 'Unlimited'; // Block tokens during grace period
     } else {
-      remaining = Math.max(0, limit - used);
+      remaining = isGracePeriodActive ? 0 : Math.max(0, limit - used); // Block tokens during grace period
     }
 
     const displayMessage = getUsageDisplayMessage(subscription.tier,

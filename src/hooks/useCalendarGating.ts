@@ -129,6 +129,7 @@ export const useCalendarGating = (): CalendarGatingState => {
       source: 'calendar_sync',
       feature: 'Calendar Sync',
       context: 'timeblock',
+      skipNotificationPreference: true,
     });
   };
 
