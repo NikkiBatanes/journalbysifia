@@ -345,12 +345,11 @@ export class NewSubscriptionService {
       updateData.platform_transaction_id = options.platform_transaction_id;
     }
 
-    // Reset usage counters when upgrading from seeker or converting from trial
-    // Onboarding and trial usage should not reduce the new paid plan's limits
-    if (from_tier === 'seeker' || isTrialConversion) {
-      updateData.playbooks_used = 0;
-      updateData.devotionals_used = 0;
-    }
+    // ALWAYS reset usage counters when upgrading to a new tier
+    // Users should start fresh with their new tier's limits
+    // This applies to: seeker→paid, trial→paid, spark→growth, growth→transformation, etc.
+    updateData.playbooks_used = 0;
+    updateData.devotionals_used = 0;
 
     // POST-LAUNCH: Handle family upgrade
     /* if (is_family_upgrade && to_tier === 'family') {
