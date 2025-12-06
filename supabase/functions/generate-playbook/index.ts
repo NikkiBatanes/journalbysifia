@@ -743,8 +743,25 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       console.log('[Generate-Playbook] ⚠️ WARNING: No BIBLE VERSE section found in AI response');
     }
 
+    // Check if AI provided any content at all
+    if (!rawContent || rawContent.trim().length === 0) {
+      console.error('[Generate-Playbook] AI returned empty response');
+      throw new Error('AI returned empty response - no playbook content generated');
+    }
+
     // Parse the playbook
     let playbook = parseOpenAIResponse(aiData, userName, userInput, preferredBibleVersion);
+
+    // Validate that the playbook has the minimum required structure
+    if (!playbook.title || playbook.title.trim().length < 5) {
+      console.error('[Generate-Playbook] Invalid playbook title:', playbook.title);
+      throw new Error('AI failed to generate a valid playbook title');
+    }
+
+    if (!Array.isArray(playbook.actionSteps) || playbook.actionSteps.length === 0) {
+      console.error('[Generate-Playbook] No action steps generated');
+      throw new Error('AI failed to generate action steps');
+    }
 
     // Enforce persona rules on the response
     if (aiData.choices?.[0]?.message?.content) {
