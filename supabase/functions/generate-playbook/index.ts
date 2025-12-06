@@ -713,46 +713,87 @@ When suggesting professional help or hotlines in action steps, provide general g
 
 IMPORTANT: Always use generic language like "your local hotline" or "support services in your area" rather than specific numbers or regional resources.`;
 
-    // Call OpenAI API with circuit breaker + retry logic
-    console.log('[Generate-Playbook] Calling OpenAI API with circuit breaker + retry logic...');
-    const openAIRes = await CircuitBreaker.execute(
-      CIRCUIT_KEYS.OPENAI_PLAYBOOK,
-      async () => await fetchWithRetry(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+    // Helper function for hybrid OpenAI API call
+    async function callOpenAIWithFallback(model: string): Promise<Response> {
+      console.log(`[Generate-Playbook] Calling OpenAI API with model: ${model}`);
+      return await CircuitBreaker.execute(
+        CIRCUIT_KEYS.OPENAI_PLAYBOOK,
+        async () => await fetchWithRetry(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'system',
+                content: strategicAdvisorPersona.systemPrompt,
+              },
+              {
+                role: 'user',
+                content: contextualPrompt,
+              },
+            ],
+            temperature: 0.85, // Increased from 0.7 for more creative variation
+            max_tokens: 2500,
+            frequency_penalty: 0.1,
+            presence_penalty: 0.1,
+          }),
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: strategicAdvisorPersona.systemPrompt,
-            },
-            {
-              role: 'user',
-              content: contextualPrompt,
-            },
-          ],
-          temperature: 0.85, // Increased from 0.7 for more creative variation
-          max_tokens: 2500,
-          frequency_penalty: 0.1,
-          presence_penalty: 0.1,
-        }),
-      },
-      OPENAI_RETRY_CONFIG
-      )
-    );
+        OPENAI_RETRY_CONFIG
+        )
+      );
+    }
+
+    // Try gpt-4o-mini first, fallback to gpt-4o if refused
+    let openAIRes: Response;
+    let aiData: any;
+    let rawContent: string;
+    let usedFallback = false;
+
+    try {
+      // First try with gpt-4o-mini (cheaper)
+      openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+      aiData = await openAIRes.json();
+      rawContent = aiData.choices?.[0]?.message?.content || '';
+      
+      // Check if AI refused
+      const refusalPatterns = [
+        /i'm sorry, but i can't assist/i,
+        /i'm sorry, but i cannot assist/i,
+        /i'm unable to assist/i,
+        /i cannot assist with this request/i,
+        /i'm unable to help with this/i,
+        /i cannot fulfill this request/i
+      ];
+      
+      if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
+        console.log('[Generate-Playbook] gpt-4o-mini refused, trying gpt-4o...');
+        usedFallback = true;
+        openAIRes = await callOpenAIWithFallback('gpt-4o');
+        aiData = await openAIRes.json();
+        rawContent = aiData.choices?.[0]?.message?.content || '';
+      }
+    } catch (error) {
+      console.error('[Generate-Playbook] Error with primary model:', error);
+      // Fallback to gpt-4o on any error
+      console.log('[Generate-Playbook] Error occurred, trying gpt-4o as fallback...');
+      usedFallback = true;
+      openAIRes = await callOpenAIWithFallback('gpt-4o');
+      aiData = await openAIRes.json();
+      rawContent = aiData.choices?.[0]?.message?.content || '';
+    }
     
     console.log('[Generate-Playbook] OpenAI API call successful');
-
-    const aiData = await openAIRes.json();
+    if (usedFallback) {
+      console.log('[Generate-Playbook] Used gpt-4o fallback due to refusal or error');
+    }
 
     // Log raw AI response for debugging
-    const rawContent = aiData.choices?.[0]?.message?.content || '';
     console.log('[Generate-Playbook] ========== RAW AI OUTPUT START ==========');
     console.log(rawContent);
     console.log('[Generate-Playbook] ========== RAW AI OUTPUT END ==========');
