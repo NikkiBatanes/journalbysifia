@@ -1,12 +1,7 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
-import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
-import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
-import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
-import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
+import { bibleVerseService } from '../_shared/bibleVerseService.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -68,7 +63,7 @@ interface OpenAIData {
 }
 
 async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): Promise<void> {
-  console.log(`[Playbook Scripture] ============ ENFORCEMENT START ============`);
+  console.log('[Playbook Scripture] ============ ENFORCEMENT START ============');
   console.log(`[Playbook Scripture] Version: ${version}`);
   console.log(`[Playbook Scripture] Current verse text (first 100 chars): ${playbook.bibleVerse?.text?.substring(0, 100)}`);
   console.log(`[Playbook Scripture] Current reference: ${playbook.bibleVerse?.reference}`);
@@ -85,31 +80,31 @@ async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): P
   try {
     const originalReference = playbook.bibleVerse.reference;
     const originalText = playbook.bibleVerse.text;
-    
-    console.log(`[Playbook Scripture] Calling bibleVerseService.fetchVerse...`);
+
+    console.log('[Playbook Scripture] Calling bibleVerseService.fetchVerse...');
     const exactVerse = await bibleVerseService.fetchVerse(originalReference, version);
-    
+
     console.log(`[Playbook Scripture] ✅ Fetch successful - Source: ${exactVerse.source}`);
     console.log(`[Playbook Scripture] Scraped text (first 100 chars): ${exactVerse.text.substring(0, 100)}`);
     console.log(`[Playbook Scripture] Scraped reference: ${exactVerse.reference}`);
-    
+
     playbook.bibleVerse.text = exactVerse.text;
     playbook.bibleVerse.reference = exactVerse.reference;
     playbook.bibleVerse.version = version;
 
-    console.log(`[Playbook Scripture] Verse text replaced:`, {
+    console.log('[Playbook Scripture] Verse text replaced:', {
       wasAIText: originalText !== exactVerse.text,
       aiTextLength: originalText.length,
       scrapedTextLength: exactVerse.text.length,
       referenceChanged: originalReference !== exactVerse.reference,
       source: exactVerse.source,
     });
-    console.log(`[Playbook Scripture] FINAL playbook.bibleVerse:`, {
+    console.log('[Playbook Scripture] FINAL playbook.bibleVerse:', {
       text: playbook.bibleVerse.text.substring(0, 100),
       reference: playbook.bibleVerse.reference,
       version: playbook.bibleVerse.version,
     });
-    console.log(`[Playbook Scripture] ============ ENFORCEMENT END ============`);
+    console.log('[Playbook Scripture] ============ ENFORCEMENT END ============');
   } catch (error) {
     console.error('[Playbook Scripture] ❌ ENFORCEMENT FAILED:', error);
     console.error('[Playbook Scripture] Error details:', {
@@ -117,7 +112,7 @@ async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): P
       stack: error instanceof Error ? error.stack : undefined,
     });
     console.log('[Playbook Scripture] ⚠️  Keeping AI-generated text as fallback');
-    console.log(`[Playbook Scripture] ============ ENFORCEMENT END (FAILED) ============`);
+    console.log('[Playbook Scripture] ============ ENFORCEMENT END (FAILED) ============');
   }
 }
 
@@ -310,7 +305,7 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
     // Calculate total tasks (count all subtasks)
     playbook.totalTasks = playbook.actionSteps.reduce((total, step) => total + step.subTasks.length, 0);
-    
+
     // Validate that each action step has at least one example
     playbook.actionSteps.forEach((step, index) => {
       if (!step.examples || step.examples.length === 0) {
@@ -335,7 +330,7 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     // Split by numbered lines or lines that start with common affirmation patterns
     // Handle both gpt-4o (blank lines) and gpt-4o-mini formats
     let affirmations: string[];
-    
+
     // Check if affirmations are numbered
     if (/^\d+\./.test(affirmationsText)) {
       // Split by numbers
@@ -352,18 +347,18 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       .map((text, _idx) => {
         // Remove any leading numbers, dots, dashes, or other punctuation
         const cleanText = text.replace(/^[\s\d\-*•.]+/, '').trim();
-        
+
         // Check if affirmation contains a Bible verse reference
         const verseRefMatches = cleanText.match(/([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/gi);
-        
+
         if (verseRefMatches) {
           // Get unique references to avoid duplicates
           const uniqueRefs = Array.from(new Set(verseRefMatches.map(ref => ref.trim())));
           const reference = uniqueRefs[0]; // Use the first unique reference
-          
+
           // Check if the reference is already in the text (with or without parentheses)
           const hasReferenceInText = cleanText.includes(reference) || cleanText.includes(`(${reference})`);
-          
+
           if (hasReferenceInText) {
             // Reference already exists, ensure it's properly formatted and return
             // If reference exists without parentheses, add them
@@ -385,10 +380,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
           } else {
             // Remove any existing parenthetical references at the end
             let affirmationText = cleanText.replace(/\s*\([^)]*\d+:\d+[^)]*\)\s*$/g, '').trim();
-            
+
             // Clean up extra whitespace
             affirmationText = affirmationText.replace(/\s{2,}/g, ' ').trim();
-            
+
             // If there's still text before the references, keep it with the reference
             if (affirmationText && affirmationText.length > 0) {
               return {
@@ -406,14 +401,14 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
             }
           }
         }
-        
+
         // Filter out lines that are just Bible verse references without any affirmation text
         const isBibleReferenceOnly = /^[A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:\s*[A-Z]+)?$/i.test(cleanText);
-        
+
         if (isBibleReferenceOnly) {
           return null; // Filter out standalone Bible verse references
         }
-        
+
         return {
           id: generateUUID(),
           text: cleanText,
@@ -490,12 +485,12 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       const match = verseContent.match(pattern);
       if (match) {
         console.log(`[BIBLE VERSE] Matched pattern: ${name}`);
-        
+
         // For patterns where reference comes first (groups 1=ref, 2=text)
         if (name.includes('reference:')) {
           verseRef = match[1]?.trim() || '';
           verseText = match[2]?.trim() || '';
-        } 
+        }
         // For patterns with text, reference, and version (groups 1=text, 2=ref, 3=version)
         else if (name.includes('(version)')) {
           verseText = match[1]?.trim() || '';
@@ -517,7 +512,7 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
           verseRef = match[1]?.trim() || '';
           verseText = verseContent.replace(verseRef, '').trim();
         }
-        
+
         // If we found both text and reference, break
         if (verseText && verseRef) {
           break;
@@ -571,18 +566,18 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     if (cleanVerseRef) {
       cleanVerseRef = cleanVerseRef.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
     }
-    
+
     console.log('[BIBLE VERSE PARSER] Extracted values:', {
       verseText: verseText.substring(0, 100),
       verseRef,
       cleanVerseRef,
       hasReference: !!cleanVerseRef,
     });
-    
+
     // FALLBACK: If no reference found in BIBLE VERSE section, scan the entire AI output
     if (!cleanVerseRef) {
       console.warn('[BIBLE VERSE PARSER] No reference in BIBLE VERSE section, scanning full content...');
-      
+
       // Look for scripture references anywhere in the full content
       const fullRefMatch = content.match(/([A-Za-z0-9]+\s+\d+:\d+(?:-\d+)?)/);
       if (fullRefMatch) {
@@ -593,9 +588,9 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
         console.error('[BIBLE VERSE PARSER] AI must include reference like: "verse text" (Book 1:1)');
       }
     }
-    
+
     playbook.bibleVerse.reference = cleanVerseRef;
-    
+
     // Store the Bible version that was used for generation
     playbook.bibleVerse.version = bibleVersion || 'NASB';
   } else {
@@ -658,7 +653,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion } = requestBody;
 
   // Log received Bible version for debugging
   console.log('[Generate-Playbook] Received Bible version from request:', bibleVersion || 'NOT PROVIDED - will default to NASB');
@@ -670,7 +665,7 @@ serve(async (req: Request) => {
   // Check rate limit
   console.log('[Generate-Playbook] Checking rate limit for user:', rateLimitUserId);
   const rateLimitResult = SimpleRateLimiter.checkLimit(rateLimitUserId, RATE_LIMIT_CONFIGS.playbook);
-  
+
   if (!rateLimitResult.allowed) {
     console.log('[Generate-Playbook] Rate limit exceeded for user:', rateLimitUserId);
     return createRateLimitError(
@@ -678,17 +673,16 @@ serve(async (req: Request) => {
       `You've created ${RATE_LIMIT_CONFIGS.playbook.maxRequests} playbooks in the last hour. Please wait a moment before creating another.`
     );
   }
-  
+
   console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
   // Simplified age check: only adjust language for teens (13-16)
   console.log('[Generate-Playbook] ========== AGE DETECTION START ==========');
   console.log('[Generate-Playbook] Received dateOfBirth:', dateOfBirth);
   console.log('[Generate-Playbook] Received ageGroup:', ageGroup);
-  
+
   let isTeenUser = false;
-  let calculatedAge: number | null = null;
-  
+
   if (dateOfBirth) {
     try {
       const birthDate = new Date(dateOfBirth);
@@ -698,10 +692,9 @@ serve(async (req: Request) => {
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         userAge--;
       }
-      
-      calculatedAge = userAge;
+
       console.log('[Generate-Playbook] Calculated age from dateOfBirth:', userAge);
-      
+
       // Flag ALL youth (age <= 16) for simplified language
       isTeenUser = userAge >= 0 && userAge <= 16;
       console.log('[Generate-Playbook] Is youth (<=16):', isTeenUser);
@@ -711,7 +704,7 @@ serve(async (req: Request) => {
   } else {
     console.log('[Generate-Playbook] No dateOfBirth provided, checking ageGroup...');
   }
-  
+
   // Fallback to age group from onboarding (accept broader labels)
   if (!isTeenUser && typeof ageGroup === 'string') {
     const simplifiedGroups = ['teen', 'teens', 'child', 'children', 'kid', 'youth', 'preteen'];
@@ -720,7 +713,7 @@ serve(async (req: Request) => {
       isTeenUser = true;
     }
   }
-  
+
   console.log('[Generate-Playbook] FINAL: Teen user (simplified language):', isTeenUser);
   console.log('[Generate-Playbook] ========== AGE DETECTION END ==========');
 
@@ -739,10 +732,10 @@ serve(async (req: Request) => {
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL');
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-        
+
         if (supabaseUrl && supabaseKey) {
           const supabase = createClient(supabaseUrl, supabaseKey);
-          
+
           // Fetch last 10 playbook titles for this user
           const { data: recentPlaybooks } = await supabase
             .from('playbooks')
@@ -750,7 +743,7 @@ serve(async (req: Request) => {
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(5);
-          
+
           if (recentPlaybooks && recentPlaybooks.length > 0) {
             recentTitles = recentPlaybooks.map((p: { title: string }) => p.title).filter(Boolean);
             console.log(`Found ${recentTitles.length} recent playbook titles for context`);
@@ -763,39 +756,39 @@ serve(async (req: Request) => {
     }
 
     // Paraphrasing function (only used if AI refuses)
-    const paraphraseInput = (input: string): string => {
+    function paraphraseInput(input: string): string {
       let paraphrased = input;
-      
+
       // Soften direct action statements to contemplative ones
       paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
       paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
       paraphrased = paraphrased.replace(/\bnow\b/gi, '');
       paraphrased = paraphrased.replace(/\bimmediately\b/gi, '');
       paraphrased = paraphrased.replace(/\btoday\b/gi, '');
-      
+
       // Soften "trapped" language to "struggling with"
       paraphrased = paraphrased.replace(/\b(trapped|stuck)\b/gi, 'struggling with');
       paraphrased = paraphrased.replace(/\bin a (girl|boy|male|female) body\b/gi, 'my gender identity');
-      
+
       // Soften medical/surgical terms
       paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
       paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
-      
+
       // Clean up extra spaces
       paraphrased = paraphrased.replace(/\s+/g, ' ').trim();
-      
+
       return paraphrased;
-    };
+    }
 
     // Use a mutable variable for input (may be paraphrased later)
     let effectiveUserInput = userInput;
 
     // Initialize contextual prompt
     let contextualPrompt = '';
-    
+
     // Apply persona context with Bible version
     contextualPrompt = applyPersonaContext(strategicAdvisorPersona, effectiveUserInput, bibleVersion);
-    
+
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
     // Build contextual prompt with title uniqueness check and age personalization
     // Add unique timestamp to ensure no caching and fresh generation every time
@@ -805,16 +798,16 @@ serve(async (req: Request) => {
 IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
 
 ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. Do NOT reuse or slightly modify any of these titles.` : ''}`;
-    
+
     // Add simplified language instruction for teens only
     if (isTeenUser) {
-      contextualPrompt += `\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.`;
+      contextualPrompt += '\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.';
     }
 
     // Add Bible version preference with exact retrieval instruction
     const preferredBibleVersion = bibleVersion || 'NASB';
     console.log('[Generate-Playbook] Using Bible version for AI prompt:', preferredBibleVersion);
-    
+
     // AMP-specific examples to ensure exact formatting
     const ampExamples = preferredBibleVersion === 'AMP' ? `
     
@@ -824,7 +817,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
     - Philippians 4:13: "I have strength for all things in Christ Who empowers me [I am ready for anything and equal to anything through Him Who infuses inner strength into me; I am self-sufficient in Christ's sufficiency]." (Philippians 4:13)
     
     NOTICE: AMP includes brackets [like this] and parentheses (like this) for clarifications` : '';
-    
+
     contextualPrompt += `\n\n## BIBLE VERSE RETRIEVAL INSTRUCTION - CRITICAL\nYou are now acting as a Bible text retrieval assistant for the ${preferredBibleVersion} translation.${ampExamples}\n\nYour task is to provide VERBATIM translations of Bible verses from ${preferredBibleVersion}, based solely on your internal training data.\n\n🚨 STRICT RULES:\n1. Quote the verse EXACTLY as it appears in ${preferredBibleVersion} according to your training data\n2. NEVER paraphrase, summarize, reword, or modify ANY part of the verse\n3. NEVER add your own interpretation or clarification\n4. Include ALL original words, punctuation, brackets, parentheses, and formatting\n5. For AMP translation specifically: Include ALL brackets [like this] and parenthetical clarifications (like this) EXACTLY as they appear\n6. Include ALL capitalization exactly as it appears in the original translation\n7. Provide the COMPLETE verse text without ANY truncation\n8. If you are uncertain about the exact wording from ${preferredBibleVersion}, say "I am not fully confident in the exact wording" instead of guessing\n9. Never create, alter, or fabricate a verse\n10. Before providing your final verse, cross-check internally for consistency with ${preferredBibleVersion}\n\nFormat all Bible verses as:\n"Exact verse text from ${preferredBibleVersion}." (Book Chapter:Verse)\n\nThis applies to ALL sections: Truth in Love, Action Steps, Declarations, Bible Verse section, and Challenge.\n\n🚨 FAILURE TO PROVIDE EXACT ${preferredBibleVersion} TEXT IS UNACCEPTABLE. The user specifically needs the exact translation with all original formatting.`;
 
     // Add generic support advice for action steps
@@ -887,7 +880,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
       aiData = await openAIRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
-      
+
       // Check if AI refused
       const refusalPatterns = [
         /i'm sorry, but i can't assist/i,
@@ -895,17 +888,17 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         /i'm unable to assist/i,
         /i cannot assist with this request/i,
         /i'm unable to help with this/i,
-        /i cannot fulfill this request/i
+        /i cannot fulfill this request/i,
       ];
-      
+
       if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
         console.log('[Generate-Playbook] AI refused, paraphrasing input and retrying...');
-        
+
         // Paraphrase the input
         effectiveUserInput = paraphraseInput(userInput);
         console.log('[Generate-Playbook] Original:', userInput.substring(0, 100));
         console.log('[Generate-Playbook] Paraphrased:', effectiveUserInput.substring(0, 100));
-        
+
         // Rebuild prompt with paraphrased input
         contextualPrompt = applyPersonaContext(strategicAdvisorPersona, effectiveUserInput, bibleVersion);
         contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${effectiveUserInput}\nGeneration ID: ${generationTimestamp}
@@ -913,13 +906,13 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
 IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
 
 ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. DO NOT reuse or slightly modify any of these titles.` : ''}`;
-        
+
         if (isTeenUser) {
-          contextualPrompt += `\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.`;
+          contextualPrompt += '\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.';
         }
-        
+
         contextualPrompt += `\n\n## BIBLE VERSION\nUse ${preferredBibleVersion} for all scripture references. When citing verses, retrieve the EXACT text from ${preferredBibleVersion}.`;
-        
+
         // Retry with paraphrased input
         usedParaphrasing = true;
         openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
@@ -930,7 +923,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
       console.error('[Generate-Playbook] Error with gpt-4o-mini:', error);
       throw error; // Propagate error instead of falling back
     }
-    
+
     console.log('[Generate-Playbook] OpenAI API call successful');
     if (usedParaphrasing) {
       console.log('[Generate-Playbook] Used paraphrasing to bypass refusal');
@@ -940,7 +933,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
     console.log('[Generate-Playbook] ========== RAW AI OUTPUT START ==========');
     console.log(rawContent);
     console.log('[Generate-Playbook] ========== RAW AI OUTPUT END ==========');
-    
+
     // Extract and log just the Bible verse section
     const bibleVerseMatch = rawContent.match(/BIBLE VERSE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
     if (bibleVerseMatch) {
@@ -966,9 +959,9 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
       /self.*harm|harm.*self/i,
       /suicide|kill.*myself/i,
       /eating.*disorder|anorexia|bulimia/i,
-      /abuse|trauma/i
+      /abuse|trauma/i,
     ];
-    
+
     if (sensitiveTopics.some(pattern => pattern.test(userInput))) {
       console.warn('[Generate-Playbook] Potentially sensitive topic detected:', userInput);
       // Continue with request but be prepared for refusal
@@ -984,9 +977,9 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
       /i cannot fulfill this request/i,
       /i'm sorry, but i can't assist/i,
       /i'm sorry, but i cannot assist/i,
-      /i'm sorry, but i'm unable to help/i
+      /i'm sorry, but i'm unable to help/i,
     ];
-    
+
     if (refusalPatterns.some(pattern => pattern.test(rawContent))) {
       console.error('[Generate-Playbook] AI refused to generate content:', rawContent);
       console.error('[Generate-Playbook] User input that triggered refusal:', userInput);
@@ -995,7 +988,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
 
     // Parse the playbook (use effectiveUserInput which may be paraphrased)
     let playbook = parseOpenAIResponse(aiData, userName, effectiveUserInput, preferredBibleVersion);
-    
+
     console.log('[Generate-Playbook] Parsed playbook structure:', {
       hasTitle: !!playbook.title,
       titleLength: playbook.title?.length || 0,
@@ -1003,7 +996,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
       actionStepsCount: playbook.actionSteps?.length || 0,
       hasTruthInLove: !!playbook.truthInLove,
       hasAffirmations: Array.isArray(playbook.affirmations),
-      affirmationsCount: playbook.affirmations?.length || 0
+      affirmationsCount: playbook.affirmations?.length || 0,
     });
 
     // Validate that the playbook has the minimum required structure
