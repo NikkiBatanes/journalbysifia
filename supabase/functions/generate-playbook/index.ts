@@ -140,12 +140,18 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       mainTitle = titleMatchBold[1].trim();
       subtitle = titleMatchBold[2].trim();
     } else {
-      // Fallback to ### TITLE: format (new gpt-4o-mini format)
-      const titleMatchHash = content.match(/### TITLE:\s*\n(.+?)\n(.+?)\n/i);
+      // Fallback to ## or ### header format (new gpt-4o-mini format)
+      const titleMatchHash = content.match(/##+ (.+?)\n\n(.+?)\n/i);
       if (titleMatchHash) {
         mainTitle = titleMatchHash[1].trim();
         subtitle = titleMatchHash[2].trim();
       } else {
+        // Try ### TITLE: format
+        const titleMatchHashTitle = content.match(/### TITLE:\s*\n(.+?)\n(.+?)\n/i);
+        if (titleMatchHashTitle) {
+          mainTitle = titleMatchHashTitle[1].trim();
+          subtitle = titleMatchHashTitle[2].trim();
+        } else {
         // Fallback to non-bold without angle brackets (gpt-4o format)
         const titleMatchGPT4o = content.match(/PLAYBOOK TITLE:\s*\n(.+?)\n(.+?)\n/i);
         if (titleMatchGPT4o) {
@@ -159,6 +165,7 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
             mainTitle = titleLines[0] || '';
             subtitle = titleLines[1] || '';
           }
+        }
         }
       }
     }
