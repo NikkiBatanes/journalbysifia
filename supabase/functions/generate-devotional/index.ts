@@ -748,6 +748,16 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             pattern: /["'“”]([\s\S]+?)["'“”]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 6 ("verse" - BOOK 1:19-20)',
           },
+          // SCRIPTURE: followed by newline, then "verse" - BOOK (the format AI is using)
+          {
+            pattern: /SCRIPTURE:[\s\n]*["'"""]([\s\S]+?)["'"""]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            name: 'format 7 (SCRIPTURE:\n"verse" - BOOK 1:19-20)',
+          },
+          // Lenient fallback: any quoted text followed by dash and bible reference
+          {
+            pattern: /["'"""]([^"""]+)["'"""]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?)/i,
+            name: 'format 8 (lenient fallback)',
+          },
         ];
 
         // First, try to find a scripture section
