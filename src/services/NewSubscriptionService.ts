@@ -742,6 +742,13 @@ export class NewSubscriptionService {
       show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
       // Only override display name if it's missing or doesn't match tier
       subscription_display_name: data.subscription_display_name && data.subscription_display_name.includes(displayName) ? data.subscription_display_name : displayName,
+      // Add limits property for dashboard compatibility
+      limits: {
+        playbooks_limit: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
+        devotionals_limit: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
+        smart_journaling_enabled: data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled,
+        show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
+      },
       // UI fields - use actual limits (not stored values that might be outdated)
       playbooks_ui: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
       devotionals_ui: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
