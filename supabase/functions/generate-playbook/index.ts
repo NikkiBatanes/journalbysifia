@@ -749,6 +749,15 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       throw new Error('AI returned empty response - no playbook content generated');
     }
 
+    // Check for AI refusal responses
+    if (rawContent.toLowerCase().includes("i'm sorry") || 
+        rawContent.toLowerCase().includes("i cannot assist") ||
+        rawContent.toLowerCase().includes("i can't help") ||
+        rawContent.toLowerCase().includes("unable to assist")) {
+      console.error('[Generate-Playbook] AI refused to generate content:', rawContent);
+      throw new Error('AI content policy prevented generation - please rephrase your request');
+    }
+
     // Parse the playbook
     let playbook = parseOpenAIResponse(aiData, userName, userInput, preferredBibleVersion);
 
