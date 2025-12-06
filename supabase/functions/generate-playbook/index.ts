@@ -190,7 +190,11 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   };
 
   // Parse Truth Summary (handle bold formatting)
-  const truthSummaryMatch = content.match(/\*\*TRUTH SUMMARY:\*\*\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let truthSummaryMatch = content.match(/\*\*TRUTH SUMMARY:\*\*\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  if (!truthSummaryMatch) {
+    // Fallback to non-bold formatting
+    truthSummaryMatch = content.match(/TRUTH SUMMARY:\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
   if (truthSummaryMatch) {
     const summary = truthSummaryMatch[1].trim();
 
@@ -201,7 +205,11 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   }
 
   // Parse Truth in Love (handle bold formatting)
-  const truthInLoveMatch = content.match(/\*\*TRUTH IN LOVE:\*\*\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let truthInLoveMatch = content.match(/\*\*TRUTH IN LOVE:\*\*\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  if (!truthInLoveMatch) {
+    // Fallback to non-bold formatting
+    truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
   if (truthInLoveMatch) {
     const truthText = truthInLoveMatch[1].trim();
 
