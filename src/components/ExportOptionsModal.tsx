@@ -20,7 +20,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from 'react-native-linear-gradient';
 // import { exportService } from '../services/exportService'; // Temporarily disabled
 import { useExportAccess } from '../hooks/useFeatureAccess';
 import { FeatureLockOverlay } from './FeatureLockOverlay';
