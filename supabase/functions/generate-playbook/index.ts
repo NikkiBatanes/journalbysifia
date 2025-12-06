@@ -1,6 +1,12 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { bibleVerseService } from '../_shared/bibleVerseService.ts';
+import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
+import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
+import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
+import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -652,7 +658,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location } = requestBody;
 
   // Log received Bible version for debugging
   console.log('[Generate-Playbook] Received Bible version from request:', bibleVersion || 'NOT PROVIDED - will default to NASB');
@@ -681,6 +687,7 @@ serve(async (req: Request) => {
   console.log('[Generate-Playbook] Received ageGroup:', ageGroup);
 
   let isTeenUser = false;
+  let calculatedAge: number | null = null;
 
   if (dateOfBirth) {
     try {
@@ -691,6 +698,8 @@ serve(async (req: Request) => {
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         userAge--;
       }
+
+      calculatedAge = userAge;
       console.log('[Generate-Playbook] Calculated age from dateOfBirth:', userAge);
 
       // Flag ALL youth (age <= 16) for simplified language
@@ -734,13 +743,13 @@ serve(async (req: Request) => {
         if (supabaseUrl && supabaseKey) {
           const supabase = createClient(supabaseUrl, supabaseKey);
 
-          // Fetch last 10 playbook titles for this user
-          const { data: recentPlaybooks } = await supabase
+          // Fetch recent playbooks for title uniqueness (reduced from 5 to 3 to shorten prompt)
+          const { data: recentPlaybooks, error: recentError } = await supabase
             .from('playbooks')
             .select('title')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(3);
 
           if (recentPlaybooks && recentPlaybooks.length > 0) {
             recentTitles = recentPlaybooks.map((p: { title: string }) => p.title).filter(Boolean);
@@ -857,7 +866,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
               },
             ],
             temperature: 0.85, // Increased from 0.7 for more creative variation
-            max_tokens: 1000,
+            max_tokens: 1200,
             frequency_penalty: 0.1,
             presence_penalty: 0.1,
           }),
