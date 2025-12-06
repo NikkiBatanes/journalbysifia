@@ -748,6 +748,9 @@ export class NewSubscriptionService {
         devotionals_limit: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
         smart_journaling_enabled: data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled,
         show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
+        // Add backward compatibility aliases
+        playbooks: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
+        devotionals: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
       },
       // UI fields - use actual limits (not stored values that might be outdated)
       playbooks_ui: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
