@@ -577,12 +577,17 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       // Use InteractionManager to defer navigation until after modal animations
       // Add extra delay to ensure all background sync operations complete
 
+      // For 1-day devotionals, need longer delay to avoid modal animation conflict
+      const isOneDayDevotional = devotional.days.length === 1;
+      const navigationDelay = isOneDayDevotional ? 600 : 300;
+
       // Watchdog timer: Force navigation if it doesn't happen within 2 seconds
       let navigationCompleted = false;
       const watchdogTimer = setTimeout(() => {
         if (!navigationCompleted && navigation.canGoBack()) {
           Logger.warn('[DevotionalDetail] Watchdog triggered - forcing navigation to prevent freeze', {
             component: 'DevotionalDetailScreen',
+            isOneDayDevotional,
           });
           navigation.goBack();
         }
@@ -595,7 +600,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             clearTimeout(watchdogTimer);
             navigation.goBack();
           }
-        }, 300); // Extra delay to prevent hang
+        }, navigationDelay); // Longer delay for 1-day devotionals
       });
       return;
     }
