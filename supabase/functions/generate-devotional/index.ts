@@ -1221,15 +1221,38 @@ serve(async (req: Request): Promise<Response> => {
       paraphrased = paraphrased.replace(/\bin a (girl|boy|male|female) body\b/gi, 'my gender identity');
       paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
       paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
+      paraphrased = paraphrased.replace(/\brape\b/gi, 'sexual assault');
+      paraphrased = paraphrased.replace(/\bmurder\b/gi, 'taking a life');
+      paraphrased = paraphrased.replace(/\bsuicide\b/gi, 'ending my life');
 
       return paraphrased.replace(/\s+/g, ' ').trim();
     };
 
-    const buildSystemPrompt = (input: string) =>
-      applyPersonaContext(devotionalAdvisorPersona.systemPrompt, input, bibleVersion) + playbookContext;
+    const buildSystemPrompt = (input: string, original: string) => {
+      const personaContext = applyPersonaContext(devotionalAdvisorPersona.systemPrompt, input, bibleVersion);
+      return `${personaContext}
 
-    const buildUserMessage = (input: string) =>
-      `User: ${userName}\nRequest: ${input}\nDuration: ${duration} day${duration > 1 ? 's' : ''}${isTeenUser ? '\n\nIMPORTANT: This user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep sentences straightforward.' : ''}`;
+🚨 ORIGINAL USER INPUT (DO NOT IGNORE):
+- Verbatim Request: ${original}
+- Working Copy (only if different): ${input}` + playbookContext;
+    };
+
+    const buildUserMessage = (originalInput: string, currentInput: string) => {
+      const lines = [
+        `User: ${userName}`,
+        `Original Request (verbatim): ${originalInput}`,
+        currentInput !== originalInput ? `Working Request (safety-adjusted): ${currentInput}` : '',
+        `Duration: ${duration} day${duration > 1 ? 's' : ''}`,
+      ];
+
+      if (isTeenUser) {
+        lines.push('IMPORTANT: This user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep sentences straightforward.');
+      }
+
+      return lines.filter(Boolean).join('\n');
+    };
+
+    const originalUserInput = userInput;
 
     const executeOpenAIRequest = async (input: string) => {
       console.log('[Generate-Devotional] Calling OpenAI API with circuit breaker + retry logic...');
@@ -1248,11 +1271,11 @@ serve(async (req: Request): Promise<Response> => {
             messages: [
               {
                 role: 'system',
-                content: buildSystemPrompt(input),
+                content: buildSystemPrompt(input, originalUserInput),
               },
               {
                 role: 'user',
-                content: buildUserMessage(input),
+                content: buildUserMessage(originalUserInput, input),
               },
             ],
             temperature: 0.7,
