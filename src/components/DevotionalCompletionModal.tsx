@@ -11,7 +11,6 @@ import {
   Animated,
   Easing,
   NativeModules,
-  InteractionManager,
 } from 'react-native';
 import { Colors } from '../theme';
 import { OnboardingStyles } from '../theme/onboardingStyles';
@@ -254,24 +253,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 // Set unique animation key to prevent re-renders
                 animationKeyRef.current = `${devotionalIdRef.current}-${currentDayNumberRef.current}-${Date.now()}`;
 
-                // ✅ FIX: Defer faith points awarding to prevent UI freeze
-                // Use InteractionManager to run after animations complete
-                if (userIdRef.current) {
-                  InteractionManager.runAfterInteractions(() => {
-                    faithPointsService.awardPoints(userIdRef.current!, activityType as any, {
-                      suppressNotification: true, // We already show points in this modal
-                      devotionalId: devotionalIdRef.current,
-                      dayNumber: currentDayNumberRef.current,
-                      isLastDay: isLastDayRef.current,
-                    }).catch((error: Error) => {
-                      Logger.error('[DevotionalCompletionModal] Error awarding points', error, {
-                        component: 'DevotionalCompletionModal',
-                        activityType,
-                        points: pts,
-                      });
-                    });
-                  });
-                }
+                // Faith points are already awarded by syncDevotionalCompletion in useMarkDayCompleteReactQuery
+                // DO NOT award points here to prevent duplicate awarding and competing InteractionManager callbacks
+                // Just show the points UI
 
                 // Delay showing points slightly to ensure modal is fully visible
                 setTimeout(() => {

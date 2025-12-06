@@ -577,30 +577,34 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       // Use InteractionManager to defer navigation until after modal animations
       // Add extra delay to ensure all background sync operations complete
 
-      // For 1-day devotionals, need longer delay to avoid modal animation conflict
+      // Wait for all sync operations to complete before navigating
+      // This prevents race conditions with query invalidations
       const isOneDayDevotional = devotional.days.length === 1;
-      const navigationDelay = isOneDayDevotional ? 600 : 300;
+      const navigationDelay = isOneDayDevotional ? 800 : 500;
 
-      // Watchdog timer: Force navigation if it doesn't happen within 2 seconds
+      // Watchdog timer: Force navigation if it doesn't happen within 3 seconds
       let navigationCompleted = false;
       const watchdogTimer = setTimeout(() => {
         if (!navigationCompleted && navigation.canGoBack()) {
           Logger.warn('[DevotionalDetail] Watchdog triggered - forcing navigation to prevent freeze', {
             component: 'DevotionalDetailScreen',
             isOneDayDevotional,
+            delay: navigationDelay,
           });
           navigation.goBack();
         }
-      }, 2000); // 2 second watchdog
+      }, 3000); // 3 second watchdog (increased from 2s)
 
+      // Wait for ALL InteractionManager callbacks to complete
       InteractionManager.runAfterInteractions(() => {
+        // Additional delay to ensure sync operations finish
         setTimeout(() => {
           if (navigation.canGoBack()) {
             navigationCompleted = true;
             clearTimeout(watchdogTimer);
             navigation.goBack();
           }
-        }, navigationDelay); // Longer delay for 1-day devotionals
+        }, navigationDelay);
       });
       return;
     }
