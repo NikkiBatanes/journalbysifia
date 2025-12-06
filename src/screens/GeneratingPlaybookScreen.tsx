@@ -329,26 +329,27 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     <SafeAreaView style={styles.container} edges={['top','bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <View style={styles.content}>
-        {isGenerating ? (
-          <View style={styles.centerBlockContainer}>
-            <View style={styles.centerBlock}>
-              <View style={styles.logoContainer}>
-                <Image
-                  source={require('../../assets/icons/siFiaAppIcon.png')}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              </View>
+        <View style={styles.centerBlockContainer}>
+          <View style={styles.centerBlock}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/icons/siFiaAppIcon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
 
-              <ThemedText
-                weight="bold"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-                style={styles.generationTitle}
-              >
-                Creating Your Playbook
-              </ThemedText>
+            {isGenerating && (
+              <>
+                <ThemedText
+                  weight="bold"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                  style={styles.generationTitle}
+                >
+                  Creating Your Playbook
+                </ThemedText>
 
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressBarBackground}>
@@ -393,9 +394,10 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
               </ScrollView>
               <View style={styles.sunSpacer} />
-            </View>
+            </>
+            )}
           </View>
-        ) : null}
+        </View>
 
         <View style={[styles.sunContainer, { paddingBottom: Math.max(insets.bottom, 16) }]} pointerEvents="none">
           <Animated.View
