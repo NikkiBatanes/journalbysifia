@@ -762,7 +762,7 @@ serve(async (req: Request) => {
       }
     }
 
-    // Automatically paraphrase potentially triggering language BEFORE building prompt
+    // Paraphrasing function (only used if AI refuses)
     const paraphraseInput = (input: string): string => {
       let paraphrased = input;
       
@@ -778,21 +778,11 @@ serve(async (req: Request) => {
       
       return paraphrased;
     };
-    
-    const originalUserInput = userInput;
-    const paraphrasedUserInput = paraphraseInput(userInput);
-    
-    if (originalUserInput !== paraphrasedUserInput) {
-      console.log('[Generate-Playbook] Paraphrased user input to reduce refusals');
-      console.log('[Generate-Playbook] Original:', originalUserInput.substring(0, 100));
-      console.log('[Generate-Playbook] Paraphrased:', paraphrasedUserInput.substring(0, 100));
-      userInput = paraphrasedUserInput;
-    }
 
     // Initialize contextual prompt
     let contextualPrompt = '';
     
-    // Apply persona context with Bible version (using paraphrased input)
+    // Apply persona context with Bible version
     contextualPrompt = applyPersonaContext(strategicAdvisorPersona, userInput, bibleVersion);
     
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
@@ -875,14 +865,14 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       );
     }
 
-    // Try gpt-4o-mini first, fallback to gpt-4o if refused
+    // Try with gpt-4o-mini, paraphrase and retry if refused
     let openAIRes: Response;
     let aiData: any;
     let rawContent: string;
-    let usedFallback = false;
+    let usedParaphrasing = false;
 
     try {
-      // First try with gpt-4o-mini (cheaper)
+      // First try with original input
       openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
       aiData = await openAIRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
@@ -898,25 +888,42 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       ];
       
       if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
-        console.log('[Generate-Playbook] gpt-4o-mini refused, trying gpt-4o...');
-        usedFallback = true;
-        openAIRes = await callOpenAIWithFallback('gpt-4o');
+        console.log('[Generate-Playbook] AI refused, paraphrasing input and retrying...');
+        
+        // Paraphrase the input
+        const paraphrasedInput = paraphraseInput(userInput);
+        console.log('[Generate-Playbook] Original:', userInput.substring(0, 100));
+        console.log('[Generate-Playbook] Paraphrased:', paraphrasedInput.substring(0, 100));
+        
+        // Rebuild prompt with paraphrased input
+        contextualPrompt = applyPersonaContext(strategicAdvisorPersona, paraphrasedInput, bibleVersion);
+        contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${paraphrasedInput}\nGeneration ID: ${generationTimestamp}
+
+IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
+
+${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. DO NOT reuse or slightly modify any of these titles.` : ''}`;
+        
+        if (isTeenUser) {
+          contextualPrompt += `\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.`;
+        }
+        
+        contextualPrompt += `\n\n## BIBLE VERSION\nUse ${preferredBibleVersion} for all scripture references. When citing verses, retrieve the EXACT text from ${preferredBibleVersion}.`;
+        
+        // Retry with paraphrased input
+        usedParaphrasing = true;
+        openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
+        userInput = paraphrasedInput; // Update userInput for playbook creation
       }
     } catch (error) {
-      console.error('[Generate-Playbook] Error with primary model:', error);
-      // Fallback to gpt-4o on any error
-      console.log('[Generate-Playbook] Error occurred, trying gpt-4o as fallback...');
-      usedFallback = true;
-      openAIRes = await callOpenAIWithFallback('gpt-4o');
-      aiData = await openAIRes.json();
-      rawContent = aiData.choices?.[0]?.message?.content || '';
+      console.error('[Generate-Playbook] Error with gpt-4o-mini:', error);
+      throw error; // Propagate error instead of falling back
     }
     
     console.log('[Generate-Playbook] OpenAI API call successful');
-    if (usedFallback) {
-      console.log('[Generate-Playbook] Used gpt-4o fallback due to refusal or error');
+    if (usedParaphrasing) {
+      console.log('[Generate-Playbook] Used paraphrasing to bypass refusal');
     }
 
     // Log raw AI response for debugging
