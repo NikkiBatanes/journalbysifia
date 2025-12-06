@@ -418,7 +418,8 @@ export class NewSubscriptionService {
   }
 
   /**
-   * Cancel subscription (downgrade to seeker)
+   * Cancel subscription (mark as cancelled but keep access until period ends)
+   * User keeps current tier and remaining usage until subscription_end_date
    * POST-LAUNCH: Handles family cancellation if user is family admin
    */
   static async cancelSubscription(userId: string): Promise<Subscription> {
@@ -446,22 +447,17 @@ export class NewSubscriptionService {
       }
     } */
 
-    const limits = this.getTierLimits('seeker');
-
+    // IMPORTANT: Do NOT immediately downgrade to seeker
+    // Keep current tier and usage until subscription_end_date
+    // Mark cancellation_date so we know it's cancelled
     const { data, error } = await supabase
       .from('user_subscriptions_new')
       .update({
-        tier: 'seeker',
-        status: 'active',
-        playbooks_limit: limits.playbooks_limit,
-        devotionals_limit: limits.devotionals_limit,
-        smart_journaling_enabled: limits.smart_journaling_enabled,
-        playbooks_used: 0, // Reset usage
-        devotionals_used: 0,
-        // POST-LAUNCH: family_group_id: null,
-        // POST-LAUNCH: family_role: null,
-        subscription_end_date: new Date().toISOString(),
+        cancellation_date: new Date().toISOString(), // Mark as cancelled
+        auto_renew_enabled: false, // Disable auto-renewal
         updated_at: new Date().toISOString(),
+        // DO NOT change: tier, playbooks_limit, devotionals_limit, playbooks_used, devotionals_used
+        // User keeps access until subscription_end_date
       })
       .eq('user_id', userId)
       .select()
@@ -471,37 +467,14 @@ export class NewSubscriptionService {
       throw new SubscriptionError(`Failed to cancel subscription: ${error.message}`, 'CANCELLATION_ERROR', error);
     }
 
-    // CRITICAL FAILSAFE: Verify tier is seeker after cancellation
-    if (data.tier !== 'seeker') {
-      Logger.error('[NewSubscriptionService] Cancel subscription set wrong tier - forcing to seeker', new Error('Wrong tier after cancel'), {
-        component: 'NewSubscriptionService',
-        userId,
-        wrongTier: data.tier,
-      });
+    Logger.info('[NewSubscriptionService] ✅ Subscription cancelled - user keeps access until period ends', {
+      component: 'NewSubscriptionService',
+      userId,
+      tier: data.tier,
+      cancellation_date: data.cancellation_date,
+      subscription_end_date: data.subscription_end_date,
+    });
 
-      // Force correct the tier to seeker
-      const { data: correctedData, error: correctionError } = await supabase
-        .from('user_subscriptions_new')
-        .update({ tier: 'seeker' })
-        .eq('user_id', userId)
-        .select()
-        .single();
-
-      if (correctionError) {
-        Logger.error('[NewSubscriptionService] Failed to correct tier after cancel', correctionError as Error, {
-          component: 'NewSubscriptionService',
-          userId,
-        });
-      } else {
-        Logger.info('[NewSubscriptionService] Corrected tier to seeker after cancel', {
-          component: 'NewSubscriptionService',
-          userId,
-        });
-        return this.enrichSubscriptionData(correctedData);
-      }
-    }
-
-    // Generate dynamic discount code for re-engagement
     await this.generateDynamicDiscount(userId, 'cancellation');
 
     return this.enrichSubscriptionData(data);

@@ -203,28 +203,23 @@ export class TrialManagementService {
 
   /**
    * PHASE 1C: Handle trial cancellation
-   * Reverts user to seeker tier and marks trial as used (no re-eligibility)
+   * Marks trial as cancelled but lets user finish remaining usage until trial_end_date
    */
   static async cancelTrial(userId: string): Promise<TrialCancellationResult> {
     try {
       Logger.info('[TrialManagement] Cancelling trial', { userId });
 
-      // Revert to seeker tier
-      const seekerLimits = NewSubscriptionService.getTierLimits('seeker');
-
+      // IMPORTANT: Do NOT immediately downgrade to seeker
+      // Keep trial tier and usage until trial_end_date
+      // User can finish their remaining trial usage (e.g., 1/2 used, can still use 1 more)
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
-          tier: 'seeker',
-          subscription_display_name: 'siFia Seeker',
-          playbooks_limit: seekerLimits.playbooks_limit, // 0
-          devotionals_limit: seekerLimits.devotionals_limit, // 0
-          playbooks_used: 0,
-          devotionals_used: 0,
-          smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
           // Keep trial_start_date to prevent re-eligibility
           trial_cancelled_date: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          // DO NOT change: tier, playbooks_limit, devotionals_limit, playbooks_used, devotionals_used
+          // User keeps trial access until trial_end_date
         })
         .eq('user_id', userId)
         .select()
@@ -240,15 +235,15 @@ export class TrialManagementService {
         };
       }
 
-      Logger.info('[TrialManagement] ✅ Trial cancelled, reverted to seeker', {
+      Logger.info('[TrialManagement] ✅ Trial cancelled - user keeps access until trial_end_date', {
         userId,
-        tier: 'seeker',
+        trial_cancelled_date: new Date().toISOString(),
         trialEligibilityRevoked: true,
       });
 
       return {
         success: true,
-        revertedToSeeker: true,
+        revertedToSeeker: false, // Not immediately reverted - happens at trial_end_date
         trialEligibilityRevoked: true,
       };
     } catch (error) {
