@@ -14,6 +14,7 @@ import {
   NativeModules,
   StatusBar,
   Platform,
+  InteractionManager,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -649,7 +650,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
       // Track usage only. Faith points are awarded via cross-component sync in useMarkDayCompleteReactQuery.
       if (user?.id) {
-        setTimeout(async () => {
+        // Use InteractionManager to defer usage tracking until after animations complete
+        InteractionManager.runAfterInteractions(async () => {
           try {
             await subscriptionService.trackUsage(user.id, 'devotional');
 
@@ -658,7 +660,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       component: 'DevotionalDetailScreen',
     });
           }
-        }, 800);
+        });
       }
 
       // React Query handles optimistic updates automatically

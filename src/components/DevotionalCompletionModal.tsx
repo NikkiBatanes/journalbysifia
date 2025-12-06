@@ -11,6 +11,7 @@ import {
   Animated,
   Easing,
   NativeModules,
+  InteractionManager,
 } from 'react-native';
 import { Colors } from '../theme';
 import { OnboardingStyles } from '../theme/onboardingStyles';
@@ -253,19 +254,21 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 // Set unique animation key to prevent re-renders
                 animationKeyRef.current = `${devotionalIdRef.current}-${currentDayNumberRef.current}-${Date.now()}`;
 
-                // ✅ FIX: Actually award the points and check for badge eligibility
-                // This was missing - points were only shown but never awarded
+                // ✅ FIX: Defer faith points awarding to prevent UI freeze
+                // Use InteractionManager to run after animations complete
                 if (userIdRef.current) {
-                  faithPointsService.awardPoints(userIdRef.current, activityType as any, {
-                    suppressNotification: true, // We already show points in this modal
-                    devotionalId: devotionalIdRef.current,
-                    dayNumber: currentDayNumberRef.current,
-                    isLastDay: isLastDayRef.current,
-                  }).catch((error: Error) => {
-                    Logger.error('[DevotionalCompletionModal] Error awarding points', error, {
-                      component: 'DevotionalCompletionModal',
-                      activityType,
-                      points: pts,
+                  InteractionManager.runAfterInteractions(() => {
+                    faithPointsService.awardPoints(userIdRef.current!, activityType as any, {
+                      suppressNotification: true, // We already show points in this modal
+                      devotionalId: devotionalIdRef.current,
+                      dayNumber: currentDayNumberRef.current,
+                      isLastDay: isLastDayRef.current,
+                    }).catch((error: Error) => {
+                      Logger.error('[DevotionalCompletionModal] Error awarding points', error, {
+                        component: 'DevotionalCompletionModal',
+                        activityType,
+                        points: pts,
+                      });
                     });
                   });
                 }
