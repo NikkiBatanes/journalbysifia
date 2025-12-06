@@ -719,7 +719,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
           'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -732,6 +732,8 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
           ],
           temperature: 0.85, // Increased from 0.7 for more creative variation
           max_tokens: 2500,
+          frequency_penalty: 0.1,
+          presence_penalty: 0.1,
         }),
       },
       OPENAI_RETRY_CONFIG
