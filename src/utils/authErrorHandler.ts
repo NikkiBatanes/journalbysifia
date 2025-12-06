@@ -225,12 +225,40 @@ export class AuthErrorHandler {
   }
 
   /**
+   * Show generic error dialog
+   */
+  private async showGenericErrorDialog(_operationName: string, error: any): Promise<void> {
+    return new Promise((resolve) => {
+      const rawMessage: string = error?.message || '';
+      let userMessage = 'Something went wrong while completing this action. Please try again in a moment.';
+
+      if (rawMessage.includes('Server error: 500')) {
+        userMessage = 'We couldn\'t complete this action right now. Please try again in a moment.';
+      } else if (rawMessage.includes('AI content policy prevented generation')) {
+        userMessage = 'We weren\'t able to create this content. Please rephrase your request and try again.';
+      } else if (rawMessage.toLowerCase().includes('network') || rawMessage.toLowerCase().includes('timeout')) {
+        userMessage = 'It looks like there was a connection issue. Please check your internet and try again.';
+      }
+
+      Alert.alert(
+        'Something went wrong',
+        userMessage,
+        [
+          {
+            text: 'OK',
+            onPress: () => resolve(),
+            style: 'default',
+          },
+        ],
+        { cancelable: false }
+      );
+    });
+  }
+
+  /**
    * Show network error dialog
    */
-  private async showNetworkErrorDialog(
-    operationName: string,
-    retryAttempts: number
-  ): Promise<void> {
+  private async showNetworkErrorDialog(operationName: string, retryAttempts: number): Promise<void> {
     return new Promise((resolve) => {
       Alert.alert(
         '🌐 Connection Issue',
@@ -241,36 +269,15 @@ export class AuthErrorHandler {
             onPress: () => resolve(),
             style: 'cancel' as const,
           },
-          ...(retryAttempts > 0 ? [{
-            text: 'Retry',
-            onPress: () => resolve(),
-            style: 'default' as const,
-          }] : []),
-        ],
-        { cancelable: false }
-      );
-    });
-  }
-
-  /**
-   * Show generic error dialog
-   */
-  private async showGenericErrorDialog(
-    operationName: string,
-    error: any
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      const errorMessage = error?.message || 'An unexpected error occurred';
-
-      Alert.alert(
-        '⚠️ Error',
-        `Failed to complete ${operationName}: ${errorMessage}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => resolve(),
-            style: 'default',
-          },
+          ...(retryAttempts > 0
+            ? [
+                {
+                  text: 'Retry',
+                  onPress: () => resolve(),
+                  style: 'default' as const,
+                },
+              ]
+            : []),
         ],
         { cancelable: false }
       );

@@ -688,7 +688,9 @@ serve(async (req: Request) => {
 
   let isTeenUser = false;
   let calculatedAge: number | null = null;
+  let ageSource = '';
 
+  // PRIORITY 1: Calculate age from dateOfBirth (takes precedence over ageGroup)
   if (dateOfBirth) {
     try {
       const birthDate = new Date(dateOfBirth);
@@ -700,27 +702,32 @@ serve(async (req: Request) => {
       }
 
       calculatedAge = userAge;
+      ageSource = 'dateOfBirth';
       console.log('[Generate-Playbook] Calculated age from dateOfBirth:', userAge);
 
       // Flag ALL youth (age <= 16) for simplified language
       isTeenUser = userAge >= 0 && userAge <= 16;
-      console.log('[Generate-Playbook] Is youth (<=16):', isTeenUser);
+      console.log('[Generate-Playbook] Is youth (<=16) based on dateOfBirth:', isTeenUser);
     } catch (error) {
-      console.log('[Generate-Playbook] ❌ Error calculating age:', error);
+      console.log('[Generate-Playbook] ❌ Error calculating age from dateOfBirth:', error);
+      ageSource = 'error';
     }
-  } else {
-    console.log('[Generate-Playbook] No dateOfBirth provided, checking ageGroup...');
   }
 
-  // Fallback to age group from onboarding (accept broader labels)
-  if (!isTeenUser && typeof ageGroup === 'string') {
+  // PRIORITY 2: Only use ageGroup if dateOfBirth is not available or failed
+  if (ageSource !== 'dateOfBirth' && typeof ageGroup === 'string') {
     const simplifiedGroups = ['teen', 'teens', 'child', 'children', 'kid', 'youth', 'preteen'];
     if (simplifiedGroups.includes(ageGroup.toLowerCase())) {
-      console.log('[Generate-Playbook] Using ageGroup fallback:', ageGroup);
+      console.log('[Generate-Playbook] Using ageGroup fallback (no dateOfBirth):', ageGroup);
       isTeenUser = true;
+      ageSource = 'ageGroup';
+    } else {
+      ageSource = 'ageGroup-not-teen';
     }
   }
 
+  console.log('[Generate-Playbook] FINAL: Age source:', ageSource);
+  console.log('[Generate-Playbook] FINAL: Calculated age:', calculatedAge);
   console.log('[Generate-Playbook] FINAL: Teen user (simplified language):', isTeenUser);
   console.log('[Generate-Playbook] ========== AGE DETECTION END ==========');
 
