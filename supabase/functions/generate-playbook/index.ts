@@ -393,8 +393,8 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     console.log('[BIBLE VERSE PARSER] Raw content:', verseContent.substring(0, 200));
 
     // Define scripture patterns to try in order of specificity
-    // Updated to handle the formats specified in the AI prompt
-    const scripturePatterns = [
+      // Updated to handle the formats specified in the AI prompt
+      const scripturePatterns = [
       // Format: "verse" (BOOK 1:19-20) (reference in parentheses) - most common AI output
       {
         pattern: /['"]([^'"\n]+)['"]\s*\(\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*\)/i,
@@ -553,6 +553,12 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     
     // Store the Bible version that was used for generation
     playbook.bibleVerse.version = bibleVersion || 'NASB';
+  } else {
+    console.log('[BIBLE VERSE PARSER] No match found. Checking content around BIBLE VERSE...');
+    const bibleVerseIndex = content.indexOf('BIBLE VERSE:');
+    if (bibleVerseIndex !== -1) {
+      console.log('[BIBLE VERSE PARSER] Content around BIBLE VERSE:', content.substring(bibleVerseIndex, bibleVerseIndex + 200));
+    }
   }
 
   // Parse Direct Challenge (handle bold formatting)
@@ -563,6 +569,13 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   }
   if (challengeMatch) {
     playbook.directChallenge = challengeMatch[1].trim();
+    console.log('[CHALLENGE PARSER] Parsed challenge length:', playbook.directChallenge.length);
+  } else {
+    console.log('[CHALLENGE PARSER] No match found. Checking content around CHALLENGE...');
+    const challengeIndex = content.indexOf('CHALLENGE:');
+    if (challengeIndex !== -1) {
+      console.log('[CHALLENGE PARSER] Content around CHALLENGE:', content.substring(challengeIndex, challengeIndex + 200));
+    }
   }
 
   return playbook;
