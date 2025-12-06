@@ -21,8 +21,8 @@ export interface BibleVerse {
 // CONFIGURATION
 // ============================================================================
 
-// Translations that require BibleGateway scraping
-const SCRAPE_TRANSLATIONS = ['AMP', 'MSG', 'NLT', 'CSB'];
+// Translations that require BibleGateway scraping (NASB added to prevent AI from repeating same verses)
+const SCRAPE_TRANSLATIONS = ['AMP', 'MSG', 'NLT', 'CSB', 'NASB'];
 
 // Translations that can use OpenAI as fallback
 const OPENAI_FALLBACK_TRANSLATIONS = ['NIV', 'ESV', 'NASB', 'KJV', 'NKJV'];
