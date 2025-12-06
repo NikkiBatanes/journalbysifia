@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -19,18 +20,18 @@ import { useDevotionalGating } from '../../hooks/useDevotionalGating';
 import { isDevotionalDurationLocked } from '../../utils/tierLockingRules';
 import type { SubscriptionTier } from '../../types/subscription';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
-import DynamicPricingModal from '../../components/DynamicPricingModal';
-import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
-import ThemedText from '../../components/common/ThemedText';
-import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
-import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
-import { logger } from '../../utils/logger';
-import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
-import { notificationService } from '../../services/notificationService';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
+import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
+import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
+import DynamicPricingModal from '../../components/DynamicPricingModal';
+import { notificationService } from '../../services/notificationService';
 import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
+import { TrialManagementService } from '../../services/TrialManagementService';
 import { useQueryClient } from '@tanstack/react-query';
 import { NewSubscriptionService } from '../../services/NewSubscriptionService';
+import ThemedText from '../../components/common/ThemedText';
+import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 // removed Dimensions width as unused
 
@@ -56,6 +57,9 @@ interface RouteParams {
   incompleteTodosPercentage?: number;
 }
 
+// Logger instance for this component (outside to avoid React Hook dependency issues)
+const logger = Logger;
+
 const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -66,6 +70,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Always show light status bar (white icons) on this screen
   useScreenStatusBar('light', Colors.hopeWhite);
+
+  // Haptic feedback helper
+  const triggerSuccessHaptic = () => {
+    try {
+      // Import haptics dynamically to avoid issues
+      const { Haptics } = require('expo-haptics');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      // Silently fail if haptics not available
+    }
+  };
 
   const [isAnnual, setIsAnnual] = useState(false);
   const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' :
@@ -101,11 +116,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
-  // Derived: trial eligibility (only offer trial if user hasn't started one yet)
+  // Derived: trial eligibility (only offer trial if user hasn't started one yet AND is currently on Seeker tier)
   const subscription = devotionalGating.subscription;
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
-  const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
+  const isSeekerTier = currentUserTier === 'seeker' || !currentUserTier; // !currentUserTier treats undefined as seeker
+  const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial && isSeekerTier;
   const shouldUseTrialProduct = canOfferTrial;
 
   // Detect if coming from devotional gating
@@ -217,9 +233,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // Default go back
           navigation.goBack();
         }
-      } else {
-        // In onboarding mode, navigate to notification setup
+      } else if (!routeParams?.skipNotificationPreference) {
+        // In onboarding mode (no skipNotificationPreference), navigate to notification setup
         (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
+      } else {
+        // When skipNotificationPreference is true (feature gating / special flows), just go back
+        navigation.goBack();
       }
     }, 100);
   }, [navigation, isUpgradeMode, routeParams]);
@@ -441,6 +460,73 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }, 100);
   };
 
+  const handleRestorePurchase = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please sign in to restore purchases');
+      return;
+    }
+
+    try {
+      triggerLightHaptic();
+    } catch {}
+
+    Alert.alert(
+      'Restore Purchases',
+      'This will restore any previous purchases made with this Apple ID.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Restore',
+          onPress: async () => {
+            try {
+              Alert.alert('Restoring...', 'Please wait while we restore your purchases.');
+
+              const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
+              const storeKit = AppleStoreKitService.getInstance();
+
+              const result = await storeKit.restorePurchases(user.id);
+
+              if (result.success) {
+                await refreshNewSubscription();
+
+                Alert.alert(
+                  'Success',
+                  result.message + (result.validated ? `\n\n ${result.validated} purchase(s) validated server-side` : ''),
+                  [{ text: 'OK' }],
+                );
+              } else {
+                Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
+              }
+            } catch (error) {
+              Logger.error('Restore purchases error', error as Error, {
+                component: 'OnboardingSalesOfferScreen',
+              });
+              Alert.alert(
+                'Restore Failed',
+                'Unable to restore purchases. Please try again later or contact support.',
+                [{ text: 'OK' }],
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleTermsOfService = () => {
+    try {
+      triggerLightHaptic();
+      logger.info('Terms of Service requested');
+      // Match Terms of Service URL used in UserProfileScreen
+      Linking.openURL('https://sifia.app/legal/terms');
+    } catch (error) {
+      logger.error('Error opening terms of service', error as Error);
+    }
+  };
+
   const handleUnlockPlan = async () => {
     logger.info('🚀 FUNCTION CALLED: handleUnlockPlan started', {
       isPurchasing,
@@ -579,7 +665,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             success: result.success,
             hasTransactionId: !!result.transactionId,
             transactionId: result.transactionId?.substring(0, 10) + '...',
-            error: result.error,
+            error: result.error ? { message: result.error, name: 'PurchaseError' } : undefined,
             timestamp: new Date().toISOString(),
           });
 
@@ -617,6 +703,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               timestamp: new Date().toISOString(),
             });
 
+            // PHASE 3A: Create trial if user is trial-eligible (UPGRADE MODE)
+            if (shouldUseTrialProduct && result.transactionId) {
+              logger.info('🎯 Creating free trial subscription (UPGRADE MODE)', {
+                userId: user?.id,
+                chosenTier: selectedTier,
+                transactionId: result.transactionId,
+              });
+
+              const trialResult = await TrialManagementService.createTrial(
+                user?.id || '',
+                selectedTier as SubscriptionTier,
+                productId,
+                result.transactionId,
+              );
+
+              if (!trialResult.success) {
+                logger.error('❌ Failed to create trial', new Error(trialResult.error || 'Unknown error'));
+                throw new Error('Failed to create trial. Please contact support.');
+              }
+
+              logger.info('✅ Trial created successfully (UPGRADE MODE)', {
+                tier: 'free_trial',
+                chosenTier: selectedTier,
+                trialEndDate: trialResult.trialEndDate,
+              });
+            }
+
             // Verify the subscription was updated by checking the database
             logger.info('🔄 SCREEN STEP 5: Verifying subscription update in database (UPGRADE MODE)', {
               userId: user?.id,
@@ -626,19 +739,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
 
-            if (!updatedSubscription || updatedSubscription.tier !== selectedTier) {
+            // Verify subscription state
+            const expectedTier = shouldUseTrialProduct ? 'free_trial' : selectedTier;
+            if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
-                expectedTier: selectedTier,
+                expectedTier,
                 actualTier: updatedSubscription?.tier,
                 userId: user?.id,
+                shouldUseTrialProduct,
               });
               throw new Error('Subscription update failed. Please contact support.');
             }
 
-            logger.info('✅ Subscription verified in database', {
+            logger.info('✅ Subscription verified in database (UPGRADE MODE)', {
               tier: updatedSubscription.tier,
               status: updatedSubscription.status,
+              isTrial: shouldUseTrialProduct,
             });
 
             logger.info('✅ Database upgrade completed, starting cache refresh');
@@ -718,7 +835,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           logger.debug('Purchase result', {
             success: result.success,
-            error: result.error,
+            error: result.error ? { message: result.error, name: 'PurchaseError' } : undefined,
             hasResult: !!result,
           });
 
@@ -749,6 +866,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Give the service a moment to complete validation
             await new Promise(resolve => setTimeout(resolve, 2000));
 
+            // PHASE 3B: Create trial if user is trial-eligible (ONBOARDING MODE)
+            if (shouldUseTrialProduct && result.transactionId) {
+              logger.info('🎯 Creating free trial subscription (ONBOARDING MODE)', {
+                userId: user?.id,
+                chosenTier: selectedTier,
+                transactionId: result.transactionId,
+              });
+
+              const trialResult = await TrialManagementService.createTrial(
+                user?.id || '',
+                selectedTier as SubscriptionTier,
+                productId,
+                result.transactionId,
+              );
+
+              if (!trialResult.success) {
+                logger.error('❌ Failed to create trial', new Error(trialResult.error || 'Unknown error'));
+                throw new Error('Failed to create trial. Please contact support.');
+              }
+
+              logger.info('✅ Trial created successfully (ONBOARDING MODE)', {
+                tier: 'free_trial',
+                chosenTier: selectedTier,
+                trialEndDate: trialResult.trialEndDate,
+              });
+            }
+
             // Verify the subscription was updated by checking the database
             logger.info('🔄 Verifying subscription update in database', {
               userId: user?.id,
@@ -757,19 +901,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
 
-            if (!updatedSubscription || updatedSubscription.tier !== selectedTier) {
+            // Verify subscription state
+            const expectedTier = shouldUseTrialProduct ? 'free_trial' : selectedTier;
+            if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
-                expectedTier: selectedTier,
+                expectedTier,
                 actualTier: updatedSubscription?.tier,
                 userId: user?.id,
+                shouldUseTrialProduct,
               });
               throw new Error('Subscription update failed. Please contact support.');
             }
 
-            logger.info('✅ Subscription verified in database', {
+            logger.info('✅ Subscription verified in database (ONBOARDING MODE)', {
               tier: updatedSubscription.tier,
               status: updatedSubscription.status,
+              isTrial: shouldUseTrialProduct,
             });
 
             // OPTIMIZED: Single cache invalidation with parallel refresh
@@ -1090,8 +1238,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       <PurchaseSuccessModal
         visible={showSuccessModal}
-        tier={lastPurchasedTier || selectedTier}
-        isTrial={false}
+        tier={devotionalGating.subscription?.tier === 'free_trial' ? `${devotionalGating.subscription?.trial_chosen_tier || selectedTier}_trial` : (lastPurchasedTier || selectedTier)}
+        isTrial={devotionalGating.subscription?.tier === 'free_trial'}
         isValidated={purchaseValidated}
         onContinue={handleSuccessModalContinue}
       />
@@ -1326,6 +1474,25 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 </ThemedText>
               </View>
             )}
+          </View>
+
+          {/* Bottom Links */}
+          <View style={styles.bottomLinksContainer}>
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={handleRestorePurchase}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={handleTermsOfService}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
@@ -1891,6 +2058,23 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginLeft: 10,
     flex: 1,
+  },
+  bottomLinksContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginTop: -12,
+    marginBottom: 32,
+  },
+  linkButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  linkText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '500',
   },
 });
 

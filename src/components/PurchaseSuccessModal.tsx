@@ -99,10 +99,10 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       free_trial: 'Free Trial',
     };
 
-    const effectiveTierKey = isTrial ? tier : tier;
+    const effectiveTierKey = isTrial ? tier.replace('_trial', '') : tier;
     const baseName = planNames[effectiveTierKey] || effectiveTierKey;
-    // Add "siFia" prefix for non-trial purchases
-    const displayName = isTrial ? baseName : `siFia ${baseName}`;
+    // Always use "siFia" prefix for display, and append "Trial" only for trial cases
+    const baseDisplayName = `siFia ${baseName}`;
 
     // Get tier features from pricing service
     const currentTier = pricingTiers.find(t => t.id === effectiveTierKey);
@@ -133,7 +133,8 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       benefits.push('No commitment');
 
       return {
-        name: `${displayName} Trial`,
+        // e.g. "siFia Growth Trial"
+        name: `${baseDisplayName} Trial`,
         color: Colors.alertCoral,
         benefits,
       };
@@ -142,7 +143,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     // For paid plans, use pricing service features
     if (currentTier) {
       return {
-        name: displayName,
+        name: baseDisplayName,
         color: Colors.alertCoral,
         benefits: currentTier.features,
       };
@@ -151,7 +152,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     // Fallback if pricing not loaded yet
     if (effectiveTierKey === 'spark') {
       return {
-        name: displayName,
+        name: baseDisplayName,
         color: Colors.alertCoral,
         benefits: [
           '8 playbooks & 8 devotionals each month',
@@ -166,7 +167,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     if (effectiveTierKey === 'growth') {
       return {
-        name: displayName,
+        name: baseDisplayName,
         color: Colors.alertCoral,
         benefits: [
           'All in Spark, plus:',
@@ -181,24 +182,22 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     if (effectiveTierKey === 'transformation') {
       return {
-        name: displayName,
+        name: baseDisplayName,
         color: Colors.alertCoral,
         benefits: [
           'All in Growth, plus:',
           'Unlimited playbooks & devotionals',
-          'Access all devotional durations (1-7 days)',
+          '7-day devotionals for deep reflection',
           'Priority support',
+          'Export to Word for professional use',
         ],
       };
     }
 
     return {
-      name: displayName,
+      name: baseDisplayName,
       color: Colors.alertCoral,
-      benefits: [
-        'Cancel anytime',
-        'No commitment',
-      ],
+      benefits: ['Full access to siFia features'],
     };
   };
 

@@ -1,0 +1,336 @@
+// Enterprise-Grade Trial Management Service
+// Handles trial lifecycle: creation, conversion, cancellation, grace periods
+// Apple StoreKit 2 compliant with real-time webhook processing
+
+import { Logger } from '../utils/ProductionLogger';
+import { NewSubscriptionService } from './NewSubscriptionService';
+import { supabase } from './supabaseClient';
+import { SubscriptionTier } from '../types/subscription';
+
+export interface TrialCreationResult {
+  success: boolean;
+  tier: 'free_trial';
+  chosenTier: SubscriptionTier;
+  trialEndDate: string;
+  error?: string;
+}
+
+export interface TrialConversionResult {
+  success: boolean;
+  fromTier: 'free_trial';
+  toTier: SubscriptionTier;
+  error?: string;
+}
+
+export interface TrialCancellationResult {
+  success: boolean;
+  revertedToSeeker: boolean;
+  trialEligibilityRevoked: boolean;
+  error?: string;
+}
+
+export class TrialManagementService {
+  /**
+   * PHASE 1A: Create a free trial subscription
+   * Sets user to free_trial tier with 2/2 limits for 3 days
+   */
+  static async createTrial(
+    userId: string,
+    chosenTier: SubscriptionTier,
+    platformSubscriptionId: string,
+    transactionId: string,
+  ): Promise<TrialCreationResult> {
+    try {
+      Logger.info('[TrialManagement] Creating free trial', {
+        userId,
+        chosenTier,
+        platformSubscriptionId,
+        transactionId,
+      });
+
+      // Calculate trial end date (3 days from now)
+      const trialStartDate = new Date();
+      const trialEndDate = new Date(trialStartDate);
+      trialEndDate.setDate(trialEndDate.getDate() + 3);
+
+      // Get free_trial limits (2 playbooks, 2 devotionals)
+      const trialLimits = NewSubscriptionService.getTierLimits('free_trial');
+
+      // Update subscription to free_trial tier
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          tier: 'free_trial',
+          subscription_display_name: `siFia ${this.getTierName(chosenTier)} Trial`,
+          trial_start_date: trialStartDate.toISOString(),
+          trial_end_date: trialEndDate.toISOString(),
+          trial_chosen_tier: chosenTier, // Store which tier they'll convert to
+          playbooks_limit: trialLimits.playbooks_limit, // 2
+          devotionals_limit: trialLimits.devotionals_limit, // 2
+          playbooks_used: 0, // Reset usage for trial
+          devotionals_used: 0,
+          smart_journaling_enabled: trialLimits.smart_journaling_enabled,
+          platform_subscription_id: platformSubscriptionId,
+          platform_transaction_id: transactionId,
+          subscription_start_date: trialStartDate.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        Logger.error('[TrialManagement] Failed to create trial', error, { userId, chosenTier });
+        return {
+          success: false,
+          tier: 'free_trial',
+          chosenTier,
+          trialEndDate: trialEndDate.toISOString(),
+          error: error.message,
+        };
+      }
+
+      Logger.info('[TrialManagement] ✅ Trial created successfully', {
+        userId,
+        tier: 'free_trial',
+        chosenTier,
+        trialEndDate: trialEndDate.toISOString(),
+        limits: trialLimits,
+      });
+
+      return {
+        success: true,
+        tier: 'free_trial',
+        chosenTier,
+        trialEndDate: trialEndDate.toISOString(),
+      };
+    } catch (error) {
+      Logger.error('[TrialManagement] Exception creating trial', error as Error, { userId, chosenTier });
+      return {
+        success: false,
+        tier: 'free_trial',
+        chosenTier,
+        trialEndDate: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * PHASE 1B: Convert trial to paid subscription
+   * Called when Apple charges after 3-day trial (via webhook)
+   */
+  static async convertTrialToPaid(
+    userId: string,
+    transactionId: string,
+  ): Promise<TrialConversionResult> {
+    try {
+      Logger.info('[TrialManagement] Converting trial to paid', { userId, transactionId });
+
+      // Get current subscription
+      const subscription = await NewSubscriptionService.getUserSubscription(userId);
+
+      // Verify user is on trial
+      if (subscription.tier !== 'free_trial') {
+        Logger.warn('[TrialManagement] User not on trial, skipping conversion', {
+          userId,
+          currentTier: subscription.tier,
+        });
+        return {
+          success: false,
+          fromTier: 'free_trial',
+          toTier: subscription.tier,
+          error: 'User not on trial',
+        };
+      }
+
+      // Get the tier they chose during trial
+      const chosenTier = (subscription as any).trial_chosen_tier || 'spark';
+      const paidLimits = NewSubscriptionService.getTierLimits(chosenTier);
+
+      // Convert to paid tier with full limits
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          tier: chosenTier,
+          subscription_display_name: `siFia ${this.getTierName(chosenTier)}`,
+          playbooks_limit: paidLimits.playbooks_limit,
+          devotionals_limit: paidLimits.devotionals_limit,
+          playbooks_used: 0, // Reset usage on conversion
+          devotionals_used: 0,
+          smart_journaling_enabled: paidLimits.smart_journaling_enabled,
+          platform_transaction_id: transactionId,
+          subscription_start_date: new Date().toISOString(), // New start date for paid
+          trial_converted_date: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        Logger.error('[TrialManagement] Failed to convert trial', error, { userId, chosenTier });
+        return {
+          success: false,
+          fromTier: 'free_trial',
+          toTier: chosenTier,
+          error: error.message,
+        };
+      }
+
+      Logger.info('[TrialManagement] ✅ Trial converted to paid successfully', {
+        userId,
+        fromTier: 'free_trial',
+        toTier: chosenTier,
+        limits: paidLimits,
+      });
+
+      return {
+        success: true,
+        fromTier: 'free_trial',
+        toTier: chosenTier,
+      };
+    } catch (error) {
+      Logger.error('[TrialManagement] Exception converting trial', error as Error, { userId });
+      return {
+        success: false,
+        fromTier: 'free_trial',
+        toTier: 'spark',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * PHASE 1C: Handle trial cancellation
+   * Reverts user to seeker tier and marks trial as used (no re-eligibility)
+   */
+  static async cancelTrial(userId: string): Promise<TrialCancellationResult> {
+    try {
+      Logger.info('[TrialManagement] Cancelling trial', { userId });
+
+      // Revert to seeker tier
+      const seekerLimits = NewSubscriptionService.getTierLimits('seeker');
+
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          tier: 'seeker',
+          subscription_display_name: 'siFia Seeker',
+          playbooks_limit: seekerLimits.playbooks_limit, // 0
+          devotionals_limit: seekerLimits.devotionals_limit, // 0
+          playbooks_used: 0,
+          devotionals_used: 0,
+          smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+          // Keep trial_start_date to prevent re-eligibility
+          trial_cancelled_date: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        Logger.error('[TrialManagement] Failed to cancel trial', error, { userId });
+        return {
+          success: false,
+          revertedToSeeker: false,
+          trialEligibilityRevoked: false,
+          error: error.message,
+        };
+      }
+
+      Logger.info('[TrialManagement] ✅ Trial cancelled, reverted to seeker', {
+        userId,
+        tier: 'seeker',
+        trialEligibilityRevoked: true,
+      });
+
+      return {
+        success: true,
+        revertedToSeeker: true,
+        trialEligibilityRevoked: true,
+      };
+    } catch (error) {
+      Logger.error('[TrialManagement] Exception cancelling trial', error as Error, { userId });
+      return {
+        success: false,
+        revertedToSeeker: false,
+        trialEligibilityRevoked: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * PHASE 1D: Handle payment failure with grace period
+   * User keeps access but no token generation (playbooks/devotionals)
+   */
+  static async handlePaymentFailure(
+    userId: string,
+    gracePeriodDays: number = 3, // Custom grace period
+  ): Promise<{ success: boolean; gracePeriodEnd: string; error?: string }> {
+    try {
+      Logger.info('[TrialManagement] Handling payment failure with grace period', {
+        userId,
+        gracePeriodDays,
+      });
+
+      const gracePeriodEnd = new Date();
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + gracePeriodDays);
+
+      // Mark subscription as in grace period
+      const { error } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          billing_issue: true,
+          grace_period_end_date: gracePeriodEnd.toISOString(),
+          // Keep current tier and limits, but block token generation
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        Logger.error('[TrialManagement] Failed to set grace period', error, { userId });
+        return {
+          success: false,
+          gracePeriodEnd: gracePeriodEnd.toISOString(),
+          error: error.message,
+        };
+      }
+
+      Logger.info('[TrialManagement] ✅ Grace period set', {
+        userId,
+        gracePeriodEnd: gracePeriodEnd.toISOString(),
+      });
+
+      return {
+        success: true,
+        gracePeriodEnd: gracePeriodEnd.toISOString(),
+      };
+    } catch (error) {
+      Logger.error('[TrialManagement] Exception setting grace period', error as Error, { userId });
+      return {
+        success: false,
+        gracePeriodEnd: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Helper: Get tier display name
+   */
+  private static getTierName(tier: SubscriptionTier): string {
+    const names: Record<SubscriptionTier, string> = {
+      seeker: 'Seeker',
+      free_trial: 'Trial',
+      spark: 'Spark',
+      growth: 'Growth',
+      transformation: 'Transformation',
+    };
+    return names[tier] || tier;
+  }
+}
