@@ -767,11 +767,19 @@ serve(async (req: Request) => {
       let paraphrased = input;
       
       // Soften direct action statements to contemplative ones
-      paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking of');
+      paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
       paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
       paraphrased = paraphrased.replace(/\bnow\b/gi, '');
       paraphrased = paraphrased.replace(/\bimmediately\b/gi, '');
       paraphrased = paraphrased.replace(/\btoday\b/gi, '');
+      
+      // Soften "trapped" language to "struggling with"
+      paraphrased = paraphrased.replace(/\b(trapped|stuck)\b/gi, 'struggling with');
+      paraphrased = paraphrased.replace(/\bin a (girl|boy|male|female) body\b/gi, 'my gender identity');
+      
+      // Soften medical/surgical terms
+      paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
+      paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
       
       // Clean up extra spaces
       paraphrased = paraphrased.replace(/\s+/g, ' ').trim();
