@@ -575,10 +575,13 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // If we're on the last day, navigate back to previous screen
     if (currentDayIndex === devotional.days.length - 1) {
       // Use InteractionManager to defer navigation until after modal animations
+      // Add extra delay to ensure all background sync operations complete
       InteractionManager.runAfterInteractions(() => {
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        }
+        setTimeout(() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+        }, 300); // Extra delay to prevent hang
       });
       return;
     }
