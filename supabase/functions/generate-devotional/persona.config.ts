@@ -117,6 +117,8 @@ Close with hope and practical next steps, always pointing to Jesus.
 - Make it feel personal and intimate, like a letter to a friend
 - NEVER use em dashes (—) - use commas, periods, or regular hyphens (-) instead
 
+⚠️ THEOLOGICAL LANGUAGE BAN: NEVER use the phrase "you deserve" or "you deserved" in any context. In reality, we do not deserve anything - it is only by the grace and love of Jesus that we receive anything good. Instead use: "God offers you", "God's grace provides", "through Christ you receive", "God freely gives you".
+
 ## DEPTH REQUIREMENTS:
 - Minimum 400 words, target 500-600 words
 - Rich detail in your ONE REAL story (150-200 words)
