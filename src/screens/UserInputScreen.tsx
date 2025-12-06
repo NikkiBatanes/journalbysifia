@@ -260,7 +260,7 @@ const UserInputScreen: React.FC = () => {
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
   const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -200 : -16)).current; // in iPad landscape, start high up
   const headerScale = useRef(new Animated.Value(1)).current;
-  const headerIntroOpacity = useRef(new Animated.Value(0)).current;
+  const headerIntroOpacity = useRef(new Animated.Value(1)).current; // Start visible
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
 
@@ -270,20 +270,15 @@ const UserInputScreen: React.FC = () => {
   useEffect(() => {
     Animated.sequence([
       Animated.delay(220), // small delay to let modal finish sliding
+      // In iPad landscape, keep logo at 20; otherwise animate to 0 in portrait
+      Animated.timing(
+        headerTranslateY,
+        { toValue: isPad && isLandscape ? 20 : 0, duration: 320, useNativeDriver: true }
+      ),
+      Animated.delay(100),
       Animated.parallel([
-        Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
-        // In iPad landscape, keep logo at 20; otherwise animate to 0 in portrait
-        Animated.timing(
-          headerTranslateY,
-          { toValue: isPad && isLandscape ? 20 : 0, duration: 320, useNativeDriver: true }
-        ),
-        Animated.sequence([
-          Animated.delay(100),
-          Animated.parallel([
-            Animated.timing(askBoxOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
-            Animated.timing(askBoxTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
-          ]),
-        ]),
+        Animated.timing(askBoxOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+        Animated.timing(askBoxTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
       ]),
     ]).start();
   }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad]);
