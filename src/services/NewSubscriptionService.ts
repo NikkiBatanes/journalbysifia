@@ -291,6 +291,8 @@ export class NewSubscriptionService {
         playbooks_limit: limits.playbooks_limit,
         devotionals_limit: limits.devotionals_limit,
         smart_journaling_enabled: limits.smart_journaling_enabled,
+        playbooks_used: 0, // ALWAYS reset usage for trial - should be 0/2
+        devotionals_used: 0, // ALWAYS reset usage for trial - should be 0/2
         updated_at: new Date().toISOString(),
       };
 
