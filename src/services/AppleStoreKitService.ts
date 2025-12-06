@@ -882,39 +882,30 @@ export class AppleStoreKitService {
         throw new Error('User account not found - subscription update skipped');
       }
 
-      // Check if user is on trial - if so, convert to paid
-      const currentSubscription = await NewSubscriptionService.getUserSubscription(finalUserId);
-      const isTrialProduct = purchase.productId?.includes('freetrial');
+      // Always upgrade subscription when user makes a purchase
+      // This handles both new subscriptions and upgrades from trial/existing tiers
+      await NewSubscriptionService.upgradeSubscription(finalUserId, {
+        target_tier: tier as SubscriptionTier,
+        platform: 'apple',
+        platform_subscription_id: purchase.transactionId || purchase.productId,
+      });
 
-      if (currentSubscription.tier === 'free_trial' && isTrialProduct) {
-
-        // Trial purchases should stay as free_trial during trial period
-        // Only convert when trial expires or user manually upgrades
-      } else {
-        // Regular upgrade/subscription
-        await NewSubscriptionService.upgradeSubscription(finalUserId, {
-          target_tier: tier as SubscriptionTier,
-          platform: 'apple',
-          platform_subscription_id: purchase.transactionId || purchase.productId,
+      // Send payment success notification for new purchase/upgrade
+      try {
+        const subscription = await NewSubscriptionService.getUserSubscription(finalUserId);
+        const tierDisplayName = subscription.subscription_display_name || tier;
+        const amount = this.getAmountFromProductId(purchase.productId);
+        // Call scheduler directly to avoid argument count issues
+        await notificationSchedulerService.schedulePaymentSuccessNotification(
+          finalUserId,
+          tierDisplayName,
+          amount
+        );
+      } catch (notifError) {
+        Logger.warn('[StoreKit] Failed to send purchase success notification', {
+          component: 'AppleStoreKitService',
+          errorMessage: String(notifError),
         });
-
-        // Send payment success notification for new purchase/upgrade
-        try {
-          const subscription = await NewSubscriptionService.getUserSubscription(finalUserId);
-          const tierDisplayName = subscription.subscription_display_name || tier;
-          const amount = this.getAmountFromProductId(purchase.productId);
-          // Call scheduler directly to avoid argument count issues
-          await notificationSchedulerService.schedulePaymentSuccessNotification(
-            finalUserId,
-            tierDisplayName,
-            amount
-          );
-        } catch (notifError) {
-          Logger.warn('[StoreKit] Failed to send purchase success notification', {
-            component: 'AppleStoreKitService',
-            errorMessage: String(notifError),
-          });
-        }
       }
 
     } catch (error) {
