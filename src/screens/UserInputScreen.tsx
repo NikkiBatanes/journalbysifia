@@ -269,6 +269,15 @@ const UserInputScreen: React.FC = () => {
 
   // Intro animation when screen first opens
   useEffect(() => {
+    // Skip animation if editing existing text - show immediately
+    if (route.params?.initialText) {
+      headerTranslateY.setValue(isPad && isLandscape ? 20 : 0);
+      headerIntroOpacity.setValue(1);
+      askBoxOpacity.setValue(1);
+      askBoxTranslateY.setValue(0);
+      return;
+    }
+
     Animated.sequence([
       Animated.delay(220), // small delay to let modal finish sliding
       Animated.parallel([
@@ -285,7 +294,7 @@ const UserInputScreen: React.FC = () => {
         Animated.timing(askBoxTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
       ]),
     ]).start();
-  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad]);
+  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad, route.params?.initialText]);
   const handleFocus = () => {
     Animated.timing(inputBorderWidth, {
       toValue: 2,
