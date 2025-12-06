@@ -735,18 +735,18 @@ export class NewSubscriptionService {
     // Create UI-friendly data structure
     const subscription: Subscription = {
       ...data,
-      // ALWAYS use actual tier limits, not stored values (to fix mismatches)
-      playbooks_limit: tierLimits.playbooks_limit,
-      devotionals_limit: tierLimits.devotionals_limit,
-      smart_journaling_enabled: tierLimits.smart_journaling_enabled,
-      show_dashboard_counts: tierLimits.show_dashboard_counts,
-      // ALWAYS use actual tier display name (to fix display mismatches)
-      subscription_display_name: displayName,
-      // UI fields
-      playbooks_ui: tierLimits.playbooks_limit,
-      devotionals_ui: tierLimits.devotionals_limit,
-      playbooks: tierLimits.playbooks_limit,
-      devotionals: tierLimits.devotionals_limit,
+      // Only override if stored values are missing/invalid (null/undefined), NOT if they're valid from upgrades
+      playbooks_limit: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
+      devotionals_limit: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
+      smart_journaling_enabled: data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled,
+      show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
+      // Only override display name if it's missing or doesn't match tier
+      subscription_display_name: data.subscription_display_name && data.subscription_display_name.includes(displayName) ? data.subscription_display_name : displayName,
+      // UI fields - use actual limits (not stored values that might be outdated)
+      playbooks_ui: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
+      devotionals_ui: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
+      playbooks: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
+      devotionals: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
     };
 
     // Calculate trial expiry
