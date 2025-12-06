@@ -572,8 +572,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     modalOpenedRef.current = false;
     // Keep timing guard to prevent rapid re-completion
 
-    // If we're on the last day, return to the list
+    // If we're on the last day, navigate back to previous screen
     if (currentDayIndex === devotional.days.length - 1) {
+      // Use InteractionManager to defer navigation until after modal animations
+      InteractionManager.runAfterInteractions(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      });
       return;
     }
 
