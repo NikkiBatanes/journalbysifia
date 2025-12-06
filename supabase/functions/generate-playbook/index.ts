@@ -742,7 +742,7 @@ serve(async (req: Request) => {
             .select('title')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(3);
 
           if (recentPlaybooks && recentPlaybooks.length > 0) {
             recentTitles = recentPlaybooks.map((p: { title: string }) => p.title).filter(Boolean);
@@ -859,7 +859,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
               },
             ],
             temperature: 0.85, // Increased from 0.7 for more creative variation
-            max_tokens: 2000,
+            max_tokens: 1500,
             frequency_penalty: 0.1,
             presence_penalty: 0.1,
           }),
