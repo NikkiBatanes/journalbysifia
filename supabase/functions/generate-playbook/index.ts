@@ -756,7 +756,10 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       /i'm sorry, but i'm unable to assist/i,
       /i cannot assist with this request/i,
       /i'm unable to help with this/i,
-      /i cannot fulfill this request/i
+      /i cannot fulfill this request/i,
+      /i'm sorry, but i can't assist/i,
+      /i'm sorry, but i cannot assist/i,
+      /i'm sorry, but i'm unable to help/i
     ];
     
     if (refusalPatterns.some(pattern => pattern.test(rawContent))) {
