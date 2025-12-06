@@ -873,7 +873,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
               },
             ],
             temperature: 0.85, // Increased from 0.7 for more creative variation
-            max_tokens: 1200,
+            max_tokens: 3500, // Increased from 1200 to ensure complete playbook with BIBLE VERSE and CHALLENGE
             frequency_penalty: 0.1,
             presence_penalty: 0.1,
           }),
