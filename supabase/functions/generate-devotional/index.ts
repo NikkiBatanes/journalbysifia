@@ -740,22 +740,22 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           },
           // Reference followed by quoted verse (allows multiline verse)
           {
-            pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*["'“”]([\s\S]+?)["'“”]/i,
+            pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*["'""]([\s\S]+?)["'""]/i,
             name: 'format 5 (BOOK 1:19-20 - "verse")',
           },
           // Quoted verse followed by reference
           {
-            pattern: /["'“”]([\s\S]+?)["'“”]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            pattern: /["'""]([\s\S]+?)["'""]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 6 ("verse" - BOOK 1:19-20)',
           },
           // SCRIPTURE: followed by newline, then "verse" - BOOK (the format AI is using)
           {
-            pattern: /SCRIPTURE:[\s\n]*["'"""]([\s\S]+?)["'"""]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            pattern: /SCRIPTURE:[\s\n]*["'""]([\s\S]+?)["'""]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
             name: 'format 7 (SCRIPTURE:\n"verse" - BOOK 1:19-20)',
           },
           // Lenient fallback: any quoted text followed by dash and bible reference
           {
-            pattern: /["'"""]([^"""]+)["'"""]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?)/i,
+            pattern: /["'""]([^"""]+)["'""]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?)/i,
             name: 'format 8 (lenient fallback)',
           },
         ];
