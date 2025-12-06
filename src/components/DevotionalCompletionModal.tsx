@@ -103,6 +103,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const [burstParticles, setBurstParticles] = useState<BurstParticle[]>([]);
   const burstIdRef = useRef(0);
 
+  // Track timers for cleanup
+  const burstTimersRef = useRef<NodeJS.Timeout[]>([]);
+
   const startBurst = useCallback((count = 8) => {
     const colors = [Colors.growthGreen, '#6bd16b', '#8de98d'];
     const particles: BurstParticle[] = Array.from({ length: count }).map((_, i) => {
@@ -140,17 +143,19 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     for (let i = 0; i < pulses; i++) {
       const idx = Math.min(particles.length - 1, i * step);
       const delay = particles[idx]?.delay || i * 80;
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         triggerLightHaptic();
       }, delay);
+      burstTimersRef.current.push(timer);
     }
 
     // Cleanup after the burst completes
-    setTimeout(() => {
+    const cleanupTimer = setTimeout(() => {
       requestAnimationFrame(() => {
         setBurstParticles(prev => prev.filter(h => !particles.find(n => n.id === h.id)));
       });
     }, 1000); // Reduced cleanup delay
+    burstTimersRef.current.push(cleanupTimer);
   }, []);
 
   const isLastDay = devotional &&
@@ -296,6 +301,11 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
   const handleClose = useCallback(() => {
     console.log('[DevotionalCompletionModal] handleClose invoked');
+    
+    // CRITICAL: Clear all burst timers immediately to prevent state updates after unmount
+    burstTimersRef.current.forEach(timer => clearTimeout(timer));
+    burstTimersRef.current = [];
+    
     // Haptic on close action
     triggerLightHaptic();
     Animated.parallel([

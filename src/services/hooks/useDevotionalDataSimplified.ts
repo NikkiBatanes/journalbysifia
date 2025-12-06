@@ -299,12 +299,9 @@ export const useSubmitDevotionalRatingReactQuery = () => {
     },
     onSuccess: (data, { devotionalId, rating, userId }) => {
 
-      // Update list query cache (invalidate to refresh)
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.list(userId),
-      });
-
-      // Update detail query cache directly to prevent modal reset
+      // CRITICAL FIX: Only update cache optimistically, don't invalidate
+      // Invalidating during navigation causes permanent freeze
+      // Update detail query cache directly
       queryClient.setQueryData(
         queryKeys.devotionals.detail(userId, devotionalId),
         (oldData: any) => {
@@ -312,6 +309,17 @@ export const useSubmitDevotionalRatingReactQuery = () => {
             return { ...oldData, rating };
           }
           return oldData;
+        }
+      );
+
+      // Update list query cache directly (no invalidation)
+      queryClient.setQueryData(
+        queryKeys.devotionals.list(userId),
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((devo: any) =>
+            devo.id === devotionalId ? { ...devo, rating } : devo
+          );
         }
       );
 

@@ -26,6 +26,7 @@ import {
   useDevotionalByIdReactQuery,
   useDevotionalOperations,
 } from '../services/hooks/useDevotionalDataSimplified';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
@@ -95,6 +96,15 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   const { data: devotional, isLoading: devotionalLoading, isFetching: devotionalFetching, error: devotionalError, isError } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
+  
+  // Cancel queries on unmount to prevent refetch during navigation
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    return () => {
+      // Cancel all ongoing queries for this devotional when unmounting
+      queryClient.cancelQueries({ queryKey: ['devotionals', 'detail', userId, cleanDevotionalId] });
+    };
+  }, [queryClient, userId, cleanDevotionalId]);
 
   // Logging for React Query state - only on mount and error changes
   useEffect(() => {
@@ -558,6 +568,29 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation]);
 
   const isNavigatingRef = useRef(false);
+  const navigationTimersRef = useRef<{
+    watchdog?: NodeJS.Timeout;
+    delay?: NodeJS.Timeout;
+    raf?: number;
+  }>({});
+
+  // Cleanup navigation timers on unmount
+  useEffect(() => {
+    return () => {
+      if (navigationTimersRef.current.watchdog) {
+        clearTimeout(navigationTimersRef.current.watchdog);
+      }
+      if (navigationTimersRef.current.delay) {
+        clearTimeout(navigationTimersRef.current.delay);
+      }
+      if (navigationTimersRef.current.raf) {
+        cancelAnimationFrame(navigationTimersRef.current.raf);
+      }
+      // Cleanup prayer haptic timers
+      prayerHapticTimersRef.current.forEach(id => clearTimeout(id));
+      prayerHapticTimersRef.current = [];
+    };
+  }, []);
 
   const navigateBackSafely = useCallback((reason: string, extraDelay = 0) => {
     if (isNavigatingRef.current) {
@@ -566,6 +599,17 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         reason,
       });
       return;
+    }
+
+    // Clear any existing timers first
+    if (navigationTimersRef.current.watchdog) {
+      clearTimeout(navigationTimersRef.current.watchdog);
+    }
+    if (navigationTimersRef.current.delay) {
+      clearTimeout(navigationTimersRef.current.delay);
+    }
+    if (navigationTimersRef.current.raf) {
+      cancelAnimationFrame(navigationTimersRef.current.raf);
     }
 
     isNavigatingRef.current = true;
@@ -591,9 +635,12 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       const navEndTime = Date.now();
       console.log('[DevotionalDetail] navigation.goBack() completed', { duration: navEndTime - navStartTime });
       isNavigatingRef.current = false;
+      
+      // Clear timer refs after navigation
+      navigationTimersRef.current = {};
     };
 
-    const watchdogTimer = setTimeout(() => {
+    navigationTimersRef.current.watchdog = setTimeout(() => {
       Logger.warn('[DevotionalDetail] Watchdog forcing navigation to prevent freeze', {
         component: 'DevotionalDetailScreen',
         reason,
@@ -601,14 +648,16 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       forceNavigate();
     }, 2500);
 
-    setTimeout(() => {
+    navigationTimersRef.current.delay = setTimeout(() => {
       const raf = typeof requestAnimationFrame === 'function'
         ? requestAnimationFrame
         : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
-      raf(() => {
-        clearTimeout(watchdogTimer);
+      navigationTimersRef.current.raf = raf(() => {
+        if (navigationTimersRef.current.watchdog) {
+          clearTimeout(navigationTimersRef.current.watchdog);
+        }
         forceNavigate();
-      });
+      }) as any;
     }, extraDelay);
   }, [navigation]);
 
@@ -678,38 +727,33 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // handleModalContinue removed - was defined but never called
 
   // Handle rating submission
-  const handleRatingSubmit = async (rating: number) => {
+  const handleRatingSubmit = (rating: number) => {
     if (!devotional || completedDayIndex === null) {
-      return;
+      return Promise.resolve();
     }
 
-    try {
-      // Submit the rating
-      await submitDevotionalRating(devotional.id, rating);
-
-      // Track usage only. Faith points are awarded via cross-component sync in useMarkDayCompleteReactQuery.
-      if (user?.id) {
-        // Use InteractionManager to defer usage tracking until after animations complete
-        InteractionManager.runAfterInteractions(async () => {
-          try {
-            await subscriptionService.trackUsage(user.id, 'devotional');
-
-          } catch (error) {
-            Logger.error('[DevotionalDetail] Failed to track usage', error as Error, {
-      component: 'DevotionalDetailScreen',
-    });
-          }
+    // CRITICAL FIX: Don't await anything - pure fire-and-forget
+    // Submit rating in background without blocking modal close
+    submitDevotionalRating(devotional.id, rating)
+      .then(() => {
+        // Track usage after rating succeeds
+        if (user?.id) {
+          subscriptionService.trackUsage(user.id, 'devotional')
+            .catch((error) => {
+              Logger.error('[DevotionalDetail] Failed to track usage', error as Error, {
+                component: 'DevotionalDetailScreen',
+              });
+            });
+        }
+      })
+      .catch((error) => {
+        Logger.error('Error submitting rating', error as Error, {
+          component: 'DevotionalDetailScreen',
         });
-      }
+      });
 
-      // React Query handles optimistic updates automatically
-      // No need to update local state
-    } catch (error) {
-      Logger.error('Error submitting rating', error as Error, {
-      component: 'DevotionalDetailScreen',
-    });
-      // Don't close the modal on error - let the user try again
-    }
+    // Return immediately resolved promise so modal can close
+    return Promise.resolve();
   };
 
   // Guard: if query is not enabled yet due to missing user or invalid ID, avoid showing Not Found
