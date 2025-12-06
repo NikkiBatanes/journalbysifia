@@ -638,6 +638,9 @@ serve(async (req: Request) => {
   // Each user should get unique, personalized playbooks
   console.log('[Generate-Playbook] Caching disabled for personalized content');
   console.log('[Generate-Playbook] Generating new playbook for user:', userName);
+  console.log('[Generate-Playbook] userName type:', typeof userName);
+  console.log('[Generate-Playbook] userName length:', userName?.length || 0);
+  console.log('[Generate-Playbook] userName JSON:', JSON.stringify(userName));
 
   try {
     // ENTERPRISE FEATURE: Fetch user's recent playbook titles to ensure uniqueness
@@ -680,6 +683,8 @@ serve(async (req: Request) => {
     // Add unique timestamp to ensure no caching and fresh generation every time
     const generationTimestamp = new Date().toISOString();
     contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${userInput}\nGeneration ID: ${generationTimestamp}
+
+IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
 
 ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. Do NOT reuse or slightly modify any of these titles.` : ''}`;
     
