@@ -124,20 +124,28 @@ export class AppleWebhookHandler {
           return { success: false, message: result.error || 'Trial conversion failed' };
         }
       } else {
-        // Regular renewal - just update transaction ID and clear billing issues
+        // Regular renewal - update transaction ID, clear billing issues, and reset monthly usage
+        // This handles both monthly and yearly subscriptions (yearly gets monthly usage refresh)
         await supabase
           .from('user_subscriptions_new')
           .update({
             platform_transaction_id: transaction.transactionId,
             billing_issue: false,
             grace_period_end_date: null,
+            playbooks_used: 0, // Reset monthly usage counter
+            devotionals_used: 0, // Reset monthly usage counter
+            subscription_start_date: new Date().toISOString(), // Update to new billing cycle start
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId);
 
-        Logger.info('[AppleWebhook] ✅ Regular renewal processed', { userId, transactionId: transaction.transactionId });
+        Logger.info('[AppleWebhook] ✅ Regular renewal processed with usage reset', {
+          userId,
+          transactionId: transaction.transactionId,
+          resetUsage: true,
+        });
 
-        return { success: true, message: 'Renewal processed successfully' };
+        return { success: true, message: 'Renewal processed successfully with usage reset' };
       }
     } catch (error) {
       Logger.error('[AppleWebhook] Exception in handleDidRenew', error as Error, { userId });

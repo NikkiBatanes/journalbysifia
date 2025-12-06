@@ -69,6 +69,7 @@ function getDaysUntilReset(resetDate: Date): number {
 
 /**
  * Get next monthly reset date (Apple-style: same calendar day each month)
+ * IMPORTANT: Always returns NEXT billing cycle date, never today
  */
 function getNextMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   const now = new Date();
@@ -94,13 +95,14 @@ function getNextMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   const resetDateThisMonth = new Date(now.getFullYear(), now.getMonth(), resetDayThisMonth);
   Logger.info('Reset Calculation: This month reset would be', { resetDate: resetDateThisMonth.toISOString() });
 
-  // If the reset date for this month is today or in the future, use it
-  if (resetDateThisMonth >= today) {
+  // If the reset date for this month is in the FUTURE (not today), use it
+  // Changed from >= to > so today's date triggers next month calculation
+  if (resetDateThisMonth > today) {
     Logger.info('Reset Calculation: Using this month\'s reset date', { resetDate: resetDateThisMonth.toISOString() });
     return resetDateThisMonth;
   }
 
-  // Calculate next month's reset date
+  // Calculate next month's reset date (either because today is past this month's date, or today IS the reset date)
   const nextMonth = now.getMonth() + 1;
   const nextYear = nextMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
   const normalizedMonth = (nextMonth + 12) % 12;

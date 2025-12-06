@@ -39,6 +39,7 @@ interface Props {
 
 // Apple monthly renewal helper: renews on the same calendar day each month.
 // If that day does not exist in the target month (e.g., 31), it renews on the last day of that month.
+// IMPORTANT: Always returns NEXT billing cycle date, never today
 function getNextAppleMonthlyResetDate(subscriptionStartISO?: string | null): Date {
   const now = new Date();
   // Set to start of today for accurate day comparison
@@ -56,12 +57,13 @@ function getNextAppleMonthlyResetDate(subscriptionStartISO?: string | null): Dat
   const resetDayThisMonth = Math.min(targetDay, lastDayOfThisMonth);
   const resetDateThisMonth = new Date(now.getFullYear(), now.getMonth(), resetDayThisMonth);
 
-  // If the reset date for this month is today or in the future, use it
-  if (resetDateThisMonth >= today) {
+  // If the reset date for this month is in the FUTURE (not today), use it
+  // Changed from >= to > so today's date triggers next month calculation
+  if (resetDateThisMonth > today) {
     return resetDateThisMonth;
   }
 
-  // Calculate next month's reset date
+  // Calculate next month's reset date (either because today is past this month's date, or today IS the reset date)
   const nextMonth = now.getMonth() + 1;
   const nextYear = nextMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();
   const normalizedMonth = (nextMonth + 12) % 12;
