@@ -260,7 +260,7 @@ const UserInputScreen: React.FC = () => {
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
   const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -200 : -16)).current; // in iPad landscape, start high up
   const headerScale = useRef(new Animated.Value(1)).current;
-  const headerIntroOpacity = useRef(new Animated.Value(1)).current; // Start visible
+  const headerIntroOpacity = useRef(new Animated.Value(0.8)).current; // Start visible but with subtle fade-in
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
 
@@ -270,11 +270,14 @@ const UserInputScreen: React.FC = () => {
   useEffect(() => {
     Animated.sequence([
       Animated.delay(220), // small delay to let modal finish sliding
-      // In iPad landscape, keep logo at 20; otherwise animate to 0 in portrait
-      Animated.timing(
-        headerTranslateY,
-        { toValue: isPad && isLandscape ? 20 : 0, duration: 320, useNativeDriver: true }
-      ),
+      Animated.parallel([
+        Animated.timing(
+          headerTranslateY,
+          { toValue: isPad && isLandscape ? 20 : 0, duration: 320, useNativeDriver: true }
+        ),
+        // Keep opacity animation for smoothness, but start from 0.8 to 1
+        Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+      ]),
       Animated.delay(100),
       Animated.parallel([
         Animated.timing(askBoxOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
