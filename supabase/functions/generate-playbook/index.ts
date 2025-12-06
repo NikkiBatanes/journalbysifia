@@ -220,8 +220,8 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
       lines.slice(1).forEach((line: string) => {
         const trimmedLine = line.trim();
-        if (/^-\s*Sub-task:/i.test(trimmedLine)) {
-          const subTaskText = trimmedLine.replace(/^-\s*Sub-task:\s*/i, '').trim();
+        if (/^\s*-\s*Sub-task:/i.test(trimmedLine)) {
+          const subTaskText = trimmedLine.replace(/^\s*-\s*Sub-task:\s*/i, '').trim();
 
           if (subTaskText) {
             subTasks.push({
@@ -233,8 +233,8 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
               orderIndex: subTasks.length,
             });
           }
-        } else if (/^-\s*Example:/i.test(trimmedLine)) {
-          const exampleText = trimmedLine.replace(/^-\s*Example:\s*/i, '').trim();
+        } else if (/^\s*-\s*Example:/i.test(trimmedLine)) {
+          const exampleText = trimmedLine.replace(/^\s*-\s*Example:\s*/i, '').trim();
 
           // Check if example is interactive
           const interactiveMatch = exampleText.match(/(.+?)\s*\|\s*Interactive:\s*(true|false)/i);
