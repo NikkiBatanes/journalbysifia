@@ -74,9 +74,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Haptic feedback helper
   const triggerSuccessHaptic = () => {
     try {
-      // Import haptics dynamically to avoid issues
-      const { Haptics } = require('expo-haptics');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Use React Native haptics instead of Expo for bare RN projects
+      const { RNHapticFeedback } = require('react-native-haptic-feedback');
+      RNHapticFeedback.trigger('notificationSuccess', {
+        enableVibrateFallback: false,
+        ignoreAndroidSystemSettings: false,
+      });
     } catch (error) {
       // Silently fail if haptics not available
     }
