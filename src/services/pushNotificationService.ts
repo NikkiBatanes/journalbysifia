@@ -333,11 +333,18 @@ class PushNotificationService {
         });
 
       if (error) {
-        Logger.error('[PushNotification] Error saving token to Supabase', error as Error, {
-      component: 'pushNotificationService',
-    });
+        Logger.error('[PushNotification] Error saving token to Supabase', new Error(error.message || 'Unknown Supabase error'), {
+          component: 'pushNotificationService',
+          supabaseError: error,
+          errorCode: error.code,
+          errorDetails: error.details,
+        });
       } else {
-
+        Logger.info('[PushNotification] Device token saved successfully', {
+          component: 'pushNotificationService',
+          userId: deviceToken.user_id,
+          deviceId: deviceToken.device_id,
+        });
       }
     } catch (error) {
       Logger.error('[PushNotification] Error saving device token', error as Error, {
