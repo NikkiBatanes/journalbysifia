@@ -679,7 +679,7 @@ export class NewSubscriptionService {
   /**
    * Get user-friendly display name for a tier
    */
-  private static getTierDisplayName(tier: SubscriptionTier): string {
+  private static getTierDisplayName(tier: SubscriptionTier, trialChosenTier?: SubscriptionTier): string {
     switch (tier) {
       case 'seeker':
         return 'siFia Seeker';
@@ -692,7 +692,9 @@ export class NewSubscriptionService {
       // POST-LAUNCH: case 'family':
       //   return 'siFia Family';
       case 'free_trial':
-        return 'siFia Trial';
+        // Show which tier the trial is for (e.g., siFia Spark Trial)
+        const chosenTier = trialChosenTier || 'spark';
+        return `siFia ${chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1)} Trial`;
       default:
         return `siFia ${String(tier).replace('_', ' ')}`;
     }
@@ -703,7 +705,7 @@ export class NewSubscriptionService {
    */
   private static enrichSubscriptionData(data: any): Subscription {
     const tierLimits = this.getTierLimits(data.tier);
-    const displayName = this.getTierDisplayName(data.tier);
+    const displayName = this.getTierDisplayName(data.tier, data.trial_chosen_tier);
 
     // Create UI-friendly data structure
     const subscription: Subscription = {
