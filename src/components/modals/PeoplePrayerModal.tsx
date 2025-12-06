@@ -44,6 +44,12 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
   const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
   const nameInputRef = useRef<TextInput>(null);
   const prayerInputRef = useRef<TextInput>(null);
+  const prevVisibleRef = useRef(false);
+  const latestNameRef = useRef(name);
+
+  React.useEffect(() => {
+    latestNameRef.current = name;
+  }, [name]);
 
   // Handle tab change and align selected type
   const handleTabChange = useCallback((tab: 'Personal' | 'Requests') => {
@@ -88,33 +94,31 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
     }
   };
 
-  // Reset tab when modal opens and handle focus
+  // Reset tab when modal opens and handle focus once
   React.useEffect(() => {
-    if (visible) {
+    const wasVisible = prevVisibleRef.current;
+
+    if (visible && !wasVisible) {
       if (selectedPrayerType === 'requests') {
         setActiveTab('Requests');
       } else if (selectedPrayerType === 'mine') {
         setActiveTab('Personal');
       } else {
-        // Default to Personal/Mine when opening if nothing selected
         setActiveTab('Personal');
         onSelectPrayerType('mine');
       }
 
-      // Smart focus logic:
-      // If name is already filled (Pray for now scenario), focus on prayer input
-      // Otherwise, focus on name input
       setTimeout(() => {
-        if (name.trim()) {
-          // Name is already filled, focus on prayer body (Pray for now scenario)
+        if (latestNameRef.current.trim()) {
           prayerInputRef.current?.focus();
         } else {
-          // Name is empty, focus on name input (normal scenario)
           nameInputRef.current?.focus();
         }
       }, 150);
     }
-  }, [visible, selectedPrayerType, onSelectPrayerType, name]);
+
+    prevVisibleRef.current = visible;
+  }, [visible, selectedPrayerType, onSelectPrayerType]);
 
   return (
     <Modal
