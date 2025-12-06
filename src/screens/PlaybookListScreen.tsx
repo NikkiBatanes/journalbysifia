@@ -258,15 +258,18 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
       // Refetch and reset floating button animation
       const timer = setTimeout(() => {
-        // Force refetch on focus to ensure fresh data
-        // This bypasses React Query's stale time and ensures we always get fresh data
-        if (userId) {
-          refetch();
-        }
-        // Reset and run floating button expand animation
+        // Reset floating button animation immediately
         buttonWidth.setValue(56);
         textOpacity.setValue(0);
         setTimeout(() => { expandButton(); }, 1000);
+
+        // Defer refetch using InteractionManager to prevent hang when returning from devotional
+        if (userId) {
+          const { InteractionManager } = require('react-native');
+          InteractionManager.runAfterInteractions(() => {
+            refetch();
+          });
+        }
       }, 150);
 
       return () => clearTimeout(timer);
