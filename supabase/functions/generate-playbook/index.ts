@@ -787,17 +787,20 @@ serve(async (req: Request) => {
       return paraphrased;
     };
 
+    // Use a mutable variable for input (may be paraphrased later)
+    let effectiveUserInput = userInput;
+
     // Initialize contextual prompt
     let contextualPrompt = '';
     
     // Apply persona context with Bible version
-    contextualPrompt = applyPersonaContext(strategicAdvisorPersona, userInput, bibleVersion);
+    contextualPrompt = applyPersonaContext(strategicAdvisorPersona, effectiveUserInput, bibleVersion);
     
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
     // Build contextual prompt with title uniqueness check and age personalization
     // Add unique timestamp to ensure no caching and fresh generation every time
     const generationTimestamp = new Date().toISOString();
-    contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${userInput}\nGeneration ID: ${generationTimestamp}
+    contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${effectiveUserInput}\nGeneration ID: ${generationTimestamp}
 
 IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
 
@@ -899,13 +902,13 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         console.log('[Generate-Playbook] AI refused, paraphrasing input and retrying...');
         
         // Paraphrase the input
-        const paraphrasedInput = paraphraseInput(userInput);
+        effectiveUserInput = paraphraseInput(userInput);
         console.log('[Generate-Playbook] Original:', userInput.substring(0, 100));
-        console.log('[Generate-Playbook] Paraphrased:', paraphrasedInput.substring(0, 100));
+        console.log('[Generate-Playbook] Paraphrased:', effectiveUserInput.substring(0, 100));
         
         // Rebuild prompt with paraphrased input
-        contextualPrompt = applyPersonaContext(strategicAdvisorPersona, paraphrasedInput, bibleVersion);
-        contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${paraphrasedInput}\nGeneration ID: ${generationTimestamp}
+        contextualPrompt = applyPersonaContext(strategicAdvisorPersona, effectiveUserInput, bibleVersion);
+        contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${effectiveUserInput}\nGeneration ID: ${generationTimestamp}
 
 IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
 
@@ -922,7 +925,6 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
-        userInput = paraphrasedInput; // Update userInput for playbook creation
       }
     } catch (error) {
       console.error('[Generate-Playbook] Error with gpt-4o-mini:', error);
@@ -991,8 +993,8 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
       throw new Error('AI content policy prevented generation - please rephrase your request');
     }
 
-    // Parse the playbook
-    let playbook = parseOpenAIResponse(aiData, userName, userInput, preferredBibleVersion);
+    // Parse the playbook (use effectiveUserInput which may be paraphrased)
+    let playbook = parseOpenAIResponse(aiData, userName, effectiveUserInput, preferredBibleVersion);
     
     console.log('[Generate-Playbook] Parsed playbook structure:', {
       hasTitle: !!playbook.title,
@@ -1027,7 +1029,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         playbook = parseOpenAIResponse(
           { choices: [{ message: { content: enforcedContent } }] },
           userName,
-          userInput,
+          effectiveUserInput,
           preferredBibleVersion
         );
       }
