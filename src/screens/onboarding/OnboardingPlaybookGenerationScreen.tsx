@@ -380,6 +380,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             // Convert technical errors to user-friendly messages
             const userMessage = error.message?.includes('Circuit breaker is OPEN')
               ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
+              : error.message?.includes('Invalid playbook format')
+              ? 'We\'re having trouble creating your playbook right now. Please try again in a moment.'
               : error.message || 'Failed to generate playbook. Please try again.';
             setGenerationError(userMessage);
             setIsGenerating(false);
@@ -482,6 +484,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       // Convert technical errors to user-friendly messages
       const userMessage = (error as Error).message?.includes('Circuit breaker is OPEN')
         ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
+        : (error as Error).message?.includes('Invalid playbook format')
+        ? 'We\'re having trouble creating your playbook right now. Please try again in a moment.'
         : 'Unable to generate your playbook. Please try again.';
       setGenerationError(userMessage);
       setIsGenerating(false);
