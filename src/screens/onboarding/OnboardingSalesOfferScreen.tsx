@@ -787,12 +787,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             setShowSuccessModal(true);
 
-            // Auto-dismiss sales offer screen after successful payment
-            // Auto-navigate after a short delay to show success briefly
-            setTimeout(() => {
-              logger.info('Auto-dismissing success modal and navigating back');
-              handleSuccessModalContinue();
-            }, 2000); // Show success for 2 seconds then auto-dismiss
+            // Success modal will stay visible until user clicks continue button
+            // This gives users time to read the success message
           } else {
             throw new Error(result.error || 'Purchase failed');
           }
@@ -947,11 +943,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           notificationService.suppressPointsNotifications(true);
           setShowSuccessModal(true);
 
-          // Auto-dismiss sales offer screen after successful payment
-          // Auto-navigate after a short delay to show success briefly
-          setTimeout(() => {
-            handleSuccessModalContinue();
-          }, 2000); // Show success for 2 seconds then auto-dismiss
+          // Success modal will stay visible until user clicks continue button
+          // This gives users time to read the success message
         } else {
           logger.debug('❌ Purchase not successful, throwing error');
           throw new Error(result.error || 'Purchase failed');
