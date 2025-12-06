@@ -1192,6 +1192,13 @@ serve(async (req: Request): Promise<Response> => {
     console.log('==========================');
 
     let content = aiData.choices?.[0]?.message?.content || '';
+    
+    // Check if AI provided any content at all
+    if (!content || content.trim().length === 0) {
+      console.error('[DEVOTIONAL] AI returned empty response');
+      throw new Error('AI returned empty response - no devotional content generated');
+    }
+    
     if (content) {
       content = enforcePersona(content, devotionalAdvisorPersona);
     }
