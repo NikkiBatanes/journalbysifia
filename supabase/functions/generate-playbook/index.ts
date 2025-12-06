@@ -78,8 +78,8 @@ async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): P
     return;
   }
 
-  // Check if this version requires scraping
-  const requiresScraping = ['MSG', 'AMP', 'NLT', 'CSB'].includes(version.toUpperCase());
+  // Check if this version requires scraping (NASB added to prevent AI from repeating same verses)
+  const requiresScraping = ['MSG', 'AMP', 'NLT', 'CSB', 'NASB'].includes(version.toUpperCase());
   console.log(`[Playbook Scripture] Requires scraping: ${requiresScraping}`);
 
   try {
