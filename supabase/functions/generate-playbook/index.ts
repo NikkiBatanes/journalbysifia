@@ -289,18 +289,29 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
           const uniqueRefs = Array.from(new Set(verseRefMatches.map(ref => ref.trim())));
           const reference = uniqueRefs[0]; // Use the first unique reference
           
-          // Check if the reference is already in the text
-          const hasReferenceInText = cleanText.includes(`(${reference})`);
+          // Check if the reference is already in the text (with or without parentheses)
+          const hasReferenceInText = cleanText.includes(reference) || cleanText.includes(`(${reference})`);
           
           if (hasReferenceInText) {
-            // Reference already exists, just return the clean text as-is
+            // Reference already exists, ensure it's properly formatted and return
+            // If reference exists without parentheses, add them
+            if (cleanText.includes(reference) && !cleanText.includes(`(${reference})`)) {
+              // Replace the reference with parenthesized version
+              const textWithRef = cleanText.replace(reference, `(${reference})`);
+              return {
+                id: generateUUID(),
+                text: textWithRef,
+                completed: false,
+              };
+            }
+            // Reference already exists with parentheses, just return the clean text as-is
             return {
               id: generateUUID(),
               text: cleanText,
               completed: false,
             };
           } else {
-            // Remove parenthetical Bible references at the end only
+            // Remove any existing parenthetical references at the end
             let affirmationText = cleanText.replace(/\s*\([^)]*\d+:\d+[^)]*\)\s*$/g, '').trim();
             
             // Clean up extra whitespace
