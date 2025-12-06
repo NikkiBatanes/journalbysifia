@@ -857,7 +857,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
               },
             ],
             temperature: 0.85, // Increased from 0.7 for more creative variation
-            max_tokens: 1500,
+            max_tokens: 1000,
             frequency_penalty: 0.1,
             presence_penalty: 0.1,
           }),
@@ -868,9 +868,9 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
     }
 
     // Truncate prompt if too long to prevent token limit errors
-    if (contextualPrompt.length > 8000) {
-      console.log('[Generate-Playbook] Truncating prompt from', contextualPrompt.length, 'to 8000 chars');
-      contextualPrompt = contextualPrompt.substring(0, 8000) + '\n\n[Response truncated to fit token limit]';
+    if (contextualPrompt.length > 6000) {
+      console.log('[Generate-Playbook] Truncating prompt from', contextualPrompt.length, 'to 6000 chars');
+      contextualPrompt = contextualPrompt.substring(0, 6000) + '\n\n[Response truncated to fit token limit]';
     }
 
     // Try with gpt-4o-mini, paraphrase and retry if refused
@@ -918,9 +918,9 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         contextualPrompt += `\n\n## BIBLE VERSION\nUse ${preferredBibleVersion} for all scripture references. When citing verses, retrieve the EXACT text from ${preferredBibleVersion}.`;
 
         // Truncate prompt if too long to prevent token limit errors
-        if (contextualPrompt.length > 8000) {
-          console.log('[Generate-Playbook] Truncating prompt from', contextualPrompt.length, 'to 8000 chars');
-          contextualPrompt = contextualPrompt.substring(0, 8000) + '\n\n[Response truncated to fit token limit]';
+        if (contextualPrompt.length > 6000) {
+          console.log('[Generate-Playbook] Truncating prompt from', contextualPrompt.length, 'to 6000 chars');
+          contextualPrompt = contextualPrompt.substring(0, 6000) + '\n\n[Response truncated to fit token limit]';
         }
 
         // Retry with paraphrased input
