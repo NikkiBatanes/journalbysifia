@@ -295,9 +295,9 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   if (affMatch) {
     const affirmationsText = affMatch[1].trim();
     // Split by numbered lines or lines that start with common affirmation patterns
-    // Handle gpt-4o format with blank lines between affirmations
+    // Handle both gpt-4o (blank lines) and gpt-4o-mini formats
     const affirmations = affirmationsText
-      .split(/\n(?=\d+\.|•|-|I am|I embrace|As I)/)
+      .split(/\n(?=\d+\.|\n•|\n-|I am|I embrace|As I)/)
       .filter(l => l.trim().length > 0);
     playbook.affirmations = affirmations
       .map((text, _idx) => {
