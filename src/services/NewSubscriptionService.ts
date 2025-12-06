@@ -730,23 +730,23 @@ export class NewSubscriptionService {
    */
   private static enrichSubscriptionData(data: any): Subscription {
     const tierLimits = this.getTierLimits(data.tier);
-    // Convert 999999 to -1 for UI compatibility (unlimited display)
-    const playbooks_ui = tierLimits.playbooks_limit === 999999 ? -1 : tierLimits.playbooks_limit;
-    const devotionals_ui = tierLimits.devotionals_limit === 999999 ? -1 : tierLimits.devotionals_limit;
+    const displayName = this.getTierDisplayName(data.tier);
 
+    // Create UI-friendly data structure
     const subscription: Subscription = {
       ...data,
-      limits: {
-        playbooks: playbooks_ui,
-        devotionals: devotionals_ui,
-        playbooks_limit: tierLimits.playbooks_limit,
-        devotionals_limit: tierLimits.devotionals_limit,
-        smart_journaling_enabled: tierLimits.smart_journaling_enabled,
-        show_dashboard_counts: tierLimits.show_dashboard_counts,
-      },
-      is_trial: data.tier === 'free_trial',
-      is_expired: false,
-      days_remaining: 0,
+      // ALWAYS use actual tier limits, not stored values (to fix mismatches)
+      playbooks_limit: tierLimits.playbooks_limit,
+      devotionals_limit: tierLimits.devotionals_limit,
+      smart_journaling_enabled: tierLimits.smart_journaling_enabled,
+      show_dashboard_counts: tierLimits.show_dashboard_counts,
+      // ALWAYS use actual tier display name (to fix display mismatches)
+      subscription_display_name: displayName,
+      // UI fields
+      playbooks_ui: tierLimits.playbooks_limit,
+      devotionals_ui: tierLimits.devotionals_limit,
+      playbooks: tierLimits.playbooks_limit,
+      devotionals: tierLimits.devotionals_limit,
     };
 
     // Calculate trial expiry
