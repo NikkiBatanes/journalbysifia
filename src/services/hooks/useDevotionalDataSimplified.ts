@@ -221,23 +221,31 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
     onSuccess: async (data, { devotionalId, dayNumber, userId: _completionUserId }) => {
 
       // Trigger cross-component sync to award faith points and update dashboard
-      try {
-        // Check if this completion makes the entire devotional complete
-        const completedDaysCount = data.days.filter(day => day.completed).length;
-        const isFullDevotionalComplete = completedDaysCount === data.totalDays;
+      // Use InteractionManager to defer heavy operations until after animations complete
+      const { InteractionManager } = require('react-native');
+      InteractionManager.runAfterInteractions(() => {
+        try {
+          // Check if this completion makes the entire devotional complete
+          const completedDaysCount = data.days.filter(day => day.completed).length;
+          const isFullDevotionalComplete = completedDaysCount === data.totalDays;
 
-        await syncDevotionalCompletion(devotionalId, undefined, {
-          isFullDevotionalComplete,
-          completedDaysCount,
-          totalDays: data.totalDays,
-          currentDay: dayNumber,
-        });
+          syncDevotionalCompletion(devotionalId, undefined, {
+            isFullDevotionalComplete,
+            completedDaysCount,
+            totalDays: data.totalDays,
+            currentDay: dayNumber,
+          }).catch((syncError: Error) => {
+            Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError, {
+              component: 'useDevotionalDataSimplified',
+            });
+          });
 
-      } catch (syncError) {
-        Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError as Error, {
-  component: 'useDevotionalDataSimplified',
-});
-      }
+        } catch (syncError) {
+          Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError as Error, {
+            component: 'useDevotionalDataSimplified',
+          });
+        }
+      });
 
       // CRITICAL: DO NOT invalidate the list query here - it causes 4.5s VirtualizedList freeze
       // The dashboard will refetch naturally when user navigates back
