@@ -762,10 +762,37 @@ serve(async (req: Request) => {
       }
     }
 
+    // Automatically paraphrase potentially triggering language BEFORE building prompt
+    const paraphraseInput = (input: string): string => {
+      let paraphrased = input;
+      
+      // Soften direct action statements to contemplative ones
+      paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking of');
+      paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
+      paraphrased = paraphrased.replace(/\bnow\b/gi, '');
+      paraphrased = paraphrased.replace(/\bimmediately\b/gi, '');
+      paraphrased = paraphrased.replace(/\btoday\b/gi, '');
+      
+      // Clean up extra spaces
+      paraphrased = paraphrased.replace(/\s+/g, ' ').trim();
+      
+      return paraphrased;
+    };
+    
+    const originalUserInput = userInput;
+    const paraphrasedUserInput = paraphraseInput(userInput);
+    
+    if (originalUserInput !== paraphrasedUserInput) {
+      console.log('[Generate-Playbook] Paraphrased user input to reduce refusals');
+      console.log('[Generate-Playbook] Original:', originalUserInput.substring(0, 100));
+      console.log('[Generate-Playbook] Paraphrased:', paraphrasedUserInput.substring(0, 100));
+      userInput = paraphrasedUserInput;
+    }
+
     // Initialize contextual prompt
     let contextualPrompt = '';
     
-    // Apply persona context with Bible version
+    // Apply persona context with Bible version (using paraphrased input)
     contextualPrompt = applyPersonaContext(strategicAdvisorPersona, userInput, bibleVersion);
     
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
