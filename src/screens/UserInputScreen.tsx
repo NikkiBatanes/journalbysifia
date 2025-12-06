@@ -252,7 +252,8 @@ const UserInputScreen: React.FC = () => {
   };
 
   // const userId = user?.id; // Unused, commented out
-  const userName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+  const fullName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+  const userName = fullName.split(' ')[0] || 'User';
 
   const buttonScale = useRef(new Animated.Value(1)).current;
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
