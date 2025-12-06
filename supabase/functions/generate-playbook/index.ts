@@ -749,17 +749,33 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       throw new Error('AI returned empty response - no playbook content generated');
     }
 
-    // Check for AI refusal responses
-    if (rawContent.toLowerCase().includes("i'm sorry") || 
-        rawContent.toLowerCase().includes("i cannot assist") ||
-        rawContent.toLowerCase().includes("i can't help") ||
-        rawContent.toLowerCase().includes("unable to assist")) {
+    // Check for AI refusal responses (more specific patterns)
+    const refusalPatterns = [
+      /i'm sorry, but i can't assist with that/i,
+      /i'm sorry, but i cannot assist with that/i,
+      /i'm sorry, but i'm unable to assist/i,
+      /i cannot assist with this request/i,
+      /i'm unable to help with this/i,
+      /i cannot fulfill this request/i
+    ];
+    
+    if (refusalPatterns.some(pattern => pattern.test(rawContent))) {
       console.error('[Generate-Playbook] AI refused to generate content:', rawContent);
       throw new Error('AI content policy prevented generation - please rephrase your request');
     }
 
     // Parse the playbook
     let playbook = parseOpenAIResponse(aiData, userName, userInput, preferredBibleVersion);
+    
+    console.log('[Generate-Playbook] Parsed playbook structure:', {
+      hasTitle: !!playbook.title,
+      titleLength: playbook.title?.length || 0,
+      hasActionSteps: Array.isArray(playbook.actionSteps),
+      actionStepsCount: playbook.actionSteps?.length || 0,
+      hasTruthInLove: !!playbook.truthInLove,
+      hasAffirmations: Array.isArray(playbook.affirmations),
+      affirmationsCount: playbook.affirmations?.length || 0
+    });
 
     // Validate that the playbook has the minimum required structure
     if (!playbook.title || playbook.title.trim().length < 5) {
