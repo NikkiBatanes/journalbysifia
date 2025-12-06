@@ -274,7 +274,7 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
     const affirmationsText = affMatch[1].trim();
     // Split by numbered lines or lines that start with common affirmation patterns
     const affirmations = affirmationsText
-      .split(/\n(?=\d+\.|\n•|\n-|I am|I embrace|As I))/)
+      .split(/\n(?=\d+\.|\n•|\n-|I am|I embrace|As I)/)
       .filter(l => l.trim().length > 0);
     playbook.affirmations = affirmations
       .map((text, _idx) => {
