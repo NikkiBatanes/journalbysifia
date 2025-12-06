@@ -140,18 +140,25 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
       mainTitle = titleMatchBold[1].trim();
       subtitle = titleMatchBold[2].trim();
     } else {
-      // Fallback to non-bold without angle brackets (gpt-4o format)
-      const titleMatchGPT4o = content.match(/PLAYBOOK TITLE:\s*\n(.+?)\n(.+?)\n/i);
-      if (titleMatchGPT4o) {
-        mainTitle = titleMatchGPT4o[1].trim();
-        subtitle = titleMatchGPT4o[2].trim();
+      // Fallback to ### TITLE: format (new gpt-4o-mini format)
+      const titleMatchHash = content.match(/### TITLE:\s*\n(.+?)\n(.+?)\n/i);
+      if (titleMatchHash) {
+        mainTitle = titleMatchHash[1].trim();
+        subtitle = titleMatchHash[2].trim();
       } else {
-        // Fallback to the original method without bold formatting
-        const playbookTitleMatch = content.match(/PLAYBOOK TITLE:\s*([\s\S]*?)(?=\n(?:TRUTH SUMMARY:|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$))/i);
-        if (playbookTitleMatch) {
-          const titleLines = playbookTitleMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
-          mainTitle = titleLines[0] || '';
-          subtitle = titleLines[1] || '';
+        // Fallback to non-bold without angle brackets (gpt-4o format)
+        const titleMatchGPT4o = content.match(/PLAYBOOK TITLE:\s*\n(.+?)\n(.+?)\n/i);
+        if (titleMatchGPT4o) {
+          mainTitle = titleMatchGPT4o[1].trim();
+          subtitle = titleMatchGPT4o[2].trim();
+        } else {
+          // Fallback to the original method without bold formatting
+          const playbookTitleMatch = content.match(/(?:###\s*)?TITLE:\s*([\s\S]*?)(?=\n(?:###\s*)?(?:TRUTH SUMMARY:|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$))/i);
+          if (playbookTitleMatch) {
+            const titleLines = playbookTitleMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
+            mainTitle = titleLines[0] || '';
+            subtitle = titleLines[1] || '';
+          }
         }
       }
     }
@@ -192,6 +199,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   // Parse Truth Summary (handle bold formatting)
   let truthSummaryMatch = content.match(/\*\*TRUTH SUMMARY:\*\*\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (!truthSummaryMatch) {
+    // Fallback to ### format
+    truthSummaryMatch = content.match(/### TRUTH SUMMARY:\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### TRUTH IN LOVE:|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
+  if (!truthSummaryMatch) {
     // Fallback to non-bold formatting
     truthSummaryMatch = content.match(/TRUTH SUMMARY:\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   }
@@ -207,6 +218,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
   // Parse Truth in Love (handle bold formatting)
   let truthInLoveMatch = content.match(/\*\*TRUTH IN LOVE:\*\*\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (!truthInLoveMatch) {
+    // Fallback to ### format
+    truthInLoveMatch = content.match(/### TRUTH IN LOVE:\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
+  if (!truthInLoveMatch) {
     // Fallback to non-bold formatting
     truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   }
@@ -221,6 +236,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
   // Parse Action Steps with Smart Journaling (handle bold formatting)
   let actionStepsMatch = content.match(/\*\*ACTION STEPS:\*\*\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  if (!actionStepsMatch) {
+    // Fallback to ### format
+    actionStepsMatch = content.match(/### ACTION STEPS:\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
   if (!actionStepsMatch) {
     // Fallback to non-bold formatting
     actionStepsMatch = content.match(/ACTION STEPS:\s*([\s\S]*?)(?=AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
@@ -296,6 +315,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
   // Parse Affirmations (handle bold formatting)
   let affMatch = content.match(/\*\*AFFIRMATIONS:\*\*\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|BIBLE VERSE:|CHALLENGE:|$)/i);
+  if (!affMatch) {
+    // Fallback to ### format
+    affMatch = content.match(/### AFFIRMATIONS:\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### BIBLE VERSE:|### CHALLENGE:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
   if (!affMatch) {
     // Fallback to non-bold formatting
     affMatch = content.match(/AFFIRMATIONS:\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|BIBLE VERSE:|CHALLENGE:|$)/i);
@@ -384,6 +407,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
   // Parse Bible Verse with enhanced scripture patterns (handle bold formatting)
   let bibleVerseMatch = content.match(/\*\*BIBLE VERSE:\*\*\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
+  if (!bibleVerseMatch) {
+    // Fallback to ### format
+    bibleVerseMatch = content.match(/### BIBLE VERSE:\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|### CHALLENGE:|CHALLENGE:|$)/i);
+  }
   if (!bibleVerseMatch) {
     // Fallback to non-bold formatting
     bibleVerseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
@@ -563,6 +590,10 @@ function parseOpenAIResponse(aiData: OpenAIData, _userName: string, userInput: s
 
   // Parse Direct Challenge (handle bold formatting)
   let challengeMatch = content.match(/\*\*CHALLENGE:\*\*\s*([\s\S]*)/i);
+  if (!challengeMatch) {
+    // Fallback to ### format
+    challengeMatch = content.match(/### CHALLENGE:\s*([\s\S]*)/i);
+  }
   if (!challengeMatch) {
     // Fallback to non-bold formatting
     challengeMatch = content.match(/CHALLENGE:\s*([\s\S]*)/i);
