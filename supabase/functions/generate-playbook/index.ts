@@ -1017,6 +1017,28 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
+        
+        // Check if AI STILL refused after paraphrasing
+        if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
+          console.error('[Generate-Playbook] AI refused even after paraphrasing - topic too sensitive for AI');
+          return new Response(
+            JSON.stringify({
+              error: 'AI_REFUSED',
+              message: 'This topic requires immediate professional support. Please contact:\n\n• National Suicide Prevention Lifeline: 988\n• Crisis Text Line: Text HOME to 741741\n• International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/\n\nYou are loved, valued, and your life has purpose in Christ. Please reach out to these resources immediately.',
+              alternatives: [
+                'Finding hope and purpose in Christ',
+                'Understanding God\'s love for you',
+                'Connecting with a Christian counselor',
+                'Building a support network in faith',
+              ],
+              category: 'self_harm',
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
       }
     } catch (error) {
       console.error('[Generate-Playbook] Error with gpt-4o-mini:', error);

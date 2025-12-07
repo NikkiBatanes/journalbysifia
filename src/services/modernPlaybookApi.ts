@@ -343,12 +343,12 @@ async function generatePlaybookInternal(
 
         // Transform Supabase SDK response
         if (sdkResponse.error) {
-          // Check if the error data contains CONTENT_BLOCKED
+          // Check if the error data contains CONTENT_BLOCKED or AI_REFUSED
           const errorData = sdkResponse.error as any;
           if (errorData.message && typeof errorData.message === 'string') {
             try {
               const parsedError = JSON.parse(errorData.message);
-              if (parsedError.error === 'CONTENT_BLOCKED') {
+              if (parsedError.error === 'CONTENT_BLOCKED' || parsedError.error === 'AI_REFUSED') {
                 const blockError: any = new Error(parsedError.message || 'Content blocked');
                 blockError.contentBlocked = true;
                 blockError.christianMessage = parsedError.message;
@@ -410,6 +410,16 @@ async function generatePlaybookInternal(
               blockError.alternatives = errorData.alternatives;
               blockError.category = errorData.category;
               throw blockError;
+            }
+
+            // Handle AI_REFUSED error (AI can't generate even after paraphrasing)
+            if (errorData.error === 'AI_REFUSED') {
+              const refusedError: any = new Error(errorData.message || 'AI cannot generate content for this topic');
+              refusedError.contentBlocked = true; // Treat same as contentBlocked for UI
+              refusedError.christianMessage = errorData.message;
+              refusedError.alternatives = errorData.alternatives;
+              refusedError.category = errorData.category;
+              throw refusedError;
             }
 
             // Handle other JSON errors
