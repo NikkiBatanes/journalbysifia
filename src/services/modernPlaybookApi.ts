@@ -447,7 +447,7 @@ async function generatePlaybookInternal(
       if (error.message.includes('session') ||
           error.message.includes('token') ||
           error.message.includes('sign in') ||
-          error.message.includes('CONTENT_BLOCKED') ||
+          (error as any).contentBlocked ||
           isTimeoutError(error)) {
         throw error;
       }

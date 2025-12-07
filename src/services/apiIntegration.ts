@@ -218,6 +218,11 @@ export async function generatePlaybook(
     }
 
   } catch (error: any) {
+    // If content was blocked, re-throw immediately without auth error handling
+    if (error.contentBlocked) {
+      throw error;
+    }
+
     Logger.error('❌ Playbook generation failed', error as Error, {
       component: 'apiIntegration',
     });
