@@ -1316,8 +1316,14 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const usageSummary = useMemo(() => {
     if (!subscription || !usage) {return null;}
-    const playbookLimitNum = subscription.limits?.playbooks === -1 ? -1 : (subscription.limits?.playbooks || 0);
-    const devotionalLimitNum = subscription.limits?.devotionals === -1 ? -1 : (subscription.limits?.devotionals || 0);
+    const normalizeLimit = (limitValue?: number | null) => {
+      if (typeof limitValue !== 'number') {return 0;}
+      if (limitValue < 0) {return -1;}
+      if (limitValue >= 999999) {return -1;}
+      return limitValue;
+    };
+    const playbookLimitNum = normalizeLimit(subscription.limits?.playbooks);
+    const devotionalLimitNum = normalizeLimit(subscription.limits?.devotionals);
     return {
       playbooks: { used: usage.playbooks_generated || 0, limit: playbookLimitNum },
       devotionals: { used: usage.devotionals_generated || 0, limit: devotionalLimitNum },

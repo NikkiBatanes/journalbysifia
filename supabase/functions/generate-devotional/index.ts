@@ -1150,6 +1150,9 @@ serve(async (req: Request): Promise<Response> => {
   
   console.log('[Generate-Devotional] FINAL: Age source:', ageSource);
   console.log('[Generate-Devotional] FINAL: Calculated age:', calculatedAge);
+  if (isTeenUser) {
+    console.log('[Generate-Devotional] Teen user detected - simplifying language');
+  }
   console.log('[Generate-Devotional] FINAL: Teen user (simplified language):', isTeenUser);
   console.log('[Generate-Devotional] ========== AGE DETECTION END ==========');
 
