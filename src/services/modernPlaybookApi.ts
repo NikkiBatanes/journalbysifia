@@ -395,9 +395,12 @@ async function generatePlaybookInternal(
         });
 
         if (!response.ok) {
-          // Try to parse as JSON first (for structured errors like CONTENT_BLOCKED)
+          // Read as text first (can only read body once)
+          const errorText = await response.text();
+
+          // Try to parse as JSON (for structured errors like CONTENT_BLOCKED)
           try {
-            const errorData = await response.json();
+            const errorData = JSON.parse(errorText);
 
             // Handle CONTENT_BLOCKED error specially
             if (errorData.error === 'CONTENT_BLOCKED') {
@@ -417,9 +420,7 @@ async function generatePlaybookInternal(
               throw parseError;
             }
 
-            // If JSON parsing failed, try text
-            const errorText = await response.text();
-
+            // JSON parsing failed, use text error
             // Handle specific error cases
             if (response.status === 401) {
               throw new Error(AUTH_ERROR_MESSAGES.SESSION_EXPIRED);
