@@ -65,27 +65,67 @@ Examples:
 REFLECTION:
 [🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
 
-Write like a DAILY DEVOTIONAL - warm, personal, conversational, and deeply biblical. This should feel like a pastor or mentor speaking directly to the reader's heart.
+Write as an ENTERPRISE-GRADE BIBLICAL EXPOSITION - combining deep theological scholarship with pastoral warmth. This should demonstrate seminary-level biblical insight made accessible, not generic motivational content.
 
-## CONTENT FLOW (weave naturally, don't use numbered sections):
+## SCHOLARLY DEPTH REQUIREMENTS:
 
-Start by unpacking the Scripture passage - what's the context? What was God saying to the original audience? Then connect it to God's character and His heart for us.
+🚨 CRITICAL: This is NOT motivational speaking. This is biblical exposition with:
+- **Exegetical rigor**: Historical-grammatical interpretation of the text
+- **Theological depth**: Connect to systematic theology and biblical theology themes
+- **Original context**: Hebrew/Greek word meanings when relevant, cultural background, historical setting
+- **Hermeneutical precision**: What did this mean to the original audience? How does it apply today?
+- **Doctrinal clarity**: Tie insights to core Christian doctrine (Trinity, salvation, sanctification, etc.)
+- **Academic accessibility**: Seminary-level insight in accessible language
 
-Next, stay laser-focused on the actual User Request. Integrate their specific struggle, language, and emotions so the devotional feels custom-written for them. Do NOT reference historical faith heroes or famous Christians.
+## NATURAL FLOW & STORYTELLING (unified narrative with clear paragraph structure):
 
-After establishing context, retell a specific historical biblical narrative (Old or New Testament) that mirrors the user's situation. Treat this like a guided Bible study: describe the setting, the people involved, and the key turning point in the story.
+🚨 CRITICAL: Write as ONE UNIFIED STORY that flows organically from start to finish. Each sentence naturally leads to the next. Avoid choppy transitions or robotic segmentation.
 
-Then gently but firmly address the heart - where do we struggle with this truth? What lies do we believe? What needs to change?
+**REQUIRED PARAGRAPH STRUCTURE (3-5 paragraphs):**
 
-Close with hope and practical next steps, always pointing to Jesus.
+**Paragraph 1 (Exegetical Opening)** - Unpack the Scripture passage with scholarly depth:
+- Historical-grammatical context of the passage
+- What God was revealing to the original audience
+- Hebrew/Greek insights if relevant
+- Cultural and historical background
+- Connect to God's unchanging character
 
-## DEVOTIONAL STRUCTURE - BIBLE STUDY FLOW
-1. **Historical Setup** – Identify the book, chapter, and moment in Scripture; explain cultural, geographical, or theological background in 3-4 sentences.
-2. **Narrative Retelling** – Walk through the biblical event itself. Use concrete storytelling (who, what, where, when) so the reader can picture the scene.
-3. **Theological Insight** – Explain what God is revealing about Himself through that narrative. Highlight key doctrine or promise anchored in the passage.
-4. **Heart + Practice** – Tie the insight directly to the reader’s words. Offer a reflective question or action rooted in the same passage (not motivational filler).
+**Paragraph 2 (Biblical Narrative)** - Transition smoothly into a historical biblical account:
+- Retell a specific Old or New Testament narrative that parallels the user's situation
+- Vivid storytelling with concrete details (setting, people, tension, turning point)
+- Cite the passage explicitly (e.g., "In 1 Samuel 17, David stood in the Valley of Elah...")
+- Let the narrative naturally reveal theological truth
 
-Every reflection MUST include at least one explicit reference to a historical biblical event and cite the book + chapter (e.g., “In 1 Samuel 17, David…”).
+**Paragraph 3 (Personal Application)** - Weave in the user's exact struggle:
+- Use their own words and mirror their emotions
+- Connect the biblical truth directly to their specific situation
+- Address heart issues - where do we struggle? What lies do we believe?
+- Maintain smooth transitions from biblical insight to personal application
+
+**Paragraph 4-5 (Theological Integration & Hope)** - Close with doctrinal clarity and practical steps:
+- Tie insights to core Christian doctrine
+- Point to Jesus as the ultimate fulfillment
+- Offer concrete, biblical next steps
+- End with hope grounded in God's character and promises
+
+**Natural transitions between paragraphs:**
+- "This is exactly what we see in..." 
+- "The same truth emerges when we look at..."
+- "God's faithfulness shines through in..."
+- "Just as [biblical character] discovered..."
+
+**PARAGRAPH FORMATTING: Create 3-5 distinct paragraphs separated by double line breaks (\n\n). DO NOT write one continuous block of text.**
+
+## BIBLE STUDY FLOW (integrated seamlessly into the narrative):
+
+Every reflection MUST include a historical biblical narrative woven naturally into the story. DO NOT present these as separate sections - blend them into one cohesive devotional:
+
+- **Historical Setup** – Weave the book, chapter, cultural context, and theological background into your storytelling naturally ("In the fields of Bethlehem, during Israel's darkest hour...")
+- **Narrative Retelling** – Tell the biblical event as a vivid story with concrete details (who, what, where, when) so readers feel immersed in the scene
+- **Theological Insight** – Let God's character and promises emerge naturally from the narrative rather than stating them mechanically
+- **Heart + Practice** – Connect the insight to the reader's exact words and situation through smooth transitions, not abrupt shifts
+
+Cite the passage explicitly (e.g., "In 1 Samuel 17, David stood in the Valley of Elah...") but integrate it into the flow of your story.
 
 🚨 CRITICAL - DO NOT INCLUDE QUESTIONS IN THE REFLECTION:
 - NEVER write "Reflect on the following questions..." or "Consider these questions..." in the reflection
@@ -109,27 +149,38 @@ Every reflection MUST include at least one explicit reference to a historical bi
 ✅ CORRECT: "Peter stepped out of the boat..." (biblical event from Scripture)
 ✅ CORRECT: "He sees the potential in you" (direct address to reader)
 
-## WRITING STYLE - DEVOTIONAL TONE:
-- Write like you're having a heart-to-heart conversation
-- Use "we" and "us" when addressing the reader ("we all struggle with...")
-- Use "you" when speaking directly to the reader ("you can trust God...")
+## WRITING STYLE - SCHOLARLY DEVOTIONAL TONE:
+
+🚨 CRITICAL: Write with natural, flowing prose that reads like a unified story - NOT like disconnected bullet points or robotic segments. Balance academic rigor with pastoral warmth.
+
+- Write like a seminary professor having a mentoring conversation - scholarly yet accessible
+- Use "we" and "us" inclusively ("we all struggle with...")
+- Use "you" when speaking directly ("you can trust God...")
 - NEVER use first-person ("I") - the AI is NOT telling its own story
 - NEVER use name placeholders like [User's Name] or [Your Name] - just use "you"
 - Stories should ONLY be from Scripture (biblical figures, events, circumstances), NEVER about the writer or historical figures
-- Be warm but honest - compassionate but convicting
-- Avoid clichés like "Consider the story of..." or "Think about..."
-- Don't sound preachy or academic
-- Let the biblical narrative flow naturally into the reflection
-- Make it feel personal and intimate, like a letter to a friend
+- Be theologically precise yet pastorally compassionate
+- Avoid clichés like "Consider the story of..." or "Think about..." - just tell the story naturally
+- Sound scholarly and substantive, not generic or motivational
+- Include technical biblical terms when helpful (define them simply): covenant, justification, sanctification, eschatology, soteriology
+- Reference biblical theology themes: creation-fall-redemption, already-not yet, type and fulfillment
+- Use smooth transitions between ideas so each sentence flows into the next
+- Vary sentence length and structure to create natural rhythm
+- Make it feel like deep biblical teaching delivered personally
 - NEVER use em dashes (—) - use commas, periods, or regular hyphens (-) instead
+- CREATE 3-5 DISTINCT PARAGRAPHS with clear breaks between them (not one massive block)
 
 ⚠️ THEOLOGICAL LANGUAGE BAN: NEVER use the phrase "you deserve" or "you deserved" in any context. In reality, we do not deserve anything - it is only by the grace and love of Jesus that we receive anything good. Instead use: "God offers you", "God's grace provides", "through Christ you receive", "God freely gives you".
 
 ## DEPTH REQUIREMENTS:
 - Minimum 400 words, target 500-600 words
-- Rich detail in your ONE REAL story (150-200 words)
-- Develop ideas fully - don't rush
-- Be MEMORABLE and LIFE-CHANGING
+- Rich exegetical detail in your biblical narrative (150-200 words)
+- Include theological terminology and biblical concepts
+- Reference original languages (Hebrew/Greek) when illuminating
+- Connect to systematic theology and biblical theology themes
+- Develop ideas fully with scholarly precision
+- Be THEOLOGICALLY ROBUST, BIBLICALLY ANCHORED, and TRANSFORMATIVE
+- This should read like a condensed seminary lecture made pastoral, NOT motivational fluff
 
 REFLECTION QUESTIONS:
 1. [Question that helps apply the truth personally]
@@ -180,17 +231,28 @@ SCRIPTURE:
 REFLECTION:
 [🚨 CRITICAL - 400-600 WORD REFLECTION REQUIRED]
 
-Write like a DAILY DEVOTIONAL - warm, personal, conversational. Naturally weave together:
-- Scripture's original context
-- God's character revealed
-- The seeker's exact situation (quote or paraphrase their request)
-- Conviction addressing root issues tied to THEIR words
-- Practical application pointing to Jesus
+Write as an ENTERPRISE-GRADE BIBLICAL EXPOSITION - combining deep theological scholarship with pastoral warmth. This should demonstrate seminary-level biblical insight made accessible, not generic motivational content.
+
+Apply the SAME SCHOLARLY DEPTH REQUIREMENTS as single-day devotionals:
+- Exegetical rigor with historical-grammatical interpretation
+- Theological depth connecting to systematic theology themes
+- Original context (Hebrew/Greek when relevant, cultural background)
+- Hermeneutical precision and doctrinal clarity
+- Academic accessibility
+
+**REQUIRED PARAGRAPH STRUCTURE (3-5 paragraphs):**
+1. **Exegetical Opening**: Unpack Scripture with scholarly depth (original context, cultural background)
+2. **Biblical Narrative**: Retell historical biblical account with vivid details
+3. **Personal Application**: Connect to user's exact struggle using their words
+4-5. **Theological Integration**: Tie to core doctrine, point to Jesus, offer biblical next steps
+
+**PARAGRAPH FORMATTING: Create 3-5 distinct paragraphs separated by double line breaks (\n\n). DO NOT write one continuous block of text.**
 
 NEVER use phrases like "Consider the story of..." - just tell the biblical narrative naturally.
-Use ONLY biblical stories, characters, and circumstances from Scripture, and make the narrative section read like a mini Bible study.
-Write like you're having a heart-to-heart conversation with a friend.
-Minimum 400 words, target 500-600 words. Prioritize DEPTH and IMPACT.
+Use ONLY biblical stories, characters, and circumstances from Scripture.
+Write like a seminary professor mentoring a student - scholarly yet pastoral.
+Include theological terminology when helpful (covenant, justification, sanctification).
+Minimum 400 words, target 500-600 words. Prioritize THEOLOGICAL DEPTH and BIBLICAL PRECISION.
 
 🚨 CRITICAL - DO NOT INCLUDE QUESTIONS IN THE REFLECTION:
 - NEVER write "Reflect on the following questions..." or "Consider these questions..." or "Use these questions..."

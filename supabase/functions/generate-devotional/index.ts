@@ -856,15 +856,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           // Pattern 4: Any trailing numbered list (1. 2. 3.) at the end of reflection
           reflection = reflection.replace(/\n\s*\d+\.\s+[^\n]+\s*\d+\.\s+[^\n]+\s*\d+\.\s+[^\n]+\s*$/i, '').trim();
           
-          // Format into paragraphs if not already
-          if (!/\n{2,}/.test(reflection)) {
-            const sentences = reflection.split(/(?<=[.!?])\s+/);
-            const paragraphs = [];
-            for (let i = 0; i < sentences.length; i += 2) {
-              paragraphs.push(sentences.slice(i, i + 2).join(' '));
-            }
-            reflection = paragraphs.join('\n\n');
-          }
+          // Preserve AI's natural paragraph structure - do not force artificial breaks
+          // The AI is instructed to create organic, flowing paragraphs in its output
         } else {
           reflection = 'Take time to reflect on today\'s scripture and how it speaks to your current situation.';
         }
