@@ -544,7 +544,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
   // Fetch real journal entries from user interactions - NOT generated content
   const fetchRealEntries = React.useCallback(async () => {
-    console.log('🔵 [EnhancedMomentsRenderer] fetchRealEntries called', { userId: user?.id, refreshKey });
     if (!user) {
       setRealEntries([]);
       setLoading(false);
@@ -558,7 +557,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         setLoading(true);
       }
       let entries: MomentEntry[] = [];
-      console.log('🔵 [EnhancedMomentsRenderer] Fetching journal entries from Supabase (loading: ' + !hasLoadedOnce.current + ')');
       // dayReflectionCount removed - was defined but never used
 
       // Fetch real journal entries from user interactions - NOT generated content
@@ -1143,7 +1141,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
       }
 
-      console.log('✅ [EnhancedMomentsRenderer] Setting real entries', { count: entries.length, refreshKey });
       setRealEntries(entries);
     } catch (error) {
       Logger.error('❌ [MomentsRenderer] Error fetching journal entries', error as Error, { component: 'EnhancedMomentsRenderer' });

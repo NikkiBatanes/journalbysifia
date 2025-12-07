@@ -63,23 +63,16 @@ export const MomentsScreen: React.FC = () => {
 
   // Listen for reflection save and delete events to refresh the moments view
   useEffect(() => {
-    const handleReflectionChanged = (event?: any) => {
-      console.log('📢 [MomentsScreen] Event received:', event);
-      setRefreshKey(prev => {
-        console.log('🔄 [MomentsScreen] Incrementing refreshKey:', prev, '->', prev + 1);
-        return prev + 1;
-      });
+    const handleReflectionChanged = () => {
+      setRefreshKey(prev => prev + 1);
     };
 
     const savedSubscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionChanged);
     const deletedSubscription = DeviceEventEmitter.addListener('reflection_deleted', handleReflectionChanged);
 
-    console.log('✅ [MomentsScreen] Event listeners registered');
-
     return () => {
       savedSubscription.remove();
       deletedSubscription.remove();
-      console.log('🗑️ [MomentsScreen] Event listeners removed');
     };
   }, []);
 

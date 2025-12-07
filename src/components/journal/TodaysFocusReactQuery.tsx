@@ -322,29 +322,24 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     }
 
     try {
-      Logger.debug('🔵 [TodaysFocus] Starting save', { dateStr, userId: user.id });
       const contentToSave = JSON.stringify(focusData);
 
       if (existingEntry) {
         // Update existing entry
-        Logger.debug('🔵 [TodaysFocus] Calling updateMutation', { entryId: existingEntry.id });
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: {
             content: contentToSave,
           },
         });
-        Logger.debug('✅ [TodaysFocus] updateMutation completed');
       } else {
         // Create new entry
-        Logger.debug('🔵 [TodaysFocus] Calling createMutation');
         await createMutation.mutateAsync({
           user_id: user.id,
           selected_date: dateStr,
           content_type: 'todays_focus',
           content: contentToSave,
         });
-        Logger.debug('✅ [TodaysFocus] createMutation completed');
       }
 
       // Track successful focus update
@@ -356,7 +351,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       }, user.id);
 
       setIsEditing(false);
-      Logger.debug('✅ [TodaysFocus] Save completed - cache will auto-invalidate');
 
       // Emit event for Moments screen (which uses direct Supabase, not React Query)
       DeviceEventEmitter.emit('reflection_saved', {
@@ -438,7 +432,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   };
 
   const togglePriority = async (index: number) => {
-    Logger.debug('🔵 [TodaysFocus] togglePriority called', { index, dateStr });
     const currentData = data;
     const newPriorities = currentData.priorities.map((p, i) => {
       if (i === index) {
