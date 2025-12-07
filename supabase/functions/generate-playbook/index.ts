@@ -818,20 +818,28 @@ serve(async (req: Request) => {
       paraphrased = paraphrased.replace(/\b(i want to|i need to|i will|i'm going to)\s+kill\s+myself\b/gi, 'I am having thoughts of self-harm');
       paraphrased = paraphrased.replace(/\b(i want to|i need to|i will|i'm going to)\s+end\s+my\s+life\b/gi, 'I am struggling with suicidal thoughts');
 
-      // Soften direct action statements to contemplative ones
-      paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
-      paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
-      paraphrased = paraphrased.replace(/\bnow\b/gi, '');
-      paraphrased = paraphrased.replace(/\bimmediately\b/gi, '');
-      paraphrased = paraphrased.replace(/\btoday\b/gi, '');
+      // Handle gender identity gently (only if AI refuses)
+      paraphrased = paraphrased.replace(/\b(i want to|i will|i'm going to)\s+change\s+my\s+gender\b/gi, 'I am exploring my gender identity');
+      paraphrased = paraphrased.replace(/\b(i want to|i will|i'm going to)\s+transition\b/gi, 'I am considering gender transition');
+      paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
+
+      // Soften direct action statements to contemplative ones (but not for gender identity)
+      if (!input.match(/\b(gender|transition|identity)\b/i)) {
+        paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
+        paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
+        paraphrased = paraphrased.replace(/\bnow\b/gi, '');
+        paraphrased = paraphrased.replace(/\bimmediately\b/gi, '');
+        paraphrased = paraphrased.replace(/\btoday\b/gi, '');
+      }
 
       // Soften "trapped" language to "struggling with"
       paraphrased = paraphrased.replace(/\b(trapped|stuck)\b/gi, 'struggling with');
       paraphrased = paraphrased.replace(/\bin a (girl|boy|male|female) body\b/gi, 'my gender identity');
 
-      // Soften medical/surgical terms
-      paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
-      paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
+      // Soften medical/surgical terms (but preserve gender transition terms)
+      if (!input.match(/\b(gender|transition)\b/i)) {
+        paraphrased = paraphrased.replace(/\btransition\b/gi, 'exploring my identity');
+      }
 
       // Soften severe violence/self-harm language
       paraphrased = paraphrased.replace(/\brape\b/gi, 'sexual assault');
@@ -990,25 +998,9 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
           console.log('[Generate-Playbook] Detected victim experience, using Christian paraphrasing');
           effectiveUserInput = paraphraseVictimExperience(userInput);
         } else if (contentAnalysis.category === 'gender_identity') {
-          console.log('[Generate-Playbook] Gender identity topic - AI refused but not paraphrasing');
-          // Don't paraphrase gender identity topics - let the refusal be handled
-          return new Response(
-            JSON.stringify({
-              error: 'AI_REFUSED',
-              message: 'This topic requires professional support. For gender identity guidance, please consult with:\n\n• A Christian counselor experienced in gender identity\n• A pastor who can provide spiritual guidance\n• LGBTQ+ affirming Christian organizations\n\nGod loves you as you are and wants to support your journey.',
-              alternatives: [
-                'Understanding identity in Christ',
-                'Finding affirming Christian community',
-                'Exploring faith and gender',
-                'Building a relationship with God',
-              ],
-              category: 'gender_identity',
-            }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
+          console.log('[Generate-Playbook] Gender identity topic - using gentle paraphrasing to help AI generate');
+          // Paraphrase gender identity topics gently to help AI generate content
+          effectiveUserInput = paraphraseInput(userInput);
         } else {
           console.log('[Generate-Playbook] AI refused - using standard paraphrasing for sensitive topic');
           effectiveUserInput = paraphraseInput(userInput);
