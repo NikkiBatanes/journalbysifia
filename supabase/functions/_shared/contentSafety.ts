@@ -6,7 +6,7 @@
 export interface ContentAnalysis {
   isHarmfulIntent: boolean;
   isVictimExperience: boolean;
-  category?: 'violence' | 'sexual_assault' | 'theft' | 'harassment' | 'self_harm' | 'gender_identity' | 'revenge' | 'other';
+  category?: 'violence' | 'sexual_assault' | 'theft' | 'harassment' | 'self_harm' | 'gender_identity' | 'revenge' | 'hate_speech' | 'other';
   shouldBlock: boolean;
   shouldParaphrase: boolean;
   christianMessage?: string;
@@ -71,6 +71,14 @@ export function analyzeContent(input: string): ContentAnalysis {
     /\bpayback|retaliation|vengeance\b/i,
   ];
 
+  // Patterns indicating HATE SPEECH topics (should be allowed for guidance, not blocked)
+  const hateSpeechPatterns = [
+    /\bi hate (white|black|asian|hispanic|latino|indian|jewish|muslim|christian|lgbt|gay|lesbian|bi|trans|queer|non-binary) people\b/i,
+    /\bi hate (white|black|asian|hispanic|latino|indian|jewish|muslim|christian|lgbt|gay|lesbian|bi|trans|queer|non-binary)\b/i,
+    /\b(all white|all black|all asian|all hispanic|all latino|all indian|all jewish|all muslim|all christian|all lgbt) people are\b/i,
+    /\b(hate|dislike) (white|black|asian|hispanic|latino|indian|jewish|muslim|christian|lgbt|gay|lesbian|bi|trans|queer) people\b/i,
+  ];
+
   // Patterns indicating GENDER IDENTITY topics (should be allowed, not blocked)
   const genderIdentityPatterns = [
     /\b(i want to|i will|i'm going to|i need to|i would like to)\s+(change|transition|explore)\s+(my\s+)?(gender|identity)\b/i,
@@ -93,12 +101,17 @@ export function analyzeContent(input: string): ContentAnalysis {
   // Check for revenge patterns (should be allowed)
   const isRevenge = revengePatterns.some(pattern => pattern.test(lowerInput));
 
+  // Check for hate speech patterns (should be allowed for guidance)
+  const isHateSpeech = hateSpeechPatterns.some(pattern => pattern.test(lowerInput));
+
   // Determine category
   let category: ContentAnalysis['category'];
   if (isRevenge) {
     category = 'revenge';
   } else if (isGenderIdentity) {
     category = 'gender_identity';
+  } else if (isHateSpeech) {
+    category = 'hate_speech';
   } else if (lowerInput.includes('suicide') || lowerInput.includes('self harm') || 
              lowerInput.includes('dead') || lowerInput.includes('die') || 
              lowerInput.includes('kill myself') || lowerInput.includes('end my life')) {
@@ -116,8 +129,8 @@ export function analyzeContent(input: string): ContentAnalysis {
   }
 
   // Determine action
-  const shouldBlock = hasHarmfulIntent && !hasVictimExperience && !isGenderIdentity && !isRevenge;
-  const shouldParaphrase = hasVictimExperience || (!hasHarmfulIntent && !isGenderIdentity && !isRevenge && (
+  const shouldBlock = hasHarmfulIntent && !hasVictimExperience && !isGenderIdentity && !isRevenge && !isHateSpeech;
+  const shouldParaphrase = hasVictimExperience || (!hasHarmfulIntent && !isGenderIdentity && !isRevenge && !isHateSpeech && (
     lowerInput.includes('rape') || 
     lowerInput.includes('murder') ||
     lowerInput.includes('assault')

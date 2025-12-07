@@ -835,8 +835,14 @@ serve(async (req: Request) => {
       paraphrased = paraphrased.replace(/\bretaliation\b/gi, 'responding to what was done');
       paraphrased = paraphrased.replace(/\bvengeance\b/gi, 'dealing with my anger');
 
-      // Soften direct action statements to contemplative ones (but not for gender identity, revenge, or self-harm)
-      if (!input.match(/\b(gender|transition|identity|revenge|payback|vengeance|dead|die|suicide|kill\s+myself)\b/i)) {
+      // Handle hate speech gently (only if AI refuses)
+      paraphrased = paraphrased.replace(/\bi hate (white|black|asian|hispanic|latino|indian|jewish|muslim|christian|lgbt|gay|lesbian|bi|trans|queer|non-binary) people\b/gi, 'I am struggling with prejudice against $1 people');
+      paraphrased = paraphrased.replace(/\bi hate (white|black|asian|hispanic|latino|indian|jewish|muslim|christian|lgbt|gay|lesbian|bi|trans|queer|non-binary)\b/gi, 'I am struggling with negative feelings toward $1 people');
+      paraphrased = paraphrased.replace(/\b(all white|all black|all asian|all hispanic|all latino|all indian|all jewish|all muslim|all christian|all lgbt) people are\b/gi, 'I have negative stereotypes about $1 people');
+      paraphrased = paraphrased.replace(/\b(hate|dislike) (white|black|asian|hispanic|latino|indian|jewish|muslim|christian|lgbt|gay|lesbian|bi|trans|queer) people\b/gi, 'I struggle with prejudice toward $2 people');
+
+      // Soften direct action statements to contemplative ones (but not for gender identity, revenge, self-harm, or hate speech)
+      if (!input.match(/\b(gender|transition|identity|revenge|payback|vengeance|dead|die|suicide|kill\s+myself|hate|prejudice)\b/i)) {
         paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
         paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
         paraphrased = paraphrased.replace(/\bnow\b/gi, '');
@@ -1020,6 +1026,10 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         } else if (contentAnalysis.category === 'self_harm') {
           console.log('[Generate-Playbook] Self-harm topic - using gentle paraphrasing to help AI generate');
           // Paraphrase self-harm topics gently to help AI generate content
+          effectiveUserInput = paraphraseInput(userInput);
+        } else if (contentAnalysis.category === 'hate_speech') {
+          console.log('[Generate-Playbook] Hate speech topic - using gentle paraphrasing to help AI generate');
+          // Paraphrase hate speech topics gently to help AI generate content
           effectiveUserInput = paraphraseInput(userInput);
         } else {
           console.log('[Generate-Playbook] AI refused - using standard paraphrasing for sensitive topic');
