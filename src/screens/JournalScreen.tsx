@@ -1,7 +1,7 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
@@ -71,8 +71,23 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { setShowTabBar, setContentScrollRef } = useScroll();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [refreshKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const lastSelectedDate = useRef<Date | null>(null);
+
+  // Listen for reflection save and delete events to refresh journal components
+  useEffect(() => {
+    const handleReflectionChanged = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+
+    const savedSubscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionChanged);
+    const deletedSubscription = DeviceEventEmitter.addListener('reflection_deleted', handleReflectionChanged);
+
+    return () => {
+      savedSubscription.remove();
+      deletedSubscription.remove();
+    };
+  }, []);
 
   // Removed: global edit mode (inline view no longer used)
 

@@ -108,26 +108,29 @@ export const useTodaysFocusData = (userId: string, date: string, refreshKey?: nu
   const finalConfig = { ...defaultConfig, ...config };
 
   return useQuery({
-    queryKey: [...queryKeys.journal.todaysFocus(userId, date), refreshKey],
+    // CRITICAL: Don't include refreshKey in queryKey like Todos - it causes unnecessary refetches
+    // Moments screen updates via DeviceEventEmitter, not queryKey changes
+    queryKey: queryKeys.journal.todaysFocus(userId, date),
     queryFn: async () => {
       try {
-        // Try cache first
-        const cached = await JournalCache.getCache(userId, date, 'todays_focus');
-        if (cached) {
-          return cached;
-        }
-
-        // Fetch from API
+        // Always fetch from API first so refreshes show immediately
         const entries = await JournalApi.getTodaysFocusEntries(userId, date);
 
-        // Cache the results
+        // Cache the results for offline fallback
         await JournalCache.setCache(userId, date, entries, 'todays_focus');
 
         return entries;
       } catch (error) {
         Logger.error('Error fetching today\'s focus data:', error as Error, {
-        component: 'useJournalData',
-      });
+          component: 'useJournalData',
+        });
+
+        // Attempt cache fallback on error
+        const cached = await JournalCache.getCache(userId, date, 'todays_focus');
+        if (cached) {
+          return cached;
+        }
+
         throw error;
       }
     },
@@ -358,13 +361,20 @@ export const useUpdateJournalEntry = () => {
         queryKey: queryKeys.journal.entries(data.user_id, data.selected_date),
       });
 
-      // TEMPORARILY DISABLED: Cache invalidation might be causing duplicate display issues
-      // Also invalidate content-type specific queries (CRITICAL FIX)
-      // if (data.content_type === 'gratitude') {
-      //   queryClient.invalidateQueries({
-      //     queryKey: queryKeys.journal.gratitude(data.user_id, data.selected_date),
-      //   });
-      // }
+      // Also invalidate content-type specific queries so Moments screen updates
+      if (data.content_type === 'gratitude') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.gratitude(data.user_id, data.selected_date),
+        });
+      } else if (data.content_type === 'todays_focus') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todaysFocus(data.user_id, data.selected_date),
+        });
+      } else if (data.content_type === 'todo') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todos(data.user_id, data.selected_date),
+        });
+      }
 
       // Clear cache to force fresh data
       JournalCache.clearCache(data.user_id, data.selected_date, data.content_type);

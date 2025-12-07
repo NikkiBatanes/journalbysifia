@@ -59,7 +59,7 @@ interface FocusCardState {
   ctaAction: FocusCTA;
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true }) => {
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -322,24 +322,29 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     }
 
     try {
+      Logger.debug('🔵 [TodaysFocus] Starting save', { dateStr, userId: user.id });
       const contentToSave = JSON.stringify(focusData);
 
       if (existingEntry) {
         // Update existing entry
+        Logger.debug('🔵 [TodaysFocus] Calling updateMutation', { entryId: existingEntry.id });
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: {
             content: contentToSave,
           },
         });
+        Logger.debug('✅ [TodaysFocus] updateMutation completed');
       } else {
         // Create new entry
+        Logger.debug('🔵 [TodaysFocus] Calling createMutation');
         await createMutation.mutateAsync({
           user_id: user.id,
           selected_date: dateStr,
           content_type: 'todays_focus',
           content: contentToSave,
         });
+        Logger.debug('✅ [TodaysFocus] createMutation completed');
       }
 
       // Track successful focus update
@@ -351,8 +356,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       }, user.id);
 
       setIsEditing(false);
+      Logger.debug('✅ [TodaysFocus] Save completed - cache will auto-invalidate');
 
-      // Emit event to refresh Moments screen and other listeners
+      // Emit event for Moments screen (which uses direct Supabase, not React Query)
       DeviceEventEmitter.emit('reflection_saved', {
         type: 'todays_focus',
         date: dateStr,
@@ -431,44 +437,38 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     }));
   };
 
-  const togglePriority = (index: number) => {
-    setData(prev => {
-      const newPriorities = prev.priorities.map((p, i) => {
-        if (i === index) {
-          const newCompleted = !p.completed;
+  const togglePriority = async (index: number) => {
+    Logger.debug('🔵 [TodaysFocus] togglePriority called', { index, dateStr });
+    const currentData = data;
+    const newPriorities = currentData.priorities.map((p, i) => {
+      if (i === index) {
+        const newCompleted = !p.completed;
 
-          // Track priority completion
-          if (newCompleted && p.text.trim()) {
-            analytics.trackFocusEvent('focus_priority_completed', {
-              priority_index: index,
-              priority_text_length: p.text.length,
-              date: dateStr,
-            }, user?.id);
-          }
-
-          return { ...p, completed: newCompleted };
+        // Track priority completion
+        if (newCompleted && p.text.trim()) {
+          analytics.trackFocusEvent('focus_priority_completed', {
+            priority_index: index,
+            priority_text_length: p.text.length,
+            date: dateStr,
+          }, user?.id);
         }
-        return p;
-      });
 
-      const updated = {
-        ...prev,
-        priorities: newPriorities,
-      };
-
-      // Persist immediately so checks survive refresh
-      // Fire and forget; errors are handled in saveFocus
-      saveFocus(updated).catch(() => {});
-
-      // Emit event to refresh Moments screen when priority is toggled
-      DeviceEventEmitter.emit('reflection_saved', {
-        type: 'todays_focus',
-        date: dateStr,
-        userId: user?.id,
-      });
-
-      return updated;
+        return { ...p, completed: newCompleted };
+      }
+      return p;
     });
+
+    const updated = {
+      ...currentData,
+      priorities: newPriorities,
+    };
+
+    // Update local state immediately for UI responsiveness
+    setData(updated);
+
+    // Persist to database and wait for completion before emitting event
+    // This ensures Moments screen fetches updated data
+    await saveFocus(updated).catch(() => {});
   };
 
   const removePriority = (priorityId: string) => {
@@ -481,25 +481,16 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             try { triggerLightHaptic(); } catch {}
-            setData(prev => {
-              const updated = {
-                ...prev,
-                priorities: prev.priorities.filter(p => p.id !== priorityId),
-              };
-              // Persist deletion immediately
-              saveFocus(updated).catch(() => {});
-
-              // Emit event to refresh Moments screen when priority is deleted
-              DeviceEventEmitter.emit('reflection_saved', {
-                type: 'todays_focus',
-                date: dateStr,
-                userId: user?.id,
-              });
-
-              return updated;
-            });
+            const updated = {
+              ...data,
+              priorities: data.priorities.filter(p => p.id !== priorityId),
+            };
+            // Update local state immediately
+            setData(updated);
+            // Persist deletion and wait for completion
+            await saveFocus(updated).catch(() => {});
           },
         },
       ]
@@ -535,12 +526,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       setEditingPriorityId(null);
       setEditingPriorityText('');
 
-      // Emit event to refresh Moments screen when priority is edited
-      DeviceEventEmitter.emit('reflection_saved', {
-        type: 'todays_focus',
-        date: dateStr,
-        userId: user?.id,
-      });
+      // Event is emitted by saveFocus after database write completes
     } catch (saveError) {
       Logger.error('Failed to save edited priority', saveError as Error, {
         component: 'TodaysFocusReactQuery',
