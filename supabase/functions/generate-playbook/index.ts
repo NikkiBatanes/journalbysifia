@@ -823,8 +823,16 @@ serve(async (req: Request) => {
       paraphrased = paraphrased.replace(/\b(i want to|i will|i'm going to)\s+transition\b/gi, 'I am considering gender transition');
       paraphrased = paraphrased.replace(/\bsex change\b/gi, 'gender transition');
 
-      // Soften direct action statements to contemplative ones (but not for gender identity)
-      if (!input.match(/\b(gender|transition|identity)\b/i)) {
+      // Handle revenge gently (only if AI refuses)
+      paraphrased = paraphrased.replace(/\b(i want|i need|i'm going to)\s+(to\s+)?(get\s+)?revenge\b/gi, 'I am struggling with feelings of wanting revenge');
+      paraphrased = paraphrased.replace(/\b(get\s+)?revenge\b/gi, 'seeking justice');
+      paraphrased = paraphrased.replace(/\bmake (him|her|them) pay\b/gi, 'finding a way to address what happened');
+      paraphrased = paraphrased.replace(/\bpayback\b/gi, 'seeking resolution');
+      paraphrased = paraphrased.replace(/\bretaliation\b/gi, 'responding to what was done');
+      paraphrased = paraphrased.replace(/\bvengeance\b/gi, 'dealing with my anger');
+
+      // Soften direct action statements to contemplative ones (but not for gender identity or revenge)
+      if (!input.match(/\b(gender|transition|identity|revenge|payback|vengeance)\b/i)) {
         paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
         paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
         paraphrased = paraphrased.replace(/\bnow\b/gi, '');
@@ -1000,6 +1008,10 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         } else if (contentAnalysis.category === 'gender_identity') {
           console.log('[Generate-Playbook] Gender identity topic - using gentle paraphrasing to help AI generate');
           // Paraphrase gender identity topics gently to help AI generate content
+          effectiveUserInput = paraphraseInput(userInput);
+        } else if (contentAnalysis.category === 'revenge') {
+          console.log('[Generate-Playbook] Revenge topic - using gentle paraphrasing to help AI generate');
+          // Paraphrase revenge topics gently to help AI generate content
           effectiveUserInput = paraphraseInput(userInput);
         } else {
           console.log('[Generate-Playbook] AI refused - using standard paraphrasing for sensitive topic');
