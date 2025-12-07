@@ -910,7 +910,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
         // Extract prayer text
         let prayerText = '';
-        const prayerMatch = dayContent.match(/PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus[''']?\s*[Nn]ame|$)/i);
+        // Match both "PRAYER:" and "### PRAYER:" formats
+        const prayerMatch = dayContent.match(/#{0,3}\s*PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus[''']?\s*[Nn]ame|$)/i);
         if (prayerMatch && prayerMatch[1]) {
           let prayerBody = cleanMarkdown(prayerMatch[1])
             .trim()
