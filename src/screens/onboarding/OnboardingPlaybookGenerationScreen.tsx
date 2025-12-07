@@ -740,7 +740,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               {/* Logo (no aura here) */}
               <View style={styles.logoContainer}>
                 <Image
-                  source={require('../../../assets/icons/siFiaHeartWhite.png')}
+                  source={require('../../../assets/icons/siFiav2Transparent.png')}
                   style={styles.logo}
                   resizeMode="contain"
                 />
