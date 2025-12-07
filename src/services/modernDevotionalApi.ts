@@ -174,8 +174,8 @@ async function generateDevotionalInternal(
             component: 'modernDevotionalApi',
             data: {
               errorType: sdkError?.constructor?.name,
-              errorMessage: sdkError?.message,
-              errorDetails: sdkError?.stack,
+              errorMessage: (sdkError as Error)?.message,
+              errorDetails: (sdkError as Error)?.stack,
             },
           });
 
