@@ -130,7 +130,7 @@ async function generateDevotionalInternal(
 
           Logger.info('Supabase SDK response received', {
             component: 'modernDevotionalApi',
-            data: { 
+            data: {
               hasError: !!sdkResponse.error,
               hasData: !!sdkResponse.data,
               errorType: typeof sdkResponse.error,
@@ -142,7 +142,7 @@ async function generateDevotionalInternal(
           if (sdkResponse.error) {
             Logger.error('Supabase SDK error', new Error(sdkResponse.error.message || 'Devotional generation failed'), {
               component: 'modernDevotionalApi',
-              data: { 
+              data: {
                 error: sdkResponse.error,
                 errorDetails: JSON.stringify(sdkResponse.error, null, 2),
               },
@@ -160,10 +160,10 @@ async function generateDevotionalInternal(
 
           // Supabase SDK already parsed JSON, use data directly
           result = sdkResponse.data;
-          
+
           Logger.info('Supabase SDK success', {
             component: 'modernDevotionalApi',
-            data: { 
+            data: {
               resultType: typeof result,
               hasDays: result?.days?.length > 0,
               dayCount: result?.days?.length,
@@ -172,18 +172,18 @@ async function generateDevotionalInternal(
         } catch (sdkError) {
           Logger.error('Supabase SDK invocation failed, attempting fallback', sdkError as Error, {
             component: 'modernDevotionalApi',
-            data: { 
+            data: {
               errorType: sdkError?.constructor?.name,
               errorMessage: sdkError?.message,
               errorDetails: sdkError?.stack,
             },
           });
-          
+
           // FALLBACK: Try fetch approach if SDK fails in TestFlight
           Logger.warn('Falling back to fetch approach due to SDK failure', {
             component: 'modernDevotionalApi',
           });
-          
+
           const response = await withTimeout(
             fetch(functionUrl, {
               method: 'POST',

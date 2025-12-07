@@ -551,6 +551,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     }
 
     try {
+      // Use refreshKey to ensure fresh fetch when it changes
+      const fetchId = `fetch_${refreshKey || 0}`;
+      Logger.debug('[EnhancedMomentsRenderer] Fetch triggered', { fetchId });
       // CRITICAL: Never show loading skeleton on refetches - only on first mount
       // This prevents flickering when refreshKey changes from Today's Focus updates
       if (!hasLoadedOnce.current) {
