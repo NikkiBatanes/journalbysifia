@@ -343,6 +343,23 @@ async function generatePlaybookInternal(
 
         // Transform Supabase SDK response
         if (sdkResponse.error) {
+          // Check if the error data contains CONTENT_BLOCKED
+          const errorData = sdkResponse.error as any;
+          if (errorData.message && typeof errorData.message === 'string') {
+            try {
+              const parsedError = JSON.parse(errorData.message);
+              if (parsedError.error === 'CONTENT_BLOCKED') {
+                const blockError: any = new Error(parsedError.message || 'Content blocked');
+                blockError.contentBlocked = true;
+                blockError.christianMessage = parsedError.message;
+                blockError.alternatives = parsedError.alternatives;
+                blockError.category = parsedError.category;
+                throw blockError;
+              }
+            } catch (parseErr) {
+              // Not a JSON error, proceed with regular error handling
+            }
+          }
           throw new Error(sdkResponse.error.message || 'Playbook generation failed');
         }
 
@@ -378,17 +395,41 @@ async function generatePlaybookInternal(
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
+          // Try to parse as JSON first (for structured errors like CONTENT_BLOCKED)
+          try {
+            const errorData = await response.json();
 
-          // Handle specific error cases
-          if (response.status === 401) {
-            throw new Error(AUTH_ERROR_MESSAGES.SESSION_EXPIRED);
-          } else if (response.status === 403) {
-            throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
-          } else if (response.status >= 500) {
-            throw new Error(`Server error: ${response.status}. Please try again.`);
-          } else {
-            throw new Error(errorText || `HTTP error! status: ${response.status}`);
+            // Handle CONTENT_BLOCKED error specially
+            if (errorData.error === 'CONTENT_BLOCKED') {
+              const blockError: any = new Error(errorData.message || 'Content blocked');
+              blockError.contentBlocked = true;
+              blockError.christianMessage = errorData.message;
+              blockError.alternatives = errorData.alternatives;
+              blockError.category = errorData.category;
+              throw blockError;
+            }
+
+            // Handle other JSON errors
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          } catch (parseError) {
+            // If it's already a CONTENT_BLOCKED error, re-throw it
+            if ((parseError as any).contentBlocked) {
+              throw parseError;
+            }
+
+            // If JSON parsing failed, try text
+            const errorText = await response.text();
+
+            // Handle specific error cases
+            if (response.status === 401) {
+              throw new Error(AUTH_ERROR_MESSAGES.SESSION_EXPIRED);
+            } else if (response.status === 403) {
+              throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
+            } else if (response.status >= 500) {
+              throw new Error(`Server error: ${response.status}. Please try again.`);
+            } else {
+              throw new Error(errorText || `HTTP error! status: ${response.status}`);
+            }
           }
         }
 
