@@ -261,6 +261,11 @@ export class EnhancedGenerationService {
           });
           throw new Error(errorData.message || `Generation failed: ${response.statusText}`);
         } catch (parseError) {
+          // If it's already a CONTENT_BLOCKED error, re-throw it
+          if ((parseError as any).contentBlocked) {
+            throw parseError;
+          }
+
           // If JSON parsing fails, fall back to text
           const errorText = await response.text();
           Logger.error('[EnhancedGenerationService] Supabase function error', new Error(errorText), {
