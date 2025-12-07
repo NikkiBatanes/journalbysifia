@@ -598,7 +598,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         const dayMatch = section.match(/DAY\s*(\d+):/i);
         if (dayMatch && dayMatch.index !== undefined) {
           const dayNum = dayMatch[1];
-          const dayContent = section.substring(dayMatch.index + dayMatch[0].length).trim();
+          // Keep the full day content including the DAY header for title extraction
+          const dayContent = section.substring(dayMatch.index).trim();
           console.log(`[DEVOTIONAL PARSER] Found day ${dayNum} (separator format) with content length:`, dayContent.length);
           dayMatches.push([null, dayNum, dayContent]);
         } else if (index > 0 && dayMatches.length > 0) {
