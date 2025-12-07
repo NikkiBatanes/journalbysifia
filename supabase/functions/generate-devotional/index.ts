@@ -147,6 +147,7 @@ function cleanMarkdown(text: unknown): string {
     let result = str;
     try {
       result = result
+        .replace(/\r\n/g, '\n') // Normalize Windows newlines
         .replace(/\*\*|__/g, '') // Remove bold/italic
         .replace(/\*|_/g, '') // Remove single asterisks/underscores
         .replace(/^[-*]\s*/gm, '') // Remove list markers
@@ -155,9 +156,9 @@ function cleanMarkdown(text: unknown): string {
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links
         .replace(/`{1,3}([^`]+)`{1,3}/g, '$1') // Remove code blocks
         .replace(/\n{3,}/g, '\n\n') // Limit newlines
-        .replace(/\s+\n/g, '\n') // Remove trailing whitespace
+        .replace(/[ \t]+\n/g, '\n') // Remove trailing spaces before newline
         .replace(/--+/g, '') // Remove dashes
-        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/[ \t]+/g, ' ') // Normalize spaces/tabs but preserve newlines
         .trim();
     } catch (replaceError) {
       console.error('Error in replace operations:', replaceError);
