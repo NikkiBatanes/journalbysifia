@@ -135,8 +135,8 @@ serve(async (req) => {
       )
     }
 
-    // Log the deletion request for audit purposes
-    console.log(`Account deletion requested: ${deletionId} for user ${userId}`)
+    // Log the deletion request for audit purposes (userId omitted for privacy)
+    console.log(`Account deletion requested: ${deletionId}`)
 
     // Schedule the actual deletion (in a real implementation, you'd use a cron job)
     // For now, we'll return the deletion ID and grace period info

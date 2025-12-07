@@ -92,7 +92,7 @@ serve(async (req) => {
     // Parse request
     const { receiptData, userId, platform, productId }: ValidateReceiptRequest = await req.json();
 
-    console.log('[ValidateReceipt] Request:', { userId, platform, productId });
+    console.log('[ValidateReceipt] Request:', { platform, productId });
 
     // Validate input
     if (!receiptData || !userId || !platform) {
@@ -155,7 +155,7 @@ serve(async (req) => {
     // Update user subscription status
     await updateUserSubscription(supabase, userId, validationResult.data);
 
-    console.log('[ValidateReceipt] Success:', { userId, transactionId: validationResult.data?.transactionId });
+    console.log('[ValidateReceipt] Success for platform:', platform);
 
     return new Response(
       JSON.stringify({
@@ -334,7 +334,7 @@ async function updateUserSubscription(
         });
     }
 
-    console.log('[ValidateReceipt] Subscription updated for user:', userId, { tier, isTrial: validationData.isTrialPeriod });
+    console.log('[ValidateReceipt] Subscription updated:', { tier, isTrial: validationData.isTrialPeriod });
   } catch (error) {
     console.error('[ValidateReceipt] Failed to update subscription:', error);
     throw error;

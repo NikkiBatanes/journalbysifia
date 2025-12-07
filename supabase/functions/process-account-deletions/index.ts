@@ -47,7 +47,7 @@ serve(async (_req) => {
 
     for (const deletion of pendingDeletions) {
       try {
-        console.log(`Processing deletion for user: ${deletion.user_id}`)
+        console.log(`Processing deletion request: ${deletion.id}`)
         
         // Start transaction-like deletion process
         const userId = deletion.user_id
@@ -102,7 +102,7 @@ serve(async (_req) => {
           })
           .eq('id', deletion.id)
 
-        console.log(`Successfully deleted account: ${userId}`)
+        console.log(`Successfully processed account deletion: ${deletion.id}`)
         results.push({ userId, status: 'success', error: null })
 
       } catch (error) {

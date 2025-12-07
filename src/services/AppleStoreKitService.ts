@@ -149,10 +149,9 @@ export class AppleStoreKitService {
   }
 
   private async doInitialize(): Promise<boolean> {
-    console.log('[StoreKit] 🔍 Pre-init check:', {
+    Logger.debug('[StoreKit] Pre-init check', {
+      component: 'AppleStoreKitService',
       hasInitConnection: !!initConnection,
-      typeOfInitConnection: typeof initConnection,
-      initConnectionValue: initConnection,
       platform: Platform.OS,
       isDev: __DEV__,
       isSandbox: this.isSandboxEnvironment(),
@@ -169,11 +168,11 @@ export class AppleStoreKitService {
     }
 
     try {
-      console.log('[StoreKit] ⏳ About to call initConnection()...');
+      Logger.debug('[StoreKit] About to call initConnection()', { component: 'AppleStoreKitService' });
       const startTime = Date.now();
       await initConnection();
       const endTime = Date.now();
-      console.log(`[StoreKit] ✅ initConnection() completed in ${endTime - startTime}ms`);
+      Logger.info('[StoreKit] initConnection() completed', { component: 'AppleStoreKitService', duration: endTime - startTime });
 
       Logger.info('[StoreKit] ✅ Step 1: initConnection() completed', {
         component: 'AppleStoreKitService',
@@ -187,17 +186,17 @@ export class AppleStoreKitService {
       throw error;
     }
 
-    console.log('[StoreKit] 🔍 About to proceed to Step 2...');
+    Logger.debug('[StoreKit] Proceeding to Step 2', { component: 'AppleStoreKitService' });
 
     // Set up purchase listeners
-    console.log('[StoreKit] 🔌 Step 2: Setting up purchase listeners');
+    Logger.debug('[StoreKit] Step 2: Setting up purchase listeners', { component: 'AppleStoreKitService' });
 
     this.setupPurchaseListeners();
 
-    console.log('[StoreKit] ✅ Step 2: Purchase listeners set up');
+    Logger.info('[StoreKit] Step 2: Purchase listeners set up', { component: 'AppleStoreKitService' });
 
     // Clear any old cached transactions on startup (with timeout)
-    console.log('[StoreKit] 🔌 Step 3: Clearing old transactions');
+    Logger.debug('[StoreKit] Step 3: Clearing old transactions', { component: 'AppleStoreKitService' });
 
     try {
       const clearPromise = this.clearOldTransactions();
@@ -206,9 +205,9 @@ export class AppleStoreKitService {
       });
 
       await Promise.race([clearPromise, timeoutPromise]);
-      console.log('[StoreKit] ✅ Step 3: Old transactions cleared');
+      Logger.info('[StoreKit] Step 3: Old transactions cleared', { component: 'AppleStoreKitService' });
     } catch (error) {
-      console.log('[StoreKit] ⚠️ Step 3: Skipping old transaction cleanup (timeout or error)');
+      Logger.warn('[StoreKit] Step 3: Skipping old transaction cleanup (timeout or error)', { component: 'AppleStoreKitService' });
       // Continue anyway - this is not critical for IAP to work
     }
 
@@ -228,18 +227,18 @@ export class AppleStoreKitService {
    */
   private async clearOldTransactions(): Promise<void> {
     try {
-      console.log('[StoreKit] 🔍 Step 3.1: Getting available purchases');
+      Logger.debug('[StoreKit] Step 3.1: Getting available purchases', { component: 'AppleStoreKitService' });
 
       const availablePurchases = await getAvailablePurchases();
 
-      console.log(`[StoreKit] ✅ Step 3.1: Available purchases retrieved (${availablePurchases.length})`);
+      Logger.debug('[StoreKit] Step 3.1: Available purchases retrieved', { component: 'AppleStoreKitService', count: availablePurchases.length });
 
       if (availablePurchases.length === 0) {
-        console.log('[StoreKit] ✅ Step 3.2: No old transactions to clear');
+        Logger.debug('[StoreKit] Step 3.2: No old transactions to clear', { component: 'AppleStoreKitService' });
         return;
       }
 
-      console.log(`[StoreKit] 🔍 Step 3.2: Processing ${availablePurchases.length} old transactions`);
+      Logger.debug('[StoreKit] Step 3.2: Processing old transactions', { component: 'AppleStoreKitService', count: availablePurchases.length });
 
       for (const purchase of availablePurchases) {
         const purchaseTime = new Date(purchase.transactionDate).getTime();
@@ -247,7 +246,7 @@ export class AppleStoreKitService {
 
         // Clear transactions older than 5 minutes
         if (purchaseAge > 5 * 60 * 1000) {
-          console.log(`[StoreKit] 🧹 Clearing old cached transaction: ${purchase.productId} (${Math.round(purchaseAge / 60000)} minutes old)`);
+          Logger.debug('[StoreKit] Clearing old cached transaction', { component: 'AppleStoreKitService', productId: purchase.productId, ageMinutes: Math.round(purchaseAge / 60000) });
 
           await finishTransaction({ purchase, isConsumable: false });
         }
