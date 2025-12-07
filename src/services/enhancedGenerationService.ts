@@ -242,11 +242,32 @@ export class EnhancedGenerationService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        Logger.error('[EnhancedGenerationService] Supabase function error', new Error(errorText), {
-      component: 'enhancedGenerationService',
-    });
-        throw new Error(`Generation failed: ${response.statusText}`);
+        try {
+          const errorData = await response.json();
+
+          // Handle CONTENT_BLOCKED error specially
+          if (errorData.error === 'CONTENT_BLOCKED') {
+            const blockError: any = new Error(errorData.message || 'Content blocked');
+            blockError.contentBlocked = true;
+            blockError.christianMessage = errorData.message;
+            blockError.alternatives = errorData.alternatives;
+            blockError.category = errorData.category;
+            throw blockError;
+          }
+
+          // Handle other JSON errors
+          Logger.error('[EnhancedGenerationService] Supabase function error', new Error(JSON.stringify(errorData)), {
+            component: 'enhancedGenerationService',
+          });
+          throw new Error(errorData.message || `Generation failed: ${response.statusText}`);
+        } catch (parseError) {
+          // If JSON parsing fails, fall back to text
+          const errorText = await response.text();
+          Logger.error('[EnhancedGenerationService] Supabase function error', new Error(errorText), {
+            component: 'enhancedGenerationService',
+          });
+          throw new Error(`Generation failed: ${response.statusText}`);
+        }
       }
 
       const result = await response.json();

@@ -29,6 +29,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
+import { ContentSafetyAlert } from '../../components/ContentSafetyAlert';
 
 interface RouteParams {
   challengeCategory: string;
@@ -71,6 +72,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const [_isLoading, _setIsLoading] = useState(false);
   const [shouldNavigate, setShouldNavigate] = useState(false);
   const [navigationData, setNavigationData] = useState<GeneratedPlaybook | null>(null);
+  const [contentBlocked, setContentBlocked] = useState(false);
+  const [contentBlockedData, setContentBlockedData] = useState<{
+    message: string;
+    alternatives?: string[];
+    category?: string;
+  } | null>(null);
 
   // Disable back navigation entirely on this screen
   useEffect(() => {
@@ -377,6 +384,19 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
           pollForCompletion().catch((error) => {
             Logger.error('❌ Playbook generation failed', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
+
+            // Check if content was blocked
+            if ((error as any).contentBlocked) {
+              setContentBlockedData({
+                message: (error as any).christianMessage || 'Content blocked',
+                alternatives: (error as any).alternatives,
+                category: (error as any).category,
+              });
+              setContentBlocked(true);
+              setIsGenerating(false);
+              return;
+            }
+
             // Convert technical errors to user-friendly messages
             const userMessage = error.message?.includes('Circuit breaker is OPEN')
               ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
@@ -767,6 +787,25 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         </View>
         {/* Breathing text removed; guidance now part of generationSteps */}
       </Animated.View>
+
+      {/* Content Safety Alert */}
+      {contentBlocked && contentBlockedData && (
+        <ContentSafetyAlert
+          visible={contentBlocked}
+          onClose={() => {
+            setContentBlocked(false);
+            navigation.goBack();
+          }}
+          onSelectAlternative={(_alternative) => {
+            // Navigate back - user can create a new playbook with the suggested alternative
+            setContentBlocked(false);
+            navigation.goBack();
+          }}
+          message={contentBlockedData.message}
+          alternatives={contentBlockedData.alternatives}
+          category={contentBlockedData.category}
+        />
+      )}
     </SafeAreaView>
     </OnboardingErrorBoundary>
   );

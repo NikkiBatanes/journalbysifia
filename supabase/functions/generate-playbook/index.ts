@@ -7,6 +7,7 @@ import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
 import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
+import { analyzeContent, paraphraseVictimExperience } from '../_shared/contentSafety.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -780,6 +781,28 @@ serve(async (req: Request) => {
       }
     }
 
+    // CONTENT SAFETY CHECK: Analyze input for harmful intent
+    console.log('[Generate-Playbook] Analyzing content for safety...');
+    const contentAnalysis = analyzeContent(userInput);
+    console.log('[Generate-Playbook] Content analysis:', contentAnalysis);
+
+    // Block harmful planning content immediately
+    if (contentAnalysis.shouldBlock) {
+      console.error('[Generate-Playbook] Blocked harmful planning content');
+      return new Response(
+        JSON.stringify({
+          error: 'CONTENT_BLOCKED',
+          message: contentAnalysis.christianMessage,
+          alternatives: contentAnalysis.constructiveAlternatives,
+          category: contentAnalysis.category,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Paraphrasing function (only used if AI refuses)
     const paraphraseInput = (input: string): string => {
       let paraphrased = input;
@@ -924,10 +947,17 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       ];
 
       if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
-        console.log('[Generate-Playbook] AI refused, paraphrasing input and retrying...');
+        console.log('[Generate-Playbook] AI refused, checking for paraphrase strategy...');
 
-        // Paraphrase the input
-        effectiveUserInput = paraphraseInput(userInput);
+        // Use Christian-focused paraphrasing for victim experiences
+        if (contentAnalysis.shouldParaphrase && contentAnalysis.isVictimExperience) {
+          console.log('[Generate-Playbook] Detected victim experience, using Christian paraphrasing');
+          effectiveUserInput = paraphraseVictimExperience(userInput);
+        } else {
+          console.log('[Generate-Playbook] Using standard paraphrasing');
+          effectiveUserInput = paraphraseInput(userInput);
+        }
+        
         console.log('[Generate-Playbook] Original:', userInput.substring(0, 100));
         console.log('[Generate-Playbook] Paraphrased:', effectiveUserInput.substring(0, 100));
 
