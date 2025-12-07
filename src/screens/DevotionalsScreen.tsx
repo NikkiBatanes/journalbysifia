@@ -707,14 +707,15 @@ const DevotionalsScreen = () => {
       <StatusBar barStyle={isTrulyEmpty ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }, isTrulyEmpty && styles.headerBlue]}>
+      {/* Header on white background with tabs - matching PlaybookListScreen */}
+      <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
         <View style={styles.pageInner}>
           {isTrulyEmpty ? (
             <View style={styles.headerSpacer} />
           ) : (
             <ThemedText weight="bold" style={styles.headerTitle}>Devotionals</ThemedText>
           )}
-          {/* Filters */}
+          {/* Filters - positioned like PlaybookListScreen */}
           {!isTrulyEmpty && (
             <View style={[styles.filterTabsOnWhite, { paddingRight: Math.max(insets.right, 16) }]}>
               {([
@@ -831,6 +832,15 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 26, // Increased border radius to 26
     overflow: 'hidden',
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    paddingBottom: 0,
+    backgroundColor: Colors.hopeWhite,
   },
   header: {
     flexDirection: 'row',
