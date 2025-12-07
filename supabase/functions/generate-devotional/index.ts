@@ -908,7 +908,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           ];
         }
 
-        // Extract prayer text
+        // Extract prayer text - first try day-specific, then fall back to series-level prayer
         let prayerText = '';
         // Match both "PRAYER:" and "### PRAYER:" formats
         const prayerMatch = dayContent.match(/#{0,3}\s*PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus[''']?\s*[Nn]ame|$)/i);
@@ -929,8 +929,22 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           // Format prayer with proper spacing - single newline after "Heavenly Father," and before "In Jesus' Name, Amen"
           prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
         } else {
-          // No fallback - throw error if prayer not found
-          throw new Error(`Failed to parse prayer for Day ${dayNum}. AI must provide properly formatted prayer.`);
+          // Try to find series-level prayer (after all days)
+          const seriesPrayerMatch = content.match(/#{0,3}\s*PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus[''']?\s*[Nn]ame)/i);
+          if (seriesPrayerMatch && seriesPrayerMatch[1]) {
+            let prayerBody = cleanMarkdown(seriesPrayerMatch[1])
+              .trim()
+              .replace(/^[\s\d\-*•.]+/, '')
+              .replace(/[\]["]/g, '')
+              .trim();
+            prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
+            prayerBody = prayerBody.replace(/\n{2,}/g, '\n');
+            prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Using series-level prayer`);
+          } else {
+            // No prayer found - throw error
+            throw new Error(`Failed to parse prayer for Day ${dayNum}. AI must provide properly formatted prayer.`);
+          }
         }
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Prayer:`, prayerText.substring(0, 100));
 
