@@ -671,7 +671,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     generatePlaybook();
   };
 
-  if (generationError) {
+  if (generationError && !contentBlocked) {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
@@ -684,6 +684,41 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
+    );
+  }
+
+  // If content was blocked, show the main UI with the modal overlay
+  if (contentBlocked && contentBlockedData) {
+    return (
+      <OnboardingErrorBoundary>
+        <SafeAreaView style={styles.container} edges={['top','bottom']}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+          <View style={styles.content}>
+            {/* Show a gentle waiting state */}
+            <View style={styles.errorContainer}>
+              <Ionicons name="shield-checkmark-outline" size={64} color={Colors.white} />
+              <ThemedText weight="bold" style={styles.errorTitle}>Content Review</ThemedText>
+              <ThemedText style={styles.errorMessage}>Please review the guidance below...</ThemedText>
+            </View>
+          </View>
+
+          {/* Content Safety Alert Modal */}
+          <ContentSafetyAlert
+            visible={contentBlocked}
+            onClose={() => {
+              setContentBlocked(false);
+              navigation.goBack();
+            }}
+            onSelectAlternative={(_alternative) => {
+              setContentBlocked(false);
+              navigation.goBack();
+            }}
+            message={contentBlockedData.message}
+            alternatives={contentBlockedData.alternatives}
+            category={contentBlockedData.category}
+          />
+        </SafeAreaView>
+      </OnboardingErrorBoundary>
     );
   }
 
@@ -800,25 +835,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         </View>
         {/* Breathing text removed; guidance now part of generationSteps */}
       </Animated.View>
-
-      {/* Content Safety Alert */}
-      {contentBlocked && contentBlockedData && (
-        <ContentSafetyAlert
-          visible={contentBlocked}
-          onClose={() => {
-            setContentBlocked(false);
-            navigation.goBack();
-          }}
-          onSelectAlternative={(_alternative) => {
-            // Navigate back - user can create a new playbook with the suggested alternative
-            setContentBlocked(false);
-            navigation.goBack();
-          }}
-          message={contentBlockedData.message}
-          alternatives={contentBlockedData.alternatives}
-          category={contentBlockedData.category}
-        />
-      )}
     </SafeAreaView>
     </OnboardingErrorBoundary>
   );
