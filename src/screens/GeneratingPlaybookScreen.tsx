@@ -192,6 +192,25 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       } catch (error) {
         Logger.error('[GeneratingPlaybook] Error', error as Error, { component: 'GeneratingPlaybookScreen' });
 
+        // Check if content was blocked
+        if ((error as any).contentBlocked) {
+          Alert.alert(
+            'Content Review',
+            (error as any).christianMessage || 'Content blocked',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  if (navigation.canGoBack()) {
+                    navigation.goBack();
+                  }
+                },
+              },
+            ]
+          );
+          return;
+        }
+
         // Don't lose user's input - navigate back with the original text
         Alert.alert(
           'Generation Failed',
