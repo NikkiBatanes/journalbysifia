@@ -899,14 +899,10 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           }
         }
         
-        // Only use fallback questions if we still have none
+        // If we still have no questions, treat as a hard parse error
         if (reflectionQuestions.length === 0) {
-          console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Using fallback questions`);
-          reflectionQuestions = [
-            { id: 'q1', text: 'What stood out to you today?' },
-            { id: 'q2', text: 'How can you apply this to your life?' },
-            { id: 'q3', text: 'How does this point you to Christ?' },
-          ];
+          console.error(`[DEVOTIONAL PARSER] Day ${dayNum} has no reflection questions - this is not allowed`);
+          throw new Error(`Failed to parse reflection questions for Day ${dayNum}. AI must provide properly formatted questions.`);
         }
 
         // Extract prayer text - first try day-specific, then fall back to series-level prayer
