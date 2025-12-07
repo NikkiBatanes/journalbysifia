@@ -63,12 +63,12 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Function to fetch playbook data including truth_in_love content
+// Function to fetch playbook data including truth_in_love content and original user_input
 async function fetchPlaybookData(playbookId: string) {
   try {
     const { data: playbook, error } = await supabase
       .from('playbooks')
-      .select('id, title, truth_in_love')
+      .select('id, title, truth_in_love, user_input')
       .eq('id', playbookId)
       .single();
 
@@ -1175,28 +1175,52 @@ serve(async (req: Request): Promise<Response> => {
   try {
     // Fetch playbook data if playbookId is provided
     let playbookContext = '';
+    let playbookUserInput = '';
     if (playbookId) {
       console.log(`Fetching playbook data for ID: ${playbookId}`);
       const playbookData = await fetchPlaybookData(playbookId);
 
-      if (playbookData && playbookData.truth_in_love) {
-        const truthInLove = playbookData.truth_in_love;
-        console.log('Truth in Love data found:', truthInLove);
-
-        playbookContext = '\n\n## PLAYBOOK CONTEXT - TRUTH IN LOVE\n';
-        playbookContext += `Playbook: ${playbookData.title || 'Unknown'}\n`;
-
-        if (truthInLove.text) {
-          playbookContext += `Truth: ${truthInLove.text}\n`;
+      if (playbookData) {
+        // Always use the playbook's original user_input as the primary context
+        if (playbookData.user_input) {
+          playbookUserInput = playbookData.user_input;
+          console.log('Playbook user_input found:', playbookUserInput.substring(0, 100));
         }
 
-        if (truthInLove.summary) {
-          playbookContext += `Summary: ${truthInLove.summary}\n`;
-        }
+        if (playbookData.truth_in_love) {
+          const truthInLove = playbookData.truth_in_love;
+          console.log('Truth in Love data found:', truthInLove);
 
-        playbookContext += '\nIMPORTANT: The devotional MUST align with and reinforce the truth and principles from this playbook. Use this context to guide the spiritual themes, biblical references, and practical applications in the devotional.';
-      } else {
-        console.log('No truth_in_love data found for playbook:', playbookId);
+          playbookContext = '\n\n## PLAYBOOK CONTEXT - ORIGINAL STRUGGLE & TRUTH\n';
+          playbookContext += `Playbook: ${playbookData.title || 'Unknown'}\n`;
+
+          // Include the original user struggle/situation
+          if (playbookUserInput) {
+            playbookContext += `\nOriginal User Struggle/Situation:\n${playbookUserInput}\n`;
+          }
+
+          if (truthInLove.text) {
+            playbookContext += `\nTruth in Love:\n${truthInLove.text}\n`;
+          }
+
+          if (truthInLove.summary) {
+            playbookContext += `\nTruth Summary:\n${truthInLove.summary}\n`;
+          }
+
+          playbookContext += '\n🚨 CRITICAL - STORYTELLING & BIBLICAL LEARNING:\n';
+          playbookContext += '- Root the devotional in the ORIGINAL user struggle/situation above\n';
+          playbookContext += '- Use biblical narratives, characters, and stories to teach and illustrate\n';
+          playbookContext += '- Focus on learning from biblical situations and circumstances\n';
+          playbookContext += '- Connect Scripture passages to real-life application\n';
+          playbookContext += '- The devotional MUST align with and reinforce the truth from this playbook\n';
+          playbookContext += '- Quote or reference the user\'s original words to make it personal';
+        } else {
+          console.log('No truth_in_love data found for playbook:', playbookId);
+          // Even without truth_in_love, include the original user_input
+          if (playbookUserInput) {
+            playbookContext = `\n\n## ORIGINAL USER STRUGGLE:\n${playbookUserInput}\n\nIMPORTANT: Root the devotional in this original struggle and use biblical storytelling to address it.`;
+          }
+        }
       }
     }
 
@@ -1244,6 +1268,11 @@ serve(async (req: Request): Promise<Response> => {
         currentInput !== originalInput ? `Working Request (safety-adjusted): ${currentInput}` : '',
         `Duration: ${duration} day${duration > 1 ? 's' : ''}`,
       ];
+
+      // If this devotional is linked to a playbook, emphasize using the playbook's original context
+      if (playbookId && playbookUserInput) {
+        lines.push(`\n🔗 LINKED TO PLAYBOOK - Use the playbook's original struggle as primary context (see PLAYBOOK CONTEXT section above)`);
+      }
 
       if (isTeenUser) {
         lines.push('IMPORTANT: This user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep sentences straightforward.');
