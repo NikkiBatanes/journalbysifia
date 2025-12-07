@@ -1058,17 +1058,41 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         // Check if AI STILL refused after paraphrasing
         if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
           console.error('[Generate-Playbook] AI refused even after paraphrasing - topic too sensitive for AI');
+          
+          // Check if this is self-harm related (show crisis resources)
+          if (contentAnalysis.category === 'self_harm') {
+            return new Response(
+              JSON.stringify({
+                error: 'AI_REFUSED',
+                message: 'This topic requires immediate professional support. Please contact:\n\n• National Suicide Prevention Lifeline: 988\n• Crisis Text Line: Text HOME to 741741\n• International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/\n\nYou are loved, valued, and your life has purpose in Christ. Please reach out to these resources immediately.',
+                alternatives: [
+                  'Finding hope and purpose in Christ',
+                  'Understanding God\'s love for you',
+                  'Connecting with a Christian counselor',
+                  'Building a support network in faith',
+                ],
+                category: 'self_harm',
+              }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            );
+          }
+          
+          // Generic AI refusal for other sensitive topics
           return new Response(
             JSON.stringify({
               error: 'AI_REFUSED',
-              message: 'This topic requires immediate professional support. Please contact:\n\n• National Suicide Prevention Lifeline: 988\n• Crisis Text Line: Text HOME to 741741\n• International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/\n\nYou are loved, valued, and your life has purpose in Christ. Please reach out to these resources immediately.',
+              message: 'This topic appears to be too sensitive for automated generation. For personalized Christian guidance on sensitive matters, we recommend:\n\n• Speaking with a Christian counselor or pastor\n• Connecting with a trusted spiritual mentor\n• Reaching out to your church community\n\nGod cares deeply about your concerns and wants to walk with you through them.',
               alternatives: [
-                'Finding hope and purpose in Christ',
-                'Understanding God\'s love for you',
-                'Connecting with a Christian counselor',
-                'Building a support network in faith',
+                'Finding guidance in Scripture',
+                'Growing in your faith journey',
+                'Building a stronger prayer life',
+                'Connecting with Christian community',
+                'Understanding God\'s will for your life',
               ],
-              category: 'self_harm',
+              category: 'sensitive_topic',
             }),
             {
               status: 400,
