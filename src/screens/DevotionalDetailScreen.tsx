@@ -1087,8 +1087,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               <ThemedText
                 weight="bold"
                 style={styles.dayTitle}
-                numberOfLines={2}
-                ellipsizeMode="tail"
+                numberOfLines={0}
               >
                 {devotional.totalDays === 1 ? (
                   extractCleanTitle(devotional.title, 'Devotional')

@@ -728,7 +728,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     {item.sourceType === 'guided' ? 'GUIDED PROMPT' : 'QUESTION TO PONDER'}
                   </ThemedText>
                 </View>
-                <ThemedText weight="bold" style={styles.questionText}>{item.question}</ThemedText>
+                <ThemedText weight="bold" style={styles.questionText} numberOfLines={0}>{item.question}</ThemedText>
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     style={styles.reflectButton}

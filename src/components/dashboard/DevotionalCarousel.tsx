@@ -513,7 +513,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       ) : devotional.nextDayNumber ? (
         <View style={styles.mb8}>
           <ThemedText weight="bold" style={styles.nextLabel}>NEXT</ThemedText>
-          <ThemedText weight="semiBold" style={styles.nextDayTitleText} numberOfLines={1}>
+          <ThemedText weight="semiBold" style={styles.nextDayTitleText} numberOfLines={0}>
             {devotional.total_days === 1
               ? `Day ${devotional.nextDayNumber}`
               : `Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle || ''}`}
