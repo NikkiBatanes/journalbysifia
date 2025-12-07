@@ -100,44 +100,129 @@ async function generateDevotionalInternal(
       // CRITICAL FIX: Use Supabase SDK instead of raw fetch for TestFlight reliability
       // Onboarding works because it uses supabase.functions.invoke(), not fetch()
       // Raw fetch() has iOS networking issues in TestFlight builds
-      const shouldUseSupabaseSDK = !__DEV__; // Production/TestFlight only
+      // TEMP DEBUG: Force fetch approach to test if SDK is the issue
+      const shouldUseSupabaseSDK = !__DEV__ && false; // Force fetch for debugging
 
       let result;
       if (shouldUseSupabaseSDK) {
         // Use Supabase SDK (like onboarding does) - handles iOS networking gracefully
         Logger.info('Using Supabase SDK for production reliability', {
           component: 'modernDevotionalApi',
-          data: { operation: 'devotional-generation' },
+          data: { operation: 'devotional-generation', duration, hasPlaybookId: !!playbookId },
         });
 
-        const sdkResponse = await withTimeout(
-          supabase.functions.invoke('generate-devotional', {
-            body: {
-              duration,
-              playbookId,
-              userInput: userInput || 'General spiritual growth',
-              bibleVersion: bibleVersion || 'NASB',
-              dateOfBirth,
-              ageGroup,
+        try {
+          const sdkResponse = await withTimeout(
+            supabase.functions.invoke('generate-devotional', {
+              body: {
+                duration,
+                playbookId,
+                userInput: userInput || 'General spiritual growth',
+                bibleVersion: bibleVersion || 'NASB',
+                dateOfBirth,
+                ageGroup,
+              },
+            }),
+            {
+              timeoutMs: 180000, // 180 seconds (3 minutes) for TestFlight reliability
+              operationName: 'Devotional Generation',
+            }
+          );
+
+          Logger.info('Supabase SDK response received', {
+            component: 'modernDevotionalApi',
+            data: { 
+              hasError: !!sdkResponse.error,
+              hasData: !!sdkResponse.data,
+              errorType: typeof sdkResponse.error,
+              dataType: typeof sdkResponse.data,
             },
-          }),
-          {
-            timeoutMs: 180000, // 180 seconds (3 minutes) for TestFlight reliability
-            operationName: 'Devotional Generation',
+          });
+
+          // Transform Supabase SDK response
+          if (sdkResponse.error) {
+            Logger.error('Supabase SDK error', new Error(sdkResponse.error.message || 'Devotional generation failed'), {
+              component: 'modernDevotionalApi',
+              data: { 
+                error: sdkResponse.error,
+                errorDetails: JSON.stringify(sdkResponse.error, null, 2),
+              },
+            });
+            throw new Error(sdkResponse.error.message || 'Devotional generation failed');
           }
-        );
 
-        // Transform Supabase SDK response
-        if (sdkResponse.error) {
-          throw new Error(sdkResponse.error.message || 'Devotional generation failed');
+          if (!sdkResponse.data) {
+            Logger.error('No data returned from Supabase SDK', new Error('No data returned from devotional generation'), {
+              component: 'modernDevotionalApi',
+              data: { sdkResponse },
+            });
+            throw new Error('No data returned from devotional generation');
+          }
+
+          // Supabase SDK already parsed JSON, use data directly
+          result = sdkResponse.data;
+          
+          Logger.info('Supabase SDK success', {
+            component: 'modernDevotionalApi',
+            data: { 
+              resultType: typeof result,
+              hasDays: result?.days?.length > 0,
+              dayCount: result?.days?.length,
+            },
+          });
+        } catch (sdkError) {
+          Logger.error('Supabase SDK invocation failed, attempting fallback', sdkError as Error, {
+            component: 'modernDevotionalApi',
+            data: { 
+              errorType: sdkError?.constructor?.name,
+              errorMessage: sdkError?.message,
+              errorDetails: sdkError?.stack,
+            },
+          });
+          
+          // FALLBACK: Try fetch approach if SDK fails in TestFlight
+          Logger.warn('Falling back to fetch approach due to SDK failure', {
+            component: 'modernDevotionalApi',
+          });
+          
+          const response = await withTimeout(
+            fetch(functionUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': ENV.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                duration,
+                playbookId,
+                userInput: userInput || 'General spiritual growth',
+                bibleVersion: bibleVersion || 'NASB',
+                dateOfBirth,
+                ageGroup,
+              }),
+            }),
+            {
+              timeoutMs: 180000,
+              operationName: 'Devotional Generation (Fallback)',
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            Logger.error('Fallback fetch also failed', new Error(`Fallback failed: ${response.status}`), {
+              component: 'modernDevotionalApi',
+              data: { status: response.status, errorText },
+            });
+            throw new Error(`Devotional generation failed: ${response.status} - ${errorText}`);
+          }
+
+          result = await response.json();
+          Logger.info('Fallback fetch succeeded', {
+            component: 'modernDevotionalApi',
+            data: { resultType: typeof result },
+          });
         }
-
-        if (!sdkResponse.data) {
-          throw new Error('No data returned from devotional generation');
-        }
-
-        // Supabase SDK already parsed JSON, use data directly
-        result = sdkResponse.data;
       } else {
         // Development mode: Use raw fetch with circuit breaker
         const response = await withCircuitBreaker('openai-generation', async () => {
