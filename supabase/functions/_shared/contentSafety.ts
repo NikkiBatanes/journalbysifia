@@ -26,6 +26,13 @@ export function analyzeContent(input: string): ContentAnalysis {
     /\b(i killed|i murdered|i hurt|i beat|i attacked|i shot|i stabbed)\s+(someone|him|her|them|my)/i,
     /\bhow (can|do) i (hurt|harm|kill|murder)/i,
     
+    // Self-harm planning and confessions
+    /\b(i want to|i will|i'm going to|i wish|i wished)\s+(to\s+)?(be|was|were)\s+dead\b/i,
+    /\b(i want to|i will|i'm going to|i wish|i wished)\s+(to\s+)?die\b/i,
+    /\b(i want to|i will|i'm going to)\s+(kill|end)\s+myself\b/i,
+    /\b(i wish|i wished)\s+i\s+(was|were)\s+dead\b/i,
+    /\b(i wish|i wished)\s+i\s+(would|could)\s+die\b/i,
+    
     // Sexual assault planning and confessions
     /\b(i want to|i will|i'm going to|planning to|how (can|do) i)\s+(rape|assault|force|molest)/i,
     /\b(i raped|i assaulted|i molested|i forced)\s+(someone|him|her|them|a|my)/i,
@@ -96,6 +103,10 @@ export function analyzeContent(input: string): ContentAnalysis {
     category = 'revenge';
   } else if (isGenderIdentity) {
     category = 'gender_identity';
+  } else if (lowerInput.includes('suicide') || lowerInput.includes('self harm') || 
+             lowerInput.includes('dead') || lowerInput.includes('die') || 
+             lowerInput.includes('kill myself') || lowerInput.includes('end my life')) {
+    category = 'self_harm';
   } else if (lowerInput.includes('kill') || lowerInput.includes('murder') || lowerInput.includes('violence')) {
     category = 'violence';
   } else if (lowerInput.includes('rape') || lowerInput.includes('sexual assault') || lowerInput.includes('molest')) {
@@ -104,8 +115,6 @@ export function analyzeContent(input: string): ContentAnalysis {
     category = 'theft';
   } else if (lowerInput.includes('stalk') || lowerInput.includes('harass')) {
     category = 'harassment';
-  } else if (lowerInput.includes('suicide') || lowerInput.includes('self harm')) {
-    category = 'self_harm';
   } else {
     category = 'other';
   }

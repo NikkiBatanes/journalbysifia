@@ -817,6 +817,10 @@ serve(async (req: Request) => {
       paraphrased = paraphrased.replace(/\b(i want to|i need to|i will|i'm going to|i must)\s+(commit\s+)?suicide\b/gi, 'I am struggling with thoughts of ending my life');
       paraphrased = paraphrased.replace(/\b(i want to|i need to|i will|i'm going to)\s+kill\s+myself\b/gi, 'I am having thoughts of self-harm');
       paraphrased = paraphrased.replace(/\b(i want to|i need to|i will|i'm going to)\s+end\s+my\s+life\b/gi, 'I am struggling with suicidal thoughts');
+      paraphrased = paraphrased.replace(/\b(i wish|i wished)\s+(to\s+)?(be|was|were)\s+dead\b/gi, 'I am struggling with thoughts of not wanting to live');
+      paraphrased = paraphrased.replace(/\b(i wish|i wished)\s+i\s+(was|were)\s+dead\b/gi, 'I am struggling with difficult thoughts about life');
+      paraphrased = paraphrased.replace(/\b(i wish|i wished)\s+i\s+(would|could)\s+die\b/gi, 'I am having thoughts about not wanting to be here');
+      paraphrased = paraphrased.replace(/\b(i want to|i will|i'm going to|i wish|i wished)\s+(to\s+)?die\b/gi, 'I am struggling with thoughts about ending my life');
 
       // Handle gender identity gently (only if AI refuses)
       paraphrased = paraphrased.replace(/\b(i want to|i will|i'm going to)\s+change\s+my\s+gender\b/gi, 'I am exploring my gender identity');
@@ -831,8 +835,8 @@ serve(async (req: Request) => {
       paraphrased = paraphrased.replace(/\bretaliation\b/gi, 'responding to what was done');
       paraphrased = paraphrased.replace(/\bvengeance\b/gi, 'dealing with my anger');
 
-      // Soften direct action statements to contemplative ones (but not for gender identity or revenge)
-      if (!input.match(/\b(gender|transition|identity|revenge|payback|vengeance)\b/i)) {
+      // Soften direct action statements to contemplative ones (but not for gender identity, revenge, or self-harm)
+      if (!input.match(/\b(gender|transition|identity|revenge|payback|vengeance|dead|die|suicide|kill\s+myself)\b/i)) {
         paraphrased = paraphrased.replace(/\b(i want|i need|i will|i must)\b/gi, 'I am thinking about');
         paraphrased = paraphrased.replace(/\b(give me|get me)\b/gi, 'considering');
         paraphrased = paraphrased.replace(/\bnow\b/gi, '');
@@ -1012,6 +1016,10 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         } else if (contentAnalysis.category === 'revenge') {
           console.log('[Generate-Playbook] Revenge topic - using gentle paraphrasing to help AI generate');
           // Paraphrase revenge topics gently to help AI generate content
+          effectiveUserInput = paraphraseInput(userInput);
+        } else if (contentAnalysis.category === 'self_harm') {
+          console.log('[Generate-Playbook] Self-harm topic - using gentle paraphrasing to help AI generate');
+          // Paraphrase self-harm topics gently to help AI generate content
           effectiveUserInput = paraphraseInput(userInput);
         } else {
           console.log('[Generate-Playbook] AI refused - using standard paraphrasing for sensitive topic');
