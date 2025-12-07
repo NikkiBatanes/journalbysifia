@@ -77,7 +77,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   // React Query hooks with performance tracking
   const loadStartTime = useRef<number>(Date.now());
-  const { data: focusEntries = [], error, isLoading } = useTodaysFocusData(user?.id || '', dateStr);
+  const { data: focusEntries = [], error, isLoading } = useTodaysFocusData(user?.id || '', dateStr, refreshKey);
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();

@@ -94,7 +94,7 @@ export const useTodosData = (userId: string, date: string, config?: Partial<Quer
 };
 
 // Hook for getting today's focus entries with enhanced retry logic
-export const useTodaysFocusData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
+export const useTodaysFocusData = (userId: string, date: string, refreshKey?: number, config?: Partial<QueryConfig>) => {
   const defaultConfig: QueryConfig = {
     staleTime: 5 * 60 * 1000, // 5 minutes stale time
     gcTime: 10 * 60 * 1000,
@@ -108,7 +108,7 @@ export const useTodaysFocusData = (userId: string, date: string, config?: Partia
   const finalConfig = { ...defaultConfig, ...config };
 
   return useQuery({
-    queryKey: queryKeys.journal.todaysFocus(userId, date),
+    queryKey: [...queryKeys.journal.todaysFocus(userId, date), refreshKey],
     queryFn: async () => {
       try {
         // Try cache first
