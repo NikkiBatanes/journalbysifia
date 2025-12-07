@@ -6,7 +6,7 @@
 export interface ContentAnalysis {
   isHarmfulIntent: boolean;
   isVictimExperience: boolean;
-  category?: 'violence' | 'sexual_assault' | 'theft' | 'harassment' | 'self_harm' | 'other';
+  category?: 'violence' | 'sexual_assault' | 'theft' | 'harassment' | 'self_harm' | 'gender_identity' | 'other';
   shouldBlock: boolean;
   shouldParaphrase: boolean;
   christianMessage?: string;
@@ -61,15 +61,30 @@ export function analyzeContent(input: string): ContentAnalysis {
     /\bhealing|recovery|coping with|dealing with\b/i,
   ];
 
+  // Patterns indicating GENDER IDENTITY topics (should be allowed, not blocked)
+  const genderIdentityPatterns = [
+    /\b(i want to|i will|i'm going to|i need to|i would like to)\s+(change|transition|explore)\s+(my\s+)?(gender|identity)\b/i,
+    /\b(i am|i'm|i feel like|i identify as)\s+(trans|transgender|non-binary|genderfluid|genderqueer)\b/i,
+    /\b(i'm|i am)\s+(questioning|exploring)\s+(my\s+)?(gender|identity)\b/i,
+    /\b(gender\s+)?transition\b/i,
+    /\b(sex\s+)?change\b/i,
+    /\bgender\s+(dysphoria|affirmation)\b/i,
+  ];
+
   // Check for harmful planning patterns
   const hasHarmfulIntent = harmfulPlanningPatterns.some(pattern => pattern.test(lowerInput));
   
   // Check for victim experience patterns
   const hasVictimExperience = victimExperiencePatterns.some(pattern => pattern.test(lowerInput));
 
+  // Check for gender identity patterns (should be allowed)
+  const isGenderIdentity = genderIdentityPatterns.some(pattern => pattern.test(lowerInput));
+
   // Determine category
   let category: ContentAnalysis['category'];
-  if (lowerInput.includes('kill') || lowerInput.includes('murder') || lowerInput.includes('violence')) {
+  if (isGenderIdentity) {
+    category = 'gender_identity';
+  } else if (lowerInput.includes('kill') || lowerInput.includes('murder') || lowerInput.includes('violence')) {
     category = 'violence';
   } else if (lowerInput.includes('rape') || lowerInput.includes('sexual assault') || lowerInput.includes('molest')) {
     category = 'sexual_assault';
@@ -84,8 +99,8 @@ export function analyzeContent(input: string): ContentAnalysis {
   }
 
   // Determine action
-  const shouldBlock = hasHarmfulIntent && !hasVictimExperience;
-  const shouldParaphrase = hasVictimExperience || (!hasHarmfulIntent && (
+  const shouldBlock = hasHarmfulIntent && !hasVictimExperience && !isGenderIdentity;
+  const shouldParaphrase = hasVictimExperience || (!hasHarmfulIntent && !isGenderIdentity && (
     lowerInput.includes('rape') || 
     lowerInput.includes('murder') ||
     lowerInput.includes('assault')

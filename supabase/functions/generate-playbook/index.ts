@@ -989,6 +989,26 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         if (contentAnalysis.isVictimExperience) {
           console.log('[Generate-Playbook] Detected victim experience, using Christian paraphrasing');
           effectiveUserInput = paraphraseVictimExperience(userInput);
+        } else if (contentAnalysis.category === 'gender_identity') {
+          console.log('[Generate-Playbook] Gender identity topic - AI refused but not paraphrasing');
+          // Don't paraphrase gender identity topics - let the refusal be handled
+          return new Response(
+            JSON.stringify({
+              error: 'AI_REFUSED',
+              message: 'This topic requires professional support. For gender identity guidance, please consult with:\n\n• A Christian counselor experienced in gender identity\n• A pastor who can provide spiritual guidance\n• LGBTQ+ affirming Christian organizations\n\nGod loves you as you are and wants to support your journey.',
+              alternatives: [
+                'Understanding identity in Christ',
+                'Finding affirming Christian community',
+                'Exploring faith and gender',
+                'Building a relationship with God',
+              ],
+              category: 'gender_identity',
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         } else {
           console.log('[Generate-Playbook] AI refused - using standard paraphrasing for sensitive topic');
           effectiveUserInput = paraphraseInput(userInput);
