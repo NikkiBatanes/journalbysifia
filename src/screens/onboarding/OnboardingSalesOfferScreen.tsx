@@ -384,7 +384,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         // Reset UI state immediately to prevent any race conditions
         // Preserve the user's initial selection or manual selection instead of forcing spark
         setSelectedTier(hasManualTierSelection ? selectedTier : initialSelectedTier);
-        logger.debug('Reset UI selectedTier to preserved selection:', hasManualTierSelection ? selectedTier : initialSelectedTier);
+        logger.debug('Reset UI selectedTier to preserved selection:', { tier: hasManualTierSelection ? selectedTier : initialSelectedTier });
 
         // Suppress faith points notifications temporarily to prevent duplicates
         notificationService.suppressPointsNotifications(true);

@@ -351,12 +351,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       }, user.id);
 
       setIsEditing(false);
-      
+
       // Emit event to refresh Moments screen and other listeners
-      DeviceEventEmitter.emit('reflection_saved', { 
-        type: 'todays_focus', 
+      DeviceEventEmitter.emit('reflection_saved', {
+        type: 'todays_focus',
         date: dateStr,
-        userId: user.id 
+        userId: user.id,
       });
     } catch (saveError) {
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
@@ -459,12 +459,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       // Persist immediately so checks survive refresh
       // Fire and forget; errors are handled in saveFocus
       saveFocus(updated).catch(() => {});
-      
+
       // Emit event to refresh Moments screen when priority is toggled
-      DeviceEventEmitter.emit('reflection_saved', { 
-        type: 'todays_focus', 
+      DeviceEventEmitter.emit('reflection_saved', {
+        type: 'todays_focus',
         date: dateStr,
-        userId: user?.id 
+        userId: user?.id,
       });
 
       return updated;
@@ -490,14 +490,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               };
               // Persist deletion immediately
               saveFocus(updated).catch(() => {});
-              
+
               // Emit event to refresh Moments screen when priority is deleted
-              DeviceEventEmitter.emit('reflection_saved', { 
-                type: 'todays_focus', 
+              DeviceEventEmitter.emit('reflection_saved', {
+                type: 'todays_focus',
                 date: dateStr,
-                userId: user?.id 
+                userId: user?.id,
               });
-              
+
               return updated;
             });
           },
@@ -534,12 +534,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       // Reset edit state
       setEditingPriorityId(null);
       setEditingPriorityText('');
-      
+
       // Emit event to refresh Moments screen when priority is edited
-      DeviceEventEmitter.emit('reflection_saved', { 
-        type: 'todays_focus', 
+      DeviceEventEmitter.emit('reflection_saved', {
+        type: 'todays_focus',
         date: dateStr,
-        userId: user?.id 
+        userId: user?.id,
       });
     } catch (saveError) {
       Logger.error('Failed to save edited priority', saveError as Error, {

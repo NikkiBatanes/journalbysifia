@@ -641,8 +641,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           dayContent.match(/^#+\s*([^\n]+)/m),
           // Look for bold text that might be a title
           dayContent.match(/\*\*([^*]+)\*\*/),
-          // Look for any line that might be a title
-          dayContent.match(/^(.+?)\n\n/),
+          // Look for any line that might be a title (but exclude prayer content)
+          dayContent.match(/^(?!Heavenly Father)(.+?)\n\n/),
           // Look for lines that look like titles (sentence case, 3-10 words)
           dayContent.match(/^([A-Z][^\n.!?]{10,60}[^\n.!?])(?=\n|$)/m),
         ];
@@ -667,7 +667,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
                 candidate.length > 3 &&
                 candidate.length <= 64 &&
                 !candidate.toLowerCase().includes(seriesTitle) &&
-                !candidate.match(/^(day\s*\d+|devotional|title|scripture|reflection|prayer)/i) &&
+                !candidate.match(/^(day\s*\d+|devotional|title|scripture|reflection|prayer|heavenly father)/i) &&
                 !candidate.match(/^[^a-z]+$/) && // Not all caps
                 candidate.split(' ').length <= 10) { // Not too long
               dayTitle = candidate;
