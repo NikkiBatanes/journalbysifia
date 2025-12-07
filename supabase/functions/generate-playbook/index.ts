@@ -947,7 +947,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       aiData = await openAIRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
 
-      // Check if AI refused
+      // Check if AI refused (detect crisis support responses instead of playbook)
       const refusalPatterns = [
         /i'm sorry, but i can't assist/i,
         /i'm sorry, but i cannot assist/i,
@@ -955,6 +955,11 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         /i cannot assist with this request/i,
         /i'm unable to help with this/i,
         /i cannot fulfill this request/i,
+        // Detect crisis support responses (AI offering help instead of generating playbook)
+        /i'?m\s+(really\s+)?sorry\s+to\s+hear\s+that\s+you'?re\s+feeling\s+this\s+way/i,
+        /it'?s\s+(really\s+)?important\s+(to\s+)?talk\s+to\s+someone/i,
+        /please\s+(reach\s+out|talk)\s+to\s+(a\s+)?(mental\s+health|counselor|professional|trusted\s+person)/i,
+        /you\s+are\s+not\s+alone/i,
       ];
 
       if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
