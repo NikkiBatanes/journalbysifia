@@ -906,6 +906,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
+    paddingHorizontal: 16, // Add responsive padding to match PlaybookListScreen
   },
   contentSheet: {
     flex: 1,
