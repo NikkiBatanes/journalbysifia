@@ -104,17 +104,15 @@ const DevotionalsScreen = () => {
     }
   }, [showDevotionalModal, triggerLightHaptic]);
 
-  const handleDevotionalPress = (devotional: Devotional) => {
+  const handleDevotionalPress = useCallback((devotional: Devotional) => {
     // Log title extraction
     createTitleExtractionMemory(devotional);
 
-    // Logging for user state issue
-
-    triggerLightHaptic();
+    // Navigate to devotional detail
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
-  };
+  }, [navigation]);
 
-  const handlePlaybookPress = async (playbookId: string) => {
+  const handlePlaybookPress = useCallback(async (playbookId: string) => {
     try {
       triggerLightHaptic();
       const playbookData = await fetchPlaybookById(playbookId);
@@ -124,15 +122,15 @@ const DevotionalsScreen = () => {
     } catch (error) {
       Logger.error('Error fetching playbook', error as Error, { component: 'DevotionalsScreen' });
     }
-  };
+  }, [triggerLightHaptic, fetchPlaybookById, navigation]);
 
-  const handleDeleteDevotional = async (devotionalId: string) => {
+  const handleDeleteDevotional = useCallback(async (devotionalId: string) => {
     try {
       await deleteDevotional(devotionalId);
     } catch (error) {
       Logger.error('Error deleting devotional', error as Error, { component: 'DevotionalsScreen' });
     }
-  };
+  }, [deleteDevotional]);
 
   // Use any type for rowRefs to avoid TypeScript errors with Swipeable
   const rowRefs = useRef<{ [key: string]: any }>({});
@@ -141,7 +139,7 @@ const DevotionalsScreen = () => {
 
   // Reset logic moved below after 'sections' is declared
 
-  const renderRightActions = (devotionalId: string) => {
+  const renderRightActions = useCallback((devotionalId: string) => {
     return (
       <RectButton
         style={styles.deleteButton}
@@ -167,7 +165,7 @@ const DevotionalsScreen = () => {
         <Ionicons name="trash-outline" size={24} color="white" />
       </RectButton>
     );
-  };
+  }, [triggerLightHaptic, handleDeleteDevotional]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -182,7 +180,7 @@ const DevotionalsScreen = () => {
 
   // (animation setup moved below sortedDevotionals)
 
-  const renderDevotionalItem = ({ item }: { item: Devotional }) => {
+  const renderDevotionalItem = useCallback(({ item }: { item: Devotional }) => {
     // Calculate progress percentage (0-100)
     const completedDays = item.days?.filter(day => day.completed).length || 0;
     const progress = (completedDays / item.totalDays) * 100;
@@ -339,7 +337,7 @@ const DevotionalsScreen = () => {
         </Swipeable>
       </Animated.View>
     );
-  };
+  }, [triggerLightHaptic, renderRightActions, handleDevotionalPress, handlePlaybookPress, filter]);
 
   const renderEmptyState = () => {
     if (isLoading) {

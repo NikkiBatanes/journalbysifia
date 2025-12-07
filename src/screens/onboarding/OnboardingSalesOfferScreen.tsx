@@ -23,7 +23,6 @@ import PlatformPaymentService from '../../services/PlatformPaymentService';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
-import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { notificationService } from '../../services/notificationService';
 import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
 import { TrialManagementService } from '../../services/TrialManagementService';
@@ -91,8 +90,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               'spark'; // Default to spark for onboarding to prevent transformation tier bug
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
-  const [showDynamicModal, setShowDynamicModal] = useState(false);
-  const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
@@ -398,35 +395,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       } catch (error) {
         logger.error('Failed to reset subscription to seeker:', error as Error);
         // Continue to navigation even if reset fails
-      }
-    }
-
-    // Check for dynamic discount eligibility first (only in onboarding, not upgrade)
-    if (!isUpgradeMode) {
-      try {
-        logger.debug('Checking dynamic discount eligibility:', {
-          userId: user?.id,
-          selectedTier,
-          billing: isAnnual ? 'annual' : 'monthly',
-        });
-
-        // Track this opt-out to increment the count
-        await pricingService.trackOptOut(user?.id);
-        logger.debug('Tracked opt-out, checking discount...');
-
-        const discount = await pricingService.getDynamicDiscount();
-
-        logger.debug('Dynamic discount result', { discount });
-
-        if (discount) {
-          logger.info('Showing dynamic discount modal');
-          setDynamicDiscount(discount);
-          setShowDynamicModal(true);
-          return;
-        }
-      } catch (error) {
-        logger.error('Error checking dynamic discount', error as Error);
-        // Continue to navigation even if discount check fails
       }
     }
 
@@ -1546,34 +1514,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <ThemedText style={styles.footerText}> Secure checkout</ThemedText>
         </View>
       </View>
-
-      {/* Dynamic Pricing Modal */}
-      {dynamicDiscount && (
-        <DynamicPricingModal
-          visible={showDynamicModal}
-          onClose={() => {
-            setShowDynamicModal(false);
-            // After dismissing dynamic pricing, go to notification setup or back
-            const source = routeParams?.source;
-            if (source === 'guided_prompts_lock') {
-              navigation.navigate('Dashboard' as any);
-            } else if (!isUpgradeMode && !routeParams?.skipNotificationPreference) {
-              // Only in main onboarding flow should we open notification setup
-              (navigation as any).navigate('OnboardingNotificationSetup', {
-                userType: 'freemium',
-                fromCancelledSales: true,
-              });
-            } else {
-              // In upgrade/feature-gating flows or when skipNotificationPreference is set, just go back
-              navigation.goBack();
-            }
-          }}
-          discountPercentage={dynamicDiscount.percentage}
-          originalPrice={getCurrentPrice()}
-          tier={selectedTier}
-          isAnnual={isAnnual}
-        />
-      )}
 
     </SafeAreaView>
   );
