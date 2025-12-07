@@ -949,6 +949,26 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
         console.log('[Generate-Playbook] AI refused, checking for paraphrase strategy...');
 
+        // Check if this was harmful content that slipped through initial detection
+        // Re-analyze to catch any confession patterns
+        const reAnalysis = analyzeContent(userInput);
+        if (reAnalysis.isHarmfulIntent && !reAnalysis.isVictimExperience) {
+          console.error('[Generate-Playbook] Harmful content detected on retry - blocking completely');
+          return new Response(
+            JSON.stringify({
+              error: 'CONTENT_BLOCKED',
+              message: reAnalysis.christianMessage || 'We cannot process this request. Please reach out to a Christian counselor or pastor for guidance.',
+              alternatives: reAnalysis.constructiveAlternatives,
+              category: reAnalysis.category,
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        // Only paraphrase if it's safe content (victim experiences or other sensitive topics)
         // Use Christian-focused paraphrasing for victim experiences
         if (contentAnalysis.shouldParaphrase && contentAnalysis.isVictimExperience) {
           console.log('[Generate-Playbook] Detected victim experience, using Christian paraphrasing');
@@ -1049,8 +1069,27 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
     ];
 
     if (refusalPatterns.some(pattern => pattern.test(rawContent))) {
-      console.error('[Generate-Playbook] AI refused to generate content:', rawContent);
+      console.error('[Generate-Playbook] AI refused to generate content after retry:', rawContent);
       console.error('[Generate-Playbook] User input that triggered refusal:', userInput);
+      
+      // Final check: if this is harmful content, block it with Christian message
+      const finalAnalysis = analyzeContent(userInput);
+      if (finalAnalysis.isHarmfulIntent && !finalAnalysis.isVictimExperience) {
+        console.error('[Generate-Playbook] Harmful content detected - blocking with Christian message');
+        return new Response(
+          JSON.stringify({
+            error: 'CONTENT_BLOCKED',
+            message: finalAnalysis.christianMessage || 'We cannot process this request. Please reach out to a Christian counselor or pastor for guidance.',
+            alternatives: finalAnalysis.constructiveAlternatives,
+            category: finalAnalysis.category,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
       throw new Error('AI content policy prevented generation - please rephrase your request');
     }
 

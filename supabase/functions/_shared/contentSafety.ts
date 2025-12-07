@@ -19,22 +19,26 @@ export interface ContentAnalysis {
 export function analyzeContent(input: string): ContentAnalysis {
   const lowerInput = input.toLowerCase();
   
-  // Patterns indicating harmful PLANNING/INTENT (perpetrator perspective)
+  // Patterns indicating harmful PLANNING/INTENT/CONFESSION (perpetrator perspective)
   const harmfulPlanningPatterns = [
-    // Violence planning
+    // Violence planning and confessions
     /\b(i want to|i will|i'm going to|planning to|how (can|do) i|help me)\s+(kill|murder|harm|hurt|beat|attack|shoot|stab)\s+(someone|him|her|them|my)/i,
+    /\b(i killed|i murdered|i hurt|i beat|i attacked|i shot|i stabbed)\s+(someone|him|her|them|my)/i,
     /\b(revenge|get back at|make (him|her|them) pay)\b/i,
     /\bhow (can|do) i (hurt|harm|kill|murder)/i,
     
-    // Sexual assault planning
+    // Sexual assault planning and confessions
     /\b(i want to|i will|i'm going to|planning to|how (can|do) i)\s+(rape|assault|force|molest)/i,
+    /\b(i raped|i assaulted|i molested|i forced)\s+(someone|him|her|them|a|my)/i,
     /\bhow (can|do) i (get away with|commit)/i,
     
-    // Theft/fraud planning
+    // Theft/fraud planning and confessions
     /\b(i want to|i will|i'm going to|planning to|how (can|do) i)\s+(steal|rob|fraud|scam|cheat)/i,
+    /\b(i stole|i robbed|i scammed|i cheated)\s+(from|someone|him|her|them)/i,
     
-    // Harassment/stalking planning
+    // Harassment/stalking planning and confessions
     /\b(i want to|i will|i'm going to|planning to|how (can|do) i)\s+(stalk|harass|follow|track|spy on)/i,
+    /\b(i stalked|i harassed|i followed)\s+(someone|him|her|them|my)/i,
   ];
 
   // Patterns indicating VICTIM experiences (victim perspective)
@@ -106,22 +110,22 @@ function getChristianMessage(category?: ContentAnalysis['category']): string {
   
   switch (category) {
     case 'violence':
-      return `${baseMessage} God calls us to love and protect one another as children created in His image. If you're struggling with thoughts of harming others, please reach out to a Christian counselor or pastor who can help you find God's peace and wisdom.`;
+      return `${baseMessage} If you've harmed someone or are struggling with violent thoughts, God offers forgiveness and transformation through Christ. Please reach out immediately to a Christian counselor, pastor, or law enforcement who can help you find God's healing path and ensure everyone's safety.`;
     
     case 'sexual_assault':
-      return `${baseMessage} God calls us to honor one another with purity and respect. If you're struggling with thoughts that could harm others sexually, please speak with a trusted Christian counselor or pastor who can help you find healing and God's redemptive path.`;
+      return `${baseMessage} If you've harmed someone sexually or are struggling with these thoughts, God's grace is available, but you need proper help. Please speak immediately with a Christian counselor, pastor, or appropriate authorities who can guide you toward repentance, accountability, and healing in Christ.`;
     
     case 'theft':
-      return `${baseMessage} God calls us to be honest and content with what He provides. If you're facing financial difficulties, consider reaching out to your church family or Christian financial counselors who can help you find God-honoring solutions.`;
+      return `${baseMessage} If you've taken from others or are facing these temptations, God calls you to restitution and honesty. Please reach out to your church family, a Christian counselor, or appropriate authorities who can help you make things right and find God's provision.`;
     
     case 'harassment':
-      return `${baseMessage} God calls us to love our neighbors as ourselves and respect their boundaries. If you're struggling with obsessive thoughts or relationship issues, please speak with a Christian counselor who can help you find freedom and healing in Christ.`;
+      return `${baseMessage} If you've hurt someone through harassment or stalking, you need accountability and help. Please speak with a Christian counselor, pastor, or appropriate authorities who can help you understand healthy boundaries and find healing in Christ.`;
     
     case 'self_harm':
       return `${baseMessage} Your life is precious to God, and you are deeply loved. If you're having thoughts of harming yourself, please reach out to a Christian counselor, pastor, or call 988 (Suicide & Crisis Lifeline). God wants to walk with you through this pain.`;
     
     default:
-      return `${baseMessage} Some requests involve activities that don't align with God's call to love and serve one another. Please reach out to Christian counselors or pastors who can provide guidance while helping you walk in God's love and wisdom.`;
+      return `${baseMessage} Some situations require specialized help beyond what we can provide. Please reach out to Christian counselors, pastors, or appropriate authorities who can provide proper guidance while helping you walk in God's truth and love.`;
   }
 }
 
@@ -130,41 +134,41 @@ function getChristianMessage(category?: ContentAnalysis['category']): string {
  */
 function getConstructiveAlternatives(category?: ContentAnalysis['category']): string[] {
   const baseAlternatives = [
-    "Finding God's peace in difficult emotions",
-    "Growing in self-control through Christ",
-    "Healing relationships God's way",
+    "Understanding true repentance and God's forgiveness",
+    "Walking in accountability and transparency",
+    "Finding transformation through Christ",
   ];
 
   switch (category) {
     case 'violence':
       return [
-        "Overcoming anger and finding peace in Christ",
-        "Learning to forgive as God forgave us",
-        "Building healthy conflict resolution skills",
+        "Seeking forgiveness and making amends",
+        "Overcoming anger through God's peace",
+        "Learning non-violent conflict resolution",
         ...baseAlternatives,
       ];
     
     case 'sexual_assault':
       return [
-        "Understanding God's design for purity and respect",
-        "Overcoming lustful thoughts through Scripture",
-        "Building healthy relationships that honor God",
+        "Understanding true repentance and restoration",
+        "Accepting accountability for past actions",
+        "Building a life of integrity and respect",
         ...baseAlternatives,
       ];
     
     case 'theft':
       return [
-        "Trusting God's provision in difficult times",
-        "Finding contentment in Christ",
-        "Learning biblical principles of stewardship",
+        "Making restitution and seeking forgiveness",
+        "Learning honesty and integrity in Christ",
+        "Trusting God's provision instead of taking",
         ...baseAlternatives,
       ];
     
     case 'harassment':
       return [
-        "Letting go of unhealthy attachments",
-        "Understanding healthy boundaries in relationships",
-        "Moving forward after a difficult relationship",
+        "Understanding and respecting boundaries",
+        "Seeking help for obsessive behaviors",
+        "Learning healthy ways to process rejection",
         ...baseAlternatives,
       ];
     
