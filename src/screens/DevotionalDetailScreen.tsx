@@ -1158,17 +1158,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   style={styles.reflectionText}
                 />
               ) : (
-                <View>
-                  {(day?.reflection || '').split('\n\n').map((paragraph, idx) => (
-                    <ThemedText 
-                      key={idx} 
-                      style={[styles.reflectionText, idx > 0 && styles.reflectionParagraph]} 
-                      selectable={true}
-                    >
-                      {paragraph}
-                    </ThemedText>
-                  ))}
-                </View>
+                <ThemedText style={styles.reflectionText} selectable={true}>
+                  {day?.reflection || ''}
+                </ThemedText>
               )}
             </DevotionalSectionCard>
 
@@ -1555,9 +1547,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-  },
-  reflectionParagraph: {
-    marginTop: 16, // Add spacing between paragraphs
   },
   questionsContainer: {
     marginBottom: 24,

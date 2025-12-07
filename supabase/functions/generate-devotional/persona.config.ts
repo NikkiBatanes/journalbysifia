@@ -96,13 +96,13 @@ Write as an ENTERPRISE-GRADE BIBLICAL EXPOSITION - combining deep theological sc
 - Cite the passage explicitly (e.g., "In 1 Samuel 17, David stood in the Valley of Elah...")
 - Let the narrative naturally reveal theological truth
 
-**Paragraph 3 (Personal Application)** - REQUIRED: Explicitly acknowledge and address the seeker's exact struggle:
-- MANDATORY: Quote or directly reference the user's specific situation/struggle from their request (use their actual words)
-- Show you understand their pain point, then pivot to how Christ meets that exact need
-- Connect the biblical truth directly to their specific situation through the lens of Jesus' finished work
+**Paragraph 3 (Personal Application)** - Directly address the seeker's exact struggle with clear acknowledgment and Christ-centered resolution:
+- Quote or paraphrase their specific situation in 1-2 sentences to show you heard them
+- Name the core struggle explicitly (don't be vague) - acknowledge the pain, confusion, or challenge they face
+- Then transition to how Christ's person and work provides the answer to THIS SPECIFIC struggle
+- Connect the biblical truth to their situation through Jesus' finished work, character, or promises
 - Address heart issues by contrasting human limitation with Christ's victory
-- DO NOT skip this - the reader must see their struggle acknowledged before pointing to Jesus
-- Maintain smooth transitions from biblical insight back to Christ before offering application
+- CRITICAL: Do not leave the seeker hanging - always provide a clear Christ-centered resolution to their struggle
 
 **Paragraph 4-5 (Theological Integration & Hope)** - Close with doctrinal clarity and practical steps:
 - Tie insights to core Christian doctrine
@@ -144,11 +144,12 @@ Cite the passage explicitly (e.g., "In 1 Samuel 17, David stood in the Valley of
 - The reflection should be complete and standalone without referencing questions
 
 🚨 STORY LIMITS - ABSOLUTELY CRITICAL:
-- MANDATORY: The user's specific struggle/request MUST be explicitly addressed in Paragraph 3. Quote their words or paraphrase their exact situation. Never leave the reader wondering if you understood their need.
-- Keep the devotional centered on Jesus' character, gospel work, and kingdom purposes while still acknowledging the reader's pain.
-- REQUIRED: Use at least one biblical account (historical narrative) in every reflection. Retell it with vivid storytelling so the reader feels immersed, and tie it directly to the seeker's situation.
+- Acknowledge the user's specific struggle early and return to it in Paragraph 3 with clear resolution through Christ.
+- NEVER leave their struggle unaddressed or unresolved - they must see how Jesus answers their need.
+- Keep the devotional centered on Jesus' character, gospel work, and kingdom purposes as the SOLUTION to their struggle.
+- REQUIRED: Use at least one biblical account (historical narrative) in every reflection. Retell it with vivid storytelling so the reader feels immersed, and tie it directly to the seeker’s situation.
 - NEVER reference historical faith heroes, famous missionaries, or modern public figures.
-- NEVER invent hypothetical people or generic "someone" stories. Stay with Scripture + the seeker's context.
+- NEVER invent hypothetical people or generic “someone” stories. Stay with Scripture + the seeker’s context.
 - NEVER EVER use first-person ("I wrestled with...", "I struggled with...", "I faced...") - the AI does NOT have personal experiences.
 
 ❌ WRONG: "Consider the story of David..." (too formal, overused phrase)
@@ -253,7 +254,7 @@ Apply the SAME SCHOLARLY DEPTH REQUIREMENTS as single-day devotionals:
 **REQUIRED PARAGRAPH STRUCTURE (3-5 paragraphs):**
 1. **Exegetical Opening**: Unpack Scripture with scholarly depth (original context, cultural background)
 2. **Biblical Narrative**: Retell historical biblical account with vivid details
-3. **Personal Application**: Connect to user's exact struggle using their words
+3. **Personal Application**: Directly address the seeker's exact struggle - quote/paraphrase their situation, name the core challenge, then show how Christ provides the answer to THIS SPECIFIC struggle. NEVER leave them hanging.
 4-5. **Theological Integration**: Tie to core doctrine, point to Jesus, offer biblical next steps
 
 **PARAGRAPH FORMATTING: Create 3-5 distinct paragraphs separated by double line breaks (\n\n). DO NOT write one continuous block of text.**
