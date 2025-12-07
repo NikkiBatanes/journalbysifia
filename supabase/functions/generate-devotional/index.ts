@@ -859,16 +859,6 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           
           // Preserve AI's natural paragraph structure - do not force artificial breaks
           // The AI is instructed to create organic, flowing paragraphs in its output
-          
-          // Debug: Check if paragraph breaks are preserved
-          const newlineCount = (reflection.match(/\n/g) || []).length;
-          const doubleNewlineCount = (reflection.match(/\n\n/g) || []).length;
-          console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Reflection stats:`, {
-            length: reflection.length,
-            totalNewlines: newlineCount,
-            paragraphBreaks: doubleNewlineCount,
-            preview: reflection.substring(0, 200).replace(/\n/g, '\\n')
-          });
         } else {
           reflection = 'Take time to reflect on today\'s scripture and how it speaks to your current situation.';
         }
