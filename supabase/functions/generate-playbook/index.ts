@@ -653,10 +653,16 @@ interface RequestBody {
 }
 
 serve(async (req: Request) => {
+  // Define CORS headers for all responses
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Invalid request method' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -666,7 +672,7 @@ serve(async (req: Request) => {
   } catch (_error) {
     return new Response(JSON.stringify({ error: 'We couldn\'t process your request. Please try again.' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
