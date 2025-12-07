@@ -1064,7 +1064,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
             return new Response(
               JSON.stringify({
                 error: 'AI_REFUSED',
-                message: 'This topic requires immediate professional support. Please contact:\n\n• National Suicide Prevention Lifeline: 988\n• Crisis Text Line: Text HOME to 741741\n• International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/\n\nYou are loved, valued, and your life has purpose in Christ. Please reach out to these resources immediately.',
+                message: 'If you\'re in crisis, please reach out for immediate support:\n\n🇺🇸 USA: 988 (Suicide & Crisis Lifeline)\n🇬🇧 UK: 116 123 (Samaritans)\n🇦🇺 Australia: 13 11 14 (Lifeline)\n🇨🇦 Canada: 1-833-456-4566\n🌍 International: https://findahelpline.com\n\nYou are deeply loved by God, and your life has immeasurable value in Christ. Please reach out to these resources or a trusted Christian counselor.',
                 alternatives: [
                   'Finding hope and purpose in Christ',
                   'Understanding God\'s love for you',

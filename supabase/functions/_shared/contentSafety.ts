@@ -26,12 +26,8 @@ export function analyzeContent(input: string): ContentAnalysis {
     /\b(i killed|i murdered|i hurt|i beat|i attacked|i shot|i stabbed)\s+(someone|him|her|them|my)/i,
     /\bhow (can|do) i (hurt|harm|kill|murder)/i,
     
-    // Self-harm planning and confessions
-    /\b(i want to|i will|i'm going to|i wish|i wished)\s+(to\s+)?(be|was|were)\s+dead\b/i,
-    /\b(i want to|i will|i'm going to|i wish|i wished)\s+(to\s+)?die\b/i,
-    /\b(i want to|i will|i'm going to)\s+(kill|end)\s+myself\b/i,
-    /\b(i wish|i wished)\s+i\s+(was|were)\s+dead\b/i,
-    /\b(i wish|i wished)\s+i\s+(would|could)\s+die\b/i,
+    // Self-harm planning (REMOVED - we want to support, not block)
+    // These are now handled with paraphrasing instead of blocking
     
     // Sexual assault planning and confessions
     /\b(i want to|i will|i'm going to|planning to|how (can|do) i)\s+(rape|assault|force|molest)/i,
