@@ -442,8 +442,13 @@ async function generatePlaybookInternal(
         });
       }
 
-      // Don't retry on authentication errors or timeouts (timeout means server is slow, not failed)
-      if (error.message.includes('session') || error.message.includes('token') || error.message.includes('sign in') || isTimeoutError(error)) {
+      // Don't retry on authentication errors, timeouts, or CONTENT_BLOCKED errors
+      // CONTENT_BLOCKED errors should fail immediately - retrying wastes money and won't succeed
+      if (error.message.includes('session') ||
+          error.message.includes('token') ||
+          error.message.includes('sign in') ||
+          error.message.includes('CONTENT_BLOCKED') ||
+          isTimeoutError(error)) {
         throw error;
       }
 

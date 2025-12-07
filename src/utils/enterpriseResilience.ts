@@ -469,6 +469,16 @@ export class EnterpriseResilience {
             },
           });
 
+          // Don't retry on CONTENT_BLOCKED errors - these are policy violations, not transient failures
+          if (lastError.message.includes('CONTENT_BLOCKED')) {
+            monitoring.trackMetric('request_blocked', 1, {
+              tier,
+              operationName,
+              attempt: attempt + 1,
+            });
+            throw lastError;
+          }
+
           // Don't retry on last attempt
           if (attempt >= maxRetries) {
             monitoring.trackMetric('request_failure', 1, {
