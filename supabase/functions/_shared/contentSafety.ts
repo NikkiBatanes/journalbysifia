@@ -6,7 +6,7 @@
 export interface ContentAnalysis {
   isHarmfulIntent: boolean;
   isVictimExperience: boolean;
-  category?: 'violence' | 'sexual_assault' | 'theft' | 'harassment' | 'self_harm' | 'gender_identity' | 'other';
+  category?: 'violence' | 'sexual_assault' | 'theft' | 'harassment' | 'self_harm' | 'gender_identity' | 'revenge' | 'other';
   shouldBlock: boolean;
   shouldParaphrase: boolean;
   christianMessage?: string;
@@ -24,7 +24,6 @@ export function analyzeContent(input: string): ContentAnalysis {
     // Violence planning and confessions
     /\b(i want to|i will|i'm going to|planning to|how (can|do) i|help me)\s+(kill|murder|harm|hurt|beat|attack|shoot|stab)\s+(someone|him|her|them|my)/i,
     /\b(i killed|i murdered|i hurt|i beat|i attacked|i shot|i stabbed)\s+(someone|him|her|them|my)/i,
-    /\b(revenge|get back at|make (him|her|them) pay)\b/i,
     /\bhow (can|do) i (hurt|harm|kill|murder)/i,
     
     // Sexual assault planning and confessions
@@ -61,6 +60,14 @@ export function analyzeContent(input: string): ContentAnalysis {
     /\bhealing|recovery|coping with|dealing with\b/i,
   ];
 
+  // Patterns indicating REVENGE topics (should be allowed, not blocked)
+  const revengePatterns = [
+    /\b(revenge|get back at|make (him|her|them) pay)\b/i,
+    /\b(i want|i need|i'm going to)\s+(to\s+)?(get\s+)?revenge\b/i,
+    /\bhow (can|do) i (get\s+)?revenge\b/i,
+    /\bpayback|retaliation|vengeance\b/i,
+  ];
+
   // Patterns indicating GENDER IDENTITY topics (should be allowed, not blocked)
   const genderIdentityPatterns = [
     /\b(i want to|i will|i'm going to|i need to|i would like to)\s+(change|transition|explore)\s+(my\s+)?(gender|identity)\b/i,
@@ -80,9 +87,14 @@ export function analyzeContent(input: string): ContentAnalysis {
   // Check for gender identity patterns (should be allowed)
   const isGenderIdentity = genderIdentityPatterns.some(pattern => pattern.test(lowerInput));
 
+  // Check for revenge patterns (should be allowed)
+  const isRevenge = revengePatterns.some(pattern => pattern.test(lowerInput));
+
   // Determine category
   let category: ContentAnalysis['category'];
-  if (isGenderIdentity) {
+  if (isRevenge) {
+    category = 'revenge';
+  } else if (isGenderIdentity) {
     category = 'gender_identity';
   } else if (lowerInput.includes('kill') || lowerInput.includes('murder') || lowerInput.includes('violence')) {
     category = 'violence';
@@ -99,8 +111,8 @@ export function analyzeContent(input: string): ContentAnalysis {
   }
 
   // Determine action
-  const shouldBlock = hasHarmfulIntent && !hasVictimExperience && !isGenderIdentity;
-  const shouldParaphrase = hasVictimExperience || (!hasHarmfulIntent && !isGenderIdentity && (
+  const shouldBlock = hasHarmfulIntent && !hasVictimExperience && !isGenderIdentity && !isRevenge;
+  const shouldParaphrase = hasVictimExperience || (!hasHarmfulIntent && !isGenderIdentity && !isRevenge && (
     lowerInput.includes('rape') || 
     lowerInput.includes('murder') ||
     lowerInput.includes('assault')
