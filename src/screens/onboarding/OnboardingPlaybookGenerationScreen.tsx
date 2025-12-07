@@ -503,6 +503,19 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
     } catch (error) {
       Logger.error('❌ Error generating playbook', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
+
+      // Check if content was blocked
+      if ((error as any).contentBlocked) {
+        setContentBlockedData({
+          message: (error as any).christianMessage || 'Content blocked',
+          alternatives: (error as any).alternatives,
+          category: (error as any).category,
+        });
+        setContentBlocked(true);
+        setIsGenerating(false);
+        return;
+      }
+
       // Convert technical errors to user-friendly messages
       const userMessage = (error as Error).message?.includes('Circuit breaker is OPEN')
         ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
