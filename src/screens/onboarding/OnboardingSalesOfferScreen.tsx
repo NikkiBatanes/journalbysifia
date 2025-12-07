@@ -382,8 +382,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         logger.debug('Successfully reset subscription to seeker');
 
         // Reset UI state immediately to prevent any race conditions
-        setSelectedTier('spark');
-        logger.debug('Reset UI selectedTier to spark');
+        // Preserve the user's initial selection or manual selection instead of forcing spark
+        setSelectedTier(hasManualTierSelection ? selectedTier : initialSelectedTier);
+        logger.debug('Reset UI selectedTier to preserved selection:', hasManualTierSelection ? selectedTier : initialSelectedTier);
 
         // Suppress faith points notifications temporarily to prevent duplicates
         notificationService.suppressPointsNotifications(true);
@@ -1499,12 +1500,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       ? 'Upgrade and Continue'
                       : fromPlanningLock
                         ? 'Start Planning Ahead'
-                        : fromCopyTodosLock
-                          ? 'Upgrade to Copy To-Dos'
-                          : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                            ? 'Upgrade to Repeat Options'
-                            : fromCalendarAutoSync
-                              ? 'Upgrade to Auto-Sync'
+                        : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                          ? 'Upgrade to Repeat Options'
+                          : fromCalendarAutoSync
+                            ? 'Upgrade to Auto-Sync'
+                            : fromCopyTodosLock
+                              ? 'Upgrade to Copy To-Dos'
                               : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
