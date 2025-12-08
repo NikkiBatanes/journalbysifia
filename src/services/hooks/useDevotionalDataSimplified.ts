@@ -218,35 +218,35 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       const apiEntry = await DevotionalApi.markDayComplete(devotionalId, dayNumber);
       return transformApiEntryToDevotional(apiEntry);
     },
-    onMutate: async ({ devotionalId, dayNumber, userId }) => {
+    onMutate: async ({ devotionalId, dayNumber, userId: mutationUserId }) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.list(userId) });
-      await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.detail(userId, devotionalId) });
-      
+      await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.list(mutationUserId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.detail(mutationUserId, devotionalId) });
+
       // Snapshot the previous values
-      const previousDevotionals = queryClient.getQueryData(queryKeys.devotionals.list(userId));
-      const previousDevotionalDetail = queryClient.getQueryData(queryKeys.devotionals.detail(userId, devotionalId));
-      
+      const previousDevotionals = queryClient.getQueryData(queryKeys.devotionals.list(mutationUserId));
+      const previousDevotionalDetail = queryClient.getQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId));
+
       // Optimistically update the cache by marking the day as complete
-      queryClient.setQueryData(queryKeys.devotionals.list(userId), (old: any) => {
-        if (!Array.isArray(old)) return old;
-        
+      queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), (old: any) => {
+        if (!Array.isArray(old)) {return old;}
+
         return old.map((devotional: any) => {
           if (devotional.id === devotionalId) {
             // Update the specific day to completed
-            const updatedDays = devotional.days.map((day: any, index: number) => 
+            const updatedDays = devotional.days.map((day: any, index: number) =>
               index === dayNumber - 1 ? { ...day, completed: true } : day
             );
-            
+
             // Check if this makes the entire devotional complete
             const completedDaysCount = updatedDays.filter((day: any) => day.completed).length;
             const isComplete = completedDaysCount === devotional.totalDays;
-            
+
             return {
               ...devotional,
               days: updatedDays,
               completed: isComplete,
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date().toISOString(),
             };
           }
           return devotional;
@@ -254,30 +254,30 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       });
 
       // Also optimistically update the individual devotional detail query
-      queryClient.setQueryData(queryKeys.devotionals.detail(userId, devotionalId), (old: any) => {
-        if (!old || !old.days) return old;
-        
+      queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), (old: any) => {
+        if (!old || !old.days) {return old;}
+
         // Update the specific day to completed
-        const updatedDays = old.days.map((day: any, index: number) => 
+        const updatedDays = old.days.map((day: any, index: number) =>
           index === dayNumber - 1 ? { ...day, completed: true } : day
         );
-        
+
         // Check if this makes the entire devotional complete
         const completedDaysCount = updatedDays.filter((day: any) => day.completed).length;
         const isComplete = completedDaysCount === old.totalDays;
-        
+
         return {
           ...old,
           days: updatedDays,
           completed: isComplete,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         };
       });
-      
+
       // Return a context object with the snapshotted values
       return { previousDevotionals, previousDevotionalDetail };
     },
-    onSuccess: async (data, { devotionalId, dayNumber, userId: _completionUserId }) => {
+    onSuccess: async (data, { devotionalId, dayNumber, userId: mutationUserId, _completionUserId }) => {
 
       // ENTERPRISE-GRADE: Trigger cross-component sync immediately in background without blocking
       // All heavy operations (DB writes, invalidations) are already deferred internally
@@ -306,9 +306,9 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       }
 
       // Update cache with the latest server data to ensure consistency
-      queryClient.setQueryData(queryKeys.devotionals.list(userId), (old: any) => {
-        if (!Array.isArray(old)) return old;
-        
+      queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), (old: any) => {
+        if (!Array.isArray(old)) {return old;}
+
         return old.map((devotional: any) => {
           if (devotional.id === devotionalId) {
             return data; // Use the server response for the updated devotional
@@ -318,19 +318,19 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       });
 
       // Also update the individual devotional detail query
-      queryClient.setQueryData(queryKeys.devotionals.detail(userId, devotionalId), data);
+      queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), data);
 
       // Analytics tracking removed for now
     },
-    onError: (error: Error, { userId, devotionalId }, context) => {
+    onError: (error: Error, { userId: mutationUserId, devotionalId }, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousDevotionals) {
-        queryClient.setQueryData(queryKeys.devotionals.list(userId), context.previousDevotionals);
+        queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), context.previousDevotionals);
       }
       if (context?.previousDevotionalDetail) {
-        queryClient.setQueryData(queryKeys.devotionals.detail(userId, devotionalId), context.previousDevotionalDetail);
+        queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), context.previousDevotionalDetail);
       }
-      
+
       Logger.error('[useMarkDayCompleteReactQuery] Error', error as Error, {
         component: 'useDevotionalDataSimplified',
       });
@@ -357,35 +357,35 @@ export const useSubmitDevotionalRatingReactQuery = () => {
     onMutate: async ({ devotionalId, rating, userId }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.list(userId) });
-      
+
       // Snapshot the previous value
       const previousDevotionals = queryClient.getQueryData(queryKeys.devotionals.list(userId));
-      
+
       // Optimistically update the cache by adding the rating
       queryClient.setQueryData(queryKeys.devotionals.list(userId), (old: any) => {
-        if (!Array.isArray(old)) return old;
-        
+        if (!Array.isArray(old)) {return old;}
+
         return old.map((devotional: any) => {
           if (devotional.id === devotionalId) {
             return {
               ...devotional,
               rating,
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date().toISOString(),
             };
           }
           return devotional;
         });
       });
-      
+
       // Return a context object with the snapshotted value
       return { previousDevotionals };
     },
-    onSuccess: (data, { devotionalId, rating, userId }) => {
+    onSuccess: (data, { devotionalId, _rating, userId }) => {
 
       // CRITICAL FIX: Only update cache optimistically, don't invalidate
       queryClient.setQueryData(queryKeys.devotionals.list(userId), (old: any) => {
-        if (!Array.isArray(old)) return old;
-        
+        if (!Array.isArray(old)) {return old;}
+
         return old.map((devotional: any) => {
           if (devotional.id === devotionalId) {
             return data; // Use the server response for the updated devotional
@@ -401,7 +401,7 @@ export const useSubmitDevotionalRatingReactQuery = () => {
       if (context?.previousDevotionals) {
         queryClient.setQueryData(queryKeys.devotionals.list(userId), context.previousDevotionals);
       }
-      
+
       Logger.error('[useSubmitDevotionalRatingReactQuery] Error', error as Error, {
         component: 'useDevotionalDataSimplified',
       });
@@ -426,20 +426,20 @@ export const useDeleteDevotionalReactQuery = () => {
     onMutate: async ({ devotionalId, userId }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.list(userId) });
-      
+
       // Snapshot the previous value
       const previousDevotionals = queryClient.getQueryData(queryKeys.devotionals.list(userId));
-      
+
       // Optimistically update the cache by removing the deleted devotional
       queryClient.setQueryData(queryKeys.devotionals.list(userId), (old: any) => {
-        if (!Array.isArray(old)) return old;
+        if (!Array.isArray(old)) {return old;}
         return old.filter((devotional: any) => devotional.id !== devotionalId);
       });
-      
+
       // Return a context object with the snapshotted value
       return { previousDevotionals };
     },
-    onSuccess: (_, { devotionalId, userId }) => {
+    onSuccess: (_, { _devotionalId, userId }) => {
 
       // Invalidate related queries to ensure fresh data
       queryClient.invalidateQueries({
@@ -452,7 +452,7 @@ export const useDeleteDevotionalReactQuery = () => {
       if (context?.previousDevotionals) {
         queryClient.setQueryData(queryKeys.devotionals.list(userId), context.previousDevotionals);
       }
-      
+
       Logger.error('[useDeleteDevotionalReactQuery] Error', error as Error, {
       component: 'useDevotionalDataSimplified',
     });
