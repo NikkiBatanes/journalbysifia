@@ -1653,7 +1653,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               )}
             </View>
             {isSeeker && (
-              <Text style={[styles.menuValueText, { marginRight: 8 }]}>Free Plan</Text>
+              <Text style={[styles.menuValueText, font, { marginRight: 8 }]}>Free Plan</Text>
             )}
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
           </TouchableOpacity>
