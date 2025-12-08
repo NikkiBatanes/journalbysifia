@@ -1421,17 +1421,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} handleRestorePurchases(); }}
-        >
-          <View style={styles.menuIconBox}>
-            <Ionicons name="refresh" size={18} color={Colors.anchorBlue} />
-          </View>
-          <Text style={[styles.menuText, font]}>Restore Purchases</Text>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
           onPress={() => { openExternalLink('https://sifia.app/legal/terms'); }}
           accessibilityLabel="Open Terms of Service"
         >
@@ -1655,6 +1644,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             {isSeeker && (
               <Text style={[styles.menuValueText, font, { marginRight: 8 }]}>Free Plan</Text>
             )}
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemSpaced]}
+            onPress={() => { try { triggerLightHaptic(); } catch {} handleRestorePurchases(); }}
+          >
+            <View style={styles.menuIconBox}>
+              <Ionicons name="refresh" size={18} color={Colors.anchorBlue} />
+            </View>
+            <Text style={[styles.menuText, font]}>Restore Purchases</Text>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
           </TouchableOpacity>
         </View>
