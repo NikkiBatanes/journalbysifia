@@ -593,11 +593,15 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       {/* Devotional creation modal triggered by long-press on a playbook card */}
       <DevotionalModal
         visible={devotionalModalVisible}
-        onClose={() => setDevotionalModalVisible(false)}
+        onClose={() => {
+          setDevotionalModalVisible(false);
+          setSelectedPlaybookForDevotional(null); // Reset selected playbook
+        }}
         playbookId={selectedPlaybookForDevotional?.id}
         userInput={selectedPlaybookForDevotional?.userInput}
         onDevotionalCreated={(devotionalId: string) => {
           setDevotionalModalVisible(false);
+          setSelectedPlaybookForDevotional(null); // Reset selected playbook
           try { navigation.navigate('DevotionalDetail' as never, { devotionalId } as never); } catch {}
         }}
       />
