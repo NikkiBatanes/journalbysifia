@@ -492,7 +492,7 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
   }
 
   // Use the same pattern as the parser for validation
-  const scriptureRegex = /SCRIPTURE:[\s\n]*["'""']([\s\S]+?)["'""'][\s\n]*[-—][\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i;
+  const scriptureRegex = /SCRIPTURE:[\s\n]*["'""']([\s\S]+?)["'""'][\s\n]*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i;
   if (!scriptureRegex.test(enforcedResponse)) {
     throw new Error('AI failed to provide properly formatted scripture - no fallback allowed');
   }

@@ -6,8 +6,6 @@ import type { DevotionalApiEntry } from '../api/devotionalApi';
 // import { defaultQueryOptions, defaultMutationOptions } from '../config/queryConfig'; // Unused
 import { Devotional, DevotionalCreationParams, DevotionalCategory } from '../../interfaces/devotional';
 // import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
-import { notificationService } from '../notificationService';
-import { faithPointsService } from '../faithPointsService';
 import { useCrossComponentSync } from './useCrossComponentSync';
 // import { analytics } from '../analytics'; // TODO: Fix analytics import
 
@@ -152,44 +150,62 @@ export const useCreateDevotionalReactQuery = () => {
       const devotional = await DevotionalApi.generateDevotional(params);
       return devotional;
     },
-    onSuccess: (data, { userId: _userId }) => {
+    onSuccess: async (data, { userId: _userId }) => {
+      try {
+        // Invalidate and refetch devotionals list
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.devotionals.list(_userId),
+        });
 
-      // Invalidate and refetch devotionals list
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.list(_userId),
-      });
-
-      // Invalidate devotionals queries to trigger reflection questions update
-      queryClient.invalidateQueries({
-        queryKey: ['devotionals'],
-      });
-
-      // Use setQueryData for immediate updates without triggering re-renders
-      queryClient.setQueryData(['devotionals', _userId], (oldData: any) => {
-        if (!oldData) {return [data];}
-        return [data, ...oldData];
-      });
-
-      // Delayed refetch to ensure data consistency without navigation conflicts
-      setTimeout(() => {
-        queryClient.refetchQueries({
+        // Invalidate devotionals queries to trigger reflection questions update
+        queryClient.invalidateQueries({
           queryKey: ['devotionals'],
         });
-      }, 1000);
 
-      // Emit local event so non-React-Query consumers (e.g., DevotionalCarousel) refresh instantly
-      try {
-        DeviceEventEmitter.emit('devotional_created', { id: data.id, user_id: data.userId || _userId });
-      } catch {}
+        // Use setQueryData for immediate updates without triggering re-renders
+        queryClient.setQueryData(['devotionals', _userId], (oldData: any) => {
+          if (!oldData) {return [data];}
+          return [data, ...oldData];
+        });
 
-      // Analytics tracking removed for now
+        // Delayed refetch to ensure data consistency without navigation conflicts
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: ['devotionals'],
+          });
+        }, 1000);
 
-      // Show Faith Points UI for devotional generation (do not rely on server-side triggers)
-      try {
-        const pts = faithPointsService.getPointsForActivity('devotional_generated');
-        notificationService.showPointsNotification(pts, 'devotional_generated', 'center');
-      } catch (e) {
+        // Emit local event so non-React-Query consumers (e.g., DevotionalCarousel) refresh instantly
+        try {
+          DeviceEventEmitter.emit('devotional_created', { id: data.id, user_id: data.userId || _userId });
+        } catch (e) {
+          // Silently ignore device event errors to prevent blocking devotional creation
+          Logger.warn('[useCreateDevotionalReactQuery] Device event emission failed', {
+            component: 'useDevotionalDataSimplified',
+            error: e as Error,
+          });
+        }
 
+        // Analytics tracking removed for now
+
+        // Show Faith Points UI for devotional generation (do not rely on server-side triggers)
+        try {
+          const { faithPointsService } = await import('../faithPointsService');
+          const { notificationService } = await import('../notificationService');
+          const pts = faithPointsService.getPointsForActivity('devotional_generated');
+          notificationService.showPointsNotification(pts, 'devotional_generated', 'center');
+        } catch (e) {
+          // Silently ignore faith points errors to prevent blocking devotional creation
+          Logger.warn('[useCreateDevotionalReactQuery] Faith points notification failed', {
+            component: 'useDevotionalDataSimplified',
+            error: e as Error,
+          });
+        }
+      } catch (error) {
+        // Log any unexpected errors in onSuccess but don't let them block the mutation
+        Logger.error('[useCreateDevotionalReactQuery] Unexpected error in onSuccess', error as Error, {
+          component: 'useDevotionalDataSimplified',
+        });
       }
     },
     onError: (err: Error) => {
