@@ -277,7 +277,7 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       // Return a context object with the snapshotted values
       return { previousDevotionals, previousDevotionalDetail };
     },
-    onSuccess: async (data, { devotionalId, dayNumber, userId: mutationUserId, _completionUserId }) => {
+    onSuccess: async (data, { devotionalId, dayNumber, userId: mutationUserId }) => {
 
       // ENTERPRISE-GRADE: Trigger cross-component sync immediately in background without blocking
       // All heavy operations (DB writes, invalidations) are already deferred internally
@@ -286,14 +286,16 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         const completedDaysCount = data.days.filter(day => day.completed).length;
         const isFullDevotionalComplete = completedDaysCount === data.totalDays;
 
-        syncDevotionalCompletion({
+        syncDevotionalCompletion(
           devotionalId,
-          dayNumber,
-          isFullDevotionalComplete,
-          completedDaysCount,
-          totalDays: data.totalDays,
-          currentDay: dayNumber,
-        }).catch((syncError: Error) => {
+          undefined, // playbookId - not available in this context
+          {
+            isFullDevotionalComplete,
+            completedDaysCount,
+            totalDays: data.totalDays,
+            currentDay: dayNumber,
+          }
+        ).catch((syncError: Error) => {
           Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError as Error, {
             component: 'useDevotionalDataSimplified',
           });
@@ -380,7 +382,7 @@ export const useSubmitDevotionalRatingReactQuery = () => {
       // Return a context object with the snapshotted value
       return { previousDevotionals };
     },
-    onSuccess: (data, { devotionalId, _rating, userId }) => {
+    onSuccess: (data, { devotionalId, rating, userId }) => {
 
       // CRITICAL FIX: Only update cache optimistically, don't invalidate
       queryClient.setQueryData(queryKeys.devotionals.list(userId), (old: any) => {
@@ -439,7 +441,7 @@ export const useDeleteDevotionalReactQuery = () => {
       // Return a context object with the snapshotted value
       return { previousDevotionals };
     },
-    onSuccess: (_, { _devotionalId, userId }) => {
+    onSuccess: (_, { devotionalId, userId }) => {
 
       // Invalidate related queries to ensure fresh data
       queryClient.invalidateQueries({
