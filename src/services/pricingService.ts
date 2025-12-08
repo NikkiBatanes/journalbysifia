@@ -1,6 +1,7 @@
 import { Platform, NativeModules } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import { loadDiscountState, saveDiscountState, mergeGuestToUser, type DiscountState } from './discountStorage';
+import { ENV } from '../config/environment';
 
 export interface PricingTier {
   id: string;
