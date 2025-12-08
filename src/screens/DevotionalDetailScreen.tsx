@@ -383,14 +383,19 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [devotional, allDevotionalPrayers]);
 
-  // Update day index when devotional data changes
+  // Update day index when devotional data changes, but don't auto-advance when current day is marked complete
   useEffect(() => {
     if (devotional) {
       const targetIndex = getInitialDayIndex();
-      setCurrentDayIndex(targetIndex);
+      // Only update if the target index is different from current AND we're not in the middle of completing current day
+      // This prevents auto-advancing when user marks current day complete
+      const isCurrentDayBeingCompleted = completedDayIndex === currentDayIndex && showCompletionModal;
+      
+      if (targetIndex !== currentDayIndex && !isCurrentDayBeingCompleted) {
+        setCurrentDayIndex(targetIndex);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [devotional?.id]); // Only run when devotional id changes (first load)
+  }, [devotional, getInitialDayIndex, currentDayIndex, completedDayIndex, showCompletionModal]);
 
   // Scroll to the correct day when currentDayIndex changes
   const scrollToDay = useCallback((index: number) => {
@@ -683,19 +688,21 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       return;
     }
 
-    // Move to next day
+    // Move to next day after a brief delay to allow modal to close
     const nextDayIndex = currentDayIndex + 1;
-    setCurrentDayIndex(nextDayIndex);
-
-    // Scroll to the next day after a brief delay to allow state to update
-    if (flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToIndex({
-          index: nextDayIndex,
-          animated: true,
-        });
-      }, 100);
-    }
+    setTimeout(() => {
+      setCurrentDayIndex(nextDayIndex);
+      
+      // Scroll to the next day after another brief delay to allow state to update
+      if (flatListRef.current) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({
+            index: nextDayIndex,
+            animated: true,
+          });
+        }, 50);
+      }
+    }, 150);
   };
 
   // Handle closing the modal by pressing the X button or backdrop

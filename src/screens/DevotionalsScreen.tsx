@@ -126,7 +126,11 @@ const DevotionalsScreen = () => {
 
   const handleDeleteDevotional = useCallback(async (devotionalId: string) => {
     try {
+      // Perform the deletion
       await deleteDevotional(devotionalId);
+      
+      // Remove the row reference after successful deletion
+      delete rowRefs.current[devotionalId];
     } catch (error) {
       Logger.error('Error deleting devotional', error as Error, { component: 'DevotionalsScreen' });
     }
@@ -155,6 +159,14 @@ const DevotionalsScreen = () => {
                 style: 'destructive',
                 onPress: async () => {
                   try { triggerLightHaptic(); } catch {}
+                  
+                  // Close the swipeable row immediately for better UX
+                  const rowRef = rowRefs.current[devotionalId];
+                  if (rowRef && typeof rowRef.close === 'function') {
+                    rowRef.close();
+                  }
+                  
+                  // Perform the deletion
                   await handleDeleteDevotional(devotionalId);
                 },
               },
