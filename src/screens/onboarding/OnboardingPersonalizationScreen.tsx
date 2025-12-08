@@ -326,6 +326,21 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           }
 
           if (provider === 'apple') {
+            // First check if Apple provided a name in metadata (saved during sign-in)
+            const appleProvidedName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
+
+            if (appleProvidedName && appleProvidedName.trim().length > 0) {
+              // Apple provided a name - use it and skip name collection
+              logger.debug('🍎 Apple provided name in metadata - using it', {
+                userId: user?.id,
+                name: appleProvidedName,
+              });
+              setName(appleProvidedName.trim());
+              setShowNameStep(false);
+              return;
+            }
+
+            // No name from Apple - this can happen on subsequent logins
             // Check if user has already completed onboarding
             const { data: profile } = await supabase
               .from('user_profiles')
@@ -334,27 +349,18 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               .single();
 
             if (profile?.onboarding_completed) {
-              logger.debug('🍎 Apple OAuth user has completed onboarding - skipping name collection', { userId: user?.id });
-              // Try to get existing name from metadata
-              const existingMetadataName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
-              if (existingMetadataName) {
-                setName(existingMetadataName);
-                setShowNameStep(false);
-                return;
-              }
-            } else {
-              logger.debug('🍎 Apple OAuth user needs onboarding - forcing name collection');
+              logger.debug('🍎 Apple user completed onboarding but no name in metadata - skip name step', {
+                userId: user?.id,
+              });
               setName('');
-              setShowNameStep(true);
+              setShowNameStep(false);
+              return;
             }
 
-            try {
-              await AsyncStorage.removeItem('apple_signin_name');
-
-            } catch (error) {
-              logger.error('Error clearing Apple name data:', error as Error);
-            }
-
+            // New Apple user with no name provided - must collect it
+            logger.debug('🍎 Apple user needs onboarding and no name provided - collecting name');
+            setName('');
+            setShowNameStep(true);
             return;
           }
 

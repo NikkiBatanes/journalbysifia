@@ -1463,20 +1463,44 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         nonce,
       });
 
-      // Store Apple name data for later use in onboarding
+      // Save Apple name data directly to user metadata for immediate use
       if (fullName?.givenName && fullName.givenName.trim().length > 0) {
+        try {
+          const givenName = fullName.givenName.trim();
+          const familyName = fullName.familyName?.trim() || '';
+          const fullNameString = familyName ? `${givenName} ${familyName}` : givenName;
 
-        // Store the Apple-provided name for use in onboarding
-        await AsyncStorage.setItem('apple_signin_name', JSON.stringify({
-          givenName: fullName.givenName,
-          familyName: fullName.familyName,
-          nickname: fullName.nickname,
-        }));
+          // Update user metadata with Apple-provided name
+          const { error: updateError } = await supabase.auth.updateUser({
+            data: {
+              first_name: givenName,
+              last_name: familyName,
+              full_name: fullNameString,
+            },
+          });
 
-      } else {
-
-        // Clear any previously stored Apple name data if it exists
-        await AsyncStorage.removeItem('apple_signin_name');
+          if (updateError) {
+            Logger.warn('Failed to save Apple name to user metadata', {
+              component: 'AuthContext',
+              action: 'apple_name_save',
+              error: {
+                message: updateError.message,
+                name: updateError.name || 'UpdateError',
+              },
+            });
+          } else {
+            Logger.debug('Apple name saved to user metadata', {
+              givenName,
+              familyName,
+              fullName: fullNameString,
+            });
+          }
+        } catch (metadataError) {
+          Logger.error('Error saving Apple name metadata', metadataError as Error, {
+            component: 'AuthContext',
+            action: 'apple_name_metadata_error',
+          });
+        }
       }
 
       if (error) {
