@@ -1316,7 +1316,7 @@ serve(async (req: Request): Promise<Response> => {
                 content: buildUserMessage(originalUserInput, input),
               },
             ],
-            temperature: 0.85, // Increased for more creative variety in biblical story selection
+            temperature: 0.7,
             max_tokens: duration === 7 ? 8000 : 6000,
           }),
         },
