@@ -437,6 +437,49 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     return devotional?.days?.[currentDayIndex];
   }, [devotional?.days, currentDayIndex]);
 
+  // Memoized scroll handler to prevent unnecessary re-renders
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const contentHeight = event.nativeEvent.contentSize.height;
+    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+
+    // Store the latest viewport height for use in other callbacks
+    lastViewportHeightRef.current = scrollViewHeight;
+
+    // Early return if current day is completed to avoid unnecessary calculations
+    if (!currentDay || currentDay.completed) {
+      setShowFAB(false);
+      // Update scrollY for any animations (but less frequently)
+      scrollY.setValue(offsetY);
+      return;
+    }
+
+    // Show FAB only when scrolled to bottom for incomplete days
+    // If content is shorter than viewport, always show FAB
+    if (contentHeight <= scrollViewHeight + 8) {
+      setShowFAB(true);
+    } else {
+      // Otherwise show FAB when near bottom (relaxed threshold to account for padding/bounce)
+      const bottomThreshold = 120; // px
+      const isAtBottom = offsetY + scrollViewHeight >= contentHeight - bottomThreshold;
+      setShowFAB(isAtBottom);
+    }
+
+    // Update scrollY for any animations
+    scrollY.setValue(offsetY);
+  }, [currentDay, scrollY]);
+
+  // Memoized content size change handler
+  const handleContentSizeChange = useCallback((contentWidth: number, contentHeight: number) => {
+    // Use the last measured viewport height when available
+    const viewportHeight = lastViewportHeightRef.current || Dimensions.get('window').height;
+
+    // If content is shorter than (or nearly equal to) viewport, show FAB immediately
+    if (currentDay && !currentDay.completed && contentHeight <= viewportHeight + 16) {
+      setShowFAB(true);
+    }
+  }, [currentDay]);
+
   // Prepare and debug-format the prayer text for current day
   const rawPrayer = currentDay?.prayer ?? '';
   const formattedPrayer = useMemo(() =>
@@ -810,44 +853,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     return <DevotionalDetailSkeleton />;
   }
 
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    const contentHeight = event.nativeEvent.contentSize.height;
-    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
-
-    // Store the latest viewport height for use in other callbacks
-    lastViewportHeightRef.current = scrollViewHeight;
-
-    // Show FAB only when scrolled to bottom for incomplete days
-    if (currentDay && !currentDay.completed) {
-      // If content is shorter than viewport, always show FAB
-      if (contentHeight <= scrollViewHeight + 8) {
-        setShowFAB(true);
-      } else {
-        // Otherwise show FAB when near bottom (relaxed threshold to account for padding/bounce)
-        const bottomThreshold = 120; // px
-        const isAtBottom = offsetY + scrollViewHeight >= contentHeight - bottomThreshold;
-        setShowFAB(isAtBottom);
-      }
-    } else {
-      setShowFAB(false);
-    }
-
-    // Update scrollY for any animations
-    scrollY.setValue(offsetY);
-  };
-
-  // Force FAB visibility check when content layout changes
-  const handleContentSizeChange = (contentWidth: number, contentHeight: number) => {
-    // Use the last measured viewport height when available
-    const viewportHeight = lastViewportHeightRef.current || Dimensions.get('window').height;
-
-    // If content is shorter than (or nearly equal to) viewport, show FAB immediately
-    if (currentDay && !currentDay.completed && contentHeight <= viewportHeight + 16) {
-      setShowFAB(true);
-    }
-  };
-
   // Handle swipe down to dismiss
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -1025,12 +1030,20 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
           contentInset={{ left: 0, right: 0 }}
+          // Performance optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={3}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={1}
+          windowSize={3}
           onLayout={(e) => {
             const w = Math.round(e.nativeEvent.layout.width);
             if (w > 0 && w !== pageWidth) {setPageWidth(w);}
           }}
           getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
           snapToOffsets={Array.from({ length: devotional.days.length }, (_, i) => i * pageWidth)}
+          // Optimized scroll handling
+          scrollEventThrottle={32} // Reduced from 16 for better performance
           onMomentumScrollEnd={event => {
             // Skip if this is a programmatic scroll to prevent feedback loop
             if (isScrollingProgrammatically.current) {
@@ -1053,7 +1066,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             // Prevent any potential scroll jank
             return true;
           }}
-          scrollEventThrottle={16}
           onScrollToIndexFailed={info => {
             const wait = new Promise(resolve => setTimeout(resolve, 500));
             wait.then(() => {
@@ -1070,8 +1082,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 contentInsetAdjustmentBehavior="never"
                 automaticallyAdjustContentInsets={false}
                 bounces={false}
+                // Performance optimizations
+                removeClippedSubviews={true}
+                scrollEventThrottle={32} // Reduced from 16 for better performance
                 onScroll={(event) => {
-                  // Reset scroll position when changing pages
+                  // Only handle scroll for current day to reduce unnecessary calculations
                   if (index === currentDayIndex) {
                     handleScroll(event);
                   }
@@ -1082,7 +1097,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     handleContentSizeChange(contentWidth, contentHeight);
                   }
                 }}
-                scrollEventThrottle={16}
                 keyboardShouldPersistTaps="handled"
                 // Reset scroll position when this item becomes visible
                 contentOffset={{x: 0, y: index === currentDayIndex ? 0 : (scrollPositions[index] || 0)}}
