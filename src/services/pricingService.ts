@@ -235,7 +235,7 @@ class PricingService {
       component: 'pricingService',
       location,
       currency: locationData.currency,
-      isDev: __DEV__,
+      isDev: ENV.APP_ENV === 'development',
     });
 
     // Use explicit PH pricing when market is Philippines
@@ -287,11 +287,11 @@ class PricingService {
     Logger.info('[PricingService] Getting currency info', {
       component: 'pricingService',
       location,
-      isDev: __DEV__,
+      isDev: ENV.APP_ENV === 'development',
     });
 
     // FORCE Philippine currency for development/testing (matches pricing override)
-    if (__DEV__) {
+    if (ENV.APP_ENV === 'development') {
       Logger.info('[PricingService] Using PHP currency (dev mode)', {
         component: 'pricingService',
       });
@@ -496,7 +496,7 @@ class PricingService {
     }
 
     // FORCE Philippine pricing for development/testing
-    if (__DEV__) {
+    if (ENV.APP_ENV === 'development') {
       return this.phOverridePricing.filter(t => availableTierIds.includes(t.id));
     }
 

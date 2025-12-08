@@ -538,7 +538,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Pull-to-refresh REMOVED - using skeleton loading instead to prevent logout issues
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['left','right']}>
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
         <View style={styles.header}>

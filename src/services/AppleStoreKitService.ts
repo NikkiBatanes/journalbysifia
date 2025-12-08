@@ -100,7 +100,7 @@ export class AppleStoreKitService {
   }
 
   private isSandboxEnvironment(): boolean {
-    return __DEV__ || ENV.APP_ENV === 'development' || ENV.APP_ENV === 'sandbox';
+    return ENV.APP_ENV === 'development' || ENV.APP_ENV === 'sandbox';
   }
 
   /**
@@ -153,7 +153,7 @@ export class AppleStoreKitService {
       component: 'AppleStoreKitService',
       hasInitConnection: !!initConnection,
       platform: Platform.OS,
-      isDev: __DEV__,
+      isDev: ENV.APP_ENV === 'development',
       isSandbox: this.isSandboxEnvironment(),
     });
 
@@ -375,8 +375,8 @@ export class AppleStoreKitService {
       }
     }
 
-    // All attempts failed - return mock products for development
-    if (__DEV__) {
+    // All attempts failed - return mock products for development only
+    if (ENV.APP_ENV === 'development') {
       Logger.warn('[StoreKit] 🧪 All product fetch attempts failed, returning mock products for development', {
         component: 'AppleStoreKitService',
         totalAttempts: 3,

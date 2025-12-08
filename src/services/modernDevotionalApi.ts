@@ -97,10 +97,9 @@ async function generateDevotionalInternal(
         }
       } catch {}
 
-      // CRITICAL FIX: Use Supabase SDK instead of raw fetch for TestFlight reliability
-      // Onboarding works because it uses supabase.functions.invoke(), not fetch()
-      // Raw fetch() has iOS networking issues in TestFlight builds
-      const shouldUseSupabaseSDK = !__DEV__; // Production/TestFlight uses SDK
+      // Always use Supabase SDK for production reliability
+      // Supabase SDK handles iOS networking gracefully in all environments
+      const shouldUseSupabaseSDK = true;
 
       let result;
       if (shouldUseSupabaseSDK) {
