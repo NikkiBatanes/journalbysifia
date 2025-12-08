@@ -1630,11 +1630,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         source: 'profile',
         currentTier: tier,
         isEligibleForTrial,
+        skipNotificationPreference: true, // Don't show notification setup when coming from profile
+        returnTo: 'UserProfile', // Return to profile after purchase/cancel
       });
     };
 
     return (
-      <View style={{ marginBottom: 24 }}>
+      <View>
         <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>SUBSCRIPTION</Text>
         <View style={styles.menuContainer}>
           <TouchableOpacity

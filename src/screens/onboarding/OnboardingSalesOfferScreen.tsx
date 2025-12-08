@@ -1027,11 +1027,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             ]}
           />
         )}
-        {(tier.isPopular || (tier.id === 'transformation' && !growthVisible)) && (
-          <View style={styles.popularBadge}>
-            <ThemedText weight="semiBold" style={styles.popularText}>POPULAR</ThemedText>
-          </View>
-        )}
+        {(() => {
+          // Show "Your Plan" for current paid tier, otherwise show "POPULAR"
+          const isCurrentPaidTier = tier.id === currentUserTier && currentUserTier !== 'seeker';
+          const shouldShowBadge = isCurrentPaidTier || tier.isPopular || (tier.id === 'transformation' && !growthVisible);
+          const badgeText = isCurrentPaidTier ? 'YOUR PLAN' : 'POPULAR';
+
+          return shouldShowBadge ? (
+            <View style={styles.popularBadge}>
+              <ThemedText weight="semiBold" style={styles.popularText}>{badgeText}</ThemedText>
+            </View>
+          ) : null;
+        })()}
 
         <View style={styles.cardHeader}>
           <ThemedText weight="bold" style={[styles.tierName, isSelected && styles.selectedText]}>
