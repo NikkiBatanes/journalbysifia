@@ -85,7 +85,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   };
 
   const [isAnnual, setIsAnnual] = useState(false);
-  const initialSelectedTier = (route.params as any)?.requestedDuration === 7 ? 'transformation' :
+
+  // Check if we're in upgrade mode (from devotional modal) or onboarding mode
+  const routeParams = route.params as RouteParams | undefined;
+  const isUpgradeMode = routeParams?.upgradeMode || false;
+  const currentUserTier = (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier) as string;
+
+  // Check if coming from profile to preselect current tier
+  const isFromProfile = (route.params as any)?.source === 'profile';
+  const initialSelectedTier = isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
+                              (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
                               'spark'; // Default to spark for onboarding to prevent transformation tier bug
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
@@ -99,11 +108,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
-
-  // Check if we're in upgrade mode (from devotional modal) or onboarding mode
-  const routeParams = route.params as RouteParams | undefined;
-  const isUpgradeMode = routeParams?.upgradeMode || false;
-  const currentUserTier = (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier) as string;
   const requestedDuration = routeParams?.requestedDuration;
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
@@ -1028,14 +1032,27 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           />
         )}
         {(() => {
-          // Show "Your Plan" for current paid tier, otherwise show "POPULAR"
           const isCurrentPaidTier = tier.id === currentUserTier && currentUserTier !== 'seeker';
-          const shouldShowBadge = isCurrentPaidTier || tier.isPopular || (tier.id === 'transformation' && !growthVisible);
-          const badgeText = isCurrentPaidTier ? 'YOUR PLAN' : 'POPULAR';
 
-          return shouldShowBadge ? (
+          // Show "Your Plan" for current paid tier
+          if (isCurrentPaidTier) {
+            return (
+              <View style={styles.popularBadge}>
+                <ThemedText weight="semiBold" style={styles.popularText}>YOUR PLAN</ThemedText>
+              </View>
+            );
+          }
+
+          // Hide Popular badge when coming from profile
+          if (isFromProfile) {
+            return null;
+          }
+
+          // Show Popular badge in other contexts
+          const shouldShowPopular = tier.isPopular || (tier.id === 'transformation' && !growthVisible);
+          return shouldShowPopular ? (
             <View style={styles.popularBadge}>
-              <ThemedText weight="semiBold" style={styles.popularText}>{badgeText}</ThemedText>
+              <ThemedText weight="semiBold" style={styles.popularText}>POPULAR</ThemedText>
             </View>
           ) : null;
         })()}
