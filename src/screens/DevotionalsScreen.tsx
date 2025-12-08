@@ -43,74 +43,6 @@ type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, '
 
 type FilterType = 'all' | 'ongoing' | 'completed';
 
-// Extracted ListEmptyComponent to avoid inline component definition
-const renderListEmptyComponent = (
-  devotionals: Devotional[] | null,
-  filter: FilterType,
-  isLoading: boolean,
-  setFilter: (filter: FilterType) => void
-) => {
-  const totalDevotionals = Array.isArray(devotionals) ? devotionals.length : 0;
-
-  // If there are some devotionals overall but none in the selected filter,
-  // show a filter-specific empty hero (match PlaybookListScreen behavior)
-  if (totalDevotionals > 0) {
-    return (
-      <View style={styles.emptyStateContainer}>
-        <View style={styles.emptyHeroContainer}>
-          <View style={styles.heroCard}>
-            {filter === 'ongoing' ? (
-              <MaterialCommunityIcons
-                name="clipboard-text-clock"
-                size={32}
-                color={Colors.holyGlow}
-                style={styles.heroIcon}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="trophy-outline"
-                size={32}
-                color={Colors.holyGlow}
-                style={styles.heroIcon}
-              />
-            )}
-            <ThemedText weight="bold" style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</ThemedText>
-            <ThemedText weight="bold" style={styles.heroTitle}>
-              {filter === 'ongoing' ? 'All your devotionals are completed' : 'No completed devotionals yet'}
-            </ThemedText>
-            <ThemedText style={styles.heroSubtitle}>
-              {filter === 'ongoing'
-                ? 'Great job finishing your devotionals. Review a completed devotional or start a new one.'
-                : 'Keep going! Your finished devotionals will appear here.'}
-            </ThemedText>
-            <TouchableOpacity
-              onPress={() => { try { triggerLightHaptic(); } catch {} setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
-              activeOpacity={0.85}
-              style={styles.heroTextButton}
-            >
-              <ThemedText weight="medium" style={styles.heroLinkText}>
-                {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <View style={styles.emptyStateContainer}>
-        <ActivityIndicator size="large" color={Colors.anchorBlue} />
-        <ThemedText style={styles.emptyStateText}>Loading devotionals...</ThemedText>
-      </View>
-    );
-  }
-
-  return null; // Should never reach here since empty state is handled above
-};
-
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
   const { user } = useAuth();
@@ -406,6 +338,69 @@ const DevotionalsScreen = () => {
       </Animated.View>
     );
   }, [triggerLightHaptic, renderRightActions, handleDevotionalPress, handlePlaybookPress, filter]);
+
+  // Filter-specific empty state component
+  const renderFilterEmptyState = useCallback(() => {
+    const totalDevotionals = Array.isArray(devotionals) ? devotionals.length : 0;
+
+    // If there are some devotionals overall but none in the selected filter,
+    // show a filter-specific empty hero (match PlaybookListScreen behavior)
+    if (totalDevotionals > 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.emptyHeroContainer}>
+            <View style={styles.heroCard}>
+              {filter === 'ongoing' ? (
+                <MaterialCommunityIcons
+                  name="clipboard-text-clock"
+                  size={32}
+                  color={Colors.holyGlow}
+                  style={styles.heroIcon}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name="trophy-outline"
+                  size={32}
+                  color={Colors.holyGlow}
+                  style={styles.heroIcon}
+                />
+              )}
+              <ThemedText weight="bold" style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</ThemedText>
+              <ThemedText weight="bold" style={styles.heroTitle}>
+                {filter === 'ongoing' ? 'All your devotionals are completed' : 'No completed devotionals yet'}
+              </ThemedText>
+              <ThemedText style={styles.heroSubtitle}>
+                {filter === 'ongoing'
+                  ? 'Great job finishing your devotionals. Review a completed devotional or start a new one.'
+                  : 'Keep going! Your finished devotionals will appear here.'}
+              </ThemedText>
+              <TouchableOpacity
+                onPress={() => { try { triggerLightHaptic(); } catch {} setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
+                activeOpacity={0.85}
+                style={styles.heroTextButton}
+              >
+                <ThemedText weight="medium" style={styles.heroLinkText}>
+                  {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // Loading state
+    if (isLoading) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <ActivityIndicator size="large" color={Colors.anchorBlue} />
+          <ThemedText style={styles.emptyStateText}>Loading devotionals...</ThemedText>
+        </View>
+      );
+    }
+
+    return null; // Should never reach here since empty state is handled above
+  }, [devotionals, filter, isLoading, triggerLightHaptic]);
 
   // Filtering
   const filteredDevotionals = useMemo(() => {
@@ -807,7 +802,7 @@ const DevotionalsScreen = () => {
                     { paddingBottom: Math.max(insets.bottom, 12) + 8 },
                   ]
             }
-            ListEmptyComponent={() => renderListEmptyComponent(devotionals, filter, isLoading, setFilter)}
+            ListEmptyComponent={renderFilterEmptyState}
             onViewableItemsChanged={onViewableItemsChanged}
             showsVerticalScrollIndicator={false}
           />
