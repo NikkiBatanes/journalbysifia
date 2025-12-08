@@ -97,6 +97,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
                               'spark'; // Default to spark for onboarding to prevent transformation tier bug
+
+  // Debug logging
+  if (isFromProfile) {
+    logger.debug('Profile navigation debug', {
+      currentUserTier,
+      initialSelectedTier,
+      routeParams: route.params,
+    });
+  }
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
