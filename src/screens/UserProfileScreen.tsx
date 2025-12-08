@@ -1619,7 +1619,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                                subscription.status !== 'active' &&
                                !(subscription as any)?.has_used_trial;
 
-    const tierDisplayName = isSeeker ? 'Seeker - Free Plan' :
+    const tierDisplayName = isSeeker ? 'Seeker' :
                            isSpark ? 'Spark Plan' :
                            isGrowth ? 'Growth Plan' :
                            isTransformation ? 'Transformation Plan' : 'Current Plan';
@@ -1652,6 +1652,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={[styles.menuSubtext, font]}>Tap to start free trial</Text>
               )}
             </View>
+            {isSeeker && (
+              <Text style={[styles.menuValueText, { marginRight: 8 }]}>Free Plan</Text>
+            )}
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
           </TouchableOpacity>
         </View>
