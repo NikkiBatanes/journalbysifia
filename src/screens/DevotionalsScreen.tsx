@@ -709,9 +709,11 @@ const DevotionalsScreen = () => {
                             )}</ThemedText>
                           ) : null}
                           <TouchableOpacity
-                            style={styles.cardCTA}
-                            activeOpacity={0.9}
+                            style={[styles.cardCTA, showDevotionalModal && styles.cardCTADisabled]}
+                            activeOpacity={showDevotionalModal ? 1 : 0.9}
+                            disabled={showDevotionalModal}
                             onPress={() => {
+                              if (showDevotionalModal) return; // Prevent multiple taps
                               try { triggerLightHaptic(); } catch {}
                               setSelectedPlaybookId(item.id);
                               // Use the actual user input captured when creating the playbook
@@ -1483,6 +1485,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
+  },
+  cardCTADisabled: {
+    backgroundColor: Colors.anchorBlue,
+    opacity: 0.6,
   },
   cardCTAText: {
     color: Colors.hopeWhite,

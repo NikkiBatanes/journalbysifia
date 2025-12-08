@@ -1312,12 +1312,13 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Handle devotional creation
   const handleCreateDevotional = useCallback(() => {
+    if (showDevotionalModal) return; // Prevent multiple taps
     triggerLightHaptic();
     setShowDevotionalModal(true);
-  }, []);
+  }, [showDevotionalModal]);
 
-  // Hide FAB in document view until scrolled to bottom
-  const shouldShowFAB = devotionalVisible && !hasCreatedDevotional && (
+  // Hide FAB in document view until scrolled to bottom, and when modal is open
+  const shouldShowFAB = devotionalVisible && !hasCreatedDevotional && !showDevotionalModal && (
     viewMode === 'stack' || (viewMode === 'document' && hasReachedLastCard)
   );
 

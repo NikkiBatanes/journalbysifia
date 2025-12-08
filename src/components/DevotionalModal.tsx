@@ -254,9 +254,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     if (visible) {
       setIsVisible(true);
-      // Reset progress animation when modal opens
-      progressAnim.setValue(0);
-      setCurrentStep(0);
+      // Only reset progress animation when modal opens if no creation is in progress
+      if (!isCreating && !isSuccess) {
+        progressAnim.setValue(0);
+        setCurrentStep(0);
+      }
       // Small delay to ensure content is measured
       timer = setTimeout(() => {
         measureContent();
