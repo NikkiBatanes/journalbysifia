@@ -89,10 +89,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
-  const currentUserTier = (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier) as string;
 
   // Check if coming from profile to preselect current tier
   const isFromProfile = (route.params as any)?.source === 'profile';
+
+  const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
+                              (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
   const initialSelectedTier = isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
