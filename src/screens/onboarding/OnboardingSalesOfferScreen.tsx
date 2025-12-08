@@ -1043,8 +1043,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             );
           }
 
-          // Hide Popular badge when coming from profile
-          if (isFromProfile) {
+          // Hide Popular badge when coming from profile AND user has paid plan
+          // (but still show Popular for Seeker users)
+          if (isFromProfile && currentUserTier !== 'seeker') {
             return null;
           }
 
