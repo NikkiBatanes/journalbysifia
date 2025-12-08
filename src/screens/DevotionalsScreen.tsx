@@ -713,7 +713,9 @@ const DevotionalsScreen = () => {
                             activeOpacity={showDevotionalModal ? 1 : 0.9}
                             disabled={showDevotionalModal}
                             onPress={() => {
-                              if (showDevotionalModal) return; // Prevent multiple taps
+                              if (showDevotionalModal) {
+                                return; // Prevent multiple taps
+                              }
                               try { triggerLightHaptic(); } catch {}
                               setSelectedPlaybookId(item.id);
                               // Use the actual user input captured when creating the playbook

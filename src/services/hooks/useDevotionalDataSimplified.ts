@@ -382,7 +382,7 @@ export const useSubmitDevotionalRatingReactQuery = () => {
       // Return a context object with the snapshotted value
       return { previousDevotionals };
     },
-    onSuccess: (data, { devotionalId, rating, userId }) => {
+    onSuccess: (data, { devotionalId, _rating, userId }) => {
 
       // CRITICAL FIX: Only update cache optimistically, don't invalidate
       queryClient.setQueryData(queryKeys.devotionals.list(userId), (old: any) => {
@@ -441,7 +441,7 @@ export const useDeleteDevotionalReactQuery = () => {
       // Return a context object with the snapshotted value
       return { previousDevotionals };
     },
-    onSuccess: (_, { devotionalId, userId }) => {
+    onSuccess: (_, { _devotionalId, userId }) => {
 
       // Invalidate related queries to ensure fresh data
       queryClient.invalidateQueries({

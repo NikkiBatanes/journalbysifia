@@ -315,7 +315,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         clearTimeout(timer);
       }
     };
-  }, [visible, contentHeight, fadeAnim, translateY, progressAnim]);
+  }, [visible, contentHeight, fadeAnim, translateY, progressAnim, isCreating, isSuccess]);
 
   const togglePlaybookInfo = () => {
     setShowPlaybookInfo((prev) => {

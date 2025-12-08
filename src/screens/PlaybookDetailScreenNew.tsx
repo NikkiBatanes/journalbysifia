@@ -1312,7 +1312,9 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // Handle devotional creation
   const handleCreateDevotional = useCallback(() => {
-    if (showDevotionalModal) return; // Prevent multiple taps
+    if (showDevotionalModal) {
+      return; // Prevent multiple taps
+    }
     triggerLightHaptic();
     setShowDevotionalModal(true);
   }, [showDevotionalModal]);
