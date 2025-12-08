@@ -2,7 +2,7 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
 import { adjustDayIndexForWeekStart } from '../utils/weekStartUtils';
@@ -16,6 +16,7 @@ import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
+import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
 
 // Inline system removed
@@ -537,9 +538,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Pull-to-refresh REMOVED - using skeleton loading instead to prevent logout issues
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
+        <View style={styles.header}>
         <View style={[styles.monthYearContainer, styles.headerContent, isHeaderCollapsed && styles.collapsedPadding]}>
           <ThemedText weight="bold" style={styles.monthYearText}>
             {isHeaderCollapsed
@@ -602,7 +604,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
         </Animated.View>
       </View>
 
-      <View style={styles.content}>
+      <BlueSheet style={styles.content}>
         {
           <KeyboardAvoidingView
             style={styles.keyboardAvoidingView}
@@ -655,7 +657,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
             </ScrollView>
           </KeyboardAvoidingView>
         }
-      </View>
+      </BlueSheet>
 
       {/* Full Calendar Modal for quick date selection */}
       <Modal
@@ -754,6 +756,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       </Modal>
 
     </View>
+    </SafeAreaView>
   );
 });
 
@@ -764,6 +767,10 @@ const createStyles = (fonts: {
   fontBold: string;
 }, insets: { top: number; bottom: number; left: number; right: number }) => StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+  },
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
   },
@@ -1004,9 +1011,9 @@ const createStyles = (fonts: {
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 24,
-
+    position: 'relative',
+    zIndex: 2,
+    marginTop: -2,
   },
   scrollContainer: {
     width: '100%',

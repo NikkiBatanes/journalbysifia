@@ -339,205 +339,6 @@ const DevotionalsScreen = () => {
     );
   }, [triggerLightHaptic, renderRightActions, handleDevotionalPress, handlePlaybookPress, filter]);
 
-  const renderEmptyState = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.emptyStateContainer}>
-          <ActivityIndicator size="large" color={Colors.anchorBlue} />
-          <ThemedText style={styles.emptyStateText}>Loading devotionals...</ThemedText>
-        </View>
-      );
-    }
-
-    const hasPlaybooks = !isLoadingPlaybooks && (playbooks?.length ?? 0) > 0;
-    const totalDevotionals = Array.isArray(devotionals) ? devotionals.length : 0;
-
-    // If there are some devotionals overall but none in the selected filter,
-    // show a filter-specific empty hero (match PlaybookListScreen behavior)
-    if (totalDevotionals > 0) {
-      return (
-        <View style={styles.emptyStateContainer}>
-          <View style={styles.emptyHeroContainer}>
-            <View style={styles.heroCard}>
-              {filter === 'ongoing' ? (
-                <MaterialCommunityIcons
-                  name="clipboard-text-clock"
-                  size={32}
-                  color={Colors.holyGlow}
-                  style={styles.heroIcon}
-                />
-              ) : (
-                <MaterialCommunityIcons
-                  name="trophy-outline"
-                  size={32}
-                  color={Colors.holyGlow}
-                  style={styles.heroIcon}
-                />
-              )}
-              <ThemedText weight="bold" style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</ThemedText>
-              <ThemedText weight="bold" style={styles.heroTitle}>
-                {filter === 'ongoing' ? 'All your devotionals are completed' : 'No completed devotionals yet'}
-              </ThemedText>
-              <ThemedText style={styles.heroSubtitle}>
-                {filter === 'ongoing'
-                  ? 'Great job finishing your devotionals. Review a completed devotional or start a new one.'
-                  : 'Keep going! Your finished devotionals will appear here.'}
-              </ThemedText>
-              <TouchableOpacity
-                onPress={() => { try { triggerLightHaptic(); } catch {} setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
-                activeOpacity={0.85}
-                style={styles.heroTextButton}
-              >
-                <ThemedText weight="medium" style={styles.heroLinkText}>
-                  {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      );
-    }
-
-    // Otherwise, no devotionals at all: show the original full empty-collection hero
-    return (
-      <View style={styles.emptyStateContainer}>
-        {/* Hero (centered card) */}
-        <View style={styles.emptyHeroContainer}>
-          <View style={styles.heroCard}>
-            <MaterialCommunityIcons
-              name="book"
-              size={32}
-              color={Colors.holyGlow}
-              style={styles.heroIcon}
-            />
-            <ThemedText weight="bold" style={styles.heroOverline}>No Devotionals</ThemedText>
-            <ThemedText weight="bold" style={styles.heroTitle}>Start with Scripture</ThemedText>
-            <ThemedText style={styles.heroSubtitle}>
-              {(() => {
-                const count = !isLoadingPlaybooks && Array.isArray(playbooks) ? playbooks.length : 0;
-                if (count > 0) {
-                  return count === 1
-                    ? 'You already have a playbook—turn it into a daily devotional.'
-                    : 'You already have playbooks—turn one into a daily devotional.';
-                }
-                return "Create a playbook for what you're facing, then build a daily devotional from it.";
-              })()}
-            </ThemedText>
-
-            {/* Create Playbook CTA (only when there are no playbooks) */}
-            {!hasPlaybooks && (
-              <TouchableOpacity
-                onPress={() => { triggerLightHaptic(); (navigation as any).navigate('UserInput'); }}
-                activeOpacity={0.85}
-                style={styles.heroOutlineButton}
-              >
-                <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Create a Playbook</ThemedText>
-              </TouchableOpacity>
-            )}
-
-            {/* Guided steps */}
-            <View style={styles.stepsContainer}>
-              {hasPlaybooks ? (
-                <>
-                  <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
-                    <ThemedText style={styles.stepText}>Pick a Playbook</ThemedText>
-                  </View>
-                  <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
-                    <ThemedText style={styles.stepText}>Create Your Devotional</ThemedText>
-                  </View>
-                  <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
-                    <ThemedText style={styles.stepText}>Return each day—read, reflect, pray</ThemedText>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
-                    <ThemedText style={styles.stepText}>Create a Playbook</ThemedText>
-                  </View>
-                  <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
-                    <ThemedText style={styles.stepText}>Add Scriptures and prompts</ThemedText>
-                  </View>
-                  <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
-                    <ThemedText style={styles.stepText}>Start your Daily Devotional</ThemedText>
-                  </View>
-                </>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Suggestions carousel from Playbooks (without devotionals) */}
-        {!isLoadingPlaybooks && playbooks.length > 0 && (
-          (() => {
-            const existingDevotionalPBIds = new Set((devotionals || []).filter(d => d.playbookId).map(d => d.playbookId));
-            const suggested = playbooks.filter(pb => !existingDevotionalPBIds.has(pb.id)).slice(0, 10);
-            if (suggested.length === 0) { return null; }
-
-            return (
-              <View style={styles.carouselSection}>
-                <ThemedText weight="bold" style={styles.carouselTitle}>
-                  {suggested.length === 1
-                    ? 'Start a devotional from this playbook'
-                    : 'Start a devotional from these playbooks'}
-                </ThemedText>
-                <FlatList
-                  data={suggested}
-                  keyExtractor={(item) => item.id}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.carouselList}
-                  contentContainerStyle={styles.carouselContent}
-                  snapToInterval={272}
-                  decelerationRate="fast"
-                  snapToAlignment="start"
-                  renderItem={({ item }) => (
-                    <View style={styles.card}>
-                      <MaterialCommunityIcons name="clipboard-text-play" size={22} color={Colors.alertCoral} style={styles.cardIcon} />
-                      <ThemedText weight="bold" style={styles.cardTitle}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
-                      {item.truthInLove?.summary ? (
-                        <ThemedText style={styles.cardSubtitle} numberOfLines={3}>{replaceAllNamePlaceholders(
-                          item.truthInLove.summary,
-                          {
-                            displayName: (user as any)?.displayName || (user as any)?.user_metadata?.full_name,
-                            firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name,
-                            lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name,
-                          }
-                        )}</ThemedText>
-                      ) : null}
-                      <TouchableOpacity
-                        style={styles.cardCTA}
-                        activeOpacity={0.9}
-                        onPress={() => {
-
-                          try { triggerLightHaptic(); } catch {}
-                          setSelectedPlaybookId(item.id);
-                          // Use the actual user input captured when creating the playbook
-                          setSelectedPlaybookInfo(item.userInput);
-                          setShowDevotionalModal(true);
-                        }}
-                      >
-                        <ThemedText weight="bold" style={styles.cardCTAText}>Create a Devotional</ThemedText>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                />
-              </View>
-            );
-          })()
-        )}
-
-        {/* Secondary link removed per request */}
-      </View>
-    );
-  };
-
   // Filtering
   const filteredDevotionals = useMemo(() => {
     if (!Array.isArray(devotionals)) {return [];}
@@ -702,6 +503,162 @@ const DevotionalsScreen = () => {
     } catch {}
   }).current;
 
+  // Show empty state when we have no devotionals and we're not in initial loading state
+  if (totalDevotionalsAll === 0 && !isInitialLoading && userId) {
+    const hasPlaybooks = !isLoadingPlaybooks && (playbooks?.length ?? 0) > 0;
+    
+    return (
+      <SafeAreaView style={[styles.container, styles.containerBlue]} edges={['left','right','bottom']}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
+          <View style={[styles.headerBar, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
+            <View style={styles.pageInner}>
+              {/* Hide header when empty; keep layout with spacer (match PlaybookListScreen) */}
+              <View style={styles.headerSpacer} />
+            </View>
+          </View>
+
+          {/* Empty state hero on anchor blue background via BlueSheet */}
+          <BlueSheet style={styles.contentSheet}>
+            <View style={[styles.emptyStateContainer, styles.pageInner]}>
+              <View style={styles.emptyHeroContainer}>
+                <View style={styles.heroCard}>
+                  <MaterialCommunityIcons
+                    name="book"
+                    size={32}
+                    color={Colors.holyGlow}
+                    style={styles.heroIcon}
+                  />
+                  <ThemedText weight="bold" style={styles.heroOverline}>No Devotionals</ThemedText>
+                  <ThemedText weight="bold" style={styles.heroTitle}>Start with Scripture</ThemedText>
+                  <ThemedText style={styles.heroSubtitle}>
+                    {(() => {
+                      const count = !isLoadingPlaybooks && Array.isArray(playbooks) ? playbooks.length : 0;
+                      if (count > 0) {
+                        return count === 1
+                          ? 'You already have a playbook—turn it into a daily devotional.'
+                          : 'You already have playbooks—turn one into a daily devotional.';
+                      }
+                      return "Create a playbook for what you're facing, then build a daily devotional from it.";
+                    })()}
+                  </ThemedText>
+
+                  {/* Create Playbook CTA (only when there are no playbooks) */}
+                  {!hasPlaybooks && (
+                    <TouchableOpacity
+                      onPress={() => { triggerLightHaptic(); (navigation as any).navigate('UserInput'); }}
+                      activeOpacity={0.85}
+                      style={styles.heroOutlineButton}
+                    >
+                      <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                      <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Create a Playbook</ThemedText>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Guided steps */}
+                  <View style={styles.stepsContainer}>
+                    {hasPlaybooks ? (
+                      <>
+                        <View style={styles.stepItem}>
+                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
+                          <ThemedText style={styles.stepText}>Pick a Playbook</ThemedText>
+                        </View>
+                        <View style={styles.stepItem}>
+                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
+                          <ThemedText style={styles.stepText}>Create Your Devotional</ThemedText>
+                        </View>
+                        <View style={styles.stepItem}>
+                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
+                          <ThemedText style={styles.stepText}>Return each day—read, reflect, pray</ThemedText>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <View style={styles.stepItem}>
+                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
+                          <ThemedText style={styles.stepText}>Create a Playbook</ThemedText>
+                        </View>
+                        <View style={styles.stepItem}>
+                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
+                          <ThemedText style={styles.stepText}>Add Scriptures and prompts</ThemedText>
+                        </View>
+                        <View style={styles.stepItem}>
+                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
+                          <ThemedText style={styles.stepText}>Start your Daily Devotional</ThemedText>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </View>
+          </BlueSheet>
+
+          {/* Suggestions carousel from Playbooks (without devotionals) */}
+          {!isLoadingPlaybooks && playbooks.length > 0 && (
+            (() => {
+              const existingDevotionalPBIds = new Set((devotionals || []).filter(d => d.playbookId).map(d => d.playbookId));
+              const suggested = playbooks.filter(pb => !existingDevotionalPBIds.has(pb.id)).slice(0, 10);
+              if (suggested.length === 0) { return null; }
+
+              return (
+                <BlueSheet style={styles.contentSheet}>
+                  <View style={styles.carouselSection}>
+                    <ThemedText weight="bold" style={styles.carouselTitle}>
+                      {suggested.length === 1
+                        ? 'Start a devotional from this playbook'
+                        : 'Start a devotional from these playbooks'}
+                    </ThemedText>
+                    <FlatList
+                      data={suggested}
+                      keyExtractor={(item) => item.id}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.carouselList}
+                      contentContainerStyle={styles.carouselContent}
+                      snapToInterval={272}
+                      decelerationRate="fast"
+                      snapToAlignment="start"
+                      renderItem={({ item }) => (
+                        <View style={styles.card}>
+                          <MaterialCommunityIcons name="clipboard-text-play" size={22} color={Colors.alertCoral} style={styles.cardIcon} />
+                          <ThemedText weight="bold" style={styles.cardTitle}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
+                          {item.truthInLove?.summary ? (
+                            <ThemedText style={styles.cardSubtitle} numberOfLines={3}>{replaceAllNamePlaceholders(
+                              item.truthInLove.summary,
+                              {
+                                displayName: (user as any)?.displayName || (user as any)?.user_metadata?.full_name,
+                                firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name,
+                                lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name,
+                              }
+                            )}</ThemedText>
+                          ) : null}
+                          <TouchableOpacity
+                            style={styles.cardCTA}
+                            activeOpacity={0.9}
+                            onPress={() => {
+                              try { triggerLightHaptic(); } catch {}
+                              setSelectedPlaybookId(item.id);
+                              // Use the actual user input captured when creating the playbook
+                              setSelectedPlaybookInfo(item.userInput);
+                              setShowDevotionalModal(true);
+                            }}
+                          >
+                            <ThemedText weight="bold" style={styles.cardCTAText}>Create a Devotional</ThemedText>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    />
+                  </View>
+                </BlueSheet>
+              );
+            })()
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, isTrulyEmpty && styles.containerBlue]} edges={['left','right','bottom']}>
       <StatusBar barStyle={isTrulyEmpty ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
@@ -782,7 +739,67 @@ const DevotionalsScreen = () => {
                     { paddingBottom: Math.max(insets.bottom, 12) + 8 },
                   ]
             }
-            ListEmptyComponent={renderEmptyState}
+            ListEmptyComponent={() => {
+              const totalDevotionals = Array.isArray(devotionals) ? devotionals.length : 0;
+              
+              // If there are some devotionals overall but none in the selected filter,
+              // show a filter-specific empty hero (match PlaybookListScreen behavior)
+              if (totalDevotionals > 0) {
+                return (
+                  <View style={styles.emptyStateContainer}>
+                    <View style={styles.emptyHeroContainer}>
+                      <View style={styles.heroCard}>
+                        {filter === 'ongoing' ? (
+                          <MaterialCommunityIcons
+                            name="clipboard-text-clock"
+                            size={32}
+                            color={Colors.holyGlow}
+                            style={styles.heroIcon}
+                          />
+                        ) : (
+                          <MaterialCommunityIcons
+                            name="trophy-outline"
+                            size={32}
+                            color={Colors.holyGlow}
+                            style={styles.heroIcon}
+                          />
+                        )}
+                        <ThemedText weight="bold" style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</ThemedText>
+                        <ThemedText weight="bold" style={styles.heroTitle}>
+                          {filter === 'ongoing' ? 'All your devotionals are completed' : 'No completed devotionals yet'}
+                        </ThemedText>
+                        <ThemedText style={styles.heroSubtitle}>
+                          {filter === 'ongoing'
+                            ? 'Great job finishing your devotionals. Review a completed devotional or start a new one.'
+                            : 'Keep going! Your finished devotionals will appear here.'}
+                        </ThemedText>
+                        <TouchableOpacity
+                          onPress={() => { try { triggerLightHaptic(); } catch {} setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
+                          activeOpacity={0.85}
+                          style={styles.heroTextButton}
+                        >
+                          <ThemedText weight="medium" style={styles.heroLinkText}>
+                            {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                );
+              }
+
+              // Loading state
+              if (isLoading) {
+                return (
+                  <View style={styles.emptyStateContainer}>
+                    <ActivityIndicator size="large" color={Colors.anchorBlue} />
+                    <ThemedText style={styles.emptyStateText}>Loading devotionals...</ThemedText>
+                  </View>
+                );
+              }
+
+              return null; // Should never reach here since empty state is handled above
+            }}
             onViewableItemsChanged={onViewableItemsChanged}
             showsVerticalScrollIndicator={false}
           />
@@ -819,6 +836,11 @@ const styles = StyleSheet.create({
   // Empty state: make entire screen blue including header area
   containerBlue: {
     backgroundColor: Colors.anchorBlue,
+  },
+  containerEmpty: {
+    // Remove default container padding so heroCard width matches Devotionals (90% of screen)
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   swipeableContainer: {
     width: '100%',

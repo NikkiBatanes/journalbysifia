@@ -263,11 +263,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
         textOpacity.setValue(0);
         setTimeout(() => { expandButton(); }, 1000);
 
-        // Defer refetch using InteractionManager to prevent hang when returning from devotional
+        // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
+        // This prevents blocking the UI thread during screen transitions
         if (userId) {
-          const { InteractionManager } = require('react-native');
-          InteractionManager.runAfterInteractions(() => {
+          const focusTime = Date.now();
+          console.log('[PlaybookListScreen] Screen focused at', focusTime);
+
+          const raf = typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+          raf(() => {
+            const rafTime = Date.now();
+            console.log('[PlaybookListScreen] RAF fired, refetching playbooks', { delay: rafTime - focusTime });
             refetch();
+            console.log('[PlaybookListScreen] Playbooks refetch triggered');
           });
         }
       }, 150);
@@ -354,9 +363,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Intelligent prefetching: prefetch visible playbooks for instant navigation
   useEffect(() => {
     if (filteredPlaybooks.length > 0 && userId) {
-      // Defer prefetching using InteractionManager to prevent blocking UI
-      const { InteractionManager } = require('react-native');
-      InteractionManager.runAfterInteractions(() => {
+      // ENTERPRISE-GRADE: Defer prefetching to after navigation transition completes
+      const raf = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+      raf(() => {
         const visiblePlaybookIds = filteredPlaybooks.slice(0, 5).map(p => p.id);
         prefetchVisiblePlaybooks(visiblePlaybookIds).catch(error => {
           Logger.warn('[PlaybookListScreen] Prefetching failed', { component: 'PlaybookListScreen', data: error });

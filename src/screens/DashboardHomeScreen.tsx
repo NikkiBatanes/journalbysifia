@@ -27,7 +27,7 @@ import {
   PanResponder,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
@@ -126,6 +126,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       flex: 1,
       backgroundColor: Colors.hopeWhite,
     },
+    safeArea: {
+      flex: 1,
+      backgroundColor: Colors.hopeWhite,
+    },
     header: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
@@ -174,15 +178,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     // Additional styling applied on top of BlueSheet if needed
     contentSheet: {
-      flex: 1,
-      position: 'relative',
-      zIndex: 2,
-      // Keep subtle top shadow if desired; BlueSheet handles the blue BG and radius
-      shadowColor: Colors.anchorBlue,
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-    },
+    flex: 1,
+    position: 'relative',
+    zIndex: 2,
+    marginTop: 1,
+  },
     sectionHeader: {
       marginTop: 24,
       marginBottom: 16,
@@ -287,7 +287,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       backgroundColor: Colors.hopeWhite,
       paddingHorizontal: 20,
       paddingTop: 0,
-      paddingBottom: 10,
+      paddingBottom: 4,
     },
     greeting: {
       fontSize: 24,
@@ -302,7 +302,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       color: Colors.anchorBlue,
       opacity: 1,
       marginTop: 0,
-      marginBottom: 8,
+      marginBottom: 4,
       // weight handled by ThemedText
     },
     placeholderCard: {
@@ -1483,14 +1483,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   );
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        { opacity: mountOpacity, transform: [{ translateY: mountTranslateY }] },
-      ]}
-    >
-      {renderHeader()}
-      {renderGreeting()}
+    <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+      <Animated.View
+        style={[
+          styles.container,
+          { opacity: mountOpacity, transform: [{ translateY: mountTranslateY }] },
+        ]}
+      >
+        {renderHeader()}
+        {renderGreeting()}
 
       <BlueSheet style={styles.contentSheet}>
         <ScrollView
@@ -1897,6 +1898,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         }}
       />
     </Animated.View>
+    </SafeAreaView>
   );
 };
 
