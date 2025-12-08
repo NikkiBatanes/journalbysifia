@@ -390,7 +390,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       // Only update if the target index is different from current AND we're not in the middle of completing current day
       // This prevents auto-advancing when user marks current day complete
       const isCurrentDayBeingCompleted = completedDayIndex === currentDayIndex && showCompletionModal;
-      
+
       if (targetIndex !== currentDayIndex && !isCurrentDayBeingCompleted) {
         setCurrentDayIndex(targetIndex);
       }
@@ -692,7 +692,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     const nextDayIndex = currentDayIndex + 1;
     setTimeout(() => {
       setCurrentDayIndex(nextDayIndex);
-      
+
       // Scroll to the next day after another brief delay to allow state to update
       if (flatListRef.current) {
         setTimeout(() => {
