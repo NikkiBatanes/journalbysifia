@@ -322,11 +322,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setCurrencyInfo(currency);
 
           // Default selection:
+          // - If coming from profile with paid tier, select current tier
           // - If user requested a 7-day devotional, prefer 'transformation' tier, then any tier that unlocks the request
           // - Else prefer POPULAR, then 'growth', then first available
           if (!hasManualTierSelection && tiers.length > 0) {
             let chosen: PricingTier | undefined;
-            if (requestedDuration === 7) {
+
+            // If coming from profile with paid tier, select current tier
+            if (isFromProfile && currentUserTier && currentUserTier !== 'seeker') {
+              chosen = tiers.find(t => t.id === currentUserTier);
+              logger.debug('Profile mode - selecting current tier', { currentUserTier, found: chosen?.id });
+            }
+
+            if (!chosen && requestedDuration === 7) {
               chosen = tiers.find(t => t.id === 'transformation')
                 || tiers.find(t => !isDevotionalDurationLocked(t.id as SubscriptionTier, requestedDuration))
                 || tiers[0];
@@ -348,7 +356,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName, isFromProfile]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
