@@ -1605,6 +1605,58 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
+  const renderSubscriptionSection = () => {
+    if (!subscription) {return null;}
+
+    const tier = subscription.tier?.replace(/_annual$/, '') || 'seeker';
+    const isSeeker = tier === 'seeker';
+    const isSpark = tier === 'spark';
+    const isGrowth = tier === 'growth';
+    const isTransformation = tier === 'transformation';
+
+    // Check if user is eligible for free trial
+    const isEligibleForTrial = subscription.status !== 'trialing' &&
+                               subscription.status !== 'active' &&
+                               !(subscription as any)?.has_used_trial;
+
+    const tierDisplayName = isSeeker ? 'Seeker - Free Plan' :
+                           isSpark ? 'Spark Plan' :
+                           isGrowth ? 'Growth Plan' :
+                           isTransformation ? 'Transformation Plan' : 'Current Plan';
+
+    const handleSubscriptionTap = () => {
+      try { triggerLightHaptic(); } catch {}
+      navigation.navigate('OnboardingSalesOffer', {
+        source: 'profile',
+        currentTier: tier,
+        isEligibleForTrial,
+      });
+    };
+
+    return (
+      <View style={{ marginBottom: 24 }}>
+        <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>SUBSCRIPTION</Text>
+        <View style={styles.menuContainer}>
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemSpaced]}
+            onPress={handleSubscriptionTap}
+          >
+            <View style={styles.menuIconBox}>
+              <Ionicons name="diamond" size={18} color={Colors.anchorBlue} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.menuText, font]}>{tierDisplayName}</Text>
+              {isEligibleForTrial && (
+                <Text style={[styles.menuSubtext, font]}>Tap to start free trial</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const renderMenuOptions = () => (
     <View>
       <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>PERSONALIZATION</Text>
@@ -2324,6 +2376,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
           {/* Badges removed from main container */}
+          {renderSubscriptionSection()}
           {renderMenuOptions()}
           {/* POST-LAUNCH: {renderFamilyManagementSection()} */}
           {renderAppBehaviorSection()}
@@ -2615,6 +2668,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     marginLeft: 10,
+  },
+  menuSubtext: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    marginLeft: 10,
+    marginTop: 2,
   },
   menuValueText: {
     fontSize: 14,
