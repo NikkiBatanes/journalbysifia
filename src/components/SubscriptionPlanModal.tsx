@@ -216,13 +216,12 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
     if (navigation && navigation.navigate) {
       console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
+      // Don't close modal immediately - let user close it manually
       (navigation as any).navigate('OnboardingSalesOffer', {
-        source: 'profile',
+        source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
       });
-      // Close modal after navigation starts
-      setTimeout(() => onClose(), 100);
     } else {
       console.log('SubscriptionPlanModal: Navigation not available');
       onClose();
