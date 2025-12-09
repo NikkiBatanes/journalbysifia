@@ -85,7 +85,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   };
 
-  const [isAnnual, setIsAnnual] = useState((route.params as any)?.forceAnnualTransformation || false);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -96,8 +96,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
                               (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
-  const initialSelectedTier = (route.params as any)?.forceAnnualTransformation ? 'transformation' :
-                              isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
+  const initialSelectedTier = isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
                               'spark'; // Default to spark for onboarding to prevent transformation tier bug
@@ -108,7 +107,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     currentUserTier,
     initialSelectedTier,
     routeParams: route.params,
-    forceAnnualTransformation: (route.params as any)?.forceAnnualTransformation,
+    requestedDuration: (route.params as any)?.requestedDuration,
   });
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
