@@ -219,7 +219,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       (navigation as any).navigate('OnboardingSalesOffer', {
         source: 'profile',
         currentTier: subscription?.tier || 'seeker',
-        returnTo: 'UserProfile',
         skipNotificationPreference: true,
       });
       // Close modal after navigation starts
