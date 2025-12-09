@@ -20,11 +20,6 @@ interface SubscriptionPlanModalProps {
   onClose: () => void;
 }
 
-interface UsageTracking {
-  playbooks_generated: number;
-  devotionals_generated: number;
-}
-
 interface Subscription {
   id: string;
   tier: string;
@@ -50,7 +45,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [usage, setUsage] = useState<UsageTracking | null>(null);
   const [loading, setLoading] = useState(false);
 
   const loadSubscriptionData = React.useCallback(async () => {
@@ -60,12 +54,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       setLoading(true);
       const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
       setSubscription(subscriptionData as any);
-
-      const usageData = {
-        playbooks_generated: subscriptionData.playbooks_used || 0,
-        devotionals_generated: subscriptionData.devotionals_used || 0,
-      };
-      setUsage(usageData);
     } catch (error) {
       Logger.error('Failed to load subscription data for modal', error as Error, {
         component: 'SubscriptionPlanModal',
@@ -208,20 +196,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     }
   };
 
-  const formatUsageBar = (used: number, limit: number) => {
-    if (limit === -1) {return { percentage: 0, text: 'Unlimited', color: Colors.faithGold };}
-    const percentage = Math.min((used / limit) * 100, 100);
-    const text = `${used}/${limit}`;
-    const color = percentage >= 90 ? Colors.alertCoral :
-                  percentage >= 70 ? Colors.faithGold :
-                  Colors.growthGreen;
-    return { percentage, text, color };
-  };
-
   const tierInfo = subscription ? getTierInfo(subscription.tier) : getTierInfo('seeker');
   const statusInfo = subscription ? getStatusInfo(subscription.status, subscription) : { text: 'Loading...', color: Colors.textGray };
-  const playbookUsage = usage && subscription ? formatUsageBar(usage.playbooks_generated, tierInfo.limits.playbooks) : { percentage: 0, text: '0/0', color: Colors.textGray };
-  const devotionalUsage = usage && subscription ? formatUsageBar(usage.devotionals_generated, tierInfo.limits.devotionals) : { percentage: 0, text: '0/0', color: Colors.textGray };
 
   // Determine billing period
   const tierBase = subscription?.tier?.replace(/_annual$/, '') || 'seeker';
@@ -303,55 +279,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   </View>
                 )}
               </View>
-
-              {/* Usage Section */}
-              {(tierInfo.limits.playbooks > 0 || tierInfo.limits.devotionals > 0) && (
-                <View style={styles.section}>
-                  <ThemedText weight="semiBold" style={styles.sectionTitle}>
-                    Monthly Usage
-                  </ThemedText>
-
-                  {tierInfo.limits.playbooks > 0 && (
-                    <View style={styles.usageItem}>
-                      <View style={styles.usageHeader}>
-                        <ThemedText style={styles.usageLabel}>Playbooks</ThemedText>
-                        <ThemedText style={styles.usageText}>{playbookUsage.text}</ThemedText>
-                      </View>
-                      <View style={styles.usageBarContainer}>
-                        <View
-                          style={[
-                            styles.usageBar,
-                            {
-                              width: `${playbookUsage.percentage}%`,
-                              backgroundColor: playbookUsage.color,
-                            },
-                          ]}
-                        />
-                      </View>
-                    </View>
-                  )}
-
-                  {tierInfo.limits.devotionals > 0 && (
-                    <View style={styles.usageItem}>
-                      <View style={styles.usageHeader}>
-                        <ThemedText style={styles.usageLabel}>Devotionals</ThemedText>
-                        <ThemedText style={styles.usageText}>{devotionalUsage.text}</ThemedText>
-                      </View>
-                      <View style={styles.usageBarContainer}>
-                        <View
-                          style={[
-                            styles.usageBar,
-                            {
-                              width: `${devotionalUsage.percentage}%`,
-                              backgroundColor: devotionalUsage.color,
-                            },
-                          ]}
-                        />
-                      </View>
-                    </View>
-                  )}
-                </View>
-              )}
 
               {/* Features Section */}
               <View style={styles.section}>
@@ -492,36 +419,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.hopeWhite,
     marginBottom: 16,
-  },
-  usageItem: {
-    marginBottom: 16,
-  },
-  usageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  usageLabel: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    opacity: 0.9,
-  },
-  usageText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    fontWeight: '500',
-  },
-  usageBarContainer: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  usageBar: {
-    height: '100%',
-    borderRadius: 3,
-    minWidth: 2,
   },
   featureItem: {
     flexDirection: 'row',
