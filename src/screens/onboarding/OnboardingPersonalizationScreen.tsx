@@ -310,25 +310,49 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Extract name with fallback strategy - NEVER ask user per Apple requirements
       const extractNameWithFallback = async () => {
         console.log('🚀 extractNameWithFallback called - NEW CODE VERSION');
-        if (method === 'oauth') {
-          // CRITICAL: Fetch fresh user data to get latest metadata from Apple Sign-In
-          const { data: { user: freshUser } } = await supabase.auth.getUser();
-          const currentUser = freshUser || user;
+        try {
+          if (method === 'oauth') {
+            // CRITICAL: Fetch fresh user data to get latest metadata from Apple Sign-In
+            console.log('🔍 Fetching fresh user data...');
+            const { data: { user: freshUser } } = await supabase.auth.getUser();
+            console.log('🔍 Fresh user fetched:', !!freshUser);
+            
+            // BACKUP: Query database directly if auth.getUser() doesn't have metadata
+            let currentUser = freshUser || user;
+            if (currentUser && (!currentUser.user_metadata?.first_name && !currentUser.user_metadata?.full_name)) {
+              console.log('🔍 No metadata in auth user, querying database directly...');
+              const { data: dbUser } = await supabase
+                .from('auth.users')
+                .select('raw_user_meta_data')
+                .eq('id', currentUser.id)
+                .single();
+              
+              if (dbUser?.raw_user_meta_data) {
+                console.log('🔍 Found metadata in database:', dbUser.raw_user_meta_data);
+                // Merge database metadata into user object
+                currentUser = {
+                  ...currentUser,
+                  user_metadata: {
+                    ...currentUser.user_metadata,
+                    ...dbUser.raw_user_meta_data,
+                  },
+                };
+              }
+            }
 
-          const provider = currentUser?.app_metadata?.provider || (currentUser as any)?.identities?.[0]?.provider;
-          const paramNameRaw = (route.params as any)?.name;
-          const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
-          const metadataName = (currentUser?.user_metadata?.first_name || currentUser?.user_metadata?.full_name || '').trim();
+            const provider = currentUser?.app_metadata?.provider || (currentUser as any)?.identities?.[0]?.provider;
+            const paramNameRaw = (route.params as any)?.name;
+            const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
+            const metadataName = (currentUser?.user_metadata?.first_name || currentUser?.user_metadata?.full_name || '').trim();
 
-          // DEBUG: Log name extraction process
-          logger.debug('🔍 Name extraction debug', {
-            provider,
-            paramName,
-            metadataName,
-            userMetadata: currentUser?.user_metadata,
-            routeParams: route.params,
-            freshUserFetched: !!freshUser,
-          });
+            // DEBUG: Log name extraction process
+            console.log('🔍 Name extraction debug:', {
+              provider,
+              paramName,
+              metadataName,
+              userMetadata: currentUser?.user_metadata,
+              freshUserFetched: !!freshUser,
+            });
 
           // IMPORTANT: Apple Private Relay ONLY hides email, NEVER names
           // Name hiding is a SEPARATE option during Apple Sign-In
@@ -388,6 +412,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // No email - use "Friend" fallback
           setName('Friend');
           logger.debug('🔄 No email available - using "Friend" fallback');
+        }
+        } catch (error) {
+          console.error('❌ Error in extractNameWithFallback:', error);
+          logger.error('Error extracting name', error as Error, { component: 'OnboardingPersonalization' });
+          setName('Friend');
         }
       };
 

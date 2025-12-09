@@ -1448,6 +1448,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       const { identityToken, nonce, fullName } = appleAuthRequestResponse;
 
       // Log Apple-provided data for debugging
+      console.log('🍎 Apple Sign-In Response:', {
+        hasIdentityToken: !!identityToken,
+        hasNonce: !!nonce,
+        fullName: fullName,
+        givenName: fullName?.givenName,
+        familyName: fullName?.familyName,
+      });
 
       if (!identityToken) {
         // Treat as user cancellation or benign failure: do not surface an error
@@ -1496,6 +1503,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
               familyName,
               fullName: fullNameString,
             });
+            
+            // CRITICAL: Refetch user to ensure metadata is in context
+            const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+            if (refreshedUser) {
+              console.log('🔄 User refetched after metadata update:', {
+                hasFirstName: !!refreshedUser.user_metadata?.first_name,
+                firstName: refreshedUser.user_metadata?.first_name,
+              });
+            }
           }
         } catch (metadataError) {
           Logger.error('Error saving Apple name metadata', metadataError as Error, {
