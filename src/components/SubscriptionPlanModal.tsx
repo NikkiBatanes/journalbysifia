@@ -18,6 +18,7 @@ import { triggerLightHaptic } from '../utils/haptics';
 interface SubscriptionPlanModalProps {
   visible: boolean;
   onClose: () => void;
+  navigation?: any;
 }
 
 interface Subscription {
@@ -42,6 +43,7 @@ interface Subscription {
 const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   visible,
   onClose,
+  navigation,
 }) => {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -202,6 +204,24 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const isAnnual = subscription?.tier?.includes('_annual') || false;
   const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
 
+  // Check if user should see upgrade button
+  const showUpgradeButton = tierBase === 'seeker' || tierBase === 'spark';
+
+  const handleUpgradePress = () => {
+    try {
+      triggerLightHaptic();
+    } catch {}
+
+    if (navigation) {
+      navigation.navigate('OnboardingSalesOffer', {
+        source: 'profile',
+        currentTier: subscription?.tier || 'seeker',
+        returnTo: 'UserProfile',
+      });
+    }
+    onClose();
+  };
+
   return (
     <Modal
       visible={visible}
@@ -290,6 +310,19 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   </View>
                 ))}
               </View>
+
+              {/* Upgrade Button */}
+              {showUpgradeButton && (
+                <TouchableOpacity
+                  style={styles.upgradeButton}
+                  onPress={handleUpgradePress}
+                  activeOpacity={0.85}
+                >
+                  <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
+                    Upgrade Plan
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </>
           )}
         </ScrollView>
@@ -428,6 +461,19 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginLeft: 12,
     flex: 1,
+  },
+  upgradeButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    marginTop: 16,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
   },
 });
 

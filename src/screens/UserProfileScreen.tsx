@@ -2407,6 +2407,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SubscriptionPlanModal
         visible={subscriptionPlanModal}
         onClose={() => setSubscriptionPlanModal(false)}
+        navigation={navigation}
       />
     </SafeAreaView>
   );
