@@ -1551,21 +1551,40 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             }
             try { triggerSuccessHaptic(); } catch {}
 
+            // Debug: Log button press and trial eligibility
+            logger.info('Button pressed - checking trial eligibility', {
+              shouldUseTrialProduct,
+              canOfferTrial,
+              isCurrentlyOnTrial,
+              hasEverStartedTrial,
+              isSeekerTier,
+              currentUserTier,
+              buttonText: shouldUseTrialProduct ? 'Start your free 3-day trial' : 'Regular purchase',
+            });
+
             // If it's a trial button, navigate to trial offer screen instead of processing directly
             if (shouldUseTrialProduct) {
               logger.info('Navigating to trial offer screen for trial flow');
-              (navigation as any).navigate('OnboardingTrialOffer', {
-                selectedTierId: selectedTier,
-                billing: isAnnual ? 'annual' : 'monthly',
-                skipNotificationPreference: routeParams?.skipNotificationPreference,
-                returnTo: routeParams?.returnTo,
-                context: routeParams?.context,
-                source: routeParams?.source,
-                feature: routeParams?.feature,
-                dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
-                onboardingFlow: true,
-              });
+              try {
+                (navigation as any).navigate('OnboardingTrialOffer', {
+                  selectedTierId: selectedTier,
+                  billing: isAnnual ? 'annual' : 'monthly',
+                  skipNotificationPreference: routeParams?.skipNotificationPreference,
+                  returnTo: routeParams?.returnTo,
+                  context: routeParams?.context,
+                  source: routeParams?.source,
+                  feature: routeParams?.feature,
+                  dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+                  onboardingFlow: true,
+                });
+                logger.info('Navigation to trial offer screen initiated successfully');
+              } catch (navError) {
+                logger.error('Navigation to trial offer screen failed', navError as Error);
+                // Fallback to regular purchase flow
+                handleUnlockPlan();
+              }
             } else {
+              logger.info('Not trial eligible - proceeding with regular purchase flow');
               handleUnlockPlan();
             }
           }}

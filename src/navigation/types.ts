@@ -33,12 +33,16 @@ export type RootStackParamList = {
     tier?: string;
     skipNotificationPreference?: boolean;
   } | undefined;
-  // DISABLED: Trial Offer screen removed to comply with Apple guidelines
-  // Trial functionality now handled via .freetrial products in Sales Offer
-  // OnboardingTrialOffer: {
-  //   source?: string;
-  //   feature?: string;
-  // } | undefined;
+  // RE-ENABLED: Trial Offer screen for trial flow navigation
+  OnboardingTrialOffer: {
+    source?: string;
+    feature?: string;
+    skipNotificationPreference?: boolean;
+    returnTo?: string;
+    context?: string;
+    dismissBothModalsOnClose?: boolean;
+    onboardingFlow?: boolean;
+  } | undefined;
   OnboardingPaymentConfirmation: {
     userType: 'trial' | 'paid' | 'freemium';
     selectedTier?: string;
