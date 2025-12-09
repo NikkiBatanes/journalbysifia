@@ -234,11 +234,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
       // Don't close modal immediately - let user close it manually
       
+      // For Transformation users, show all tiers to allow monthly->yearly upgrade
+      // For other tiers, use normal upgrade mode
+      const isTransformationUser = tierBase === 'transformation';
+      
       (navigation as any).navigate('OnboardingSalesOffer', {
         source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
-        upgradeMode: true,
+        upgradeMode: !isTransformationUser, // Use onboarding mode for Transformation to show all tiers
       });
     } else {
       console.log('SubscriptionPlanModal: Navigation not available');
