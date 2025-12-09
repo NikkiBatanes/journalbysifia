@@ -1335,13 +1335,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                             ? 'Upgrade to Unlock Smart Journaling'
                             : fromExportRestriction
                               ? `Unlock ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
-                              : "You've taken your first step!"}
+                              : (route.params as any)?.forceTransformationAnnual
+                                ? 'Upgrade to Annual Plan for maximum savings!'
+                                : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
               ? dynamicSalesCopy.message
-              : isUpgradeMode
-                ? 'Choose a plan that meets you where you are and helps you go deeper.'
+              : (route.params as any)?.forceTransformationAnnual
+                ? 'Save 20% with annual billing and continue your spiritual journey with all premium features.'
+                : isUpgradeMode
+                  ? 'Choose a plan that meets you where you are and helps you go deeper.'
                 : fromPlanningLock
                   ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
                   : fromCopyTodosLock
