@@ -897,7 +897,7 @@ const OnboardingTrialOfferScreen = () => {
             <ThemedText weight="semiBold" style={styles.introTitle}>
               {routeParams?.onboardingFlow
                 ? (trialProductAvailable !== false
-                  ? "Here's how your free trial works:"
+                  ? 'Try all premium features free for 3 days'
                   : 'Choose your perfect plan:')
                 : (trialProductAvailable !== false
                   ? "That's okay. Starting something new can feel uncertain."
@@ -906,7 +906,7 @@ const OnboardingTrialOfferScreen = () => {
             <ThemedText style={styles.introSubtitle}>
               {routeParams?.onboardingFlow
                 ? (trialProductAvailable !== false
-                  ? 'Try all premium features free for 3 days, then choose your plan.'
+                  ? "Then choose the plan that's right for you."
                   : 'Select the plan that best fits your spiritual journey.')
                 : (trialProductAvailable !== false
                   ? "Here's what you'll unlock during your free trial."
@@ -917,7 +917,7 @@ const OnboardingTrialOfferScreen = () => {
 
           {/* How Trial Works or Plan Selection */}
           <ThemedText weight="semiBold" style={styles.sectionTitle}>
-            {trialProductAvailable !== false ? 'So, how the trial works:' : 'Choose your plan:'}
+            {trialProductAvailable !== false ? 'How the free trial works:' : 'Compare plans:'}
           </ThemedText>
 
           {/* Plan Toggle */}
