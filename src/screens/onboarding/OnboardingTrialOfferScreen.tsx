@@ -8,6 +8,8 @@ import {
   Modal,
   StatusBar,
   useWindowDimensions,
+  Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -590,6 +592,71 @@ const OnboardingTrialOfferScreen = () => {
     }
   };
 
+  const handleRestorePurchase = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please sign in to restore purchases');
+      return;
+    }
+
+    try {
+      triggerLightHaptic();
+    } catch {}
+
+    Alert.alert(
+      'Restore Purchases',
+      'This will restore any previous purchases made with this Apple ID.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Restore',
+          onPress: async () => {
+            try {
+              Alert.alert('Restoring...', 'Please wait while we restore your purchases.');
+
+              const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
+              const storeKit = AppleStoreKitService.getInstance();
+
+              const result = await storeKit.restorePurchases(user.id);
+
+              if (result.success) {
+                Alert.alert(
+                  'Success',
+                  result.message + (result.validated ? `\n\n ${result.validated} purchase(s) validated server-side` : ''),
+                  [{ text: 'OK' }],
+                );
+              } else {
+                Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
+              }
+            } catch (error) {
+              Logger.error('Restore purchases error', error as Error, {
+                component: 'OnboardingTrialOfferScreen',
+              });
+              Alert.alert(
+                'Restore Failed',
+                'Unable to restore purchases. Please try again later or contact support.',
+                [{ text: 'OK' }],
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleTermsOfService = () => {
+    try {
+      triggerLightHaptic();
+      logger.info('Terms of Service requested');
+      // Match Terms of Service URL used in UserProfileScreen
+      Linking.openURL('https://sifia.app/legal/terms');
+    } catch (error) {
+      logger.error('Error opening terms of service', error as Error);
+    }
+  };
+
   const getTierDisplayName = (tierName: string) => {
     switch (tierName) {
       case 'seeker':
@@ -809,32 +876,16 @@ const OnboardingTrialOfferScreen = () => {
             onboardingFlow: true,
           });
         } catch (navError) {
-          logger.error('Navigation error', navError as Error);
-          // Fallback: try going back
-          navigation.goBack();
-        }
-      } else {
-        // For upgrade/profile users, go back or navigate to returnTo
-        logger.info('Skipping notification setup (upgrade/profile user)', {
-          fromRegistrationOnboarding,
-          fromUpgradeOrProfile,
-          returnTo: routeParams?.returnTo,
-        });
-
-        if (routeParams?.returnTo) {
-          safeNavigate(() => (navigation as any).navigate(routeParams.returnTo), 'navigate_to_return');
-        } else if (routeParams?.dismissBothModalsOnClose) {
-          // Handle export restriction upgrade case
           safeNavigate(() => navigation.goBack(), 'go_back_first_modal');
           setTimeout(() => {
             safeNavigate(() => navigation.goBack(), 'go_back_second_modal');
           }, 100);
-        } else {
-          safeNavigate(() => navigation.goBack(), 'go_back_default');
         }
+      } else {
+        safeNavigate(() => navigation.goBack(), 'go_back_default');
       }
     }, 100);
-  }, [route?.params?.skipNotificationPreference, navigation, safeNavigate, fromRegistrationOnboarding, fromUpgradeOrProfile, routeParams?.returnTo, routeParams?.dismissBothModalsOnClose]);
+  }, [route?.params?.skipNotificationPreference, navigation, safeNavigate, fromRegistrationOnboarding]);
 
   // Reset auto-dismissal state when component unmounts
   useEffect(() => {
@@ -987,6 +1038,25 @@ const OnboardingTrialOfferScreen = () => {
         <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
           Try 3 days free. No pressure. Cancel anytime
         </ThemedText>
+
+        {/* Bottom Links */}
+        <View style={styles.bottomLinksContainer}>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={handleRestorePurchase}
+            activeOpacity={0.7}
+          >
+            <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={handleTermsOfService}
+            activeOpacity={0.7}
+          >
+            <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Plan Selector Modal */}
@@ -1637,6 +1707,23 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  bottomLinksContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginTop: -12,
+    marginBottom: 32,
+  },
+  linkButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  linkText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '500',
   },
 });
 
