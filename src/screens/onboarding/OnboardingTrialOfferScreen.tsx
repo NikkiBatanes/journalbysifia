@@ -747,9 +747,14 @@ const OnboardingTrialOfferScreen = () => {
               Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
               No pressure, no catch.{'\n'}
               Experience personalized guidance and see how it fits your story.{'\n\n'}
-              <View style={styles.includesContainer}>
-                <ThemedText weight="semiBold" style={styles.includedText}>
-                  Includes: 2 playbooks + 2 devotionals to get you started
+              <View style={styles.includesRow}>
+                <View style={styles.includesBadge}>
+                  <ThemedText weight="semiBold" style={styles.badgeText}>
+                    Includes
+                  </ThemedText>
+                </View>
+                <ThemedText style={styles.includesDetails}>
+                  2 playbooks + 2 devotionals to get you started
                 </ThemedText>
               </View>
             </ThemedText>
@@ -1418,22 +1423,36 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     lineHeight: 18,
     opacity: 0.9,
   },
-  includedText: {
-    fontSize: 12,
+  includesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  includesBadge: {
+    borderWidth: 0.3,
+    borderColor: Colors.hopeWhite,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  badgeText: {
+    fontSize: 11,
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     opacity: 0.9,
   },
-  includesContainer: {
-    borderWidth: 0.3,
-    borderColor: Colors.hopeWhite,
-    borderRadius: 20,
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    alignSelf: 'flex-start',
+  includesDetails: {
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    opacity: 0.85,
+    flex: 1,
+    lineHeight: 16,
   },
   strong: {
     fontFamily: fonts.bold,
