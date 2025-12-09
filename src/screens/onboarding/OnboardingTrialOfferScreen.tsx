@@ -920,6 +920,20 @@ const OnboardingTrialOfferScreen = () => {
             {trialProductAvailable !== false ? 'How the free trial works:' : 'Compare plans:'}
           </ThemedText>
 
+          {/* Trial Inclusions Container */}
+          {trialProductAvailable !== false && (
+            <View style={styles.trialInclusionsContainer}>
+              <View style={styles.inclusionRow}>
+                <Ionicons name="book-outline" size={20} color={Colors.anchorBlue} />
+                <ThemedText style={styles.inclusionText}>2 Playbooks</ThemedText>
+              </View>
+              <View style={styles.inclusionRowLast}>
+                <Ionicons name="heart-outline" size={20} color={Colors.anchorBlue} />
+                <ThemedText style={styles.inclusionText}>2 Devotionals</ThemedText>
+              </View>
+            </View>
+          )}
+
           {/* Plan Toggle */}
           <View style={styles.toggleContainer}>
             <TouchableOpacity
@@ -1245,6 +1259,31 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontFamily: fonts.medium,
     color: Colors.alertCoral,
     marginLeft: 8,
+    flex: 1,
+  },
+  trialInclusionsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+  },
+  inclusionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  inclusionRowLast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  inclusionText: {
+    fontSize: 16,
+    fontFamily: fonts.medium,
+    color: Colors.hopeWhite,
+    marginLeft: 12,
     flex: 1,
   },
   sectionTitle: {
