@@ -1598,6 +1598,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (!subscription) {return null;}
 
     const tier = subscription.tier?.replace(/_annual$/, '') || 'seeker';
+    const isAnnual = subscription.tier?.includes('_annual') || false;
     const isSeeker = tier === 'seeker';
     const isSpark = tier === 'spark';
     const isGrowth = tier === 'growth';
@@ -1612,6 +1613,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                            isSpark ? 'Spark Plan' :
                            isGrowth ? 'Growth Plan' :
                            isTransformation ? 'Transformation Plan' : 'Current Plan';
+
+    const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
 
     const handleSubscriptionTap = () => {
       try { triggerLightHaptic(); } catch {}
@@ -1641,8 +1644,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={[styles.menuSubtext, font]}>Tap to start free trial</Text>
               )}
             </View>
-            {isSeeker && (
+            {isSeeker ? (
               <Text style={[styles.menuValueText, font, { marginRight: 8 }]}>Free Plan</Text>
+            ) : (
+              <Text style={[styles.menuValueText, font, { marginRight: 8 }]}>{billingPeriod}</Text>
             )}
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
           </TouchableOpacity>
