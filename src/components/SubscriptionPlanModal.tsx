@@ -100,7 +100,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             'Access 1-day & 3-day devotionals',
             'Gentle reminders to keep you on track',
             'Track your progress week by week',
-            'Basic journaling tools',
+            'Access to basic journaling tools',
             'Calendar Sync to stay on track',
             'Copy To-Dos to other dates for flexibility',
           ],

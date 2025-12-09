@@ -1620,19 +1620,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     const handleSubscriptionTap = () => {
       try { triggerLightHaptic(); } catch {}
-      if (isSeeker) {
-        // Navigate to sales offer for Seeker users
-        navigation.navigate('OnboardingSalesOffer', {
-          source: 'profile',
-          currentTier: tier,
-          isEligibleForTrial,
-          skipNotificationPreference: true, // Don't show notification setup when coming from profile
-          returnTo: 'UserProfile', // Return to profile after purchase/cancel
-        });
-      } else {
-        // Show subscription plan modal for paid users
-        setSubscriptionPlanModal(true);
-      }
+      setSubscriptionPlanModal(true);
     };
 
     return (
