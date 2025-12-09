@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createOptimizedQueryClient, backgroundSyncUtils } from '../config/queryClientConfigV2';
 import { networkManager } from '../services/network/networkManager';

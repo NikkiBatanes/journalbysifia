@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect, useMemo, createRef } from 'react';
+import React, { useRef, useCallback, useState, useEffect, useMemo, createRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';

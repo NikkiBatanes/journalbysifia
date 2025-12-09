@@ -72,7 +72,16 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     }
   }, [visible, user?.id, loadSubscriptionData]);
 
-  const getTierInfo = (tier: string) => {
+  const getTierInfo = (tier: string): {
+    name: string;
+    description: string;
+    features: string[];
+    limits: {
+      playbooks: number;
+      devotionals: number;
+    };
+    color: string;
+  } => {
     const tierBase = tier?.replace(/_annual$/, '') || 'seeker';
     const isAnnual = tier?.includes('_annual') || false;
 
@@ -233,11 +242,11 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     if (navigation && navigation.navigate) {
       console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
       // Don't close modal immediately - let user close it manually
-      
+
       // For Transformation monthly users, show only annual transformation option
       // For other tiers, use normal upgrade mode
       const isTransformationMonthly = tierBase === 'transformation' && !isAnnual;
-      
+
       (navigation as any).navigate('OnboardingSalesOffer', {
         source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
@@ -332,7 +341,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                 <ThemedText weight="semiBold" style={styles.sectionTitle}>
                   Plan Features
                 </ThemedText>
-                {tierInfo.features.map((feature, index) => (
+                {tierInfo.features.map((feature: string, index: number) => (
                   <View key={index} style={styles.featureItem}>
                     <Ionicons name="checkmark-circle" size={20} color={Colors.alertCoral} />
                     <ThemedText style={styles.featureText}>{feature}</ThemedText>
