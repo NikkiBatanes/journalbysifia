@@ -897,7 +897,7 @@ const OnboardingTrialOfferScreen = () => {
             <ThemedText weight="semiBold" style={styles.introTitle}>
               {routeParams?.onboardingFlow
                 ? (trialProductAvailable !== false
-                  ? 'Try all premium features free for 3 days'
+                  ? 'How the free trial works:'
                   : 'Choose your perfect plan:')
                 : (trialProductAvailable !== false
                   ? "That's okay. Starting something new can feel uncertain."
@@ -906,7 +906,7 @@ const OnboardingTrialOfferScreen = () => {
             <ThemedText style={styles.introSubtitle}>
               {routeParams?.onboardingFlow
                 ? (trialProductAvailable !== false
-                  ? "Then choose the plan that's right for you."
+                  ? 'Try all premium features, then choose your plan.'
                   : 'Select the plan that best fits your spiritual journey.')
                 : (trialProductAvailable !== false
                   ? "Here's what you'll unlock during your free trial."
@@ -915,24 +915,6 @@ const OnboardingTrialOfferScreen = () => {
           </View>
 
 
-          {/* How Trial Works or Plan Selection */}
-          <ThemedText weight="semiBold" style={styles.sectionTitle}>
-            {trialProductAvailable !== false ? 'How the free trial works:' : 'Compare plans:'}
-          </ThemedText>
-
-          {/* Trial Inclusions Container */}
-          {trialProductAvailable !== false && (
-            <View style={styles.trialInclusionsContainer}>
-              <View style={styles.inclusionRow}>
-                <Ionicons name="book-outline" size={20} color={Colors.anchorBlue} />
-                <ThemedText style={styles.inclusionText}>2 Playbooks</ThemedText>
-              </View>
-              <View style={styles.inclusionRowLast}>
-                <Ionicons name="heart-outline" size={20} color={Colors.anchorBlue} />
-                <ThemedText style={styles.inclusionText}>2 Devotionals</ThemedText>
-              </View>
-            </View>
-          )}
 
           {/* Plan Toggle */}
           <View style={styles.toggleContainer}>
@@ -1259,31 +1241,6 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontFamily: fonts.medium,
     color: Colors.alertCoral,
     marginLeft: 8,
-    flex: 1,
-  },
-  trialInclusionsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.hopeWhite,
-  },
-  inclusionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  inclusionRowLast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 0,
-  },
-  inclusionText: {
-    fontSize: 16,
-    fontFamily: fonts.medium,
-    color: Colors.hopeWhite,
-    marginLeft: 12,
     flex: 1,
   },
   sectionTitle: {
