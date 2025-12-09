@@ -896,18 +896,26 @@ const OnboardingTrialOfferScreen = () => {
           <View style={styles.introSection}>
             <ThemedText weight="semiBold" style={styles.introTitle}>
               {routeParams?.onboardingFlow
-                ? "Here's how your free trial works:"
-                : "That's okay. Starting something new can feel uncertain."}
+                ? (trialProductAvailable !== false
+                  ? "Here's how your free trial works:"
+                  : 'Choose your perfect plan:')
+                : (trialProductAvailable !== false
+                  ? "That's okay. Starting something new can feel uncertain."
+                  : 'Choose your perfect plan:')}
             </ThemedText>
             <ThemedText style={styles.introSubtitle}>
               {routeParams?.onboardingFlow
-                ? 'Try all premium features free for 3 days, then choose your plan.'
-                : "Here's what you'll unlock during your free trial."}
+                ? (trialProductAvailable !== false
+                  ? 'Try all premium features free for 3 days, then choose your plan.'
+                  : 'Select the plan that best fits your spiritual journey.')
+                : (trialProductAvailable !== false
+                  ? "Here's what you'll unlock during your free trial."
+                  : 'Select the plan that best fits your spiritual journey.')}
             </ThemedText>
           </View>
 
-          {/* Trial Availability Warning */}
-          {trialProductAvailable === false && (
+          {/* Trial Availability Warning - Only show in development */}
+          {trialProductAvailable === false && __DEV__ && (
             <View style={styles.trialWarningContainer}>
               <Ionicons name="warning" size={20} color={Colors.alertCoral} />
               <ThemedText style={styles.trialWarningText}>
@@ -916,8 +924,10 @@ const OnboardingTrialOfferScreen = () => {
             </View>
           )}
 
-          {/* How Trial Works */}
-          <ThemedText weight="semiBold" style={styles.sectionTitle}>So, how the trial works:</ThemedText>
+          {/* How Trial Works or Plan Selection */}
+          <ThemedText weight="semiBold" style={styles.sectionTitle}>
+            {trialProductAvailable !== false ? 'So, how the trial works:' : 'Choose your plan:'}
+          </ThemedText>
 
           {/* Plan Toggle */}
           <View style={styles.toggleContainer}>
