@@ -706,8 +706,8 @@ const OnboardingTrialOfferScreen = () => {
     },
     {
       id: 3,
-      title: `${formatMD(endDate)} - Continue Your Journey`,
-      description: 'Your trial ends unless cancelled.',
+      title: `${formatMD(endDate)} - Subscription Begins`,
+      description: `After your 3-day free trial, your subscription will automatically start and you'll be charged ${isAnnual ? 'annually' : 'monthly'}. Cancel anytime before then to avoid charges.`,
       icon: 'heart',
       iconColor: Colors.alertCoral,
       isCompleted: false,
@@ -968,8 +968,8 @@ const OnboardingTrialOfferScreen = () => {
             {isStartingTrial ? 'Starting Trial...' : 'Start your free 3‑day trial'}
           </ThemedText>
         </TouchableOpacity>
-        <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-          Try 3 days free. No pressure. Cancel anytime
+        <ThemedText style={styles.footerText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
+          After 3 days, you'll be charged. Cancel anytime before then to avoid charges.
         </ThemedText>
       </View>
 
