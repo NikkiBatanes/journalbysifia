@@ -1538,6 +1538,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             isPurchasing && styles.dimmedOpacity,
           ]}
           onPress={() => {
+            try { triggerLightHaptic(); } catch {} // Immediate button press feedback
             logger.info('🔥 BUTTON TAPPED: Unlock Plan button pressed', {
               isPurchasing,
               selectedTier,
@@ -1549,7 +1550,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               logger.debug('Button disabled - purchase already in progress');
               return;
             }
-            try { triggerSuccessHaptic(); } catch {}
+            try { triggerSuccessHaptic(); } catch {} // Success feedback for action completion
 
             // Debug: Log button press and trial eligibility
             logger.info('Button pressed - checking trial eligibility', {
