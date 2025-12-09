@@ -114,7 +114,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   // Only allow local file URIs (starting with file://) - block any external URLs
   const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
 
-    const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
+  const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
   // Skeleton loading component
   const renderSkeleton = () => (
