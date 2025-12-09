@@ -1570,7 +1570,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                             ? 'Upgrade to Auto-Sync'
                             : fromCopyTodosLock
                               ? 'Upgrade to Copy To-Dos'
-                              : 'Continue My Journey'}
+                              : (route.params as any)?.forceTransformationAnnual
+                                ? 'Upgrade Plan to Annual'
+                                : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
