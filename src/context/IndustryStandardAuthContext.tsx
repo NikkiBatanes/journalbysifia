@@ -1472,7 +1472,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // Save Apple name data directly to user metadata for immediate use
       let appleProvidedName = '';
-      if (fullName?.givenName && fullName.givenName.trim().length > 0) {
+      
+      // ENTERPRISE FIX: Check if name already exists in database before trying to save new one
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('first_name, last_name, full_name')
+        .eq('id', currentUser?.id)
+        .single();
+      
+      // Use existing name if available, otherwise use Apple-provided name
+      if (existingProfile?.first_name) {
+        appleProvidedName = existingProfile.first_name;
+        console.log('🔄 Using existing name from database:', appleProvidedName);
+      } else if (fullName?.givenName && fullName.givenName.trim().length > 0) {
         try {
           const givenName = fullName.givenName.trim();
           const familyName = fullName.familyName?.trim() || '';
