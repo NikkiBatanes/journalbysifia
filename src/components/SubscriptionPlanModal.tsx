@@ -214,20 +214,23 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
     console.log('SubscriptionPlanModal: handleUpgradePress called', { navigation: !!navigation, tier: subscription?.tier });
 
-    if (navigation && navigation.navigate) {
-      console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
-      (navigation as any).navigate('OnboardingSalesOffer', {
-        source: 'profile',
-        currentTier: subscription?.tier || 'seeker',
-        skipNotificationPreference: true,
-        upgradeMode: true,
-      });
-      // Close modal after navigation starts
-      setTimeout(() => onClose(), 100);
-    } else {
-      console.log('SubscriptionPlanModal: Navigation not available');
-      onClose();
-    }
+    // Close modal first, then navigate
+    onClose();
+    
+    // Navigate after modal closes to avoid modal conflicts
+    setTimeout(() => {
+      if (navigation && navigation.navigate) {
+        console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
+        (navigation as any).navigate('OnboardingSalesOffer', {
+          source: 'profile',
+          currentTier: subscription?.tier || 'seeker',
+          skipNotificationPreference: true,
+          upgradeMode: true,
+        });
+      } else {
+        console.log('SubscriptionPlanModal: Navigation not available');
+      }
+    }, 300); // Wait for modal animation to complete
   };
 
   return (
