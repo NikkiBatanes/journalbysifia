@@ -1343,7 +1343,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             {dynamicSalesCopy
               ? dynamicSalesCopy.message
               : (route.params as any)?.forceTransformationAnnual
-                ? 'Save 20% with annual billing and continue your spiritual journey with all premium features.'
+                ? 'Get 2 months free with annual billing and continue your spiritual journey with all premium features.'
                 : isUpgradeMode
                   ? 'Choose a plan that meets you where you are and helps you go deeper.'
                 : fromPlanningLock
