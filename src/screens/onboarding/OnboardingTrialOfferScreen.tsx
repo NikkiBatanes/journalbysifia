@@ -754,9 +754,11 @@ const OnboardingTrialOfferScreen = () => {
                       Includes
                     </ThemedText>
                   </View>
-                  <ThemedText style={styles.includesDetails}>
-                    2 playbooks + 2 devotionals to get you started
-                  </ThemedText>
+                  <View style={styles.detailsWrapper}>
+                    <ThemedText style={styles.includesDetails}>
+                      2 playbooks + 2 devotionals to get you started
+                    </ThemedText>
+                  </View>
                 </View>
               </View>
             </ThemedText>
@@ -1426,8 +1428,6 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     opacity: 0.9,
   },
   includesContainer: {
-    borderWidth: 0.3,
-    borderColor: Colors.hopeWhite,
     borderRadius: 12,
     marginTop: 8,
     paddingHorizontal: 12,
@@ -1449,6 +1449,10 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     marginRight: 8,
     marginBottom: 4,
   },
+  detailsWrapper: {
+    flex: 1,
+    minWidth: 0, // Allows text to wrap properly
+  },
   badgeText: {
     fontSize: 11,
     fontFamily: fonts.semiBold,
@@ -1458,10 +1462,9 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   includesDetails: {
     fontSize: 12,
-    fontFamily: fonts.regular,
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    opacity: 0.85,
-    flex: 1,
+    opacity: 1.0,
     lineHeight: 16,
   },
   strong: {
