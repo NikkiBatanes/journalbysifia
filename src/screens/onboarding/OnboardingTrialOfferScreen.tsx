@@ -149,9 +149,9 @@ const OnboardingTrialOfferScreen = () => {
         // Fallback
         try { navigation.goBack(); } catch {}
       }
-    } else if (routeParams?.onboardingFlow) {
-      // In onboarding, closing Trial should advance to Notification setup, not return to Playbook
-      logger.debug('Onboarding flow - navigating to notification setup');
+    } else if (fromRegistrationOnboarding) {
+      // Only show notification setup for registration onboarding users
+      logger.debug('Registration onboarding flow - navigating to notification setup');
       setTimeout(() => {
         (navigation as any).navigate('OnboardingNotificationSetup', {
           userType: 'freemium',
@@ -175,18 +175,24 @@ const OnboardingTrialOfferScreen = () => {
         } catch {}
       }
     } else {
-      // Default: go to notification setup or back, depending on skip flag
-      logger.debug('Default close behavior');
-      const skipNotificationPreference = routeParams?.skipNotificationPreference;
-      if (skipNotificationPreference) {
-        navigation.goBack();
+      // Default: For upgrade/profile users, skip notification setup and go back
+      logger.debug('Default close behavior (upgrade/profile user - skipping notification setup)', {
+        fromRegistrationOnboarding,
+        fromUpgradeOrProfile,
+        returnTo: routeParams?.returnTo,
+      });
+
+      if (routeParams?.returnTo) {
+        // Navigate to specific return screen
+        try {
+          (navigation as any).navigate(routeParams.returnTo);
+        } catch (error) {
+          logger.error('Navigation to returnTo failed', error as Error);
+          navigation.goBack();
+        }
       } else {
-        setTimeout(() => {
-          (navigation as any).navigate('OnboardingNotificationSetup', {
-            userType: 'freemium',
-            fromCancelledTrial: true,
-          });
-        }, 50);
+        // Just go back (for feature gating, profile, etc.)
+        navigation.goBack();
       }
     }
 
