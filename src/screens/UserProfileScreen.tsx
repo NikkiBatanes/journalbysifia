@@ -140,6 +140,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   // Local state for instant avatar display
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null);
+  const [modalImageLoadFailed, setModalImageLoadFailed] = useState(false);
 
   // Use custom avatar URL from user profile if available, but only allow local file URIs
   const avatarUrl = (user as any)?.user_metadata?.avatar_url;
@@ -147,6 +148,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   // Use local avatar URL if available (instant), otherwise fall back to auth metadata
   const displayAvatarUrl = localAvatarUrl || safeAvatarUrl;
+
+  // Reset modal image load state when avatar URL changes
+  useEffect(() => {
+    setModalImageLoadFailed(false);
+  }, [displayAvatarUrl]);
 
     const initialLetter = useMemo(() => {
     const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
@@ -1800,12 +1806,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           {/* Avatar with edit inside Edit Profile */}
           <View style={styles.modalAvatarSection}>
             <View style={styles.modalAvatarContainer}>
-              {displayAvatarUrl ? (
+              {displayAvatarUrl && !modalImageLoadFailed ? (
                 <Image
                   source={{ uri: displayAvatarUrl }}
                   style={styles.modalAvatar}
-                  onError={(_error) => {/* Handle modal image error silently */}}
-                  onLoad={() => {/* Handle modal image load silently */}}
+                  onError={(error) => {
+                    console.log('Modal avatar image load error:', error);
+                    setModalImageLoadFailed(true);
+                  }}
+                  onLoad={() => {
+                    setModalImageLoadFailed(false);
+                  }}
                 />
               ) : (
                 <View style={[styles.modalAvatar, styles.modalInitialAvatar]}>
