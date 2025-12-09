@@ -1053,8 +1053,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         {(() => {
           const isCurrentPaidTier = tier.id === currentUserTier && currentUserTier !== 'seeker';
 
-          // Show "Your Plan" for current paid tier
-          if (isCurrentPaidTier) {
+          // Check if this tier matches the user's current billing period
+          const userSubscription = devotionalGating.subscription;
+          const userIsAnnual = userSubscription?.tier?.includes('_annual') || false;
+          const tierMatchesBillingPeriod = isAnnual === userIsAnnual;
+
+          // Show "Your Plan" for current paid tier AND correct billing period
+          if (isCurrentPaidTier && tierMatchesBillingPeriod) {
             return (
               <View style={styles.popularBadge}>
                 <ThemedText weight="semiBold" style={styles.popularText}>YOUR PLAN</ThemedText>
