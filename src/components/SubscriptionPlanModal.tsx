@@ -347,7 +347,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   onPress={handleUpgradePress}
                   activeOpacity={0.85}
                 >
-                  <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
+                  <ThemedText weight="bold" style={styles.upgradeButtonText}>
                     {getUpgradeButtonText()}
                   </ThemedText>
                 </TouchableOpacity>
@@ -493,16 +493,15 @@ const styles = StyleSheet.create({
   },
   upgradeButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 14,
+    borderRadius: 12,
     marginTop: 16,
-    marginBottom: 8,
-    alignItems: 'center',
   },
   upgradeButtonText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
+    fontSize: 18,
+    textAlign: 'center',
   },
 });
 
