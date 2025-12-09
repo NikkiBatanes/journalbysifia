@@ -631,7 +631,7 @@ const OnboardingTrialOfferScreen = () => {
                 Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
               }
             } catch (error) {
-              Logger.error('Restore purchases error', error as Error, {
+              logger.error('Restore purchases error', error as Error, {
                 component: 'OnboardingTrialOfferScreen',
               });
               Alert.alert(
@@ -1018,6 +1018,25 @@ const OnboardingTrialOfferScreen = () => {
                 Change Plan
               </ThemedText>
             </TouchableOpacity>
+
+            {/* Bottom Links */}
+            <View style={styles.bottomLinksContainer}>
+              <TouchableOpacity
+                style={styles.linkButton}
+                onPress={handleRestorePurchase}
+                activeOpacity={0.7}
+              >
+                <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.linkButton}
+                onPress={handleTermsOfService}
+                activeOpacity={0.7}
+              >
+                <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
         </ScrollView>
@@ -1038,25 +1057,6 @@ const OnboardingTrialOfferScreen = () => {
         <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
           Try 3 days free. No pressure. Cancel anytime
         </ThemedText>
-
-        {/* Bottom Links */}
-        <View style={styles.bottomLinksContainer}>
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={handleRestorePurchase}
-            activeOpacity={0.7}
-          >
-            <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={handleTermsOfService}
-            activeOpacity={0.7}
-          >
-            <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Plan Selector Modal */}
