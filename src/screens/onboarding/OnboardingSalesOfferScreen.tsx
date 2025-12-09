@@ -51,6 +51,7 @@ interface RouteParams {
   returnTo?: string; // e.g., 'UserProfile' - screen to return to on close
   returnToReflection?: boolean; // when launched from reflection editor
   dismissBothModalsOnClose?: boolean; // when both modals should be dismissed on close
+  forceAnnualTransformation?: boolean; // Force selection of annual transformation
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
@@ -84,7 +85,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   };
 
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [isAnnual, setIsAnnual] = useState((route.params as any)?.forceAnnualTransformation || false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -95,7 +96,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
                               (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
-  const initialSelectedTier = isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
+  const initialSelectedTier = (route.params as any)?.forceAnnualTransformation ? 'transformation' :
+                              isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
                               'spark'; // Default to spark for onboarding to prevent transformation tier bug
