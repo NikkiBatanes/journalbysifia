@@ -207,6 +207,22 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   // Check if user should see upgrade button - show for all tiers
   const showUpgradeButton = true;
 
+  // Get contextual button text based on current tier
+  const getUpgradeButtonText = () => {
+    switch (tierBase) {
+      case 'seeker':
+        return 'Avail Plan';
+      case 'spark':
+        return 'Upgrade Plan';
+      case 'growth':
+        return 'Upgrade Plan';
+      case 'transformation':
+        return 'Manage Plan';
+      default:
+        return 'View Plans';
+    }
+  };
+
   const handleUpgradePress = () => {
     try {
       triggerLightHaptic();
@@ -326,7 +342,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   activeOpacity={0.85}
                 >
                   <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
-                    Upgrade Plan
+                    {getUpgradeButtonText()}
                   </ThemedText>
                 </TouchableOpacity>
               )}
