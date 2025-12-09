@@ -310,12 +310,26 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Extract name with fallback strategy - NEVER ask user per Apple requirements
       const extractNameWithFallback = async () => {
         if (method === 'oauth') {
-          const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
+          // CRITICAL: Fetch fresh user data to get latest metadata from Apple Sign-In
+          const { data: { user: freshUser } } = await supabase.auth.getUser();
+          const currentUser = freshUser || user;
+          
+          const provider = currentUser?.app_metadata?.provider || (currentUser as any)?.identities?.[0]?.provider;
           const paramNameRaw = (route.params as any)?.name;
           const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
-          const metadataName = (user?.user_metadata?.first_name || user?.user_metadata?.full_name || '').trim();
+          const metadataName = (currentUser?.user_metadata?.first_name || currentUser?.user_metadata?.full_name || '').trim();
 
-          // IMPORTANT: Apple Private Relay ONLY hides email, NEVER the name
+          // DEBUG: Log name extraction process
+          logger.debug('🔍 Name extraction debug', {
+            provider,
+            paramName,
+            metadataName,
+            userMetadata: currentUser?.user_metadata,
+            routeParams: route.params,
+            freshUserFetched: !!freshUser
+          });
+
+          // IMPORTANT: Apple Private Relay ONLY hides email, NEVER names
           // Name hiding is a SEPARATE option during Apple Sign-In
           // Priority 1: Route params (includes Apple-provided name from signInWithApple)
           // Priority 2: User metadata (for subsequent logins)
