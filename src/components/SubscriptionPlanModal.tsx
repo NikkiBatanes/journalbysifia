@@ -217,7 +217,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       case 'growth':
         return 'Upgrade Plan';
       case 'transformation':
-        return isAnnual ? 'Manage Plan' : 'Upgrade to Yearly';
+        return isAnnual ? 'Manage Plan' : 'Upgrade Plan to Yearly';
       default:
         return 'View Plans';
     }
