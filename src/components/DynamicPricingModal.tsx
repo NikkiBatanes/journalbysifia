@@ -106,6 +106,8 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
       isDiscounted: true,
       discountPercentage,
       skipNotificationPreference: true,
+      source: 'dynamic_pricing_modal',
+      feature: 'upgrade',
     });
   };
 
