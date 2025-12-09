@@ -877,7 +877,7 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-              {routeParams?.onboardingFlow ? 'How trial works' : 'Not sure yet?'}
+              {routeParams?.onboardingFlow ? 'How your trial works' : 'Not sure yet?'}
             </ThemedText>
           </View>
         </View>
@@ -1119,7 +1119,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontSize: 26,
     fontFamily: fonts.bold,
     color: Colors.hopeWhite,
-    textAlign: 'left',
+    textAlign: 'center',
     lineHeight: 30,
     letterSpacing: 0.25,
     marginBottom: 0,
