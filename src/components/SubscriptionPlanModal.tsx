@@ -204,8 +204,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const isAnnual = subscription?.tier?.includes('_annual') || false;
   const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
 
-  // Check if user should see upgrade button - show for all tiers
-  const showUpgradeButton = true;
+  // Check if user should see upgrade button - show for all tiers except yearly Transformation
+  const showUpgradeButton = !(tierBase === 'transformation' && isAnnual);
 
   // Get contextual button text based on current tier
   const getUpgradeButtonText = () => {
@@ -217,7 +217,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       case 'growth':
         return 'Upgrade Plan';
       case 'transformation':
-        return 'Manage Plan';
+        return isAnnual ? 'Manage Plan' : 'Upgrade to Yearly';
       default:
         return 'View Plans';
     }
