@@ -175,24 +175,35 @@ const OnboardingTrialOfferScreen = () => {
         } catch {}
       }
     } else {
-      // Default: For upgrade/profile users, skip notification setup and go back
-      logger.debug('Default close behavior (upgrade/profile user - skipping notification setup)', {
+      // Default: For upgrade/profile users, dismiss both trial and sales offer screens
+      logger.debug('Default close behavior (upgrade/profile user - dismissing both screens)', {
         fromRegistrationOnboarding,
         fromUpgradeOrProfile,
         returnTo: routeParams?.returnTo,
       });
 
       if (routeParams?.returnTo) {
-        // Navigate to specific return screen
+        // Navigate to specific return screen after dismissing both modals
         try {
-          (navigation as any).navigate(routeParams.returnTo);
+          navigation.goBack(); // Close Trial screen
+          setTimeout(() => {
+            navigation.goBack(); // Close Sales Offer screen
+            setTimeout(() => {
+              (navigation as any).navigate(routeParams.returnTo);
+            }, 50);
+          }, 50);
         } catch (error) {
           logger.error('Navigation to returnTo failed', error as Error);
+          // Fallback: try going back twice
           navigation.goBack();
+          setTimeout(() => navigation.goBack(), 50);
         }
       } else {
-        // Just go back (for feature gating, profile, etc.)
-        navigation.goBack();
+        // Just go back twice to dismiss both trial and sales offer screens
+        navigation.goBack(); // Close Trial screen
+        setTimeout(() => {
+          navigation.goBack(); // Close Sales Offer screen
+        }, 50);
       }
     }
 
