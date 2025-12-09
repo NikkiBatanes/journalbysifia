@@ -1099,13 +1099,13 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'center',
     maxWidth: 720,
     width: '100%',
     alignSelf: 'center',
   },
   headerTextBlock: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     width: '100%',
     paddingRight: 56, // leave room for close button
     paddingLeft: 0,
