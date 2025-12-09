@@ -221,6 +221,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
+        upgradeMode: true,
       });
     } else {
       console.log('SubscriptionPlanModal: Navigation not available');
