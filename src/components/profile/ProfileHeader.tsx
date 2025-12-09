@@ -54,6 +54,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   const [tooltipType, setTooltipType] = useState<TooltipType | null>(null);
   // Badges modal state
   const [badgesModalVisible, setBadgesModalVisible] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   const showTooltip = (type: TooltipType) => {
     try { triggerLightHaptic(); } catch {}
@@ -115,6 +116,11 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
 
   const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
+
+  // Reset image load state when user or avatar URL changes
+  React.useEffect(() => {
+    setImageLoadFailed(false);
+  }, [user, safeAvatarUrl]);
 
   // Skeleton loading component
   const renderSkeleton = () => (
@@ -227,12 +233,17 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
           accessibilityLabel="Edit profile"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          {safeAvatarUrl ? (
+          {safeAvatarUrl && !imageLoadFailed ? (
             <Image
               source={{ uri: safeAvatarUrl }}
               style={styles.avatar}
-              onError={(_error) => {/* Handle image error silently */}}
-              onLoad={() => {/* Handle image load silently */}}
+              onError={(error) => {
+                console.log('Avatar image load error:', error);
+                setImageLoadFailed(true);
+              }}
+              onLoad={() => {
+                setImageLoadFailed(false);
+              }}
             />
           ) : (
             <View style={[styles.avatar, styles.initialAvatar]}>
