@@ -875,7 +875,7 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-              {routeParams?.onboardingFlow ? 'How your trial works:' : 'Not sure yet?'}
+              {routeParams?.onboardingFlow ? 'How your trial works' : 'Not sure yet?'}
             </ThemedText>
           </View>
         </View>
