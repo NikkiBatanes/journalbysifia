@@ -309,6 +309,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
       // Extract name with fallback strategy - NEVER ask user per Apple requirements
       const extractNameWithFallback = async () => {
+        console.log('🚀 extractNameWithFallback called - NEW CODE VERSION');
         if (method === 'oauth') {
           // CRITICAL: Fetch fresh user data to get latest metadata from Apple Sign-In
           const { data: { user: freshUser } } = await supabase.auth.getUser();
