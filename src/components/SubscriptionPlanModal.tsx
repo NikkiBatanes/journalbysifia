@@ -220,6 +220,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         source: 'profile',
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
+        upgradeMode: true,
       });
       // Close modal after navigation starts
       setTimeout(() => onClose(), 100);
