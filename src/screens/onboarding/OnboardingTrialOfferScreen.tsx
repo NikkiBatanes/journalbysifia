@@ -748,17 +748,15 @@ const OnboardingTrialOfferScreen = () => {
               No pressure, no catch.{'\n'}
               Experience personalized guidance and see how it fits your story.{'\n\n'}
               <View style={styles.includesContainer}>
-                <View style={styles.includesRow}>
+                <View style={styles.includesColumn}>
                   <View style={styles.includesBadge}>
                     <ThemedText weight="semiBold" style={styles.badgeText}>
                       Includes
                     </ThemedText>
                   </View>
-                  <View style={styles.detailsWrapper}>
-                    <ThemedText style={styles.includesDetails}>
-                      2 playbooks + 2 devotionals to get you started
-                    </ThemedText>
-                  </View>
+                  <ThemedText style={styles.includesDetails}>
+                    2 playbooks + 2 devotionals to get you started
+                  </ThemedText>
                 </View>
               </View>
             </ThemedText>
@@ -1434,10 +1432,9 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  includesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+  includesColumn: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
   includesBadge: {
     borderWidth: 0.3,
@@ -1446,8 +1443,8 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    marginRight: 8,
     marginBottom: 4,
+    alignSelf: 'flex-start',
   },
   detailsWrapper: {
     flex: 1,
