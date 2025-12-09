@@ -1083,6 +1083,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             return null;
           }
 
+          // Hide Popular badge when forcing Transformation annual (only one tier shown)
+          if ((route.params as any)?.forceTransformationAnnual) {
+            return null;
+          }
+
           // Show Popular badge in other contexts
           const shouldShowPopular = tier.isPopular || (tier.id === 'transformation' && !growthVisible);
           return shouldShowPopular ? (
