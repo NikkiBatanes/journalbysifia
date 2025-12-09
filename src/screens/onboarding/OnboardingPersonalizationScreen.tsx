@@ -317,24 +317,26 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             const { data: { user: freshUser } } = await supabase.auth.getUser();
             console.log('🔍 Fresh user fetched:', !!freshUser);
             
-            // BACKUP: Query database directly if auth.getUser() doesn't have metadata
+            // BACKUP: Query user_profiles table if auth.getUser() doesn't have metadata
             let currentUser = freshUser || user;
             if (currentUser && (!currentUser.user_metadata?.first_name && !currentUser.user_metadata?.full_name)) {
-              console.log('🔍 No metadata in auth user, querying database directly...');
-              const { data: dbUser } = await supabase
-                .from('auth.users')
-                .select('raw_user_meta_data')
+              console.log('🔍 No metadata in auth user, querying user_profiles table...');
+              const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('first_name, last_name, full_name')
                 .eq('id', currentUser.id)
                 .single();
               
-              if (dbUser?.raw_user_meta_data) {
-                console.log('🔍 Found metadata in database:', dbUser.raw_user_meta_data);
-                // Merge database metadata into user object
+              if (profile && (profile.first_name || profile.full_name)) {
+                console.log('🔍 Found name in user_profiles:', profile);
+                // Merge profile names into user object
                 currentUser = {
                   ...currentUser,
                   user_metadata: {
                     ...currentUser.user_metadata,
-                    ...dbUser.raw_user_meta_data,
+                    first_name: profile.first_name || currentUser.user_metadata?.first_name,
+                    last_name: profile.last_name || currentUser.user_metadata?.last_name,
+                    full_name: profile.full_name || currentUser.user_metadata?.full_name,
                   },
                 };
               }
