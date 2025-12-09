@@ -700,8 +700,6 @@ const OnboardingTrialOfferScreen = () => {
     d.setDate(d.getDate() + days);
     return d;
   };
-  const formatMD = (date: Date) =>
-    date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   const today = new Date();
   // Apple shows the paid subscription "starting" 3 days from today for a 3-day trial
@@ -712,29 +710,30 @@ const OnboardingTrialOfferScreen = () => {
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.',
+      description: 'Try siFia Growth PLAN free for 3 days\nNo pressure, no catch. Experience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
     },
     {
       id: 2,
-      title: `${formatMD(reminderDate)} - Notification Reminder`,
-      description: 'We\'ll send a gentle push notification before your trial ends \nso you can decide with peace.',
+      title: `${formatDate(reminderDate)} - Notification Reminder`,
+      description: "We'll send a gentle push notification before your trial ends so you can decide with peace.",
       icon: 'notifications',
-      iconColor: Colors.alertCoral,
+      iconColor: Colors.anchorBlue,
       isCompleted: false,
     },
     {
       id: 3,
-      title: `${formatMD(endDate)} - Continue Your Journey`,
-      description: 'Your trial ends unless cancelled.',
-      icon: 'heart',
+      title: `${formatDate(endDate)} - Continue Your Journey`,
+      description: 'Your trial ends and you\'ll be charged, unless cancelled.',
+      icon: 'warning',
       iconColor: Colors.alertCoral,
       isCompleted: false,
     },
   ];
 
+// ... (rest of the code remains the same)
   const renderTimelineItem = (item: any, index: number) => {
     const isLast = index === timelineItems.length - 1;
 
@@ -754,14 +753,17 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.timelineContent}>
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
           {item.id === 1 ? (
-            <ThemedText style={styles.timelineDescription}>
-              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
-              No pressure, no catch.{'\n'}
-              Experience personalized guidance and see how it fits your story.{'\n\n'}
-              <ThemedText weight="semiBold" style={styles.includedText}>
-                Includes: 2 playbooks + 2 devotionals to get you started
+            <View>
+              <ThemedText style={styles.timelineDescription}>
+                Try <ThemedText weight="bold" style={styles.strong}>siFia Growth PLAN</ThemedText> free for 3 days{'\n'}
+                No pressure, no catch. Experience personalized guidance and see how it fits your story.
               </ThemedText>
-            </ThemedText>
+              <View style={styles.includesContainer}>
+                <ThemedText weight="semiBold" style={styles.includedText}>
+                  Includes: 2 playbooks + 2 devotionals to get you started
+                </ThemedText>
+              </View>
+            </View>
           ) : (
             <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
           )}
@@ -1433,6 +1435,14 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginTop: 8,
+  },
+  includesContainer: {
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     opacity: 0.85,
   },
   strong: {
