@@ -356,6 +356,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         requestedDuration: days,
         skipNotificationPreference: true,
         featureType: 'devotionals',
+        source: 'devotional_seeker_limit',
+        feature: 'devotionals',
       });
       return;
     }
@@ -406,6 +408,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         requestedDuration: days,
         skipNotificationPreference: true,
         featureType: 'devotionals',
+        source: 'devotional_duration_locked',
+        feature: 'devotionals',
       });
       return;
     }
@@ -745,6 +749,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                               currentTier: devotionalGating.tier,
                               requestedDuration: option.days,
                               featureType: 'devotionals',
+                              source: 'devotional_lock',
+                              feature: 'devotionals',
                               skipNotificationPreference: true,
                             });
                           }}
@@ -809,6 +815,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 upgradeMode: true,
                 currentTier: devotionalGating.tier,
                 featureType: 'devotionals',
+                source: 'devotional_seeker_badge',
+                feature: 'devotionals',
                 skipNotificationPreference: true,
               });
             });
@@ -972,6 +980,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                         selectedTier: salesCopy.recommendedTier,
                         skipNotificationPreference: true,
                         featureType: 'devotionals', // Explicitly mark this as devotional upgrade
+                        source: 'devotional_usage_limit',
+                        feature: 'devotionals',
                       });
                     }}
                   >
