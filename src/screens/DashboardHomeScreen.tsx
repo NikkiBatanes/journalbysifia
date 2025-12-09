@@ -811,7 +811,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   }, [user?.id, subscription?.tier, queryClient]); // Re-run when cached subscription changes
   const [refreshing, setRefreshing] = useState(false);
   const [actionsCount, setActionsCount] = useState(0);
-  const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
+  const [dashboardImageLoadFailed, setDashboardImageLoadFailed] = useState(false);
+  const [currentMotivationalText, _setCurrentMotivationalText] = useState(0);
   const [hasPlaybooks, setHasPlaybooks] = useState(true); // Track if user has playbooks
   const [hasDevotionals, setHasDevotionals] = useState(true); // Track if user has devotionals
   const [hasScripture, setHasScripture] = useState(true); // Track if scripture is shown
@@ -969,20 +970,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     (user as any)?.firstName ||
     user?.user_metadata?.first_name ||
     (user?.user_metadata?.full_name ? String(user.user_metadata.full_name).trim().split(/\s+/)[0] : undefined) ||
-    (user as any)?.displayName?.split?.(' ')?.[0] ||
-    user?.user_metadata?.given_name ||
-    user?.email?.split('@')[0] ||
     'Friend';
-
-  // Set daily motivational text based on current date
-  useEffect(() => {
-    const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-    const textIndex = dayOfYear % MOTIVATIONAL_TEXTS.length;
-    setCurrentMotivationalText(textIndex);
-  }, []);
-
-  // Removed auto-expand animation on mount/focus for floating button per UX update
 
   useFocusEffect(
     useCallback(() => {
@@ -1027,6 +1015,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       expandButton,
     ])
   );
+
+  // Reset dashboard image load state when user changes
+  useEffect(() => {
+    setDashboardImageLoadFailed(false);
+  }, [user]);
 
   // Listen for content creation events to show hidden sections
   useEffect(() => {
@@ -1412,12 +1405,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             const avatarUrl = (user as any)?.user_metadata?.avatar_url;
             const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
 
-            return safeAvatarUrl ? (
+            return safeAvatarUrl && !dashboardImageLoadFailed ? (
               <Image
                 source={{ uri: safeAvatarUrl }}
                 style={styles.profileImage}
-                onError={(_error) => {/* Handle dashboard image error silently */}}
-                onLoad={() => {/* Handle dashboard image load silently */}}
+                onError={(error) => {
+                  console.log('Dashboard avatar image load error:', error);
+                  setDashboardImageLoadFailed(true);
+                }}
+                onLoad={() => {
+                  setDashboardImageLoadFailed(false);
+                }}
               />
             ) : (
             <View style={styles.initialAvatar}>
