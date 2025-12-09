@@ -84,7 +84,7 @@ const OnboardingTrialOfferScreen = () => {
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
   const [isClosing, setIsClosing] = useState(false);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
-  const [trialProductAvailable, setTrialProductAvailable] = useState<boolean | null>(null);
+  const [_trialProductAvailable, setTrialProductAvailable] = useState<boolean | null>(null);
   const [navigationInProgressRef] = [React.useRef(false)];
 
   const handleClose = async () => {
@@ -892,29 +892,6 @@ const OnboardingTrialOfferScreen = () => {
           bounces
         >
           <View style={styles.contentWrap}>
-          {/* Intro Text */}
-          <View style={styles.introSection}>
-            <ThemedText weight="semiBold" style={styles.introTitle}>
-              {routeParams?.onboardingFlow
-                ? (trialProductAvailable !== false
-                  ? 'How the free trial works:'
-                  : 'Choose your perfect plan:')
-                : (trialProductAvailable !== false
-                  ? "That's okay. Starting something new can feel uncertain."
-                  : 'Choose your perfect plan:')}
-            </ThemedText>
-            <ThemedText style={styles.introSubtitle}>
-              {routeParams?.onboardingFlow
-                ? (trialProductAvailable !== false
-                  ? 'Try all premium features, then choose your plan.'
-                  : 'Select the plan that best fits your spiritual journey.')
-                : (trialProductAvailable !== false
-                  ? "Here's what you'll unlock during your free trial."
-                  : 'Select the plan that best fits your spiritual journey.')}
-            </ThemedText>
-          </View>
-
-
 
           {/* Plan Toggle */}
           <View style={styles.toggleContainer}>
