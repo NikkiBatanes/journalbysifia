@@ -204,8 +204,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const isAnnual = subscription?.tier?.includes('_annual') || false;
   const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
 
-  // Check if user should see upgrade button
-  const showUpgradeButton = tierBase === 'seeker' || tierBase === 'spark';
+  // Check if user should see upgrade button - show for all tiers
+  const showUpgradeButton = true;
 
   const handleUpgradePress = () => {
     try {
