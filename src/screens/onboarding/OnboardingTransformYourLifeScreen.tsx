@@ -93,7 +93,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
           }
         }
       } catch (e) {
-        Logger.warn('Error checking redirect:', e as Error);
+        Logger.warn('Error checking redirect', { component: 'OnboardingTransformYourLifeScreen', error: e as Error });
       }
 
       // Check if user has completed onboarding
@@ -106,7 +106,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             return;
           }
         } catch (e) {
-          Logger.warn('Error checking onboarding completion:', e as Error);
+          Logger.warn('Error checking onboarding completion', { component: 'OnboardingTransformYourLifeScreen', error: e as Error });
         }
       }
     };
