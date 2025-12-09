@@ -515,9 +515,12 @@ export class OnboardingService {
       // Use upsert to handle cases where profile doesn't exist yet (e.g., social login)
       Logger.debug('[OnboardingService] Updating user_profiles.onboarding_completed to true', { userId });
 
-      // First get the user's email to include in the upsert
+      // First get the user's email and name metadata to include in the upsert
       const { data: userData } = await this.supabase.auth.getUser();
       const userEmail = userData?.user?.email;
+      const firstName = userData?.user?.user_metadata?.first_name || null;
+      const lastName = userData?.user?.user_metadata?.last_name || null;
+      const fullName = userData?.user?.user_metadata?.full_name || null;
 
       if (!userEmail) {
         Logger.error('[OnboardingService] Cannot get user email for profile update', {
@@ -533,7 +536,10 @@ export class OnboardingService {
         .upsert(
           {
             id: userId,
-            email: userEmail, // Include required email field
+            email: userEmail,
+            first_name: firstName,
+            last_name: lastName,
+            full_name: fullName,
             onboarding_completed: true,
             updated_at: new Date().toISOString(),
           },
