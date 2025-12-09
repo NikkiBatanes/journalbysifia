@@ -237,7 +237,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
-        upgradeMode: true,
+        upgradeMode: false, // Use onboarding mode to show all tiers
         forceAnnualTransformation: true,
       });
     } else {

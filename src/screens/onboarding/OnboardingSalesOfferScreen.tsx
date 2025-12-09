@@ -103,13 +103,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               'spark'; // Default to spark for onboarding to prevent transformation tier bug
 
   // Debug logging
-  if (isFromProfile) {
-    logger.debug('Profile navigation debug', {
-      currentUserTier,
-      initialSelectedTier,
-      routeParams: route.params,
-    });
-  }
+  logger.debug('Sales offer screen debug', {
+    isFromProfile,
+    currentUserTier,
+    initialSelectedTier,
+    routeParams: route.params,
+    forceAnnualTransformation: (route.params as any)?.forceAnnualTransformation,
+  });
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
