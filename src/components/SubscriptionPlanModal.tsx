@@ -82,7 +82,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             'Basic Journaling Tool access',
             'Access to generated Playbooks',
-            'Access to generated Devotionals'
+            'Access to generated Devotionals',
           ],
           limits: {
             playbooks: 2,
