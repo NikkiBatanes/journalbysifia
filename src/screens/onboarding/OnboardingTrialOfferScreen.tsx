@@ -60,6 +60,10 @@ const OnboardingTrialOfferScreen = () => {
   const fromExportRestriction = (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
   const fromGrowthOnlyFeature = fromSmartJournalingLock || fromExportRestriction;
 
+  // Detect if from registration onboarding vs upgrade/profile
+  const fromRegistrationOnboarding = routeParams?.onboardingFlow === true && !routeParams?.source && !routeParams?.returnTo;
+  const fromUpgradeOrProfile = !fromRegistrationOnboarding; // Any other source (upgrade, profile, feature locks, etc.)
+
   logger.debug('Trial screen initialized with params', {
     selectedTierId: routeParams?.selectedTierId,
     billing: routeParams?.billing,
@@ -780,9 +784,9 @@ const OnboardingTrialOfferScreen = () => {
       if (skipNotificationPreference) {
         logger.info('Navigating back (skipNotificationPreference=true)');
         safeNavigate(() => navigation.goBack(), 'go_back_to_sales');
-      } else {
-        // Navigate to notification setup
-        logger.info('Navigating to OnboardingNotificationSetup');
+      } else if (fromRegistrationOnboarding) {
+        // Only show notification setup for registration onboarding users
+        logger.info('Navigating to OnboardingNotificationSetup (registration onboarding)');
         try {
           (navigation as any).navigate('OnboardingNotificationSetup', {
             userType: 'trial',
@@ -794,9 +798,28 @@ const OnboardingTrialOfferScreen = () => {
           // Fallback: try going back
           navigation.goBack();
         }
+      } else {
+        // For upgrade/profile users, go back or navigate to returnTo
+        logger.info('Skipping notification setup (upgrade/profile user)', {
+          fromRegistrationOnboarding,
+          fromUpgradeOrProfile,
+          returnTo: routeParams?.returnTo,
+        });
+
+        if (routeParams?.returnTo) {
+          safeNavigate(() => (navigation as any).navigate(routeParams.returnTo), 'navigate_to_return');
+        } else if (routeParams?.dismissBothModalsOnClose) {
+          // Handle export restriction upgrade case
+          safeNavigate(() => navigation.goBack(), 'go_back_first_modal');
+          setTimeout(() => {
+            safeNavigate(() => navigation.goBack(), 'go_back_second_modal');
+          }, 100);
+        } else {
+          safeNavigate(() => navigation.goBack(), 'go_back_default');
+        }
       }
     }, 100);
-  }, [route?.params?.skipNotificationPreference, navigation, safeNavigate]);
+  }, [route?.params?.skipNotificationPreference, navigation, safeNavigate, fromRegistrationOnboarding, fromUpgradeOrProfile, routeParams?.returnTo, routeParams?.dismissBothModalsOnClose]);
 
   // Reset auto-dismissal state when component unmounts
   useEffect(() => {
