@@ -706,8 +706,8 @@ const OnboardingTrialOfferScreen = () => {
     },
     {
       id: 3,
-      title: `${formatMD(endDate)} - Subscription Begins`,
-      description: `After your 3-day free trial, your subscription will automatically start and you'll be charged ${isAnnual ? 'annually' : 'monthly'}. Cancel anytime before then to avoid charges.`,
+      title: `${formatMD(endDate)} - Continue Your Journey`,
+      description: 'Your trial ends unless cancelled.',
       icon: 'heart',
       iconColor: Colors.alertCoral,
       isCompleted: false,
@@ -837,7 +837,7 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-              Not sure yet?
+              {routeParams?.onboardingFlow ? 'How trial works' : 'Not sure yet?'}
             </ThemedText>
           </View>
         </View>
@@ -855,10 +855,14 @@ const OnboardingTrialOfferScreen = () => {
           {/* Intro Text */}
           <View style={styles.introSection}>
             <ThemedText weight="semiBold" style={styles.introTitle}>
-              That's okay. Starting something new can feel uncertain.
+              {routeParams?.onboardingFlow
+                ? "Here's how your free trial works:"
+                : "That's okay. Starting something new can feel uncertain."}
             </ThemedText>
             <ThemedText style={styles.introSubtitle}>
-              Here's what you'll unlock during your free trial.
+              {routeParams?.onboardingFlow
+                ? 'Try all premium features free for 3 days, then choose your plan.'
+                : "Here's what you'll unlock during your free trial."}
             </ThemedText>
           </View>
 
@@ -968,8 +972,8 @@ const OnboardingTrialOfferScreen = () => {
             {isStartingTrial ? 'Starting Trial...' : 'Start your free 3‑day trial'}
           </ThemedText>
         </TouchableOpacity>
-        <ThemedText style={styles.footerText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
-          After 3 days, you'll be charged. Cancel anytime before then to avoid charges.
+        <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+          Try 3 days free. No pressure. Cancel anytime
         </ThemedText>
       </View>
 

@@ -1550,7 +1550,24 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               return;
             }
             try { triggerSuccessHaptic(); } catch {}
-            handleUnlockPlan();
+
+            // If it's a trial button, navigate to trial offer screen instead of processing directly
+            if (shouldUseTrialProduct) {
+              logger.info('Navigating to trial offer screen for trial flow');
+              (navigation as any).navigate('OnboardingTrialOffer', {
+                selectedTierId: selectedTier,
+                billing: isAnnual ? 'annual' : 'monthly',
+                skipNotificationPreference: routeParams?.skipNotificationPreference,
+                returnTo: routeParams?.returnTo,
+                context: routeParams?.context,
+                source: routeParams?.source,
+                feature: routeParams?.feature,
+                dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+                onboardingFlow: true,
+              });
+            } else {
+              handleUnlockPlan();
+            }
           }}
           activeOpacity={0.9}
           disabled={isPurchasing}
