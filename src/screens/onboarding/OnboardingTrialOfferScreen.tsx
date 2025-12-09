@@ -694,40 +694,30 @@ const OnboardingTrialOfferScreen = () => {
 
   // Removed duplicate handleStartTrial function
 
-  // Helpers for local date computations
-  const addDays = (date: Date, days: number) => {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d;
-  };
 
-  const today = new Date();
-  // Apple shows the paid subscription "starting" 3 days from today for a 3-day trial
-  const endDate = addDays(today, 3); // Trial ends / paid plan starts (matches Apple sheet)
-  const reminderDate = addDays(endDate, -1); // remind one day before end
 
   const timelineItems = [
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try siFia Growth PLAN free for 3 days\nNo pressure, no catch. Experience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started',
+      description: `Try siFia ${getTierDisplayName(selectedTierId)} PLAN free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.`,
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
     },
     {
       id: 2,
-      title: `${formatDate(reminderDate)} - Notification Reminder`,
+      title: 'Dec 12 - Notification Reminder',
       description: "We'll send a gentle push notification before your trial ends so you can decide with peace.",
       icon: 'notifications',
-      iconColor: Colors.anchorBlue,
+      iconColor: Colors.growthGreen,
       isCompleted: false,
     },
     {
       id: 3,
-      title: `${formatDate(endDate)} - Continue Your Journey`,
+      title: 'Dec 13 - Continue Your Journey',
       description: 'Your trial ends and you\'ll be charged, unless cancelled.',
-      icon: 'warning',
+      icon: 'rocket',
       iconColor: Colors.alertCoral,
       isCompleted: false,
     },
@@ -753,17 +743,16 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.timelineContent}>
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
           {item.id === 1 ? (
-            <View>
-              <ThemedText style={styles.timelineDescription}>
-                Try <ThemedText weight="bold" style={styles.strong}>siFia Growth PLAN</ThemedText> free for 3 days{'\n'}
-                No pressure, no catch. Experience personalized guidance and see how it fits your story.
-              </ThemedText>
+            <ThemedText style={styles.timelineDescription}>
+              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
+              No pressure, no catch.{'\n'}
+              Experience personalized guidance and see how it fits your story.{'\n\n'}
               <View style={styles.includesContainer}>
                 <ThemedText weight="semiBold" style={styles.includedText}>
                   Includes: 2 playbooks + 2 devotionals to get you started
                 </ThemedText>
               </View>
-            </View>
+            </ThemedText>
           ) : (
             <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
           )}
@@ -1434,16 +1423,17 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     textAlign: 'left',
-    marginTop: 8,
+    padding: 8,
+    opacity: 0.85,
   },
   includesContainer: {
     borderWidth: 1,
     borderColor: Colors.hopeWhite,
     borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    opacity: 0.85,
   },
   strong: {
     fontFamily: fonts.bold,
