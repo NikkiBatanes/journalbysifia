@@ -1427,9 +1427,9 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     opacity: 0.85,
   },
   includesContainer: {
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: Colors.hopeWhite,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
