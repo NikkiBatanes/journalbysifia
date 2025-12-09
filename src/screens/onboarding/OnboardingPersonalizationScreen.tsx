@@ -227,10 +227,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Track registration method for analytics only
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
 
-  // Show name step only when provider doesn't give us a name (Apple private relay)
-  const [showNameStep, setShowNameStep] = useState(false);
-
-  // Start at step 1 (name if needed, otherwise age group)
+  // Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4)
+  // Name step removed to comply with Apple guidelines
+  // Note: Apple Private Relay ONLY hides email, NEVER names
+  // "Friend" fallback only used when user explicitly chose "Hide My Name"
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = React.useState(routeParams?.name || '');
   const greetingName = React.useMemo(() => {
@@ -315,9 +315,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
           const metadataName = (user?.user_metadata?.first_name || user?.user_metadata?.full_name || '').trim();
 
+          // IMPORTANT: Apple Private Relay ONLY hides email, NEVER the name
+          // Name hiding is a SEPARATE option during Apple Sign-In
           // Priority 1: Route params (includes Apple-provided name from signInWithApple)
           // Priority 2: User metadata (for subsequent logins)
-          // Priority 3: Fallback to "Friend"
+          // Priority 3: Fallback to "Friend" (only when user explicitly chose "Hide My Name")
           let resolvedName = paramName || metadataName;
 
           // For Google users, if first_name contains spaces, use only the first part
@@ -333,12 +335,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           if (resolvedName && resolvedName.length > 0) {
             logger.debug('✅ OAuth user has name from provider', { provider, resolvedName });
             setName(resolvedName);
-            setShowNameStep(false); // Skip name step - provider gave us a name
           } else {
-            // No name from OAuth provider - show name collection (Apple-compliant)
-            logger.debug('📝 OAuth user no name from provider - will ask for name', { provider });
-            setName('');
-            setShowNameStep(true); // Show name step for private relay users
+            // User explicitly chose "Hide My Name" during sign-in
+            // (Private Relay does NOT hide name - this is a separate option)
+            // Use "Friend" fallback - NEVER ask for input per Apple guidelines
+            logger.debug('📝 OAuth user chose to hide name - using Friend fallback', { provider });
+            setName('Friend');
           }
           return;
         }
@@ -350,7 +352,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         if (route.params && 'name' in route.params && route.params.name) {
           const providedName = route.params.name as string;
           setName(providedName);
-          setShowNameStep(false);
           logger.onboarding.navigation('email_user', 'name_provided', { name: providedName });
           return;
         }
@@ -362,18 +363,15 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
           if (extractedName && extractedName.length > 0) {
             setName(extractedName);
-            setShowNameStep(false);
             logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
           } else {
-            // Can't extract - skip name step, use "Friend"
+            // Can't extract - use "Friend" fallback
             setName('Friend');
-            setShowNameStep(false);
             logger.debug('🔄 Email user - using "Friend" fallback');
           }
         } else {
-          // No email - skip name step, use "Friend"
+          // No email - use "Friend" fallback
           setName('Friend');
-          setShowNameStep(false);
           logger.debug('🔄 No email available - using "Friend" fallback');
         }
       };
@@ -539,7 +537,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Track keyboard visibility and (legacy) slide container up only on details step
   React.useEffect(() => {
-    const isDetailsStep = currentStep === (showNameStep ? 5 : 4);
+    const isDetailsStep = currentStep === 4;
 
     const onShow = (e: any) => {
       setKeyboardVisible(true);
@@ -585,10 +583,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       subShow.remove();
       subHide.remove();
     };
-  }, [currentStep, showNameStep, containerTranslateY, insets?.bottom]);
+  }, [currentStep, containerTranslateY, insets?.bottom]);
 
-  // Dynamic steps: 5 if name needed (private relay), 4 otherwise
-  const totalSteps = showNameStep ? 5 : 4;
+  // Always 4 steps: Age → Faith → Challenge → Details
+  const totalSteps = 4;
 
   const handleBack = () => {
     // On age group step, don't go back
@@ -747,62 +745,24 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   };
 
   const canContinue = () => {
-    if (showNameStep) {
-      // 5 steps: Name(1) -> Age(2) -> Faith(3) -> Challenge(4) -> Details(5)
-      switch (currentStep) {
-        case 1:
-          return name.trim().length > 0;
-        case 2:
-          return selectedAgeGroup !== '';
-        case 3:
-          return selectedFaithJourney !== '';
-        case 4:
-          return selectedChallenge !== '';
-        case 5:
-          return challengeDetails.trim().length > 0;
-        default:
-          return false;
-      }
-    } else {
-      // 4 steps: Age(1) -> Faith(2) -> Challenge(3) -> Details(4)
-      switch (currentStep) {
-        case 1:
-          return selectedAgeGroup !== '';
-        case 2:
-          return selectedFaithJourney !== '';
-        case 3:
-          return selectedChallenge !== '';
-        case 4:
-          return challengeDetails.trim().length > 0;
-        default:
-          return false;
-      }
+    // Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4)
+    switch (currentStep) {
+      case 1:
+        return selectedAgeGroup !== '';
+      case 2:
+        return selectedFaithJourney !== '';
+      case 3:
+        return selectedChallenge !== '';
+      case 4:
+        return challengeDetails.trim().length > 0;
+      default:
+        return false;
     }
   };
 
   const handleScroll = (event: any) => {
     setScrollY(event.nativeEvent.contentOffset.y);
   };
-
-  const renderNameStep = () => (
-    <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={styles.stepTitle}>What's your first name?</ThemedText>
-      <ThemedText style={styles.stepSubtitle}>
-        Help us personalize your experience
-      </ThemedText>
-      <View style={styles.nameInputContainer}>
-        <ThemedTextInput
-          style={styles.nameInput}
-          placeholder="Enter your first name"
-          placeholderTextColor="rgba(255,255,255,0.6)"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-          returnKeyType="done"
-        />
-      </View>
-    </View>
-  );
 
   const renderAgeStep = () => (
     <View style={styles.stepContainer}>
@@ -1066,7 +1026,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <View style={[
         styles.titleContainer,
         // Condense header further when keyboard is visible on details step to free vertical space
-        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) && styles.noMarginBottom,
+        (currentStep === 4 && keyboardVisible) && styles.noMarginBottom,
       ]}>
         {greetingName ? (
           <ThemedText weight="bold" style={styles.userGreeting}>Hi, {greetingName}.</ThemedText>
@@ -1080,7 +1040,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <Animated.View style={[
         styles.contentContainer,
         // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
-        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) && styles.nudgeUpward,
+        (currentStep === 4 && keyboardVisible) && styles.nudgeUpward,
       ]}>
         <View style={styles.modalHeader} pointerEvents="box-none">
           <TouchableOpacity
@@ -1121,12 +1081,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Dynamic rendering based on showNameStep */}
-          {showNameStep && currentStep === 1 && renderNameStep()}
-          {currentStep === (showNameStep ? 2 : 1) && renderAgeStep()}
-          {currentStep === (showNameStep ? 3 : 2) && renderFaithJourneyStep()}
-          {currentStep === (showNameStep ? 4 : 3) && renderChallengeStep()}
-          {currentStep === (showNameStep ? 5 : 4) && renderChallengeDetailsStep()}
+          {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
+          {currentStep === 1 && renderAgeStep()}
+          {currentStep === 2 && renderFaithJourneyStep()}
+          {currentStep === 3 && renderChallengeStep()}
+          {currentStep === 4 && renderChallengeDetailsStep()}
         </ScrollView>
 
         <View
