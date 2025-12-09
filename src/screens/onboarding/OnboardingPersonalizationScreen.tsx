@@ -313,7 +313,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // CRITICAL: Fetch fresh user data to get latest metadata from Apple Sign-In
           const { data: { user: freshUser } } = await supabase.auth.getUser();
           const currentUser = freshUser || user;
-          
+
           const provider = currentUser?.app_metadata?.provider || (currentUser as any)?.identities?.[0]?.provider;
           const paramNameRaw = (route.params as any)?.name;
           const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
@@ -326,7 +326,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             metadataName,
             userMetadata: currentUser?.user_metadata,
             routeParams: route.params,
-            freshUserFetched: !!freshUser
+            freshUserFetched: !!freshUser,
           });
 
           // IMPORTANT: Apple Private Relay ONLY hides email, NEVER names
