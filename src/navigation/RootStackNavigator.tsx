@@ -18,7 +18,6 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 // NotificationDebugScreen removed in Phase 1 cleanup
 
 // New Onboarding screens
-import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
@@ -172,21 +171,16 @@ export default function RootStackNavigator({
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
-  // Always start with OnboardingSplash and let it handle all routing decisions
+  // Start directly with TransformJourney - navigation logic moved there
   // including post_auth_redirect, completion checks, and authentication state
 
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
-      initialRouteName="OnboardingSplash"
+      initialRouteName="TransformJourney"
     >
 
       {/* PHASE 1: First Impression & Value Proposition (15%) */}
-      <Stack.Screen
-        name="OnboardingSplash"
-        component={OnboardingSplashScreen as React.ComponentType}
-        options={{ headerShown: false }}
-      />
       <Stack.Screen
         name="TransformJourney"
         component={OnboardingTransformYourLifeScreen as React.ComponentType}

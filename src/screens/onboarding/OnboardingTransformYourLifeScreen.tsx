@@ -17,11 +17,14 @@ import {
 } from 'react-native';
 import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { Colors } from '../../theme/colors';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
+import { onboardingService } from '../../services/onboardingService';
 
 // Feature interface removed as it's not currently used in the component
 
@@ -51,6 +54,7 @@ import ThemedText from '../../components/common/ThemedText';
 
 const OnboardingTransformYourLifeScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user, isLoggingOut } = useAuth();
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
@@ -60,6 +64,65 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const hasNavigatedRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const isNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    // Check for immediate navigation needs (post-auth redirect, completed onboarding)
+    const checkImmediateNavigation = async () => {
+      if (hasNavigatedRef.current || isNavigatingRef.current) {
+        return;
+      }
+
+      // Check for post-auth redirect
+      try {
+        const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
+        if (redirectRaw) {
+          const redirect = JSON.parse(redirectRaw);
+          const target = redirect?.target as string | undefined;
+          const params = redirect?.params || {};
+          const isLoginFlow = redirect?.is_login_flow === true;
+
+          if (user && target && isLoginFlow) {
+            // Login flow - bypass all checks
+            navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+            await AsyncStorage.removeItem('post_auth_redirect');
+            hasNavigatedRef.current = true;
+            return;
+          }
+        }
+      } catch (e) {
+        Logger.warn('Error checking redirect:', e as Error);
+      }
+
+      // Check if user has completed onboarding
+      if (user && !isLoggingOut) {
+        try {
+          const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
+          if (hasCompleted) {
+            navigation.reset({ index: 0, routes: [{ name: 'MainTabs' as any }] });
+            hasNavigatedRef.current = true;
+            return;
+          }
+        } catch (e) {
+          Logger.warn('Error checking onboarding completion:', e as Error);
+        }
+      }
+    };
+
+    // Run check after a short delay to allow auth state to settle
+    const timeout = setTimeout(() => {
+      if (isMountedRef.current) {
+        checkImmediateNavigation();
+      }
+    }, 100);
+
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timeout);
+    };
+  }, [user, isLoggingOut, navigation]);
 
   useEffect(() => {
     // Entrance animation
