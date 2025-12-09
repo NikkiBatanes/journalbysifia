@@ -914,15 +914,6 @@ const OnboardingTrialOfferScreen = () => {
             </ThemedText>
           </View>
 
-          {/* Trial Availability Warning - Only show in development */}
-          {trialProductAvailable === false && __DEV__ && (
-            <View style={styles.trialWarningContainer}>
-              <Ionicons name="warning" size={20} color={Colors.alertCoral} />
-              <ThemedText style={styles.trialWarningText}>
-                Trial offer unavailable - using standard pricing
-              </ThemedText>
-            </View>
-          )}
 
           {/* How Trial Works or Plan Selection */}
           <ThemedText weight="semiBold" style={styles.sectionTitle}>
