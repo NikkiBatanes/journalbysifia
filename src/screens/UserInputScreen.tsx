@@ -407,6 +407,8 @@ const UserInputScreen: React.FC = () => {
           upgradeMode: true,
           currentTier: 'seeker',
           skipNotificationPreference: true,
+          source: 'user_input_seeker_limit',
+          feature: 'playbooks',
         });
       } else if (playbooksRemaining === 0) {
         // Navigate to sales offer for usage limit reached
@@ -414,6 +416,8 @@ const UserInputScreen: React.FC = () => {
           upgradeMode: true,
           currentTier: subscription?.tier || 'seeker',
           skipNotificationPreference: true,
+          source: 'user_input_usage_limit',
+          feature: 'playbooks',
         });
       }
       return;
