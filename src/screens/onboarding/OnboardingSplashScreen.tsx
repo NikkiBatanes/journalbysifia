@@ -37,8 +37,8 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isNavigatingRef = useRef(false);
 
-  // Consistent 200x200 logo across all devices
-  const logoSize = 200;
+  // Consistent 300x300 logo across all devices
+  const logoSize = 300;
 
 
   useEffect(() => {
