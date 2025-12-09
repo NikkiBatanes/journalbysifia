@@ -35,6 +35,7 @@ import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { accountDeletionService } from '../services/accountDeletionService';
+import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
 import { UserProgress, UserPreferences } from '../types/auth';
 // Types for subscription - using inline types to avoid import issues
 interface Subscription {
@@ -195,6 +196,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
+  const [subscriptionPlanModal, setSubscriptionPlanModal] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
     if (birthDateStr) {
@@ -1618,13 +1620,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     const handleSubscriptionTap = () => {
       try { triggerLightHaptic(); } catch {}
-      navigation.navigate('OnboardingSalesOffer', {
-        source: 'profile',
-        currentTier: tier,
-        isEligibleForTrial,
-        skipNotificationPreference: true, // Don't show notification setup when coming from profile
-        returnTo: 'UserProfile', // Return to profile after purchase/cancel
-      });
+      setSubscriptionPlanModal(true);
     };
 
     return (
@@ -2407,6 +2403,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       {renderSettingsModal()}
       {renderReportBugModal()}
       {renderFeatureModal()}
+
+      <SubscriptionPlanModal
+        visible={subscriptionPlanModal}
+        onClose={() => setSubscriptionPlanModal(false)}
+      />
     </SafeAreaView>
   );
 };

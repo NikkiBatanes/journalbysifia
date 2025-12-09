@@ -1,0 +1,539 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors } from '../theme/colors';
+import ThemedText from '../components/common/ThemedText';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { NewSubscriptionService } from '../services/NewSubscriptionService';
+import { Logger } from '../utils/ProductionLogger';
+import { triggerLightHaptic } from '../utils/haptics';
+
+interface SubscriptionPlanModalProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+interface UsageTracking {
+  playbooks_generated: number;
+  devotionals_generated: number;
+}
+
+interface Subscription {
+  id: string;
+  tier: string;
+  status: string;
+  platform_subscription_id?: string;
+  limits?: {
+    playbooks: number;
+    devotionals: number;
+  };
+  playbooks_used?: number;
+  devotionals_used?: number;
+  subscription_display_name?: string;
+  trial_chosen_tier?: string;
+  has_used_trial?: boolean;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end?: boolean;
+}
+
+const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
+  visible,
+  onClose,
+}) => {
+  const { user } = useAuth();
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [usage, setUsage] = useState<UsageTracking | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Load subscription data when modal opens
+  useEffect(() => {
+    if (visible && user?.id) {
+      loadSubscriptionData();
+    }
+  }, [visible, user?.id, loadSubscriptionData]);
+
+  const loadSubscriptionData = React.useCallback(async () => {
+    if (!user?.id) {return;}
+
+    try {
+      setLoading(true);
+      const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+      setSubscription(subscriptionData as any);
+
+      const usageData = {
+        playbooks_generated: subscriptionData.playbooks_used || 0,
+        devotionals_generated: subscriptionData.devotionals_used || 0,
+      };
+      setUsage(usageData);
+    } catch (error) {
+      Logger.error('Failed to load subscription data for modal', error as Error, {
+        component: 'SubscriptionPlanModal',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  const getTierInfo = (tier: string) => {
+    const tierBase = tier?.replace(/_annual$/, '') || 'seeker';
+    const isAnnual = tier?.includes('_annual') || false;
+
+    switch (tierBase) {
+      case 'seeker':
+        return {
+          name: 'siFia Seeker',
+          description: 'Free access to basic features',
+          features: [
+            'Basic playbook generation',
+            'Limited devotionals',
+            'All devotional durations locked',
+            'Community access',
+            'Essential journal features',
+          ],
+          limits: {
+            playbooks: 2,
+            devotionals: 2,
+          },
+          color: Colors.textGray,
+        };
+      case 'spark':
+        return {
+          name: isAnnual ? 'siFia Spark (Annual)' : 'siFia Spark',
+          description: 'For consistent encouragement',
+          features: [
+            '8 playbooks each month',
+            '8 devotionals each month',
+            'Access 1-day & 3-day devotionals',
+            'Gentle reminders to keep you on track',
+            'Track your progress week by week',
+            'Basic journaling tools',
+            'Calendar Sync to stay on track',
+            'Copy To-Dos to other dates for flexibility',
+          ],
+          limits: {
+            playbooks: 8,
+            devotionals: 8,
+          },
+          color: Colors.alertCoral,
+        };
+      case 'growth':
+        return {
+          name: isAnnual ? 'siFia Growth (Annual)' : 'siFia Growth',
+          description: 'For deeper transformation',
+          features: [
+            'All in siFia Spark, plus:',
+            '20 playbooks each month',
+            '20 devotionals each month',
+            'Access 1-day, 3-day & 5-day devotionals',
+            'Advanced reflection prompts',
+            'Smart Journaling for personalized reflection',
+            'Export to PDF for sharing and printing',
+          ],
+          limits: {
+            playbooks: 20,
+            devotionals: 20,
+          },
+          color: Colors.growthGreen,
+        };
+      case 'transformation':
+        return {
+          name: isAnnual ? 'siFia Transformation (Annual)' : 'siFia Transformation',
+          description: 'For a life transformed in spirit and purpose',
+          features: [
+            'All in siFia Growth, plus:',
+            'Unlimited playbooks',
+            'Unlimited devotionals',
+            'Access all devotional durations (1-7 days)',
+            'Priority support',
+          ],
+          limits: {
+            playbooks: -1, // Unlimited
+            devotionals: -1, // Unlimited
+          },
+          color: Colors.faithGold,
+        };
+      case 'free_trial':
+        const chosenTier = subscription?.trial_chosen_tier || 'growth';
+        return getTierInfo(chosenTier);
+      default:
+        return getTierInfo('seeker');
+    }
+  };
+
+  const getStatusInfo = (status: string, subscriptionData: Subscription) => {
+    switch (status) {
+      case 'active':
+        if (subscriptionData.cancel_at_period_end) {
+          return {
+            text: 'Cancels at period end',
+            color: Colors.alertCoral,
+          };
+        }
+        return {
+          text: 'Active',
+          badge: true,
+          color: Colors.growthGreen,
+        };
+      case 'trialing':
+        const trialEnd = subscriptionData.current_period_end
+          ? new Date(subscriptionData.current_period_end).toLocaleDateString()
+          : 'Trial period';
+        return {
+          text: `Trial ends ${trialEnd}`,
+          color: Colors.faithGold,
+        };
+      case 'canceled':
+        return {
+          text: 'Canceled',
+          color: Colors.textGray,
+        };
+      case 'past_due':
+        return {
+          text: 'Payment Due',
+          color: Colors.alertCoral,
+        };
+      default:
+        return {
+          text: 'Unknown',
+          color: Colors.textGray,
+        };
+    }
+  };
+
+  const formatUsageBar = (used: number, limit: number) => {
+    if (limit === -1) {return { percentage: 0, text: 'Unlimited', color: Colors.faithGold };}
+    const percentage = Math.min((used / limit) * 100, 100);
+    const text = `${used}/${limit}`;
+    const color = percentage >= 90 ? Colors.alertCoral :
+                  percentage >= 70 ? Colors.faithGold :
+                  Colors.growthGreen;
+    return { percentage, text, color };
+  };
+
+  const tierInfo = subscription ? getTierInfo(subscription.tier) : getTierInfo('seeker');
+  const statusInfo = subscription ? getStatusInfo(subscription.status, subscription) : { text: 'Loading...', color: Colors.textGray };
+  const playbookUsage = usage && subscription ? formatUsageBar(usage.playbooks_generated, tierInfo.limits.playbooks) : { percentage: 0, text: '0/0', color: Colors.textGray };
+  const devotionalUsage = usage && subscription ? formatUsageBar(usage.devotionals_generated, tierInfo.limits.devotionals) : { percentage: 0, text: '0/0', color: Colors.textGray };
+
+  // Determine billing period
+  const tierBase = subscription?.tier?.replace(/_annual$/, '') || 'seeker';
+  const isAnnual = subscription?.tier?.includes('_annual') || false;
+  const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => { try { triggerLightHaptic(); } catch {} onClose(); }}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+          <ThemedText weight="bold" style={styles.headerTitle}>
+            Current Plan
+          </ThemedText>
+          <View style={styles.placeholder} />
+        </View>
+
+        {/* Content */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Ionicons name="diamond" size={48} color={Colors.hopeWhite} />
+              <ThemedText weight="medium" style={styles.loadingText}>
+                Loading plan details...
+              </ThemedText>
+            </View>
+          ) : (
+            <>
+              {/* Plan Card */}
+              <View style={styles.planCard}>
+                {statusInfo.badge && (
+                  <View style={styles.badgeContainer}>
+                    <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+                      <ThemedText style={styles.statusBadgeText}>
+                        {statusInfo.text}
+                      </ThemedText>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.planHeader}>
+                  <View style={styles.planInfo}>
+                    <ThemedText weight="bold" style={styles.planName}>
+                      {tierInfo.name}
+                    </ThemedText>
+                    <ThemedText style={styles.planDescription}>
+                      {tierInfo.description}
+                    </ThemedText>
+                    {tierBase !== 'seeker' && (
+                  <View style={styles.billingPeriodBadge}>
+                    <ThemedText style={styles.billingPeriodBadgeText}>
+                      {billingPeriod}
+                    </ThemedText>
+                  </View>
+                )}
+                  </View>
+                </View>
+
+                {!statusInfo.badge && (
+                  <View style={styles.statusContainer}>
+                    <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
+                    <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
+                      {statusInfo.text}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+
+              {/* Usage Section */}
+              {(tierInfo.limits.playbooks > 0 || tierInfo.limits.devotionals > 0) && (
+                <View style={styles.section}>
+                  <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                    Monthly Usage
+                  </ThemedText>
+
+                  {tierInfo.limits.playbooks > 0 && (
+                    <View style={styles.usageItem}>
+                      <View style={styles.usageHeader}>
+                        <ThemedText style={styles.usageLabel}>Playbooks</ThemedText>
+                        <ThemedText style={styles.usageText}>{playbookUsage.text}</ThemedText>
+                      </View>
+                      <View style={styles.usageBarContainer}>
+                        <View
+                          style={[
+                            styles.usageBar,
+                            {
+                              width: `${playbookUsage.percentage}%`,
+                              backgroundColor: playbookUsage.color,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  )}
+
+                  {tierInfo.limits.devotionals > 0 && (
+                    <View style={styles.usageItem}>
+                      <View style={styles.usageHeader}>
+                        <ThemedText style={styles.usageLabel}>Devotionals</ThemedText>
+                        <ThemedText style={styles.usageText}>{devotionalUsage.text}</ThemedText>
+                      </View>
+                      <View style={styles.usageBarContainer}>
+                        <View
+                          style={[
+                            styles.usageBar,
+                            {
+                              width: `${devotionalUsage.percentage}%`,
+                              backgroundColor: devotionalUsage.color,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Features Section */}
+              <View style={styles.section}>
+                <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                  Plan Features
+                </ThemedText>
+                {tierInfo.features.map((feature, index) => (
+                  <View key={index} style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.alertCoral} />
+                    <ThemedText style={styles.featureText}>{feature}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.anchorBlue,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: Colors.anchorBlue,
+    width: '100%',
+  },
+  backButton: {
+    padding: 8,
+  },
+  placeholder: {
+    width: 40,
+  },
+  headerTitle: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    flex: 1,
+    textAlign: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginTop: 16,
+  },
+  planCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+  },
+  planHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  planInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  badgeContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  planName: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  planDescription: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
+    marginBottom: 4,
+  },
+  billingPeriodBadge: {
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 8,
+    alignSelf: 'center',
+  },
+  billingPeriodBadgeText: {
+    fontSize: 11,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+  },
+  usageItem: {
+    marginBottom: 16,
+  },
+  usageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  usageLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+  },
+  usageText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '500',
+  },
+  usageBarContainer: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  usageBar: {
+    height: '100%',
+    borderRadius: 3,
+    minWidth: 2,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  featureText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginLeft: 12,
+    flex: 1,
+  },
+});
+
+export default SubscriptionPlanModal;
