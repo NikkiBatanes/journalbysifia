@@ -312,8 +312,7 @@ class PushNotificationService {
 
   async saveDeviceToken(userId: string, token: string): Promise<void> {
     const maxRetries = 3;
-    const baseDelay = 1000; // 1 second
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
 
@@ -355,10 +354,10 @@ class PushNotificationService {
           deviceId: deviceToken.device_id,
           attempt,
         });
-        
+
         // Success - exit retry loop
         return;
-        
+
       } catch (error) {
         if (attempt === maxRetries) {
           Logger.error('[PushNotification] Error saving token to Supabase after all retries', error as Error, {

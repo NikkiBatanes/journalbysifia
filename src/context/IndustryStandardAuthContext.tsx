@@ -1464,11 +1464,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       });
 
       // Save Apple name data directly to user metadata for immediate use
+      let appleProvidedName = '';
       if (fullName?.givenName && fullName.givenName.trim().length > 0) {
         try {
           const givenName = fullName.givenName.trim();
           const familyName = fullName.familyName?.trim() || '';
           const fullNameString = familyName ? `${givenName} ${familyName}` : givenName;
+          appleProvidedName = givenName; // Store for redirect params
 
           // Update user metadata with Apple-provided name
           const { error: updateError } = await supabase.auth.updateUser({
@@ -1489,7 +1491,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
               },
             });
           } else {
-            Logger.debug('Apple name saved to user metadata', {
+            Logger.debug('🍎 Apple name saved to user metadata', {
               givenName,
               familyName,
               fullName: fullNameString,
@@ -1559,13 +1561,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             hasProfile: !!profile,
             onboardingCompleted: profile?.onboarding_completed,
             profileError: profileError?.message,
+            appleProvidedName,
           });
 
           // Route to personalization for unregistered/incomplete users
+          // IMPORTANT: Pass the Apple-provided name through params so it's immediately available
           await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
             target: 'OnboardingPersonalization',
             params: {
-              name: '',
+              name: appleProvidedName, // Pass Apple name directly
               registrationMethod: 'oauth',
             },
           }));
@@ -1585,10 +1589,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           action: 'apple_sign_in_check_onboarding',
         });
         // On error, default to personalization for safety
+        // Pass the Apple-provided name if we captured it
         await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
           target: 'OnboardingPersonalization',
           params: {
-            name: '',
+            name: appleProvidedName, // Pass Apple name even on error
             registrationMethod: 'oauth',
           },
         }));

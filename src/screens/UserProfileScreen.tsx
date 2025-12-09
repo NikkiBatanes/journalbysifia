@@ -1638,16 +1638,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.menuIconBox}>
               <Ionicons name="diamond" size={18} color={Colors.anchorBlue} />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={styles.flex1}>
               <Text style={[styles.menuText, font]}>{tierDisplayName}</Text>
               {isEligibleForTrial && (
                 <Text style={[styles.menuSubtext, font]}>Tap to start free trial</Text>
               )}
             </View>
             {isSeeker ? (
-              <Text style={[styles.menuValueText, font, { marginRight: 8 }]}>Free Plan</Text>
+              <Text style={[styles.menuValueText, font, styles.iconWithMargin]}>Free Plan</Text>
             ) : (
-              <Text style={[styles.menuValueText, font, { marginRight: 8 }]}>{billingPeriod}</Text>
+              <Text style={[styles.menuValueText, font, styles.iconWithMargin]}>{billingPeriod}</Text>
             )}
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
           </TouchableOpacity>

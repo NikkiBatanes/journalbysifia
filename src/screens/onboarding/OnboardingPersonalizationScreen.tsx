@@ -224,11 +224,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const isLandscape = screenSize.width > screenSize.height;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
 
-  // Determine if we need to show name input step based on registration method
+  // Track registration method for analytics only
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
+
+  // Show name step only when provider doesn't give us a name (Apple private relay)
   const [showNameStep, setShowNameStep] = useState(false);
 
-  // Start at step 1 (name input for OAuth, age group for email)
+  // Start at step 1 (name if needed, otherwise age group)
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = React.useState(routeParams?.name || '');
   const greetingName = React.useMemo(() => {
@@ -291,8 +293,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Debug effect for step rendering
   React.useEffect(() => {
-    logger.onboarding.stepCompleted(`Render State - currentStep: ${currentStep}, showNameStep: ${showNameStep}, registrationMethod: ${registrationMethod}`);
-  }, [currentStep, showNameStep, registrationMethod]);
+    logger.onboarding.stepCompleted(`Render State - currentStep: ${currentStep}, registrationMethod: ${registrationMethod}`);
+  }, [currentStep, registrationMethod]);
 
   // Handle route params and determine registration method
   React.useEffect(() => {
@@ -305,18 +307,21 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       logger.debug('Registration method:', method);
       setRegistrationMethod(method);
 
-      // Check for stored Apple name data first
-      const checkAppleName = async () => {
+      // Extract name with fallback strategy - NEVER ask user per Apple requirements
+      const extractNameWithFallback = async () => {
         if (method === 'oauth') {
           const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
           const paramNameRaw = (route.params as any)?.name;
           const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
           const metadataName = (user?.user_metadata?.first_name || user?.user_metadata?.full_name || '').trim();
-          // For Google users, if first_name contains spaces, it might be the full name
-          // In that case, prefer using only the first part as the name
+
+          // Priority 1: Route params (includes Apple-provided name from signInWithApple)
+          // Priority 2: User metadata (for subsequent logins)
+          // Priority 3: Fallback to "Friend"
           let resolvedName = paramName || metadataName;
+
+          // For Google users, if first_name contains spaces, use only the first part
           if (provider === 'google' && metadataName && metadataName.includes(' ')) {
-            // If Google first_name contains spaces, use only the first part to avoid duplication
             resolvedName = metadataName.split(' ')[0];
             logger.debug('🔍 Google user name correction applied', {
               originalMetadataName: metadataName,
@@ -325,99 +330,55 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             });
           }
 
-          if (provider === 'apple') {
-            // First check if Apple provided a name in metadata (saved during sign-in)
-            const appleProvidedName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
-
-            if (appleProvidedName && appleProvidedName.trim().length > 0) {
-              // Apple provided a name - use it and skip name collection
-              logger.debug('🍎 Apple provided name in metadata - using it', {
-                userId: user?.id,
-                name: appleProvidedName,
-              });
-              setName(appleProvidedName.trim());
-              setShowNameStep(false);
-              return;
-            }
-
-            // No name from Apple - this can happen on subsequent logins
-            // Check if user has already completed onboarding
-            const { data: profile } = await supabase
-              .from('user_profiles')
-              .select('onboarding_completed')
-              .eq('id', user?.id)
-              .single();
-
-            if (profile?.onboarding_completed) {
-              logger.debug('🍎 Apple user completed onboarding but no name in metadata - skip name step', {
-                userId: user?.id,
-              });
-              setName('');
-              setShowNameStep(false);
-              return;
-            }
-
-            // New Apple user with no name provided - must collect it
-            logger.debug('🍎 Apple user needs onboarding and no name provided - collecting name');
-            setName('');
-            setShowNameStep(true);
-            return;
-          }
-
-          if (resolvedName) {
-            logger.debug('✅ OAuth user has existing name - skipping name step', { provider, resolvedName });
+          if (resolvedName && resolvedName.length > 0) {
+            logger.debug('✅ OAuth user has name from provider', { provider, resolvedName });
             setName(resolvedName);
-            setShowNameStep(false);
-            return;
+            setShowNameStep(false); // Skip name step - provider gave us a name
+          } else {
+            // No name from OAuth provider - show name collection (Apple-compliant)
+            logger.debug('📝 OAuth user no name from provider - will ask for name', { provider });
+            setName('');
+            setShowNameStep(true); // Show name step for private relay users
           }
-
-          logger.debug('🔒 OAuth user missing name - showing name collection step', { provider });
-          setName('');
-          setShowNameStep(true);
           return;
         }
 
-        // For non-OAuth users (email/password), handle name extraction
+        // For non-OAuth users (email/password), extract name from email or use "Friend"
         logger.debug('Non-OAuth user - checking email extraction');
 
-        // Set name if provided, but ONLY for email users
+        // Priority 1: Name from route params
         if (route.params && 'name' in route.params && route.params.name) {
           const providedName = route.params.name as string;
-
           setName(providedName);
-          logger.onboarding.navigation('email_user', 'name_provided', { name: providedName });
           setShowNameStep(false);
-        } else {
-          // Email user with no provided name - extract from email (but not private relay)
-          logger.debug('Email user - extracting name from email');
+          logger.onboarding.navigation('email_user', 'name_provided', { name: providedName });
+          return;
+        }
 
-          if (user?.email) {
-            // Check if this is an Apple private relay email (randomized when user hides email)
-            const isApplePrivateRelay = user.email.includes('@privaterelay.appleid.com');
+        // Priority 2: Extract from email
+        if (user?.email) {
+          const emailUsername = user.email.split('@')[0];
+          const extractedName = extractNameFromEmail(emailUsername);
 
-            if (isApplePrivateRelay) {
-              logger.debug('🍎 Apple private relay email detected - forcing name collection', { email: user.email });
-
-              setName(''); // Force name collection for private relay emails
-              setShowNameStep(true); // Show name step
-            } else {
-              const emailUsername = user.email.split('@')[0];
-
-              // Extract first name from email (e.g., "bynikkib" → "Nikki")
-              const extractedName = extractNameFromEmail(emailUsername);
-
-              setName(extractedName);
-              logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
-              setShowNameStep(false);
-            }
-          } else {
-
+          if (extractedName && extractedName.length > 0) {
+            setName(extractedName);
             setShowNameStep(false);
+            logger.onboarding.navigation('email_extraction', 'name_set', { userId: user?.id, extractedName });
+          } else {
+            // Can't extract - skip name step, use "Friend"
+            setName('Friend');
+            setShowNameStep(false);
+            logger.debug('🔄 Email user - using "Friend" fallback');
           }
+        } else {
+          // No email - skip name step, use "Friend"
+          setName('Friend');
+          setShowNameStep(false);
+          logger.debug('🔄 No email available - using "Friend" fallback');
         }
       };
 
-      checkAppleName();
+      extractNameWithFallback();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params]); // user.email intentionally excluded - checked within effect
@@ -563,7 +524,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Do not auto-focus when entering the details step per UX requirement
   React.useEffect(() => {
     // no-op
-  }, [currentStep, showNameStep]);
+  }, [currentStep]);
 
   // Always show the top content when entering a new step/page
   React.useEffect(() => {
@@ -574,7 +535,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       } catch {}
     }, 0);
     return () => clearTimeout(id);
-  }, [currentStep, showNameStep]);
+  }, [currentStep]);
 
   // Track keyboard visibility and (legacy) slide container up only on details step
   React.useEffect(() => {
@@ -626,8 +587,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     };
   }, [currentStep, showNameStep, containerTranslateY, insets?.bottom]);
 
-  // Dynamic total steps based on whether we show name step
-  const totalSteps = showNameStep ? 5 : 4; // Name + Age + Faith + Challenge + Details OR Age + Faith + Challenge + Details
+  // Dynamic steps: 5 if name needed (private relay), 4 otherwise
+  const totalSteps = showNameStep ? 5 : 4;
 
   const handleBack = () => {
     // On age group step, don't go back
@@ -787,7 +748,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const canContinue = () => {
     if (showNameStep) {
-      // With name step: Name(1) -> Age(2) -> Faith(3) -> Challenge(4) -> Details(5)
+      // 5 steps: Name(1) -> Age(2) -> Faith(3) -> Challenge(4) -> Details(5)
       switch (currentStep) {
         case 1:
           return name.trim().length > 0;
@@ -800,11 +761,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         case 5:
           return challengeDetails.trim().length > 0;
         default:
-          // Safeguard: allow continue if step is invalid to prevent stuck state
-          return currentStep > 0 && currentStep <= totalSteps;
+          return false;
       }
     } else {
-      // Without name step: Age(1) -> Faith(2) -> Challenge(3) -> Details(4)
+      // 4 steps: Age(1) -> Faith(2) -> Challenge(3) -> Details(4)
       switch (currentStep) {
         case 1:
           return selectedAgeGroup !== '';
@@ -815,8 +775,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         case 4:
           return challengeDetails.trim().length > 0;
         default:
-          // Safeguard: allow continue if step is invalid to prevent stuck state
-          return currentStep > 0 && currentStep <= totalSteps;
+          return false;
       }
     }
   };
@@ -827,7 +786,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderNameStep = () => (
     <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={styles.stepTitle}>What's your name?</ThemedText>
+      <ThemedText weight="bold" style={styles.stepTitle}>What's your first name?</ThemedText>
+      <ThemedText style={styles.stepSubtitle}>
+        Help us personalize your experience
+      </ThemedText>
       <View style={styles.nameInputContainer}>
         <ThemedTextInput
           style={styles.nameInput}
@@ -1159,47 +1121,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Conditional rendering based on whether name step is shown */}
+          {/* Dynamic rendering based on showNameStep */}
           {showNameStep && currentStep === 1 && renderNameStep()}
           {currentStep === (showNameStep ? 2 : 1) && renderAgeStep()}
           {currentStep === (showNameStep ? 3 : 2) && renderFaithJourneyStep()}
           {currentStep === (showNameStep ? 4 : 3) && renderChallengeStep()}
           {currentStep === (showNameStep ? 5 : 4) && renderChallengeDetailsStep()}
-
-          {/* Fallback rendering to prevent stuck state */}
-          {!((showNameStep && currentStep === 1) ||
-             currentStep === (showNameStep ? 2 : 1) ||
-             currentStep === (showNameStep ? 3 : 2) ||
-             currentStep === (showNameStep ? 4 : 3) ||
-             currentStep === (showNameStep ? 5 : 4)) && (
-            <View style={styles.stepContainer}>
-              {/* Safeguard: Always show appropriate step based on current state */}
-              {(() => {
-                if (showNameStep && currentStep === 1) {
-                  return renderNameStep();
-                } else if (!showNameStep && currentStep === 1) {
-                  return renderAgeStep();
-                } else if (showNameStep && currentStep === 2) {
-                  return renderAgeStep();
-                } else if (!showNameStep && currentStep === 2) {
-                  return renderFaithJourneyStep();
-                } else if (showNameStep && currentStep === 3) {
-                  return renderFaithJourneyStep();
-                } else if (!showNameStep && currentStep === 3) {
-                  return renderChallengeStep();
-                } else if (showNameStep && currentStep === 4) {
-                  return renderChallengeStep();
-                } else if (!showNameStep && currentStep === 4) {
-                  return renderChallengeDetailsStep();
-                } else if (showNameStep && currentStep === 5) {
-                  return renderChallengeDetailsStep();
-                } else {
-                  // Ultimate fallback - show age step
-                  return renderAgeStep();
-                }
-              })()}
-            </View>
-          )}
         </ScrollView>
 
         <View
