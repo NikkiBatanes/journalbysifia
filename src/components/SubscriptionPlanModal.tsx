@@ -80,11 +80,9 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Seeker',
           description: 'Free access to basic features',
           features: [
-            'Basic playbook generation',
-            'Limited devotionals',
-            'All devotional durations locked',
-            'Community access',
-            'Essential journal features',
+            'Basic Journaling Tool access',
+            'Access to generated Playbooks',
+            'Access to generated Devotionals'
           ],
           limits: {
             playbooks: 2,
