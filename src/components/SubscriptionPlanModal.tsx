@@ -80,7 +80,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Seeker',
           description: 'Free access to basic features',
           features: [
-            'Basic Journaling Tool access',
+            'Access to basic journaling tools',
             'Access to generated Playbooks',
             'Access to generated Devotionals',
           ],
@@ -100,7 +100,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             'Access 1-day & 3-day devotionals',
             'Gentle reminders to keep you on track',
             'Track your progress week by week',
-            'Access to basic journaling tools',
+            'Basic journaling tools',
             'Calendar Sync to stay on track',
             'Copy To-Dos to other dates for flexibility',
           ],
