@@ -212,14 +212,22 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       triggerLightHaptic();
     } catch {}
 
-    if (navigation) {
-      navigation.navigate('OnboardingSalesOffer', {
+    console.log('SubscriptionPlanModal: handleUpgradePress called', { navigation: !!navigation, tier: subscription?.tier });
+
+    if (navigation && navigation.navigate) {
+      console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
+      (navigation as any).navigate('OnboardingSalesOffer', {
         source: 'profile',
         currentTier: subscription?.tier || 'seeker',
         returnTo: 'UserProfile',
+        skipNotificationPreference: true,
       });
+      // Close modal after navigation starts
+      setTimeout(() => onClose(), 100);
+    } else {
+      console.log('SubscriptionPlanModal: Navigation not available');
+      onClose();
     }
-    onClose();
   };
 
   return (
