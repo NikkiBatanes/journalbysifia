@@ -316,7 +316,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             console.log('🔍 Fetching fresh user data...');
             const { data: { user: freshUser } } = await supabase.auth.getUser();
             console.log('🔍 Fresh user fetched:', !!freshUser);
-            
+
             // BACKUP: Query user_profiles table if auth.getUser() doesn't have metadata
             let currentUser = freshUser || user;
             if (currentUser && (!currentUser.user_metadata?.first_name && !currentUser.user_metadata?.full_name)) {
@@ -326,7 +326,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 .select('first_name, last_name, full_name')
                 .eq('id', currentUser.id)
                 .single();
-              
+
               if (profile && (profile.first_name || profile.full_name)) {
                 console.log('🔍 Found name in user_profiles:', profile);
                 // Merge profile names into user object

@@ -1503,7 +1503,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
               familyName,
               fullName: fullNameString,
             });
-            
+
             // CRITICAL: Refetch user to ensure metadata is in context
             const { data: { user: refreshedUser } } = await supabase.auth.getUser();
             if (refreshedUser) {
@@ -1511,6 +1511,41 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                 hasFirstName: !!refreshedUser.user_metadata?.first_name,
                 firstName: refreshedUser.user_metadata?.first_name,
               });
+
+              // CRITICAL: Also save to user_profiles table immediately for onboarding access
+              try {
+                const { error: profileError } = await supabase
+                  .from('user_profiles')
+                  .upsert({
+                    id: refreshedUser.id,
+                    email: refreshedUser.email,
+                    first_name: givenName,
+                    last_name: familyName,
+                    full_name: fullNameString,
+                    updated_at: new Date().toISOString(),
+                  }, {
+                    onConflict: 'id',
+                  });
+
+                if (profileError) {
+                  Logger.warn('Failed to save Apple name to user_profiles', {
+                    component: 'AuthContext',
+                    error: {
+                      message: profileError.message,
+                      name: 'ProfileUpdateError',
+                    },
+                  });
+                } else {
+                  Logger.debug('🍎 Apple name saved to user_profiles table', {
+                    userId: refreshedUser.id,
+                    givenName,
+                  });
+                }
+              } catch (profileSaveError) {
+                Logger.error('Error saving Apple name to user_profiles', profileSaveError as Error, {
+                  component: 'AuthContext',
+                });
+              }
             }
           }
         } catch (metadataError) {
