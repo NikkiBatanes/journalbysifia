@@ -53,13 +53,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const [usage, setUsage] = useState<UsageTracking | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load subscription data when modal opens
-  useEffect(() => {
-    if (visible && user?.id) {
-      loadSubscriptionData();
-    }
-  }, [visible, user?.id, loadSubscriptionData]);
-
   const loadSubscriptionData = React.useCallback(async () => {
     if (!user?.id) {return;}
 
@@ -81,6 +74,13 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       setLoading(false);
     }
   }, [user?.id]);
+
+  // Load subscription data when modal opens
+  useEffect(() => {
+    if (visible && user?.id) {
+      loadSubscriptionData();
+    }
+  }, [visible, user?.id, loadSubscriptionData]);
 
   const getTierInfo = (tier: string) => {
     const tierBase = tier?.replace(/_annual$/, '') || 'seeker';
