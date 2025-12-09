@@ -100,7 +100,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
-                              'spark'; // Default to spark for onboarding to prevent transformation tier bug
+                              (route.params as any)?.selectedTier || 'spark'; // Use passed selectedTier or default to spark
 
   // Debug logging
   logger.debug('Sales offer screen debug', {
@@ -112,6 +112,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   });
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
+  const [preservedTier, setPreservedTier] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
@@ -391,6 +392,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   useEffect(() => {
     setExpandedCards(new Set());
   }, [isAnnual]);
+
+  // Preserve selected tier when navigating to trial offer and restore when returning
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // When screen comes back into focus, if we have a preserved tier, restore it
+      if (preservedTier && selectedTier === 'spark') {
+        logger.debug('Restoring preserved tier from trial offer', { preservedTier, currentTier: selectedTier });
+        setSelectedTier(preservedTier);
+        setPreservedTier(null); // Clear preserved tier after restoration
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, preservedTier, selectedTier]);
+
+  // Preserve tier before navigating to trial offer
+  useEffect(() => {
+    if (shouldUseTrialProduct && !preservedTier && selectedTier !== 'spark') {
+      logger.debug('Preserving selected tier before trial offer', { selectedTier });
+      setPreservedTier(selectedTier);
+    }
+  }, [shouldUseTrialProduct, preservedTier, selectedTier]);
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
