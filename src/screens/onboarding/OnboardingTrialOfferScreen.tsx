@@ -1653,12 +1653,13 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     textAlign: 'center',
   },
   footerText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    opacity: 0.8,
-    marginBottom: 0,
+    opacity: 0.7,
+    marginTop: 8,
+    marginBottom: 24,
   },
   spacerHeight: {
     height: 0,
@@ -1712,7 +1713,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    marginTop: -12,
+    marginTop: 24,
     marginBottom: 32,
   },
   linkButton: {
