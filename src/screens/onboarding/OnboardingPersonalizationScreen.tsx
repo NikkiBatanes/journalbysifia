@@ -657,54 +657,59 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             await onboardingService.completeOnboarding(user.id);
             logger.onboarding.stepCompleted('Onboarding marked as completed in both tables');
 
-            // IMPORTANT: Save the collected name to user metadata so backend can access it
+            // IMPORTANT: Save name to user metadata ONLY for non-OAuth users (email/password)
+            // Apple/Google OAuth: Name already saved during sign-in - DO NOT re-save per Apple guidelines
             if (name && name.trim().length > 0) {
               const trimmedName = name.trim();
-
-              // For Google users, avoid overwriting the correct first_name/last_name structure
               const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
-              const updateData: any = {
-                full_name: trimmedName, // Always set full_name for consistency
-              };
 
-              if (provider === 'google') {
-                // For Google users, don't overwrite first_name if it already exists and looks correct
-                const existingFirstName = user?.user_metadata?.first_name;
-                const existingLastName = user?.user_metadata?.last_name;
+              // Check if name was already provided by OAuth provider (Apple/Google)
+              const hasOAuthName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
 
-                logger.debug('🔍 Google user name save logic', {
-                  existingFirstName,
-                  existingLastName,
-                  trimmedName,
-                  willUpdateFirstName: !existingFirstName || existingFirstName.includes(' '),
+              // CRITICAL: Skip name save for Apple/Google users when they already provided name
+              // This complies with Apple's guideline: "We continue to find that your app requires users
+              // to provide their name after using Sign in with Apple"
+              if (provider === 'apple' && hasOAuthName) {
+                logger.debug('✅ Apple user - name already provided by Apple, skipping save', {
+                  existingFirstName: user?.user_metadata?.first_name,
+                  existingFullName: user?.user_metadata?.full_name,
                 });
-
-                if (!existingFirstName || existingFirstName.includes(' ')) {
-                  // Only update first_name if it doesn't exist or looks wrong (contains spaces)
-                  updateData.first_name = trimmedName.split(' ')[0];
-                  updateData.last_name = trimmedName.split(' ').slice(1).join(' ') || '';
-                }
+                // Do nothing - Apple already provided the name during sign-in
+              } else if (provider === 'google' && hasOAuthName) {
+                logger.debug('✅ Google user - name already provided by Google, skipping save', {
+                  existingFirstName: user?.user_metadata?.first_name,
+                  existingFullName: user?.user_metadata?.full_name,
+                });
+                // Do nothing - Google already provided the name during sign-in
               } else {
-                // For non-Google users, save the full name as first_name
-                updateData.first_name = trimmedName;
-              }
+                // Only save name for email/password users or OAuth users without names
+                const updateData: any = {
+                  full_name: trimmedName,
+                  first_name: trimmedName,
+                };
 
-              try {
-                const { error: updateError } = await supabase.auth.updateUser({
-                  data: updateData,
+                logger.debug('📝 Saving name for non-OAuth user', {
+                  provider: provider || 'email',
+                  trimmedName,
                 });
 
-                if (updateError) {
-                  Logger.error('❌ Error saving name to user metadata', updateError as Error, {
-  component: 'OnboardingPersonalizationScreen',
-});
-                } else {
+                try {
+                  const { error: updateError } = await supabase.auth.updateUser({
+                    data: updateData,
+                  });
 
+                  if (updateError) {
+                    Logger.error('❌ Error saving name to user metadata', updateError as Error, {
+                      component: 'OnboardingPersonalizationScreen',
+                    });
+                  } else {
+                    logger.debug('✅ Name saved successfully for non-OAuth user');
+                  }
+                } catch (nameError) {
+                  Logger.error('❌ Error updating user metadata with name', nameError as Error, {
+                    component: 'OnboardingPersonalizationScreen',
+                  });
                 }
-              } catch (nameError) {
-                Logger.error('❌ Error updating user metadata with name', nameError as Error, {
-  component: 'OnboardingPersonalizationScreen',
-});
               }
             }
           } catch (error) {
@@ -735,43 +740,42 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Continue with navigation even if onboarding update fails
         logger.error('Error occurred, but continuing to Playbook Generation');
 
-        // IMPORTANT: Still save the collected name to user metadata even if onboarding update fails
+        // IMPORTANT: Save name ONLY for non-OAuth users (email/password) - same logic as success case
         if (name && name.trim().length > 0 && user) {
           const trimmedName = name.trim();
-
-          // Apply the same Google-safe logic as in the success case
           const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
-          const updateData: any = {
-            full_name: trimmedName,
-          };
+          const hasOAuthName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
 
-          if (provider === 'google') {
-            const existingFirstName = user?.user_metadata?.first_name;
-
-            if (!existingFirstName || existingFirstName.includes(' ')) {
-              updateData.first_name = trimmedName.split(' ')[0];
-              updateData.last_name = trimmedName.split(' ').slice(1).join(' ') || '';
-            }
-          } else {
-            updateData.first_name = trimmedName;
-          }
-
-          try {
-            const { error: updateError } = await supabase.auth.updateUser({
-              data: updateData,
+          // Skip name save for Apple/Google OAuth users who already provided name
+          if ((provider === 'apple' || provider === 'google') && hasOAuthName) {
+            logger.debug('✅ OAuth user - name already provided, skipping save (error case)', {
+              provider,
+              existingFirstName: user?.user_metadata?.first_name,
             });
+          } else {
+            // Only save name for email/password users or OAuth users without names
+            const updateData: any = {
+              full_name: trimmedName,
+              first_name: trimmedName,
+            };
 
-            if (updateError) {
-              Logger.error('❌ Error saving name to user metadata (error case)', updateError as Error, {
-  component: 'OnboardingPersonalizationScreen',
-});
-            } else {
+            try {
+              const { error: updateError } = await supabase.auth.updateUser({
+                data: updateData,
+              });
 
+              if (updateError) {
+                Logger.error('❌ Error saving name to user metadata (error case)', updateError as Error, {
+                  component: 'OnboardingPersonalizationScreen',
+                });
+              } else {
+                logger.debug('✅ Name saved successfully (error case)');
+              }
+            } catch (nameError) {
+              Logger.error('❌ Error updating user metadata with name (error case)', nameError as Error, {
+                component: 'OnboardingPersonalizationScreen',
+              });
             }
-          } catch (nameError) {
-            Logger.error('❌ Error updating user metadata with name (error case)', nameError as Error, {
-  component: 'OnboardingPersonalizationScreen',
-});
           }
         }
 
