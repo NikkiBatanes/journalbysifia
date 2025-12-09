@@ -191,24 +191,25 @@ export class OnboardingService {
    */
   async initializeOnboarding(userId: string): Promise<string> {
     try {
+
       const { data, error } = await this.supabase.rpc('initialize_onboarding', {
         p_user_id: userId,
       });
 
       if (error) {
         Logger.error('[OnboardingService] Error initializing onboarding', error as Error, {
-      component: 'onboardingService',
-      action: 'onboarding',
-    });
+          component: 'onboardingService',
+          action: 'onboarding',
+        });
         throw error;
       }
 
       return data;
     } catch (error) {
       Logger.error('[OnboardingService] Error in initializeOnboarding', error as Error, {
-      component: 'onboardingService',
-      action: 'onboarding',
-    });
+        component: 'onboardingService',
+        action: 'onboarding',
+      });
       throw error;
     }
   }

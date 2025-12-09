@@ -51,6 +51,7 @@ export function useNotificationSetup(userId: string | undefined, navigationRef: 
           if (permissionsGranted) {
             const tokenAfterPermission = await pushNotificationService.getStoredToken();
             if (tokenAfterPermission) {
+              // saveDeviceToken now has built-in retry logic for race conditions
               await pushNotificationService.saveDeviceToken(userId, tokenAfterPermission);
               Logger.info('Device token registered successfully', {
                 component: 'notificationSetup',

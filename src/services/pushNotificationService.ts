@@ -311,45 +311,73 @@ class PushNotificationService {
   }
 
   async saveDeviceToken(userId: string, token: string): Promise<void> {
-    try {
-      const deviceToken: DeviceToken = {
-        user_id: userId,
-        token,
-        platform: Platform.OS as 'ios' | 'android',
-        device_id: await this.getDeviceId(),
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
 
-      // Save to local storage
-      await AsyncStorage.setItem('push_token', token);
+        const deviceToken: DeviceToken = {
+          user_id: userId,
+          token,
+          platform: Platform.OS as 'ios' | 'android',
+          device_id: await this.getDeviceId(),
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
 
-      // Save to Supabase
-      const { error } = await supabase
-        .from('device_tokens')
-        .upsert(deviceToken, {
-          onConflict: 'user_id,device_id',
-        });
+        // Save to local storage
+        await AsyncStorage.setItem('push_token', token);
 
-      if (error) {
-        Logger.error('[PushNotification] Error saving token to Supabase', new Error(error.message || 'Unknown Supabase error'), {
-          component: 'pushNotificationService',
-          supabaseError: error,
-          errorCode: error.code,
-          errorDetails: error.details,
-        });
-      } else {
+        // Save to Supabase
+        const { error } = await supabase
+          .from('device_tokens')
+          .upsert(deviceToken, {
+            onConflict: 'user_id,device_id',
+          });
+
+        if (error) {
+          Logger.error('[PushNotification] Error saving token to Supabase', new Error(error.message || 'Unknown error'), {
+            component: 'pushNotificationService',
+            userId,
+            attempt,
+            errorCode: error.code,
+            errorMessage: error.message,
+          });
+          // Don't throw - just log and continue
+          return;
+        }
+
         Logger.info('[PushNotification] Device token saved successfully', {
           component: 'pushNotificationService',
           userId: deviceToken.user_id,
           deviceId: deviceToken.device_id,
+          attempt,
         });
+        
+        // Success - exit retry loop
+        return;
+        
+      } catch (error) {
+        if (attempt === maxRetries) {
+          Logger.error('[PushNotification] Error saving token to Supabase after all retries', error as Error, {
+            component: 'pushNotificationService',
+            userId,
+            attempts: attempt,
+            maxRetries,
+            errorMessage: error instanceof Error ? error.message : String(error),
+          });
+        } else {
+          Logger.warn(`[PushNotification] Error saving token, attempt ${attempt}/${maxRetries}`, {
+            component: 'pushNotificationService',
+            userId,
+            attempt,
+            maxRetries,
+            errorMessage: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
-    } catch (error) {
-      Logger.error('[PushNotification] Error saving device token', error as Error, {
-      component: 'pushNotificationService',
-    });
     }
   }
 
