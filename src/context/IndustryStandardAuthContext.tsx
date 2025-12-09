@@ -1316,17 +1316,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           fullName: googleUser?.name,
         });
 
-        // Update user metadata with Google name and clear avatar URLs
+        // Update user metadata with Google name
         await supabase.auth.updateUser({
           data: {
             ...currentUser.data.user.user_metadata,
             first_name: firstName,
             last_name: lastName,
             full_name: googleUser?.name || '',
-            // Clear avatar URLs to use our custom avatar system
-            avatar_url: undefined,
-            picture: undefined,
-            photoURL: undefined,
           },
         });
 
@@ -1472,7 +1468,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // Save Apple name data directly to user metadata for immediate use
       let appleProvidedName = '';
-      
+
       // ENTERPRISE FIX: Check if name already exists in database before trying to save new one
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { data: existingProfile } = await supabase
@@ -1480,7 +1476,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         .select('first_name, last_name, full_name')
         .eq('id', currentUser?.id)
         .single();
-      
+
       // Use existing name if available, otherwise use Apple-provided name
       if (existingProfile?.first_name) {
         appleProvidedName = existingProfile.first_name;
@@ -1578,31 +1574,27 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         return { error: error as SupabaseAuthError };
       }
 
-      // Clear any avatar URLs from user metadata to ensure consistency
-      try {
-        const currentUser = await supabase.auth.getUser();
-        if (currentUser.data.user?.user_metadata?.avatar_url ||
-            currentUser.data.user?.user_metadata?.picture) {
 
-          await supabase.auth.updateUser({
-            data: {
-              ...currentUser.data.user.user_metadata,
-              avatar_url: undefined,
-              picture: undefined,
-            },
-          });
-        }
-      } catch (metadataError) {
-
+      // CRITICAL: Fetch fresh user and update auth state BEFORE navigation
+      const { data: { user: finalUser } } = await supabase.auth.getUser();
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      if (finalUser) {
+        setAuthState(prev => ({
+          ...prev,
+          user: finalUser,
+          session: freshSession,
+          loading: false,
+        }));
+        console.log('✅ Auth state updated with fresh user metadata before navigation');
+      } else {
+        setAuthState(prev => ({ ...prev, loading: false }));
       }
-
-      setAuthState(prev => ({ ...prev, loading: false }));
 
       // ENTERPRISE-GRADE CHECK: Verify onboarding status before routing
       // This ensures unregistered Apple users are routed to personalization, not dashboard
       try {
-        const { data: currentUser } = await supabase.auth.getUser();
-        const userId = currentUser.user?.id;
+        const { data: routingUser } = await supabase.auth.getUser();
+        const userId = routingUser.user?.id;
 
         if (!userId) {
           Logger.error('No user ID after successful Apple sign in', undefined, {
