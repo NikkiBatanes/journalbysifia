@@ -105,7 +105,7 @@ const AnimatedProgressBarSkeleton = () => {
         styles.progressBarFillLight,
         {
           opacity: progressAnim,
-          width: '60%', // Add width to make progress bar visible
+          width: 0, // Empty progress bar for skeleton loader
         },
       ]}
     />
