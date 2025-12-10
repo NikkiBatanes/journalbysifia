@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
   },
   priorityInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     marginLeft: 6,
     marginBottom: 0,
     height: 40,
