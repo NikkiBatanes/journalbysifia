@@ -7,7 +7,7 @@ import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
+import { unifiedGenerationService } from '../services/unifiedGenerationService';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
@@ -92,35 +92,72 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       hasGenerated.current = true;
       setIsGenerating(true);
       try {
-
-        // Generate playbook content via AI with network timeout
-        const timeoutDuration = 60000; // 60 seconds
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Network connection issue detected. Please check your internet connection and try again.')), timeoutDuration);
+        // Use unified generation service (same as onboarding)
+        const response = await unifiedGenerationService.generatePlaybook({
+          userId: user?.id || 'demo-user',
+          userInput,
+          userName,
+          isOnboarding: false, // Main generation - check subscription limits
         });
 
-        const aiResponse = await Promise.race([
-          generatePlaybook(userInput, userName, {
-            showUserFeedback: true,
-            onAuthRequired: () => {
-              // Handle auth required
-            },
-          }),
-          timeoutPromise,
-        ]);
-
-        if (!aiResponse) {
-          throw new Error('Network connection issue detected. Please check your internet connection and try again.');
+        if (!response.success) {
+          throw new Error(response.message || 'Network connection issue detected. Please check your internet connection and try again.');
         }
 
-        // Save to database if user is authenticated
-        let savedPlaybook = aiResponse;
-        if (user?.id) {
+        // Poll for completion (same as onboarding)
+        let savedPlaybook: any = null;
 
-          const saveResult = await savePlaybook(savedPlaybook, user.id);
-          if (!saveResult.success) {
-            throw new Error(saveResult.error || 'Failed to save playbook to database');
+        if (response.queueId) {
+          const maxAttempts = 60;
+          let attempts = 0;
+
+          while (attempts < maxAttempts && !savedPlaybook) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+            const status = await unifiedGenerationService.checkGenerationStatus(response.queueId);
+
+            if (status.status === 'completed' && status.resultId) {
+              // Fetch the completed playbook
+              const { supabase } = await import('../services/supabaseClient');
+              const { data: playbook } = await supabase
+                .from('playbooks')
+                .select('*')
+                .eq('id', status.resultId)
+                .single();
+
+              if (playbook) {
+                savedPlaybook = playbook;
+                break;
+              }
+            } else if (status.status === 'failed') {
+              throw new Error(status.message || 'Network connection issue detected. Please check your connection and try again.');
+            }
           }
+
+          if (!savedPlaybook) {
+            throw new Error('Playbook generation is taking longer than expected. Please try again.');
+          }
+        } else {
+          // Direct generation completed (no queue)
+          // Playbook already saved by unified service
+          const { supabase } = await import('../services/supabaseClient');
+          const { data: recentPlaybooks } = await supabase
+            .from('playbooks')
+            .select('*')
+            .eq('user_id', user?.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!recentPlaybooks || recentPlaybooks.length === 0) {
+            throw new Error('Playbook generated but not found. Please try again.');
+          }
+
+          savedPlaybook = recentPlaybooks[0];
+        }
+
+        // Award faith points and track usage
+        if (user?.id) {
 
           // Award faith points for playbook generation
           try {

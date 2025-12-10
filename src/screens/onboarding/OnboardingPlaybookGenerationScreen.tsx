@@ -11,7 +11,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
-import { enhancedGenerationService } from '../../services/enhancedGenerationService';
+import { unifiedGenerationService } from '../../services/unifiedGenerationService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 // import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
@@ -283,8 +283,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       // Use the userName from onboarding params instead of user metadata
       const userName = params.userName || 'Friend';
 
-      // Use real generation service
-      const response = await enhancedGenerationService.generatePlaybook({
+      // Use unified generation service
+      const response = await unifiedGenerationService.generatePlaybook({
         userId,
         userInput: params.userInput || 'Help me grow in my faith journey',
         userName,
@@ -303,7 +303,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             attempts++;
 
             try {
-              const status = await enhancedGenerationService.checkGenerationStatus(response.queueId!);
+              const status = await unifiedGenerationService.checkGenerationStatus(response.queueId!);
 
               // ENTERPRISE FIX: Database security issues are blocking queue status updates
               // Check for direct playbook creation much earlier to bypass broken queue system
