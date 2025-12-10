@@ -928,7 +928,8 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       console.log(`[Generate-Playbook] Request params - userTier: ${userTier}, isOnboarding: ${isOnboarding}, userId: ${userId}`);
       
       // Get appropriate API key from pool based on user tier
-      const tierForKey = userTier || (isOnboarding ? 'onboarding' : 'spark'); // Default to spark if no tier
+      // IMPORTANT: Onboarding always uses Key 1 for best first impression
+      const tierForKey = isOnboarding ? 'onboarding' : (userTier || 'spark'); // Prioritize onboarding, then tier, then default to spark
       console.log(`[Generate-Playbook] Resolved tierForKey: ${tierForKey}`);
       
       const apiKey = keyPoolManager.getBestKey(userId || 'anonymous', tierForKey);
