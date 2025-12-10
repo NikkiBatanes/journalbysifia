@@ -2099,6 +2099,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       ) : error || !playbook ? (
         <View style={styles.loadingContainer}>
           <ThemedText weight="medium" style={styles.progressText}>Couldn't load this playbook</ThemedText>
+          <ThemedText weight="regular" style={[styles.progressText, { marginTop: 8 }]}>Check your internet connection and try again</ThemedText>
           <TouchableOpacity
             style={styles.navButton}
             onPress={() => {
