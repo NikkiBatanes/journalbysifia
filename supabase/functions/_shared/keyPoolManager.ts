@@ -217,6 +217,20 @@ class KeyPoolManager {
   }
 
   /**
+   * Mark a key as healthy (convenience method)
+   */
+  markHealthy(keyId: string) {
+    this.setKeyHealth(keyId, true);
+  }
+
+  /**
+   * Mark a key as unhealthy (convenience method)
+   */
+  markUnhealthy(keyId: string) {
+    this.setKeyHealth(keyId, false);
+  }
+
+  /**
    * Get usage statistics for monitoring
    */
   getUsageStats() {

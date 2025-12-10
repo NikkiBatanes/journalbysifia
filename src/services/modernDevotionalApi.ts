@@ -38,6 +38,10 @@ async function generateDevotionalInternal(
 ): Promise<GeneratedDevotional> {
   const { duration, playbookId, userInput, isOnboarding, bibleVersion } = params;
 
+  // Get user subscription for tier-based key selection
+  const { subscriptionService } = await import('./subscriptionService');
+  const subscription = await subscriptionService.getUserSubscription(userId);
+
   // Get fresh session directly from Supabase
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -119,6 +123,8 @@ async function generateDevotionalInternal(
                 bibleVersion: bibleVersion || 'NASB',
                 dateOfBirth,
                 ageGroup,
+                userTier: subscription.tier, // Pass tier for key pool selection
+                isOnboarding: isOnboarding || false, // Pass onboarding flag
               },
             }),
             {
@@ -198,6 +204,8 @@ async function generateDevotionalInternal(
                 bibleVersion: bibleVersion || 'NASB',
                 dateOfBirth,
                 ageGroup,
+                userTier: subscription.tier, // Pass tier for key pool selection
+                isOnboarding: isOnboarding || false, // Pass onboarding flag
               }),
             }),
             {

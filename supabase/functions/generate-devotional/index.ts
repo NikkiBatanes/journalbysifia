@@ -7,6 +7,7 @@ import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRate
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
 import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
+import { keyPoolManager } from '../_shared/keyPoolManager.ts';
 
 interface Scripture {
   text: string;
@@ -56,6 +57,8 @@ interface DevotionalRequestBody {
   bibleVersion?: string;
   dateOfBirth?: string;  // ISO date string from user profile
   ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
+  userTier?: string;     // User's subscription tier for key pool selection
+  isOnboarding?: boolean; // Whether this is an onboarding generation
 }
 
 // Initialize Supabase client
@@ -1092,10 +1095,11 @@ serve(async (req: Request): Promise<Response> => {
     return createErrorResponse(400, 'We couldn\'t process your request. Please try again.');
   }
 
-  const { duration = 1, playbookId, userInput = '', userName = 'User', bibleVersion = 'NASB', dateOfBirth, ageGroup } = requestBody;
+  const { duration = 1, playbookId, userInput = '', userName = 'User', bibleVersion = 'NASB', dateOfBirth, ageGroup, userTier, isOnboarding } = requestBody;
   console.log('[Generate-Devotional] Request body:', JSON.stringify(requestBody, null, 2));
   console.log('[Generate-Devotional] Bible version received:', bibleVersion);
   console.log('[Generate-Devotional] User input received:', userInput);
+  console.log('[Generate-Devotional] User tier:', userTier, 'isOnboarding:', isOnboarding);
 
   // Extract user ID from authorization header for rate limiting
   const authHeader = req.headers.get('authorization');
@@ -1294,6 +1298,22 @@ serve(async (req: Request): Promise<Response> => {
 
     const executeOpenAIRequest = async (input: string) => {
       console.log('[Generate-Devotional] Calling OpenAI API with circuit breaker + retry logic...');
+      console.log(`[Generate-Devotional] Request params - userTier: ${userTier}, isOnboarding: ${isOnboarding}`);
+      
+      // Get appropriate API key from pool based on user tier
+      // IMPORTANT: Onboarding always uses Key 1 for best first impression
+      const tierForKey = isOnboarding ? 'onboarding' : (userTier || 'spark');
+      console.log(`[Generate-Devotional] Resolved tierForKey: ${tierForKey}`);
+      
+      const apiKey = keyPoolManager.getBestKey(authHeader?.split(' ')[1] || 'anonymous', tierForKey);
+      
+      if (!apiKey) {
+        console.error(`[Generate-Devotional] No API key available for tier: ${tierForKey}`);
+        throw new Error('Service temporarily unavailable. Please try again in a moment.');
+      }
+      
+      console.log(`[Generate-Devotional] Using API key: ${apiKey.id} for tier: ${tierForKey}`);
+      
       const openAIRes = await CircuitBreaker.execute(
         CIRCUIT_KEYS.OPENAI_DEVOTIONAL,
         async () => await fetchWithRetry(
@@ -1302,7 +1322,7 @@ serve(async (req: Request): Promise<Response> => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+            'Authorization': `Bearer ${apiKey.key}`,
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -1325,6 +1345,10 @@ serve(async (req: Request): Promise<Response> => {
       );
 
       console.log('[Generate-Devotional] OpenAI API call successful');
+      
+      // Mark key as healthy on success
+      keyPoolManager.markHealthy(apiKey.id);
+      
       return openAIRes;
     };
 
