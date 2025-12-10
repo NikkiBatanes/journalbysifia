@@ -652,10 +652,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               )}
               <SwipeableTodoItem
                 key="swipeable-focus"
-                onDelete={clearFocus}
+                item={{
+                  id: 'main-focus',
+                  text: data.focus || '',
+                  completed: false,
+                }}
+                onToggle={() => {}}
+                onDelete={() => clearFocus()}
                 disableSwipe={viewMode === 'carousel' && !expanded}
-                swipeThreshold={80}
-                leftSwipeThreshold={80}
               >
                 <TextInput
                   style={[styles.input, styles.focusInput, { fontFamily: fontRegular }]}
