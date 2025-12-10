@@ -8,6 +8,7 @@ import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
 import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
 import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
 import { analyzeContent, paraphraseVictimExperience } from '../_shared/contentSafety.ts';
+import { keyPoolManager } from '../_shared/keyPoolManager.ts';
 
 /**
  * Generate a UUID v4 compatible with Deno
@@ -676,7 +677,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location, userTier } = requestBody;
 
   // Log received Bible version for debugging
   console.log('[Generate-Playbook] Received Bible version from request:', bibleVersion || 'NOT PROVIDED - will default to NASB');

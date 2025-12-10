@@ -6,7 +6,7 @@
 export interface APIKey {
   id: string;
   key: string;
-  tier: 'basic' | 'premium' | 'enterprise';
+  tier: 'onboarding' | 'seeker' | 'spark' | 'growth' | 'transformation';
   rateLimit: number;
   currentUsage: number;
   lastUsed: number;
@@ -17,7 +17,7 @@ export interface APIKey {
 export interface UserTier {
   name: string;
   priority: number;
-  keyPool: 'basic' | 'premium' | 'enterprise';
+  keyPool: 'onboarding' | 'seeker' | 'spark' | 'growth' | 'transformation';
   maxRequestsPerHour: number;
 }
 
@@ -32,90 +32,110 @@ class KeyPoolManager {
   }
 
   private initializeKeyPools() {
-    // Basic pool - for free tier users
-    this.keyPools.set('basic', [
+    // Onboarding pool - Key 1 dedicated for first impressions
+    this.keyPools.set('onboarding', [
       {
-        id: 'basic_1',
-        key: Deno.env.get('OPENAI_BASIC_1') || '',
-        tier: 'basic',
-        rateLimit: 60, // requests per minute
+        id: 'onboarding_1',
+        key: Deno.env.get('OPENAI_API_KEY_1') || '',
+        tier: 'onboarding',
+        rateLimit: 500, // Tier 1: 500 RPM per key
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000015
-      },
+        costPerToken: 0.000015 // gpt-4o-mini input cost
+      }
+    ]);
+
+    // Spark pool - Key 2 for Spark tier (trial + paid)
+    this.keyPools.set('spark', [
       {
-        id: 'basic_2', 
-        key: Deno.env.get('OPENAI_BASIC_2') || '',
-        tier: 'basic',
-        rateLimit: 60,
+        id: 'spark_1',
+        key: Deno.env.get('OPENAI_API_KEY_2') || '',
+        tier: 'spark',
+        rateLimit: 500,
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
         costPerToken: 0.000015
       }
-      // Add more basic keys as needed
     ]);
 
-    // Premium pool - for $14.99 tier users
-    this.keyPools.set('premium', [
+    // Growth pool - Key 3 for Growth tier (trial + paid)
+    this.keyPools.set('growth', [
       {
-        id: 'premium_1',
-        key: Deno.env.get('OPENAI_PREMIUM_1') || '',
-        tier: 'premium',
-        rateLimit: 150, // higher rate limit
+        id: 'growth_1',
+        key: Deno.env.get('OPENAI_API_KEY_3') || '',
+        tier: 'growth',
+        rateLimit: 500,
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000012 // better pricing
-      },
-      {
-        id: 'premium_2',
-        key: Deno.env.get('OPENAI_PREMIUM_2') || '',
-        tier: 'premium', 
-        rateLimit: 150,
-        currentUsage: 0,
-        lastUsed: 0,
-        isHealthy: true,
-        costPerToken: 0.000012
+        costPerToken: 0.000015
       }
-      // Add more premium keys as needed
     ]);
 
-    // Enterprise pool - for future growth
-    this.keyPools.set('enterprise', [
+    // Transformation pool - Key 4 for Transformation tier (trial + paid)
+    this.keyPools.set('transformation', [
       {
-        id: 'enterprise_1',
-        key: Deno.env.get('OPENAI_ENTERPRISE_1') || '',
-        tier: 'enterprise',
-        rateLimit: 300, // highest rate limit
+        id: 'transformation_1',
+        key: Deno.env.get('OPENAI_API_KEY_4') || '',
+        tier: 'transformation',
+        rateLimit: 500,
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000010 // best pricing
+        costPerToken: 0.000015
+      }
+    ]);
+
+    // Seeker pool - reuses Spark key (Key 2) for free tier
+    this.keyPools.set('seeker', [
+      {
+        id: 'seeker_1',
+        key: Deno.env.get('OPENAI_API_KEY_2') || '', // Share with Spark
+        tier: 'seeker',
+        rateLimit: 500,
+        currentUsage: 0,
+        lastUsed: 0,
+        isHealthy: true,
+        costPerToken: 0.000015
       }
     ]);
   }
 
   private initializeUserTiers() {
-    this.userTiers.set('free', {
-      name: 'Free',
-      priority: 1,
-      keyPool: 'basic',
+    this.userTiers.set('onboarding', {
+      name: 'Onboarding',
+      priority: 0, // Highest priority - first impressions matter
+      keyPool: 'onboarding',
+      maxRequestsPerHour: 100
+    });
+
+    this.userTiers.set('seeker', {
+      name: 'Seeker (Free)',
+      priority: 5, // Lowest priority
+      keyPool: 'seeker',
       maxRequestsPerHour: 5
     });
 
-    this.userTiers.set('premium', {
-      name: 'Premium ($14.99)',
-      priority: 2,
-      keyPool: 'premium', 
+    this.userTiers.set('spark', {
+      name: 'Spark',
+      priority: 3,
+      keyPool: 'spark',
       maxRequestsPerHour: 50
     });
 
-    this.userTiers.set('enterprise', {
-      name: 'Enterprise',
-      priority: 3,
-      keyPool: 'enterprise',
+    this.userTiers.set('growth', {
+      name: 'Growth',
+      priority: 2,
+      keyPool: 'growth',
+      maxRequestsPerHour: 100
+    });
+
+    this.userTiers.set('transformation', {
+      name: 'Transformation',
+      priority: 1, // Second highest priority
+      keyPool: 'transformation',
       maxRequestsPerHour: 200
     });
   }
@@ -123,7 +143,7 @@ class KeyPoolManager {
   /**
    * Get the best available API key for a user
    */
-  async getBestKey(userId: string, userSubscriptionTier: string): Promise<APIKey | null> {
+  getBestKey(userId: string, userSubscriptionTier: string): APIKey | null {
     const userTier = this.userTiers.get(userSubscriptionTier);
     if (!userTier) {
       console.error(`Unknown user tier: ${userSubscriptionTier}`);
@@ -156,9 +176,9 @@ class KeyPoolManager {
       const minutesSinceLastUse = (now - key.lastUsed) / 60000;
       const currentRate = Math.max(0, key.currentUsage - minutesSinceLastUse);
       
-      if (currentRate < key.rateLimit && currentUsage < lowestUsage) {
+      if (currentRate < key.rateLimit && currentRate < lowestUsage) {
         bestKey = key;
-        lowestUsage = currentUsage;
+        lowestUsage = currentRate;
       }
     }
 
