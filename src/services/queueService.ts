@@ -439,10 +439,16 @@ export class QueueService {
 
     const functionUrl = `${supabaseUrl}/functions/v1/generate-playbook`;
 
-    // Build request body with intelligence data
+    // Get user subscription for tier-based key selection
+    const subscription = await subscriptionService.getUserSubscription(item.user_id);
+    
+    // Build request body with intelligence data and tier info
     const requestBody: any = {
       userInput: item.user_input,
       userName: item.user_name,
+      userId: item.user_id,
+      userTier: subscription.tier, // Pass tier for key pool selection
+      isOnboarding: item.is_onboarding || false, // Pass onboarding flag
       ...item.additional_params,
     };
 

@@ -651,6 +651,8 @@ interface RequestBody {
   ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
   bibleVersion?: string; // User's preferred Bible translation (default: NASB)
   location?: string;     // User's location for regional resources (e.g., "Philippines", "USA", "UK")
+  userTier?: string;     // User's subscription tier for key pool selection
+  isOnboarding?: boolean; // Whether this is an onboarding generation
 }
 
 serve(async (req: Request) => {
@@ -677,7 +679,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location, userTier } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location, userTier, isOnboarding } = requestBody;
 
   // Log received Bible version for debugging
   console.log('[Generate-Playbook] Received Bible version from request:', bibleVersion || 'NOT PROVIDED - will default to NASB');
@@ -920,40 +922,64 @@ When suggesting professional help or hotlines in action steps, provide general g
 
 IMPORTANT: Always use generic language like "your local hotline" or "support services in your area" rather than specific numbers or regional resources.`;
 
-    // Helper function for hybrid OpenAI API call
+    // Helper function for hybrid OpenAI API call with multi-key support
     async function callOpenAIWithFallback(model: string): Promise<Response> {
       console.log(`[Generate-Playbook] Calling OpenAI API with model: ${model}`);
-      return await CircuitBreaker.execute(
-        CIRCUIT_KEYS.OPENAI_PLAYBOOK,
-        async () => await fetchWithRetry(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      
+      // Get appropriate API key from pool based on user tier
+      const tierForKey = userTier || (isOnboarding ? 'onboarding' : 'spark'); // Default to spark if no tier
+      const apiKey = keyPoolManager.getBestKey(userId || 'anonymous', tierForKey);
+      
+      if (!apiKey) {
+        console.error(`[Generate-Playbook] No API key available for tier: ${tierForKey}`);
+        throw new Error('Service temporarily unavailable. Please try again in a moment.');
+      }
+      
+      console.log(`[Generate-Playbook] Using API key: ${apiKey.id} for tier: ${tierForKey}`);
+      
+      try {
+        const response = await CircuitBreaker.execute(
+          CIRCUIT_KEYS.OPENAI_PLAYBOOK,
+          async () => await fetchWithRetry(
+          'https://api.openai.com/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey.key}`, // Use key from pool
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                {
+                  role: 'system',
+                  content: strategicAdvisorPersona.systemPrompt,
+                },
+                {
+                  role: 'user',
+                  content: contextualPrompt,
+                },
+              ],
+              temperature: 0.7,
+              max_tokens: 6000,
+              frequency_penalty: 0.1,
+              presence_penalty: 0.1,
+            }),
           },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'system',
-                content: strategicAdvisorPersona.systemPrompt,
-              },
-              {
-                role: 'user',
-                content: contextualPrompt,
-              },
-            ],
-            temperature: 0.7, // Increased from 0.7 for more creative variation
-            max_tokens: 6000, // Increased to handle longer playbooks and avoid token limit errors
-            frequency_penalty: 0.1,
-            presence_penalty: 0.1,
-          }),
-        },
-        OPENAI_RETRY_CONFIG
-        )
-      );
+          OPENAI_RETRY_CONFIG
+          )
+        );
+        
+        // Mark key as healthy on success
+        keyPoolManager.setKeyHealth(apiKey.id, true);
+        return response;
+        
+      } catch (error) {
+        // Mark key as unhealthy on failure
+        keyPoolManager.setKeyHealth(apiKey.id, false);
+        console.error(`[Generate-Playbook] API key ${apiKey.id} failed, marked as unhealthy`);
+        throw error;
+      }
     }
 
     // Truncate prompt if too long to prevent token limit errors
