@@ -428,7 +428,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const clearFocus = async () => {
     // Check if there are any priorities with text
     const hasPriorities = data.priorities.some(p => p.text.trim() !== '');
-    
+
     if (existingEntry?.id && !hasPriorities) {
       // Only delete the entire entry if there are no priorities
       try {
@@ -444,8 +444,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ],
         });
         setIsEditing(false);
-      } catch (error) {
-        Logger.error('Error deleting focus entry', error as Error, {
+      } catch (deleteError) {
+        Logger.error('Error deleting focus entry', deleteError as Error, {
           component: 'TodaysFocusReactQuery',
         });
       }
@@ -465,8 +465,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               content: JSON.stringify(updatedContent),
             },
           });
-        } catch (error) {
-          Logger.error('Error updating focus entry', error as Error, {
+        } catch (updateError) {
+          Logger.error('Error updating focus entry', updateError as Error, {
             component: 'TodaysFocusReactQuery',
           });
         }
