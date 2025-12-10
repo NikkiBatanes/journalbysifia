@@ -84,16 +84,20 @@ const AnimatedProgressBarSkeleton = () => {
           useNativeDriver: true,
         }),
       ]).start((finished) => {
+        // Only continue if component is still mounted and animation finished properly
         if (finished) {
           animateProgress();
         }
       });
     };
 
+    // Start animation
     animateProgress();
 
+    // Cleanup function to prevent memory leaks
     return () => {
       progressAnim.stopAnimation();
+      // Mark as finished to prevent recursive calls
       (progressAnim as any)._finished = true;
     };
   }, [progressAnim]);
