@@ -15,6 +15,7 @@ import {
   useTodaysFocusData,
   useCreateJournalEntry,
   useUpdateJournalEntry,
+  useDeleteTodaysFocusEntry,
 } from '../../services/hooks/useJournalData';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
@@ -81,6 +82,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
+  const deleteMutation = useDeleteTodaysFocusEntry();
 
   // Transform API data to local format
   const existingEntry = focusEntries.length > 0 ? focusEntries[0] : null;
@@ -419,8 +421,21 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     setData(prev => ({ ...prev, focus: text }));
   };
 
-  const clearFocus = () => {
-    setData(prev => ({ ...prev, focus: '' }));
+  const clearFocus = async () => {
+    if (existingEntry?.id) {
+      try {
+        await deleteMutation.mutateAsync(existingEntry.id);
+        setData(prev => ({ ...prev, focus: '' }));
+        setIsEditing(false);
+      } catch (error) {
+        Logger.error('Error deleting focus entry', error as Error, {
+          component: 'TodaysFocusReactQuery',
+        });
+      }
+    } else {
+      // If no existing entry, just clear the local state
+      setData(prev => ({ ...prev, focus: '' }));
+    }
   };
 
   const updatePriority = (index: number, text: string) => {
