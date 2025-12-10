@@ -347,9 +347,9 @@ async function generateDevotionalInternal(
 
       // Track usage for subscription after successful generation
       try {
-        const { subscriptionService } = await import('./subscriptionService');
+        const { subscriptionService: subService } = await import('./subscriptionService');
         if (session.user?.id) {
-          await subscriptionService.trackUsage(session.user.id, 'devotional', 0, isOnboarding || false);
+          await subService.trackUsage(session.user.id, 'devotional', 0, isOnboarding || false);
 
         }
       } catch (trackingError) {

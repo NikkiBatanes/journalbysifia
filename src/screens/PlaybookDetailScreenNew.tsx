@@ -2099,7 +2099,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       ) : error || !playbook ? (
         <View style={styles.loadingContainer}>
           <ThemedText weight="medium" style={styles.progressText}>Couldn't load this playbook</ThemedText>
-          <ThemedText weight="regular" style={[styles.progressText, { marginTop: 8 }]}>Check your internet connection and try again</ThemedText>
+          <ThemedText weight="regular" style={styles.errorHintText}>Check your internet connection and try again</ThemedText>
           <TouchableOpacity
             style={styles.navButton}
             onPress={() => {
@@ -2206,6 +2206,7 @@ interface PlaybookDetailStyles {
   tabletCardStackContainer: ViewStyle;
   swipeUpIndicatorContainer: ViewStyle;
   progressText: TextStyle;
+  errorHintText: TextStyle;
   navButton: ViewStyle;
   navButtonText: TextStyle;
   compactHeaderContainer: ViewStyle;
@@ -2346,6 +2347,14 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  errorHintText: {
+    fontFamily: theme.fonts?.regular || 'System',
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.8,
   },
   navButton: {
     backgroundColor: Colors.modalBlue,

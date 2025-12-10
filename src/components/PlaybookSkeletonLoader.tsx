@@ -107,10 +107,8 @@ const AnimatedProgressBarSkeleton = () => {
       style={[
         styles.progressBarFill,
         styles.progressBarFillLight,
-        {
-          opacity: progressAnim,
-          width: 0, // Empty progress bar for skeleton loader
-        },
+        styles.progressBarEmpty,
+        { opacity: progressAnim },
       ]}
     />
   );
@@ -237,6 +235,9 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: 12,
     borderRadius: 12,
+  },
+  progressBarEmpty: {
+    width: 0,
   },
   tasksText: {
     marginLeft: 12,
