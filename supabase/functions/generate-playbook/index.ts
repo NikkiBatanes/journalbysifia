@@ -925,9 +925,12 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
     // Helper function for hybrid OpenAI API call with multi-key support
     async function callOpenAIWithFallback(model: string): Promise<Response> {
       console.log(`[Generate-Playbook] Calling OpenAI API with model: ${model}`);
+      console.log(`[Generate-Playbook] Request params - userTier: ${userTier}, isOnboarding: ${isOnboarding}, userId: ${userId}`);
       
       // Get appropriate API key from pool based on user tier
       const tierForKey = userTier || (isOnboarding ? 'onboarding' : 'spark'); // Default to spark if no tier
+      console.log(`[Generate-Playbook] Resolved tierForKey: ${tierForKey}`);
+      
       const apiKey = keyPoolManager.getBestKey(userId || 'anonymous', tierForKey);
       
       if (!apiKey) {
@@ -935,7 +938,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         throw new Error('Service temporarily unavailable. Please try again in a moment.');
       }
       
-      console.log(`[Generate-Playbook] Using API key: ${apiKey.id} for tier: ${tierForKey}`);
+      console.log(`[Generate-Playbook] Using API key: ${apiKey.id} (${apiKey.key.substring(0, 10)}...) for tier: ${tierForKey}`);
       
       try {
         const response = await CircuitBreaker.execute(

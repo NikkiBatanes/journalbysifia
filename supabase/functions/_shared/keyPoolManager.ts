@@ -144,11 +144,17 @@ class KeyPoolManager {
    * Get the best available API key for a user
    */
   getBestKey(userId: string, userSubscriptionTier: string): APIKey | null {
+    console.log(`[KeyPoolManager] getBestKey called with userId: ${userId}, tier: ${userSubscriptionTier}`);
+    console.log(`[KeyPoolManager] Available tiers:`, Array.from(this.userTiers.keys()));
+    
     const userTier = this.userTiers.get(userSubscriptionTier);
     if (!userTier) {
-      console.error(`Unknown user tier: ${userSubscriptionTier}`);
+      console.error(`[KeyPoolManager] Unknown user tier: ${userSubscriptionTier}`);
+      console.error(`[KeyPoolManager] Available tiers are:`, Array.from(this.userTiers.keys()));
       return null;
     }
+    
+    console.log(`[KeyPoolManager] Matched tier: ${userTier.name}, keyPool: ${userTier.keyPool}`);
 
     // Check user's hourly rate limit
     const userUsage = this.usageTracking.get(userId) || 0;
