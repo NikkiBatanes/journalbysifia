@@ -14,7 +14,6 @@ import {
   NativeModules,
   StatusBar,
   Platform,
-  InteractionManager,
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -761,11 +760,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       component: 'DevotionalDetailScreen',
     });
 
-    // Use InteractionManager to ensure navigation happens after all interactions complete
-    // This prevents hanging when PlaybookListScreen is processing React Query invalidations
-    InteractionManager.runAfterInteractions(() => {
+    // Use minimal delay to allow modal animation to start, then navigate
+    // Don't use InteractionManager as it waits for ALL interactions including React Query
+    setTimeout(() => {
       navigateBackSafely('modal-close', 0);
-    });
+    }, 100);
   };
 
   // handleModalContinue removed - was defined but never called
