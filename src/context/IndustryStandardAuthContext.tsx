@@ -1471,10 +1471,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // ENTERPRISE FIX: Check if name already exists in database before trying to save new one
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
+
       // CRITICAL: First check user_metadata for existing name (from previous sign-ins)
       const existingMetadataName = currentUser?.user_metadata?.first_name || currentUser?.user_metadata?.full_name;
-      
+
       const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('first_name, last_name, full_name')
