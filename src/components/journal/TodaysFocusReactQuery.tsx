@@ -654,7 +654,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 key="swipeable-focus"
                 item={{
                   id: 'main-focus',
-                  text: data.focus || '',
+                  text: data.focus || ' ',
                   completed: false,
                 }}
                 onToggle={() => {}}
