@@ -1471,14 +1471,21 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       // ENTERPRISE FIX: Check if name already exists in database before trying to save new one
       const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      // CRITICAL: First check user_metadata for existing name (from previous sign-ins)
+      const existingMetadataName = currentUser?.user_metadata?.first_name || currentUser?.user_metadata?.full_name;
+      
       const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('first_name, last_name, full_name')
         .eq('id', currentUser?.id)
         .single();
 
-      // Use existing name if available, otherwise use Apple-provided name
-      if (existingProfile?.first_name) {
+      // Use existing name if available (metadata takes priority, then profile, then Apple-provided)
+      if (existingMetadataName && existingMetadataName.trim().length > 0) {
+        appleProvidedName = existingMetadataName.trim();
+        console.log('🔄 Using existing name from user metadata:', appleProvidedName);
+      } else if (existingProfile?.first_name) {
         appleProvidedName = existingProfile.first_name;
         console.log('🔄 Using existing name from database:', appleProvidedName);
       } else if (fullName?.givenName && fullName.givenName.trim().length > 0) {
@@ -1622,10 +1629,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
           // Route to personalization for unregistered/incomplete users
           // IMPORTANT: Pass the Apple-provided name through params so it's immediately available
+          console.log('🍎 Routing to OnboardingPersonalization with name:', appleProvidedName);
           await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
             target: 'OnboardingPersonalization',
             params: {
-              name: appleProvidedName, // Pass Apple name directly
+              name: appleProvidedName || 'Friend', // Pass Apple name or fallback
               registrationMethod: 'oauth',
             },
           }));
