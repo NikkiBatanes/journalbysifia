@@ -425,7 +425,15 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     if (existingEntry?.id) {
       try {
         await deleteMutation.mutateAsync(existingEntry.id);
-        setData(prev => ({ ...prev, focus: '' }));
+        // Reset to empty state after deletion
+        setData({
+          focus: '',
+          priorities: [
+            { id: '1', text: '', completed: false },
+            { id: '2', text: '', completed: false },
+            { id: '3', text: '', completed: false },
+          ],
+        });
         setIsEditing(false);
       } catch (error) {
         Logger.error('Error deleting focus entry', error as Error, {
