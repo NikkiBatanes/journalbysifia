@@ -133,6 +133,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   }, [devotional]);
 
   const [currentDayIndex, setCurrentDayIndex] = useState(() => getInitialDayIndex());
+  const hasInitializedDayIndex = useRef(false); // Track if we've set initial position
   const loading = devotionalLoading || devotionalFetching; // Use React Query loading state
   // State for completion modal
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -383,19 +384,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [devotional, allDevotionalPrayers]);
 
-  // Update day index when devotional data changes, but don't auto-advance when current day is marked complete
+  // Update day index ONLY on initial mount, preserve user's position on subsequent visits
   useEffect(() => {
-    if (devotional) {
+    if (devotional && !hasInitializedDayIndex.current) {
       const targetIndex = getInitialDayIndex();
-      // Only update if the target index is different from current AND we're not in the middle of completing current day
-      // This prevents auto-advancing when user marks current day complete
-      const isCurrentDayBeingCompleted = completedDayIndex === currentDayIndex && showCompletionModal;
-
-      if (targetIndex !== currentDayIndex && !isCurrentDayBeingCompleted) {
-        setCurrentDayIndex(targetIndex);
-      }
+      setCurrentDayIndex(targetIndex);
+      hasInitializedDayIndex.current = true; // Mark as initialized
     }
-  }, [devotional, getInitialDayIndex, currentDayIndex, completedDayIndex, showCompletionModal]);
+  }, [devotional, getInitialDayIndex]);
 
   // Scroll to the correct day when currentDayIndex changes
   const scrollToDay = useCallback((index: number) => {
