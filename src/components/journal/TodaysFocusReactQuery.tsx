@@ -144,6 +144,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const [isEditing, setIsEditing] = useState(false);
   const [editingPriorityId, setEditingPriorityId] = useState<string | null>(null);
   const [editingPriorityText, setEditingPriorityText] = useState('');
+  const [wasDeleted, setWasDeleted] = useState(false);
   const swipeableRefs = useRef<{[key: string]: any}>({});
   const originalData = useRef<TodayFocusData>({ ...data });
 
@@ -154,6 +155,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   React.useEffect(() => {
     setData({ ...initialData });
     originalData.current = { ...initialData };
+    setWasDeleted(false);
     setIsEditing(false);
   }, [dateStr, initialData]);
 
@@ -325,8 +327,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     try {
       const contentToSave = JSON.stringify(focusData);
 
-      if (existingEntry) {
-        // Update existing entry
+      if (existingEntry && !wasDeleted) {
+        // Update existing entry (only if not deleted)
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: {
@@ -334,13 +336,15 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           },
         });
       } else {
-        // Create new entry
+        // Create new entry (if no existing entry or was deleted)
         await createMutation.mutateAsync({
           user_id: user.id,
           selected_date: dateStr,
           content_type: 'todays_focus',
           content: contentToSave,
         });
+        // Reset wasDeleted flag after creating new entry
+        setWasDeleted(false);
       }
 
       // Track successful focus update
@@ -363,7 +367,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
       throw saveError;
     }
-  }, [user, dateStr, existingEntry, createMutation, updateMutation]);
+  }, [user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation]);
 
   const toggleEditing = () => {
     // Check if planning is locked for future dates
@@ -429,7 +433,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       // Only delete the entire entry if there are no priorities
       try {
         await deleteMutation.mutateAsync(existingEntry.id);
-        // Reset to empty state after deletion
+        // Mark as deleted and reset to empty state
+        setWasDeleted(true);
         setData({
           focus: '',
           priorities: [
