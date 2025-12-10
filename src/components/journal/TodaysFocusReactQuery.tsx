@@ -419,6 +419,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     setData(prev => ({ ...prev, focus: text }));
   };
 
+  const clearFocus = () => {
+    setData(prev => ({ ...prev, focus: '' }));
+  };
+
   const updatePriority = (index: number, text: string) => {
     setData(prev => ({
       ...prev,
@@ -646,16 +650,24 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               {!globalEditMode?.isGlobalEditMode && (
                 <ThemedText weight="semiBold" style={styles.sectionHeaderWithBottomMargin}>{focusState.eyebrow.toUpperCase()}</ThemedText>
               )}
-              <TextInput
-                style={[styles.input, styles.focusInput, { fontFamily: fontRegular }]}
-                value={data.focus}
-                onChangeText={updateFocus}
-                placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
-                placeholderTextColor={Colors.textGray}
-                autoFocus
-                accessibilityLabel="Today's focus input"
-                accessibilityHint="Enter your main focus for today"
-              />
+              <SwipeableTodoItem
+                key="swipeable-focus"
+                onDelete={clearFocus}
+                disableSwipe={viewMode === 'carousel' && !expanded}
+                swipeThreshold={80}
+                leftSwipeThreshold={80}
+              >
+                <TextInput
+                  style={[styles.input, styles.focusInput, { fontFamily: fontRegular }]}
+                  value={data.focus}
+                  onChangeText={updateFocus}
+                  placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
+                  placeholderTextColor={Colors.textGray}
+                  autoFocus
+                  accessibilityLabel="Today's focus input"
+                  accessibilityHint="Enter your main focus for today"
+                />
+              </SwipeableTodoItem>
               <ThemedText weight="semiBold" style={styles.sectionHeaderWithTopMargin}>TOP 3 PRIORITIES</ThemedText>
               {data.priorities.map((priority, index) => (
                 <View key={`priority-${index}`} style={styles.priorityRow}>
