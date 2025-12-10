@@ -660,6 +660,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 onToggle={() => {}}
                 onDelete={() => clearFocus()}
                 disableSwipe={viewMode === 'carousel' && !expanded}
+                hideCheckbox={true}
+                variant="gratitude"
               >
                 <TextInput
                   style={[styles.input, styles.focusInput, { fontFamily: fontRegular }]}
