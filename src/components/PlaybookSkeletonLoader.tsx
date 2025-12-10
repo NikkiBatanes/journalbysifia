@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.16)',
   },
   progressBarFill: {
+    height: 12,
     borderRadius: 12,
   },
   tasksText: {
