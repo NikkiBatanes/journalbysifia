@@ -142,7 +142,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const [isEditing, setIsEditing] = useState(false);
   const [editingPriorityId, setEditingPriorityId] = useState<string | null>(null);
   const [editingPriorityText, setEditingPriorityText] = useState('');
-  const [cursorPosition, setCursorPosition] = useState({ start: 0, end: 0 });
   const swipeableRefs = useRef<{[key: string]: any}>({});
   const originalData = useRef<TodayFocusData>({ ...data });
 
@@ -408,8 +407,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       originalData.current = { ...editData };
       setData(editData);
       setIsEditing(true);
-      // Reset cursor position to start when entering edit mode
-      setCursorPosition({ start: 0, end: 0 });
     }
   };
 
@@ -420,8 +417,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   const updateFocus = (text: string) => {
     setData(prev => ({ ...prev, focus: text }));
-    // Update cursor position to follow the text
-    setCursorPosition({ start: text.length, end: text.length });
   };
 
   const updatePriority = (index: number, text: string) => {
@@ -658,19 +653,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
                 placeholderTextColor={Colors.textGray}
                 autoFocus
-                selection={cursorPosition}
-                onSelectionChange={({ nativeEvent: { selection } }) => {
-                  // Only update cursor position if user hasn't manually positioned it
-                  if (selection.start === selection.end && data.focus.length === 0) {
-                    setCursorPosition({ start: 0, end: 0 });
-                  }
-                }}
-                onFocus={() => {
-                  // Position cursor at start when field is focused and empty
-                  if (data.focus.length === 0) {
-                    setCursorPosition({ start: 0, end: 0 });
-                  }
-                }}
                 accessibilityLabel="Today's focus input"
                 accessibilityHint="Enter your main focus for today"
               />
@@ -963,13 +945,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(26, 60, 109, 0.15)',
   },
   focusInput: {
-    fontSize: 18,
+    fontSize: 14,
     marginBottom: 12,
     height: 48,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    textAlign: 'center',
+    textAlign: 'left',
     color: Colors.hopeWhite,
   },
   priorityItem: {
