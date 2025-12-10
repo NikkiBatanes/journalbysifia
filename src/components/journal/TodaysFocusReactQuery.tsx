@@ -422,7 +422,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   };
 
   const clearFocus = async () => {
-    if (existingEntry?.id) {
+    // Check if there are any priorities with text
+    const hasPriorities = data.priorities.some(p => p.text.trim() !== '');
+    
+    if (existingEntry?.id && !hasPriorities) {
+      // Only delete the entire entry if there are no priorities
       try {
         await deleteMutation.mutateAsync(existingEntry.id);
         // Reset to empty state after deletion
@@ -441,8 +445,27 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         });
       }
     } else {
-      // If no existing entry, just clear the local state
+      // If there are priorities, just clear the focus text and update the entry
       setData(prev => ({ ...prev, focus: '' }));
+      if (existingEntry?.id && hasPriorities) {
+        // Update the entry with empty focus but keep priorities
+        try {
+          const updatedContent = {
+            focus: '',
+            priorities: data.priorities,
+          };
+          await updateMutation.mutateAsync({
+            id: existingEntry.id,
+            updates: {
+              content: JSON.stringify(updatedContent),
+            },
+          });
+        } catch (error) {
+          Logger.error('Error updating focus entry', error as Error, {
+            component: 'TodaysFocusReactQuery',
+          });
+        }
+      }
     }
   };
 
