@@ -117,17 +117,44 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
             const status = await unifiedGenerationService.checkGenerationStatus(response.queueId);
 
-            if (status.status === 'completed' && status.resultId) {
-              // Fetch the completed playbook
-              const { supabase } = await import('../services/supabaseClient');
-              const { data: playbook } = await supabase
-                .from('playbooks')
-                .select('*')
-                .eq('id', status.resultId)
-                .single();
+            // ENTERPRISE FIX: Check if playbook exists directly after 15s (same as onboarding)
+            // Handles case where generation completed but queue status update failed
+            if (status.status === 'processing' && attempts > 15) {
+              try {
+                const { supabase } = await import('../services/supabaseClient');
+                const { data: recentPlaybooks } = await supabase
+                  .from('playbooks')
+                  .select('id, created_at')
+                  .eq('user_id', user?.id)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
 
-              if (playbook) {
-                savedPlaybook = playbook;
+                if (recentPlaybooks && recentPlaybooks.length > 0) {
+                  const recentPlaybook = recentPlaybooks[0];
+                  const playbookAge = Date.now() - new Date(recentPlaybook.created_at).getTime();
+
+                  // If playbook was created in the last 60 seconds, it's likely ours
+                  if (playbookAge < 60000 && user?.id) {
+                    const { getPlaybook } = await import('../services/modernPlaybookApi');
+                    const completePlaybook = await getPlaybook(user.id, recentPlaybook.id);
+                    if (completePlaybook) {
+                      savedPlaybook = completePlaybook;
+                      break;
+                    }
+                  }
+                }
+              } catch (fallbackError) {
+                // Continue polling if fallback check fails
+              }
+            }
+
+            if (status.status === 'completed' && status.resultId && user?.id) {
+              // Use getPlaybook to fetch complete normalized data (truthInLove, directChallenge, etc.)
+              const { getPlaybook } = await import('../services/modernPlaybookApi');
+              const completePlaybook = await getPlaybook(user.id, status.resultId);
+
+              if (completePlaybook) {
+                savedPlaybook = completePlaybook;
                 break;
               }
             } else if (status.status === 'failed') {
@@ -140,12 +167,16 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           }
         } else {
           // Direct generation completed (no queue)
-          // Playbook already saved by unified service
+          // Playbook already saved by unified service - fetch with getPlaybook for normalized data
+          if (!user?.id) {
+            throw new Error('User ID not available');
+          }
+
           const { supabase } = await import('../services/supabaseClient');
           const { data: recentPlaybooks } = await supabase
             .from('playbooks')
-            .select('*')
-            .eq('user_id', user?.id)
+            .select('id, created_at')
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(1);
 
@@ -153,7 +184,15 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             throw new Error('Playbook generated but not found. Please try again.');
           }
 
-          savedPlaybook = recentPlaybooks[0];
+          // Use getPlaybook to get complete normalized data
+          const { getPlaybook } = await import('../services/modernPlaybookApi');
+          const completePlaybook = await getPlaybook(user.id, recentPlaybooks[0].id);
+
+          if (!completePlaybook) {
+            throw new Error('Failed to fetch complete playbook data. Please try again.');
+          }
+
+          savedPlaybook = completePlaybook;
         }
 
         // Award faith points and track usage
