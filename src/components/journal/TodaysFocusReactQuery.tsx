@@ -3,7 +3,6 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { View, TextInput, TouchableOpacity, StyleSheet, Alert, DeviceEventEmitter } from 'react-native';
-import { Swipeable, RectButton } from 'react-native-gesture-handler';
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
@@ -651,18 +650,17 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               {!globalEditMode?.isGlobalEditMode && (
                 <ThemedText weight="semiBold" style={styles.sectionHeaderWithBottomMargin}>{focusState.eyebrow.toUpperCase()}</ThemedText>
               )}
-              <Swipeable
+              <SwipeableTodoItem
                 key="swipeable-focus"
-                renderRightActions={() => (
-                  <RectButton
-                    style={styles.swipeDeleteButton}
-                    onPress={clearFocus}
-                    enabled={!(viewMode === 'carousel' && !expanded)}
-                  >
-                    <X size={20} color={Colors.hopeWhite} />
-                  </RectButton>
-                )}
-                enabled={!(viewMode === 'carousel' && !expanded)}
+                item={{
+                  id: 'main-focus',
+                  text: data.focus || '',
+                  completed: false,
+                }}
+                onToggle={() => {}}
+                onDelete={() => clearFocus()}
+                disableSwipe={viewMode === 'carousel' && !expanded}
+                hideCheckbox={true}
               >
                 <TextInput
                   style={[styles.input, styles.focusInput, { fontFamily: fontRegular }]}
@@ -674,7 +672,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   accessibilityLabel="Today's focus input"
                   accessibilityHint="Enter your main focus for today"
                 />
-              </Swipeable>
+              </SwipeableTodoItem>
               <ThemedText weight="semiBold" style={styles.sectionHeaderWithTopMargin}>TOP 3 PRIORITIES</ThemedText>
               {data.priorities.map((priority, index) => (
                 <View key={`priority-${index}`} style={styles.priorityRow}>
@@ -1097,13 +1095,6 @@ const styles = StyleSheet.create({
   },
   buttonSpacing: {
     marginRight: 0,
-  },
-  swipeDeleteButton: {
-    width: 80,
-    height: 48,
-    backgroundColor: Colors.alertCoral,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   tickBox: {
     width: 16,
