@@ -442,6 +442,13 @@ export class QueueService {
     // Get user subscription for tier-based key selection
     const subscription = await subscriptionService.getUserSubscription(item.user_id);
     
+    Logger.info('[QueueService] User subscription retrieved', {
+      component: 'queueService',
+      userId: item.user_id,
+      tier: subscription.tier,
+      isOnboarding: item.is_onboarding,
+    });
+    
     // Build request body with intelligence data and tier info
     const requestBody: any = {
       userInput: item.user_input,
@@ -451,6 +458,13 @@ export class QueueService {
       isOnboarding: item.is_onboarding || false, // Pass onboarding flag
       ...item.additional_params,
     };
+    
+    Logger.info('[QueueService] Request body prepared', {
+      component: 'queueService',
+      userTier: requestBody.userTier,
+      isOnboarding: requestBody.isOnboarding,
+      hasAdditionalParams: !!item.additional_params,
+    });
 
     // Add personalization data if available
     if (item.personalization_enabled && item.user_profile_data) {
