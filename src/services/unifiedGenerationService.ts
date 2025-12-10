@@ -239,9 +239,19 @@ export class UnifiedGenerationService {
         throw new Error('Missing environment configuration');
       }
 
+      // Get user subscription for tier-based key selection
+      const subscription = await subscriptionService.getUserSubscription(request.userId);
+
       const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-playbook`;
       const bibleVersion = await this.getPreferredBibleVersion();
       const userMetadata = await this.getUserMetadata(request.userId);
+
+      Logger.info('[UnifiedGenerationService] Direct generation - subscription retrieved', {
+        component: 'unifiedGenerationService',
+        userId: request.userId,
+        tier: subscription.tier,
+        isOnboarding: request.isOnboarding,
+      });
 
       // Call backend function directly (generates unique playbook)
       const response = await fetch(functionUrl, {
@@ -255,6 +265,8 @@ export class UnifiedGenerationService {
           userName: request.userName,
           bibleVersion,
           userId: request.userId,
+          userTier: subscription.tier, // Add tier for key pool selection
+          isOnboarding: request.isOnboarding || false, // Add onboarding flag
           ...userMetadata,
         }),
       });
