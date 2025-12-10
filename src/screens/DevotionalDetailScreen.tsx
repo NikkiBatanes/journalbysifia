@@ -669,14 +669,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         component: 'DevotionalDetailScreen',
         reason,
       });
-      console.log('[DevotionalDetail] Starting navigation.goBack() at', navStartTime);
+      Logger.debug('[DevotionalDetail] Starting navigation.goBack()', { component: 'DevotionalDetailScreen', navStartTime });
       if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
         (navigation as any).navigate('Devotionals');
       }
       const navEndTime = Date.now();
-      console.log('[DevotionalDetail] navigation.goBack() completed', { duration: navEndTime - navStartTime });
+      Logger.debug('[DevotionalDetail] navigation.goBack() completed', { component: 'DevotionalDetailScreen', duration: navEndTime - navStartTime });
       isNavigatingRef.current = false;
 
       // Clear timer refs after navigation

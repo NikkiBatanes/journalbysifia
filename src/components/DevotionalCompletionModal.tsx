@@ -300,7 +300,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   // }, [progress, visible, progressAnim]);
 
   const handleClose = useCallback(() => {
-    console.log('[DevotionalCompletionModal] handleClose invoked');
+    Logger.debug('[DevotionalCompletionModal] handleClose invoked', { component: 'DevotionalCompletionModal' });
 
     // CRITICAL: Clear all burst timers immediately to prevent state updates after unmount
     burstTimersRef.current.forEach(timer => clearTimeout(timer));
@@ -322,7 +322,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         easing: Easing.in(Easing.cubic),
       }),
     ]).start(() => {
-      console.log('[DevotionalCompletionModal] handleClose animation complete - calling onClose');
+      Logger.debug('[DevotionalCompletionModal] handleClose animation complete - calling onClose', { component: 'DevotionalCompletionModal' });
       onClose();
       setRating(0);
       setShowLocalPoints(false);
@@ -331,7 +331,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   }, [onClose, slideAnim, backdropAnim]);
 
   const handleStarPress = useCallback((index: number) => {
-    console.log('[DevotionalCompletionModal] handleStarPress', { index });
+    Logger.debug('[DevotionalCompletionModal] handleStarPress', { component: 'DevotionalCompletionModal', index });
     const selectedRating = index + 1;
     // Update the UI state immediately
     triggerLightHaptic();
@@ -339,11 +339,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     // Submit the rating in the background
     onRatingSubmit(selectedRating)
       .then(() => {
-        console.log('[DevotionalCompletionModal] Rating submitted successfully', { selectedRating });
+        Logger.debug('[DevotionalCompletionModal] Rating submitted successfully', { component: 'DevotionalCompletionModal', selectedRating });
       })
       .catch((e) => {
-        console.log('[DevotionalCompletionModal] Rating submission failed', e);
-        Logger.error('Async error', e as Error, { component: 'DevotionalCompletionModal' });
+        Logger.error('[DevotionalCompletionModal] Rating submission failed', e as Error, { component: 'DevotionalCompletionModal' });
       });
   }, [onRatingSubmit]);
 
