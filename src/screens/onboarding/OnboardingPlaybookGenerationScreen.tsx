@@ -21,10 +21,17 @@ import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 
 interface RouteParams {
-  challengeCategory: string;
-  specificChallenge: string;
   userInput: string;
-  userName: string; // Add userName parameter
+  userName: string;
+  onboardingData?: {
+    ageGroup: string;
+    faithJourney: string;
+    challenge: string;
+    challengeDetails: string;
+  };
+  // Legacy params for backwards compatibility
+  challengeCategory?: string;
+  specificChallenge?: string;
 }
 
 interface GeneratedPlaybook {
@@ -62,6 +69,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const [_isLoading, _setIsLoading] = useState(false);
   const [shouldNavigate, setShouldNavigate] = useState(false);
   const [navigationData, setNavigationData] = useState<GeneratedPlaybook | null>(null);
+  const [isAlertShowing, setIsAlertShowing] = useState(false);
 
   // Disable back navigation entirely on this screen
   useEffect(() => {
@@ -189,6 +197,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
   // Show error alert based on error type
   const showErrorAlert = useCallback((error: any, userMessage: string) => {
+    // Skip if this is a content blocked error - already handled by dedicated handler
+    if ((error as any).contentBlocked) {
+      return;
+    }
+
     const type = determineErrorType(error);
     setErrorType(type);
 
@@ -235,7 +248,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         );
       } else {
         Alert.alert(
-          'Generation Failed',
+          'Something Went Wrong',
           userMessage,
           [
             {
@@ -448,7 +461,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 }
 
               } else if (status.status === 'failed') {
-                throw new Error(status.message || 'Playbook generation failed');
+                throw new Error(status.message || 'Something went wrong while creating your playbook.');
               } else if (attempts >= maxAttempts) {
                 throw new Error('Playbook generation is taking longer than expected. The AI may be processing your request. Please try again.');
               } else {
@@ -469,26 +482,31 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             Logger.error('❌ Playbook generation failed', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
 
             // Check if content was blocked - navigate back to personalization for rewriting
-            if ((error as any).contentBlocked) {
+            if ((error as any).contentBlocked && !isAlertShowing) {
               // Stop all animations immediately
               setIsGenerating(false);
+              setIsAlertShowing(true);
 
               Alert.alert(
                 'Content Guidelines',
                 (error as any).christianMessage || 'This request could not be processed due to content guidelines. Please try rephrasing with more constructive language.',
                 [
                   {
-                    text: 'Rewrite Request',
+                    text: 'Rewrite',
                     onPress: () => {
+                      setIsAlertShowing(false);
                       // Navigate back to personalization screen (step 4) to rewrite the input
-                      (navigation as any).navigate('OnboardingPersonalization', { step: 4 });
-                    },
-                  },
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                    onPress: () => {
-                      navigation.goBack();
+                      // Pass all previous onboarding data to preserve user choices
+                      (navigation as any).navigate('OnboardingPersonalization', {
+                        step: 4,
+                        rewriteData: {
+                          ageGroup: params.onboardingData?.ageGroup,
+                          faithJourney: params.onboardingData?.faithJourney,
+                          challenge: params.onboardingData?.challenge,
+                          challengeDetails: params.userInput,
+                          userName: params.userName,
+                        },
+                      });
                     },
                   },
                 ]
@@ -594,6 +612,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               Logger.error('❌ Direct generation check failed', directError as Error, {
         component: 'OnboardingPlaybookGenerationScreen',
       });
+
+              // Check if content was blocked - let main error handler deal with it
+              if ((directError as any).contentBlocked) {
+                throw directError; // Re-throw to be caught by main error handler
+              }
+
               // Convert technical errors to user-friendly messages
               const userMessage = (directError as Error).message?.includes('Circuit breaker is OPEN')
                 ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
@@ -603,7 +627,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 ? 'Please rephrase your request and try again.'
                 : (directError as Error).message?.includes('taking longer than expected')
                 ? 'Playbook generation is taking longer than expected. The AI is carefully crafting your response. Please try again.'
-                : 'Unable to generate your playbook. Please try again.';
+                : 'Something went wrong while creating your playbook. Please try again.';
 
               setIsGenerating(false);
               showErrorAlert(directError, userMessage);
@@ -618,26 +642,31 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       Logger.error('❌ Error generating playbook', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
 
       // Check if content was blocked - navigate back to personalization for rewriting
-      if ((error as any).contentBlocked) {
+      if ((error as any).contentBlocked && !isAlertShowing) {
         // Stop all animations immediately
         setIsGenerating(false);
+        setIsAlertShowing(true);
 
         Alert.alert(
           'Content Guidelines',
           (error as any).christianMessage || 'This request could not be processed due to content guidelines. Please try rephrasing with more constructive language.',
           [
             {
-              text: 'Rewrite Request',
+              text: 'Rewrite',
               onPress: () => {
+                setIsAlertShowing(false);
                 // Navigate back to personalization screen (step 4) to rewrite the input
-                (navigation as any).navigate('OnboardingPersonalization', { step: 4 });
-              },
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-              onPress: () => {
-                navigation.goBack();
+                // Pass all previous onboarding data to preserve user choices
+                (navigation as any).navigate('OnboardingPersonalization', {
+                  step: 4,
+                  rewriteData: {
+                    ageGroup: params.onboardingData?.ageGroup,
+                    faithJourney: params.onboardingData?.faithJourney,
+                    challenge: params.onboardingData?.challenge,
+                    challengeDetails: params.userInput,
+                    userName: params.userName,
+                  },
+                });
               },
             },
           ]
@@ -658,12 +687,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         ? 'The request is taking longer than expected. Please try again.'
         : (error as Error).message?.includes('network')
         ? 'Network connection issue detected. Please check your connection and try again.'
-        : 'Unable to generate your playbook. Please try again.';
+        : 'Something went wrong while creating your playbook. Please try again.';
 
       setIsGenerating(false);
       showErrorAlert(error, userMessage);
     }
-  }, [params, user, navigation, progressAnim, showErrorAlert]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, user, navigation, progressAnim, showErrorAlert]); // Removed isAlertShowing to prevent re-creation loop
 
   // Define handleRetry after generatePlaybook so it can call it
   handleRetryRef.current = useCallback(() => {
@@ -744,9 +774,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       useNativeDriver: true,
     }).start();
 
-    // Start playbook generation
+    // Start playbook generation - only once on mount
     generatePlaybook();
-  }, [fadeAnim, generatePlaybook]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
 
   // Shimmer (breathing) effect on the step text
   useEffect(() => {

@@ -989,26 +989,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       ];
 
       if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
-        console.log('[Generate-Playbook] AI refused, checking for paraphrase strategy...');
-
-        // Check if this was harmful content that slipped through initial detection
-        // Re-analyze to catch any confession patterns
-        const reAnalysis = analyzeContent(userInput);
-        if (reAnalysis.isHarmfulIntent && !reAnalysis.isVictimExperience) {
-          console.error('[Generate-Playbook] Harmful content detected on retry - blocking completely');
-          return new Response(
-            JSON.stringify({
-              error: 'CONTENT_BLOCKED',
-              message: reAnalysis.christianMessage || 'We cannot process this request. Please reach out to a Christian counselor or pastor for guidance.',
-              alternatives: reAnalysis.constructiveAlternatives,
-              category: reAnalysis.category,
-            }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
-        }
+        console.log('[Generate-Playbook] AI refused, will attempt paraphrasing retries...');
 
         // AI refused, so we need to paraphrase to get past content filters
         // Use Christian-focused paraphrasing for victim experiences

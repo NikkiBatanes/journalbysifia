@@ -202,7 +202,7 @@ export class EnhancedGenerationService {
 
       return {
         success: false,
-        message: 'Sorry, there was an error generating your playbook. Please try again.',
+        message: 'Something went wrong while creating your playbook. Please try again.',
         upgradeRequired: false,
       };
     }
@@ -274,7 +274,7 @@ export class EnhancedGenerationService {
           Logger.error('[EnhancedGenerationService] Supabase function error', new Error(JSON.stringify(errorData)), {
             component: 'enhancedGenerationService',
           });
-          throw new Error(errorData.message || `Generation failed: ${response.statusText}`);
+          throw new Error(errorData.message || 'Something went wrong. Please try again.');
         } catch (parseError) {
           // If it's already a CONTENT_BLOCKED error, re-throw it
           if ((parseError as any).contentBlocked) {
@@ -286,7 +286,7 @@ export class EnhancedGenerationService {
           Logger.error('[EnhancedGenerationService] Supabase function error', new Error(errorText), {
             component: 'enhancedGenerationService',
           });
-          throw new Error(`Generation failed: ${response.statusText}`);
+          throw new Error('Something went wrong. Please try again.');
         }
       }
 
@@ -352,7 +352,7 @@ export class EnhancedGenerationService {
 
       return {
         success: false,
-        message: 'Unable to generate playbook at this time. Please check your connection and try again.',
+        message: 'Something went wrong while creating your playbook. Please try again.',
         upgradeRequired: false,
       };
     }
@@ -450,7 +450,7 @@ export class EnhancedGenerationService {
 
       return {
         success: false,
-        message: 'Sorry, there was an error generating your devotional. Please try again.',
+        message: 'Something went wrong while creating your devotional. Please try again.',
         upgradeRequired: false,
       };
     }
@@ -484,7 +484,7 @@ export class EnhancedGenerationService {
           message = 'Generation completed successfully!';
           break;
         case 'failed':
-          message = status.errorMessage || 'Generation failed. Please try again.';
+          message = status.errorMessage || 'Something went wrong. Please try again.';
           break;
       }
 

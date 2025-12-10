@@ -102,7 +102,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         });
 
         if (!aiResponse) {
-          throw new Error('Playbook generation failed. Please try again.');
+          throw new Error('Something went wrong while creating your playbook. Please try again.');
         }
 
         // Save to database if user is authenticated
@@ -213,8 +213,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
         // Don't lose user's input - navigate back with the original text
         Alert.alert(
-          'Generation Failed',
-          'We couldn\'t generate your playbook. Your text has been preserved. Please try again.',
+          'Something Went Wrong',
+          'We couldn\'t create your playbook. Your text has been preserved. Please try again.',
           [
             {
               text: 'OK',

@@ -427,6 +427,34 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params]); // user.email intentionally excluded - checked within effect
 
+  // Restore data when coming back from content blocked error for rewriting
+  useEffect(() => {
+    if (routeParams?.rewriteData) {
+      const rewriteData = routeParams.rewriteData;
+
+      // Restore all previous selections with correct mapping
+      if (rewriteData.ageGroup) {
+        setSelectedAgeGroup(rewriteData.ageGroup);
+      }
+      if (rewriteData.faithJourney) {
+        setSelectedFaithJourney(rewriteData.faithJourney);
+      }
+      if (rewriteData.challenge) {
+        setSelectedChallenge(rewriteData.challenge);
+      }
+      if (rewriteData.challengeDetails) {
+        setChallengeDetails(rewriteData.challengeDetails);
+
+        // Focus input and move cursor to end after restoration
+        setTimeout(() => {
+          detailsInputRef.current?.focus();
+        }, 100);
+      }
+
+      logger.debug('Restored rewrite data:', rewriteData);
+    }
+  }, [routeParams?.rewriteData]);
+
   // Helper function to extract first name from email username
   const extractNameFromEmail = (emailUsername: string): string => {
     if (!emailUsername) {
@@ -560,10 +588,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   }, []);
 
   // When the user changes challenge, clear details so the new placeholder is visible
+  // But don't clear if we're restoring from rewriteData
   React.useEffect(() => {
-    setChallengeDetails('');
+    // Only clear if not restoring data (avoid clearing restored input)
+    if (!routeParams?.rewriteData) {
+      setChallengeDetails('');
+    }
     // Do not auto-focus per UX requirement
-  }, [selectedChallenge]);
+  }, [selectedChallenge, routeParams?.rewriteData]);
 
   // Do not auto-focus when entering the details step per UX requirement
   React.useEffect(() => {
