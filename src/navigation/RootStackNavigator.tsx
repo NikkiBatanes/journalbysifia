@@ -18,6 +18,7 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 // NotificationDebugScreen removed in Phase 1 cleanup
 
 // New Onboarding screens
+import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
@@ -177,8 +178,14 @@ export default function RootStackNavigator({
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
-      initialRouteName="TransformJourney"
+      initialRouteName="OnboardingSplash"
     >
+      {/* Splash Screen */}
+      <Stack.Screen
+        name="OnboardingSplash"
+        component={OnboardingSplashScreen as React.ComponentType}
+        options={{ headerShown: false }}
+      />
 
       {/* PHASE 1: First Impression & Value Proposition (15%) */}
       <Stack.Screen
