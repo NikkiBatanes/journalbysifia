@@ -129,10 +129,11 @@ export const useCrossComponentSync = (userId: string) => {
         setTimeout(() => {
           try {
             console.log('[CrossComponentSync] Starting deferred invalidations');
-            // Update devotional queries
-            queryClient.invalidateQueries({
-              queryKey: ['devotionals', 'list', userId],
-            });
+            // CRITICAL: DO NOT invalidate devotionals list - causes 4.5s VirtualizedList freeze
+            // The PlaybookListScreen will refetch naturally when user navigates back
+            // queryClient.invalidateQueries({
+            //   queryKey: ['devotionals', 'list', userId],
+            // });
 
             // Invalidate dashboard-related queries in parallel
             queryClient.invalidateQueries({
