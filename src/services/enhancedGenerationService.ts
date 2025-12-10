@@ -450,7 +450,7 @@ export class EnhancedGenerationService {
 
       return {
         success: false,
-        message: 'Something went wrong while creating your devotional. Please try again.',
+        message: 'Connection error occurred. Please check your internet connection and try again.',
         upgradeRequired: false,
       };
     }

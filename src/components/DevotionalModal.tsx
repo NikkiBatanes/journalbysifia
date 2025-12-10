@@ -473,10 +473,30 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     } catch (err) {
       // Convert technical errors to user-friendly messages
       const error = err as Error;
+      const errorMessage = error.message?.toLowerCase() || '';
+      const errorName = error.name || '';
+
+      // Check for network errors
+      const isNetworkError = errorMessage.includes('network') ||
+                            errorMessage.includes('fetch') ||
+                            errorMessage.includes('timeout') ||
+                            errorMessage.includes('connection') ||
+                            errorName === 'TypeError' ||
+                            errorName === 'NetworkError' ||
+                            errorMessage.includes('enotfound') ||
+                            errorMessage.includes('econnrefused') ||
+                            errorMessage.includes('etimedout');
+
       const userFriendlyError = error.message?.includes('Circuit breaker is OPEN') ||
                                 error.message?.includes('experiencing high demand')
         ? new Error('We\'re experiencing high demand right now. Please try again in a few moments.')
-        : error;
+        : isNetworkError
+        ? new Error('Network connection issue detected. Please check your internet connection and try again.')
+        : error.message?.includes('Devotional generation failed')
+        ? new Error('We\'re having trouble creating your devotional right now. Please try again.')
+        : error.message?.includes('No data returned')
+        ? new Error('We\'re having trouble creating your devotional right now. Please try again.')
+        : new Error('Something went wrong while creating your devotional. Please try again.');
 
       setCreationError(userFriendlyError);
       Logger.error('[DevotionalModal] Error creating devotional', error, { component: 'DevotionalModal' });

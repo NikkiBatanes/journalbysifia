@@ -93,16 +93,24 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       setIsGenerating(true);
       try {
 
-        // Generate playbook content via AI
-        const aiResponse = await generatePlaybook(userInput, userName, {
-          showUserFeedback: true,
-          onAuthRequired: () => {
-
-          },
+        // Generate playbook content via AI with network timeout
+        const timeoutDuration = 60000; // 60 seconds
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Network connection issue detected. Please check your internet connection and try again.')), timeoutDuration);
         });
 
+        const aiResponse = await Promise.race([
+          generatePlaybook(userInput, userName, {
+            showUserFeedback: true,
+            onAuthRequired: () => {
+              // Handle auth required
+            },
+          }),
+          timeoutPromise,
+        ]);
+
         if (!aiResponse) {
-          throw new Error('Something went wrong while creating your playbook. Please try again.');
+          throw new Error('Network connection issue detected. Please check your internet connection and try again.');
         }
 
         // Save to database if user is authenticated
@@ -211,13 +219,22 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           return;
         }
 
-        // Don't lose user's input - navigate back with the original text
+        // Don't lose user's input - offer retry option
         Alert.alert(
-          'Something Went Wrong',
-          'We couldn\'t create your playbook. Your text has been preserved. Please try again.',
+          'Connection Lost',
+          'The network connection was lost. Please check your internet connection and try again.',
           [
             {
-              text: 'OK',
+              text: 'Try Again',
+              onPress: () => {
+                // Retry generation
+                hasGenerated.current = false;
+                generatePlaybookContent();
+              },
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
               onPress: () => {
                 // Navigate back and preserve the input
                 if (navigation.canGoBack()) {

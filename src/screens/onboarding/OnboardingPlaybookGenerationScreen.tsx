@@ -168,11 +168,25 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const determineErrorType = useCallback((error: any): 'network' | 'ai' => {
     const errorMessage = error?.message?.toLowerCase() || '';
     const errorString = String(error).toLowerCase();
+    const errorName = error?.name || '';
+    const errorCode = error?.code || '';
+
+    // Check for TypeError or NetworkError (common network errors)
+    if (errorName === 'TypeError' || errorName === 'NetworkError') {
+      return 'network';
+    }
+
+    // Check for network error codes
+    const networkCodes = ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'ENETUNREACH'];
+    if (networkCodes.includes(errorCode)) {
+      return 'network';
+    }
 
     // Network error patterns
     const networkPatterns = [
       'network',
       'fetch failed',
+      'fetch',
       'timeout',
       'connection',
       'network request failed',
@@ -189,7 +203,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       errorMessage.includes(pattern) || errorString.includes(pattern)
     );
 
-    return isNetworkError ? 'network' : 'ai';
+    // Default to network since all onboarding errors are network-related
+    // (content blocked is handled separately)
+    return isNetworkError ? 'network' : 'network';
   }, []);
 
   // Forward declaration for handleRetry (will be defined after generatePlaybook)
@@ -211,16 +227,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         'The network connection was lost. Please check your internet connection and try again.',
         [
           {
-            text: 'Retry',
+            text: 'Try Again',
             onPress: () => handleRetryRef.current(),
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => {
-              setIsGenerating(false);
-              setGenerationError(userMessage);
-            },
           },
         ]
       );
@@ -255,13 +263,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               text: 'Try Again',
               onPress: () => handleRetryRef.current(),
             },
-            {
-              text: 'Go Back',
-              style: 'cancel',
-              onPress: () => {
-                navigation.goBack();
-              },
-            },
           ]
         );
       }
@@ -270,6 +271,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
   const generatePlaybook = useCallback(async () => {
     try {
+      // Always do fresh generation to ensure all fields (action steps, declarations) are complete
+      // Don't fetch existing playbook as it may be incomplete
 
       if (!user?.id) {
         // For demo purposes, create a mock user ID
@@ -527,7 +530,25 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               ? 'The request is taking longer than expected. Please try again.'
               : error.message?.includes('network')
               ? 'Network connection issue detected. Please check your connection and try again.'
-              : error.message || 'Unable to generate your playbook. Please try again.';
+              : error.message?.includes('Network request failed')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : error.message?.includes('fetch')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : error.message?.includes('ENOTFOUND')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : error.message?.includes('ECONNREFUSED')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : error.message?.includes('ETIMEDOUT')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : (error as any).code === 'ENOTFOUND' || (error as any).code === 'ECONNREFUSED' || (error as any).code === 'ETIMEDOUT'
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : error.name === 'TypeError' && error.message?.includes('Network request failed')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : error.name === 'TypeError' && error.message?.includes('fetch')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : (error.name === 'TypeError' || error.name === 'NetworkError' || error.message?.includes('Network') || error.message?.includes('fetch') || error.message?.includes('connection'))
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : 'Connection error occurred. Please check your internet connection and try again.';
 
             setIsGenerating(false);
             showErrorAlert(error, userMessage);
@@ -693,11 +714,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       showErrorAlert(error, userMessage);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, user, navigation, progressAnim, showErrorAlert]); // Removed isAlertShowing to prevent re-creation loop
+  }, [params, user, navigation, progressAnim, showErrorAlert]);
 
   // Define handleRetry after generatePlaybook so it can call it
-  handleRetryRef.current = useCallback(() => {
+  handleRetryRef.current = useCallback(async () => {
     try { triggerLightHaptic(); } catch {}
+
+    // Always do fresh retry - don't fetch existing playbook
     setGenerationError(null);
     setErrorType(null);
     setIsGenerating(true);

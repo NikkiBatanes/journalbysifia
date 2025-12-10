@@ -146,7 +146,7 @@ async function generateDevotionalInternal(
                 errorDetails: JSON.stringify(sdkResponse.error, null, 2),
               },
             });
-            throw new Error(sdkResponse.error.message || 'Devotional generation failed');
+            throw new Error(sdkResponse.error.message || 'We\'re having trouble creating your devotional right now. Please try again.');
           }
 
           if (!sdkResponse.data) {
@@ -154,7 +154,7 @@ async function generateDevotionalInternal(
               component: 'modernDevotionalApi',
               data: { sdkResponse },
             });
-            throw new Error('No data returned from devotional generation');
+            throw new Error('We\'re having trouble creating your devotional right now. Please try again.');
           }
 
           // Supabase SDK already parsed JSON, use data directly
@@ -212,7 +212,7 @@ async function generateDevotionalInternal(
               component: 'modernDevotionalApi',
               data: { status: response.status, errorText },
             });
-            throw new Error(`Devotional generation failed: ${response.status} - ${errorText}`);
+            throw new Error('Network connection issue detected. Please check your connection and try again.');
           }
 
           result = await response.json();
@@ -408,7 +408,7 @@ async function generateDevotionalInternal(
   }
 
   // If all attempts failed, throw the last error
-  const errorMessage = lastError?.message || 'Failed to generate devotional after multiple attempts';
+  const errorMessage = lastError?.message || 'Connection error occurred. Please check your internet connection and try again.';
   Logger.error('❌ All devotional generation attempts failed', new Error(errorMessage), {
   component: 'modernDevotionalApi',
 });
