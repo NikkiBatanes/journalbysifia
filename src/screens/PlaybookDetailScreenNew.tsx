@@ -2098,7 +2098,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         <PlaybookSkeletonLoader />
       ) : error || !playbook ? (
         <View style={styles.loadingContainer}>
-          <ThemedText weight="medium" style={styles.progressText}>Failed to load playbook data</ThemedText>
+          <ThemedText weight="medium" style={styles.progressText}>Couldn't load this playbook</ThemedText>
           <TouchableOpacity
             style={styles.navButton}
             onPress={() => {
