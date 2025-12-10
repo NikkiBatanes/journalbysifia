@@ -6,19 +6,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  StatusBar,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  BackHandler,
-} from 'react-native';
+import { View, StyleSheet, Animated, Image, Alert, StatusBar, ScrollView, BackHandler } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../../theme/colors';
 import { enhancedGenerationService } from '../../services/enhancedGenerationService';
@@ -29,7 +19,6 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
-import { ContentSafetyAlert } from '../../components/ContentSafetyAlert';
 
 interface RouteParams {
   challengeCategory: string;
@@ -67,17 +56,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
   const [isGenerating, setIsGenerating] = useState(true);
   const [_generatedPlaybook, setGeneratedPlaybook] = useState<GeneratedPlaybook | null>(null);
-  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [_generationError, setGenerationError] = useState<string | null>(null);
+  const [_errorType, setErrorType] = useState<'network' | 'ai' | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [_isLoading, _setIsLoading] = useState(false);
   const [shouldNavigate, setShouldNavigate] = useState(false);
   const [navigationData, setNavigationData] = useState<GeneratedPlaybook | null>(null);
-  const [contentBlocked, setContentBlocked] = useState(false);
-  const [contentBlockedData, setContentBlockedData] = useState<{
-    message: string;
-    alternatives?: string[];
-    category?: string;
-  } | null>(null);
 
   // Disable back navigation entirely on this screen
   useEffect(() => {
@@ -172,6 +156,105 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     }
   }, [shouldNavigate, navigationData, navigation, params]);
 
+  // Helper to determine error type (network vs AI generation failure)
+  const determineErrorType = useCallback((error: any): 'network' | 'ai' => {
+    const errorMessage = error?.message?.toLowerCase() || '';
+    const errorString = String(error).toLowerCase();
+
+    // Network error patterns
+    const networkPatterns = [
+      'network',
+      'fetch failed',
+      'timeout',
+      'connection',
+      'network request failed',
+      'unable to connect',
+      'no internet',
+      'offline',
+      'econnrefused',
+      'enotfound',
+      'etimedout',
+    ];
+
+    // Check if error matches network patterns
+    const isNetworkError = networkPatterns.some(pattern =>
+      errorMessage.includes(pattern) || errorString.includes(pattern)
+    );
+
+    return isNetworkError ? 'network' : 'ai';
+  }, []);
+
+  // Forward declaration for handleRetry (will be defined after generatePlaybook)
+  const handleRetryRef = useRef<() => void>(() => {});
+
+  // Show error alert based on error type
+  const showErrorAlert = useCallback((error: any, userMessage: string) => {
+    const type = determineErrorType(error);
+    setErrorType(type);
+
+    if (type === 'network') {
+      Alert.alert(
+        'Connection Lost',
+        'The network connection was lost. Please check your internet connection and try again.',
+        [
+          {
+            text: 'Retry',
+            onPress: () => handleRetryRef.current(),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setIsGenerating(false);
+              setGenerationError(userMessage);
+            },
+          },
+        ]
+      );
+    } else {
+      // AI generation failure
+      const isContentPolicyError = userMessage?.includes('Please rephrase your request');
+
+      if (isContentPolicyError) {
+        Alert.alert(
+          'Content Guidelines',
+          'This request couldn\'t be processed due to content guidelines. Try rephrasing with:\n\n• Focus on personal growth and healing\n• Use gentle, constructive language\n• Avoid specific harmful actions\n• Describe feelings rather than actions',
+          [
+            {
+              text: 'Try Again',
+              onPress: () => handleRetryRef.current(),
+            },
+            {
+              text: 'Go Back',
+              style: 'cancel',
+              onPress: () => {
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Generation Failed',
+          userMessage,
+          [
+            {
+              text: 'Try Again',
+              onPress: () => handleRetryRef.current(),
+            },
+            {
+              text: 'Go Back',
+              style: 'cancel',
+              onPress: () => {
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+      }
+    }
+  }, [determineErrorType, navigation]);
+
   const generatePlaybook = useCallback(async () => {
     try {
 
@@ -197,7 +280,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
           // Poll for completion
           const pollForCompletion = async () => {
-          const maxAttempts = 35; // 35 attempts = 35 seconds max wait - faster with early direct DB checks
+          const maxAttempts = 60; // 60 attempts = 60 seconds max wait - allow more time for AI retries
           let attempts = 0;
 
           const poll = async (): Promise<void> => {
@@ -367,7 +450,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               } else if (status.status === 'failed') {
                 throw new Error(status.message || 'Playbook generation failed');
               } else if (attempts >= maxAttempts) {
-                throw new Error('Playbook generation timed out. Please try again.');
+                throw new Error('Playbook generation is taking longer than expected. The AI may be processing your request. Please try again.');
               } else {
                 // Continue polling - much faster for onboarding
                 setTimeout(poll, 1000); // Poll every 1 second for responsive onboarding
@@ -385,15 +468,31 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
           pollForCompletion().catch((error) => {
             Logger.error('❌ Playbook generation failed', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
 
-            // Check if content was blocked
+            // Check if content was blocked - navigate back to personalization for rewriting
             if ((error as any).contentBlocked) {
-              setContentBlockedData({
-                message: (error as any).christianMessage || 'Content blocked',
-                alternatives: (error as any).alternatives,
-                category: (error as any).category,
-              });
-              setContentBlocked(true);
+              // Stop all animations immediately
               setIsGenerating(false);
+
+              Alert.alert(
+                'Content Guidelines',
+                (error as any).christianMessage || 'This request could not be processed due to content guidelines. Please try rephrasing with more constructive language.',
+                [
+                  {
+                    text: 'Rewrite Request',
+                    onPress: () => {
+                      // Navigate back to personalization screen (step 4) to rewrite the input
+                      (navigation as any).navigate('OnboardingPersonalization', { step: 4 });
+                    },
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                    onPress: () => {
+                      navigation.goBack();
+                    },
+                  },
+                ]
+              );
               return;
             }
 
@@ -404,9 +503,16 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               ? 'We\'re having trouble creating your playbook right now. Please try again in a moment.'
               : error.message?.includes('AI content policy prevented generation')
               ? 'Please rephrase your request and try again.'
-              : error.message || 'Failed to generate playbook. Please try again.';
-            setGenerationError(userMessage);
+              : error.message?.includes('taking longer than expected')
+              ? 'Playbook generation is taking longer than expected. The AI is carefully crafting your response. Please try again.'
+              : error.message?.includes('timeout')
+              ? 'The request is taking longer than expected. Please try again.'
+              : error.message?.includes('network')
+              ? 'Network connection issue detected. Please check your connection and try again.'
+              : error.message || 'Unable to generate your playbook. Please try again.';
+
             setIsGenerating(false);
+            showErrorAlert(error, userMessage);
 
             // Development: Reset circuit breaker if it's a circuit breaker error
             if (__DEV__ && error.message?.includes('Circuit breaker is OPEN')) {
@@ -491,9 +597,16 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               // Convert technical errors to user-friendly messages
               const userMessage = (directError as Error).message?.includes('Circuit breaker is OPEN')
                 ? 'We\'re experiencing high demand right now. Please try again in a few moments.'
+                : (directError as Error).message?.includes('Invalid playbook format')
+                ? 'We\'re having trouble creating your playbook right now. Please try again in a moment.'
+                : (directError as Error).message?.includes('AI content policy prevented generation')
+                ? 'Please rephrase your request and try again.'
+                : (directError as Error).message?.includes('taking longer than expected')
+                ? 'Playbook generation is taking longer than expected. The AI is carefully crafting your response. Please try again.'
                 : 'Unable to generate your playbook. Please try again.';
-              setGenerationError(userMessage);
+
               setIsGenerating(false);
+              showErrorAlert(directError, userMessage);
             }
           }, 2000); // Wait 2 seconds for database to be ready
         }
@@ -504,15 +617,31 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     } catch (error) {
       Logger.error('❌ Error generating playbook', error as Error, { component: 'OnboardingPlaybookGenerationScreen' });
 
-      // Check if content was blocked
+      // Check if content was blocked - navigate back to personalization for rewriting
       if ((error as any).contentBlocked) {
-        setContentBlockedData({
-          message: (error as any).christianMessage || 'Content blocked',
-          alternatives: (error as any).alternatives,
-          category: (error as any).category,
-        });
-        setContentBlocked(true);
+        // Stop all animations immediately
         setIsGenerating(false);
+
+        Alert.alert(
+          'Content Guidelines',
+          (error as any).christianMessage || 'This request could not be processed due to content guidelines. Please try rephrasing with more constructive language.',
+          [
+            {
+              text: 'Rewrite Request',
+              onPress: () => {
+                // Navigate back to personalization screen (step 4) to rewrite the input
+                (navigation as any).navigate('OnboardingPersonalization', { step: 4 });
+              },
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                navigation.goBack();
+              },
+            },
+          ]
+        );
         return;
       }
 
@@ -523,11 +652,36 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         ? 'We\'re having trouble creating your playbook right now. Please try again in a moment.'
         : (error as Error).message?.includes('AI content policy prevented generation')
         ? 'Please rephrase your request and try again.'
+        : (error as Error).message?.includes('taking longer than expected')
+        ? 'Playbook generation is taking longer than expected. The AI is carefully crafting your response. Please try again.'
+        : (error as Error).message?.includes('timeout')
+        ? 'The request is taking longer than expected. Please try again.'
+        : (error as Error).message?.includes('network')
+        ? 'Network connection issue detected. Please check your connection and try again.'
         : 'Unable to generate your playbook. Please try again.';
-      setGenerationError(userMessage);
+
       setIsGenerating(false);
+      showErrorAlert(error, userMessage);
     }
-  }, [params, user, navigation, progressAnim]);
+  }, [params, user, navigation, progressAnim, showErrorAlert]);
+
+  // Define handleRetry after generatePlaybook so it can call it
+  handleRetryRef.current = useCallback(() => {
+    try { triggerLightHaptic(); } catch {}
+    setGenerationError(null);
+    setErrorType(null);
+    setIsGenerating(true);
+    setCurrentStep(0);
+    setGeneratedPlaybook(null);
+
+    Animated.timing(progressAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => {
+      generatePlaybook();
+    });
+  }, [progressAnim, generatePlaybook]);
 
   // Sun ring animation (breathing text removed)
   useEffect(() => {
@@ -655,76 +809,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
   // Unused function removed to fix linting issues
 
-  const handleRetry = () => {
-    try { triggerLightHaptic(); } catch {}
-    setGenerationError(null);
-    setIsGenerating(true);
-    setCurrentStep(0);
-    setGeneratedPlaybook(null);
+  // Removed full-screen error UI - now using alerts instead
 
-    Animated.timing(progressAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-
-    generatePlaybook();
-  };
-
-  if (generationError && !contentBlocked) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color={Colors.white} />
-          <ThemedText weight="bold" style={styles.errorTitle}>Generation Failed</ThemedText>
-          <ThemedText style={styles.errorMessage}>{generationError}</ThemedText>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <ThemedText weight="semiBold" style={styles.retryButtonText}>Try Again</ThemedText>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  // If content was blocked, show the main UI with the modal overlay
-  if (contentBlocked && contentBlockedData) {
-    return (
-      <OnboardingErrorBoundary>
-        <SafeAreaView style={styles.container} edges={['top','bottom']}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-          <View style={styles.content}>
-            {/* Show a gentle waiting state */}
-            <View style={styles.errorContainer}>
-              <Ionicons name="shield-checkmark-outline" size={64} color={Colors.white} />
-              <ThemedText weight="bold" style={styles.errorTitle}>Content Review</ThemedText>
-              <ThemedText style={styles.errorMessage}>Please review the guidance below...</ThemedText>
-            </View>
-          </View>
-
-          {/* Content Safety Alert Modal */}
-          <ContentSafetyAlert
-            visible={contentBlocked}
-            onClose={() => {
-              setContentBlocked(false);
-              navigation.goBack();
-            }}
-            onSelectAlternative={(_alternative) => {
-              setContentBlocked(false);
-              navigation.goBack();
-            }}
-            message={contentBlockedData.message}
-            alternatives={contentBlockedData.alternatives}
-            category={contentBlockedData.category}
-          />
-        </SafeAreaView>
-      </OnboardingErrorBoundary>
-    );
-  }
+  // Content blocked handling now uses alerts instead of modal - no special rendering needed
 
   return (
     <OnboardingErrorBoundary>
-      <SafeAreaView style={styles.container} edges={['top','bottom']}>
+      <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <Animated.View

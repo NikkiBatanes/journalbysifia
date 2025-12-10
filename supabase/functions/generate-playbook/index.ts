@@ -944,8 +944,8 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
                 content: contextualPrompt,
               },
             ],
-            temperature: 0.85, // Increased from 0.7 for more creative variation
-            max_tokens: 3500, // Increased from 1200 to ensure complete playbook with BIBLE VERSE and CHALLENGE
+            temperature: 0.7, // Increased from 0.7 for more creative variation
+            max_tokens: 6000, // Increased to handle longer playbooks and avoid token limit errors
             frequency_penalty: 0.1,
             presence_penalty: 0.1,
           }),
@@ -956,9 +956,9 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
     }
 
     // Truncate prompt if too long to prevent token limit errors
-    if (contextualPrompt.length > 6000) {
-      console.log('[Generate-Playbook] Truncating prompt from', contextualPrompt.length, 'to 6000 chars');
-      contextualPrompt = contextualPrompt.substring(0, 6000) + '\n\n[Response truncated to fit token limit]';
+    if (contextualPrompt.length > 4000) {
+      console.log('[Generate-Playbook] Truncating prompt from', contextualPrompt.length, 'to 4000 chars');
+      contextualPrompt = contextualPrompt.substring(0, 4000) + '\n\n[Response truncated to fit token limit]';
     }
 
     // Try with gpt-4o-mini, paraphrase and retry if refused
@@ -1059,21 +1059,38 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
           contextualPrompt = contextualPrompt.substring(0, 6000) + '\n\n[Response truncated to fit token limit]';
         }
 
-        // Retry with paraphrased input
+        // Retry with paraphrased input (allowing an extra retry if the first paraphrased attempt still refuses)
         usedParaphrasing = true;
-        openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
-        aiData = await openAIRes.json();
-        rawContent = aiData.choices?.[0]?.message?.content || '';
-        
-        // Check if AI STILL refused after paraphrasing
-        if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
-          console.error('[Generate-Playbook] AI refused even after paraphrasing - topic too sensitive for AI');
+        const maxParaphrasedAttempts = 2; // total paraphrased attempts (overall third try)
+        let paraphrasedAttempt = 0;
+        let paraphrasedSucceeded = false;
+
+        while (paraphrasedAttempt < maxParaphrasedAttempts) {
+          paraphrasedAttempt++;
+          console.log(`[Generate-Playbook] Paraphrased attempt ${paraphrasedAttempt}/${maxParaphrasedAttempts}`);
+          openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+          aiData = await openAIRes.json();
+          rawContent = aiData.choices?.[0]?.message?.content || '';
+
+          if (!refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
+            paraphrasedSucceeded = true;
+            break;
+          }
+
+          if (paraphrasedAttempt < maxParaphrasedAttempts) {
+            console.warn('[Generate-Playbook] Paraphrased attempt still refused - retrying once more...');
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
+        }
+
+        if (!paraphrasedSucceeded) {
+          console.error('[Generate-Playbook] AI refused even after additional paraphrased retries - topic too sensitive for AI');
           
           // Check if this is self-harm related (show crisis resources)
           if (contentAnalysis.category === 'self_harm') {
             return new Response(
               JSON.stringify({
-                error: 'AI_REFUSED',
+                error: 'CONTENT_BLOCKED',
                 message: 'If you\'re in crisis, please reach out for immediate support:\n\n🇺🇸 USA: 988 (Suicide & Crisis Lifeline)\n🇬🇧 UK: 116 123 (Samaritans)\n🇦🇺 Australia: 13 11 14 (Lifeline)\n🇨🇦 Canada: 1-833-456-4566\n🌍 International: https://findahelpline.com\n\nYou are deeply loved by God, and your life has immeasurable value in Christ. Please reach out to these resources or a trusted Christian counselor.',
                 alternatives: [
                   'Finding hope and purpose in Christ',
@@ -1093,7 +1110,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
           // Generic AI refusal for other sensitive topics
           return new Response(
             JSON.stringify({
-              error: 'AI_REFUSED',
+              error: 'CONTENT_BLOCKED',
               message: 'This topic appears to be too sensitive for automated generation. For personalized Christian guidance on sensitive matters, we recommend:\n\n• Speaking with a Christian counselor or pastor\n• Connecting with a trusted spiritual mentor\n• Reaching out to your church community\n\nGod cares deeply about your concerns and wants to walk with you through them.',
               alternatives: [
                 'Finding guidance in Scripture',
@@ -1194,7 +1211,19 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         );
       }
       
-      throw new Error('AI content policy prevented generation - please rephrase your request');
+      // Always return content blocked response for AI refusals to trigger proper frontend handling
+      return new Response(
+        JSON.stringify({
+          error: 'CONTENT_BLOCKED',
+          message: finalAnalysis.christianMessage || 'This request could not be processed due to content guidelines. Please try rephrasing with more constructive language.',
+          alternatives: finalAnalysis.constructiveAlternatives,
+          category: finalAnalysis.category,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Parse the playbook (store original userInput for display, not paraphrased)

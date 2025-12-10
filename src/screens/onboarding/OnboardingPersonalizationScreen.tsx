@@ -214,7 +214,7 @@ import { logger } from '../../utils/logger';
 const OnboardingPersonalizationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const routeParams = route.params as { name?: string } | undefined;
+  const routeParams = route.params as { name?: string; step?: number; rewriteData?: any } | undefined;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
@@ -231,7 +231,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Name step removed to comply with Apple guidelines
   // Note: Apple Private Relay ONLY hides email, NEVER names
   // "Friend" fallback only used when user explicitly chose "Hide My Name"
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(routeParams?.step || 1);
   const [name, setName] = React.useState(routeParams?.name || '');
   const greetingName = React.useMemo(() => {
     if (!name) {return '';}

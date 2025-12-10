@@ -12,7 +12,7 @@ export type RootStackParamList = {
 
   OnboardingPersonalProfile: undefined;
   OnboardingTrialSetup: undefined;
-  OnboardingPersonalization: { name?: string; registrationMethod?: 'email' | 'oauth' } | undefined;
+  OnboardingPersonalization: { name?: string; registrationMethod?: 'email' | 'oauth'; step?: number; rewriteData?: any } | undefined;
   OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
 
   // New Simplified Onboarding Flow Screens

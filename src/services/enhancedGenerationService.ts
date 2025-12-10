@@ -130,6 +130,11 @@ export class EnhancedGenerationService {
       };
 
     } catch (error) {
+      // If this is a content blocked error, re-throw it immediately to be handled by the frontend
+      if ((error as any).contentBlocked) {
+        throw error;
+      }
+
       // Only log partitioning errors as info since they trigger expected fallback
       if ((error as any)?.message?.includes('Database partitioning error')) {
 
@@ -161,6 +166,11 @@ export class EnhancedGenerationService {
             limit: 10,
           };
         } catch (directError) {
+          // If this is a content blocked error, re-throw it immediately
+          if ((directError as any).contentBlocked) {
+            throw directError;
+          }
+
           Logger.error('[EnhancedGenerationService] Direct generation also failed', directError as Error, {
       component: 'enhancedGenerationService',
     });
@@ -178,6 +188,11 @@ export class EnhancedGenerationService {
               limit: 10,
             };
           } catch (fallbackError) {
+            // If this is a content blocked error, re-throw it immediately
+            if ((fallbackError as any).contentBlocked) {
+              throw fallbackError;
+            }
+
             Logger.error('[EnhancedGenerationService] All generation methods failed', fallbackError as Error, {
       component: 'enhancedGenerationService',
     });
@@ -326,6 +341,11 @@ export class EnhancedGenerationService {
         limit: 10,
       };
     } catch (error) {
+      // If this is a content blocked error, re-throw it to be handled by the caller
+      if ((error as any).contentBlocked) {
+        throw error;
+      }
+
       Logger.error('[EnhancedGenerationService] Simple fallback generation failed', error as Error, {
       component: 'enhancedGenerationService',
     });
