@@ -1366,7 +1366,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             {dynamicSalesCopy
               ? dynamicSalesCopy.message
               : (route.params as any)?.forceTransformationAnnual
-                ? 'Get 2 months free with annual billing and continue your spiritual journey with all premium features.'
+                ? 'Save the equivalent of 2 months when you choose annual billing. Continue your spiritual journey with all premium features.'
                 : isUpgradeMode
                   ? 'Choose a plan that meets you where you are and helps you go deeper.'
                 : fromPlanningLock
@@ -1517,7 +1517,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           {isAnnual && (
             <View style={styles.freeBannerContainer}>
-              <ThemedText weight="semiBold" style={styles.freeBannerText}>2 months free</ThemedText>
+              <ThemedText weight="semiBold" style={styles.freeBannerText}>Save 2 months with annual billing</ThemedText>
             </View>
           )}
           <View style={styles.cardsContainer}>

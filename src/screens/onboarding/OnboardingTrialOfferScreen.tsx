@@ -994,7 +994,7 @@ const OnboardingTrialOfferScreen = () => {
                     return `Only ${currencyInfo?.symbol || '₱'}${formatted}/month`;
                   })()}
                 </ThemedText>
-                <ThemedText weight="semiBold" style={styles.freeOfferText}>2 months free</ThemedText>
+                <ThemedText weight="semiBold" style={styles.freeOfferText}>Pay for 10 months, get 12</ThemedText>
                 <ThemedText weight="semiBold" style={styles.savingsText}>
                   {(() => {
                     const savings = getAnnualSavings();
