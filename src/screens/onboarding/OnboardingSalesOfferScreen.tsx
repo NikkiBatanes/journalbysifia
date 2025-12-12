@@ -837,6 +837,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             return;
           }
 
+          // Check if it's a database update error (purchase succeeded but DB failed)
+          const isDatabaseError =
+            purchaseError?.code === 'DATABASE_UPDATE_FAILED' ||
+            purchaseError?.message?.includes('database update failed');
+
+          if (isDatabaseError) {
+            logger.error('Database update error - showing user-friendly message', purchaseError);
+            Alert.alert(
+              'Purchase Successful',
+              'Your payment was processed successfully, but we had trouble updating your account. Please restart the app to access your subscription. If the issue persists, please contact support.',
+              [{ text: 'OK', onPress: () => setIsPurchasing(false) }]
+            );
+            return;
+          }
+
           // For other errors, log silently instead of showing alert
           logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
           setIsPurchasing(false);
@@ -993,6 +1008,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // CRITICAL: Reset ALL purchase state to prevent stale/cached validation
             setIsPurchasing(false);
             setLoadingStep('processing');
+            return;
+          }
+
+          // Check if it's a database update error (purchase succeeded but DB failed)
+          const isDatabaseError =
+            purchaseError?.code === 'DATABASE_UPDATE_FAILED' ||
+            purchaseError?.message?.includes('database update failed');
+
+          if (isDatabaseError) {
+            logger.error('Database update error - showing user-friendly message', purchaseError);
+            Alert.alert(
+              'Purchase Successful',
+              'Your payment was processed successfully, but we had trouble updating your account. Please restart the app to access your subscription. If the issue persists, please contact support.',
+              [{ text: 'OK', onPress: () => setIsPurchasing(false) }]
+            );
             return;
           }
 

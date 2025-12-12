@@ -267,10 +267,19 @@ export class AppleStoreKitService {
         try {
           await this.handlePurchaseUpdate(purchase);
         } catch (error) {
+          Logger.error('[StoreKit] Purchase update handler failed', error as Error, {
+            component: 'AppleStoreKitService',
+            productId: purchase.productId,
+            transactionId: purchase.transactionId?.substring(0, 10) + '...',
+          });
+
           // Still try to resolve the promise so the UI doesn't hang
           const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
           if (resolver) {
-            resolver.reject(new Error('Purchase succeeded but database update failed. Please contact support.'));
+            // Create a more specific error with proper error code
+            const dbError = new Error('Purchase succeeded but database update failed. Please contact support.');
+            (dbError as any).code = 'DATABASE_UPDATE_FAILED';
+            resolver.reject(dbError);
             this.pendingPurchaseResolvers.delete(purchase.productId);
           }
         }
