@@ -500,7 +500,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalId = parts.slice(0, 5).join('-');
 
           await deleteMutation.mutateAsync(originalId);
-          
+
           // CRITICAL FIX: Emit timeblock delete event to refresh Moments screen
           DeviceEventEmitter.emit('timeblock_deleted', { timeblockId: originalId });
         }
@@ -636,7 +636,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Delete entire event from database
           await deleteMutation.mutateAsync(timeBlock.id);
-          
+
           // CRITICAL FIX: Emit timeblock delete event to refresh Moments screen
           DeviceEventEmitter.emit('timeblock_deleted', { timeblockId: timeBlock.id });
         }

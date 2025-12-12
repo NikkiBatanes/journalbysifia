@@ -45,7 +45,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
 }) => {
   const [actionStepsInternal, setActionStepsInternal] = useState<ActionStep[]>(initialSteps);
   const { updatePlaybook } = usePlaybookStore();
-  
+
   // Protected subtask tracking - preserves auto-checked states
   const protectedSubtasks = useRef<Set<string>>(new Set());
 
@@ -53,7 +53,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
   const setActionSteps = useCallback((updater: React.SetStateAction<ActionStep[]>) => {
     setActionStepsInternal(prev => {
       const nextSteps = typeof updater === 'function' ? updater(prev) : updater;
-      
+
       // CRITICAL: Merge protected states back into ANY update
       return nextSteps.map(step => {
         const updatedSubTasks = step.subTasks?.map(subTask => {
@@ -130,11 +130,11 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
         completed: false,
       };
     }
-    
+
     // Check if this subtask is protected (auto-checked)
     const subtaskId = task.id || `${stepId}-subtask-${index}`;
     const isProtected = preserveProtected && protectedSubtasks.current.has(subtaskId);
-    
+
     // Ensure the task has all required properties
     return {
       id: task.id || `${stepId}-subtask-${index}`,
@@ -220,7 +220,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
 
       return updatedSteps;
     });
-  }, [playbookId, updatePlaybook, normalizeSubTask]);
+  }, [playbookId, updatePlaybook, normalizeSubTask, setActionSteps]);
 
   const handleToggleStep = useCallback((stepId: string, subTaskId?: string) => {
 
@@ -292,7 +292,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
 
       return updatedSteps;
     });
-  }, [playbookId, updatePlaybook, normalizeSubTask]);
+  }, [playbookId, updatePlaybook, normalizeSubTask, setActionSteps]);
 
   // Function to save action steps to the database
   // Accepts a playbookId and updates completedAt based on current state
@@ -320,7 +320,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
     handleAutoCheckStep,
     getCompletedStepsCount,
     saveActionSteps,
-  }), [actionSteps, handleToggleStep, handleAutoCheckStep, getCompletedStepsCount, saveActionSteps]);
+  }), [actionSteps, setActionSteps, handleToggleStep, handleAutoCheckStep, getCompletedStepsCount, saveActionSteps]);
 
   return (
     <ActionStepsContext.Provider value={contextValue}>

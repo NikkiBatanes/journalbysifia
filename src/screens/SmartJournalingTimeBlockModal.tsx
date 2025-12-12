@@ -1,14 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
-  StyleSheet,
   Modal,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
   Alert,
   DeviceEventEmitter,
-  StatusBar,
 } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -51,7 +45,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 }) => {
 
   const { user } = useAuth();
-  const { handleAutoCheckStep, actionSteps } = useActionSteps();
+  const { handleAutoCheckStep } = useActionSteps();
   const queryClient = useQueryClient();
 
   // Store the initial metadata to preserve it

@@ -51,7 +51,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   // Log all props received by SmartJournalingPrayerModal
 
   const { user } = useAuth();
-  const { handleAutoCheckStep, actionSteps } = useActionSteps();
+  const { handleAutoCheckStep } = useActionSteps();
   const queryClient = useQueryClient();
   const { trackPrayer } = useNotificationIntegration();
 

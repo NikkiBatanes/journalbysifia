@@ -73,7 +73,7 @@ export const MomentsScreen: React.FC = () => {
 
     const savedSubscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionChanged);
     const deletedSubscription = DeviceEventEmitter.addListener('reflection_deleted', handleReflectionChanged);
-    
+
     // CRITICAL FIX: Also listen for timeblock events to refresh when timeblocks are saved
     const timeblockSavedSubscription = DeviceEventEmitter.addListener('timeblock_saved', handleReflectionChanged);
     const timeblockDeletedSubscription = DeviceEventEmitter.addListener('timeblock_deleted', handleReflectionChanged);
@@ -101,7 +101,7 @@ export const MomentsScreen: React.FC = () => {
   const handleScroll = (event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
     const shouldCollapse = scrollY > 50; // Collapse after scrolling 50px
-    
+
     if (shouldCollapse !== isSearchCollapsed) {
       setIsSearchCollapsed(shouldCollapse);
       Animated.timing(searchHeightAnim, {
@@ -158,12 +158,11 @@ export const MomentsScreen: React.FC = () => {
         <ThemedText style={[styles.headerSubtitle, { fontFamily: fontRegular }]}>Your journal entries and memories</ThemedText>
 
         <Animated.View style={[
-          styles.searchContainer, 
+          styles.searchContainer,
           isSmallScreen && styles.searchContainerCompact,
-          { 
-            height: isSearchCollapsed ? 0 : 'auto',
-            opacity: searchHeightAnim 
-          }
+          styles.searchAnimatedContainer,
+          isSearchCollapsed && styles.searchContainerCollapsed,
+          { opacity: searchHeightAnim },
         ]}>
           <Search size={18} color={Colors.textGray} style={styles.searchIcon} />
           <TextInput
@@ -314,6 +313,12 @@ const styles = StyleSheet.create({
   clearButton: {
     marginLeft: 8,
     padding: 4,
+  },
+  searchAnimatedContainer: {
+    overflow: 'hidden',
+  },
+  searchContainerCollapsed: {
+    height: 0,
   },
   scrollView: {
     flex: 1,

@@ -1055,31 +1055,31 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             }
 
             const entryDateIso = selectedDateIso || normalizeDateString(timeBlock.created_at);
-            
+
             // CRITICAL FIX: For recurring timeblocks, create entries for ALL occurrences
             // Check if this is a recurring timeblock
             const repeatRule = (timeBlock as any)?.repeat_rule || {};
             const repeatFrequency = repeatRule?.frequency || (timeBlock as any)?.repeat_frequency || 'never';
             const isRecurring = repeatFrequency && repeatFrequency !== 'never';
-            
+
             if (isRecurring && entryDateIso) {
               // Parse start date in local timezone
               const [startYear, startMonth, startDay] = entryDateIso.split('-').map(Number);
               const startDate = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
-              
+
               // Determine end date for recurrence (either explicit end date or 1 year from now)
               const maxEndDateIso = endDateIso || normalizeDateString(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString());
               const [endYear, endMonth, endDay] = (maxEndDateIso || '').split('-').map(Number);
               const maxEndDate = endYear ? new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999) : new Date(new Date().setFullYear(new Date().getFullYear() + 1));
-              
+
               // Generate occurrences based on frequency
               let currentDate = new Date(startDate);
               const today = new Date();
               today.setHours(23, 59, 59, 999);
-              
+
               while (currentDate <= maxEndDate && currentDate <= today) {
                 const currentDateIso = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
-                
+
                 // Skip if this date is in the exceptions list
                 if (!exceptionDates.includes(currentDateIso)) {
                   entries.push({
@@ -1095,7 +1095,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                     ),
                   });
                 }
-                
+
                 // Increment based on frequency
                 if (repeatFrequency === 'daily') {
                   currentDate.setDate(currentDate.getDate() + 1);
@@ -1114,7 +1114,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             } else {
               // Non-recurring timeblock - create single entry
               // Parse date in local timezone
-              const entryDate = entryDateIso 
+              const entryDate = entryDateIso
                 ? (() => {
                     const [year, month, day] = entryDateIso.split('-').map(Number);
                     return new Date(year, month - 1, day, 0, 0, 0, 0);

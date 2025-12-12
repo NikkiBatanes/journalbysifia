@@ -228,7 +228,7 @@ export class NewSubscriptionService {
         } catch (retryError) {
           lastError = retryError;
           retryCount++;
-          
+
           if (retryCount < maxRetries) {
             // Wait before retry (exponential backoff)
             await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
@@ -248,7 +248,7 @@ export class NewSubscriptionService {
 
       // CRITICAL: Force a fresh fetch to ensure we get the correct tier
       const finalSubscription = await this.getUserSubscription(user_id);
-      
+
       // Final verification
       if (finalSubscription.tier !== 'free_trial') {
         Logger.error('[NewSubscriptionService] CRITICAL: Trial tier still incorrect after all retries', new Error('Trial tier verification failed'), {
@@ -257,13 +257,13 @@ export class NewSubscriptionService {
           expectedTier: 'free_trial',
           actualTier: finalSubscription.tier,
         });
-        
+
         // Force correct the tier one last time
         await supabase
           .from('user_subscriptions_new')
           .update({ tier: 'free_trial' })
           .eq('user_id', user_id);
-          
+
         return await this.getUserSubscription(user_id);
       }
 

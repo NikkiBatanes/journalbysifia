@@ -233,7 +233,7 @@ export default function ActionStepsCard({
     // CRITICAL: Check if subtask is protected (auto-checked) - if so, do nothing
     const targetStep = steps.find(s => s.id === stepId);
     const targetSubTask = targetStep?.subTasks?.find(st => st.id === subTaskId);
-    
+
     if (targetSubTask?._protected) {
       Logger.info('[ActionStepsCard] Blocked toggle of protected subtask', {
         component: 'ActionStepsCard',
