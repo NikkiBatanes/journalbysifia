@@ -244,8 +244,8 @@ export class AppleStoreKitService {
         const purchaseTime = new Date(purchase.transactionDate).getTime();
         const purchaseAge = Date.now() - purchaseTime;
 
-        // Clear transactions older than 5 minutes
-        if (purchaseAge > 5 * 60 * 1000) {
+        // Clear transactions older than 2 minutes
+        if (purchaseAge > 2 * 60 * 1000) {
           Logger.debug('[StoreKit] Clearing old cached transaction', { component: 'AppleStoreKitService', productId: purchase.productId, ageMinutes: Math.round(purchaseAge / 60000) });
 
           await finishTransaction({ purchase, isConsumable: false });
@@ -482,6 +482,13 @@ export class AppleStoreKitService {
     try {
       await this.initialize();
 
+      // CRITICAL: Clear any stale transactions before starting new purchase
+      Logger.info('[StoreKit] 🧹 Clearing stale transactions before purchase', {
+        component: 'AppleStoreKitService',
+        productId,
+      });
+      await this.clearOldTransactions();
+
       // Store userId for purchase update handler
       this.currentUserId = userId;
 
@@ -599,9 +606,9 @@ export class AppleStoreKitService {
       const purchaseTime = new Date(purchase.transactionDate).getTime();
       const purchaseAge = Date.now() - purchaseTime;
 
-      // CRITICAL: Always reject transactions older than 5 minutes
+      // CRITICAL: Always reject transactions older than 2 minutes
       // This prevents old cached purchases from being processed on app restart
-      if (purchaseAge > 5 * 60 * 1000) {
+      if (purchaseAge > 2 * 60 * 1000) {
         Logger.warn(`[StoreKit][${debugId}] ⚠️ STEP 2: STALE TRANSACTION DETECTED - Finishing and rejecting`, {
           component: 'AppleStoreKitService',
           purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
