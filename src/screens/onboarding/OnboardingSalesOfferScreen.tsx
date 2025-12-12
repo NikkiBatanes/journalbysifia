@@ -769,8 +769,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
 
             // Verify subscription state
-            const expectedTier = shouldUseTrialProduct 
-              ? 'free_trial' 
+            const expectedTier = shouldUseTrialProduct
+              ? 'free_trial'
               : isAnnual ? `${selectedTier}_annual` : selectedTier;
             if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
@@ -949,8 +949,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
 
             // Verify subscription state
-            const expectedTier = shouldUseTrialProduct 
-              ? 'free_trial' 
+            const expectedTier = shouldUseTrialProduct
+              ? 'free_trial'
               : isAnnual ? `${selectedTier}_annual` : selectedTier;
             if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {

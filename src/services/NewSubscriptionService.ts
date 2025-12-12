@@ -827,11 +827,11 @@ export class NewSubscriptionService {
    */
   private static isValidUpgrade(from: SubscriptionTier, to: SubscriptionTier): boolean {
     const tierHierarchy = ['seeker', 'free_trial', 'spark', 'growth', 'transformation']; // POST-LAUNCH: add 'family'
-    
+
     // Strip _annual suffix for comparison
     const fromBase = from.replace(/_annual$/, '');
     const toBase = to.replace(/_annual$/, '');
-    
+
     const fromIndex = tierHierarchy.indexOf(fromBase);
     const toIndex = tierHierarchy.indexOf(toBase);
 
