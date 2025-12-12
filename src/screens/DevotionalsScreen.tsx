@@ -501,9 +501,9 @@ const DevotionalsScreen = () => {
         if (ref && typeof ref.close === 'function') { ref.close(); }
       });
     } catch {}
-    // Reset UI filter but DON'T reset modal state here
-    // The modal should only close when user explicitly closes it or navigates away
+    // Reset UI filter and modal
     setFilter('ongoing');
+    setShowDevotionalModal(false);
   }, [sections]);
 
   // Listen for tab presses to reset
@@ -519,16 +519,6 @@ const DevotionalsScreen = () => {
       }
     };
   }, [navigation, resetToTop]);
-
-  // Close modal when navigating away from Devotionals screen
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('blur', () => {
-      setShowDevotionalModal(false);
-      setFilter('ongoing');
-    });
-
-    return unsubscribe;
-  }, [navigation]);
 
   // Fallback: whenever this screen gains focus, ensure it's at the top
   useFocusEffect(
@@ -743,6 +733,19 @@ const DevotionalsScreen = () => {
               );
             })()
           )}
+
+          {/* Devotional creation modal triggered from empty-state playbook cards */}
+          <DevotionalModal
+            visible={showDevotionalModal}
+            onClose={() => setShowDevotionalModal(false)}
+            playbookId={selectedPlaybookId || undefined}
+            playbookInfo={selectedPlaybookInfo || undefined}
+            userInput={selectedPlaybookInfo || undefined}
+            onDevotionalCreated={(devotionalId) => {
+              // Navigate straight to the newly created devotional
+              navigation.navigate('DevotionalDetail', { devotionalId });
+            }}
+          />
         </View>
       </SafeAreaView>
     );
@@ -835,7 +838,7 @@ const DevotionalsScreen = () => {
         )}
       </BlueSheet>
 
-      {/* Devotional creation modal triggered from empty-state playbook cards */}
+      {/* Devotional creation modal - available in both empty and non-empty states */}
       <DevotionalModal
         visible={showDevotionalModal}
         onClose={() => setShowDevotionalModal(false)}
