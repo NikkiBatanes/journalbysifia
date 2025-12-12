@@ -501,9 +501,9 @@ const DevotionalsScreen = () => {
         if (ref && typeof ref.close === 'function') { ref.close(); }
       });
     } catch {}
-    // Reset UI filter and modal
+    // Reset UI filter but DON'T reset modal state here
+    // The modal should only close when user explicitly closes it or navigates away
     setFilter('ongoing');
-    setShowDevotionalModal(false);
   }, [sections]);
 
   // Listen for tab presses to reset
@@ -519,6 +519,16 @@ const DevotionalsScreen = () => {
       }
     };
   }, [navigation, resetToTop]);
+
+  // Close modal when navigating away from Devotionals screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      setShowDevotionalModal(false);
+      setFilter('ongoing');
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   // Fallback: whenever this screen gains focus, ensure it's at the top
   useFocusEffect(
