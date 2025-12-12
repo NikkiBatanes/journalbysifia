@@ -506,7 +506,7 @@ export class AppleStoreKitService {
         component: 'AppleStoreKitService',
         productId,
       });
-      
+
       this.clearOldTransactions().catch(() => {
         Logger.warn('[StoreKit] Background transaction cleanup failed (non-blocking)', { component: 'AppleStoreKitService' });
       });
@@ -697,23 +697,28 @@ export class AppleStoreKitService {
           userId: this.currentUserId || 'unknown',
           productId: purchase.productId,
           hasReceipt: !!purchase.transactionReceipt,
+          receiptLength: purchase.transactionReceipt?.length,
         });
 
+        const validationStartTime = Date.now();
         serverValidation = await this.validateReceiptServerSide(
           purchase.transactionReceipt,
           this.currentUserId || '',
           purchase.productId
         );
+        const validationDuration = Date.now() - validationStartTime;
 
         Logger.info(`[StoreKit][${debugId}] ✅ STEP 4: Server validation completed`, {
           component: 'AppleStoreKitService',
           success: serverValidation.success,
           hasData: !!serverValidation.data,
           errorMessage: serverValidation.error,
+          duration: validationDuration,
         });
       } catch (serverError) {
-        Logger.error(`[StoreKit][${debugId}] ❌ STEP 4: Server validation threw error`, new Error(serverValidation.error || 'Unknown server error'), {
+        Logger.error(`[StoreKit][${debugId}] ❌ STEP 4: Server validation threw error`, serverError as Error, {
           component: 'AppleStoreKitService',
+          errorMessage: serverValidation.error,
         });
       }
 
@@ -726,10 +731,17 @@ export class AppleStoreKitService {
         // Still try client-side validation as fallback
         const isValid = await this.validateReceipt(purchase);
         if (!isValid) {
-          Logger.error('[StoreKit] Both server and client validation failed, skipping purchase', {
+          Logger.error('[StoreKit] Both server and client validation failed, rejecting purchase', {
             component: 'AppleStoreKitService',
             productId: purchase.productId,
           });
+
+          // CRITICAL: Reject the purchase promise
+          const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
+          if (resolver) {
+            resolver.reject(new Error('Receipt validation failed'));
+            this.pendingPurchaseResolvers.delete(purchase.productId);
+          }
           return;
         } else {
           Logger.info('[StoreKit] Client validation succeeded as fallback', {
@@ -748,6 +760,17 @@ export class AppleStoreKitService {
       const tier = this.getSubscriptionTierFromProductId(purchase.productId);
 
       if (!tier) {
+        Logger.error('[StoreKit] Could not map product ID to tier, rejecting purchase', {
+          component: 'AppleStoreKitService',
+          productId: purchase.productId,
+        });
+
+        // CRITICAL: Reject the purchase promise
+        const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
+        if (resolver) {
+          resolver.reject(new Error('Invalid product ID'));
+          this.pendingPurchaseResolvers.delete(purchase.productId);
+        }
         return;
       }
 
