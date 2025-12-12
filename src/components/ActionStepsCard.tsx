@@ -104,6 +104,7 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
     detected_journal_type: typeof task === 'object' ? task.detected_journal_type : undefined,
     is_example: typeof task === 'object' ? task.is_example : false,
     example_interactive: typeof task === 'object' ? task.example_interactive : false,
+    _protected: typeof task === 'object' ? task._protected : undefined,
   }));
 
   // Debug: Log normalized subtasks after normalization
@@ -200,6 +201,8 @@ export default function ActionStepsCard({
       subTasks: step.subTasks?.map(subTask => ({
         ...subTask,
         text: cleanMarkdown(subTask.text),
+        // CRITICAL: Preserve protected flag
+        _protected: subTask._protected,
       })),
     }));
 
@@ -1006,6 +1009,7 @@ export default function ActionStepsCard({
                   is_example: true,
                   example_interactive: false,
                   detected_journal_type: 'none',
+                  _protected: undefined,
                 }));
                 subtasks = [...subtasks, ...exampleSubtasks];
                 examples = []; // Clear to avoid duplication below
