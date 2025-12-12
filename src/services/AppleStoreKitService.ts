@@ -1564,18 +1564,38 @@ export class AppleStoreKitService {
     }
   }
 
-  /**
+/**
    * Restore purchases - useful for users who reinstalled app
    * ENTERPRISE IMPROVEMENT: Now validates all restored purchases server-side
    * This prevents fraud and ensures subscription status is accurate
    */
   async restorePurchases(userId: string): Promise<{ success: boolean; message: string; validated?: number }> {
     try {
+      Logger.info('[StoreKit] 🔄 Starting restore purchases flow', {
+        component: 'AppleStoreKitService',
+        userId: userId.substring(0, 10) + '...',
+      });
 
       await this.initialize();
 
+      // CRITICAL: Prevent concurrent restore requests
+      if (this.purchaseInitiatedTimestamp) {
+        Logger.warn('[StoreKit] ⚠️ Purchase in progress, cannot restore now', {
+          component: 'AppleStoreKitService',
+        });
+        return {
+          success: false,
+          message: 'A purchase is currently in progress. Please wait and try again.',
+        };
+      }
+
       // Get all available purchases from device
       const availablePurchases = await RNIap.getAvailablePurchases();
+
+      Logger.info('[StoreKit] Available purchases retrieved', {
+        component: 'AppleStoreKitService',
+        count: availablePurchases.length,
+      });
 
       if (availablePurchases.length === 0) {
         return {
@@ -1584,36 +1604,80 @@ export class AppleStoreKitService {
         };
       }
 
-      // ENTERPRISE IMPROVEMENT: Validate each purchase server-side
+      // ENTERPRISE IMPROVEMENT: Validate each purchase server-side with timeout
       let validatedCount = 0;
-      for (const purchase of availablePurchases) {
+      let finishedCount = 0;
+      const validationPromises = availablePurchases.map(async (purchase) => {
         try {
+          Logger.info('[StoreKit] Validating restored purchase', {
+            component: 'AppleStoreKitService',
+            productId: purchase.productId,
+            transactionDate: purchase.transactionDate,
+          });
 
-          const validationResult = await this.validateReceiptServerSide(
-            purchase.transactionReceipt,
-            userId,
-            purchase.productId
-          );
+          // Add timeout to validation
+          const validationTimeout = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Validation timeout')), 15000);
+          });
+
+          const validationResult = await Promise.race([
+            this.validateReceiptServerSide(
+              purchase.transactionReceipt,
+              userId,
+              purchase.productId
+            ),
+            validationTimeout,
+          ]);
 
           if (validationResult.success) {
             validatedCount++;
+            Logger.info('[StoreKit] ✅ Restored purchase validated successfully', {
+              component: 'AppleStoreKitService',
+              productId: purchase.productId,
+            });
 
+            // CRITICAL: Finish transaction to prevent it from reappearing
+            try {
+              await finishTransaction({ purchase, isConsumable: false });
+              finishedCount++;
+              Logger.info('[StoreKit] ✅ Restored purchase finished', {
+                component: 'AppleStoreKitService',
+                productId: purchase.productId,
+              });
+            } catch (finishError) {
+              Logger.error('[StoreKit] Failed to finish restored purchase', finishError as Error, {
+                component: 'AppleStoreKitService',
+                productId: purchase.productId,
+              });
+            }
           } else {
             Logger.warn('[StoreKit] ⚠️ Restored purchase validation failed', {
-        component: 'AppleStoreKitService',
-        details: purchase.productId,
-      });
+              component: 'AppleStoreKitService',
+              details: purchase.productId,
+              errorMessage: validationResult.error,
+            });
           }
         } catch (error) {
           Logger.error('[StoreKit] Error validating restored purchase', error as Error, {
-      component: 'AppleStoreKitService',
-      action: 'error',
-    });
+            component: 'AppleStoreKitService',
+            action: 'error',
+            productId: purchase.productId,
+          });
         }
-      }
+      });
+
+      // Wait for all validations to complete
+      await Promise.all(validationPromises);
+
+      Logger.info('[StoreKit] All restored purchases processed', {
+        component: 'AppleStoreKitService',
+        total: availablePurchases.length,
+        validated: validatedCount,
+        finished: finishedCount,
+      });
 
       // Sync status with latest validated purchase
-      await this.checkAndSyncSubscriptionStatus(userId);
+      await this.checkAndSyncSubscriptionStatus(userId, false);
 
       return {
         success: true,
@@ -1623,9 +1687,9 @@ export class AppleStoreKitService {
 
     } catch (error) {
       Logger.error('[StoreKit] Failed to restore purchases', error as Error, {
-      component: 'AppleStoreKitService',
-      action: 'error',
-    });
+        component: 'AppleStoreKitService',
+        action: 'error',
+      });
 
       const rawMessage = error instanceof Error ? error.message : undefined;
 
