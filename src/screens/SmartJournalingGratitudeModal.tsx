@@ -48,7 +48,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
 
   const { user } = useAuth();
-  const { handleToggleStep, actionSteps } = useActionSteps();
+  const { handleAutoCheckStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
   // New success modal system
   const successModal = useSuccessModal(
@@ -284,20 +284,11 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       }
 
       // PERFORMANCE: Handle action steps completion asynchronously (non-blocking)
-      if (stepId && subtaskId && handleToggleStep && actionSteps && actionSteps.length > 0) {
+      if (stepId && subtaskId && handleAutoCheckStep) {
         // Run in next tick to avoid blocking UI
         setTimeout(() => {
-          const step = actionSteps.find(s => s.id === stepId);
-          if (step) {
-            if (subtaskId) {
-              const subtask = step.subTasks?.find(st => st.id === subtaskId);
-              if (subtask && !subtask.completed) {
-                handleToggleStep(stepId, subtaskId);
-              }
-            } else if (!step.completed) {
-              handleToggleStep(stepId, subtaskId);
-            }
-          }
+          // Auto-check and protect the subtask
+          handleAutoCheckStep(stepId, subtaskId);
         }, 0);
       }
 

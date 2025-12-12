@@ -51,7 +51,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   // Log all props received by SmartJournalingPrayerModal
 
   const { user } = useAuth();
-  const { handleToggleStep, actionSteps } = useActionSteps();
+  const { handleAutoCheckStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
   const { trackPrayer } = useNotificationIntegration();
 
@@ -364,41 +364,10 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         }
       }
 
-      // Mark subtask as completed immediately since data is saved (only for new prayers)
-      if (stepId && subtaskId && handleToggleStep && !currentPrayerEntry?.id) {
-
-        // Check if the step/subtask is already completed before toggling
-        const step = actionSteps.find(s => s.id === stepId);
-
-        if (step) {
-          if (subtaskId) {
-            // Check subtask completion
-            const subtask = step.subTasks?.find(st => st.id === subtaskId);
-
-            if (subtask && !subtask.completed) {
-
-              handleToggleStep(stepId, subtaskId);
-
-            } else {
-
-            }
-          } else {
-            // Check step completion
-            if (!step.completed) {
-
-              handleToggleStep(stepId, subtaskId);
-
-            } else {
-
-            }
-          }
-        } else {
-          Logger.warn('🙏 SmartJournalingPrayerModal: Step not found in actionSteps', {
-        component: 'SmartJournalingPrayerModal',
-            stepId,
-            availableStepIds: actionSteps?.map(s => s.id) || [],
-          });
-        }
+      // Mark subtask as completed and protected immediately since data is saved (only for new prayers)
+      if (stepId && subtaskId && handleAutoCheckStep && !currentPrayerEntry?.id) {
+        // Auto-check and protect the subtask
+        handleAutoCheckStep(stepId, subtaskId);
       } else {
 
       }

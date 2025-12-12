@@ -41,7 +41,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 }) => {
 
   const { user } = useAuth();
-  const { handleToggleStep, actionSteps } = useActionSteps();
+  const { handleAutoCheckStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
 
   // Store the initial metadata to preserve it
@@ -271,47 +271,14 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         result = await createTimeBlockMutation.mutateAsync(timeBlockEntry);
       }
 
-      // Call parent onSave callback
-      onSave(result);
-
-      // Mark subtask as completed immediately since data is saved (only for new time blocks)
-      if (stepId && subtaskId && handleToggleStep && !isEditSession) {
-
-        // Check if the step/subtask is already completed before toggling
-        const step = actionSteps.find(s => s.id === stepId);
-
-        if (step) {
-          if (subtaskId) {
-            // Check subtask completion
-            const subtask = step.subTasks?.find(st => st.id === subtaskId);
-
-            if (subtask && !subtask.completed) {
-
-              handleToggleStep(stepId, subtaskId);
-
-            } else {
-
-            }
-          } else {
-            // Check step completion
-            if (!step.completed) {
-
-              handleToggleStep(stepId, subtaskId);
-
-            } else {
-
-            }
-          }
-        } else {
-          Logger.warn('📅 SmartJournalingTimeBlockModal: Step not found in actionSteps', {
-        component: 'SmartJournalingTimeBlockModal',
-            stepId,
-            availableStepIds: actionSteps?.map(s => s.id) || [],
-          });
-        }
-      } else {
-
+      // Mark subtask as completed and protected immediately since data is saved (only for new time blocks)
+      if (stepId && subtaskId && handleAutoCheckStep && !isEditSession) {
+        // Auto-check and protect the subtask
+        handleAutoCheckStep(stepId, subtaskId);
       }
+
+      // Notify parent of successful save
+      onSave(result);
 
       // Show success modal after cache invalidation completes
       setTimeout(() => {
