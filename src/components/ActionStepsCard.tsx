@@ -632,7 +632,23 @@ export default function ActionStepsCard({
 
       // Auto-check the subtask when reflection is saved
       if (selectedSubtask?.subTask?.id && selectedSubtask?.stepInfo?.stepId) {
+        // Calculate the new completed state (should be true since we're auto-checking)
+        const newCompletedState = true;
+        
+        // Update context
         handleToggleStep(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id);
+        
+        // Persist to database if mutation callback is provided
+        if (onToggleSubTaskMutation) {
+          try {
+            await onToggleSubTaskMutation(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id, newCompletedState);
+          } catch (error) {
+            Logger.error('[ActionStepsCard] Failed to persist auto-check from reflection save', error as Error, {
+              component: 'ActionStepsCard',
+              data: { stepId: selectedSubtask.stepInfo.stepId, subTaskId: selectedSubtask.subTask.id },
+            });
+          }
+        }
       }
     } finally {
       // End operation protection after save completes
@@ -644,7 +660,7 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id, selectedSubtask, handleToggleStep]);
+  }, [queryClient, user?.id, selectedSubtask, handleToggleStep, onToggleSubTaskMutation]);
 
   const handleReflectionCancel = React.useCallback(() => {
 
