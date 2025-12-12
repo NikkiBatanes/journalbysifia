@@ -3,7 +3,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, DeviceEventEmitter } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
@@ -500,6 +500,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           const originalId = parts.slice(0, 5).join('-');
 
           await deleteMutation.mutateAsync(originalId);
+          
+          // CRITICAL FIX: Emit timeblock delete event to refresh Moments screen
+          DeviceEventEmitter.emit('timeblock_deleted', { timeblockId: originalId });
         }
       } else {
 
@@ -633,6 +636,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Delete entire event from database
           await deleteMutation.mutateAsync(timeBlock.id);
+          
+          // CRITICAL FIX: Emit timeblock delete event to refresh Moments screen
+          DeviceEventEmitter.emit('timeblock_deleted', { timeblockId: timeBlock.id });
         }
       }
 
@@ -775,6 +781,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             } as const;
 
             const created = await createMutation.mutateAsync(createData as any);
+
+            // CRITICAL FIX: Emit timeblock event to refresh Moments screen
+            DeviceEventEmitter.emit('timeblock_saved', { timeblock: created });
 
             // Optional: sync to calendar for the one-off instance (only if autoSync is enabled)
             if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
@@ -960,6 +969,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         };
 
         const createResult = await createMutation.mutateAsync(timeBlockData);
+
+        // CRITICAL FIX: Emit timeblock event to refresh Moments screen
+        DeviceEventEmitter.emit('timeblock_saved', { timeblock: createResult });
 
         // Sync new time block to calendar when autoSync is enabled
         if (calendarGating.canSyncToCalendar && autoSyncEnabled) {

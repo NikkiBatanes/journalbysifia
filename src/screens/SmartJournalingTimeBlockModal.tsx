@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Logger } from '../utils/ProductionLogger';
-import { Modal, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Alert,
+  DeviceEventEmitter,
+  StatusBar,
+} from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
@@ -11,6 +20,7 @@ import { useActionSteps } from '../context/ActionStepsContext';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { TimeBlockApi, TimeBlockApiEntry } from '../services/api/timeBlockApi';
 import { toLocalDateString } from '../utils/date';
+import { Logger } from '../utils/ProductionLogger';
 
 interface SmartJournalingTimeBlockModalProps {
   visible: boolean;
@@ -279,6 +289,9 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       // Notify parent of successful save
       onSave(result);
+
+      // CRITICAL FIX: Emit timeblock event to refresh Moments screen
+      DeviceEventEmitter.emit('timeblock_saved', { timeblock: result });
 
       // Show success modal after cache invalidation completes
       setTimeout(() => {

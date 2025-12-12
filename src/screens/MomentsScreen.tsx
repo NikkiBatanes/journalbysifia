@@ -69,10 +69,16 @@ export const MomentsScreen: React.FC = () => {
 
     const savedSubscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionChanged);
     const deletedSubscription = DeviceEventEmitter.addListener('reflection_deleted', handleReflectionChanged);
+    
+    // CRITICAL FIX: Also listen for timeblock events to refresh when timeblocks are saved
+    const timeblockSavedSubscription = DeviceEventEmitter.addListener('timeblock_saved', handleReflectionChanged);
+    const timeblockDeletedSubscription = DeviceEventEmitter.addListener('timeblock_deleted', handleReflectionChanged);
 
     return () => {
       savedSubscription.remove();
       deletedSubscription.remove();
+      timeblockSavedSubscription.remove();
+      timeblockDeletedSubscription.remove();
     };
   }, []);
 
