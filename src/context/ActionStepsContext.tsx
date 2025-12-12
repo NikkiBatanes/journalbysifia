@@ -115,13 +115,19 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       const updatedSteps = [...prevCopy];
       const step = { ...updatedSteps[stepIndex] };
 
-      // Ensure subTasks is an array
+      // Ensure subTasks is an array and normalize only if needed
       if (!Array.isArray(step.subTasks)) {
         step.subTasks = [];
       } else {
-        step.subTasks = step.subTasks.map((task, index) =>
-          normalizeSubTask(task, index, stepId)
-        );
+        // Only normalize subtasks that don't have proper structure
+        // This prevents resetting completion states during toggles
+        step.subTasks = step.subTasks.map((task, index) => {
+          // Check if task already has proper structure
+          if (task && typeof task === 'object' && task.id && typeof task.completed === 'boolean') {
+            return task; // Return as-is to preserve completion state
+          }
+          return normalizeSubTask(task, index, stepId);
+        });
       }
 
       if (subTaskId && step.subTasks.length > 0) {
