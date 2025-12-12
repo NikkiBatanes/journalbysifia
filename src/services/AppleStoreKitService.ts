@@ -201,7 +201,7 @@ export class AppleStoreKitService {
     try {
       const clearPromise = this.clearOldTransactions();
       const timeoutPromise = new Promise<void>((_, reject) => {
-        setTimeout(() => reject(new Error('clearOldTransactions timeout')), 3000);
+        setTimeout(() => reject(new Error('clearOldTransactions timeout')), 10000);
       });
 
       await Promise.race([clearPromise, timeoutPromise]);
@@ -240,17 +240,36 @@ export class AppleStoreKitService {
 
       Logger.debug('[StoreKit] Step 3.2: Processing old transactions', { component: 'AppleStoreKitService', count: availablePurchases.length });
 
-      for (const purchase of availablePurchases) {
-        const purchaseTime = new Date(purchase.transactionDate).getTime();
-        const purchaseAge = Date.now() - purchaseTime;
+      // CRITICAL: Finish ALL available purchases to ensure clean state
+      // This is more aggressive but prevents stale transactions from interfering
+      const finishPromises = availablePurchases.map(async (purchase) => {
+        try {
+          const purchaseTime = new Date(purchase.transactionDate).getTime();
+          const purchaseAge = Date.now() - purchaseTime;
 
-        // Clear transactions older than 2 minutes
-        if (purchaseAge > 2 * 60 * 1000) {
-          Logger.debug('[StoreKit] Clearing old cached transaction', { component: 'AppleStoreKitService', productId: purchase.productId, ageMinutes: Math.round(purchaseAge / 60000) });
+          // Clear transactions older than 2 minutes
+          if (purchaseAge > 2 * 60 * 1000) {
+            Logger.debug('[StoreKit] Clearing old cached transaction', { 
+              component: 'AppleStoreKitService', 
+              productId: purchase.productId, 
+              ageMinutes: Math.round(purchaseAge / 60000) 
+            });
 
-          await finishTransaction({ purchase, isConsumable: false });
+            await finishTransaction({ purchase, isConsumable: false });
+          }
+        } catch (err) {
+          Logger.warn('[StoreKit] Failed to finish transaction', { 
+            component: 'AppleStoreKitService',
+            productId: purchase.productId,
+            error: err instanceof Error ? err.message : 'Unknown'
+          });
         }
-      }
+      });
+
+      // Wait for all finish operations to complete
+      await Promise.all(finishPromises);
+      
+      Logger.info('[StoreKit] All old transactions processed', { component: 'AppleStoreKitService' });
     } catch (error) {
       Logger.error('[StoreKit] Error clearing old transactions', error as Error, {
         component: 'AppleStoreKitService',
@@ -487,7 +506,18 @@ export class AppleStoreKitService {
         component: 'AppleStoreKitService',
         productId,
       });
-      await this.clearOldTransactions();
+      
+      try {
+        const clearPromise = this.clearOldTransactions();
+        const timeoutPromise = new Promise<void>((_, reject) => {
+          setTimeout(() => reject(new Error('clearOldTransactions timeout')), 10000);
+        });
+        await Promise.race([clearPromise, timeoutPromise]);
+        Logger.info('[StoreKit] ✅ Old transactions cleared successfully before purchase', { component: 'AppleStoreKitService' });
+      } catch (error) {
+        Logger.warn('[StoreKit] ⚠️ Could not clear all old transactions within timeout', { component: 'AppleStoreKitService' });
+        // Continue anyway - the purchase flow will reject stale transactions
+      }
 
       // Store userId for purchase update handler
       this.currentUserId = userId;
