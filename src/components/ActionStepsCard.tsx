@@ -29,6 +29,7 @@ type SubTask = {
   detected_journal_type?: string;
   is_example?: boolean;
   example_interactive?: boolean;
+  _protected?: boolean; // Protected flag for auto-checked subtasks
 };
 
 type ActionStep = {
@@ -139,7 +140,7 @@ export default function ActionStepsCard({
   onToggleSubTaskMutation,
 }: ActionStepsCardProps) {
   const { user } = useAuth();
-  const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
+  const { actionSteps: contextSteps, handleToggleStep, handleAutoCheckStep } = useActionSteps();
   const queryClient = useQueryClient();
   const [selectedSubtask, setSelectedSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -630,25 +631,9 @@ export default function ActionStepsCard({
 
       }
 
-      // Auto-check the subtask when reflection is saved
+      // Auto-check the subtask when reflection is saved (PROTECTED)
       if (selectedSubtask?.subTask?.id && selectedSubtask?.stepInfo?.stepId) {
-        // Calculate the new completed state (should be true since we're auto-checking)
-        const newCompletedState = true;
-        
-        // Update context
-        handleToggleStep(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id);
-        
-        // Persist to database if mutation callback is provided
-        if (onToggleSubTaskMutation) {
-          try {
-            await onToggleSubTaskMutation(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id, newCompletedState);
-          } catch (error) {
-            Logger.error('[ActionStepsCard] Failed to persist auto-check from reflection save', error as Error, {
-              component: 'ActionStepsCard',
-              data: { stepId: selectedSubtask.stepInfo.stepId, subTaskId: selectedSubtask.subTask.id },
-            });
-          }
-        }
+        handleAutoCheckStep(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id);
       }
     } finally {
       // End operation protection after save completes
@@ -660,7 +645,7 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id, selectedSubtask, handleToggleStep, onToggleSubTaskMutation]);
+  }, [queryClient, user?.id, selectedSubtask, handleAutoCheckStep]);
 
   const handleReflectionCancel = React.useCallback(() => {
 

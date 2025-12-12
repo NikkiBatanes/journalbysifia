@@ -86,14 +86,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const successModal = useSuccessModal(
     () => {
       // Done callback - close the main modal
-      // Dismiss keyboard aggressively to prevent ghosting
+      // Single keyboard dismissal - no animation
       Keyboard.dismiss();
-
-      // Add a second dismissal after a small delay to catch any late keyboard appearances
-      setTimeout(() => {
-        Keyboard.dismiss();
-      }, 100);
-
       onCancel(); // This closes the main modal
     },
     () => {
@@ -356,22 +350,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   };
 
   const handleCancel = () => {
-    // Dismiss keyboard immediately to prevent it from appearing after modal closes
+    // Single keyboard dismissal - prevents slide animation
     Keyboard.dismiss();
-
-    // Completion state handled by parent component
     onCancel();
   };
 
-  // Log main modal visibility changes
+  // Dismiss keyboard once when modal closes
   useEffect(() => {
-    // Dismiss keyboard when modal becomes invisible to prevent keyboard ghosting
     if (!visible) {
       Keyboard.dismiss();
-      // Add multiple dismissals to catch any late keyboard appearances
-      setTimeout(() => Keyboard.dismiss(), 50);
-      setTimeout(() => Keyboard.dismiss(), 150);
-      setTimeout(() => Keyboard.dismiss(), 300);
     }
   }, [visible]);
 

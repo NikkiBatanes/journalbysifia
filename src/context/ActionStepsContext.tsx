@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { updatePlaybookActionSteps, calculateTaskStats } from '../services/apiIntegration';
 import { usePlaybookStore } from '../store/usePlaybookStore';
@@ -8,6 +8,8 @@ export type SubTask = {
   id: string;
   text: string;
   completed: boolean;
+  // Protected flag to prevent override of auto-checked states
+  _protected?: boolean;
 };
 
 export type ActionStep = {
@@ -23,6 +25,7 @@ type ActionStepsContextType = {
   actionSteps: ActionStep[];
   setActionSteps: React.Dispatch<React.SetStateAction<ActionStep[]>>;
   handleToggleStep: (stepId: string, subTaskId?: string) => void;
+  handleAutoCheckStep: (stepId: string, subTaskId: string) => void; // New method for auto-checking
   getCompletedStepsCount: () => { completed: number; total: number };
   saveActionSteps: (playbookId: string) => Promise<void>;
 };
@@ -40,8 +43,34 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
   children,
   playbookId,
 }) => {
-  const [actionSteps, setActionSteps] = useState<ActionStep[]>(initialSteps);
+  const [actionSteps, setActionStepsInternal] = useState<ActionStep[]>(initialSteps);
   const { updatePlaybook } = usePlaybookStore();
+  
+  // Protected subtask tracking - preserves auto-checked states
+  const protectedSubtasks = useRef<Set<string>>(new Set());
+
+  // Wrapper for setActionSteps that preserves protected states
+  const setActionSteps = useCallback((updater: React.SetStateAction<ActionStep[]>) => {
+    setActionStepsInternal(prev => {
+      const nextSteps = typeof updater === 'function' ? updater(prev) : updater;
+      
+      // Preserve protected subtasks in the new state
+      return nextSteps.map(step => ({
+        ...step,
+        subTasks: step.subTasks?.map(subTask => {
+          const isProtected = protectedSubtasks.current.has(subTask.id);
+          if (isProtected) {
+            return {
+              ...subTask,
+              completed: true,
+              _protected: true,
+            };
+          }
+          return subTask;
+        }),
+      }));
+    });
+  }, []);
 
   const getCompletedStepsCount = useCallback(() => {
     let completed = 0;
@@ -80,7 +109,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
     return { completed, total };
   }, [actionSteps]);
 
-  const normalizeSubTask = useCallback((task: SubTask | string, index: number, stepId: string): SubTask => {
+  const normalizeSubTask = useCallback((task: SubTask | string, index: number, stepId: string, preserveProtected: boolean = true): SubTask => {
     if (typeof task === 'string') {
       return {
         id: `${stepId}-subtask-${index}`,
@@ -88,15 +117,97 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
         completed: false,
       };
     }
+    
+    // Check if this subtask is protected (auto-checked)
+    const subtaskId = task.id || `${stepId}-subtask-${index}`;
+    const isProtected = preserveProtected && protectedSubtasks.current.has(subtaskId);
+    
     // Ensure the task has all required properties
     return {
       id: task.id || `${stepId}-subtask-${index}`,
       text: task.text || '',
-      completed: Boolean(task.completed),
+      completed: isProtected ? true : Boolean(task.completed), // Preserve true if protected
+      _protected: isProtected,
     };
   }, []);
 
   // Helper function removed as it was unused
+
+  // New enterprise-grade method for auto-checking subtasks (protected)
+  const handleAutoCheckStep = useCallback((stepId: string, subTaskId: string) => {
+    Logger.info('[ActionStepsContext] Auto-checking subtask with protection', {
+      component: 'ActionStepsContext',
+      stepId,
+      subTaskId,
+    });
+
+    // Add to protected set to prevent future overrides
+    protectedSubtasks.current.add(subTaskId);
+
+    setActionSteps(prev => {
+      const prevCopy = [...prev];
+      const stepIndex = prevCopy.findIndex(step => step.id === stepId);
+
+      if (stepIndex === -1) {
+        Logger.warn(`[WARNING] Step with id ${stepId} not found for auto-check`, {
+          component: 'ActionStepsContext',
+          stepId,
+        });
+        return prevCopy;
+      }
+
+      const updatedSteps = [...prevCopy];
+      const step = { ...updatedSteps[stepIndex] };
+
+      // Ensure subTasks is an array with protected preservation
+      if (!Array.isArray(step.subTasks)) {
+        step.subTasks = [];
+      } else {
+        step.subTasks = step.subTasks.map((task, index) =>
+          normalizeSubTask(task, index, stepId, true) // Preserve protected states
+        );
+      }
+
+      // Auto-check the specific subtask (protected)
+      const subTaskIndex = step.subTasks.findIndex(st => st.id === subTaskId);
+      if (subTaskIndex !== -1) {
+        const updatedSubTasks = [...step.subTasks];
+        updatedSubTasks[subTaskIndex] = {
+          ...updatedSubTasks[subTaskIndex],
+          completed: true,
+          _protected: true, // Mark as protected
+        };
+
+        step.subTasks = updatedSubTasks;
+        const allSubTasksCompleted = step.subTasks.every(st => st.completed);
+        step.completed = allSubTasksCompleted;
+      }
+
+      updatedSteps[stepIndex] = step;
+
+      // Update the global playbook store if playbookId is provided
+      if (playbookId) {
+        const stats = calculateTaskStats(updatedSteps);
+
+        // Get the current playbook from the store to preserve other fields
+        const currentPlaybook = usePlaybookStore.getState().playbooks.find(p => p.id === playbookId);
+
+        if (currentPlaybook) {
+          const updatedPlaybook: Playbook = {
+            ...currentPlaybook,
+            actionSteps: updatedSteps,
+            progress: stats.completed / Math.max(stats.total, 1),
+            updatedAt: new Date().toISOString(),
+            totalTasks: stats.total,
+            status: stats.completed === stats.total && stats.total > 0 ? 'completed' : 'inProgress',
+          };
+          updatePlaybook(updatedPlaybook);
+        }
+      }
+
+      return updatedSteps;
+    });
+  }, [playbookId, updatePlaybook, normalizeSubTask]);
 
   const handleToggleStep = useCallback((stepId: string, subTaskId?: string) => {
 
@@ -115,26 +226,33 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       const updatedSteps = [...prevCopy];
       const step = { ...updatedSteps[stepIndex] };
 
-      // Ensure subTasks is an array and normalize only if needed
+      // Ensure subTasks is an array with protected preservation
       if (!Array.isArray(step.subTasks)) {
         step.subTasks = [];
       } else {
-        // Only normalize subtasks that don't have proper structure
-        // This prevents resetting completion states during toggles
-        step.subTasks = step.subTasks.map((task, index) => {
-          // Check if task already has proper structure
-          if (task && typeof task === 'object' && task.id && typeof task.completed === 'boolean') {
-            return task; // Return as-is to preserve completion state
-          }
-          return normalizeSubTask(task, index, stepId);
-        });
+        step.subTasks = step.subTasks.map((task, index) =>
+          normalizeSubTask(task, index, stepId, true) // Preserve protected states
+        );
       }
 
       if (subTaskId && step.subTasks.length > 0) {
 
-        // Toggle the subtask
+        // Toggle subtask (only if not protected)
         const subTaskIndex = step.subTasks.findIndex(st => st.id === subTaskId);
         if (subTaskIndex !== -1) {
+          const targetSubtask = step.subTasks[subTaskIndex];
+          
+          // Prevent toggle if subtask is protected (auto-checked)
+          if (targetSubtask._protected) {
+            Logger.info('[ActionStepsContext] Prevented toggle of protected subtask', {
+              component: 'ActionStepsContext',
+              stepId,
+              subTaskId,
+              isProtected: true,
+            });
+            return prevCopy; // Return unchanged state
+          }
+
           const updatedSubTasks = [...step.subTasks];
           updatedSubTasks[subTaskIndex] = {
             ...updatedSubTasks[subTaskIndex],
@@ -199,9 +317,10 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
     actionSteps,
     setActionSteps,
     handleToggleStep,
+    handleAutoCheckStep,
     getCompletedStepsCount,
     saveActionSteps,
-  }), [actionSteps, handleToggleStep, getCompletedStepsCount, saveActionSteps]);
+  }), [actionSteps, handleToggleStep, handleAutoCheckStep, getCompletedStepsCount, saveActionSteps]);
 
   return (
     <ActionStepsContext.Provider value={contextValue}>
