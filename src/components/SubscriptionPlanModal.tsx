@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     marginTop: 8,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
   },
   billingPeriodBadgeText: {
     fontSize: 11,
