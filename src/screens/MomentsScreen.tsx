@@ -214,6 +214,7 @@ export const MomentsScreen: React.FC = () => {
         style={styles.momentsRenderer}
         headerComponents={[]}
         onScroll={handleScroll}
+        searchCollapsed={isSearchCollapsed}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

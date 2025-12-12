@@ -35,6 +35,7 @@ interface EnhancedMomentsRendererProps {
   // Optional handler for empty-state CTA button
   onAddPress?: () => void;
   onScroll?: (event: any) => void;
+  searchCollapsed?: boolean;
 }
 
 interface MomentEntry {
@@ -455,6 +456,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   filterKeys = [],
   onAddPress,
   onScroll,
+  searchCollapsed = false,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -2459,8 +2461,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
         automaticallyAdjustKeyboardInsets={false}
-        contentInset={{ top: 0, bottom: 0, left: 0, right: 0 }}
-        scrollIndicatorInsets={{ top: 0, bottom: 0, left: 0, right: 0 }}
+        contentInset={{ top: searchCollapsed ? -60 : 0, bottom: 0, left: 0, right: 0 }}
+        scrollIndicatorInsets={{ top: searchCollapsed ? 60 : 0, bottom: 0, left: 0, right: 0 }}
         ListEmptyComponent={ListEmpty}
         onScroll={onScroll}
         onViewableItemsChanged={({ viewableItems }) => {
