@@ -166,23 +166,32 @@ serve(async (req) => {
 
           console.log('[AppleWebhook] ✅ Trial converted to', actualTier);
         } else {
-          // Regular renewal - reset monthly usage
+          // Regular renewal - reset usage and verify tier matches productId
           console.log('[AppleWebhook] Regular renewal - resetting usage');
+
+          // Extract tier from productId in case user changed billing cycle
+          const actualTier = getTierFromProductId(productId);
+          const paidLimits = getTierLimits(actualTier);
 
           await supabaseClient
             .from('user_subscriptions_new')
             .update({
+              tier: actualTier, // Update tier in case billing cycle changed
+              subscription_display_name: getTierDisplayName(actualTier),
+              playbooks_limit: paidLimits.playbooks_limit,
+              devotionals_limit: paidLimits.devotionals_limit,
+              smart_journaling_enabled: paidLimits.smart_journaling_enabled,
               platform_transaction_id: transactionId,
               billing_issue: false,
               grace_period_end_date: null,
-              playbooks_used: 0, // Reset monthly usage
+              playbooks_used: 0, // Reset usage on renewal
               devotionals_used: 0,
               subscription_start_date: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId);
 
-          console.log('[AppleWebhook] ✅ Renewal processed with usage reset');
+          console.log('[AppleWebhook] ✅ Renewal processed:', actualTier, 'with usage reset');
         }
         break;
       }
