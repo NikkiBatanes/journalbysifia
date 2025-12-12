@@ -55,9 +55,8 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       const nextSteps = typeof updater === 'function' ? updater(prev) : updater;
       
       // CRITICAL: Merge protected states back into ANY update
-      return nextSteps.map(step => ({
-        ...step,
-        subTasks: step.subTasks?.map(subTask => {
+      return nextSteps.map(step => {
+        const updatedSubTasks = step.subTasks?.map(subTask => {
           const isProtected = protectedSubtasks.current.has(subTask.id);
           if (isProtected) {
             // Force preserve protected subtasks
@@ -68,8 +67,19 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
             };
           }
           return subTask;
-        }),
-      }));
+        });
+
+        // Recalculate parent step completion based on subtasks
+        const allSubTasksCompleted = updatedSubTasks && updatedSubTasks.length > 0
+          ? updatedSubTasks.every(st => st.completed)
+          : step.completed;
+
+        return {
+          ...step,
+          subTasks: updatedSubTasks,
+          completed: allSubTasksCompleted,
+        };
+      });
     });
   }, []);
 
