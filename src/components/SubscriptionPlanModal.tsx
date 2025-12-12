@@ -65,12 +65,22 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     }
   }, [user?.id]);
 
-  // Load subscription data when modal opens
+  // CRITICAL: Refresh subscription data when modal becomes visible
   useEffect(() => {
     if (visible && user?.id) {
+      // Force refresh when modal opens to get latest data
       loadSubscriptionData();
+
+      // Also refresh after a short delay to catch any updates
+      const refreshTimer = setTimeout(() => {
+        if (visible && user?.id) {
+          loadSubscriptionData();
+        }
+      }, 1000);
+
+      return () => clearTimeout(refreshTimer);
     }
-  }, [visible, user?.id, loadSubscriptionData]);
+  }, [visible, loadSubscriptionData, user?.id]);
 
   const getTierInfo = (tier: string): {
     name: string;
