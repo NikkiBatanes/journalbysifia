@@ -762,13 +762,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             logger.info('🔄 SCREEN STEP 5: Verifying subscription update in database (UPGRADE MODE)', {
               userId: user?.id,
               selectedTier,
+              isAnnual,
               timestamp: new Date().toISOString(),
             });
 
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
 
             // Verify subscription state
-            const expectedTier = shouldUseTrialProduct ? 'free_trial' : selectedTier;
+            const expectedTier = shouldUseTrialProduct 
+              ? 'free_trial' 
+              : isAnnual ? `${selectedTier}_annual` : selectedTier;
             if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
@@ -776,6 +779,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 actualTier: updatedSubscription?.tier,
                 userId: user?.id,
                 shouldUseTrialProduct,
+                isAnnual,
               });
               throw new Error('Subscription update failed. Please contact support.');
             }
@@ -784,16 +788,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               tier: updatedSubscription.tier,
               status: updatedSubscription.status,
               isTrial: shouldUseTrialProduct,
+              isAnnual,
             });
 
             logger.info('✅ Database upgrade completed, starting cache refresh');
 
-            // OPTIMIZED: Single cache invalidation and parallel refresh
+            // CRITICAL: Force immediate cache refresh for subscription queries
+            queryClient.invalidateQueries({
+              queryKey: ['subscription'],
+              refetchType: 'all',
+            });
+
+            // OPTIMIZED: Parallel refresh of all subscription-related data
             await Promise.all([
-              queryClient.invalidateQueries({
-                queryKey: ['subscription', user?.id],
-                refetchType: 'active',
-              }),
               devotionalGating.refreshSubscription(),
               refreshNewSubscription().catch(() => {}),
             ]);
@@ -936,12 +943,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             logger.info('🔄 Verifying subscription update in database', {
               userId: user?.id,
               selectedTier,
+              isAnnual,
             });
 
             const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
 
             // Verify subscription state
-            const expectedTier = shouldUseTrialProduct ? 'free_trial' : selectedTier;
+            const expectedTier = shouldUseTrialProduct 
+              ? 'free_trial' 
+              : isAnnual ? `${selectedTier}_annual` : selectedTier;
             if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
@@ -949,6 +959,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 actualTier: updatedSubscription?.tier,
                 userId: user?.id,
                 shouldUseTrialProduct,
+                isAnnual,
               });
               throw new Error('Subscription update failed. Please contact support.');
             }
@@ -957,6 +968,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               tier: updatedSubscription.tier,
               status: updatedSubscription.status,
               isTrial: shouldUseTrialProduct,
+              isAnnual,
             });
 
             // OPTIMIZED: Single cache invalidation with parallel refresh
