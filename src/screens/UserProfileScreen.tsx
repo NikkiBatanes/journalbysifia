@@ -1620,7 +1620,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     const tierDisplayName = isSeeker ? 'Seeker' :
                            isSpark ? 'Spark Plan' :
                            isGrowth ? 'Growth Plan' :
-                           isTransformation ? 'Transformation Plan' : `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`;
+                           isTransformation ? 'Transformation Plan' :
+                           tier === 'free_trial' ? 'Free Trial Plan' : `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`;
 
     const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
 
