@@ -827,14 +827,19 @@ export class NewSubscriptionService {
    */
   private static isValidUpgrade(from: SubscriptionTier, to: SubscriptionTier): boolean {
     const tierHierarchy = ['seeker', 'free_trial', 'spark', 'growth', 'transformation']; // POST-LAUNCH: add 'family'
-    const fromIndex = tierHierarchy.indexOf(from);
-    const toIndex = tierHierarchy.indexOf(to);
+    
+    // Strip _annual suffix for comparison
+    const fromBase = from.replace(/_annual$/, '');
+    const toBase = to.replace(/_annual$/, '');
+    
+    const fromIndex = tierHierarchy.indexOf(fromBase);
+    const toIndex = tierHierarchy.indexOf(toBase);
 
     // POST-LAUNCH: Can upgrade from any tier to family
-    // if (to === 'family') {return true;}
+    // if (toBase === 'family') {return true;}
 
-    // Can upgrade to higher tiers
-    return toIndex > fromIndex;
+    // Can upgrade to higher tiers or same tier with different billing cycle
+    return toIndex >= fromIndex;
   }
 
   /**
