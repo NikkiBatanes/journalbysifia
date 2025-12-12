@@ -345,10 +345,11 @@ async function updateUserSubscription(
  * Map product ID to subscription tier
  */
 function mapProductIdToTier(productId: string): string {
-  if (productId.includes('spark')) {return 'spark';}
-  if (productId.includes('growth')) {return 'growth';}
-  if (productId.includes('transformation')) {return 'transformation';}
-  if (productId.includes('family')) {return 'family';}
+  const isAnnual = productId.includes('annual');
+  if (productId.includes('spark')) {return isAnnual ? 'spark_annual' : 'spark';}
+  if (productId.includes('growth')) {return isAnnual ? 'growth_annual' : 'growth';}
+  if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
+  if (productId.includes('family')) {return isAnnual ? 'family_annual' : 'family';}
   return 'seeker';
 }
 
@@ -377,6 +378,7 @@ function getTierLimits(tier: string): {
         show_dashboard_counts: true,
       };
     case 'spark':
+    case 'spark_annual':
       return {
         playbooks_limit: 8,
         devotionals_limit: 8,
@@ -384,6 +386,7 @@ function getTierLimits(tier: string): {
         show_dashboard_counts: true,
       };
     case 'growth':
+    case 'growth_annual':
       return {
         playbooks_limit: 20,
         devotionals_limit: 20,
@@ -391,6 +394,7 @@ function getTierLimits(tier: string): {
         show_dashboard_counts: true,
       };
     case 'transformation':
+    case 'transformation_annual':
       return {
         playbooks_limit: 999999,
         devotionals_limit: 999999,
