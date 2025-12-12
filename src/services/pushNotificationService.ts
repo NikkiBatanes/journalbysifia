@@ -44,6 +44,8 @@ class PushNotificationService {
   private isInitialized = false;
   private deviceToken: string | null = null;
   private eventListeners: Array<{ remove: () => void }> = [];
+  private notificationQueue: any[] = [];
+  private isProcessingQueue = false;
 
   async initialize(userId: string): Promise<void> {
     if (this.isInitialized) {
@@ -72,6 +74,15 @@ class PushNotificationService {
           await this.saveDeviceToken(userId, storedToken);
         }
       }
+
+      // ENTERPRISE: Load queued notifications from storage
+      await this.loadNotificationQueue();
+
+      // ENTERPRISE: Sync badge count on launch
+      await this.syncBadgeCount(userId);
+
+      // ENTERPRISE: Process any queued notifications
+      await this.processNotificationQueue(userId);
 
       this.isInitialized = true;
       Logger.info('[PushNotification] Initialization complete', {
@@ -535,13 +546,20 @@ class PushNotificationService {
       const userId = await AsyncStorage.getItem('current_user_id');
       if (userId) {
         await this.saveNotificationToHistory(userId, notification);
+
+        // ENTERPRISE: Update badge count
+        await this.syncBadgeCount(userId);
       } else {
-        Logger.warn('[PushNotification] No user ID found for notification history', {
+        // ENTERPRISE: Queue notification if no user ID (offline)
+        await this.queueNotification(notification);
+        Logger.warn('[PushNotification] No user ID found, notification queued', {
           component: 'pushNotificationService',
         });
       }
     } catch (error) {
-      Logger.error('[PushNotification] Failed to save notification on receive', error as Error, {
+      // ENTERPRISE: Queue on error for retry
+      await this.queueNotification(notification);
+      Logger.error('[PushNotification] Failed to save notification, queued for retry', error as Error, {
         component: 'pushNotificationService',
       });
     }
@@ -569,6 +587,194 @@ class PushNotificationService {
         component: 'pushNotificationService',
       });
     }
+  }
+
+  /**
+   * ENTERPRISE: Sync badge count from server
+   */
+  private async syncBadgeCount(userId: string): Promise<void> {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+      if (error) {
+        Logger.error('[PushNotification] Failed to sync badge count', error, {
+          component: 'pushNotificationService',
+        });
+        return;
+      }
+
+      if (count !== null) {
+        await this.setBadgeNumber(count);
+        Logger.info('[PushNotification] Badge count synced', {
+          component: 'pushNotificationService',
+          count,
+        });
+      }
+    } catch (error) {
+      Logger.error('[PushNotification] Error syncing badge count', error as Error, {
+        component: 'pushNotificationService',
+      });
+    }
+  }
+
+  /**
+   * ENTERPRISE: Process queued notifications
+   */
+  private async processNotificationQueue(userId: string): Promise<void> {
+    if (this.isProcessingQueue || this.notificationQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessingQueue = true;
+
+    try {
+      Logger.info('[PushNotification] Processing queued notifications', {
+        component: 'pushNotificationService',
+        count: this.notificationQueue.length,
+      });
+
+      const queue = [...this.notificationQueue];
+      this.notificationQueue = [];
+
+      for (const notification of queue) {
+        try {
+          await this.saveNotificationToHistory(userId, notification);
+        } catch (error) {
+          Logger.error('[PushNotification] Failed to process queued notification', error as Error, {
+            component: 'pushNotificationService',
+          });
+        }
+      }
+
+      // Clear persisted queue after successful processing
+      await AsyncStorage.removeItem('notification_queue');
+
+      Logger.info('[PushNotification] Queue processing complete', {
+        component: 'pushNotificationService',
+      });
+    } finally {
+      this.isProcessingQueue = false;
+    }
+  }
+
+  /**
+   * ENTERPRISE: Add notification to queue if offline
+   */
+  private async queueNotification(notification: any): Promise<void> {
+    this.notificationQueue.push({
+      ...notification,
+      queuedAt: Date.now(),
+    });
+
+    // Save queue to AsyncStorage for persistence
+    try {
+      await AsyncStorage.setItem(
+        'notification_queue',
+        JSON.stringify(this.notificationQueue)
+      );
+      Logger.info('[PushNotification] Notification queued', {
+        component: 'pushNotificationService',
+        queueSize: this.notificationQueue.length,
+      });
+    } catch (error) {
+      Logger.error('[PushNotification] Failed to persist queue', error as Error, {
+        component: 'pushNotificationService',
+      });
+    }
+  }
+
+  /**
+   * ENTERPRISE: Load queued notifications from storage
+   */
+  private async loadNotificationQueue(): Promise<void> {
+    try {
+      const queueData = await AsyncStorage.getItem('notification_queue');
+      if (queueData) {
+        this.notificationQueue = JSON.parse(queueData);
+        Logger.info('[PushNotification] Loaded notification queue', {
+          component: 'pushNotificationService',
+          count: this.notificationQueue.length,
+        });
+      }
+    } catch (error) {
+      Logger.error('[PushNotification] Failed to load queue', error as Error, {
+        component: 'pushNotificationService',
+      });
+    }
+  }
+
+  /**
+   * ENTERPRISE: Mark notification as read and update badge
+   */
+  async markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId)
+        .eq('user_id', userId);
+
+      if (error) {
+        Logger.error('[PushNotification] Failed to mark notification as read', error, {
+          component: 'pushNotificationService',
+        });
+        return;
+      }
+
+      // Update badge count
+      await this.syncBadgeCount(userId);
+
+      Logger.info('[PushNotification] Notification marked as read', {
+        component: 'pushNotificationService',
+        notificationId,
+      });
+    } catch (error) {
+      Logger.error('[PushNotification] Error marking notification as read', error as Error, {
+        component: 'pushNotificationService',
+      });
+    }
+  }
+
+  /**
+   * ENTERPRISE: Mark all notifications as read
+   */
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+      if (error) {
+        Logger.error('[PushNotification] Failed to mark all notifications as read', error, {
+          component: 'pushNotificationService',
+        });
+        return;
+      }
+
+      // Clear badge
+      await this.setBadgeNumber(0);
+
+      Logger.info('[PushNotification] All notifications marked as read', {
+        component: 'pushNotificationService',
+      });
+    } catch (error) {
+      Logger.error('[PushNotification] Error marking all notifications as read', error as Error, {
+        component: 'pushNotificationService',
+      });
+    }
+  }
+
+  /**
+   * ENTERPRISE: Force badge sync (call after notification actions)
+   */
+  async refreshBadgeCount(userId: string): Promise<void> {
+    await this.syncBadgeCount(userId);
   }
 
   /**
