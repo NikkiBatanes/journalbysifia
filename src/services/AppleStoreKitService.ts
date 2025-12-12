@@ -829,18 +829,18 @@ export class AppleStoreKitService {
    * Map product ID to subscription tier
    */
   private getSubscriptionTierFromProductId(productId: string): string | null {
+    const isAnnual = productId.includes('annual');
     // Extract tier from product ID
     // Handles all variations:
     // - app.sifia.com.spark.monthly -> "spark"
-    // - app.sifia.com.spark.annual -> "spark"
+    // - app.sifia.com.spark.annual -> "spark_annual"
     // - app.sifia.com.spark.monthly.freetrial -> "spark"
-    // - app.sifia.com.spark.annual.freetrial -> "spark"
+    // - app.sifia.com.spark.annual.freetrial -> "spark_annual"
 
-    if (productId.includes('spark')) {return 'spark';}
-    if (productId.includes('growth')) {return 'growth';}
-    if (productId.includes('transformation')) {return 'transformation';}
-    if (productId.includes('family')) {return 'family';}
-
+    if (productId.includes('spark')) {return isAnnual ? 'spark_annual' : 'spark';}
+    if (productId.includes('growth')) {return isAnnual ? 'growth_annual' : 'growth';}
+    if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
+    // POST-LAUNCH: if (productId.includes('family')) {return isAnnual ? 'family_annual' : 'family';}
     Logger.error('[StoreKit] Unknown product ID format', new Error(String(productId)), {
       component: 'AppleStoreKitService',
       action: 'error',

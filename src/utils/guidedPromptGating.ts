@@ -61,19 +61,25 @@ export const GUIDED_PROMPT_UPGRADE_MESSAGES = {
     seeker: 'Start your spiritual journey with unlimited guided prompts',
     free_trial: '',
     spark: '',
+    spark_annual: '',
     growth: '',
+    growth_annual: '',
     transformation: '',
+    transformation_annual: '',
     // POST-LAUNCH: family: '',
   },
   inApp: {
     seeker: 'Unlock unlimited guided prompts to deepen your reflection practice',
     free_trial: '',
     spark: '',
+    spark_annual: '',
     growth: '',
+    growth_annual: '',
     transformation: '',
+    transformation_annual: '',
     // POST-LAUNCH: family: '',
   },
-} as const;
+} as Record<'onboarding' | 'inApp', Record<SubscriptionTier, string>>;
 
 /**
  * Check if guided prompts are locked for a given tier

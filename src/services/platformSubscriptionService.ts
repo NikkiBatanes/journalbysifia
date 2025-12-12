@@ -398,10 +398,11 @@ class PlatformSubscriptionService {
    * Helper: Extract tier from SKU
    */
   private extractTierFromSku(sku: string): SubscriptionTier {
-    if (sku.includes('spark')) {return 'spark';}
-    if (sku.includes('growth')) {return 'growth';}
-    if (sku.includes('transformation')) {return 'transformation';}
-    // POST-LAUNCH: if (sku.includes('family')) {return 'family';}
+    const isAnnual = sku.includes('annual');
+    if (sku.includes('spark')) {return isAnnual ? 'spark_annual' : 'spark';}
+    if (sku.includes('growth')) {return isAnnual ? 'growth_annual' : 'growth';}
+    if (sku.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
+    // POST-LAUNCH: if (sku.includes('family')) {return isAnnual ? 'family_annual' : 'family';}
     return 'spark'; // fallback
   }
 

@@ -39,10 +39,14 @@ export class GooglePlayBillingService {
 
   // Product IDs for Google Play subscription tiers
   private static readonly PRODUCT_IDS = {
-    spark: 'com.yourcompany.sifia.spark.monthly',
-    growth: 'com.yourcompany.sifia.growth.monthly',
-    transformation: 'com.yourcompany.sifia.transformation.monthly',
-    family: 'com.yourcompany.sifia.family.monthly',
+    spark_monthly: 'spark_monthly',
+    spark_annual: 'spark_annual',
+    growth_monthly: 'growth_monthly',
+    growth_annual: 'growth_annual',
+    transformation_monthly: 'transformation_monthly',
+    transformation_annual: 'transformation_annual',
+    // POST-LAUNCH: family_monthly: 'family_monthly',
+    // POST-LAUNCH: family_annual: 'family_annual',
   };
 
   private constructor() {}
@@ -236,14 +240,15 @@ export class GooglePlayBillingService {
    * Map product ID to subscription tier
    */
   private getSubscriptionTierFromProductId(productId: string): string | null {
-    const productMap = {
-      [GooglePlayBillingService.PRODUCT_IDS.spark]: 'spark',
-      [GooglePlayBillingService.PRODUCT_IDS.growth]: 'growth',
-      [GooglePlayBillingService.PRODUCT_IDS.transformation]: 'transformation',
-      [GooglePlayBillingService.PRODUCT_IDS.family]: 'family',
-    };
+    const isAnnual = productId.includes('annual');
 
-    return productMap[productId] || null;
+    // Map product IDs to tiers with annual support
+    if (productId.includes('spark')) {return isAnnual ? 'spark_annual' : 'spark';}
+    if (productId.includes('growth')) {return isAnnual ? 'growth_annual' : 'growth';}
+    if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
+    if (productId.includes('family')) {return isAnnual ? 'family_annual' : 'family';}
+
+    return null;
   }
 
   /**

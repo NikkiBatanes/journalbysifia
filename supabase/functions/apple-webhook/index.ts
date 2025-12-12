@@ -24,9 +24,23 @@ function decodeTransactionInfo(signedInfo: string): any | null {
   }
 }
 
-// Get tier limits for subscription tiers
+// Extract tier from product ID (handles annual detection)
+function getTierFromProductId(productId: string): string {
+  const isAnnual = productId.includes('annual');
+  
+  if (productId.includes('spark')) return isAnnual ? 'spark_annual' : 'spark';
+  if (productId.includes('growth')) return isAnnual ? 'growth_annual' : 'growth';
+  if (productId.includes('transformation')) return isAnnual ? 'transformation_annual' : 'transformation';
+  
+  return 'spark'; // fallback
+}
+
+// Get tier limits for subscription tiers (handles annual variants)
 function getTierLimits(tier: string): { playbooks_limit: number; devotionals_limit: number; smart_journaling_enabled: boolean } {
-  switch (tier) {
+  // Map annual variants to base tier for limits
+  const baseTier = tier.replace('_annual', '');
+  
+  switch (baseTier) {
     case 'seeker':
       return { playbooks_limit: 0, devotionals_limit: 0, smart_journaling_enabled: false };
     case 'spark':
@@ -40,13 +54,16 @@ function getTierLimits(tier: string): { playbooks_limit: number; devotionals_lim
   }
 }
 
-// Get tier display name
+// Get tier display name (handles annual variants)
 function getTierDisplayName(tier: string): string {
-  switch (tier) {
+  const baseTier = tier.replace('_annual', '');
+  const isAnnual = tier.includes('_annual');
+  
+  switch (baseTier) {
     case 'seeker': return 'siFia Seeker';
-    case 'spark': return 'siFia Spark';
-    case 'growth': return 'siFia Growth';
-    case 'transformation': return 'siFia Transformation';
+    case 'spark': return isAnnual ? 'siFia Spark Annual' : 'siFia Spark';
+    case 'growth': return isAnnual ? 'siFia Growth Annual' : 'siFia Growth';
+    case 'transformation': return isAnnual ? 'siFia Transformation Annual' : 'siFia Transformation';
     default: return tier;
   }
 }
@@ -122,14 +139,17 @@ serve(async (req) => {
           // CRITICAL: Trial → Paid conversion
           console.log('[AppleWebhook] 🎉 Trial converting to paid (Apple charged)');
 
-          const chosenTier = subscription.trial_chosen_tier || 'spark';
-          const paidLimits = getTierLimits(chosenTier);
+          // Extract actual tier from product ID (handles annual detection)
+          const actualTier = getTierFromProductId(productId);
+          const paidLimits = getTierLimits(actualTier);
+          
+          console.log('[AppleWebhook] Converting to tier:', actualTier, 'from productId:', productId);
 
           await supabaseClient
             .from('user_subscriptions_new')
             .update({
-              tier: chosenTier,
-              subscription_display_name: getTierDisplayName(chosenTier),
+              tier: actualTier,
+              subscription_display_name: getTierDisplayName(actualTier),
               playbooks_limit: paidLimits.playbooks_limit,
               devotionals_limit: paidLimits.devotionals_limit,
               playbooks_used: 0, // Reset usage
@@ -144,7 +164,7 @@ serve(async (req) => {
             })
             .eq('user_id', userId);
 
-          console.log('[AppleWebhook] ✅ Trial converted to', chosenTier);
+          console.log('[AppleWebhook] ✅ Trial converted to', actualTier);
         } else {
           // Regular renewal - reset monthly usage
           console.log('[AppleWebhook] Regular renewal - resetting usage');

@@ -40,8 +40,11 @@ export const LOCK_VISIBILITY_RULES = {
   seeker: [1, 3, 5, 7],        // All durations locked
   free_trial: [5, 7],          // 5-day and 7-day locked
   spark: [5, 7],               // 5-day and 7-day locked
+  spark_annual: [5, 7],        // Annual has same limits as monthly
   growth: [7],                 // Only 7-day locked
+  growth_annual: [7],          // Annual has same limits as monthly
   transformation: [],          // No locks
+  transformation_annual: [],   // Annual has same limits as monthly
 } as Record<SubscriptionTier, number[]>;
 
 // Usage counter messages per tier
@@ -49,8 +52,11 @@ export const USAGE_DISPLAY_RULES = {
   seeker: 'Upgrade to Create Devotionals',
   free_trial: '2 Devotionals Remaining',
   spark: '8 Devotionals Remaining',
+  spark_annual: '8 Devotionals Remaining',
   growth: '20 Devotionals Remaining',
+  growth_annual: '20 Devotionals Remaining',
   transformation: 'Unlimited Devotionals',
+  transformation_annual: 'Unlimited Devotionals',
 } as Record<SubscriptionTier, string>;
 
 // Dynamic upgrade messages by context
@@ -59,15 +65,21 @@ export const UPGRADE_MESSAGES = {
     seeker: 'Start your spiritual journey with Spark',
     free_trial: "You've reached your trial limit",
     spark: "You've reached your Spark limit",
+    spark_annual: "You've reached your Spark limit",
     growth: "You've reached your Growth limit",
+    growth_annual: "You've reached your Growth limit",
     transformation: '',
+    transformation_annual: '',
   },
   inApp: {
     seeker: 'Unlock devotionals to deepen your faith',
     free_trial: 'Upgrade to continue your journey',
     spark: 'Upgrade to Growth for more devotionals',
+    spark_annual: 'Upgrade to Growth for more devotionals',
     growth: 'Upgrade to Transformation for unlimited access',
+    growth_annual: 'Upgrade to Transformation for unlimited access',
     transformation: '',
+    transformation_annual: '',
   },
 } as const;
 
@@ -245,19 +257,25 @@ export const PLANNING_UPGRADE_MESSAGES = {
     seeker: 'Start planning ahead with Spark',
     free_trial: '',
     spark: '',
+    spark_annual: '',
     growth: '',
+    growth_annual: '',
     transformation: '',
+    transformation_annual: '',
     family: '',
   },
   inApp: {
     seeker: 'Unlock future planning to organize your spiritual journey',
     free_trial: '',
     spark: '',
+    spark_annual: '',
     growth: '',
+    growth_annual: '',
     transformation: '',
+    transformation_annual: '',
     family: '',
   },
-};
+} as Record<'onboarding' | 'inApp', Record<SubscriptionTier, string>>;
 
 /**
  * Check if future planning is locked for a tier

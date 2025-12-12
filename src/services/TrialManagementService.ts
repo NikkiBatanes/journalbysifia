@@ -323,8 +323,11 @@ export class TrialManagementService {
       seeker: 'Seeker',
       free_trial: 'Trial',
       spark: 'Spark',
+      spark_annual: 'Spark Annual',
       growth: 'Growth',
+      growth_annual: 'Growth Annual',
       transformation: 'Transformation',
+      transformation_annual: 'Transformation Annual',
     };
     return names[tier] || tier;
   }

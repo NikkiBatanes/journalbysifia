@@ -5,8 +5,11 @@ export type SubscriptionTier =
   | 'seeker'           // Freemium: 0/0 limits after trial, 1 playbook during onboarding
   | 'free_trial'       // 2/2 free for 3 days
   | 'spark'            // 8 playbooks/devotionals + smart journaling
+  | 'spark_annual'     // Annual spark subscription
   | 'growth'           // 20 playbooks/devotionals
-  | 'transformation';  // Unlimited (no dashboard counts)
+  | 'growth_annual'    // Annual growth subscription
+  | 'transformation'   // Unlimited (no dashboard counts)
+  | 'transformation_annual'; // Annual transformation subscription
   // | 'family';       // POST-LAUNCH: Unlimited for up to 5 members (1 admin + 4 additional)
 
 export type SubscriptionStatus =

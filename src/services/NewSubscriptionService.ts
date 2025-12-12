@@ -29,7 +29,10 @@ export class NewSubscriptionService {
     smart_journaling_enabled: boolean;
     show_dashboard_counts: boolean;
   } {
-    switch (tier) {
+    // Map annual variants to base tiers for limits
+    const baseTier = tier.replace('_annual', '') as SubscriptionTier;
+
+    switch (baseTier) {
       case 'seeker':
         return {
           playbooks_limit: 0,
@@ -75,7 +78,13 @@ export class NewSubscriptionService {
       //     show_dashboard_counts: false, // Hide counts for unlimited
       //   };
       default:
-        throw new SubscriptionError(`Unknown tier: ${tier}`, 'INVALID_TIER');
+        // Fallback to seeker limits for unknown tiers
+        return {
+          playbooks_limit: 0,
+          devotionals_limit: 0,
+          smart_journaling_enabled: false,
+          show_dashboard_counts: true,
+        };
     }
   }
 
@@ -744,23 +753,27 @@ export class NewSubscriptionService {
    * Get user-friendly display name for a tier
    */
   private static getTierDisplayName(tier: SubscriptionTier, trialChosenTier?: SubscriptionTier): string {
-    switch (tier) {
+    // Handle annual variants
+    const baseTier = tier.replace('_annual', '') as SubscriptionTier;
+    const isAnnual = tier.includes('_annual');
+
+    switch (baseTier) {
       case 'seeker':
         return 'siFia Seeker';
       case 'spark':
-        return 'siFia Spark';
+        return isAnnual ? 'siFia Spark Annual' : 'siFia Spark';
       case 'growth':
-        return 'siFia Growth';
+        return isAnnual ? 'siFia Growth Annual' : 'siFia Growth';
       case 'transformation':
-        return 'siFia Transformation';
+        return isAnnual ? 'siFia Transformation Annual' : 'siFia Transformation';
       // POST-LAUNCH: case 'family':
-      //   return 'siFia Family';
+      //   return isAnnual ? 'siFia Family Annual' : 'siFia Family';
       case 'free_trial':
         // Show which tier the trial is for (e.g., siFia Spark Trial)
         const chosenTier = trialChosenTier || 'spark';
         return `siFia ${chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1)} Trial`;
       default:
-        return `siFia ${String(tier).replace('_', ' ')}`;
+        return `siFia ${String(baseTier).replace('_', ' ')}`;
     }
   }
 
