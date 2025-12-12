@@ -190,20 +190,84 @@ export class NewSubscriptionService {
         updated_at: new Date().toISOString(),
       };
 
-      // Upsert with onConflict to handle existing subscription
-      const { error } = await supabase
-        .from('user_subscriptions_new')
-        .upsert(subscriptionData, {
-          onConflict: 'user_id', // Update existing record if user_id already exists
-        })
-        .select()
-        .single();
+      // CRITICAL FIX: Use a transaction-like approach with retry logic
+      // This ensures the tier is set to 'free_trial' even if there are race conditions
+      let retryCount = 0;
+      const maxRetries = 3;
+      let lastError: any = null;
 
-      if (error) {
-        throw new SubscriptionError(`Failed to start trial: ${error.message}`, 'TRIAL_START_ERROR', error);
+      while (retryCount < maxRetries) {
+        try {
+          // Upsert with onConflict to handle existing subscription
+          const { error, data } = await supabase
+            .from('user_subscriptions_new')
+            .upsert(subscriptionData, {
+              onConflict: 'user_id', // Update existing record if user_id already exists
+            })
+            .select()
+            .single();
+
+          if (error) {
+            throw error;
+          }
+
+          // CRITICAL: Verify the tier was actually set to 'free_trial'
+          if (data && data.tier !== 'free_trial') {
+            Logger.warn('[NewSubscriptionService] Trial tier mismatch after upsert, retrying...', {
+              component: 'NewSubscriptionService',
+              userId: user_id,
+              expectedTier: 'free_trial',
+              actualTier: data.tier,
+              retryCount,
+            });
+            throw new Error('Tier mismatch after upsert');
+          }
+
+          // Success - break out of retry loop
+          break;
+        } catch (retryError) {
+          lastError = retryError;
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
+            Logger.info('[NewSubscriptionService] Retrying trial setup', {
+              component: 'NewSubscriptionService',
+              userId: user_id,
+              retryCount,
+              errorMessage: retryError instanceof Error ? retryError.message : 'Unknown',
+            });
+          }
+        }
       }
 
-      return await this.getUserSubscription(user_id);
+      if (retryCount >= maxRetries && lastError) {
+        throw new SubscriptionError(`Failed to start trial after ${maxRetries} attempts: ${lastError.message}`, 'TRIAL_START_ERROR', lastError);
+      }
+
+      // CRITICAL: Force a fresh fetch to ensure we get the correct tier
+      const finalSubscription = await this.getUserSubscription(user_id);
+      
+      // Final verification
+      if (finalSubscription.tier !== 'free_trial') {
+        Logger.error('[NewSubscriptionService] CRITICAL: Trial tier still incorrect after all retries', new Error('Trial tier verification failed'), {
+          component: 'NewSubscriptionService',
+          userId: user_id,
+          expectedTier: 'free_trial',
+          actualTier: finalSubscription.tier,
+        });
+        
+        // Force correct the tier one last time
+        await supabase
+          .from('user_subscriptions_new')
+          .update({ tier: 'free_trial' })
+          .eq('user_id', user_id);
+          
+        return await this.getUserSubscription(user_id);
+      }
+
+      return finalSubscription;
     } catch (error) {
       throw new SubscriptionError(`Failed to start trial: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TRIAL_START_ERROR', error);
     }
