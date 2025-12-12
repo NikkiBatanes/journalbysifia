@@ -43,11 +43,37 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
   children,
   playbookId,
 }) => {
-  const [actionSteps, setActionSteps] = useState<ActionStep[]>(initialSteps);
+  const [actionStepsInternal, setActionStepsInternal] = useState<ActionStep[]>(initialSteps);
   const { updatePlaybook } = usePlaybookStore();
   
   // Protected subtask tracking - preserves auto-checked states
   const protectedSubtasks = useRef<Set<string>>(new Set());
+
+  // Wrapper for setActionSteps that ALWAYS preserves protected states
+  const setActionSteps = useCallback((updater: React.SetStateAction<ActionStep[]>) => {
+    setActionStepsInternal(prev => {
+      const nextSteps = typeof updater === 'function' ? updater(prev) : updater;
+      
+      // CRITICAL: Merge protected states back into ANY update
+      return nextSteps.map(step => ({
+        ...step,
+        subTasks: step.subTasks?.map(subTask => {
+          const isProtected = protectedSubtasks.current.has(subTask.id);
+          if (isProtected) {
+            // Force preserve protected subtasks
+            return {
+              ...subTask,
+              completed: true,
+              _protected: true,
+            };
+          }
+          return subTask;
+        }),
+      }));
+    });
+  }, []);
+
+  const actionSteps = actionStepsInternal;
 
   const getCompletedStepsCount = useCallback(() => {
     let completed = 0;
