@@ -43,34 +43,11 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
   children,
   playbookId,
 }) => {
-  const [actionSteps, setActionStepsInternal] = useState<ActionStep[]>(initialSteps);
+  const [actionSteps, setActionSteps] = useState<ActionStep[]>(initialSteps);
   const { updatePlaybook } = usePlaybookStore();
   
   // Protected subtask tracking - preserves auto-checked states
   const protectedSubtasks = useRef<Set<string>>(new Set());
-
-  // Wrapper for setActionSteps that preserves protected states
-  const setActionSteps = useCallback((updater: React.SetStateAction<ActionStep[]>) => {
-    setActionStepsInternal(prev => {
-      const nextSteps = typeof updater === 'function' ? updater(prev) : updater;
-      
-      // Preserve protected subtasks in the new state
-      return nextSteps.map(step => ({
-        ...step,
-        subTasks: step.subTasks?.map(subTask => {
-          const isProtected = protectedSubtasks.current.has(subTask.id);
-          if (isProtected) {
-            return {
-              ...subTask,
-              completed: true,
-              _protected: true,
-            };
-          }
-          return subTask;
-        }),
-      }));
-    });
-  }, []);
 
   const getCompletedStepsCount = useCallback(() => {
     let completed = 0;
@@ -237,22 +214,9 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
 
       if (subTaskId && step.subTasks.length > 0) {
 
-        // Toggle subtask (only if not protected)
+        // Toggle the subtask
         const subTaskIndex = step.subTasks.findIndex(st => st.id === subTaskId);
         if (subTaskIndex !== -1) {
-          const targetSubtask = step.subTasks[subTaskIndex];
-          
-          // Prevent toggle if subtask is protected (auto-checked)
-          if (targetSubtask._protected) {
-            Logger.info('[ActionStepsContext] Prevented toggle of protected subtask', {
-              component: 'ActionStepsContext',
-              stepId,
-              subTaskId,
-              isProtected: true,
-            });
-            return prevCopy; // Return unchanged state
-          }
-
           const updatedSubTasks = [...step.subTasks];
           updatedSubTasks[subTaskIndex] = {
             ...updatedSubTasks[subTaskIndex],
