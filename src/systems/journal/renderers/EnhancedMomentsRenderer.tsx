@@ -1053,7 +1053,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             }
 
             const entryDateIso = selectedDateIso || normalizeDateString(timeBlock.created_at);
-            const entryDate = entryDateIso ? new Date(`${entryDateIso}T00:00:00`) : new Date(timeBlock.selected_date || timeBlock.created_at);
+            // CRITICAL FIX: Parse date in local timezone, not UTC
+            // Split the ISO date string and create a Date object with local timezone
+            const entryDate = entryDateIso 
+              ? (() => {
+                  const [year, month, day] = entryDateIso.split('-').map(Number);
+                  return new Date(year, month - 1, day, 0, 0, 0, 0);
+                })()
+              : new Date(timeBlock.selected_date || timeBlock.created_at);
 
             entries.push({
               plugin,
