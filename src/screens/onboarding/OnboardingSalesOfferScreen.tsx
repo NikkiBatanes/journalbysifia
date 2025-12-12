@@ -1539,7 +1539,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               <View style={styles.trialBenefitItem}>
                 <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
                 <ThemedText style={styles.trialBenefitText}>
-                  After your trial you will receive the full playbook limit dependent on the plan you have
+                  After your trial you will receive the full playbook and devotional limits dependent on the plan you have
                 </ThemedText>
               </View>
               <View style={styles.trialBenefitItem}>
