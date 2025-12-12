@@ -93,7 +93,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     color: string;
   } => {
     const tierBase = tier?.replace(/_annual$/, '') || 'seeker';
-    const isAnnual = tier?.includes('_annual') || false;
 
     switch (tierBase) {
       case 'seeker':
@@ -113,7 +112,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         };
       case 'spark':
         return {
-          name: isAnnual ? 'siFia Spark (Annual)' : 'siFia Spark',
+          name: 'siFia Spark',
           description: 'For consistent encouragement',
           features: [
             '8 playbooks each month',
@@ -133,7 +132,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         };
       case 'growth':
         return {
-          name: isAnnual ? 'siFia Growth (Annual)' : 'siFia Growth',
+          name: 'siFia Growth',
           description: 'For deeper transformation',
           features: [
             'All in siFia Spark, plus:',
@@ -152,7 +151,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         };
       case 'transformation':
         return {
-          name: isAnnual ? 'siFia Transformation (Annual)' : 'siFia Transformation',
+          name: 'siFia Transformation',
           description: 'For a life transformed in spirit and purpose',
           features: [
             'All in siFia Growth, plus:',
@@ -459,7 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     marginTop: 8,
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
   },
   billingPeriodBadgeText: {
     fontSize: 11,
