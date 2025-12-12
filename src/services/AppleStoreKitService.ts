@@ -501,23 +501,15 @@ export class AppleStoreKitService {
     try {
       await this.initialize();
 
-      // CRITICAL: Clear any stale transactions before starting new purchase
-      Logger.info('[StoreKit] 🧹 Clearing stale transactions before purchase', {
+      // Clear stale transactions in background - don't block payment sheet
+      Logger.info('[StoreKit] 🧹 Starting background cleanup of stale transactions', {
         component: 'AppleStoreKitService',
         productId,
       });
-
-      try {
-        const clearPromise = this.clearOldTransactions();
-        const timeoutPromise = new Promise<void>((_, reject) => {
-          setTimeout(() => reject(new Error('clearOldTransactions timeout')), 10000);
-        });
-        await Promise.race([clearPromise, timeoutPromise]);
-        Logger.info('[StoreKit] ✅ Old transactions cleared successfully before purchase', { component: 'AppleStoreKitService' });
-      } catch (error) {
-        Logger.warn('[StoreKit] ⚠️ Could not clear all old transactions within timeout', { component: 'AppleStoreKitService' });
-        // Continue anyway - the purchase flow will reject stale transactions
-      }
+      
+      this.clearOldTransactions().catch(() => {
+        Logger.warn('[StoreKit] Background transaction cleanup failed (non-blocking)', { component: 'AppleStoreKitService' });
+      });
 
       // Store userId for purchase update handler
       this.currentUserId = userId;
@@ -561,7 +553,23 @@ export class AppleStoreKitService {
           };
         }
 
-        await requestSubscription(purchaseParams);
+        Logger.info('[StoreKit] 📱 Requesting payment sheet from App Store', {
+          component: 'AppleStoreKitService',
+          productId,
+          hasOffer: !!offerIdentifier,
+        });
+
+        try {
+          await requestSubscription(purchaseParams);
+          Logger.info('[StoreKit] ✅ Payment sheet request sent successfully', { component: 'AppleStoreKitService' });
+        } catch (requestError) {
+          Logger.error('[StoreKit] ❌ CRITICAL: Failed to show payment sheet', requestError as Error, {
+            component: 'AppleStoreKitService',
+            productId,
+            errorDetails: requestError,
+          });
+          throw requestError;
+        }
       } else {
         // For Android, we'll handle this in GooglePlayBillingService
         throw new Error('Use GooglePlayBillingService for Android purchases');
@@ -636,25 +644,26 @@ export class AppleStoreKitService {
       const purchaseTime = new Date(purchase.transactionDate).getTime();
       const purchaseAge = Date.now() - purchaseTime;
 
-      // CRITICAL: Always reject transactions older than 2 minutes
-      // This prevents old cached purchases from being processed on app restart
-      if (purchaseAge > 2 * 60 * 1000) {
+      // CRITICAL: Always reject transactions older than 30 seconds
+      // This prevents old cached purchases from being processed
+      if (purchaseAge > 30 * 1000) {
         Logger.warn(`[StoreKit][${debugId}] ⚠️ STEP 2: STALE TRANSACTION DETECTED - Finishing and rejecting`, {
           component: 'AppleStoreKitService',
-          purchaseAge: `${Math.round(purchaseAge / 60000)} minutes`,
+          purchaseAge: `${Math.round(purchaseAge / 1000)} seconds`,
           transactionDate: new Date(purchaseTime).toISOString(),
           productId: purchase.productId,
         });
 
         // Finish the transaction to clear it from the queue
-        await finishTransaction({ purchase, isConsumable: false });
-
-        // Reject the pending purchase promise if one exists
-        const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
-        if (resolver) {
-          resolver.reject(new Error('STALE_PURCHASE_CACHE'));
-          this.pendingPurchaseResolvers.delete(purchase.productId);
+        try {
+          await finishTransaction({ purchase, isConsumable: false });
+          Logger.info(`[StoreKit][${debugId}] ✅ Stale transaction finished successfully`);
+        } catch (err) {
+          Logger.error('[StoreKit] Failed to finish stale transaction', err as Error);
         }
+
+        // DON'T reject pending purchase - just ignore this stale transaction
+        // The real purchase will come through shortly
         return;
       }
 
