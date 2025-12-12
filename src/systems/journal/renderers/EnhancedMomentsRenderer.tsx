@@ -1053,27 +1053,85 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             }
 
             const entryDateIso = selectedDateIso || normalizeDateString(timeBlock.created_at);
-            // CRITICAL FIX: Parse date in local timezone, not UTC
-            // Split the ISO date string and create a Date object with local timezone
-            const entryDate = entryDateIso 
-              ? (() => {
-                  const [year, month, day] = entryDateIso.split('-').map(Number);
-                  return new Date(year, month - 1, day, 0, 0, 0, 0);
-                })()
-              : new Date(timeBlock.selected_date || timeBlock.created_at);
+            
+            // CRITICAL FIX: For recurring timeblocks, create entries for ALL occurrences
+            // Check if this is a recurring timeblock
+            const repeatRule = (timeBlock as any)?.repeat_rule || {};
+            const repeatFrequency = repeatRule?.frequency || (timeBlock as any)?.repeat_frequency || 'never';
+            const isRecurring = repeatFrequency && repeatFrequency !== 'never';
+            
+            if (isRecurring && entryDateIso) {
+              // Parse start date in local timezone
+              const [startYear, startMonth, startDay] = entryDateIso.split('-').map(Number);
+              const startDate = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+              
+              // Determine end date for recurrence (either explicit end date or 1 year from now)
+              const maxEndDateIso = endDateIso || normalizeDateString(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString());
+              const [endYear, endMonth, endDay] = (maxEndDateIso || '').split('-').map(Number);
+              const maxEndDate = endYear ? new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999) : new Date(new Date().setFullYear(new Date().getFullYear() + 1));
+              
+              // Generate occurrences based on frequency
+              let currentDate = new Date(startDate);
+              const today = new Date();
+              today.setHours(23, 59, 59, 999);
+              
+              while (currentDate <= maxEndDate && currentDate <= today) {
+                const currentDateIso = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                
+                // Skip if this date is in the exceptions list
+                if (!exceptionDates.includes(currentDateIso)) {
+                  entries.push({
+                    plugin,
+                    date: new Date(currentDate),
+                    category: 'Schedule',
+                    type: 'Time Block',
+                    _searchText: buildSearchText(
+                      timeBlock.title,
+                      (timeBlock as any)?.notes,
+                      (timeBlock as any)?.description,
+                      (timeBlock as any)?.metadata,
+                    ),
+                  });
+                }
+                
+                // Increment based on frequency
+                if (repeatFrequency === 'daily') {
+                  currentDate.setDate(currentDate.getDate() + 1);
+                } else if (repeatFrequency === 'weekly' || repeatFrequency === 'biweekly') {
+                  const increment = repeatFrequency === 'biweekly' ? 14 : 7;
+                  currentDate.setDate(currentDate.getDate() + increment);
+                } else if (repeatFrequency === 'monthly') {
+                  currentDate.setMonth(currentDate.getMonth() + 1);
+                } else if (repeatFrequency === 'yearly') {
+                  currentDate.setFullYear(currentDate.getFullYear() + 1);
+                } else {
+                  // Unknown frequency, just add start date
+                  break;
+                }
+              }
+            } else {
+              // Non-recurring timeblock - create single entry
+              // Parse date in local timezone
+              const entryDate = entryDateIso 
+                ? (() => {
+                    const [year, month, day] = entryDateIso.split('-').map(Number);
+                    return new Date(year, month - 1, day, 0, 0, 0, 0);
+                  })()
+                : new Date(timeBlock.selected_date || timeBlock.created_at);
 
-            entries.push({
-              plugin,
-              date: entryDate,
-              category: 'Schedule',
-              type: 'Time Block',
-              _searchText: buildSearchText(
-                timeBlock.title,
-                (timeBlock as any)?.notes,
-                (timeBlock as any)?.description,
-                (timeBlock as any)?.metadata,
-              ),
-            });
+              entries.push({
+                plugin,
+                date: entryDate,
+                category: 'Schedule',
+                type: 'Time Block',
+                _searchText: buildSearchText(
+                  timeBlock.title,
+                  (timeBlock as any)?.notes,
+                  (timeBlock as any)?.description,
+                  (timeBlock as any)?.metadata,
+                ),
+              });
+            }
           });
         }
 
