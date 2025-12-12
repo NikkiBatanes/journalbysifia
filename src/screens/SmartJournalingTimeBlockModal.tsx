@@ -45,8 +45,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 }) => {
 
   const { user } = useAuth();
-  const { handleAutoCheckStep } = useActionSteps();
   const queryClient = useQueryClient();
+  const { handleAutoCheckStep } = useActionSteps();
 
   // Store the initial metadata to preserve it
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = useState(subtaskTitle);

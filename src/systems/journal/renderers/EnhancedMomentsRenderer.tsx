@@ -34,8 +34,6 @@ interface EnhancedMomentsRendererProps {
   filterKeys?: Array<'upcoming' | 'unansweredPrayers' | 'answeredPrayers' | 'reflectionJournals' | 'prayers' | 'prayerRequests' | 'gratitude' | 'todaysWin' | 'planCarousel'>;
   // Optional handler for empty-state CTA button
   onAddPress?: () => void;
-  onScroll?: (event: any) => void;
-  searchCollapsed?: boolean;
 }
 
 interface MomentEntry {
@@ -455,8 +453,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   prayerAnswerFilter = 'all',
   filterKeys = [],
   onAddPress,
-  onScroll,
-  searchCollapsed = false,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -2461,10 +2457,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
         automaticallyAdjustKeyboardInsets={false}
-        contentInset={{ top: searchCollapsed ? -60 : 0, bottom: 0, left: 0, right: 0 }}
-        scrollIndicatorInsets={{ top: searchCollapsed ? 60 : 0, bottom: 0, left: 0, right: 0 }}
+        contentInset={{ top: 0, bottom: 0, left: 0, right: 0 }}
+        scrollIndicatorInsets={{ top: 0, bottom: 0, left: 0, right: 0 }}
         ListEmptyComponent={ListEmpty}
-        onScroll={onScroll}
         onViewableItemsChanged={({ viewableItems }) => {
           // Pick the first visible header's section key, else fall back to first visible item's section key
           const header = viewableItems.find(v => !v.item && v.section && typeof (v.section as any).key === 'string');

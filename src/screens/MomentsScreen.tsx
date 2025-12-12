@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, Dimensions, DeviceEventEmitter, TextInput, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, Dimensions, DeviceEventEmitter, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Search, X as CloseIcon } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
@@ -44,10 +44,6 @@ export const MomentsScreen: React.FC = () => {
 
   // Refresh key to trigger data reload when reflections are saved
   const [refreshKey, setRefreshKey] = useState(0);
-
-  // Search bar collapse animation
-  const searchHeightAnim = useRef(new Animated.Value(1)).current;
-  const [isSearchCollapsed, setIsSearchCollapsed] = useState(false);
 
   // Refs to programmatically open modals
   const groupingRef = useRef<GroupingSelectHandle>(null);
@@ -98,20 +94,6 @@ export const MomentsScreen: React.FC = () => {
     }, 1000);
   };
 
-  const handleScroll = (event: any) => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    const shouldCollapse = scrollY > 50; // Collapse after scrolling 50px
-
-    if (shouldCollapse !== isSearchCollapsed) {
-      setIsSearchCollapsed(shouldCollapse);
-      Animated.timing(searchHeightAnim, {
-        toValue: shouldCollapse ? 0 : 1,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
-    }
-  };
-
   // Removed unused handlers
 
   const getCurrentDateRange = (): DateRange => {
@@ -157,13 +139,7 @@ export const MomentsScreen: React.FC = () => {
         </View>
         <ThemedText style={[styles.headerSubtitle, { fontFamily: fontRegular }]}>Your journal entries and memories</ThemedText>
 
-        <Animated.View style={[
-          styles.searchContainer,
-          isSmallScreen && styles.searchContainerCompact,
-          styles.searchAnimatedContainer,
-          isSearchCollapsed && styles.searchContainerCollapsed,
-          { opacity: searchHeightAnim },
-        ]}>
+        <View style={[styles.searchContainer, isSmallScreen && styles.searchContainerCompact]}>
           <Search size={18} color={Colors.textGray} style={styles.searchIcon} />
           <TextInput
             value={searchQuery}
@@ -189,7 +165,7 @@ export const MomentsScreen: React.FC = () => {
               <CloseIcon size={16} color={Colors.textGray} />
             </TouchableOpacity>
           )}
-        </Animated.View>
+        </View>
       </View>
 
       {/* Enhanced Moments Renderer - now handles its own scrolling */}
@@ -213,8 +189,6 @@ export const MomentsScreen: React.FC = () => {
         refreshKey={refreshKey}
         style={styles.momentsRenderer}
         headerComponents={[]}
-        onScroll={handleScroll}
-        searchCollapsed={isSearchCollapsed}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -314,12 +288,6 @@ const styles = StyleSheet.create({
   clearButton: {
     marginLeft: 8,
     padding: 4,
-  },
-  searchAnimatedContainer: {
-    overflow: 'hidden',
-  },
-  searchContainerCollapsed: {
-    height: 0,
   },
   scrollView: {
     flex: 1,
