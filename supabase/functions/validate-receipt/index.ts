@@ -249,12 +249,14 @@ serve(async (req) => {
       
       const currentTier = currentSub?.tier || 'seeker';
       
-      // CRITICAL: Use eligibility to distinguish between NEW TRIAL and PAID PURCHASE
+      // CRITICAL: Use eligibility to distinguish between NEW TRIAL and PAID UPGRADE
       // - seeker + .freetrial + ELIGIBLE = NEW TRIAL → Skip (createTrial handles it)
       // - seeker + .freetrial + NOT ELIGIBLE = PAID PURCHASE → Process (no trial available)
       // - free_trial + .freetrial = TRIAL UPGRADE → Process (convert to paid immediately)
       // Only paid tiers + .freetrial = TIER UPGRADE → Process
       if (currentTier === 'seeker' || currentTier === 'free_trial') {
+        const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
+        
         if (currentTier === 'seeker' && isEligibleForTrial === false) {
           // PAID PURCHASE: User not eligible for trial, process paid tier update
           console.log('[ValidateReceipt] PAID PURCHASE detected - processing subscription update', {
@@ -267,7 +269,6 @@ serve(async (req) => {
           console.log('[ValidateReceipt] Paid subscription activated successfully');
         } else if (currentTier === 'free_trial') {
           // TRIAL UPGRADE: User already on trial purchasing new tier - convert immediately
-          const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
           console.log('[ValidateReceipt] TRIAL UPGRADE detected - processing immediate conversion', {
             currentTier,
             productId: validationResult.data?.productId,
