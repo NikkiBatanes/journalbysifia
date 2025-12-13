@@ -502,11 +502,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 // Refresh subscription data
                 await loadProfileData();
 
-                Alert.alert(
-                  'Success',
-                  result.message + (result.validated ? `\n\n✓ ${result.validated} purchase(s) validated server-side` : ''),
-                  [{ text: 'OK' }]
-                );
+                // Auto-dismiss loading alert and show success
+                setTimeout(() => {
+                  Alert.alert('Success', result.message, [{ text: 'OK' }]);
+                }, 100);
               } else {
                 Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
               }
