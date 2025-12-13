@@ -786,12 +786,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               timestamp: new Date().toISOString(),
             });
 
-            const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
-
-            // Verify subscription state
+            // Retry logic to handle race conditions with database updates
             const expectedTier = shouldUseTrialProduct
               ? 'free_trial'
               : isAnnual ? `${selectedTier}_annual` : selectedTier;
+
+            let updatedSubscription;
+            let retryCount = 0;
+            const maxRetries = 5;
+
+            while (retryCount < maxRetries) {
+              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
+
+              if (updatedSubscription?.tier === expectedTier) {
+                break; // Success!
+              }
+
+              retryCount++;
+              if (retryCount < maxRetries) {
+                logger.info(`⏳ Subscription not yet updated, retrying (${retryCount}/${maxRetries})...`, {
+                  expectedTier,
+                  actualTier: updatedSubscription?.tier,
+                });
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+              }
+            }
+
+            // Final verification
             if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
@@ -800,6 +821,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 userId: user?.id,
                 shouldUseTrialProduct,
                 isAnnual,
+                retries: retryCount,
               });
               throw new Error('Subscription update failed. Please contact support.');
             }
@@ -977,12 +999,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               isAnnual,
             });
 
-            const updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
-
-            // Verify subscription state
+            // Retry logic to handle race conditions with database updates
             const expectedTier = shouldUseTrialProduct
               ? 'free_trial'
               : isAnnual ? `${selectedTier}_annual` : selectedTier;
+
+            let updatedSubscription;
+            let retryCount = 0;
+            const maxRetries = 5;
+
+            while (retryCount < maxRetries) {
+              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
+
+              if (updatedSubscription?.tier === expectedTier) {
+                break; // Success!
+              }
+
+              retryCount++;
+              if (retryCount < maxRetries) {
+                logger.info(`⏳ Subscription not yet updated, retrying (${retryCount}/${maxRetries})...`, {
+                  expectedTier,
+                  actualTier: updatedSubscription?.tier,
+                });
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+              }
+            }
+
+            // Final verification
             if (!updatedSubscription || updatedSubscription.tier !== expectedTier) {
               Logger.error('❌ Subscription not updated after purchase', new Error('Subscription update failed'), {
                 component: 'OnboardingSalesOfferScreen',
@@ -991,6 +1034,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 userId: user?.id,
                 shouldUseTrialProduct,
                 isAnnual,
+                retries: retryCount,
               });
               throw new Error('Subscription update failed. Please contact support.');
             }
