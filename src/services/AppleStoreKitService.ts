@@ -552,7 +552,7 @@ export class AppleStoreKitService {
             this.pendingPurchaseResolvers.delete(productId);
             reject(new Error('Purchase timeout - no response from App Store'));
           }
-        }, 30000); // Increased timeout to 30 seconds for slower networks
+        }, 60000); // 60 seconds - longer than validate-receipt timeout (30s)
       });
 
       // Validate that the promise was created and stored
