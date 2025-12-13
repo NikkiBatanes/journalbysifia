@@ -252,16 +252,26 @@ serve(async (req) => {
     // 2. isEligibleForTrial flag from client
     // 3. Apple's isTrialPeriod flag from receipt
 
-    // Get user's current subscription tier
+    // Get user's current subscription tier and trial info
     const { data: currentSub } = await supabase
       .from('user_subscriptions_new')
-      .select('tier')
+      .select('tier, trial_end_date')
       .eq('user_id', userId)
       .single();
 
     const currentTier = currentSub?.tier || 'seeker';
     const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
     const isAppleTrialPeriod = validationResult.data?.isTrialPeriod || false;
+
+    // DEBUG: Log all detection variables
+    console.log('[ValidateReceipt] TRIAL DETECTION DEBUG:', {
+      currentTier,
+      targetTier,
+      productId: validationResult.data?.productId,
+      isEligibleForTrial,
+      isAppleTrialPeriod,
+      expectedTrialLogic: 'seeker + eligible + Apple trial period = NEW TRIAL'
+    });
 
     // LOGIC:
     // - seeker + eligible + Apple trial period = NEW TRIAL (create trial with 2/2 limits)
@@ -302,15 +312,32 @@ serve(async (req) => {
         trialEndDate: trialResult.trialEndDate,
       });
     } else if (currentTier === 'free_trial') {
-      // TRIAL CONVERSION: User on trial converting to paid
-      console.log('[ValidateReceipt] TRIAL CONVERSION detected - converting to paid', {
-        currentTier,
-        targetTier,
-        productId: validationResult.data?.productId,
-        reason: 'User on trial converting to paid',
-      });
-      await updateUserSubscription(supabase, userId, validationResult.data);
-      console.log('[ValidateReceipt] Trial converted to paid successfully');
+      // Check if trial is still active
+      const trialEndDate = currentSub?.trial_end_date ? new Date(currentSub.trial_end_date) : null;
+      const isTrialStillActive = trialEndDate && trialEndDate > new Date();
+      
+      if (isTrialStillActive) {
+        // Trial is still active - do NOT convert to paid, just validate
+        console.log('[ValidateReceipt] TRIAL STILL ACTIVE - keeping as trial', {
+          currentTier,
+          targetTier,
+          trialEndDate: trialEndDate?.toISOString(),
+          productId: validationResult.data?.productId,
+          reason: 'Trial period has not ended yet',
+        });
+        // Do nothing - trial stays as trial with 2/2 limits
+      } else {
+        // Trial has ended - convert to paid
+        console.log('[ValidateReceipt] TRIAL CONVERSION detected - converting to paid', {
+          currentTier,
+          targetTier,
+          trialEndDate: trialEndDate?.toISOString(),
+          productId: validationResult.data?.productId,
+          reason: 'Trial period has ended',
+        });
+        await updateUserSubscription(supabase, userId, validationResult.data);
+        console.log('[ValidateReceipt] Trial converted to paid successfully');
+      }
     } else if (currentTier !== 'seeker' && currentTier !== 'free_trial') {
       // TIER UPGRADE: User on paid tier upgrading to different tier
       console.log('[ValidateReceipt] TIER UPGRADE detected - upgrading tier', {
@@ -400,8 +427,8 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
 
   // Sort by purchase_date_ms descending to get the most recent transaction
   const latestReceipt = receipts.sort((a, b) => {
-    const aTime = parseInt(a.purchase_date_ms || '0', 10);
-    const bTime = parseInt(b.purchase_date_ms || '0', 10);
+    const aTime = parseInt(a.purchase_date_ms || '0');
+    const bTime = parseInt(b.purchase_date_ms || '0');
     return bTime - aTime; // Descending order (newest first)
   })[0];
 
@@ -417,8 +444,8 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
     data: {
       transactionId: latestReceipt.transaction_id || latestReceipt.original_transaction_id,
       productId: latestReceipt.product_id,
-      purchaseDate: latestReceipt.purchase_date_ms ? new Date(parseInt(latestReceipt.purchase_date_ms, 10)) : null,
-      expiresAt: latestReceipt.expires_date_ms ? new Date(parseInt(latestReceipt.expires_date_ms, 10)) : null,
+      purchaseDate: latestReceipt.purchase_date_ms ? new Date(parseInt(latestReceipt.purchase_date_ms)) : null,
+      expiresAt: latestReceipt.expires_date_ms ? new Date(parseInt(latestReceipt.expires_date_ms)) : null,
       isTrialPeriod: latestReceipt.is_trial_period === 'true',
       environment: response.environment,
       rawResponse: response,
@@ -493,29 +520,25 @@ async function updateUserSubscription(
     const isTrialConversion = existingSub?.tier === 'free_trial' && tier !== 'free_trial';
 
     // Prepare subscription data - clear limit columns so they get recalculated from tier
-    interface SubscriptionUpdateData {
+    const subscriptionData: {
       user_id: string;
       tier: string;
       status: string;
-      subscription_end_date?: string;
+      subscription_end_date: string | null;
       subscription_start_date: string;
       platform: string;
       platform_subscription_id: string;
       platform_transaction_id: string;
       subscription_display_name: string;
       billing_cycle: string;
-      trial_start_date?: string | null;
-      trial_end_date?: string | null;
-      trial_chosen_tier?: string | null;
+      trial_start_date: string | null;
+      trial_end_date: string | null;
+      trial_chosen_tier: string | null;
       updated_at: string;
       playbooks_limit: number;
       devotionals_limit: number;
       smart_journaling_enabled: boolean;
-      playbooks_used?: number;
-      devotionals_used?: number;
-    }
-
-    const subscriptionData: SubscriptionUpdateData = {
+    } = {
       user_id: userId,
       tier: tier,
       status: 'active',

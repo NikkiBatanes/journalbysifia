@@ -1775,7 +1775,7 @@ export class AppleStoreKitService {
           // Check trial eligibility for restore purchases
           const isTrialProduct = (purchase.productId || '').includes('freetrial');
           let isEligibleForTrial = false;
-          
+
           if (isTrialProduct) {
             // Check if user is eligible for trial
             const { data: currentSub } = await supabase
@@ -1783,10 +1783,10 @@ export class AppleStoreKitService {
               .select('tier, trial_start_date')
               .eq('user_id', userId)
               .single();
-              
+
             isEligibleForTrial = !currentSub || currentSub.tier === 'seeker';
           }
-          
+
           const validationResult = await Promise.race([
             this.validateReceiptServerSide(
               purchase.transactionReceipt,
