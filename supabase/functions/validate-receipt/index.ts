@@ -481,10 +481,8 @@ async function updateUserSubscription(
     // Check if this is a trial-to-paid conversion
     const isTrialConversion = existingSub?.tier === 'free_trial' && tier !== 'free_trial';
     
-    // Only include columns that actually exist in the database
-    // Note: playbooks_limit, devotionals_limit, smart_journaling_enabled, show_dashboard_counts
-    // are calculated on the client side from tier, not stored in the database
-    const subscriptionData = {
+    // Prepare subscription data - clear limit columns so they get recalculated from tier
+    const subscriptionData: any = {
       user_id: userId,
       tier: tier,
       status: 'active',
@@ -500,6 +498,21 @@ async function updateUserSubscription(
       trial_chosen_tier: null,
       updated_at: new Date().toISOString(),
     };
+    
+    // CRITICAL: Set limit columns to NULL if they exist in database
+    // This forces enrichSubscriptionData to recalculate from tier instead of using stale values
+    if (existingSub?.playbooks_limit !== undefined) {
+      subscriptionData.playbooks_limit = null;
+    }
+    if (existingSub?.devotionals_limit !== undefined) {
+      subscriptionData.devotionals_limit = null;
+    }
+    if (existingSub?.smart_journaling_enabled !== undefined) {
+      subscriptionData.smart_journaling_enabled = null;
+    }
+    if (existingSub?.show_dashboard_counts !== undefined) {
+      subscriptionData.show_dashboard_counts = null;
+    }
 
     if (existingSub) {
       // Reset usage counters when upgrading from trial to paid
