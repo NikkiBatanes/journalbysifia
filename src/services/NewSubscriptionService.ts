@@ -135,7 +135,12 @@ export class NewSubscriptionService {
         return false;
       }
 
-      // Monthly subscriptions are handled by webhook - skip app-side reset
+      // Only reset for active paid subscriptions
+      // Skip if: Seeker tier, free_trial, or monthly (monthly handled by webhook)
+      if (subscription.tier === 'seeker' || subscription.tier === 'free_trial') {
+        return false; // No resets for seeker or trial
+      }
+      
       const isAnnual = subscription.billing_cycle === 'annual' || 
                        subscription.tier?.includes('_annual');
       

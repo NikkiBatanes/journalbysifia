@@ -319,9 +319,11 @@ serve(async (req) => {
             playbooks_used: 0,
             devotionals_used: 0,
             smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+            billing_cycle: null, // Clear billing cycle
             billing_issue: false,
             grace_period_end_date: null,
             subscription_end_date: new Date().toISOString(),
+            status: 'expired',
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId);
@@ -346,7 +348,10 @@ serve(async (req) => {
             playbooks_used: 0,
             devotionals_used: 0,
             smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+            billing_cycle: null, // Clear billing cycle
+            subscription_end_date: new Date().toISOString(), // Set to now (expired)
             refund_date: new Date().toISOString(),
+            status: 'refunded',
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId);
