@@ -377,13 +377,13 @@ async function updateUserSubscription(
 
     // Map product ID to subscription tier
     const tier = mapProductIdToTier(validationData.productId);
-    
-    // Get tier limits
-    const tierLimits = getTierLimits(tier);
 
     // Check if this is a trial-to-paid conversion
     const isTrialConversion = existingSub?.tier === 'free_trial' && tier !== 'free_trial';
     
+    // Only include columns that actually exist in the database
+    // Removed: is_trial, playbooks_limit, devotionals_limit, smart_journaling_enabled, show_dashboard_counts
+    // These columns don't exist in user_subscriptions_new table
     const subscriptionData = {
       user_id: userId,
       tier: tier,
@@ -394,12 +394,7 @@ async function updateUserSubscription(
       platform_subscription_id: validationData.transactionId,
       platform_transaction_id: validationData.transactionId,
       subscription_display_name: getTierDisplayName(tier),
-      billing_cycle: tier.includes('_annual') ? 'annual' : 'monthly', // Set billing cycle based on tier
-      playbooks_limit: tierLimits.playbooks_limit,
-      devotionals_limit: tierLimits.devotionals_limit,
-      smart_journaling_enabled: tierLimits.smart_journaling_enabled,
-      show_dashboard_counts: tierLimits.show_dashboard_counts,
-      // Note: is_trial column doesn't exist in database - trial status determined by trial_start_date presence
+      billing_cycle: tier.includes('_annual') ? 'annual' : 'monthly',
       trial_start_date: null, // Clear trial dates when converting to paid
       trial_end_date: null,
       trial_chosen_tier: null,
