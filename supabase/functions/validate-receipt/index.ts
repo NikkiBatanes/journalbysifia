@@ -499,20 +499,13 @@ async function updateUserSubscription(
       updated_at: new Date().toISOString(),
     };
 
-    // CRITICAL: Set limit columns to NULL if they exist in database
-    // This forces enrichSubscriptionData to recalculate from tier instead of using stale values
-    if (existingSub?.playbooks_limit !== undefined) {
-      subscriptionData.playbooks_limit = null;
-    }
-    if (existingSub?.devotionals_limit !== undefined) {
-      subscriptionData.devotionals_limit = null;
-    }
-    if (existingSub?.smart_journaling_enabled !== undefined) {
-      subscriptionData.smart_journaling_enabled = null;
-    }
-    if (existingSub?.show_dashboard_counts !== undefined) {
-      subscriptionData.show_dashboard_counts = null;
-    }
+    // CRITICAL: Set limit columns to actual values for new tier
+    // Database has NOT NULL constraint, so we must provide values
+    const tierLimits = getTierLimits(tier);
+    subscriptionData.playbooks_limit = tierLimits.playbooks_limit;
+    subscriptionData.devotionals_limit = tierLimits.devotionals_limit;
+    subscriptionData.smart_journaling_enabled = tierLimits.smart_journaling_enabled;
+    subscriptionData.show_dashboard_counts = tierLimits.show_dashboard_counts;
 
     if (existingSub) {
       // Reset usage counters when upgrading from trial to paid
@@ -567,6 +560,72 @@ function mapProductIdToTier(productId: string): string {
   if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
   if (productId.includes('family')) {return isAnnual ? 'family_annual' : 'family';}
   return 'seeker';
+}
+
+/**
+ * Get tier limits for subscription
+ */
+function getTierLimits(tier: string): {
+  playbooks_limit: number;
+  devotionals_limit: number;
+  smart_journaling_enabled: boolean;
+  show_dashboard_counts: boolean;
+} {
+  switch (tier) {
+    case 'seeker':
+      return {
+        playbooks_limit: 0,
+        devotionals_limit: 0,
+        smart_journaling_enabled: false,
+        show_dashboard_counts: true,
+      };
+    case 'free_trial':
+      return {
+        playbooks_limit: 2,
+        devotionals_limit: 2,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: true,
+      };
+    case 'spark':
+    case 'spark_annual':
+      return {
+        playbooks_limit: 8,
+        devotionals_limit: 8,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: true,
+      };
+    case 'growth':
+    case 'growth_annual':
+      return {
+        playbooks_limit: 20,
+        devotionals_limit: 20,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: true,
+      };
+    case 'transformation':
+    case 'transformation_annual':
+      return {
+        playbooks_limit: 999999,
+        devotionals_limit: 999999,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: false,
+      };
+    case 'family':
+    case 'family_annual':
+      return {
+        playbooks_limit: 999999,
+        devotionals_limit: 999999,
+        smart_journaling_enabled: true,
+        show_dashboard_counts: false,
+      };
+    default:
+      return {
+        playbooks_limit: 0,
+        devotionals_limit: 0,
+        smart_journaling_enabled: false,
+        show_dashboard_counts: true,
+      };
+  }
 }
 
 /**
