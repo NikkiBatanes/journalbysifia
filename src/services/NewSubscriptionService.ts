@@ -656,13 +656,21 @@ export class NewSubscriptionService {
       }
     }
 
-    // Check if trial expired
-    if (subscription.tier === 'free_trial' && subscription.trial_end_date) {
-      const trialEnd = new Date(subscription.trial_end_date);
-      if (trialEnd < new Date()) {
-        // Auto-downgrade expired trial
-        await this.handleExpiredTrial(userId);
-        throw new TrialExpiredError(subscription.trial_end_date);
+    // CRITICAL: Check if paid subscription has expired (webhook failsafe)
+    // Webhook should handle this via EXPIRED, but check as failsafe
+    if (subscription.tier !== 'seeker' && subscription.tier !== 'free_trial' && subscription.subscription_end_date) {
+      const subEnd = new Date(subscription.subscription_end_date);
+      if (subEnd < new Date()) {
+        // Subscription expired but webhook didn't arrive - downgrade now
+        Logger.warn('[NewSubscriptionService] Subscription expired (webhook failsafe triggered)', {
+          component: 'NewSubscriptionService',
+          userId,
+          tier: subscription.tier,
+          expiration: subscription.subscription_end_date,
+        });
+        
+        await this.handleExpiredSubscription(userId);
+        throw new SubscriptionError('Subscription has expired', 'SUBSCRIPTION_EXPIRED');
       }
     }
 
@@ -744,6 +752,35 @@ export class NewSubscriptionService {
 
     if (error) {
       throw new SubscriptionError(`Failed to handle expired trial: ${error.message}`, 'TRIAL_EXPIRY_ERROR', error);
+    }
+
+    return await this.getUserSubscription(userId);
+  }
+
+  /**
+   * Handle expired paid subscription (failsafe downgrade to seeker)
+   * Webhook should handle this, but this is failsafe if webhook fails
+   */
+  static async handleExpiredSubscription(userId: string): Promise<Subscription> {
+    const seekerLimits = this.getTierLimits('seeker');
+    
+    const { error } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        tier: 'seeker',
+        subscription_display_name: 'siFia Seeker',
+        playbooks_limit: seekerLimits.playbooks_limit,
+        devotionals_limit: seekerLimits.devotionals_limit,
+        playbooks_used: 0,
+        devotionals_used: 0,
+        smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+        status: 'expired',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new SubscriptionError(`Failed to handle expired subscription: ${error.message}`, 'SUBSCRIPTION_EXPIRY_ERROR', error);
     }
 
     return await this.getUserSubscription(userId);
