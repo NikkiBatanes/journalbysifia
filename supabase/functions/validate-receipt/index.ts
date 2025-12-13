@@ -502,9 +502,14 @@ async function updateUserSubscription(
     };
 
     if (existingSub) {
+      // Reset usage counters when upgrading from trial to paid
+      const updateData = isTrialConversion 
+        ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0 }
+        : subscriptionData;
+        
       const { error: updateError } = await supabaseClient
         .from('user_subscriptions_new')
-        .update(subscriptionData)
+        .update(updateData)
         .eq('user_id', userId);
       
       if (updateError) {
