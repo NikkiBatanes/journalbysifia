@@ -245,7 +245,7 @@ serve(async (req) => {
     // 1. User's current tier
     // 2. isEligibleForTrial flag from client
     // 3. Apple's isTrialPeriod flag from receipt
-    
+
     // Get user's current subscription tier
     const { data: currentSub } = await supabase
       .from('user_subscriptions_new')
@@ -262,7 +262,7 @@ serve(async (req) => {
     // - seeker + not eligible = PAID PURCHASE (direct to paid tier)
     // - free_trial + any purchase = TRIAL CONVERSION (convert to paid tier)
     // - paid tier + any purchase = TIER UPGRADE (upgrade to new tier)
-    
+
     if (currentTier === 'seeker' && isEligibleForTrial === true && isAppleTrialPeriod) {
       // NEW TRIAL: Eligible user starting trial - create trial with 2/2 limits
       console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
@@ -394,8 +394,8 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
 
   // Sort by purchase_date_ms descending to get the most recent transaction
   const latestReceipt = receipts.sort((a, b) => {
-    const aTime = parseInt(a.purchase_date_ms || '0');
-    const bTime = parseInt(b.purchase_date_ms || '0');
+    const aTime = parseInt(a.purchase_date_ms || '0', 10);
+    const bTime = parseInt(b.purchase_date_ms || '0', 10);
     return bTime - aTime; // Descending order (newest first)
   })[0];
 
@@ -411,8 +411,8 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
     data: {
       transactionId: latestReceipt.transaction_id || latestReceipt.original_transaction_id,
       productId: latestReceipt.product_id,
-      purchaseDate: latestReceipt.purchase_date_ms ? new Date(parseInt(latestReceipt.purchase_date_ms)) : null,
-      expiresAt: latestReceipt.expires_date_ms ? new Date(parseInt(latestReceipt.expires_date_ms)) : null,
+      purchaseDate: latestReceipt.purchase_date_ms ? new Date(parseInt(latestReceipt.purchase_date_ms, 10)) : null,
+      expiresAt: latestReceipt.expires_date_ms ? new Date(parseInt(latestReceipt.expires_date_ms, 10)) : null,
       isTrialPeriod: latestReceipt.is_trial_period === 'true',
       environment: response.environment,
       rawResponse: response,
@@ -515,7 +515,7 @@ async function updateUserSubscription(
     if (existingSub) {
       // Check if this is a tier upgrade (different tier)
       const isTierUpgrade = existingSub.tier !== tier;
-      
+
       // Reset usage counters when upgrading from trial to paid OR when upgrading tiers
       const updateData = (isTrialConversion || isTierUpgrade)
         ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0 }
