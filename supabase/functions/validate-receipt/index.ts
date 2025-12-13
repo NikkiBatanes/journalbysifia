@@ -240,94 +240,93 @@ serve(async (req) => {
       );
     }
 
-    // CRITICAL: Determine if this is a NEW TRIAL START or a PAID UPGRADE
-    // All products have .freetrial suffix in App Store Connect
-    // Logic: Check user's current tier to decide whether to skip or process
-    const isTrialProduct = (productId || validationResult.data?.productId || '').includes('freetrial');
+    // CRITICAL: Determine if this is a NEW TRIAL START or a PAID SUBSCRIPTION
+    // All products have .freetrial suffix (3-day trial promo), so we check:
+    // 1. User's current tier
+    // 2. isEligibleForTrial flag from client
+    // 3. Apple's isTrialPeriod flag from receipt
+    
+    // Get user's current subscription tier
+    const { data: currentSub } = await supabase
+      .from('user_subscriptions_new')
+      .select('tier')
+      .eq('user_id', userId)
+      .single();
 
-    if (isTrialProduct) {
-      // Get user's current subscription tier
-      const { data: currentSub } = await supabase
-        .from('user_subscriptions_new')
-        .select('tier')
-        .eq('user_id', userId)
-        .single();
+    const currentTier = currentSub?.tier || 'seeker';
+    const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
+    const isAppleTrialPeriod = validationResult.data?.isTrialPeriod || false;
 
-      const currentTier = currentSub?.tier || 'seeker';
+    // LOGIC:
+    // - seeker + eligible + Apple trial period = NEW TRIAL (create trial with 2/2 limits)
+    // - seeker + not eligible = PAID PURCHASE (direct to paid tier)
+    // - free_trial + any purchase = TRIAL CONVERSION (convert to paid tier)
+    // - paid tier + any purchase = TIER UPGRADE (upgrade to new tier)
+    
+    if (currentTier === 'seeker' && isEligibleForTrial === true && isAppleTrialPeriod) {
+      // NEW TRIAL: Eligible user starting trial - create trial with 2/2 limits
+      console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
+        currentTier,
+        productId: validationResult.data?.productId,
+        isEligibleForTrial,
+        isAppleTrialPeriod,
+        reason: 'Eligible seeker starting trial',
+      });
 
-      // CRITICAL: Use eligibility to distinguish between NEW TRIAL and PAID UPGRADE
-      // - seeker + .freetrial + ELIGIBLE = NEW TRIAL → Skip (createTrial handles it)
-      // - seeker + .freetrial + NOT ELIGIBLE = PAID PURCHASE → Process (no trial available)
-      // - free_trial + .freetrial = TRIAL UPGRADE → Process (convert to paid immediately)
-      // Only paid tiers + .freetrial = TIER UPGRADE → Process
-      if (currentTier === 'seeker' || currentTier === 'free_trial') {
-        const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
+      // Determine billing cycle from product ID
+      const billingCycle = (validationResult.data?.productId || '').includes('annual') ? 'annual' : 'monthly';
 
-        if (currentTier === 'seeker' && isEligibleForTrial === false) {
-          // PAID PURCHASE: User not eligible for trial, process paid tier update
-          console.log('[ValidateReceipt] PAID PURCHASE detected - processing subscription update', {
-            currentTier,
-            productId: validationResult.data?.productId,
-            isEligibleForTrial,
-            reason: 'User not eligible for trial - processing paid subscription',
-          });
-          await updateUserSubscription(supabase, userId, validationResult.data);
-          console.log('[ValidateReceipt] Paid subscription activated successfully');
-        } else if (currentTier === 'free_trial') {
-          // TRIAL UPGRADE: User already on trial purchasing new tier - convert immediately
-          console.log('[ValidateReceipt] TRIAL UPGRADE detected - processing immediate conversion', {
-            currentTier,
-            productId: validationResult.data?.productId,
-            targetTier,
-            isEligibleForTrial,
-            reason: 'User on trial purchasing new tier - convert to paid immediately',
-          });
-          await updateUserSubscription(supabase, userId, validationResult.data);
-          console.log('[ValidateReceipt] Trial upgraded to paid subscription successfully');
-        } else {
-          // NEW TRIAL: Eligible user starting trial - create trial now
-          console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
-            currentTier,
-            productId: validationResult.data?.productId,
-            isEligibleForTrial,
-            reason: 'New trial - creating now',
-          });
+      const trialResult = await createTrial({
+        supabase,
+        userId,
+        chosenTier: targetTier,
+        platformSubscriptionId: validationResult.data?.transactionId || '',
+        transactionId: validationResult.data?.transactionId || '',
+        billingCycle,
+      });
 
-          // Create the trial subscription
-          const trialResult = await createTrial({
-            supabase,
-            userId,
-            chosenTier: targetTier,
-            platformSubscriptionId: validationResult.data?.subscriptionId || '',
-            transactionId: validationResult.data?.transactionId || '',
-            billingCycle: validationResult.data?.billingCycle as 'monthly' | 'annual' | undefined,
-          });
-
-          if (!trialResult.success) {
-            console.error('[ValidateReceipt] Trial creation failed:', trialResult.error);
-            throw new Error(`Trial creation failed: ${trialResult.error}`);
-          }
-
-          console.log('[ValidateReceipt] Trial created successfully:', {
-            tier: trialResult.tier,
-            chosenTier: trialResult.chosenTier,
-            trialEndDate: trialResult.trialEndDate,
-          });
-        }
-      } else {
-        // TIER UPGRADE: User on paid tier purchasing .freetrial product (tier upgrade)
-        console.log('[ValidateReceipt] TIER UPGRADE detected - processing subscription update', {
-          currentTier,
-          productId: validationResult.data?.productId,
-          reason: 'Paid tier upgrade',
-        });
-        await updateUserSubscription(supabase, userId, validationResult.data);
-        console.log('[ValidateReceipt] Subscription upgraded successfully');
+      if (!trialResult.success) {
+        console.error('[ValidateReceipt] Trial creation failed:', trialResult.error);
+        throw new Error(`Trial creation failed: ${trialResult.error}`);
       }
-    } else {
-      // Regular non-trial product (if they exist in the future)
+
+      console.log('[ValidateReceipt] Trial created successfully:', {
+        tier: trialResult.tier,
+        chosenTier: trialResult.chosenTier,
+        trialEndDate: trialResult.trialEndDate,
+      });
+    } else if (currentTier === 'free_trial') {
+      // TRIAL CONVERSION: User on trial converting to paid
+      console.log('[ValidateReceipt] TRIAL CONVERSION detected - converting to paid', {
+        currentTier,
+        targetTier,
+        productId: validationResult.data?.productId,
+        reason: 'User on trial converting to paid',
+      });
       await updateUserSubscription(supabase, userId, validationResult.data);
-      console.log('[ValidateReceipt] Subscription updated for non-trial product');
+      console.log('[ValidateReceipt] Trial converted to paid successfully');
+    } else if (currentTier !== 'seeker' && currentTier !== 'free_trial') {
+      // TIER UPGRADE: User on paid tier upgrading to different tier
+      console.log('[ValidateReceipt] TIER UPGRADE detected - upgrading tier', {
+        currentTier,
+        targetTier,
+        productId: validationResult.data?.productId,
+        reason: 'Paid tier upgrade',
+      });
+      await updateUserSubscription(supabase, userId, validationResult.data);
+      console.log('[ValidateReceipt] Tier upgraded successfully');
+    } else {
+      // PAID PURCHASE: Seeker not eligible for trial, or trial period ended
+      console.log('[ValidateReceipt] PAID PURCHASE detected - direct to paid tier', {
+        currentTier,
+        targetTier,
+        productId: validationResult.data?.productId,
+        isEligibleForTrial,
+        isAppleTrialPeriod,
+        reason: 'Not eligible for trial or trial period ended',
+      });
+      await updateUserSubscription(supabase, userId, validationResult.data);
+      console.log('[ValidateReceipt] Paid subscription activated successfully');
     }
 
     console.log('[ValidateReceipt] Success for platform:', platform);
