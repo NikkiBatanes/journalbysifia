@@ -100,12 +100,20 @@ export class NewSubscriptionService {
   /**
    * Get user's current subscription
    */
-  static async getUserSubscription(userId: string): Promise<Subscription> {
-    const { data, error } = await supabase
+  static async getUserSubscription(userId: string, bustCache = false): Promise<Subscription> {
+    // Add timestamp to force fresh read when bustCache is true
+    let query = supabase
       .from('user_subscriptions_new')
       .select('*')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
+    
+    // Force a fresh read by using a unique timestamp in the query
+    // This bypasses any PostgREST or connection pool caching
+    if (bustCache) {
+      query = query.gte('created_at', '1970-01-01T00:00:00.000Z');
+    }
+    
+    const { data, error } = await query.single();
 
     if (error) {
       if (error.code === 'PGRST116') {

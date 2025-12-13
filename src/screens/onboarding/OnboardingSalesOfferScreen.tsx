@@ -776,7 +776,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             const maxRetries = 10;
 
             while (retryCount < maxRetries) {
-              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
+              // Force fresh read from database, bypassing any cache
+              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '', true);
 
               if (updatedSubscription?.tier === expectedTier) {
                 break; // Success!
@@ -787,6 +788,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 logger.info(`⏳ Subscription not yet updated, retrying (${retryCount}/${maxRetries})...`, {
                   expectedTier,
                   actualTier: updatedSubscription?.tier,
+                  updatedAt: updatedSubscription?.updated_at,
                 });
                 await new Promise(resolve => setTimeout(resolve, 1500)); // Wait 1.5 seconds
               }
@@ -989,7 +991,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             const maxRetries = 10;
 
             while (retryCount < maxRetries) {
-              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
+              // Force fresh read from database, bypassing any cache
+              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '', true);
 
               if (updatedSubscription?.tier === expectedTier) {
                 break; // Success!
@@ -1000,6 +1003,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 logger.info(`⏳ Subscription not yet updated, retrying (${retryCount}/${maxRetries})...`, {
                   expectedTier,
                   actualTier: updatedSubscription?.tier,
+                  updatedAt: updatedSubscription?.updated_at,
                 });
                 await new Promise(resolve => setTimeout(resolve, 1500)); // Wait 1.5 seconds
               }
