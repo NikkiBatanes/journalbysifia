@@ -56,12 +56,30 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
     try {
       setLoading(true);
+      Logger.info('[SubscriptionPlanModal] Loading subscription data', {
+        userId: user.id,
+        forceRefresh,
+        component: 'SubscriptionPlanModal',
+      });
+      
       // Force fresh read when modal opens to get latest subscription data
       const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, forceRefresh);
+      
+      Logger.info('[SubscriptionPlanModal] Subscription data loaded', {
+        userId: user.id,
+        tier: subscriptionData?.tier,
+        status: subscriptionData?.status,
+        trialEndDate: subscriptionData?.trial_end_date,
+        subscriptionEndDate: subscriptionData?.subscription_end_date,
+        forceRefresh,
+        component: 'SubscriptionPlanModal',
+      });
+      
       setSubscription(subscriptionData as any);
     } catch (error) {
       Logger.error('Failed to load subscription data for modal', error as Error, {
         component: 'SubscriptionPlanModal',
+        userId: user.id,
       });
     } finally {
       setLoading(false);
