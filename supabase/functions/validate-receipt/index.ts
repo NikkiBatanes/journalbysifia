@@ -277,15 +277,29 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
     };
   }
 
-  // Extract subscription info
-  const latestReceipt = response.latest_receipt_info?.[0] || response.receipt?.in_app?.[0];
-
-  if (!latestReceipt) {
+  // Extract subscription info - find the MOST RECENT transaction
+  const receipts = response.latest_receipt_info || response.receipt?.in_app || [];
+  
+  if (receipts.length === 0) {
     return {
       success: false,
       error: 'No subscription info found in receipt',
     };
   }
+  
+  // Sort by purchase_date_ms descending to get the most recent transaction
+  const latestReceipt = receipts.sort((a: any, b: any) => {
+    const aTime = parseInt(a.purchase_date_ms || '0');
+    const bTime = parseInt(b.purchase_date_ms || '0');
+    return bTime - aTime; // Descending order (newest first)
+  })[0];
+  
+  console.log('[ValidateReceipt] Selected most recent transaction:', {
+    productId: latestReceipt.product_id,
+    purchaseDate: latestReceipt.purchase_date,
+    transactionId: latestReceipt.transaction_id?.substring(0, 10) + '...',
+    totalTransactions: receipts.length,
+  });
 
   return {
     success: true,
