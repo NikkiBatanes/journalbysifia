@@ -482,8 +482,7 @@ async function updateUserSubscription(
     const isTrialConversion = existingSub?.tier === 'free_trial' && tier !== 'free_trial';
     
     // Only include columns that actually exist in the database
-    // Removed: is_trial, playbooks_limit, devotionals_limit, smart_journaling_enabled, show_dashboard_counts
-    // These columns don't exist in user_subscriptions_new table
+    // Clear playbooks_limit and devotionals_limit when upgrading so they get recalculated from tier
     const subscriptionData = {
       user_id: userId,
       tier: tier,
@@ -498,6 +497,10 @@ async function updateUserSubscription(
       trial_start_date: null, // Clear trial dates when converting to paid
       trial_end_date: null,
       trial_chosen_tier: null,
+      playbooks_limit: null, // Clear so enrichSubscriptionData recalculates from tier
+      devotionals_limit: null, // Clear so enrichSubscriptionData recalculates from tier
+      smart_journaling_enabled: null, // Clear so enrichSubscriptionData recalculates from tier
+      show_dashboard_counts: null, // Clear so enrichSubscriptionData recalculates from tier
       updated_at: new Date().toISOString(),
     };
 
