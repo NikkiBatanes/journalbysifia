@@ -737,6 +737,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 userId: user?.id,
                 chosenTier: selectedTier,
                 transactionId: result.transactionId,
+                billingCycle: isAnnual ? 'annual' : 'monthly',
               });
 
               const trialResult = await TrialManagementService.createTrial(
@@ -744,6 +745,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 selectedTier as SubscriptionTier,
                 productId,
                 result.transactionId,
+                isAnnual ? 'annual' : 'monthly',
               );
 
               if (!trialResult.success) {
@@ -918,6 +920,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 userId: user?.id,
                 chosenTier: selectedTier,
                 transactionId: result.transactionId,
+                billingCycle: isAnnual ? 'annual' : 'monthly',
               });
 
               const trialResult = await TrialManagementService.createTrial(
@@ -925,6 +928,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 selectedTier as SubscriptionTier,
                 productId,
                 result.transactionId,
+                isAnnual ? 'annual' : 'monthly',
               );
 
               if (!trialResult.success) {

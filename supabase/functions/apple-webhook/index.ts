@@ -114,16 +114,31 @@ serve(async (req) => {
       offerType,
     });
 
-    // Find user by transaction ID
-    const { data: subscription, error: findError } = await supabaseClient
+    // Find user by original transaction ID (never changes across renewals)
+    let { data: subscription, error: findError } = await supabaseClient
       .from('user_subscriptions_new')
       .select('*')
-      .eq('platform_transaction_id', originalTransactionId)
+      .eq('original_transaction_id', originalTransactionId)
       .single();
 
     if (findError || !subscription) {
-      console.error('[AppleWebhook] User not found for transaction:', originalTransactionId);
-      return new Response('OK', { headers: corsHeaders }); // Return OK to prevent retries
+      console.error('[AppleWebhook] User not found for original transaction:', originalTransactionId);
+      
+      // FALLBACK: Try platform_transaction_id for backwards compatibility
+      const { data: fallbackSub } = await supabaseClient
+        .from('user_subscriptions_new')
+        .select('*')
+        .eq('platform_transaction_id', originalTransactionId)
+        .single();
+      
+      if (!fallbackSub) {
+        console.error('[AppleWebhook] User not found in fallback lookup either');
+        return new Response('OK', { headers: corsHeaders }); // Return OK to prevent retries
+      }
+      
+      // Use fallback subscription
+      subscription = fallbackSub;
+      console.log('[AppleWebhook] Found user via fallback platform_transaction_id lookup');
     }
 
     const userId = subscription.user_id;
@@ -143,13 +158,17 @@ serve(async (req) => {
           const actualTier = getTierFromProductId(productId);
           const paidLimits = getTierLimits(actualTier);
           
-          console.log('[AppleWebhook] Converting to tier:', actualTier, 'from productId:', productId);
+          // Extract billing cycle from product ID
+          const billingCycle = productId.includes('annual') ? 'annual' : 'monthly';
+          
+          console.log('[AppleWebhook] Converting to tier:', actualTier, 'billing:', billingCycle, 'from productId:', productId);
 
           await supabaseClient
             .from('user_subscriptions_new')
             .update({
               tier: actualTier,
               subscription_display_name: getTierDisplayName(actualTier),
+              billing_cycle: billingCycle, // Store billing cycle
               playbooks_limit: paidLimits.playbooks_limit,
               devotionals_limit: paidLimits.devotionals_limit,
               playbooks_used: 0, // Reset usage
@@ -164,7 +183,7 @@ serve(async (req) => {
             })
             .eq('user_id', userId);
 
-          console.log('[AppleWebhook] ✅ Trial converted to', actualTier);
+          console.log('[AppleWebhook] ✅ Trial converted to', actualTier, billingCycle);
         } else {
           // Regular renewal - reset usage and verify tier matches productId
           console.log('[AppleWebhook] Regular renewal - resetting usage');
@@ -172,12 +191,14 @@ serve(async (req) => {
           // Extract tier from productId in case user changed billing cycle
           const actualTier = getTierFromProductId(productId);
           const paidLimits = getTierLimits(actualTier);
+          const billingCycle = productId.includes('annual') ? 'annual' : 'monthly';
 
           await supabaseClient
             .from('user_subscriptions_new')
             .update({
               tier: actualTier, // Update tier in case billing cycle changed
               subscription_display_name: getTierDisplayName(actualTier),
+              billing_cycle: billingCycle, // Update billing cycle in case it changed
               playbooks_limit: paidLimits.playbooks_limit,
               devotionals_limit: paidLimits.devotionals_limit,
               smart_journaling_enabled: paidLimits.smart_journaling_enabled,
@@ -191,7 +212,7 @@ serve(async (req) => {
             })
             .eq('user_id', userId);
 
-          console.log('[AppleWebhook] ✅ Renewal processed:', actualTier, 'with usage reset');
+          console.log('[AppleWebhook] ✅ Renewal processed:', actualTier, billingCycle, 'with usage reset');
         }
         break;
       }

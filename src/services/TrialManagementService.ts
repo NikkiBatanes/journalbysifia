@@ -39,6 +39,7 @@ export class TrialManagementService {
     chosenTier: SubscriptionTier,
     platformSubscriptionId: string,
     transactionId: string,
+    billingCycle?: 'monthly' | 'annual',
   ): Promise<TrialCreationResult> {
     try {
       Logger.info('[TrialManagement] Creating free trial', {
@@ -46,6 +47,7 @@ export class TrialManagementService {
         chosenTier,
         platformSubscriptionId,
         transactionId,
+        billingCycle,
       });
 
       // Calculate trial end date (3 days from now)
@@ -65,6 +67,7 @@ export class TrialManagementService {
           trial_start_date: trialStartDate.toISOString(),
           trial_end_date: trialEndDate.toISOString(),
           trial_chosen_tier: chosenTier, // Store which tier they'll convert to
+          billing_cycle: billingCycle || 'monthly', // Store billing cycle for conversion
           playbooks_limit: trialLimits.playbooks_limit, // 2
           devotionals_limit: trialLimits.devotionals_limit, // 2
           playbooks_used: 0, // Reset usage for trial
@@ -72,6 +75,7 @@ export class TrialManagementService {
           smart_journaling_enabled: trialLimits.smart_journaling_enabled,
           platform_subscription_id: platformSubscriptionId,
           platform_transaction_id: transactionId,
+          original_transaction_id: transactionId, // CRITICAL: Store for webhook lookups
           subscription_start_date: trialStartDate.toISOString(),
           updated_at: new Date().toISOString(),
         })

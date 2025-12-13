@@ -808,26 +808,64 @@ export class AppleStoreKitService {
         return;
       }
 
-      // Update user subscription in database
-      Logger.info(`[StoreKit][${debugId}] 🔄 STEP 5: Starting database update`, {
-        component: 'AppleStoreKitService',
-        userId: this.currentUserId || 'unknown',
-        tier,
-        transactionId: purchase.transactionId?.substring(0, 10) + '...',
-        timestamp: new Date().toISOString(),
-      });
+      // CRITICAL FIX: Check if this is a trial product
+      const isTrialProduct = purchase.productId.includes('freetrial');
 
-      const dbUpdateStartTime = Date.now();
-      await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
-      const dbUpdateDuration = Date.now() - dbUpdateStartTime;
+      if (isTrialProduct) {
+        // For trial products, DON'T update subscription here
+        // The OnboardingTrialOfferScreen will call startFreeTrial() to set up the trial properly
+        Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: Trial product detected - skipping database update`, {
+          component: 'AppleStoreKitService',
+          userId: this.currentUserId || 'unknown',
+          productId: purchase.productId,
+          tier,
+          transactionId: purchase.transactionId?.substring(0, 10) + '...',
+          message: 'Trial will be created by startFreeTrial() call from screen',
+          timestamp: new Date().toISOString(),
+        });
 
-      Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Database update completed successfully`, {
-        component: 'AppleStoreKitService',
-        userId: this.currentUserId || 'unknown',
-        tier,
-        duration: dbUpdateDuration,
-        timestamp: new Date().toISOString(),
-      });
+        // Store the original transaction ID for webhook lookups
+        try {
+          await supabase
+            .from('user_subscriptions_new')
+            .update({
+              original_transaction_id: purchase.transactionId,
+              platform_transaction_id: purchase.transactionId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', this.currentUserId);
+
+          Logger.info(`[StoreKit][${debugId}] ✅ Original transaction ID stored for webhook`, {
+            component: 'AppleStoreKitService',
+            transactionId: purchase.transactionId?.substring(0, 10) + '...',
+          });
+        } catch (error) {
+          Logger.error('[StoreKit] Failed to store original transaction ID', error as Error, {
+            component: 'AppleStoreKitService',
+          });
+        }
+      } else {
+        // For non-trial products (direct paid subscriptions), update subscription normally
+        Logger.info(`[StoreKit][${debugId}] 🔄 STEP 5: Starting database update (non-trial product)`, {
+          component: 'AppleStoreKitService',
+          userId: this.currentUserId || 'unknown',
+          tier,
+          transactionId: purchase.transactionId?.substring(0, 10) + '...',
+          timestamp: new Date().toISOString(),
+        });
+
+        const dbUpdateStartTime = Date.now();
+        await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
+        const dbUpdateDuration = Date.now() - dbUpdateStartTime;
+
+        Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Database update completed successfully`, {
+          component: 'AppleStoreKitService',
+          userId: this.currentUserId || 'unknown',
+          tier,
+          duration: dbUpdateDuration,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       // Finish the transaction
       await finishTransaction({ purchase, isConsumable: false });
