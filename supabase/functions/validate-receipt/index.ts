@@ -144,6 +144,12 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
     }
 
     console.log('[createTrial] Trial created successfully:', data);
+    console.log('[createTrial] Trial limits verification:', {
+      playbooks_limit: data.playbooks_limit,
+      devotionals_limit: data.devotionals_limit,
+      chosenTier,
+      expectedLimits: { playbooks: 2, devotionals: 2 },
+    });
     return {
       success: true,
       tier: 'free_trial',
