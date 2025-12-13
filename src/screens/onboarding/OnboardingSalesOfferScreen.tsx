@@ -650,20 +650,40 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         })),
       });
 
-      // NEW LOGIC: Always use .freetrial products; App Store enforces trial eligibility
-      const trialProduct = products.find(p =>
-        p.tier === selectedTier &&
-        p.productId.includes(billing) &&
-        p.productId.includes('.freetrial')
-      );
+      // CRITICAL: Only use .freetrial products when starting a NEW trial
+      // If user is upgrading from trial to paid, use regular product
+      if (shouldUseTrialProduct) {
+        // User is trial-eligible - use .freetrial product
+        const trialProduct = products.find(p =>
+          p.tier === selectedTier &&
+          p.productId.includes(billing) &&
+          p.productId.includes('.freetrial')
+        );
 
-      if (trialProduct) {
-        productId = trialProduct.productId;
-        logger.debug('✅ Using .freetrial product', { productId });
+        if (trialProduct) {
+          productId = trialProduct.productId;
+          logger.debug('✅ Using .freetrial product for NEW trial', { productId, shouldUseTrialProduct });
+        } else {
+          // Construct trial product ID
+          productId = `app.sifia.com.${selectedTier}.${billing}.freetrial`;
+          logger.warn('⚠️ No .freetrial product found, using constructed ID', { productId });
+        }
       } else {
-        // Construct trial product ID
-        productId = `app.sifia.com.${selectedTier}.${billing}.freetrial`;
-        logger.warn('⚠️ No .freetrial product found, using constructed ID', { productId });
+        // User is NOT trial-eligible - use regular product (upgrade from trial, or direct purchase)
+        const regularProduct = products.find(p =>
+          p.tier === selectedTier &&
+          p.productId.includes(billing) &&
+          !p.productId.includes('.freetrial')
+        );
+
+        if (regularProduct) {
+          productId = regularProduct.productId;
+          logger.debug('✅ Using regular product for PAID upgrade', { productId, shouldUseTrialProduct });
+        } else {
+          // Construct regular product ID
+          productId = `app.sifia.com.${selectedTier}.${billing}`;
+          logger.warn('⚠️ No regular product found, using constructed ID', { productId });
+        }
       }
 
       // NOW show loading modal right before Apple sheet
