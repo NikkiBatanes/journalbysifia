@@ -15,6 +15,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -55,6 +56,7 @@ import { onboardingService } from '../../services/onboardingService';
 const OnboardingTransformYourLifeScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, isLoggingOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
@@ -165,7 +167,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <View style={[OnboardingStyles.innerContainer, { width: contentWidth }, styles.innerContainerCentered]}>
       <Animated.View
@@ -224,6 +226,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
                 styles.startButton,
                 styles.startButtonFullWidth,
                 !isTablet && styles.startButtonPhone,
+                !isTablet && { marginBottom: Math.max(52, insets.bottom + 20) },
                 isLoading && OnboardingStyles.buttonDisabled,
               ]}
               onPress={handleContinue}
@@ -239,7 +242,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
       </Animated.View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -255,8 +258,8 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1.2, // Allow more vertical space for the illustration
     maxHeight: 320, // Increase height so the figure appears larger
-    marginTop: OnboardingSpacing.sm,
-    marginBottom: OnboardingSpacing.md,
+    marginTop: -OnboardingSpacing.xxxl, // Move up very significantly
+    marginBottom: 0, // No bottom margin
     alignSelf: 'center',
     overflow: 'visible', // Ensure no clipping of the waves
   },
