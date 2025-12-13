@@ -688,14 +688,18 @@ export class AppleStoreKitService {
       const purchaseTime = new Date(purchase.transactionDate).getTime();
       const purchaseAge = Date.now() - purchaseTime;
 
-      // CRITICAL: Always reject transactions older than 30 seconds
-      // This prevents old cached purchases from being processed
-      if (purchaseAge > 30 * 1000) {
+      // CRITICAL: Reject transactions older than 10 minutes (600 seconds)
+      // This prevents truly old cached purchases from being processed
+      // But allows legitimate purchases that take 2-5 minutes (Face ID, reading terms, etc.)
+      const STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+      
+      if (purchaseAge > STALE_THRESHOLD_MS) {
         Logger.warn(`[StoreKit][${debugId}] ⚠️ STEP 2: STALE TRANSACTION DETECTED - Finishing and rejecting`, {
           component: 'AppleStoreKitService',
-          purchaseAge: `${Math.round(purchaseAge / 1000)} seconds`,
+          purchaseAge: `${Math.round(purchaseAge / 1000)} seconds (${Math.round(purchaseAge / 60000)} minutes)`,
           transactionDate: new Date(purchaseTime).toISOString(),
           productId: purchase.productId,
+          threshold: '10 minutes',
         });
 
         // Finish the transaction to clear it from the queue
