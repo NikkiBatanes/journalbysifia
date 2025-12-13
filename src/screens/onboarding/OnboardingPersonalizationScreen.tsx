@@ -117,7 +117,7 @@ const challengeOptions: Challenge[] = [
     icon: 'people-outline',
     examples: [
       { label: 'Marriage struggles', template: "I'm struggling with communication and connection in my marriage. We seem to be drifting apart and I need biblical guidance on how to rebuild intimacy and understanding." },
-      { label: 'Parenting challenges', template: "I'm overwhelmed with parenting and don't know how to balance discipline with grace. I need wisdom on raising my children in a godly way while managing my own frustrations." },
+      { label: 'Parenting challenges', template: "I want to grow as a parent and learn to respond to my children with grace. I need biblical guidance on nurturing their faith while managing my own emotions." },
       { label: 'Friendship conflicts', template: "I'm dealing with conflict in a close friendship and don't know how to address it. I want to handle this situation with love and truth, but I'm not sure where to start." },
       { label: 'Family tensions', template: "There's ongoing tension in my family relationships that's causing me stress and pain. I need help navigating these difficult dynamics with wisdom and grace." },
     ],
