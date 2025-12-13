@@ -493,7 +493,29 @@ async function updateUserSubscription(
     const isTrialConversion = existingSub?.tier === 'free_trial' && tier !== 'free_trial';
 
     // Prepare subscription data - clear limit columns so they get recalculated from tier
-    const subscriptionData: any = {
+    interface SubscriptionUpdateData {
+      user_id: string;
+      tier: string;
+      status: string;
+      subscription_end_date?: string;
+      subscription_start_date: string;
+      platform: string;
+      platform_subscription_id: string;
+      platform_transaction_id: string;
+      subscription_display_name: string;
+      billing_cycle: string;
+      trial_start_date?: string | null;
+      trial_end_date?: string | null;
+      trial_chosen_tier?: string | null;
+      updated_at: string;
+      playbooks_limit: number;
+      devotionals_limit: number;
+      smart_journaling_enabled: boolean;
+      playbooks_used?: number;
+      devotionals_used?: number;
+    }
+
+    const subscriptionData: SubscriptionUpdateData = {
       user_id: userId,
       tier: tier,
       status: 'active',
