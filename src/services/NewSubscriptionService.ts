@@ -119,6 +119,69 @@ export class NewSubscriptionService {
   }
 
   /**
+   * Check and perform monthly usage reset for annual subscriptions
+   * Both monthly and annual subscriptions reset usage every 30 days
+   */
+  static async checkAndResetMonthlyUsage(userId: string): Promise<boolean> {
+    try {
+      const { data: subscription, error } = await supabase
+        .from('user_subscriptions_new')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !subscription) {
+        return false;
+      }
+
+      // Check if 30 days have passed since last reset
+      const lastReset = new Date(subscription.last_usage_reset || subscription.updated_at);
+      const now = new Date();
+      const daysSinceReset = (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (daysSinceReset >= 30) {
+        // Reset usage counters
+        const { error: resetError } = await supabase
+          .from('user_subscriptions_new')
+          .update({
+            playbooks_used: 0,
+            devotionals_used: 0,
+            last_usage_reset: now.toISOString(),
+            updated_at: now.toISOString(),
+          })
+          .eq('user_id', userId);
+
+        if (resetError) {
+          Logger.error('[NewSubscriptionService] Failed to reset monthly usage', resetError as Error, {
+            component: 'NewSubscriptionService',
+            userId,
+            daysSinceReset,
+          });
+          return false;
+        }
+
+        Logger.info('[NewSubscriptionService] Monthly usage reset performed', {
+          component: 'NewSubscriptionService',
+          userId,
+          tier: subscription.tier,
+          daysSinceReset: Math.floor(daysSinceReset),
+          lastReset: lastReset.toISOString(),
+        });
+
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      Logger.error('[NewSubscriptionService] Error checking monthly reset', error as Error, {
+        component: 'NewSubscriptionService',
+        userId,
+      });
+      return false;
+    }
+  }
+
+  /**
    * Create default seeker subscription for new users
    */
   static async createDefaultSeekerSubscription(userId: string): Promise<Subscription> {
@@ -425,6 +488,7 @@ export class NewSubscriptionService {
     // This applies to: seeker→paid, trial→paid, spark→growth, growth→transformation, etc.
     updateData.playbooks_used = 0;
     updateData.devotionals_used = 0;
+    updateData.last_usage_reset = new Date().toISOString(); // Track when usage was reset
 
     // POST-LAUNCH: Handle family upgrade
     /* if (is_family_upgrade && to_tier === 'family') {
@@ -559,6 +623,9 @@ export class NewSubscriptionService {
    * Check if user can perform an action
    */
   static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
+    // Check and perform monthly usage reset before checking limits
+    await this.checkAndResetMonthlyUsage(userId);
+    
     const subscription = await this.getUserSubscription(userId);
 
     // Check if trial has expired

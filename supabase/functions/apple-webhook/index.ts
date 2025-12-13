@@ -173,6 +173,7 @@ serve(async (req) => {
               devotionals_limit: paidLimits.devotionals_limit,
               playbooks_used: 0, // Reset usage
               devotionals_used: 0,
+              last_usage_reset: new Date().toISOString(), // Track when usage was reset
               smart_journaling_enabled: paidLimits.smart_journaling_enabled,
               platform_transaction_id: transactionId,
               subscription_start_date: new Date().toISOString(),
@@ -207,6 +208,7 @@ serve(async (req) => {
               grace_period_end_date: null,
               playbooks_used: 0, // Reset usage on renewal
               devotionals_used: 0,
+              last_usage_reset: new Date().toISOString(), // Track when usage was reset
               subscription_start_date: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
