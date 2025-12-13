@@ -120,7 +120,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             '8 playbooks each month',
             '8 devotionals each month',
-            'Access 1-day & 3-day devotionals',
+            'Access 1-day, 3-day devotionals',
             'Gentle reminders to keep you on track',
             'Track your progress week by week',
             'Basic journaling tools',
@@ -140,7 +140,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             '20 playbooks each month',
             '20 devotionals each month',
-            'Access 1-day, 3-day & 5-day devotionals',
+            'Access 1-day, 3-day, 5-day devotionals',
             'Gentle reminders to keep you on track',
             'Track your progress week by week',
             'Basic journaling tools',
@@ -163,7 +163,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             'Unlimited playbooks',
             'Unlimited devotionals',
-            'Access all devotional durations (1-7 days)',
+            'Access 1-day, 3-day, 5-day, 7-day devotionals',
             'Gentle reminders to keep you on track',
             'Track your progress week by week',
             'Basic journaling tools',
