@@ -365,11 +365,15 @@ async function updateUserSubscription(
     // Get tier limits
     const tierLimits = getTierLimits(tier);
 
+    // Check if this is a trial-to-paid conversion
+    const isTrialConversion = existingSub?.tier === 'free_trial' && tier !== 'free_trial';
+    
     const subscriptionData = {
       user_id: userId,
       tier: tier,
       status: 'active',
       subscription_end_date: validationData.expiresAt?.toISOString(),
+      subscription_start_date: isTrialConversion ? new Date().toISOString() : (existingSub?.subscription_start_date || new Date().toISOString()),
       platform: 'apple',
       platform_subscription_id: validationData.transactionId,
       platform_transaction_id: validationData.transactionId,
@@ -379,10 +383,10 @@ async function updateUserSubscription(
       devotionals_limit: tierLimits.devotionals_limit,
       smart_journaling_enabled: tierLimits.smart_journaling_enabled,
       show_dashboard_counts: tierLimits.show_dashboard_counts,
-      is_trial: validationData.isTrialPeriod,
-      trial_start_date: validationData.isTrialPeriod ? new Date().toISOString() : null,
-      trial_end_date: validationData.isTrialPeriod ? validationData.expiresAt?.toISOString() : null,
-      trial_chosen_tier: validationData.isTrialPeriod ? tier : null,
+      is_trial: false, // Always false for paid subscriptions processed here
+      trial_start_date: null, // Clear trial dates when converting to paid
+      trial_end_date: null,
+      trial_chosen_tier: null,
       updated_at: new Date().toISOString(),
     };
 
