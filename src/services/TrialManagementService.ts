@@ -58,12 +58,17 @@ export class TrialManagementService {
       // Get free_trial limits (2 playbooks, 2 devotionals)
       const trialLimits = NewSubscriptionService.getTierLimits('free_trial');
 
+      // Build display name with billing cycle
+      const tierName = this.getTierName(chosenTier);
+      const billingCycleName = billingCycle === 'annual' ? ' Annual' : '';
+      const displayName = `siFia ${tierName}${billingCycleName} Trial`;
+
       // Update subscription to free_trial tier
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
           tier: 'free_trial',
-          subscription_display_name: `siFia ${this.getTierName(chosenTier)} Trial`,
+          subscription_display_name: displayName,
           trial_start_date: trialStartDate.toISOString(),
           trial_end_date: trialEndDate.toISOString(),
           trial_chosen_tier: chosenTier, // Store which tier they'll convert to
