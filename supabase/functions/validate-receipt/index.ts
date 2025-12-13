@@ -174,7 +174,7 @@ serve(async (req) => {
       // CRITICAL: Use eligibility to distinguish between NEW TRIAL and PAID PURCHASE
       // - seeker + .freetrial + ELIGIBLE = NEW TRIAL → Skip (createTrial handles it)
       // - seeker + .freetrial + NOT ELIGIBLE = PAID PURCHASE → Process (no trial available)
-      // - free_trial + .freetrial = TRIAL ALREADY ACTIVE → Skip (webhook will handle conversion)
+      // - free_trial + .freetrial = TRIAL UPGRADE → Process (convert to paid immediately)
       // Only paid tiers + .freetrial = TIER UPGRADE → Process
       if (currentTier === 'seeker' || currentTier === 'free_trial') {
         if (currentTier === 'seeker' && isEligibleForTrial === false) {
@@ -187,14 +187,23 @@ serve(async (req) => {
           });
           await updateUserSubscription(supabase, userId, validationResult.data);
           console.log('[ValidateReceipt] Paid subscription activated successfully');
-        } else {
-          console.log('[ValidateReceipt] Trial-related purchase - skipping update', {
+        } else if (currentTier === 'free_trial') {
+          // TRIAL UPGRADE: User already on trial purchasing new tier - convert immediately
+          console.log('[ValidateReceipt] TRIAL UPGRADE detected - processing immediate conversion', {
             currentTier,
             productId: validationResult.data?.productId,
             isEligibleForTrial,
-            reason: currentTier === 'seeker' 
-              ? 'New trial - will be handled by createTrial()'
-              : 'User already on trial - webhook will handle conversion after 3 days'
+            reason: 'User on trial purchasing new tier - convert to paid immediately'
+          });
+          await updateUserSubscription(supabase, userId, validationResult.data);
+          console.log('[ValidateReceipt] Trial upgraded to paid subscription successfully');
+        } else {
+          // NEW TRIAL: Eligible user starting trial - skip (createTrial handles it)
+          console.log('[ValidateReceipt] NEW TRIAL detected - skipping update', {
+            currentTier,
+            productId: validationResult.data?.productId,
+            isEligibleForTrial,
+            reason: 'New trial - will be handled by createTrial()'
           });
         }
       } else {
@@ -365,6 +374,7 @@ async function updateUserSubscription(
       platform_subscription_id: validationData.transactionId,
       platform_transaction_id: validationData.transactionId,
       subscription_display_name: getTierDisplayName(tier),
+      billing_cycle: tier.includes('_annual') ? 'annual' : 'monthly', // Set billing cycle based on tier
       playbooks_limit: tierLimits.playbooks_limit,
       devotionals_limit: tierLimits.devotionals_limit,
       smart_journaling_enabled: tierLimits.smart_journaling_enabled,
