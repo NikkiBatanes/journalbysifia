@@ -198,6 +198,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   };
 
   const getStatusInfo = (status: string, subscriptionData: Subscription) => {
+    // Handle seeker users (no subscription or seeker tier)
+    if (!subscriptionData || subscriptionData.tier === 'seeker') {
+      return {
+        text: 'Free Plan',
+        badge: true,
+        color: Colors.textGray,
+      };
+    }
+
     switch (status) {
       case 'active':
         if (subscriptionData.cancel_at_period_end) {
