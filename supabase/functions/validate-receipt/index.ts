@@ -399,7 +399,7 @@ async function updateUserSubscription(
       devotionals_limit: tierLimits.devotionals_limit,
       smart_journaling_enabled: tierLimits.smart_journaling_enabled,
       show_dashboard_counts: tierLimits.show_dashboard_counts,
-      is_trial: false, // Always false for paid subscriptions processed here
+      // Note: is_trial column doesn't exist in database - trial status determined by trial_start_date presence
       trial_start_date: null, // Clear trial dates when converting to paid
       trial_end_date: null,
       trial_chosen_tier: null,
@@ -407,12 +407,17 @@ async function updateUserSubscription(
     };
 
     if (existingSub) {
-      await supabaseClient
+      const { error: updateError } = await supabaseClient
         .from('user_subscriptions_new')
         .update(subscriptionData)
         .eq('user_id', userId);
+      
+      if (updateError) {
+        console.error('[ValidateReceipt] Database update failed:', updateError);
+        throw new Error(`Failed to update subscription: ${updateError.message}`);
+      }
     } else {
-      await supabaseClient
+      const { error: insertError } = await supabaseClient
         .from('user_subscriptions_new')
         .insert({
           ...subscriptionData,
@@ -420,6 +425,11 @@ async function updateUserSubscription(
           playbooks_used: 0,
           devotionals_used: 0,
         });
+      
+      if (insertError) {
+        console.error('[ValidateReceipt] Database insert failed:', insertError);
+        throw new Error(`Failed to insert subscription: ${insertError.message}`);
+      }
     }
 
     console.log('[ValidateReceipt] Subscription updated:', { 
