@@ -260,7 +260,7 @@ export class NewSubscriptionService {
    * Start free trial for user (during onboarding)
    */
   static async startFreeTrial(options: TrialStartOptions): Promise<Subscription> {
-    const { user_id, duration_days = 3, trial_chosen_tier } = options;
+    const { user_id, duration_days = 3, trial_chosen_tier, billing_cycle } = options;
 
     try {
       // Since the start_free_trial RPC function doesn't exist, implement manually
@@ -285,6 +285,7 @@ export class NewSubscriptionService {
         trial_start_date: new Date().toISOString(),
         trial_end_date: trialEndDate.toISOString(),
         trial_chosen_tier: chosenTier, // Remember which tier they want after trial
+        billing_cycle: billing_cycle || 'monthly', // Store billing cycle for conversion
         subscription_display_name: displayName, // e.g., "siFia Spark Trial"
         playbooks_limit: trialLimits.playbooks_limit, // Always 2 for trials
         devotionals_limit: trialLimits.devotionals_limit, // Always 2 for trials
