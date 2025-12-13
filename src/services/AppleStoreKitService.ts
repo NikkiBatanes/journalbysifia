@@ -1772,11 +1772,27 @@ export class AppleStoreKitService {
             setTimeout(() => reject(new Error('Validation timeout')), 15000);
           });
 
+          // Check trial eligibility for restore purchases
+          const isTrialProduct = (purchase.productId || '').includes('freetrial');
+          let isEligibleForTrial = false;
+          
+          if (isTrialProduct) {
+            // Check if user is eligible for trial
+            const { data: currentSub } = await supabase
+              .from('user_subscriptions_new')
+              .select('tier, trial_start_date')
+              .eq('user_id', userId)
+              .single();
+              
+            isEligibleForTrial = !currentSub || currentSub.tier === 'seeker';
+          }
+          
           const validationResult = await Promise.race([
             this.validateReceiptServerSide(
               purchase.transactionReceipt,
               userId,
-              purchase.productId
+              purchase.productId,
+              isEligibleForTrial
             ),
             validationTimeout,
           ]);
