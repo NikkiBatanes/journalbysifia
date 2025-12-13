@@ -324,13 +324,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
         }
 
-        // Filter to show only annual plans for current tier when forced
+        // Filter to show only annual plans at or above current tier when forced
         if ((route.params as any)?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker') {
           const baseTier = currentUserTier.replace('_annual', '');
-          tiers = tiers.filter(t => t.id === baseTier);
-          logger.debug('Filtered to show only annual plans for current tier', {
+          const tierHierarchy = ['spark', 'growth', 'transformation'];
+          const currentTierIndex = tierHierarchy.indexOf(baseTier);
+
+          // Show current tier and higher tiers (allow upgrades, prevent downgrades)
+          tiers = tiers.filter(t => {
+            const tierIndex = tierHierarchy.indexOf(t.id);
+            return tierIndex >= currentTierIndex;
+          });
+
+          logger.debug('Filtered to show annual plans at or above current tier', {
             currentUserTier,
             baseTier,
+            currentTierIndex,
             remainingTiers: tiers.map(t => t.id),
           });
         }
