@@ -7,6 +7,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -74,6 +75,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       loadSubscriptionData(true); // Force fresh read to catch post-purchase updates
     }
   }, [visible, user?.id]);
+
+  // Also refresh when modal comes back into focus (after returning from purchase flow)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (visible && user?.id) {
+        loadSubscriptionData(true); // Force refresh when returning from purchase
+      }
+    }, [visible, user?.id])
+  );
 
   const getTierInfo = (tier: string): {
     name: string;
