@@ -74,7 +74,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     if (visible && user?.id) {
       loadSubscriptionData(true); // Force fresh read to catch post-purchase updates
     }
-  }, [visible, user?.id]);
+  }, [visible, user?.id, loadSubscriptionData]);
 
   // Also refresh when modal comes back into focus (after returning from purchase flow)
   useFocusEffect(
@@ -82,7 +82,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       if (visible && user?.id) {
         loadSubscriptionData(true); // Force refresh when returning from purchase
       }
-    }, [visible, user?.id])
+    }, [visible, user?.id, loadSubscriptionData])
   );
 
   const getTierInfo = (tier: string): {

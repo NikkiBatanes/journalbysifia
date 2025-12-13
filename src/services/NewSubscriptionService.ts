@@ -106,13 +106,11 @@ export class NewSubscriptionService {
       .from('user_subscriptions_new')
       .select('*')
       .eq('user_id', userId);
-    
     // Force a fresh read by using a unique timestamp in the query
     // This bypasses any PostgREST or connection pool caching
     if (bustCache) {
       query = query.gte('created_at', '1970-01-01T00:00:00.000Z');
     }
-    
     const { data, error } = await query.single();
 
     if (error) {

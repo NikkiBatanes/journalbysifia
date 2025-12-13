@@ -1618,9 +1618,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     const isTransformation = tier === 'transformation';
 
     // Check if user is eligible for free trial
-    const isEligibleForTrial = subscription.status !== 'trialing' &&
-                               subscription.status !== 'active' &&
-                               !(subscription as any)?.has_used_trial;
+    // const isEligibleForTrial = subscription.status !== 'trialing' &&
+    //                            subscription.status !== 'active' &&
+    //                            !(subscription as any)?.has_used_trial;
 
     const tierDisplayName = isSeeker ? 'Seeker' :
                            isSpark ? 'Spark Plan' :

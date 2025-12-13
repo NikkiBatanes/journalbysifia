@@ -323,7 +323,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           const trialTier = subscription.trial_chosen_tier;
           const tierHierarchy = ['spark', 'growth', 'transformation'];
           const trialIndex = tierHierarchy.indexOf(trialTier);
-          
           if (trialIndex !== -1) {
             // Only show tiers at or above the current trial tier
             tiers = tiers.filter(t => {
@@ -388,7 +387,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName, isFromProfile, route.params]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName, isFromProfile, route.params]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
