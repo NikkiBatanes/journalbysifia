@@ -1647,10 +1647,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <View style={styles.flex1}>
               <Text style={[styles.menuText, font]}>{tierDisplayName}</Text>
-              {isEligibleForTrial && (
-                <Text style={[styles.menuSubtext, font]}>Tap to start free trial</Text>
-              )}
-            </View>
+                          </View>
             {isSeeker ? (
               <Text style={[styles.menuValueText, font, styles.iconWithMargin]}>Free Plan</Text>
             ) : (
