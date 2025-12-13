@@ -189,9 +189,11 @@ serve(async (req) => {
           console.log('[ValidateReceipt] Paid subscription activated successfully');
         } else if (currentTier === 'free_trial') {
           // TRIAL UPGRADE: User already on trial purchasing new tier - convert immediately
+          const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
           console.log('[ValidateReceipt] TRIAL UPGRADE detected - processing immediate conversion', {
             currentTier,
             productId: validationResult.data?.productId,
+            targetTier,
             isEligibleForTrial,
             reason: 'User on trial purchasing new tier - convert to paid immediately'
           });
@@ -406,7 +408,12 @@ async function updateUserSubscription(
         });
     }
 
-    console.log('[ValidateReceipt] Subscription updated:', { tier, isTrial: validationData.isTrialPeriod });
+    console.log('[ValidateReceipt] Subscription updated:', { 
+      tier, 
+      isTrial: false, 
+      productId: validationData.productId,
+      wasTrialConversion: isTrialConversion 
+    });
   } catch (error) {
     console.error('[ValidateReceipt] Failed to update subscription:', error);
     throw error;
