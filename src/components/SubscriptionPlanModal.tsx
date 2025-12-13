@@ -161,10 +161,17 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Transformation',
           description: 'For a life transformed in spirit and purpose',
           features: [
-            'All in siFia Growth, plus:',
             'Unlimited playbooks',
             'Unlimited devotionals',
             'Access all devotional durations (1-7 days)',
+            'Gentle reminders to keep you on track',
+            'Track your progress week by week',
+            'Basic journaling tools',
+            'Calendar Sync to stay on track',
+            'Copy To-Dos to other dates for flexibility',
+            'Advanced reflection prompts',
+            'Smart Journaling for personalized reflection',
+            'Export to PDF for sharing and printing',
             'Priority support',
           ],
           limits: {
