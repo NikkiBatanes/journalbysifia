@@ -1500,6 +1500,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
+    marginTop: 12,
   },
   cardCTADisabled: {
     backgroundColor: Colors.anchorBlue,

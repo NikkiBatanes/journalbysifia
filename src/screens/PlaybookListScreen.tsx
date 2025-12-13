@@ -775,7 +775,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <Animated.View
           style={[
             styles.floatingButton,
-            { bottom: Math.max(110, bottomClearance + 70), right: Math.max(20, Math.max(insets.right, 20)) },
+            { bottom: Math.max(110, bottomClearance + 70), right: Math.max(36, insets.right + 36) },
             { transform: [{ translateX: fabPan.x }, { translateY: fabPan.y }] },
           ]}
           {...fabPanResponder.panHandlers}

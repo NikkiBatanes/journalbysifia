@@ -2162,7 +2162,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             styles.floatingDevotionalContainer,
             {
               bottom: insets.bottom + 24,
-              right: Math.max(20, insets.right + 20),
+              right: Math.max(36, insets.right + 36),
               transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }],
             },
           ]}

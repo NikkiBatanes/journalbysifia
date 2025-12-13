@@ -1465,6 +1465,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     <Animated.View
       style={[
         styles.floatingButton,
+        { right: Math.max(36, insets.right + 36) },
         { transform: [{ translateX: fabPan.x }, { translateY: fabPan.y }] },
       ]}
       {...fabPanResponder.panHandlers}
