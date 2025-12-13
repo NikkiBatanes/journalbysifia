@@ -726,26 +726,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             }
 
             logger.debug('Upgrade transaction verification:', {
-              hasTransactionId: !!result.transactionId,
-              transactionId: result.transactionId?.substring(0, 10) + '...',
-            });
-
-            // CRITICAL: Wait for AppleStoreKitService to complete server-side validation
-            // The service already handles server validation in handlePurchaseUpdate
-            logger.info('⏳ SCREEN STEP 3: Waiting for AppleStoreKitService to complete validation (UPGRADE MODE)', {
-              userId: user?.id,
-              selectedTier,
-              transactionId: result.transactionId?.substring(0, 10) + '...',
-              waitTime: '2000ms',
-              timestamp: new Date().toISOString(),
-            });
-
-            // Give the service a moment to complete validation
-            const waitStartTime = Date.now();
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const waitDuration = Date.now() - waitStartTime;
-
-            logger.info(`⏱️ SCREEN STEP 4: Wait completed (${waitDuration}ms), verifying database (UPGRADE MODE)`, {
               timestamp: new Date().toISOString(),
             });
 
@@ -793,7 +773,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             let updatedSubscription;
             let retryCount = 0;
-            const maxRetries = 5;
+            const maxRetries = 10;
 
             while (retryCount < maxRetries) {
               updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
@@ -808,7 +788,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   expectedTier,
                   actualTier: updatedSubscription?.tier,
                 });
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Wait 1.5 seconds
               }
             }
 
@@ -1006,7 +986,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             let updatedSubscription;
             let retryCount = 0;
-            const maxRetries = 5;
+            const maxRetries = 10;
 
             while (retryCount < maxRetries) {
               updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '');
@@ -1021,7 +1001,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   expectedTier,
                   actualTier: updatedSubscription?.tier,
                 });
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Wait 1.5 seconds
               }
             }
 
