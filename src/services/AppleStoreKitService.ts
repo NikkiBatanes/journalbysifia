@@ -822,36 +822,73 @@ export class AppleStoreKitService {
       const isTrialProduct = purchase.productId.includes('freetrial');
 
       if (isTrialProduct) {
-        // For trial products, DON'T update subscription here
-        // The OnboardingTrialOfferScreen will call startFreeTrial() to set up the trial properly
-        Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: Trial product detected - skipping database update`, {
-          component: 'AppleStoreKitService',
-          userId: this.currentUserId || 'unknown',
-          productId: purchase.productId,
-          tier,
-          transactionId: purchase.transactionId?.substring(0, 10) + '...',
-          message: 'Trial will be created by startFreeTrial() call from screen',
-          timestamp: new Date().toISOString(),
-        });
-
-        // Store the original transaction ID for webhook lookups
-        try {
-          await supabase
-            .from('user_subscriptions_new')
-            .update({
-              original_transaction_id: purchase.transactionId,
-              platform_transaction_id: purchase.transactionId,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', this.currentUserId);
-
-          Logger.info(`[StoreKit][${debugId}] ✅ Original transaction ID stored for webhook`, {
+        // Get user's current tier to determine if this is NEW TRIAL or PAID UPGRADE
+        const { data: currentSub } = await supabase
+          .from('user_subscriptions_new')
+          .select('tier')
+          .eq('user_id', this.currentUserId)
+          .single();
+        
+        const currentTier = currentSub?.tier || 'seeker';
+        
+        if (currentTier === 'seeker') {
+          // NEW TRIAL: User on seeker purchasing .freetrial product
+          // Skip update - let startFreeTrial() handle it
+          Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: NEW TRIAL detected - skipping database update`, {
             component: 'AppleStoreKitService',
+            userId: this.currentUserId || 'unknown',
+            productId: purchase.productId,
+            currentTier,
+            tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
+            message: 'Trial will be created by startFreeTrial() call from screen',
+            timestamp: new Date().toISOString(),
           });
-        } catch (error) {
-          Logger.error('[StoreKit] Failed to store original transaction ID', error as Error, {
+
+          // Store the original transaction ID for webhook lookups
+          try {
+            await supabase
+              .from('user_subscriptions_new')
+              .update({
+                original_transaction_id: purchase.transactionId,
+                platform_transaction_id: purchase.transactionId,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('user_id', this.currentUserId);
+
+            Logger.info(`[StoreKit][${debugId}] ✅ Original transaction ID stored for webhook`, {
+              component: 'AppleStoreKitService',
+              transactionId: purchase.transactionId?.substring(0, 10) + '...',
+            });
+          } catch (error) {
+            Logger.error('[StoreKit] Failed to store original transaction ID', error as Error, {
+              component: 'AppleStoreKitService',
+            });
+          }
+        } else {
+          // PAID UPGRADE: User on free_trial or paid tier purchasing .freetrial product
+          // User will be charged - process the upgrade
+          Logger.info(`[StoreKit][${debugId}] 💳 STEP 5: PAID UPGRADE detected - processing database update`, {
             component: 'AppleStoreKitService',
+            userId: this.currentUserId || 'unknown',
+            productId: purchase.productId,
+            currentTier,
+            targetTier: tier,
+            transactionId: purchase.transactionId?.substring(0, 10) + '...',
+            message: currentTier === 'free_trial' ? 'Trial to Paid upgrade' : 'Tier upgrade',
+            timestamp: new Date().toISOString(),
+          });
+
+          const dbUpdateStartTime = Date.now();
+          await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
+          const dbUpdateDuration = Date.now() - dbUpdateStartTime;
+
+          Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Paid upgrade completed successfully`, {
+            component: 'AppleStoreKitService',
+            userId: this.currentUserId || 'unknown',
+            tier,
+            duration: dbUpdateDuration,
+            timestamp: new Date().toISOString(),
           });
         }
       } else {

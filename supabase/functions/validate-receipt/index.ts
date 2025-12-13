@@ -155,15 +155,43 @@ serve(async (req) => {
       );
     }
 
-    // Update user subscription status ONLY for non-trial products
-    // Trial products are handled by startFreeTrial() in the app
+    // CRITICAL: Determine if this is a NEW TRIAL START or a PAID UPGRADE
+    // All products have .freetrial suffix in App Store Connect
+    // Logic: Check user's current tier to decide whether to skip or process
     const isTrialProduct = (productId || validationResult.data?.productId || '').includes('freetrial');
     
-    if (!isTrialProduct) {
+    if (isTrialProduct) {
+      // Get user's current subscription tier
+      const { data: currentSub } = await supabase
+        .from('user_subscriptions_new')
+        .select('tier')
+        .eq('user_id', userId)
+        .single();
+      
+      const currentTier = currentSub?.tier || 'seeker';
+      
+      // NEW TRIAL: User on 'seeker' tier purchasing .freetrial product
+      // Skip update - let startFreeTrial() in app handle it
+      if (currentTier === 'seeker') {
+        console.log('[ValidateReceipt] NEW TRIAL detected - skipping update (will be handled by startFreeTrial())', {
+          currentTier,
+          productId: validationResult.data?.productId
+        });
+      } else {
+        // PAID UPGRADE: User on 'free_trial' or paid tier purchasing .freetrial product
+        // User will be charged by Apple - process the upgrade
+        console.log('[ValidateReceipt] PAID UPGRADE detected - processing subscription update', {
+          currentTier,
+          productId: validationResult.data?.productId,
+          reason: currentTier === 'free_trial' ? 'Trial to Paid upgrade' : 'Tier upgrade'
+        });
+        await updateUserSubscription(supabase, userId, validationResult.data);
+        console.log('[ValidateReceipt] Subscription upgraded successfully');
+      }
+    } else {
+      // Regular non-trial product (if they exist in the future)
       await updateUserSubscription(supabase, userId, validationResult.data);
       console.log('[ValidateReceipt] Subscription updated for non-trial product');
-    } else {
-      console.log('[ValidateReceipt] Skipping subscription update for trial product - will be handled by startFreeTrial()');
     }
 
     console.log('[ValidateReceipt] Success for platform:', platform);
