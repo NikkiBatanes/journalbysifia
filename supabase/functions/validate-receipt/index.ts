@@ -20,6 +20,7 @@ interface ValidateReceiptRequest {
   userId: string;
   platform: 'ios' | 'android';
   productId?: string;
+  isEligibleForTrial?: boolean;
 }
 
 interface AppleReceiptResponse {
@@ -170,18 +171,32 @@ serve(async (req) => {
       
       const currentTier = currentSub?.tier || 'seeker';
       
-      // CRITICAL: Skip for BOTH seeker and free_trial
-      // - seeker + .freetrial = NEW TRIAL START → Skip (createTrial handles it)
+      // CRITICAL: Use eligibility to distinguish between NEW TRIAL and PAID PURCHASE
+      // - seeker + .freetrial + ELIGIBLE = NEW TRIAL → Skip (createTrial handles it)
+      // - seeker + .freetrial + NOT ELIGIBLE = PAID PURCHASE → Process (no trial available)
       // - free_trial + .freetrial = TRIAL ALREADY ACTIVE → Skip (webhook will handle conversion)
       // Only paid tiers + .freetrial = TIER UPGRADE → Process
       if (currentTier === 'seeker' || currentTier === 'free_trial') {
-        console.log('[ValidateReceipt] Trial-related purchase - skipping update', {
-          currentTier,
-          productId: validationResult.data?.productId,
-          reason: currentTier === 'seeker' 
-            ? 'New trial - will be handled by createTrial()'
-            : 'User already on trial - webhook will handle conversion after 3 days'
-        });
+        if (currentTier === 'seeker' && isEligibleForTrial === false) {
+          // PAID PURCHASE: User not eligible for trial, process paid tier update
+          console.log('[ValidateReceipt] PAID PURCHASE detected - processing subscription update', {
+            currentTier,
+            productId: validationResult.data?.productId,
+            isEligibleForTrial,
+            reason: 'User not eligible for trial - processing paid subscription'
+          });
+          await updateUserSubscription(supabase, userId, validationResult.data);
+          console.log('[ValidateReceipt] Paid subscription activated successfully');
+        } else {
+          console.log('[ValidateReceipt] Trial-related purchase - skipping update', {
+            currentTier,
+            productId: validationResult.data?.productId,
+            isEligibleForTrial,
+            reason: currentTier === 'seeker' 
+              ? 'New trial - will be handled by createTrial()'
+              : 'User already on trial - webhook will handle conversion after 3 days'
+          });
+        }
       } else {
         // TIER UPGRADE: User on paid tier purchasing .freetrial product (tier upgrade)
         console.log('[ValidateReceipt] TIER UPGRADE detected - processing subscription update', {

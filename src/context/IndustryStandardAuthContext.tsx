@@ -270,10 +270,20 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     wrongTier: verifySubscription.tier,
                   });
 
-                  // Force correct the tier to seeker
+                  // Force correct the tier to seeker - preserve other fields
                   await supabase
                     .from('user_subscriptions_new')
-                    .update({ tier: 'seeker' })
+                    .update({ 
+                      tier: 'seeker',
+                      // Preserve other important fields to avoid NULLing them
+                      playbooks_limit: 2,
+                      devotionals_limit: 2,
+                      playbooks_used: 0,
+                      devotionals_used: 0,
+                      smart_journaling_enabled: false,
+                      subscription_display_name: 'siFia Seeker',
+                      updated_at: new Date().toISOString(),
+                    })
                     .eq('user_id', user.id);
 
                   Logger.info('[AuthContext] Corrected tier to seeker', {

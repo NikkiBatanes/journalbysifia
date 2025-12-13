@@ -66,13 +66,14 @@ export interface ServerValidationResult {
 
 export class AppleStoreKitService {
   private static instance: AppleStoreKitService;
-  private isInitialized = false;
-  private purchaseUpdateSubscription: any;
-  private purchaseErrorSubscription: any;
+  private purchaseUpdateSubscription: any = null;
+  private purchaseErrorSubscription: any = null;
+  private isInitialized: boolean = false;
   private currentUserId: string | null = null;
+  private purchaseInitiatedTimestamp: number | null = null;
   private pendingPurchaseResolvers: Map<string, { resolve: (value: PurchaseResult) => void; reject: (error: any) => void }> = new Map();
-  private purchaseInitiatedTimestamp: number | null = null; // Track when purchase flow started
   private purchaseRetryCount: Map<string, number> = new Map(); // Track retry attempts
+  private currentPurchaseEligibility: boolean | undefined; // Store trial eligibility for current purchase
 
   // Product IDs for subscription tiers
   // All iOS products now use .freetrial SKUs; App Store enforces one-time trials.
@@ -997,6 +998,14 @@ export class AppleStoreKitService {
   }
 
   /**
+   * Set trial eligibility for the current purchase
+   * This helps validate-receipt distinguish between new trials and paid purchases
+   */
+  setPurchaseEligibility(isEligibleForTrial: boolean): void {
+    this.currentPurchaseEligibility = isEligibleForTrial;
+  }
+
+  /**
    * Validate purchase receipt
    */
   private async validateReceipt(purchase: ProductPurchase): Promise<boolean> {
@@ -1461,7 +1470,8 @@ export class AppleStoreKitService {
   private async validateReceiptServerSide(
     receiptData: string,
     userId: string,
-    productId?: string
+    productId?: string,
+    isEligibleForTrial?: boolean
   ): Promise<ServerValidationResult> {
     try {
       // Add 10 second timeout to prevent hanging
@@ -1475,6 +1485,7 @@ export class AppleStoreKitService {
           userId,
           platform: 'ios',
           productId,
+          isEligibleForTrial: this.currentPurchaseEligibility || undefined,
         },
       });
 

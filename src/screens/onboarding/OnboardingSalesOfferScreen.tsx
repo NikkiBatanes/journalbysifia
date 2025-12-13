@@ -9,6 +9,7 @@ import {
   StatusBar,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -694,6 +695,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             timestamp: new Date().toISOString(),
           });
 
+          if (Platform.OS === 'ios') {
+            try {
+              const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
+              const storeKit = AppleStoreKitService.getInstance();
+              storeKit.setPurchaseEligibility(shouldUseTrialProduct);
+            } catch (error) {
+              logger.warn('Failed to set purchase eligibility before iOS purchase', { error: error as Error });
+            }
+          }
+
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
 
           logger.info('📦 SCREEN STEP 2: Purchase result received from service', {
@@ -886,6 +897,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         try {
           // Show Apple's payment sheet and process purchase
           logger.debug('Calling purchaseSubscription', {});
+          if (Platform.OS === 'ios') {
+            try {
+              const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
+              const storeKit = AppleStoreKitService.getInstance();
+              storeKit.setPurchaseEligibility(shouldUseTrialProduct);
+            } catch (error) {
+              logger.warn('Failed to set purchase eligibility before iOS purchase', error as Error);
+            }
+          }
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');
 
           logger.debug('Purchase result', {

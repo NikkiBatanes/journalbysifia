@@ -47,6 +47,8 @@ interface Subscription {
     playbooks: number;
     devotionals: number;
   };
+  subscription_display_name?: string;
+  billing_cycle?: 'monthly' | 'annual';
 }
 
 interface UsageTracking {
@@ -1606,7 +1608,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (!subscription) {return null;}
 
     const tier = subscription.tier?.replace(/_annual$/, '') || 'seeker';
-    const isAnnual = subscription.tier?.includes('_annual') || false;
+    // For trials, use billing_cycle field; for paid tiers, check tier suffix
+    const isAnnual = subscription.tier === 'free_trial' 
+      ? subscription.billing_cycle === 'annual'
+      : subscription.tier?.includes('_annual') || false;
+    const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
     const isSeeker = tier === 'seeker';
     const isSpark = tier === 'spark';
     const isGrowth = tier === 'growth';
@@ -1621,9 +1627,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                            isSpark ? 'Spark Plan' :
                            isGrowth ? 'Growth Plan' :
                            isTransformation ? 'Transformation Plan' :
-                           tier === 'free_trial' ? 'Free Trial Plan' : `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`;
-
-    const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
+                           tier === 'free_trial' ? subscription.subscription_display_name || 'Free Trial Plan' : `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`;
 
     const handleSubscriptionTap = () => {
       try { triggerLightHaptic(); } catch {}
