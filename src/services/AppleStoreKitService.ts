@@ -854,24 +854,32 @@ export class AppleStoreKitService {
             timestamp: new Date().toISOString(),
           });
 
-          // Store the original transaction ID for webhook lookups
-          try {
-            await supabase
-              .from('user_subscriptions_new')
-              .update({
-                original_transaction_id: purchase.transactionId,
-                platform_transaction_id: purchase.transactionId,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('user_id', this.currentUserId);
+          // ONLY store transaction ID for NEW trials (seeker), not for existing trials
+          // For existing trials, createTrial() already set everything including transaction IDs
+          if (currentTier === 'seeker') {
+            try {
+              await supabase
+                .from('user_subscriptions_new')
+                .update({
+                  original_transaction_id: purchase.transactionId,
+                  platform_transaction_id: purchase.transactionId,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', this.currentUserId);
 
-            Logger.info(`[StoreKit][${debugId}] ✅ Original transaction ID stored for webhook`, {
+              Logger.info(`[StoreKit][${debugId}] ✅ Original transaction ID stored for webhook`, {
+                component: 'AppleStoreKitService',
+                transactionId: purchase.transactionId?.substring(0, 10) + '...',
+              });
+            } catch (error) {
+              Logger.error('[StoreKit] Failed to store original transaction ID', error as Error, {
+                component: 'AppleStoreKitService',
+              });
+            }
+          } else {
+            Logger.info(`[StoreKit][${debugId}] ⏭️ Skipping transaction ID update - already set by createTrial()`, {
               component: 'AppleStoreKitService',
-              transactionId: purchase.transactionId?.substring(0, 10) + '...',
-            });
-          } catch (error) {
-            Logger.error('[StoreKit] Failed to store original transaction ID', error as Error, {
-              component: 'AppleStoreKitService',
+              currentTier,
             });
           }
         } else {
