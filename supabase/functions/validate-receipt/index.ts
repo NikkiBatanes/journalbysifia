@@ -505,7 +505,7 @@ async function updateUserSubscription(
     subscriptionData.playbooks_limit = tierLimits.playbooks_limit;
     subscriptionData.devotionals_limit = tierLimits.devotionals_limit;
     subscriptionData.smart_journaling_enabled = tierLimits.smart_journaling_enabled;
-    subscriptionData.show_dashboard_counts = tierLimits.show_dashboard_counts;
+    // Note: show_dashboard_counts doesn't exist in database, calculated client-side
 
     if (existingSub) {
       // Reset usage counters when upgrading from trial to paid
