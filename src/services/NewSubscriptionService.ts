@@ -120,7 +120,8 @@ export class NewSubscriptionService {
 
   /**
    * Check and perform monthly usage reset for annual subscriptions
-   * Both monthly and annual subscriptions reset usage every 30 days
+   * MONTHLY: Reset handled by DID_RENEW webhook (Apple charges every 30 days)
+   * ANNUAL: Reset handled here (Apple charges yearly, but usage resets monthly)
    */
   static async checkAndResetMonthlyUsage(userId: string): Promise<boolean> {
     try {
@@ -134,13 +135,30 @@ export class NewSubscriptionService {
         return false;
       }
 
-      // Check if 30 days have passed since last reset
-      const lastReset = new Date(subscription.last_usage_reset || subscription.updated_at);
-      const now = new Date();
-      const daysSinceReset = (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24);
+      // Monthly subscriptions are handled by webhook - skip app-side reset
+      const isAnnual = subscription.billing_cycle === 'annual' || 
+                       subscription.tier?.includes('_annual');
+      
+      if (!isAnnual) {
+        return false; // Monthly subs reset via DID_RENEW webhook only
+      }
 
-      if (daysSinceReset >= 30) {
-        // Reset usage counters
+      // For annual: Calculate from billing anchor (subscription_start_date)
+      const billingAnchor = new Date(subscription.subscription_start_date || subscription.created_at);
+      const now = new Date();
+      const daysSinceAnchor = (now.getTime() - billingAnchor.getTime()) / (1000 * 60 * 60 * 24);
+      
+      // Calculate which 30-day period we're in (0-based)
+      const currentPeriod = Math.floor(daysSinceAnchor / 30);
+      
+      // Calculate when the current period started
+      const currentPeriodStart = new Date(billingAnchor.getTime() + (currentPeriod * 30 * 24 * 60 * 60 * 1000));
+      
+      // Check if we already reset for this period
+      const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
+      
+      if (lastReset < currentPeriodStart) {
+        // Need to reset - we're in a new 30-day period
         const { error: resetError } = await supabase
           .from('user_subscriptions_new')
           .update({
@@ -155,17 +173,16 @@ export class NewSubscriptionService {
           Logger.error('[NewSubscriptionService] Failed to reset monthly usage', resetError as Error, {
             component: 'NewSubscriptionService',
             userId,
-            daysSinceReset,
           });
           return false;
         }
 
-        Logger.info('[NewSubscriptionService] Monthly usage reset performed', {
+        Logger.info('[NewSubscriptionService] Annual subscription monthly reset', {
           component: 'NewSubscriptionService',
           userId,
           tier: subscription.tier,
-          daysSinceReset: Math.floor(daysSinceReset),
-          lastReset: lastReset.toISOString(),
+          period: currentPeriod + 1,
+          daysSinceAnchor: Math.floor(daysSinceAnchor),
         });
 
         return true;
@@ -489,6 +506,8 @@ export class NewSubscriptionService {
     updateData.playbooks_used = 0;
     updateData.devotionals_used = 0;
     updateData.last_usage_reset = new Date().toISOString(); // Track when usage was reset
+    updateData.subscription_start_date = new Date().toISOString(); // Set billing anchor for monthly resets
+    updateData.billing_cycle = to_tier.includes('_annual') ? 'annual' : 'monthly'; // Track billing frequency
 
     // POST-LAUNCH: Handle family upgrade
     /* if (is_family_upgrade && to_tier === 'family') {
