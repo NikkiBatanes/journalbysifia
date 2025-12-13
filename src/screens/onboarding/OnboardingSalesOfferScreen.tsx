@@ -54,6 +54,7 @@ interface RouteParams {
   dismissBothModalsOnClose?: boolean; // when both modals should be dismissed on close
   forceTransformationAnnual?: boolean; // Show only annual transformation option
   forceAnnualOnly?: boolean; // Show only annual plans for current tier
+  onboardingFlow?: boolean; // True when in initial registration onboarding
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
@@ -199,6 +200,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     hasEverStartedTrial,
     isCurrentlyOnTrial,
     canOfferTrial,
+    onboardingFlow: routeParams?.onboardingFlow,
     isUpgradeMode,
     skipNotificationPreference: routeParams?.skipNotificationPreference,
   });
@@ -254,11 +256,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // Default go back
           navigation.goBack();
         }
-      } else if (!routeParams?.skipNotificationPreference) {
-        // In onboarding mode (no skipNotificationPreference), navigate to notification setup
+      } else if (routeParams?.onboardingFlow || !routeParams?.skipNotificationPreference) {
+        // In onboarding flow or when skipNotificationPreference is false, navigate to notification setup
+        logger.debug('Navigating to notification setup for onboarding flow');
         (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
       } else {
         // When skipNotificationPreference is true (feature gating / special flows), just go back
+        logger.debug('Skipping notification setup, going back');
         navigation.goBack();
       }
     }, 100);
