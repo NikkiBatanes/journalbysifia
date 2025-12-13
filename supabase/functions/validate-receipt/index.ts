@@ -508,8 +508,11 @@ async function updateUserSubscription(
     // Note: show_dashboard_counts doesn't exist in database, calculated client-side
 
     if (existingSub) {
-      // Reset usage counters when upgrading from trial to paid
-      const updateData = isTrialConversion
+      // Check if this is a tier upgrade (different tier)
+      const isTierUpgrade = existingSub.tier !== tier;
+      
+      // Reset usage counters when upgrading from trial to paid OR when upgrading tiers
+      const updateData = (isTrialConversion || isTierUpgrade)
         ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0 }
         : subscriptionData;
 
