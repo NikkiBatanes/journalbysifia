@@ -34,6 +34,7 @@ interface Subscription {
   devotionals_used?: number;
   subscription_display_name?: string;
   trial_chosen_tier?: string;
+  billing_cycle?: 'monthly' | 'annual';
   has_used_trial?: boolean;
   current_period_start?: string;
   current_period_end?: string;
@@ -167,8 +168,28 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           color: Colors.faithGold,
         };
       case 'free_trial':
+        // For trials, show trial-specific info with trial limits (2/2)
         const chosenTier = subscription?.trial_chosen_tier || 'growth';
-        return getTierInfo(chosenTier);
+        const chosenTierName = chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1);
+        const billingCycle = subscription?.billing_cycle === 'annual' ? ' Annual' : '';
+        
+        return {
+          name: `siFia ${chosenTierName}${billingCycle} Trial`,
+          description: `3-day free trial of ${chosenTierName}${billingCycle}`,
+          features: [
+            `3 days free access to the ${chosenTierName}${billingCycle} plan`,
+            '2 playbooks during trial',
+            '2 devotionals during trial',
+            'Full access to all features',
+            'Cancel anytime',
+            'No commitment',
+          ],
+          limits: {
+            playbooks: 2,
+            devotionals: 2,
+          },
+          color: Colors.alertCoral,
+        };
       default:
         return getTierInfo('seeker');
     }
@@ -219,7 +240,10 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
   // Determine billing period
   const tierBase = subscription?.tier?.replace(/_annual$/, '') || 'seeker';
-  const isAnnual = subscription?.tier?.includes('_annual') || false;
+  // For trials, use billing_cycle field; for paid tiers, check tier suffix
+  const isAnnual = subscription?.tier === 'free_trial' 
+    ? subscription?.billing_cycle === 'annual'
+    : subscription?.tier?.includes('_annual') || false;
   const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
 
   // Check if user should see upgrade button - show for all tiers except yearly Transformation
