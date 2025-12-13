@@ -835,17 +835,22 @@ export class AppleStoreKitService {
         
         const currentTier = currentSub?.tier || 'seeker';
         
-        if (currentTier === 'seeker') {
-          // NEW TRIAL: User on seeker purchasing .freetrial product
-          // Skip update - let startFreeTrial() handle it
-          Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: NEW TRIAL detected - skipping database update`, {
+        // CRITICAL: Skip for BOTH seeker and free_trial
+        // - seeker + .freetrial = NEW TRIAL START → Skip (createTrial handles it)
+        // - free_trial + .freetrial = TRIAL ALREADY ACTIVE → Skip (webhook will handle conversion)
+        // Only paid tiers + .freetrial = TIER UPGRADE → Process
+        if (currentTier === 'seeker' || currentTier === 'free_trial') {
+          // NEW TRIAL or TRIAL ALREADY ACTIVE: Skip update
+          Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: Trial-related purchase - skipping database update`, {
             component: 'AppleStoreKitService',
             userId: this.currentUserId || 'unknown',
             productId: purchase.productId,
             currentTier,
             tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
-            message: 'Trial will be created by startFreeTrial() call from screen',
+            message: currentTier === 'seeker' 
+              ? 'New trial - will be handled by createTrial()'
+              : 'User already on trial - webhook will handle conversion after 3 days',
             timestamp: new Date().toISOString(),
           });
 
@@ -870,16 +875,15 @@ export class AppleStoreKitService {
             });
           }
         } else {
-          // PAID UPGRADE: User on free_trial or paid tier purchasing .freetrial product
-          // User will be charged - process the upgrade
-          Logger.info(`[StoreKit][${debugId}] 💳 STEP 5: PAID UPGRADE detected - processing database update`, {
+          // TIER UPGRADE: User on paid tier purchasing .freetrial product (tier upgrade)
+          Logger.info(`[StoreKit][${debugId}] 💳 STEP 5: TIER UPGRADE detected - processing database update`, {
             component: 'AppleStoreKitService',
             userId: this.currentUserId || 'unknown',
             productId: purchase.productId,
             currentTier,
             targetTier: tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
-            message: currentTier === 'free_trial' ? 'Trial to Paid upgrade' : 'Tier upgrade',
+            message: 'Paid tier upgrade',
             timestamp: new Date().toISOString(),
           });
 
@@ -887,7 +891,7 @@ export class AppleStoreKitService {
           await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
           const dbUpdateDuration = Date.now() - dbUpdateStartTime;
 
-          Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Paid upgrade completed successfully`, {
+          Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Tier upgrade completed successfully`, {
             component: 'AppleStoreKitService',
             userId: this.currentUserId || 'unknown',
             tier,

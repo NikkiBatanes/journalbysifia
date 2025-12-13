@@ -170,20 +170,24 @@ serve(async (req) => {
       
       const currentTier = currentSub?.tier || 'seeker';
       
-      // NEW TRIAL: User on 'seeker' tier purchasing .freetrial product
-      // Skip update - let startFreeTrial() in app handle it
-      if (currentTier === 'seeker') {
-        console.log('[ValidateReceipt] NEW TRIAL detected - skipping update (will be handled by startFreeTrial())', {
-          currentTier,
-          productId: validationResult.data?.productId
-        });
-      } else {
-        // PAID UPGRADE: User on 'free_trial' or paid tier purchasing .freetrial product
-        // User will be charged by Apple - process the upgrade
-        console.log('[ValidateReceipt] PAID UPGRADE detected - processing subscription update', {
+      // CRITICAL: Skip for BOTH seeker and free_trial
+      // - seeker + .freetrial = NEW TRIAL START → Skip (createTrial handles it)
+      // - free_trial + .freetrial = TRIAL ALREADY ACTIVE → Skip (webhook will handle conversion)
+      // Only paid tiers + .freetrial = TIER UPGRADE → Process
+      if (currentTier === 'seeker' || currentTier === 'free_trial') {
+        console.log('[ValidateReceipt] Trial-related purchase - skipping update', {
           currentTier,
           productId: validationResult.data?.productId,
-          reason: currentTier === 'free_trial' ? 'Trial to Paid upgrade' : 'Tier upgrade'
+          reason: currentTier === 'seeker' 
+            ? 'New trial - will be handled by createTrial()'
+            : 'User already on trial - webhook will handle conversion after 3 days'
+        });
+      } else {
+        // TIER UPGRADE: User on paid tier purchasing .freetrial product (tier upgrade)
+        console.log('[ValidateReceipt] TIER UPGRADE detected - processing subscription update', {
+          currentTier,
+          productId: validationResult.data?.productId,
+          reason: 'Paid tier upgrade'
         });
         await updateUserSubscription(supabase, userId, validationResult.data);
         console.log('[ValidateReceipt] Subscription upgraded successfully');
