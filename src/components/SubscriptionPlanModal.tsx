@@ -50,12 +50,13 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const loadSubscriptionData = React.useCallback(async () => {
+  const loadSubscriptionData = React.useCallback(async (forceRefresh = false) => {
     if (!user?.id) {return;}
 
     try {
       setLoading(true);
-      const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+      // Force fresh read when modal opens to get latest subscription data
+      const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, forceRefresh);
       setSubscription(subscriptionData as any);
     } catch (error) {
       Logger.error('Failed to load subscription data for modal', error as Error, {
@@ -67,9 +68,10 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   }, [user?.id]);
 
   // Load subscription data when modal becomes visible
+  // Force refresh to get latest data after purchases
   useEffect(() => {
     if (visible && user?.id) {
-      loadSubscriptionData();
+      loadSubscriptionData(true); // Force fresh read to catch post-purchase updates
     }
   }, [visible, user?.id]);
 
