@@ -501,6 +501,14 @@ export class AppleStoreKitService {
     try {
       await this.initialize();
 
+      // CRITICAL: Ensure listeners are set up
+      if (!this.purchaseUpdateSubscription || !this.purchaseErrorSubscription) {
+        Logger.warn('[StoreKit] Purchase listeners not set up, re-initializing', {
+          component: 'AppleStoreKitService',
+        });
+        this.setupPurchaseListeners();
+      }
+
       // Clear stale transactions in background - don't block payment sheet
       Logger.info('[StoreKit] 🧹 Starting background cleanup of stale transactions', {
         component: 'AppleStoreKitService',
@@ -542,6 +550,20 @@ export class AppleStoreKitService {
       }
 
       if (Platform.OS === 'ios') {
+        // CRITICAL: Validate requestSubscription is available
+        if (!requestSubscription) {
+          const error = new Error('requestSubscription is not available from react-native-iap');
+          Logger.error('[StoreKit] requestSubscription not available', error, {
+            component: 'AppleStoreKitService',
+          });
+          const resolver = this.pendingPurchaseResolvers.get(productId);
+          if (resolver) {
+            resolver.reject(error);
+            this.pendingPurchaseResolvers.delete(productId);
+          }
+          throw error;
+        }
+
         const purchaseParams: any = { sku: productId };
 
         // Add promotional offer if provided
@@ -557,17 +579,29 @@ export class AppleStoreKitService {
           component: 'AppleStoreKitService',
           productId,
           hasOffer: !!offerIdentifier,
+          purchaseParams,
         });
 
         try {
-          await requestSubscription(purchaseParams);
-          Logger.info('[StoreKit] ✅ Payment sheet request sent successfully', { component: 'AppleStoreKitService' });
+          const requestResult = await requestSubscription(purchaseParams);
+          Logger.info('[StoreKit] ✅ Payment sheet request sent successfully', {
+            component: 'AppleStoreKitService',
+            result: requestResult,
+          });
         } catch (requestError) {
           Logger.error('[StoreKit] ❌ CRITICAL: Failed to show payment sheet', requestError as Error, {
             component: 'AppleStoreKitService',
             productId,
             errorDetails: requestError,
           });
+
+          // CRITICAL FIX: Reject pending promise before throwing
+          const resolver = this.pendingPurchaseResolvers.get(productId);
+          if (resolver) {
+            resolver.reject(requestError);
+            this.pendingPurchaseResolvers.delete(productId);
+          }
+
           throw requestError;
         }
       } else {
