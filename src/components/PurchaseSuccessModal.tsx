@@ -33,6 +33,7 @@ interface PurchaseSuccessModalProps {
   tier: string;
   isTrial: boolean;
   isValidated: boolean;
+  isAnnual?: boolean; // Add isAnnual prop for proper display
   onContinue: () => void;
 }
 
@@ -41,6 +42,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   tier,
   isTrial,
   isValidated,
+  isAnnual = false,
   onContinue,
 }) => {
   // const theme = useTheme(); // Unused
@@ -93,26 +95,34 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     const planNames: Record<string, string> = {
       seeker: 'Seeker',
       spark: 'Spark',
+      spark_annual: 'Spark',
       growth: 'Growth',
+      growth_annual: 'Growth',
       transformation: 'Transformation',
+      transformation_annual: 'Transformation',
       family: 'Family',
+      family_annual: 'Family',
       free_trial: 'Free Trial',
     };
 
+    // Use isAnnual prop to determine billing cycle display
     const effectiveTierKey = isTrial ? tier.replace('_trial', '') : tier;
-    const baseName = planNames[effectiveTierKey] || effectiveTierKey;
-    // Always use "siFia" prefix for display, and append "Trial" only for trial cases
-    const baseDisplayName = `siFia ${baseName}`;
+    const baseTierKey = effectiveTierKey.replace('_annual', ''); // Get base tier for pricing lookup
+    const baseName = planNames[effectiveTierKey] || planNames[baseTierKey] || effectiveTierKey;
+    
+    // Build display name with billing cycle from prop
+    const billingCycle = isAnnual ? ' Annual' : '';
+    const baseDisplayName = `siFia ${baseName}${billingCycle}`;
 
-    // Get tier features from pricing service
-    const currentTier = pricingTiers.find(t => t.id === effectiveTierKey);
+    // Get tier features from pricing service (use base tier, not annual variant)
+    const currentTier = pricingTiers.find(t => t.id === baseTierKey);
 
     if (isTrial) {
       const benefits: string[] = [];
 
       // Use pricing service features for trial
       if (currentTier) {
-        benefits.push(`3 days free access to the ${baseName} plan`);
+        benefits.push(`3 days free access to the ${baseName}${billingCycle} plan`);
         benefits.push('Generate 2 Playbooks during the trial');
         benefits.push('Generate 2 Devotionals during the trial');
 
@@ -124,7 +134,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
         }
       } else {
         // Fallback if pricing not loaded
-        benefits.push(`3 days free access to the ${baseName} plan`);
+        benefits.push(`3 days free access to the ${baseName}${billingCycle} plan`);
         benefits.push('Generate 2 Playbooks during the trial');
         benefits.push('Generate 2 Devotionals during the trial');
       }
@@ -133,7 +143,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       benefits.push('No commitment');
 
       return {
-        // e.g. "siFia Growth Trial"
+        // e.g. "siFia Spark Annual Trial" or "siFia Growth Trial"
         name: `${baseDisplayName} Trial`,
         color: Colors.alertCoral,
         benefits,

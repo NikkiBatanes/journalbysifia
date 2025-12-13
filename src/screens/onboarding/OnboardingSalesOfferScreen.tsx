@@ -1345,6 +1345,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         visible={showSuccessModal}
         tier={lastPurchasedTier || selectedTier}
         isTrial={shouldUseTrialProduct}
+        isAnnual={isAnnual}
         isValidated={purchaseValidated}
         onContinue={handleSuccessModalContinue}
       />
