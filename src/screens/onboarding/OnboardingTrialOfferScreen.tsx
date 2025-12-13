@@ -258,10 +258,33 @@ const OnboardingTrialOfferScreen = () => {
       // Example: app.sifia.com.transformation.annual.freetrial
       const paymentService = PlatformPaymentService.getInstance();
 
-      // Use the .freetrial product ID based on selected tier and billing
-      // This matches what's configured in App Store Connect
+      // CRITICAL FIX: Check if user is already on trial
+      // iOS rejects purchase silently when trial user tries to buy another trial product
       const billing = isAnnual ? 'annual' : 'monthly';
-      const productId = `app.sifia.com.${selectedTierId}.${billing}.freetrial`;
+      let currentSubscription = null;
+      let isAlreadyOnTrial = false;
+
+      try {
+        const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
+        currentSubscription = await NewSubscriptionService.getUserSubscription(user.id);
+        isAlreadyOnTrial = currentSubscription?.tier === 'free_trial' && currentSubscription?.status === 'active';
+      } catch (error) {
+        logger.warn('Failed to check current subscription status', { error: error as Error });
+      }
+
+      // Use regular product if already on trial, trial product if new user
+      const productId = isAlreadyOnTrial
+        ? `app.sifia.com.${selectedTierId}.${billing}` // Regular product for trial users
+        : `app.sifia.com.${selectedTierId}.${billing}.freetrial`; // Trial product for new users
+
+      logger.info('Product selection logic', {
+        selectedTierId,
+        billing,
+        isAlreadyOnTrial,
+        currentTier: currentSubscription?.tier,
+        currentStatus: currentSubscription?.status,
+        selectedProductId: productId,
+      });
 
       logger.debug('Constructing trial product ID', {
         selectedTierId,
