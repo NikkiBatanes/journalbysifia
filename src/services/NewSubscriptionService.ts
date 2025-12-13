@@ -146,7 +146,17 @@ export class NewSubscriptionService {
       
       if (!isAnnual) {
         return false; // Monthly subs reset via DID_RENEW webhook only
+        // CANCELLATION BEHAVIOR FOR MONTHLY:
+        // - User cancels → No more DID_RENEW webhooks fire
+        // - Therefore NO resets after cancellation
+        // - On expiration: EXPIRED webhook downgrades to Seeker
       }
+
+      // CANCELLATION BEHAVIOR FOR ANNUAL:
+      // - User cancels → auto_renew_enabled: false, but tier stays annual
+      // - Monthly resets CONTINUE (user paid for full year)
+      // - Keeps annual badge/tier until expiration
+      // - On Day 365: EXPIRED webhook downgrades to Seeker
 
       // For annual: Calculate from billing anchor (subscription_start_date)
       const billingAnchor = new Date(subscription.subscription_start_date || subscription.created_at);
