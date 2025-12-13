@@ -330,7 +330,7 @@ export class AppleStoreKitService {
           component: 'AppleStoreKitService',
           productCount: productIds.length,
           isSandbox: this.isSandboxEnvironment(),
-          productIds: productIds.slice(0, 3), // Log first 3 for debugging
+          productIds: productIds, // Log ALL for debugging
         });
 
         // Add additional validation before calling getSubscriptions
@@ -339,6 +339,16 @@ export class AppleStoreKitService {
         }
 
         const products = await getSubscriptions({ skus: productIds });
+
+        Logger.info(`[StoreKit] Raw products from App Store`, {
+          component: 'AppleStoreKitService',
+          rawProductCount: products.length,
+          rawProducts: products.map(p => ({ 
+            productId: p.productId, 
+            title: p.title,
+            available: (p as any).available 
+          })),
+        });
 
         const result = products.map((product: Subscription) => ({
           productId: product.productId,

@@ -783,7 +783,7 @@ const OnboardingTrialOfferScreen = () => {
     {
       id: 3,
       title: 'Dec 13 - Continue Your Journey',
-      description: 'Your trial ends and you\'ll be charged, unless cancelled.\n\nAfter your trial you will receive the full playbook and devotional limits dependent on the plan you have.',
+      description: 'Your trial ends and you\'ll be charged, unless cancelled.\n\nAfter your trial you\'ll receive full playbook and devotional limits.',
       icon: 'rocket',
       iconColor: Colors.alertCoral,
       isCompleted: false,

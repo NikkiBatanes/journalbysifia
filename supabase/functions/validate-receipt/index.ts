@@ -128,9 +128,10 @@ serve(async (req) => {
     }
 
     // Store validated receipt in database for audit trail
+    // Use upsert to handle upgrades/renewals where transaction_id may already exist
     const { data: receiptRecord, error: dbError } = await supabase
       .from('validated_receipts')
-      .insert({
+      .upsert({
         user_id: userId,
         platform,
         receipt_data: receiptData,
@@ -140,6 +141,8 @@ serve(async (req) => {
         expires_at: validationResult.data?.expiresAt?.toISOString(),
         is_valid: true,
         validated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'transaction_id' // Update existing record if transaction_id already exists
       })
       .select()
       .single();
