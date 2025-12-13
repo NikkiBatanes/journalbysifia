@@ -1,7 +1,7 @@
 /**
  * Supabase Edge Function: Validate Apple/Google Receipt
  * Enterprise-grade server-side receipt validation
- * 
+ *
  * NOTE: This file runs in Deno runtime on Supabase Edge Functions.
  * TypeScript errors about Deno and HTTP imports are expected in IDE but are valid in Deno.
  */
@@ -99,12 +99,12 @@ interface CreateTrialResult {
 async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult> {
   try {
     const { supabase, userId, chosenTier, platformSubscriptionId, transactionId, billingCycle } = params;
-    
+
     // Calculate trial end date (3 days from now)
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 3);
     const trialEndDateIso = trialEndDate.toISOString();
-    
+
     // Create trial subscription
     const { data, error } = await supabase
       .from('user_subscriptions_new')
@@ -119,13 +119,13 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         billing_cycle: billingCycle || 'monthly',
         auto_renew_enabled: true,
         status: 'active',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }, {
-        onConflict: 'user_id'
+        onConflict: 'user_id',
       })
       .select()
       .single();
-    
+
     if (error) {
       console.error('[createTrial] Database error:', error);
       return {
@@ -133,16 +133,16 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         tier: 'free_trial',
         chosenTier,
         trialEndDate: trialEndDateIso,
-        error: error.message
+        error: error.message,
       };
     }
-    
+
     console.log('[createTrial] Trial created successfully:', data);
     return {
       success: true,
       tier: 'free_trial',
       chosenTier,
-      trialEndDate: trialEndDateIso
+      trialEndDate: trialEndDateIso,
     };
   } catch (error) {
     console.error('[createTrial] Error:', error);
@@ -151,7 +151,7 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
       tier: 'free_trial',
       chosenTier: params.chosenTier,
       trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -221,7 +221,7 @@ serve(async (req) => {
         is_valid: true,
         validated_at: new Date().toISOString(),
       }, {
-        onConflict: 'transaction_id' // Update existing record if transaction_id already exists
+        onConflict: 'transaction_id', // Update existing record if transaction_id already exists
       })
       .select()
       .single();
@@ -238,7 +238,7 @@ serve(async (req) => {
     // All products have .freetrial suffix in App Store Connect
     // Logic: Check user's current tier to decide whether to skip or process
     const isTrialProduct = (productId || validationResult.data?.productId || '').includes('freetrial');
-    
+
     if (isTrialProduct) {
       // Get user's current subscription tier
       const { data: currentSub } = await supabase
@@ -246,9 +246,9 @@ serve(async (req) => {
         .select('tier')
         .eq('user_id', userId)
         .single();
-      
+
       const currentTier = currentSub?.tier || 'seeker';
-      
+
       // CRITICAL: Use eligibility to distinguish between NEW TRIAL and PAID UPGRADE
       // - seeker + .freetrial + ELIGIBLE = NEW TRIAL → Skip (createTrial handles it)
       // - seeker + .freetrial + NOT ELIGIBLE = PAID PURCHASE → Process (no trial available)
@@ -256,14 +256,14 @@ serve(async (req) => {
       // Only paid tiers + .freetrial = TIER UPGRADE → Process
       if (currentTier === 'seeker' || currentTier === 'free_trial') {
         const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
-        
+
         if (currentTier === 'seeker' && isEligibleForTrial === false) {
           // PAID PURCHASE: User not eligible for trial, process paid tier update
           console.log('[ValidateReceipt] PAID PURCHASE detected - processing subscription update', {
             currentTier,
             productId: validationResult.data?.productId,
             isEligibleForTrial,
-            reason: 'User not eligible for trial - processing paid subscription'
+            reason: 'User not eligible for trial - processing paid subscription',
           });
           await updateUserSubscription(supabase, userId, validationResult.data);
           console.log('[ValidateReceipt] Paid subscription activated successfully');
@@ -274,7 +274,7 @@ serve(async (req) => {
             productId: validationResult.data?.productId,
             targetTier,
             isEligibleForTrial,
-            reason: 'User on trial purchasing new tier - convert to paid immediately'
+            reason: 'User on trial purchasing new tier - convert to paid immediately',
           });
           await updateUserSubscription(supabase, userId, validationResult.data);
           console.log('[ValidateReceipt] Trial upgraded to paid subscription successfully');
@@ -284,9 +284,9 @@ serve(async (req) => {
             currentTier,
             productId: validationResult.data?.productId,
             isEligibleForTrial,
-            reason: 'New trial - creating now'
+            reason: 'New trial - creating now',
           });
-          
+
           // Create the trial subscription
           const trialResult = await createTrial({
             supabase,
@@ -294,18 +294,18 @@ serve(async (req) => {
             chosenTier: targetTier,
             platformSubscriptionId: validationResult.data?.subscriptionId || '',
             transactionId: validationResult.data?.transactionId || '',
-            billingCycle: validationResult.data?.billingCycle as 'monthly' | 'annual' | undefined
+            billingCycle: validationResult.data?.billingCycle as 'monthly' | 'annual' | undefined,
           });
-          
+
           if (!trialResult.success) {
             console.error('[ValidateReceipt] Trial creation failed:', trialResult.error);
             throw new Error(`Trial creation failed: ${trialResult.error}`);
           }
-          
+
           console.log('[ValidateReceipt] Trial created successfully:', {
             tier: trialResult.tier,
             chosenTier: trialResult.chosenTier,
-            trialEndDate: trialResult.trialEndDate
+            trialEndDate: trialResult.trialEndDate,
           });
         }
       } else {
@@ -313,7 +313,7 @@ serve(async (req) => {
         console.log('[ValidateReceipt] TIER UPGRADE detected - processing subscription update', {
           currentTier,
           productId: validationResult.data?.productId,
-          reason: 'Paid tier upgrade'
+          reason: 'Paid tier upgrade',
         });
         await updateUserSubscription(supabase, userId, validationResult.data);
         console.log('[ValidateReceipt] Subscription upgraded successfully');
@@ -379,21 +379,21 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
 
   // Extract subscription info - find the MOST RECENT transaction
   const receipts = response.latest_receipt_info || response.receipt?.in_app || [];
-  
+
   if (receipts.length === 0) {
     return {
       success: false,
       error: 'No subscription info found in receipt',
     };
   }
-  
+
   // Sort by purchase_date_ms descending to get the most recent transaction
   const latestReceipt = receipts.sort((a, b) => {
     const aTime = parseInt(a.purchase_date_ms || '0');
     const bTime = parseInt(b.purchase_date_ms || '0');
     return bTime - aTime; // Descending order (newest first)
   })[0];
-  
+
   console.log('[ValidateReceipt] Selected most recent transaction:', {
     productId: latestReceipt.product_id,
     purchaseDate: latestReceipt.purchase_date,
@@ -463,8 +463,8 @@ function validateGoogleReceipt(_receiptData: string): Promise<ValidationResult> 
  * Update user subscription in database
  */
 async function updateUserSubscription(
-  supabaseClient: SupabaseClient, 
-  userId: string, 
+  supabaseClient: SupabaseClient,
+  userId: string,
   validationData: ValidationData
 ): Promise<void> {
   try {
@@ -480,7 +480,7 @@ async function updateUserSubscription(
 
     // Check if this is a trial-to-paid conversion
     const isTrialConversion = existingSub?.tier === 'free_trial' && tier !== 'free_trial';
-    
+
     // Prepare subscription data - clear limit columns so they get recalculated from tier
     const subscriptionData: any = {
       user_id: userId,
@@ -498,7 +498,7 @@ async function updateUserSubscription(
       trial_chosen_tier: null,
       updated_at: new Date().toISOString(),
     };
-    
+
     // CRITICAL: Set limit columns to NULL if they exist in database
     // This forces enrichSubscriptionData to recalculate from tier instead of using stale values
     if (existingSub?.playbooks_limit !== undefined) {
@@ -516,15 +516,15 @@ async function updateUserSubscription(
 
     if (existingSub) {
       // Reset usage counters when upgrading from trial to paid
-      const updateData = isTrialConversion 
+      const updateData = isTrialConversion
         ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0 }
         : subscriptionData;
-        
+
       const { error: updateError } = await supabaseClient
         .from('user_subscriptions_new')
         .update(updateData)
         .eq('user_id', userId);
-      
+
       if (updateError) {
         console.error('[ValidateReceipt] Database update failed:', updateError);
         throw new Error(`Failed to update subscription: ${updateError.message}`);
@@ -538,18 +538,18 @@ async function updateUserSubscription(
           playbooks_used: 0,
           devotionals_used: 0,
         });
-      
+
       if (insertError) {
         console.error('[ValidateReceipt] Database insert failed:', insertError);
         throw new Error(`Failed to insert subscription: ${insertError.message}`);
       }
     }
 
-    console.log('[ValidateReceipt] Subscription updated:', { 
-      tier, 
-      isTrial: false, 
+    console.log('[ValidateReceipt] Subscription updated:', {
+      tier,
+      isTrial: false,
       productId: validationData.productId,
-      wasTrialConversion: isTrialConversion 
+      wasTrialConversion: isTrialConversion,
     });
   } catch (error) {
     console.error('[ValidateReceipt] Failed to update subscription:', error);
@@ -567,71 +567,6 @@ function mapProductIdToTier(productId: string): string {
   if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
   if (productId.includes('family')) {return isAnnual ? 'family_annual' : 'family';}
   return 'seeker';
-}
-
-/**
- * Get tier limits for subscription
- */
-function _getTierLimits(tier: string): {
-  playbooks_limit: number;
-  devotionals_limit: number;
-  smart_journaling_enabled: boolean;
-  show_dashboard_counts: boolean;
-} {
-  switch (tier) {
-    case 'seeker':
-      return {
-        playbooks_limit: 0,
-        devotionals_limit: 0,
-        smart_journaling_enabled: false,
-        show_dashboard_counts: true,
-      };
-    case 'free_trial':
-      return {
-        playbooks_limit: 2,
-        devotionals_limit: 2,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
-    case 'spark':
-    case 'spark_annual':
-      return {
-        playbooks_limit: 8,
-        devotionals_limit: 8,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
-    case 'growth':
-    case 'growth_annual':
-      return {
-        playbooks_limit: 20,
-        devotionals_limit: 20,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
-    case 'transformation':
-    case 'transformation_annual':
-      return {
-        playbooks_limit: 999999,
-        devotionals_limit: 999999,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: false,
-      };
-    case 'family':
-      return {
-        playbooks_limit: 999999,
-        devotionals_limit: 999999,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: false,
-      };
-    default:
-      return {
-        playbooks_limit: 0,
-        devotionals_limit: 0,
-        smart_journaling_enabled: false,
-        show_dashboard_counts: true,
-      };
-  }
 }
 
 /**
