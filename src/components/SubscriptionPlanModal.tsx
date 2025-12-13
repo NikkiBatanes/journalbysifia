@@ -172,7 +172,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         const chosenTier = subscription?.trial_chosen_tier || 'growth';
         const chosenTierName = chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1);
         const billingCycle = subscription?.billing_cycle === 'annual' ? ' Annual' : '';
-        
+
         return {
           name: `siFia ${chosenTierName}${billingCycle} Trial`,
           description: `3-day free trial of ${chosenTierName}${billingCycle}`,
@@ -241,7 +241,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   // Determine billing period
   const tierBase = subscription?.tier?.replace(/_annual$/, '') || 'seeker';
   // For trials, use billing_cycle field; for paid tiers, check tier suffix
-  const isAnnual = subscription?.tier === 'free_trial' 
+  const isAnnual = subscription?.tier === 'free_trial'
     ? subscription?.billing_cycle === 'annual'
     : subscription?.tier?.includes('_annual') || false;
   const billingPeriod = isAnnual ? 'Annual' : 'Monthly';

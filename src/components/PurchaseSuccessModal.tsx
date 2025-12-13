@@ -109,7 +109,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     const effectiveTierKey = isTrial ? tier.replace('_trial', '') : tier;
     const baseTierKey = effectiveTierKey.replace('_annual', ''); // Get base tier for pricing lookup
     const baseName = planNames[effectiveTierKey] || planNames[baseTierKey] || effectiveTierKey;
-    
+
     // Build display name with billing cycle from prop
     const billingCycle = isAnnual ? ' Annual' : '';
     const baseDisplayName = `siFia ${baseName}${billingCycle}`;

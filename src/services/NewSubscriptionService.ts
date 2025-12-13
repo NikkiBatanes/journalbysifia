@@ -140,10 +140,10 @@ export class NewSubscriptionService {
       if (subscription.tier === 'seeker' || subscription.tier === 'free_trial') {
         return false; // No resets for seeker or trial
       }
-      
-      const isAnnual = subscription.billing_cycle === 'annual' || 
+
+      const isAnnual = subscription.billing_cycle === 'annual' ||
                        subscription.tier?.includes('_annual');
-      
+
       if (!isAnnual) {
         return false; // Monthly subs reset via DID_RENEW webhook only
         // CANCELLATION BEHAVIOR FOR MONTHLY:
@@ -162,16 +162,16 @@ export class NewSubscriptionService {
       const billingAnchor = new Date(subscription.subscription_start_date || subscription.created_at);
       const now = new Date();
       const daysSinceAnchor = (now.getTime() - billingAnchor.getTime()) / (1000 * 60 * 60 * 24);
-      
+
       // Calculate which 30-day period we're in (0-based)
       const currentPeriod = Math.floor(daysSinceAnchor / 30);
-      
+
       // Calculate when the current period started
       const currentPeriodStart = new Date(billingAnchor.getTime() + (currentPeriod * 30 * 24 * 60 * 60 * 1000));
-      
+
       // Check if we already reset for this period
       const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
-      
+
       if (lastReset < currentPeriodStart) {
         // Need to reset - we're in a new 30-day period
         const { error: resetError } = await supabase
@@ -659,7 +659,7 @@ export class NewSubscriptionService {
   static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
     // Check and perform monthly usage reset before checking limits
     await this.checkAndResetMonthlyUsage(userId);
-    
+
     const subscription = await this.getUserSubscription(userId);
 
     // Check if trial has expired
@@ -683,7 +683,7 @@ export class NewSubscriptionService {
           tier: subscription.tier,
           expiration: subscription.subscription_end_date,
         });
-        
+
         await this.handleExpiredSubscription(userId);
         throw new SubscriptionError('Subscription has expired', 'SUBSCRIPTION_EXPIRED');
       }
@@ -778,7 +778,7 @@ export class NewSubscriptionService {
    */
   static async handleExpiredSubscription(userId: string): Promise<Subscription> {
     const seekerLimits = this.getTierLimits('seeker');
-    
+
     const { error } = await supabase
       .from('user_subscriptions_new')
       .update({

@@ -662,11 +662,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       if (trialProduct) {
         productId = trialProduct.productId;
-        logger.debug('✅ Using .freetrial product', { 
-          productId, 
+        logger.debug('✅ Using .freetrial product', {
+          productId,
           shouldUseTrialProduct,
           userTier: subscription?.tier,
-          isUpgrade: subscription?.tier === 'free_trial' && !shouldUseTrialProduct
+          isUpgrade: subscription?.tier === 'free_trial' && !shouldUseTrialProduct,
         });
       } else {
         // Construct trial product ID
@@ -903,7 +903,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               const storeKit = AppleStoreKitService.getInstance();
               storeKit.setPurchaseEligibility(shouldUseTrialProduct);
             } catch (error) {
-              logger.warn('Failed to set purchase eligibility before iOS purchase', error as Error);
+              logger.warn('Failed to set purchase eligibility before iOS purchase', { error: error as Error });
             }
           }
           const result = await paymentService.purchaseSubscription(productId, user?.id || '');

@@ -341,13 +341,13 @@ export class AppleStoreKitService {
 
         const products = await getSubscriptions({ skus: productIds });
 
-        Logger.info(`[StoreKit] Raw products from App Store`, {
+        Logger.info('[StoreKit] Raw products from App Store', {
           component: 'AppleStoreKitService',
           rawProductCount: products.length,
-          rawProducts: products.map(p => ({ 
-            productId: p.productId, 
+          rawProducts: products.map(p => ({
+            productId: p.productId,
             title: p.title,
-            available: (p as any).available 
+            available: (p as any).available,
           })),
         });
 
@@ -693,7 +693,7 @@ export class AppleStoreKitService {
       // This prevents truly old cached purchases from being processed
       // But allows legitimate purchases that take 2-5 minutes (Face ID, reading terms, etc.)
       const STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
-      
+
       if (purchaseAge > STALE_THRESHOLD_MS) {
         Logger.warn(`[StoreKit][${debugId}] ⚠️ STEP 2: STALE TRANSACTION DETECTED - Finishing and rejecting`, {
           component: 'AppleStoreKitService',
@@ -833,9 +833,9 @@ export class AppleStoreKitService {
           .select('tier')
           .eq('user_id', this.currentUserId)
           .single();
-        
+
         const currentTier = currentSub?.tier || 'seeker';
-        
+
         // CRITICAL: Skip for BOTH seeker and free_trial
         // - seeker + .freetrial = NEW TRIAL START → Skip (createTrial handles it)
         // - free_trial + .freetrial = TRIAL ALREADY ACTIVE → Skip (webhook will handle conversion)
@@ -849,7 +849,7 @@ export class AppleStoreKitService {
             currentTier,
             tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
-            message: currentTier === 'seeker' 
+            message: currentTier === 'seeker'
               ? 'New trial - will be handled by createTrial()'
               : 'User already on trial - webhook will handle conversion after 3 days',
             timestamp: new Date().toISOString(),
@@ -1471,7 +1471,7 @@ export class AppleStoreKitService {
     receiptData: string,
     userId: string,
     productId?: string,
-    isEligibleForTrial?: boolean
+    _isEligibleForTrial?: boolean
   ): Promise<ServerValidationResult> {
     try {
       // Add 10 second timeout to prevent hanging

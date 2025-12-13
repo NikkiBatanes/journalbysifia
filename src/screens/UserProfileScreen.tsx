@@ -1609,7 +1609,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     const tier = subscription.tier?.replace(/_annual$/, '') || 'seeker';
     // For trials, use billing_cycle field; for paid tiers, check tier suffix
-    const isAnnual = subscription.tier === 'free_trial' 
+    const isAnnual = subscription.tier === 'free_trial'
       ? subscription.billing_cycle === 'annual'
       : subscription.tier?.includes('_annual') || false;
     const billingPeriod = isAnnual ? 'Annual' : 'Monthly';

@@ -273,7 +273,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   // Force correct the tier to seeker - preserve other fields
                   await supabase
                     .from('user_subscriptions_new')
-                    .update({ 
+                    .update({
                       tier: 'seeker',
                       // Preserve other important fields to avoid NULLing them
                       playbooks_limit: 2,
