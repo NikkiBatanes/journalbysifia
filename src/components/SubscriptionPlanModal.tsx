@@ -203,7 +203,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       return {
         text: 'Free Plan',
         badge: true,
-        color: Colors.textGray,
+        color: Colors.faithGold,
       };
     }
 
