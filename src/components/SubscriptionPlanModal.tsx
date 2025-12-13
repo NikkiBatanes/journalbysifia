@@ -61,10 +61,10 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         forceRefresh,
         component: 'SubscriptionPlanModal',
       });
-      
+
       // Force fresh read when modal opens to get latest subscription data
       const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, forceRefresh);
-      
+
       Logger.info('[SubscriptionPlanModal] Subscription data loaded', {
         userId: user.id,
         tier: subscriptionData?.tier,
@@ -74,7 +74,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         forceRefresh,
         component: 'SubscriptionPlanModal',
       });
-      
+
       setSubscription(subscriptionData as any);
     } catch (error) {
       Logger.error('Failed to load subscription data for modal', error as Error, {
@@ -314,16 +314,19 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
       // Don't close modal immediately - let user close it manually
 
+      // For annual users, show only annual plans to prevent downgrading to monthly
       // For Transformation monthly users, show only annual transformation option
       // For other tiers, use normal upgrade mode
       const isTransformationMonthly = tierBase === 'transformation' && !isAnnual;
+      const isAnnualUser = isAnnual && tierBase !== 'seeker';
 
       (navigation as any).navigate('OnboardingSalesOffer', {
         source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
-        upgradeMode: !isTransformationMonthly, // Use onboarding mode for Transformation monthly to show all tiers
+        upgradeMode: !isTransformationMonthly && !isAnnualUser, // Use onboarding mode for Transformation monthly to show all tiers, but filtered mode for annual users
         forceTransformationAnnual: isTransformationMonthly, // Custom flag to filter to only annual transformation
+        forceAnnualOnly: isAnnualUser, // Show only annual plans for current tier
       });
     } else {
       console.log('SubscriptionPlanModal: Navigation not available');

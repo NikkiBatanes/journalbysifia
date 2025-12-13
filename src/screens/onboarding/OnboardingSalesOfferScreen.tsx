@@ -53,6 +53,7 @@ interface RouteParams {
   returnToReflection?: boolean; // when launched from reflection editor
   dismissBothModalsOnClose?: boolean; // when both modals should be dismissed on close
   forceTransformationAnnual?: boolean; // Show only annual transformation option
+  forceAnnualOnly?: boolean; // Show only annual plans for current tier
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
@@ -86,7 +87,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   };
 
-  const [isAnnual, setIsAnnual] = useState((route.params as any)?.forceTransformationAnnual || false);
+  const [isAnnual, setIsAnnual] = useState((route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly || false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
@@ -98,6 +99,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
                               (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
   const initialSelectedTier = (route.params as any)?.forceTransformationAnnual ? 'transformation' :
+                              (route.params as any)?.forceAnnualOnly ? currentUserTier :
                               isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
@@ -314,6 +316,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         if ((route.params as any)?.forceTransformationAnnual) {
           tiers = tiers.filter(t => t.id === 'transformation');
           logger.debug('Filtered to only show Transformation annual', {
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
+        // Filter to show only annual plans for current tier when forced
+        if ((route.params as any)?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker') {
+          const baseTier = currentUserTier.replace('_annual', '');
+          tiers = tiers.filter(t => t.id === baseTier);
+          logger.debug('Filtered to show only annual plans for current tier', {
+            currentUserTier,
+            baseTier,
             remainingTiers: tiers.map(t => t.id),
           });
         }
@@ -1230,6 +1243,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             return null;
           }
 
+          // Hide Popular badge when forcing annual only (only one tier shown)
+          if ((route.params as any)?.forceAnnualOnly) {
+            return null;
+          }
+
           // Show Popular badge in other contexts
           const shouldShowPopular = tier.isPopular || (tier.id === 'transformation' && !growthVisible);
           return shouldShowPopular ? (
@@ -1480,14 +1498,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               ? `Unlock ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
                               : (route.params as any)?.forceTransformationAnnual
                                 ? 'Upgrade to Annual Plan for maximum savings!'
-                                : "You've taken your first step!"}
+                                : (route.params as any)?.forceAnnualOnly
+                                  ? 'Continue with annual billing for maximum savings!'
+                                  : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
               ? dynamicSalesCopy.message
               : (route.params as any)?.forceTransformationAnnual
                 ? 'Save the equivalent of 2 months when you choose annual billing. Continue your spiritual journey with all premium features.'
-                : isUpgradeMode
+                : (route.params as any)?.forceAnnualOnly
+                  ? 'You are currently on an annual plan. Continue with the same great value and maximum savings.'
+                  : isUpgradeMode
                   ? 'Choose a plan that meets you where you are and helps you go deeper.'
                 : fromPlanningLock
                   ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
@@ -1762,7 +1784,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               ? 'Upgrade to Copy To-Dos'
                               : (route.params as any)?.forceTransformationAnnual
                                 ? 'Upgrade Plan to Annual'
-                                : 'Continue My Journey'}
+                                : (route.params as any)?.forceAnnualOnly
+                                  ? 'Continue with Annual Plan'
+                                  : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
