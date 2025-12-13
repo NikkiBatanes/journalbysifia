@@ -118,7 +118,7 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         platform_transaction_id: transactionId,
         billing_cycle: billingCycle || 'monthly',
         auto_renew_enabled: true,
-        status: 'trialing',
+        status: 'free_trial',
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id'
