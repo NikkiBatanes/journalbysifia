@@ -78,6 +78,84 @@ interface ValidationData {
   rawResponse: AppleReceiptResponse;
 }
 
+interface CreateTrialParams {
+  supabase: SupabaseClient;
+  userId: string;
+  chosenTier: string;
+  platformSubscriptionId: string;
+  transactionId: string;
+  billingCycle?: 'monthly' | 'annual';
+}
+
+interface CreateTrialResult {
+  success: boolean;
+  tier: 'free_trial';
+  chosenTier: string;
+  trialEndDate: string;
+  error?: string;
+}
+
+// Create trial function
+async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult> {
+  try {
+    const { supabase, userId, chosenTier, platformSubscriptionId, transactionId, billingCycle } = params;
+    
+    // Calculate trial end date (3 days from now)
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 3);
+    const trialEndDateIso = trialEndDate.toISOString();
+    
+    // Create trial subscription
+    const { data, error } = await supabase
+      .from('user_subscriptions_new')
+      .upsert({
+        user_id: userId,
+        tier: 'free_trial',
+        trial_chosen_tier: chosenTier,
+        trial_start_date: new Date().toISOString(),
+        trial_end_date: trialEndDateIso,
+        platform_subscription_id: platformSubscriptionId,
+        platform_transaction_id: transactionId,
+        billing_cycle: billingCycle || 'monthly',
+        auto_renew_enabled: true,
+        status: 'trialing',
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[createTrial] Database error:', error);
+      return {
+        success: false,
+        tier: 'free_trial',
+        chosenTier,
+        trialEndDate: trialEndDateIso,
+        error: error.message
+      };
+    }
+    
+    console.log('[createTrial] Trial created successfully:', data);
+    return {
+      success: true,
+      tier: 'free_trial',
+      chosenTier,
+      trialEndDate: trialEndDateIso
+    };
+  } catch (error) {
+    console.error('[createTrial] Error:', error);
+    return {
+      success: false,
+      tier: 'free_trial',
+      chosenTier: params.chosenTier,
+      trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      error: error.message
+    };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -200,12 +278,33 @@ serve(async (req) => {
           await updateUserSubscription(supabase, userId, validationResult.data);
           console.log('[ValidateReceipt] Trial upgraded to paid subscription successfully');
         } else {
-          // NEW TRIAL: Eligible user starting trial - skip (createTrial handles it)
-          console.log('[ValidateReceipt] NEW TRIAL detected - skipping update', {
+          // NEW TRIAL: Eligible user starting trial - create trial now
+          console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
             currentTier,
             productId: validationResult.data?.productId,
             isEligibleForTrial,
-            reason: 'New trial - will be handled by createTrial()'
+            reason: 'New trial - creating now'
+          });
+          
+          // Create the trial subscription
+          const trialResult = await createTrial({
+            supabase,
+            userId,
+            chosenTier: targetTier,
+            platformSubscriptionId: validationResult.data?.subscriptionId || '',
+            transactionId: validationResult.data?.transactionId || '',
+            billingCycle: validationResult.data?.billingCycle as 'monthly' | 'annual' | undefined
+          });
+          
+          if (!trialResult.success) {
+            console.error('[ValidateReceipt] Trial creation failed:', trialResult.error);
+            throw new Error(`Trial creation failed: ${trialResult.error}`);
+          }
+          
+          console.log('[ValidateReceipt] Trial created successfully:', {
+            tier: trialResult.tier,
+            chosenTier: trialResult.chosenTier,
+            trialEndDate: trialResult.trialEndDate
           });
         }
       } else {
