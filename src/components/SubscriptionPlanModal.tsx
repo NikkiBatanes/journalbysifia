@@ -125,6 +125,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             'Track your progress week by week',
                         'Calendar Sync to stay on track',
             'Copy To-Dos to other dates for flexibility',
+            'Smart Journaling for personalized reflection',
           ],
           limits: {
             playbooks: 8,
