@@ -318,6 +318,26 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
         }
 
+        // Filter tiers based on current trial tier to prevent downgrades
+        if (isUpgradeMode && subscription?.tier === 'free_trial' && subscription?.trial_chosen_tier) {
+          const trialTier = subscription.trial_chosen_tier;
+          const tierHierarchy = ['spark', 'growth', 'transformation'];
+          const trialIndex = tierHierarchy.indexOf(trialTier);
+          
+          if (trialIndex !== -1) {
+            // Only show tiers at or above the current trial tier
+            tiers = tiers.filter(t => {
+              const tierIndex = tierHierarchy.indexOf(t.id);
+              return tierIndex >= trialIndex;
+            });
+            logger.debug('Filtered tiers for trial upgrade mode', {
+              trialTier,
+              trialIndex,
+              remainingTiers: tiers.map(t => t.id),
+            });
+          }
+        }
+
         const currency = await pricingService.getCurrencyInfo();
         logger.debug('Currency info loaded', { currency });
         logger.debug('Sample tier prices', tiers[0] ? {
