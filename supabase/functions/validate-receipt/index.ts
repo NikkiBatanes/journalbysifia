@@ -91,7 +91,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request
-    const { receiptData, userId, platform, productId }: ValidateReceiptRequest = await req.json();
+    const { receiptData, userId, platform, productId, isEligibleForTrial }: ValidateReceiptRequest = await req.json();
 
     console.log('[ValidateReceipt] Request:', { platform, productId });
 
