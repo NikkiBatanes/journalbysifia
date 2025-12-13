@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -388,6 +389,17 @@ const OnboardingTrialOfferScreen = () => {
       try {
         // Initialize payment service first
         await paymentService.initialize();
+
+        // Set trial eligibility before purchase
+        if (Platform.OS === 'ios') {
+          try {
+            const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
+            const storeKit = AppleStoreKitService.getInstance();
+            storeKit.setPurchaseEligibility(true); // TrialOfferScreen is always for eligible users
+          } catch (error) {
+            logger.warn('Failed to set purchase eligibility before iOS purchase', { error: error as Error });
+          }
+        }
 
         // Now initiate purchase
         logger.info('🛒 TRIAL STEP 1: Initiating trial purchase', {
