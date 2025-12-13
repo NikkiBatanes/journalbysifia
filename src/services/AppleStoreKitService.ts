@@ -1411,8 +1411,12 @@ export class AppleStoreKitService {
     productId?: string
   ): Promise<ServerValidationResult> {
     try {
+      // Add 10 second timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Server validation timeout after 10s')), 10000)
+      );
 
-      const { data, error } = await supabase.functions.invoke('validate-receipt', {
+      const validationPromise = supabase.functions.invoke('validate-receipt', {
         body: {
           receiptData,
           userId,
@@ -1420,6 +1424,8 @@ export class AppleStoreKitService {
           productId,
         },
       });
+
+      const { data, error } = await Promise.race([validationPromise, timeoutPromise]);
 
       if (error) {
         Logger.error('[StoreKit] Server validation error', error as Error, {

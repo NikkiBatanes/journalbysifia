@@ -155,8 +155,16 @@ serve(async (req) => {
       );
     }
 
-    // Update user subscription status
-    await updateUserSubscription(supabase, userId, validationResult.data);
+    // Update user subscription status ONLY for non-trial products
+    // Trial products are handled by startFreeTrial() in the app
+    const isTrialProduct = (productId || validationResult.data?.productId || '').includes('freetrial');
+    
+    if (!isTrialProduct) {
+      await updateUserSubscription(supabase, userId, validationResult.data);
+      console.log('[ValidateReceipt] Subscription updated for non-trial product');
+    } else {
+      console.log('[ValidateReceipt] Skipping subscription update for trial product - will be handled by startFreeTrial()');
+    }
 
     console.log('[ValidateReceipt] Success for platform:', platform);
 
