@@ -288,7 +288,7 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
   }
   
   // Sort by purchase_date_ms descending to get the most recent transaction
-  const latestReceipt = receipts.sort((a: any, b: any) => {
+  const latestReceipt = receipts.sort((a, b) => {
     const aTime = parseInt(a.purchase_date_ms || '0');
     const bTime = parseInt(b.purchase_date_ms || '0');
     return bTime - aTime; // Descending order (newest first)
@@ -454,7 +454,7 @@ function mapProductIdToTier(productId: string): string {
 /**
  * Get tier limits for subscription
  */
-function getTierLimits(tier: string): {
+function _getTierLimits(tier: string): {
   playbooks_limit: number;
   devotionals_limit: number;
   smart_journaling_enabled: boolean;
