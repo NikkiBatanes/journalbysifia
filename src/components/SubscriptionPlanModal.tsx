@@ -175,7 +175,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
         return {
           name: `siFia ${chosenTierName}${billingCycle} Trial`,
-          description: `3-day free trial of ${chosenTierName}${billingCycle}`,
+          description: `3-day free trial of ${chosenTierName}`,
           features: [
             `3 days free access to the ${chosenTierName}${billingCycle} plan`,
             '2 playbooks during trial',
