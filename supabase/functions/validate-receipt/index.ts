@@ -105,7 +105,7 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
     trialEndDate.setDate(trialEndDate.getDate() + 3);
     const trialEndDateIso = trialEndDate.toISOString();
 
-    // Create trial subscription
+    // Create trial subscription with trial limits (2/2)
     const { data, error } = await supabase
       .from('user_subscriptions_new')
       .upsert({
@@ -119,6 +119,12 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         billing_cycle: billingCycle || 'monthly',
         auto_renew_enabled: true,
         status: 'active',
+        // CRITICAL: Set trial limits to 2/2, not the chosen tier limits
+        playbooks_limit: 2,
+        devotionals_limit: 2,
+        playbooks_used: 0,
+        devotionals_used: 0,
+        smart_journaling_enabled: true,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id',
