@@ -971,6 +971,7 @@ export class NewSubscriptionService {
 
   /**
    * Check if upgrade path is valid
+   * NOTE: Currently allows both upgrades AND downgrades for testing
    */
   private static isValidUpgrade(from: SubscriptionTier, to: SubscriptionTier): boolean {
     const tierHierarchy = ['seeker', 'free_trial', 'spark', 'growth', 'transformation']; // POST-LAUNCH: add 'family'
@@ -985,8 +986,9 @@ export class NewSubscriptionService {
     // POST-LAUNCH: Can upgrade from any tier to family
     // if (toBase === 'family') {return true;}
 
-    // Can upgrade to higher tiers or same tier with different billing cycle
-    return toIndex >= fromIndex;
+    // Allow all tier changes (upgrades and downgrades) for testing
+    // TODO: Decide business logic - should downgrades be allowed?
+    return fromIndex !== -1 && toIndex !== -1;
   }
 
   /**
