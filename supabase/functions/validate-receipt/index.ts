@@ -325,7 +325,34 @@ serve(async (req) => {
           productId: validationResult.data?.productId,
           reason: 'Trial period has not ended yet',
         });
-        // Do nothing - trial stays as trial with 2/2 limits
+
+        // FIX: Ensure trial has correct limits (2/2) - existing trials might have wrong limits
+        console.log('[ValidateReceipt] Checking and fixing trial limits', {
+          currentPlaybooksLimit: currentSub?.playbooks_limit,
+          currentDevotionalsLimit: currentSub?.devotionals_limit,
+          expectedPlaybooksLimit: 2,
+          expectedDevotionalsLimit: 2,
+        });
+
+        if (currentSub?.playbooks_limit !== 2 || currentSub?.devotionals_limit !== 2) {
+          console.log('[ValidateReceipt] FIXING: Updating trial limits to 2/2');
+          const { error: updateError } = await supabase
+            .from('user_subscriptions_new')
+            .update({
+              playbooks_limit: 2,
+              devotionals_limit: 2,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId)
+            .eq('tier', 'free_trial');
+
+          if (updateError) {
+            console.error('[ValidateReceipt] Failed to fix trial limits:', updateError);
+          } else {
+            console.log('[ValidateReceipt] Successfully fixed trial limits to 2/2');
+          }
+        }
+        // Trial stays as trial with correct 2/2 limits
       } else {
         // Trial has ended - convert to paid
         console.log('[ValidateReceipt] TRIAL CONVERSION detected - converting to paid', {
