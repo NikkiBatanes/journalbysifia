@@ -1343,8 +1343,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       <PurchaseSuccessModal
         visible={showSuccessModal}
-        tier={devotionalGating.subscription?.tier === 'free_trial' ? `${devotionalGating.subscription?.trial_chosen_tier || selectedTier}_trial` : (lastPurchasedTier || selectedTier)}
-        isTrial={devotionalGating.subscription?.tier === 'free_trial'}
+        tier={lastPurchasedTier || selectedTier}
+        isTrial={shouldUseTrialProduct}
         isValidated={purchaseValidated}
         onContinue={handleSuccessModalContinue}
       />

@@ -147,10 +147,25 @@ serve(async (req) => {
     // Route to appropriate handler
     switch (notificationType) {
       case 'DID_RENEW': {
-        // Check if this is trial conversion or regular renewal
+        // CRITICAL: Detect NEW TRIAL START vs TRIAL CONVERSION vs REGULAR RENEWAL
+        // NEW TRIAL START: User on 'seeker' purchasing .freetrial product → Skip (app handles with createTrial)
+        // TRIAL CONVERSION: User on 'free_trial' charged after trial ends → Convert to paid
+        // REGULAR RENEWAL: User on paid tier renewing → Reset usage
+        
+        const isTrialProduct = (productId || '').includes('freetrial');
+        const isNewTrialStart = subscription.tier === 'seeker' && isTrialProduct;
         const isTrialConversion = subscription.tier === 'free_trial' && offerType === 1;
 
-        if (isTrialConversion) {
+        if (isNewTrialStart) {
+          // NEW TRIAL START: Skip webhook - app will handle with createTrial()
+          console.log('[AppleWebhook] 🎯 NEW TRIAL START detected - skipping webhook (app will handle)', {
+            currentTier: subscription.tier,
+            productId,
+            reason: 'User on seeker purchasing .freetrial product - createTrial() will handle setup'
+          });
+          // Don't process - let the app's TrialManagementService.createTrial() handle it
+          break;
+        } else if (isTrialConversion) {
           // CRITICAL: Trial → Paid conversion
           console.log('[AppleWebhook] 🎉 Trial converting to paid (Apple charged)');
 
