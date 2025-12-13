@@ -1833,7 +1833,7 @@ export class AppleStoreKitService {
 
       return {
         success: true,
-        message: `Successfully restored ${availablePurchases.length} purchase(s) (${validatedCount} validated)`,
+        message: 'Your purchases have been successfully restored!',
         validated: validatedCount,
       };
 
