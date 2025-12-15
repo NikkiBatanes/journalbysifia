@@ -408,7 +408,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       minWidth: 56, // ensures perfect circle when collapsed
     },
     fabIconContainer: {
-      width: 56,
       height: 56,
       borderRadius: 28,
       justifyContent: 'center',
@@ -1476,15 +1475,45 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
           activeOpacity={0.8}
         >
-          <View style={styles.fabIconContainer}>
-            <Image
+          <Animated.View style={[
+            styles.fabIconContainer,
+            {
+              width: buttonWidth.interpolate({
+                inputRange: [56, 220],
+                outputRange: [56, 80], // Icon container expands from 56 to 80 when button expands
+                extrapolate: 'clamp',
+              }),
+            },
+          ]}>
+            <Animated.Image
               source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
-              style={styles.floatingButtonIcon}
+              style={[
+                styles.floatingButtonIcon,
+                {
+                  transform: [
+                    {
+                      scale: buttonWidth.interpolate({
+                        inputRange: [56, 220],
+                        outputRange: [1, 1.1], // Icon scales up 10% when button expands
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                },
+              ]}
               resizeMode="contain"
               accessibilityLabel="siFia"
             />
-          </View>
-          <Animated.View style={{ opacity: textOpacity, width: textWidth }}>
+          </Animated.View>
+          <Animated.View style={{
+            opacity: textOpacity,
+            width: textWidth,
+            marginLeft: buttonWidth.interpolate({
+              inputRange: [56, 220],
+              outputRange: [0, -20], // Shift text left by 20px when icon expands to compensate
+              extrapolate: 'clamp',
+            }),
+          }}>
             <ThemedText weight="semiBold" style={styles.expandText} numberOfLines={1}>
               Create a Playbook
             </ThemedText>
