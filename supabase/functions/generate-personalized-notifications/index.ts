@@ -1,6 +1,40 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+interface UserProfile {
+  first_name?: string;
+  last_name?: string;
+  current_streak?: number;
+  timezone?: string;
+}
+
+interface NotificationData {
+  playbook_title?: string;
+  playbookTitle?: string;
+  step_title?: string;
+  stepTitle?: string;
+  challenge_title?: string;
+  challengeTitle?: string;
+  devotional_title?: string;
+  devotionalTitle?: string;
+  prompt_preview?: string;
+  promptPreview?: string;
+  verse_reference?: string;
+  verseReference?: string;
+  verse_preview?: string;
+  versePreview?: string;
+  time_left?: string;
+  timeLeft?: string;
+  hoursLeft?: number;
+  category?: string;
+  requesterName?: string;
+  prayerPreview?: string;
+  streakDays?: number;
+  deadline?: string;
+  requester_name?: string;
+  prayer_preview?: string;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -146,8 +180,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Notification generation error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -156,7 +191,7 @@ serve(async (req) => {
   }
 });
 
-async function generateSpecificNotification(supabase: any, userId: string, type: string, data: any) {
+async function generateSpecificNotification(supabase: any, userId: string, type: string, data: NotificationData) {
   // Get user profile for personalization
   const { data: user, error: userError } = await supabase
     .from('user_profiles')
@@ -210,15 +245,15 @@ async function generateDailyBatch(supabase: any) {
     playbook_steps: 0,
   };
 
-  // Generate prayer reminders
+  // Generate prayer reminders (scheduled for 8:00 AM)
   await supabase.rpc('check_prayer_reminders');
   results.prayer_reminders++;
 
-  // Generate devotional reminders
+  // Generate devotional reminders (scheduled for 9:00 AM - 1 hour later)
   await supabase.rpc('check_devotional_reminders');
   results.devotional_reminders++;
 
-  // Generate playbook step reminders
+  // Generate playbook step reminders (scheduled for 6:00 PM - evening)
   await supabase.rpc('check_playbook_step_reminders');
   results.playbook_steps++;
 
@@ -277,7 +312,7 @@ async function checkTriggersAndGenerate(supabase: any) {
   );
 }
 
-function generatePersonalizedMessage(template: NotificationTemplate, user: any, data: any): string {
+function generatePersonalizedMessage(template: NotificationTemplate, user: any, data: NotificationData): string {
   const templates = template.templates;
   const selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
 
@@ -308,7 +343,7 @@ function generatePersonalizedMessage(template: NotificationTemplate, user: any, 
   return message;
 }
 
-function generateTitle(type: string, _data: any): string {
+function generateTitle(type: string, _data: NotificationData): string {
   const titles = {
     prayer_reminder: 'Time for Prayer 💙',
     playbook_step: 'Ready for Your Next Step? 🎯',
@@ -320,7 +355,7 @@ function generateTitle(type: string, _data: any): string {
     prayer_request: 'Prayer Request 🙏',
   };
 
-  return titles[type] || 'siFia Notification';
+  return (titles as any)[type] || 'siFia Notification';
 }
 
 function calculateScheduledTime(timing: string, _timezone?: string): string {

@@ -49,9 +49,66 @@ serve(async (req) => {
     }
 
     const results = [];
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const usersProcessedInThisBatch = new Set<string>();
 
-    for (const notification of pendingNotifications) {
+    // Process notifications with rate limiting
+    for (const notification of pendingNotifications || []) {
       try {
+        const userId = notification.user_id;
+        
+        // Check if we already sent a notification to this user in THIS batch
+        if (usersProcessedInThisBatch.has(userId)) {
+          console.log(`Skipping notification ${notification.id} - user ${userId} already received one in this batch`);
+          
+          // Reschedule for later (30 minutes from now)
+          await supabase
+            .from('notification_queue')
+            .update({
+              status: 'pending',
+              scheduled_for: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', notification.id);
+          
+          results.push({
+            id: notification.id,
+            success: false,
+            reason: 'rate_limited_same_batch',
+          });
+          continue;
+        }
+        
+        // Check if this user received a notification in the last 30 minutes from database
+        const { data: recentNotif } = await supabase
+          .from('notifications')
+          .select('created_at')
+          .eq('user_id', userId)
+          .gte('created_at', thirtyMinutesAgo)
+          .limit(1)
+          .single();
+        
+        if (recentNotif) {
+          console.log(`Skipping notification ${notification.id} - user ${userId} received one recently`);
+          
+          // Reschedule for later (30 minutes from now)
+          await supabase
+            .from('notification_queue')
+            .update({
+              status: 'pending',
+              scheduled_for: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', notification.id);
+          
+          results.push({
+            id: notification.id,
+            success: false,
+            reason: 'rate_limited_recent',
+          });
+          continue;
+        }
+        
         // Mark as being processed
         await supabase
           .from('notification_queue')
@@ -90,6 +147,9 @@ serve(async (req) => {
             })
             .eq('id', notification.id);
 
+          // Track this user to prevent sending more notifications in this batch
+          usersProcessedInThisBatch.add(userId);
+          
           results.push({
             id: notification.id,
             success: true,

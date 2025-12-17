@@ -151,6 +151,22 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       // Add haptic feedback
       triggerLightHaptic();
 
+      // Mark notification as read immediately
+      if (notification.id && !notification.is_read && user?.id) {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('id', notification.id)
+          .eq('user_id', user.id);
+
+        // Update local state to reflect the change immediately
+        setNotifications(prev =>
+          prev.map(n =>
+            n.id === notification.id ? { ...n, is_read: true } : n
+          )
+        );
+      }
+
       // Track analytics (tapped event)
       if (notification.id) {
         await notificationAnalyticsService.trackTapped(notification.id);
@@ -309,9 +325,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       // Clear badge immediately for instant UI update
       await clearBadge();
-
-      // Force refresh badge count to ensure instant update
-      await fetchBadgeCount();
 
       // Refresh the notification list
       await fetchNotifications();

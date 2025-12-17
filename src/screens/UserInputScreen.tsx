@@ -261,8 +261,8 @@ const UserInputScreen: React.FC = () => {
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
-  const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -200 : -16)).current; // in iPad landscape, start high up
-  const headerScale = useRef(new Animated.Value(0.65)).current;
+  const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -50 : -16)).current; // Adjusted iPad landscape position
+  const headerScale = useRef(new Animated.Value(0.45)).current;
   const headerIntroOpacity = useRef(new Animated.Value(0.8)).current; // Start visible but with subtle fade-in
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
@@ -313,7 +313,7 @@ const UserInputScreen: React.FC = () => {
         mass: 0.9,
       }),
       Animated.timing(headerScale, {
-        toValue: 0.65,
+        toValue: 0.45,
         duration: 200,
         useNativeDriver: true,
       }),
@@ -334,14 +334,14 @@ const UserInputScreen: React.FC = () => {
     // Return logo to original position when keyboard closes
     Animated.parallel([
       Animated.spring(headerTranslateY, {
-        toValue: isPad && isLandscape ? 20 : 0,
+        toValue: isPad && isLandscape ? 15 : 0,
         useNativeDriver: true,
         stiffness: 200,
         damping: 20,
         mass: 0.9,
       }),
       Animated.timing(headerScale, {
-        toValue: 1,
+        toValue: 0.45,
         duration: 200,
         useNativeDriver: true,
       }),

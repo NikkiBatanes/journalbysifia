@@ -139,12 +139,14 @@ export function useNotificationBadge() {
       });
       // Badge already set to 0 above, no need to repeat
     } finally {
-      // Clear the flag after a short delay to allow real-time subscriptions to settle
+      // Clear the flag after a longer delay to allow real-time subscriptions to settle
       setTimeout(() => {
         isClearingRef.current = false;
-      }, 500);
+        // Force one final refresh to ensure consistency
+        fetchBadgeCount();
+      }, 1000); // Increased from 500ms to 1000ms
     }
-  }, [user]);
+  }, [user, fetchBadgeCount]);
 
   /**
    * Increment badge count
