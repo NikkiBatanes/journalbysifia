@@ -378,6 +378,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     lottieIconUnderLogo: {
       width: isVerySmallPhone ? 160 : (isSmallPhone ? 310 : 350),
       height: isVerySmallPhone ? 160 : (isSmallPhone ? 310 : 350),
+      marginBottom: isTablet ? 24 : 0,
     },
     buttonSectionSmallPhone: {
       ...styles.buttonSectionSmallPhone,
@@ -420,7 +421,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         marginTop: isVerySmallPhone ? 8 : 10,
       } : {},
     },
-  }), [isVerySmallPhone, isSmallPhone]);
+  }), [isVerySmallPhone, isSmallPhone, isTablet]);
 
   const renderSlide = ({ item }: { item: Slide }) => (
     <View
