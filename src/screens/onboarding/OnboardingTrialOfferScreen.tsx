@@ -774,23 +774,6 @@ const OnboardingTrialOfferScreen = () => {
     return (t.annualPrice / 12);
   };
 
-  const getAnnualSavings = () => {
-    const t = getSelectedTier();
-    if (!t) {return 0;}
-    const monthlyTotal = t.monthlyPrice * 12;
-    const savings = monthlyTotal - t.annualPrice;
-    return savings;
-  };
-
-  const getSavingsPercentage = () => {
-    const t = getSelectedTier();
-    if (!t) {return 0;}
-    const monthlyTotal = t.monthlyPrice * 12;
-    const savings = monthlyTotal - t.annualPrice;
-    const percentage = (savings / monthlyTotal) * 100;
-    return Math.round(percentage);
-  };
-
   const formatShortDate = (date: Date) => {
     return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
   };

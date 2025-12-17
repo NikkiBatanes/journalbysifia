@@ -1157,21 +1157,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return tier ? (isAnnual ? tier.annualPrice : tier.monthlyPrice) : 0;
   };
 
-  const getGrowthTierPrice = () => {
-    const growthTier = pricingTiers.find(t => t.id === 'growth');
-    return growthTier ? (isAnnual ? growthTier.annualPrice : growthTier.monthlyPrice) : 0;
-  };
-
-  const getGrowthMonthlyEquivalent = () => {
-    const growthTier = pricingTiers.find(t => t.id === 'growth');
-    if (!growthTier) return '0';
-    const price = isAnnual ? (growthTier.annualPrice / 12) : growthTier.monthlyPrice;
-    // Remove .00 for PHP whole numbers
-    if (currencyInfo?.currency === 'PHP' && price % 1 === 0) {
-      return Math.floor(price).toString();
-    }
-    return price.toFixed(2);
-  };
 
   const getMonthlyEquivalent = (tier: PricingTier) => {
     const price = isAnnual ? (tier.annualPrice / 12) : tier.monthlyPrice;
@@ -2558,12 +2543,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-  },
-  trialBenefitText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    marginLeft: 10,
-    flex: 1,
   },
   bottomLinksContainer: {
     alignItems: 'center',
