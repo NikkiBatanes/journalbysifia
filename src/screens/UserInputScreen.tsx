@@ -262,7 +262,7 @@ const UserInputScreen: React.FC = () => {
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
   const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -200 : -16)).current; // in iPad landscape, start high up
-  const headerScale = useRef(new Animated.Value(1)).current;
+  const headerScale = useRef(new Animated.Value(0.65)).current;
   const headerIntroOpacity = useRef(new Animated.Value(0.8)).current; // Start visible but with subtle fade-in
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
@@ -313,7 +313,7 @@ const UserInputScreen: React.FC = () => {
         mass: 0.9,
       }),
       Animated.timing(headerScale, {
-        toValue: 0.98,
+        toValue: 0.65,
         duration: 200,
         useNativeDriver: true,
       }),
