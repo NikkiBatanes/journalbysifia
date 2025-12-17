@@ -53,7 +53,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const isTablet = width >= 768;
   const isVerySmallPhone = !isTablet && height <= 700; // iPhone SE 2nd/3rd gen (667)
   const isSmallPhone = !isTablet && height > 700 && height <= 850; // iPhone 14 Pro (844) and similar
-  const logoSize = isVerySmallPhone ? 80 : (isTablet ? 200 : 120); // Even smaller logo for iPhone SE
+  const logoSize = isVerySmallPhone ? 100 : (isTablet ? 120 : 100); // iPad (120), iPhone (100)
 
   // Create dynamic styles based on screen size
   const dynamicStyles = useMemo(() => StyleSheet.create({
@@ -67,27 +67,27 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       maxWidth: 720,
     },
     lottieAnimation: {
-      width: isVerySmallPhone ? 160 : 350,
-      height: isVerySmallPhone ? 160 : 350,
-      marginTop: isVerySmallPhone ? -35 : -100,
+      width: isVerySmallPhone ? 280 : 350,
+      height: isVerySmallPhone ? 280 : 350,
+      marginTop: isVerySmallPhone ? -100 : -100,
     },
     titleContainer: {
       alignItems: 'center',
-      marginBottom: isVerySmallPhone ? 12 : 20,
-      marginTop: isVerySmallPhone ? -45 : -80,
+      marginBottom: isVerySmallPhone ? 6 : 20,
+      marginTop: isVerySmallPhone ? -60 : -80,
     },
     title: {
       fontSize: isVerySmallPhone ? 22 : 28,
       fontWeight: 'bold',
       color: Colors.white,
       textAlign: 'center',
-      marginBottom: isVerySmallPhone ? 4 : 16,
+      marginBottom: isVerySmallPhone ? 1 : 8,
     },
     subtitle: {
       fontSize: isVerySmallPhone ? 13 : 16,
       color: Colors.white,
       textAlign: 'center',
-      marginBottom: isVerySmallPhone ? 12 : 32,
+      marginBottom: isVerySmallPhone ? 6 : 16,
       opacity: 0.8,
     },
     formContainer: {
