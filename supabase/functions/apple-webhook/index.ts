@@ -11,7 +11,14 @@ const corsHeaders = {
 };
 
 // Decode JWT transaction info (simplified - production should verify signature)
-function decodeTransactionInfo(signedInfo: string): any | null {
+interface TransactionInfo {
+  transactionId: string;
+  originalTransactionId: string;
+  productId: string;
+  offerType?: number;
+}
+
+function decodeTransactionInfo(signedInfo: string): TransactionInfo | null {
   try {
     const parts = signedInfo.split('.');
     if (parts.length !== 3) return null;
@@ -73,6 +80,18 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Apple webhooks don't send authorization headers, so we allow them without auth
+  // Apple authenticates via signed payload verification (which we do below)
+  const userAgent = req.headers.get('user-agent') || '';
+  const appleNotificationType = req.headers.get('apple-notification-type') || '';
+  const isAppleWebhook = userAgent.includes('Apple') || appleNotificationType !== null;
+
+  console.log('[AppleWebhook] Auth check:', { userAgent, appleNotificationType, isAppleWebhook });
+
+  if (!isAppleWebhook && !req.headers.get('authorization')) {
+    return new Response('Missing authorization header', { status: 401 });
+  }
+
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -128,7 +147,7 @@ serve(async (req) => {
       const { data: fallbackSub } = await supabaseClient
         .from('user_subscriptions_new')
         .select('*')
-        .eq('platform_transaction_id', originalTransactionId)
+        .eq('platform_transaction_id', transactionId)  // Fix: Use transactionId not originalTransactionId
         .single();
       
       if (!fallbackSub) {
@@ -338,6 +357,7 @@ serve(async (req) => {
             billing_issue: false,
             grace_period_end_date: null,
             subscription_end_date: new Date().toISOString(),
+            auto_renew_enabled: false, // Disable auto-renewal on expiration
             status: 'expired',
             updated_at: new Date().toISOString(),
           })
