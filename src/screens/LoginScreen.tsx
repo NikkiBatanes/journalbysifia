@@ -29,7 +29,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [screen, setScreen] = React.useState({ width: win.width, height: win.height });
   const isLandscape = screen.width > screen.height;
   const isTablet = screen.width >= 768;
-  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
+  const logoSize = isTablet ? 120 : 100; // iPad (120), iPhone (100)
   // Treat SE-class and other very small phones as small; threshold mirrors onboarding/register screens
   const isVerySmallPhone = !isTablet && screen.height <= 700; // iPhone SE 2nd/3rd gen (667)
   const isSmallPhone = !isTablet && screen.height > 700 && screen.height <= 850;
@@ -63,14 +63,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     },
     illustrationContainer: {
       width: '100%',
-      height: isVerySmallPhone ? 220 : 300,
+      height: isVerySmallPhone ? 180 : 220,
       alignItems: 'center',
       justifyContent: 'center',
-      marginVertical: isVerySmallPhone ? 8 : 20,
+      marginVertical: isVerySmallPhone ? 4 : 8,
     },
     lottieAnimation: {
-      width: isVerySmallPhone ? 260 : 350,
-      height: isVerySmallPhone ? 260 : 350,
+      width: isVerySmallPhone ? 280 : 280,
+      height: isVerySmallPhone ? 280 : 280,
     },
     titleContainer: {
       alignItems: 'center',
@@ -87,7 +87,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     },
     buttonContainer: {
       width: '100%',
-      gap: isVerySmallPhone ? 6 : 12,
+      gap: isVerySmallPhone ? 8 : 12,
       marginTop: isVerySmallPhone ? 8 : 16,
     },
     appleButton: {
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     alignSelf: 'center',
-    marginTop: 0,
+    marginTop: 60,
   },
   illustrationContainer: {
     width: '100%',
