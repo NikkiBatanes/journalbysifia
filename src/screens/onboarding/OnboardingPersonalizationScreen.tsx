@@ -296,6 +296,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Create dynamic styles based on screen size
   const dynamicStyles = React.useMemo(() => StyleSheet.create({
+    logoImage: {
+      width: isVerySmallPhone ? 100 : (isTablet ? 120 : 100),
+      height: isVerySmallPhone ? 100 : (isTablet ? 120 : 100),
+    },
     titleContainer: {
       alignItems: 'center',
       paddingHorizontal: 20,
@@ -324,7 +328,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       opacity: 0.8,
       lineHeight: 20,
     },
-  }), [isVerySmallPhone, isSmallPhone]);
+  }), [isVerySmallPhone, isSmallPhone, isTablet]);
 
   // Debug effect for step rendering
   React.useEffect(() => {
@@ -1134,10 +1138,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         <View style={styles.logoContainer}>
           <Image
             source={require('../../../assets/icons/siFia-logo-white.png')}
-            style={[OnboardingStyles.logoImage, { 
-              width: isVerySmallPhone ? 100 : (isTablet ? 120 : 100),
-              height: isVerySmallPhone ? 100 : (isTablet ? 120 : 100)
-            }]}
+            style={[OnboardingStyles.logoImage, dynamicStyles.logoImage]}
             resizeMode="contain"
           />
         </View>

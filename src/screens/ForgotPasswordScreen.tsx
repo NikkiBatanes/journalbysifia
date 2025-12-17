@@ -32,7 +32,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const [emailError, setEmailError] = useState('');
 
   // Responsive logo sizing for different devices
-  const { width, height } = Dimensions.get('window');
+  const { width } = Dimensions.get('window');
   const isTablet = width >= 768;
   const logoSize = isTablet ? 120 : 100; // iPad (120), iPhone (100)
 
@@ -179,9 +179,9 @@ const styles = StyleSheet.create({
   logo: {
     width: 120,
     height: 120,
-    alignSelf: 'flex-start',
-    marginTop: 0,
-    marginBottom: 10,
+    alignSelf: 'center',
+    marginTop: 60,
+    maxWidth: 600,
   },
   content: {
     flex: 1,
@@ -209,6 +209,9 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 25,
+    maxWidth: 600,
+    alignSelf: 'center',
+    width: '100%',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -245,6 +248,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
+    maxWidth: 600,
+    alignSelf: 'center',
+    width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,

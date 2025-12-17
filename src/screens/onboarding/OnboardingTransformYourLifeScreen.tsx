@@ -62,7 +62,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const isLandscape = screenSize.width > screenSize.height;
   const isTablet = screenSize.width >= 768;
   const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
-  const isSmallPhone = !isTablet && screenSize.height > 700 && screenSize.height <= 850; // iPhone 14 Pro (844) and similar
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
   const logoSize = isVerySmallPhone ? 100 : (isTablet ? 120 : 100); // iPad (120), iPhone (100)
   const [isLoading, setIsLoading] = useState(false);
@@ -162,7 +161,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     animationContainer: {
       width: '100%',
       aspectRatio: 1.2,
-      maxHeight: isVerySmallPhone ? 240 : 320,
+      maxHeight: isVerySmallPhone ? 240 : (isTablet ? 380 : 320),
       marginTop: isVerySmallPhone ? OnboardingSpacing.xxxl : -OnboardingSpacing.xxxl,
       marginBottom: 0,
       alignSelf: 'center',
@@ -190,7 +189,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
       fontSize: isVerySmallPhone ? 13 : 15, // Even smaller font for very small phones
       lineHeight: isVerySmallPhone ? 16 : 20,
     },
-  }), [isVerySmallPhone]);
+  }), [isVerySmallPhone, isTablet]);
 
   const handleContinue = async () => {
     // Haptic feedback for primary action

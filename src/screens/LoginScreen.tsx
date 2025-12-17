@@ -32,7 +32,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const logoSize = isTablet ? 120 : 100; // iPad (120), iPhone (100)
   // Treat SE-class and other very small phones as small; threshold mirrors onboarding/register screens
   const isVerySmallPhone = !isTablet && screen.height <= 700; // iPhone SE 2nd/3rd gen (667)
-  const isSmallPhone = !isTablet && screen.height > 700 && screen.height <= 850;
   const contentWidth = Math.min(isLandscape ? screen.width * 0.6 : screen.width * 0.92, 600);
   const [error, setError] = React.useState<string>('');
   const [activeProvider, setActiveProvider] = React.useState<null | 'apple' | 'google'>(null);

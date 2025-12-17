@@ -52,7 +52,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { width, height } = Dimensions.get('window');
   const isTablet = width >= 768;
   const isVerySmallPhone = !isTablet && height <= 700; // iPhone SE 2nd/3rd gen (667)
-  const isSmallPhone = !isTablet && height > 700 && height <= 850; // iPhone 14 Pro (844) and similar
   const logoSize = isVerySmallPhone ? 100 : (isTablet ? 120 : 100); // iPad (120), iPhone (100)
 
   // Create dynamic styles based on screen size
@@ -437,7 +436,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           </ScrollView>
         </View>
       </TouchableWithoutFeedback>
-      
+
       {/* Login Link - Outside constrained content for proper centering */}
       <View style={dynamicStyles.signUpContainer}>
         <ThemedText style={styles.loginText}>Already a member? </ThemedText>

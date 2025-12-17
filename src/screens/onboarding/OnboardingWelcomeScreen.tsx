@@ -155,7 +155,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
       isRegularPhone,
       isTablet,
     });
-  }, [screenSize, isTablet, isSmallPhone, isRegularPhone]);
+  }, [screenSize, isTablet, isSmallPhone, isRegularPhone, isVerySmallPhone]);
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
   // Width of the actual FlatList viewport; defaults to screen, but measured on layout
   const [listWidth, setListWidth] = useState(screenSize.width);
